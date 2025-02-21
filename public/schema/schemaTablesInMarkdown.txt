@@ -1,0 +1,116 @@
++-----------------------------------------------------------------+
+|                              USERS                              |
++-----------------------------------------------------------------+
+| id         : uuid (PK)                                          |
+| email      : text                                               |
+| full_name  : text                                               |
+| created_at : timestamptz (default: now())                       |
++-----------------------------------------------------------------+
+
++-----------------------------------------------------------------+
+|                          TASK_TEMPLATE                          |
++-----------------------------------------------------------------+
+| id                        : uuid (PK)                           |
+| title                     : text                                |
+| description               : text                                |
+| purpose                   : text                                |
+| actions                   : text                                |
+| resources                 : text[]                              |
+| hierarchy                 : task_hierarchy                      |
+|   (phase, milestone, task, subtask, custom)                     |
+| published                 : boolean                             |
+| license_id                : uuid (FK)                           |
+| created_at                : timestamptz                         |
+| template_id               : uuid (FK)                           |
+| default_duration          : integer                             |
+| days_from_start_until_due : integer                             |
+| parent_task_id            : uuid (FK, self-ref)                 |
+| position                  : integer                             |
++-----------------------------------------------------------------+
+
++-----------------------------------------------------------------+
+|                          PROJECT_TASKS                          |
++-----------------------------------------------------------------+
+| id              : uuid (PK)                                    |
+| master_task_id  : uuid (FK)    (Ref: TASK_TEMPLATE.id)         |
+| project_id      : uuid (FK)                                    |
+| is_complete     : boolean                                      |
+| marked_NA       : boolean                                      |
+| start_date      : date                                         |
+| due_date        : date                                         |
+| task_lead       : uuid (FK)                                    |
+| parent_task_id  : uuid (FK)                                    |
+| default_duration: integer                                      |
+| created_at      : timestamptz                                  |
++-----------------------------------------------------------------+
+
++-----------------------------------------------------------------+
+|                             PROJECTS                            |
++-----------------------------------------------------------------+
+| id               : uuid (PK)                                   |
+| name             : text                                        |
+| location         : text                                        |
+| start_date       : date                                        |
+| end_date         : date                                        |
+| due_soon_setting : integer                                     |
+| license_type     : text                                        |
+| status           : text                                        |
+| owner_id         : uuid (FK)                                   |
+| template_id      : uuid (FK)                                   |
+| license_id       : uuid (FK)                                   |
+| created_at       : timestamptz                                 |
++-----------------------------------------------------------------+
+
++-----------------------------------------------------------------+
+|                             TEMPLATES                           |
++-----------------------------------------------------------------+
+| id                  : uuid (PK)                                |
+| name                : text                                     |
+| published           : boolean                                  |
+| last_modified       : timestamptz                              |
+| project_duration    : integer                                  |
+| template_type       : template_type                            |
+| license             : text                                     |
+| price               : numeric                                  |
+| upgrade_price       : numeric                                  |
+| license_features    : text                                     |
+| nonlicense_features : text                                     |
+| owner_id            : uuid (FK)                                |
+| license_id          : uuid (FK)                                |
+| created_at          : timestamptz                              |
++-----------------------------------------------------------------+
+
++-----------------------------------------------------------------+
+|                             RESOURCES                           |
++-----------------------------------------------------------------+
+| id               : uuid (PK)                                   |
+| url              : text                                        |
+| description      : text                                        |
+| format           : text                                        |
+| status           : text                                        |
+| title            : text                                        |
+| last_modified    : timestamptz                                 |
+| publication_date : date                                        |
+| publisher        : uuid (FK)                                   |
+| license_id       : uuid (FK)                                   |
++-----------------------------------------------------------------+
+
++-----------------------------------------------------------------+
+|                           PROJECT_TEAM                          |
++-----------------------------------------------------------------+
+| id         : uuid (PK)                                         |
+| project_id : uuid (FK)                                         |
+| user_id    : uuid (FK)                                         |
+| role       : text                                              |
+| created_at : timestamptz                                       |
++-----------------------------------------------------------------+
+
++-----------------------------------------------------------------+
+|                      WHITE_LABEL_ADMINS                         |
++-----------------------------------------------------------------+
+| id               : uuid (PK)                                   |
+| license          : uuid    (Unique white label license id)     |
+| white_label_name : text                                        |
+| license_date     : date                                        |
+| user_id          : uuid (FK)                                   |
++-----------------------------------------------------------------+
