@@ -2,6 +2,7 @@ PlanterPlan
 
 Database Schema (Mermaid code):
 
+```
 erDiagram
     %% USERS table (authentication handled by Supabase Auth)
     USERS {
@@ -44,6 +45,7 @@ erDiagram
     %% Relationships
     USERS ||--o{ TASKS : "created by / assigned to / modified by"
     TASKS ||--o{ TASKS : "parent-child"
+```
 
 Schema Diagram (Mermaid):
 ![diagram image](public/schema/mermaid-diagram-2025-02-24-200948.png)
