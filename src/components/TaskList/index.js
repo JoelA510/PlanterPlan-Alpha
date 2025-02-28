@@ -220,51 +220,51 @@ const TaskList = () => {
   // Handle drop
   const handleDrop = async (e, targetTask) => {
     e.preventDefault();
-    
+  
     // Get the dragged task ID
     const draggedTaskId = e.dataTransfer.getData('text/plain');
-    
+  
     if (!draggedTaskId || !draggedTask || !dropTarget || !dropPosition) {
       return;
     }
-    
+  
     try {
       const draggedTaskObj = tasks.find(t => t.id === draggedTaskId);
       const targetTaskObj = tasks.find(t => t.id === targetTask.id);
-      
+  
       if (!draggedTaskObj || !targetTaskObj) {
         return;
       }
-      
+  
       // Calculate the old and new parent IDs and positions
       const oldParentId = draggedTaskObj.parent_task_id;
       let newParentId, newPosition;
-      
+  
       if (dropPosition === 'into') {
         // Dropping INTO a task - task becomes a child of the target
         newParentId = targetTaskObj.id;
-        
+  
         // Position at the end of the target's children
         const targetChildren = tasks
           .filter(t => t.parent_task_id === targetTaskObj.id)
           .filter(t => t.id !== draggedTaskObj.id)
           .sort((a, b) => a.position - b.position);
-        
+  
         newPosition = targetChildren.length;
       } else {
         // Dropping BEFORE or AFTER - task becomes a sibling of the target
         newParentId = targetTaskObj.parent_task_id;
-        
+  
         // Get all siblings in the container (excluding the dragged task)
         const siblings = tasks
           .filter(t => t.parent_task_id === targetTaskObj.parent_task_id)
           .filter(t => t.id !== draggedTaskObj.id)
           .sort((a, b) => a.position - b.position);
-        
+  
         const targetIndex = siblings.findIndex(t => t.id === targetTaskObj.id);
         newPosition = dropPosition === 'before' ? targetIndex : targetIndex + 1;
       }
-      
+  
       console.log('Moving task:', {
         task: draggedTaskObj.title,
         from: oldParentId,
@@ -272,8 +272,56 @@ const TaskList = () => {
         position: newPosition,
         dropPosition
       });
-      
-      // Update the dragged task in the database
+  
+      // Update the local state optimistically
+      setTasks((prevTasks) => {
+        const updatedTasks = prevTasks.map((task) => {
+          if (task.id === draggedTaskObj.id) {
+            return {
+              ...task,
+              parent_task_id: newParentId,
+              position: newPosition,
+            };
+          }
+          return task;
+        });
+  
+        // Update positions of siblings in the old parent container
+        if (oldParentId !== newParentId) {
+          const oldSiblings = updatedTasks
+            .filter(t => t.parent_task_id === oldParentId)
+            .filter(t => t.id !== draggedTaskObj.id)
+            .sort((a, b) => a.position - b.position);
+  
+          oldSiblings.forEach((sibling, index) => {
+            sibling.position = index;
+          });
+        }
+  
+        // Update positions of siblings in the new parent container
+        const newSiblings = updatedTasks
+          .filter(t => t.parent_task_id === newParentId)
+          .filter(t => t.id !== draggedTaskObj.id)
+          .sort((a, b) => a.position - b.position);
+  
+        newSiblings.forEach((sibling, index) => {
+          if (index >= newPosition) {
+            sibling.position = index + 1;
+          }
+        });
+  
+        // Debug: Log the task titles and positions at the same level after updating
+        console.group('Tasks at the same level after drop:');
+        const tasksAtSameLevel = updatedTasks.filter(t => t.parent_task_id === newParentId);
+        tasksAtSameLevel.forEach(task => {
+          console.log(`Task: ${task.title}, Position: ${task.position}`);
+        });
+        console.groupEnd();
+  
+        return updatedTasks;
+      });
+  
+      // Make the API calls to update task positions on the server
       const { error: updateError } = await supabase
         .from('tasks')
         .update({
@@ -281,18 +329,16 @@ const TaskList = () => {
           position: newPosition
         })
         .eq('id', draggedTaskObj.id);
-      
+  
       if (updateError) throw updateError;
-      
-      // Update positions of all affected tasks
-      
-      // 1. Update siblings in the old parent container
+  
+      // Update positions of siblings on the server
       if (oldParentId !== newParentId) {
         const oldSiblings = tasks
           .filter(t => t.parent_task_id === oldParentId)
           .filter(t => t.id !== draggedTaskObj.id)
           .sort((a, b) => a.position - b.position);
-        
+  
         for (let i = 0; i < oldSiblings.length; i++) {
           if (oldSiblings[i].position !== i) {
             await supabase
@@ -302,33 +348,47 @@ const TaskList = () => {
           }
         }
       }
-      
-      // 2. Update siblings in the new parent container
+  
       const newSiblings = tasks
         .filter(t => t.parent_task_id === newParentId)
         .filter(t => t.id !== draggedTaskObj.id)
         .sort((a, b) => a.position - b.position);
-      
-      // Insert at new position and adjust other positions
+  
+      const updatedNewSiblings = [];
+  
       for (let i = 0; i < newSiblings.length; i++) {
-        let adjustedPosition = i;
-        if (i >= newPosition) {
-          adjustedPosition = i + 1;
-        }
-        
-        if (newSiblings[i].position !== adjustedPosition) {
-          await supabase
+        if (newSiblings[i].position !== i) {
+          console.log('Updating new sibling position in Supabase:', {
+            id: newSiblings[i].id,
+            oldPosition: newSiblings[i].position,
+            newPosition: i
+          });
+      
+          const { data, error } = await supabase
             .from('tasks')
-            .update({ position: adjustedPosition })
-            .eq('id', newSiblings[i].id);
+            .update({ position: i })
+            .eq('id', newSiblings[i].id)
+            .single();
+      
+          if (error) {
+            throw error;
+          }
+      
+          updatedNewSiblings.push(data);
+        } else {
+          updatedNewSiblings.push(newSiblings[i]);
         }
       }
+  
+  
       
-      // Refresh task list
-      fetchTasks();
+  
     } catch (err) {
       console.error('Error handling task drop:', err);
       alert('Failed to update task position. Please try again.');
+  
+      // Revert the local state if an error occurs
+      fetchTasks();
     } finally {
       // Reset drag state
       setDraggedTask(null);
