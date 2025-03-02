@@ -133,16 +133,6 @@ const TaskList = () => {
     e.dataTransfer.setData('text/plain', task.id);
     setDraggedTask(task);
     
-    // Auto-expand tasks to make it easier to drop
-    tasks.forEach(t => {
-      if (t.id !== task.id && tasks.some(child => child.parent_task_id === t.id)) {
-        setExpandedTasks(prev => ({
-          ...prev, 
-          [t.id]: true
-        }));
-      }
-    });
-    
     // Add some delay to allow the drag image to be set
     setTimeout(() => {
       // Hide the original element during drag
