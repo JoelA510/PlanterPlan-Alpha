@@ -1,9 +1,5 @@
 /* Styling for the TaskList component */
 
-.task-container {
-  position: relative;
-}
-
 .task-header {
   user-select: none;
 }
@@ -19,20 +15,61 @@
   opacity: 0.4;
 }
 
+/* Update drop indicators for the new between paradigm */
 .drop-indicator {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 12px; /* Indent slightly from the left */
+  right: 12px; /* Indent slightly from the right */
   height: 3px;
   background-color: #3b82f6;
-  z-index: 10;
+  z-index: 20; /* Higher z-index to ensure visibility */
   border-radius: 1.5px;
+  pointer-events: none; /* Don't interfere with drag events */
 }
 
+/* Update positions for before/after to be more centered between tasks */
 .drop-indicator.before {
-  top: -2px;
+  top: -6px; /* Position in the middle of the gap */
 }
 
 .drop-indicator.after {
-  bottom: -2px;
+  bottom: -6px; /* Position in the middle of the gap */
+}
+
+.task-container {
+  position: relative;
+}
+
+/* Enhance the indicator visibility */
+.drop-indicator.active {
+  height: 4px;
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+.task-drop-zone {
+  height: 12px;
+  margin: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.task-drop-zone.active {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.task-drop-zone .indicator {
+  display: none;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #3b82f6;
+  border-radius: 1.5px;
+  pointer-events: none;
+}
+
+.task-drop-zone.active .indicator {
+  display: block;
 }
