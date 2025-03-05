@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import './TaskList.css'; // We'll create this file for any additional CSS
+import TaskDropZone from './TaskDropZone';
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
@@ -609,20 +610,20 @@ const renderTopLevelTasks = () => {
   return taskElements;
 };
 
-  // New TaskDropZone component
-  const TaskDropZone = ({ parentId, position, prevTask, nextTask, 
-      draggedTask, onDragOver, onDragLeave, onDrop, isActive }) => {
-    return (
-      <div 
-        className={`task-drop-zone ${isActive ? 'active' : ''}`}
-        onDragOver={(e) => onDragOver(e, parentId, position, prevTask, nextTask)}
-        onDragLeave={onDragLeave}
-        onDrop={(e) => onDrop(e, parentId, position)}
-      >
-        <div className="indicator"></div>
-      </div>
-    );
-  };
+  // // New TaskDropZone component
+  // const TaskDropZone = ({ parentId, position, prevTask, nextTask, 
+  //     draggedTask, onDragOver, onDragLeave, onDrop, isActive }) => {
+  //   return (
+  //     <div 
+  //       className={`task-drop-zone ${isActive ? 'active' : ''}`}
+  //       onDragOver={(e) => onDragOver(e, parentId, position, prevTask, nextTask)}
+  //       onDragLeave={onDragLeave}
+  //       onDrop={(e) => onDrop(e, parentId, position)}
+  //     >
+  //       <div className="indicator"></div>
+  //     </div>
+  //   );
+  // };
 
   // Helper function to check if a drop zone is active
   const isDropZoneActive = (parentId, position) => {
