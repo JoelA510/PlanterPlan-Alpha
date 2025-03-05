@@ -1,7 +1,7 @@
 // App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import TaskList from "./components/TaskList";
+import TaskList from "./components/TaskList/TaskList";
 import "./App.css"; // We'll add basic CSS to ensure styles are applied
 
 function App() {
