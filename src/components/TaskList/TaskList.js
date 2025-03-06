@@ -10,6 +10,8 @@ const TaskList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedTasks, setExpandedTasks] = useState({});
+  // New state for expanded details
+  const [expandedDetails, setExpandedDetails] = useState({});
 
   useEffect(() => {
     fetchTasks();
@@ -41,10 +43,22 @@ const TaskList = () => {
     }));
   };
   
+  // New function to toggle task details
+  const toggleTaskDetails = (taskId, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setExpandedDetails(prev => ({
+      ...prev,
+      [taskId]: !prev[taskId]
+    }));
+  };
+  
   // Initialize the drag and drop functionality
   const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTasks);
   
-  // Render top-level tasks with drop zones between them
+  // Render top-level tasks (projects) with spacing between them
   const renderTopLevelTasks = () => {
     const topLevelTasks = tasks
       .filter(task => !task.parent_task_id)
@@ -64,25 +78,9 @@ const TaskList = () => {
     
     const taskElements = [];
     
-    // Add a drop zone at the beginning (position 0)
-    taskElements.push(
-      <TaskDropZone 
-        key="dropzone-root-0"
-        parentId={null}
-        position={0}
-        prevTask={null}
-        nextTask={topLevelTasks[0]}
-        draggedTask={dragAndDrop.draggedTask}
-        onDragOver={dragAndDrop.handleDropZoneDragOver}
-        onDragLeave={dragAndDrop.handleDropZoneDragLeave}
-        onDrop={dragAndDrop.handleDropZoneDrop}
-        isActive={dragAndDrop.isDropZoneActive(null, 0)}
-      />
-    );
-    
-    // Add tasks with drop zones between them
+    // Render each project with spacing between them
     topLevelTasks.forEach((task, index) => {
-      // Add the task
+      // Add the task - now with expandedDetails props
       taskElements.push(
         <TaskItem 
           key={task.id}
@@ -90,45 +88,26 @@ const TaskList = () => {
           tasks={tasks}
           expandedTasks={expandedTasks}
           toggleExpandTask={toggleExpandTask}
+          expandedDetails={expandedDetails}
+          toggleTaskDetails={toggleTaskDetails}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
         />
       );
       
-      // Add a drop zone after the task (if not the last task)
+      // Add a spacing div after each project (except the last one)
       if (index < topLevelTasks.length - 1) {
         taskElements.push(
-          <TaskDropZone 
-            key={`dropzone-root-${index + 1}`}
-            parentId={null}
-            position={index + 1}
-            prevTask={task}
-            nextTask={topLevelTasks[index + 1]}
-            draggedTask={dragAndDrop.draggedTask}
-            onDragOver={dragAndDrop.handleDropZoneDragOver}
-            onDragLeave={dragAndDrop.handleDropZoneDragLeave}
-            onDrop={dragAndDrop.handleDropZoneDrop}
-            isActive={dragAndDrop.isDropZoneActive(null, index + 1)}
+          <div 
+            key={`project-spacer-${index}`}
+            style={{
+              height: '5px',  // Adjust this value to control spacing amount
+              margin: '2px 0'  // Additional margin for visual separation
+            }}
           />
         );
       }
     });
-    
-    // Add a final drop zone at the end
-    taskElements.push(
-      <TaskDropZone 
-        key={`dropzone-root-${topLevelTasks.length}`}
-        parentId={null}
-        position={topLevelTasks.length}
-        prevTask={topLevelTasks[topLevelTasks.length - 1]}
-        nextTask={null}
-        draggedTask={dragAndDrop.draggedTask}
-        onDragOver={dragAndDrop.handleDropZoneDragOver}
-        onDragLeave={dragAndDrop.handleDropZoneDragLeave}
-        onDrop={dragAndDrop.handleDropZoneDrop}
-        isActive={dragAndDrop.isDropZoneActive(null, topLevelTasks.length)}
-      />
-    );
     
     return taskElements;
   };
