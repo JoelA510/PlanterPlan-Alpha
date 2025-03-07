@@ -8,8 +8,8 @@ const TaskItem = ({
   tasks, 
   expandedTasks, 
   toggleExpandTask, 
-  expandedDetails,
-  toggleTaskDetails,
+  selectedTaskId,
+  selectTask,
   setTasks,
   dragAndDrop,
   parentTasks = []
@@ -30,7 +30,7 @@ const TaskItem = ({
   } = dragAndDrop;
 
   const isExpanded = expandedTasks[task.id];
-  const isDetailsExpanded = expandedDetails[task.id];
+  const isSelected = selectedTaskId === task.id;
   const hasChildren = tasks.some(t => t.parent_task_id === task.id);
   const children = tasks
     .filter(t => t.parent_task_id === task.id)
@@ -66,52 +66,6 @@ const TaskItem = ({
     }
   };
   
-  // Create task details panel component
-  const taskDetailsContent = isDetailsExpanded ? (
-    <div className="task-details" style={{
-      backgroundColor: '#f9fafb',
-      padding: '16px',
-      borderBottomLeftRadius: '4px',
-      borderBottomRightRadius: '4px',
-      borderLeft: `4px solid ${backgroundColor}`,
-      borderRight: '1px solid #e5e7eb',
-      borderBottom: '1px solid #e5e7eb',
-      marginBottom: '8px',
-      transition: 'all 0.2s ease'
-    }}>
-      <div className="detail-row">
-        <h4 style={{ fontWeight: 'bold', marginBottom: '4px' }}>Purpose:</h4>
-        <p>{task.purpose || 'No purpose specified'}</p>
-      </div>
-      <div className="detail-row">
-        <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '12px' }}>Description:</h4>
-        <p>{task.description || 'No description specified'}</p>
-      </div>
-      <div className="detail-row">
-        <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '12px' }}>Actions:</h4>
-        <ul style={{ paddingLeft: '20px', margin: '0' }}>
-          {task.actions && task.actions.length > 0 ? 
-            task.actions.map((action, index) => (
-              <li key={index}>{action}</li>
-            )) : 
-            <li>No actions specified</li>
-          }
-        </ul>
-      </div>
-      <div className="detail-row">
-        <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '12px' }}>Resources:</h4>
-        <ul style={{ paddingLeft: '20px', margin: '0' }}>
-          {task.resources && task.resources.length > 0 ? 
-            task.resources.map((resource, index) => (
-              <li key={index}>{resource}</li>
-            )) : 
-            <li>No resources specified</li>
-          }
-        </ul>
-      </div>
-    </div>
-  ) : null;
-  
   // Render children with drop zones
   let childrenContent = null;
   
@@ -136,7 +90,7 @@ const TaskItem = ({
     
     // Add children with drop zones between them
     children.forEach((child, index) => {
-      // Add the child with the expandedDetails props
+      // Add the child with the selectTask prop instead of expandedDetails
       childrenWithDropZones.push(
         <TaskItem 
           key={child.id}
@@ -144,8 +98,8 @@ const TaskItem = ({
           tasks={tasks}
           expandedTasks={expandedTasks}
           toggleExpandTask={toggleExpandTask}
-          expandedDetails={expandedDetails}
-          toggleTaskDetails={toggleTaskDetails}
+          selectedTaskId={selectedTaskId}
+          selectTask={selectTask}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
           parentTasks={[...parentTasks, task]}
@@ -205,13 +159,14 @@ const TaskItem = ({
     >
       {/* Task header - main draggable/droppable area */}
       <div 
-        className={`task-header ${isDropTarget && dropPosition === 'into' ? 'drop-target-into' : ''}`}
+        className={`task-header ${isDropTarget && dropPosition === 'into' ? 'drop-target-into' : ''} ${isSelected ? 'selected-task' : ''}`}
         draggable={!isTopLevel}
         onDragStart={(e) => handleDragStart(e, task)}
         onDragOver={(e) => handleDragOver(e, task)}
         onDragLeave={handleDragLeave}
         onDragEnd={handleDragEnd}
         onDrop={(e) => handleDrop(e, task)}
+        onClick={(e) => selectTask(task.id, e)}
         style={{
           backgroundColor,
           color: 'white',
@@ -221,9 +176,10 @@ const TaskItem = ({
           alignItems: 'center',
           fontWeight: 'bold',
           position: 'relative',
-          cursor: isTopLevel ? 'default' : 'grab',
-          borderRadius: isDetailsExpanded ? '4px 4px 0 0' : '4px',
-          transition: 'border-radius 0.2s ease'
+          cursor: isTopLevel ? 'pointer' : 'grab',
+          borderRadius: '4px',
+          transition: 'all 0.2s ease',
+          boxShadow: isSelected ? '0 0 0 2px white, 0 0 0 4px ' + backgroundColor : 'none'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -234,15 +190,14 @@ const TaskItem = ({
             type="checkbox"
             checked={task.is_complete || false}
             onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
+            onClick={(e) => e.stopPropagation()}
             style={{ marginRight: '12px' }}
           />
           <span 
             style={{ 
               textDecoration: task.is_complete ? 'line-through' : 'none',
               opacity: task.is_complete ? 0.7 : 1,
-              cursor: 'pointer'
             }}
-            onClick={(e) => toggleTaskDetails(task.id, e)}
           >
             {task.title}
           </span>
@@ -250,10 +205,13 @@ const TaskItem = ({
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <span style={{ marginRight: '12px' }}>Due: {formatDate(task.due_date)}</span>
           
-          {/* Task details toggle button */}
+          {/* Info button to view details in the right panel */}
           <button 
-            onClick={(e) => toggleTaskDetails(task.id, e)}
-            title="Show/hide task details"
+            onClick={(e) => {
+              e.stopPropagation();
+              selectTask(task.id, e);
+            }}
+            title="View task details"
             style={{
               background: 'rgba(255, 255, 255, 0.2)',
               border: '1px solid rgba(255, 255, 255, 0.4)',
@@ -267,10 +225,10 @@ const TaskItem = ({
               alignItems: 'center'
             }}
           >
-            <span style={{ marginRight: isDetailsExpanded ? '4px' : '6px' }}>
-              {isDetailsExpanded ? 'Hide Details' : 'Details'}
+            <span style={{ marginRight: '4px' }}>
+              {isSelected ? 'Selected' : 'Details'}
             </span>
-            {isDetailsExpanded ? ' ✕' : ' ⓘ'}
+            <span>ⓘ</span>
           </button>
           
           {/* Only show child tasks toggle if the task has children */}
@@ -292,9 +250,6 @@ const TaskItem = ({
           )}
         </div>
       </div>
-      
-      {/* Task details section */}
-      {taskDetailsContent}
       
       {/* Children with drop zones */}
       {childrenContent}
