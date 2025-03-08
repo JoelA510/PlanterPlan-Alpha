@@ -159,45 +159,137 @@ const TaskList = () => {
           padding: '16px',
           borderTopLeftRadius: '4px',
           borderTopRightRadius: '4px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+          position: 'relative'
         }}>
-          <h3 style={{ margin: 0, fontWeight: 'bold' }}>{selectedTask.title}</h3>
-          <button 
-            onClick={() => setSelectedTaskId(null)}
-            style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              border: 'none',
-              borderRadius: '50%',
-              color: 'white',
-              cursor: 'pointer',
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px'
-            }}
-          >
-            ✕
-          </button>
+          {/* Completion status badge */}
+          <div style={{
+            position: 'absolute',
+            top: '0',
+            right: '0',
+            backgroundColor: selectedTask.is_complete ? '#059669' : '#dc2626',
+            color: 'white',
+            padding: '4px 8px',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            borderBottomLeftRadius: '4px',
+          }}>
+            {selectedTask.is_complete ? 'Completed' : 'In Progress'}
+          </div>
+          
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '100%'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {/* Checkbox to toggle completion status directly from panel */}
+              <input 
+                type="checkbox"
+                checked={selectedTask.is_complete || false}
+                onChange={(e) => {
+                  const updateTaskCompletion = async () => {
+                    try {
+                      const result = await fetch(`/api/tasks/${selectedTask.id}/toggle-completion`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ is_complete: !selectedTask.is_complete })
+                      });
+                      
+                      if (!result.ok) throw new Error('Failed to update task');
+                      
+                      // Update local state
+                      setTasks(prev => prev.map(task => 
+                        task.id === selectedTask.id 
+                          ? { ...task, is_complete: !task.is_complete } 
+                          : task
+                      ));
+                    } catch (err) {
+                      console.error('Error updating task completion:', err);
+                    }
+                  };
+                  
+                  updateTaskCompletion();
+                }}
+                style={{ 
+                  marginRight: '12px',
+                  width: '18px',
+                  height: '18px',
+                  accentColor: selectedTask.is_complete ? '#059669' : undefined
+                }}
+              />
+              <h3 style={{ 
+                margin: 0, 
+                fontWeight: 'bold',
+                textDecoration: selectedTask.is_complete ? 'line-through' : 'none',
+                opacity: selectedTask.is_complete ? 0.8 : 1,
+              }}>
+                {selectedTask.title}
+              </h3>
+            </div>
+            
+            <button 
+              onClick={() => setSelectedTaskId(null)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                borderRadius: '50%',
+                color: 'white',
+                cursor: 'pointer',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
         
         <div className="details-content" style={{ padding: '16px' }}>
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px' }}>Status:</h4>
-            <p style={{ 
-              display: 'inline-block',
-              padding: '4px 8px',
-              backgroundColor: selectedTask.is_complete ? '#dcfce7' : '#fee2e2',
-              color: selectedTask.is_complete ? '#166534' : '#b91c1c',
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <p style={{ 
+                display: 'inline-block',
+                padding: '4px 8px',
+                backgroundColor: selectedTask.is_complete ? '#dcfce7' : '#fee2e2',
+                color: selectedTask.is_complete ? '#166534' : '#b91c1c',
+                borderRadius: '4px',
+                fontSize: '14px',
+                marginTop: '4px',
+                marginRight: '8px'
+              }}>
+                {selectedTask.is_complete ? 'Completed' : 'In Progress'}
+              </p>
+              
+              {selectedTask.is_complete && (
+                <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
+                  <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
+                </div>
+              )}
+            </div>
+            
+            <div style={{ 
+              marginTop: '8px', 
+              height: '8px', 
+              width: '100%', 
+              backgroundColor: '#e5e7eb',
               borderRadius: '4px',
-              fontSize: '14px',
-              marginTop: '4px'
+              overflow: 'hidden'
             }}>
-              {selectedTask.is_complete ? 'Completed' : 'Pending'}
-            </p>
+              <div style={{
+                height: '100%',
+                width: selectedTask.is_complete ? '100%' : '0%',
+                backgroundColor: '#059669',
+                borderRadius: '4px',
+                transition: 'width 0.5s ease'
+              }} />
+            </div>
           </div>
           
           <div className="detail-row">
