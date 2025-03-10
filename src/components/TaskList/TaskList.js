@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './TaskList.css';
 import TaskItem from './TaskItem';
+import TaskDropZone from './TaskDropZone';
 import useTaskDragAndDrop from '../utils/useTaskDragAndDrop';
 import { fetchAllTasks } from '../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../utils/taskUtils';
@@ -270,6 +271,7 @@ const TaskList = () => {
               {selectedTask.is_complete && (
                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
                   <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
+                  <span>Completed on {new Date().toLocaleDateString()}</span>
                 </div>
               )}
             </div>
@@ -331,64 +333,13 @@ const TaskList = () => {
             </ul>
           </div>
           
-          {/* Show parent path if it's a subtask */}
-          {selectedTask.parent_task_id && (
-            <div className="detail-row">
-              <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Parent:</h4>
-              <p>{getParentPath(selectedTask, tasks)}</p>
-            </div>
-          )}
-          
-          {/* Show child tasks if any */}
-          {tasks.some(t => t.parent_task_id === selectedTask.id) && (
-            <div className="detail-row">
-              <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Child Tasks:</h4>
-              <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-                {tasks
-                  .filter(t => t.parent_task_id === selectedTask.id)
-                  .sort((a, b) => a.position - b.position)
-                  .map(task => (
-                    <li key={task.id} style={{ 
-                      marginBottom: '4px',
-                      textDecoration: task.is_complete ? 'line-through' : 'none',
-                      opacity: task.is_complete ? 0.7 : 1
-                    }}>
-                      <a 
-                        href="#" 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          selectTask(task.id);
-                        }}
-                        style={{ 
-                          color: '#3b82f6',
-                          textDecoration: 'none'
-                        }}
-                      >
-                        {task.title}
-                      </a>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          )}
+          {/* Parent task and child task sections removed as requested */}
         </div>
       </div>
     );
   };
   
-  // Helper function to get parent task path
-  const getParentPath = (task, allTasks) => {
-    if (!task.parent_task_id) return '';
-    
-    const parentTask = allTasks.find(t => t.id === task.parent_task_id);
-    if (!parentTask) return 'Unknown';
-    
-    // If the parent has a parent, recursively get the full path
-    const parentPath = parentTask.parent_task_id ? 
-      getParentPath(parentTask, allTasks) + ' > ' : '';
-    
-    return parentPath + parentTask.title;
-  };
+  // Helper functions for parent and child task sections removed as requested
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
