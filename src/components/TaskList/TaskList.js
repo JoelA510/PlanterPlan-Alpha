@@ -3,7 +3,7 @@ import './TaskList.css';
 import TaskItem from './TaskItem';
 import TaskDropZone from './TaskDropZone';
 import useTaskDragAndDrop from '../utils/useTaskDragAndDrop';
-import { fetchAllTasks } from '../services/taskService';
+import { fetchAllTasks, updateTaskCompletion } from '../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../utils/taskUtils';
 
 const TaskList = () => {
@@ -162,22 +162,6 @@ const TaskList = () => {
           borderTopRightRadius: '4px',
           position: 'relative'
         }}>
-          {/* Completion status badge */}
-          <div style={{
-            position: 'absolute',
-            top: '0',
-            right: '0',
-            backgroundColor: selectedTask.is_complete ? '#059669' : '#dc2626',
-            color: 'white',
-            padding: '4px 8px',
-            fontSize: '10px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            borderBottomLeftRadius: '4px',
-          }}>
-            {selectedTask.is_complete ? 'Completed' : 'In Progress'}
-          </div>
-          
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -190,28 +174,26 @@ const TaskList = () => {
                 type="checkbox"
                 checked={selectedTask.is_complete || false}
                 onChange={(e) => {
-                  const updateTaskCompletion = async () => {
+                  const toggleTaskCompletion = async (taskId, currentStatus) => {
                     try {
-                      const result = await fetch(`/api/tasks/${selectedTask.id}/toggle-completion`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ is_complete: !selectedTask.is_complete })
-                      });
+                      const result = await updateTaskCompletion(taskId, currentStatus);
                       
-                      if (!result.ok) throw new Error('Failed to update task');
+                      if (!result.success) throw new Error(result.error);
                       
-                      // Update local state
-                      setTasks(prev => prev.map(task => 
-                        task.id === selectedTask.id 
-                          ? { ...task, is_complete: !task.is_complete } 
-                          : task
-                      ));
+                      setTasks(prev => 
+                        prev.map(task => 
+                          task.id === taskId 
+                            ? { ...task, is_complete: !currentStatus } 
+                            : task
+                        )
+                      );
                     } catch (err) {
                       console.error('Error updating task completion:', err);
+                      alert(`Failed to update task: ${err.message}`);
                     }
                   };
                   
-                  updateTaskCompletion();
+                  toggleTaskCompletion(selectedTask.id, selectedTask.is_complete);
                 }}
                 style={{ 
                   marginRight: '12px',
@@ -276,6 +258,7 @@ const TaskList = () => {
               )}
             </div>
             
+            {/* Status bar - commented out for future implementation
             <div style={{ 
               marginTop: '8px', 
               height: '8px', 
@@ -292,6 +275,7 @@ const TaskList = () => {
                 transition: 'width 0.5s ease'
               }} />
             </div>
+            */}
           </div>
           
           <div className="detail-row">
