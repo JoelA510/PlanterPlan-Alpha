@@ -1,8 +1,8 @@
-// App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import TaskList from "./components/TaskList/TaskList";
-import "./App.css"; // We'll add basic CSS to ensure styles are applied
+import TemplateList from "./components/TemplateList/TemplateList"; // Updated import path
+import "./App.css";
 
 function App() {
   return (
@@ -43,7 +43,15 @@ function App() {
             Projects
           </Link>
           
-          
+          <Link to="/templates" style={{ 
+            display: "block", 
+            padding: "10px", 
+            color: "#94a3b8",
+            textDecoration: "none",
+            marginBottom: "10px"
+          }}>
+            Templates
+          </Link>
           
           <Link to="/settings" style={{ 
             display: "block", 
@@ -82,6 +90,15 @@ function App() {
                 Projects
               </Link>
               
+              <Link to="/templates" style={{ 
+                backgroundColor: "#8b5cf6", 
+                color: "white",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                textDecoration: "none" 
+              }}>
+                Templates
+              </Link>
             </div>
             <div>User Name</div>
           </header>
@@ -94,9 +111,9 @@ function App() {
           }}>
             <Routes>
               <Route path="/" element={<TaskList />} />
-              <Route path="/dashboard" element={<div>Dashboard</div>} />
+              <Route path="/dashboard" element={<div>Dashboard<p>Coming soon: Projects overview, analytics, tasks due soon, etc</p></div>} />
               <Route path="/tasks" element={<TaskList />} />
-              
+              <Route path="/templates" element={<TemplateList />} />
               <Route path="/settings" element={<div>Settings Page</div>} />
             </Routes>
           </main>

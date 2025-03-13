@@ -1,9 +1,8 @@
 import React from 'react';
-import TaskDropZone from './TaskDropZone';
-import { formatDate, getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import { updateTaskCompletion } from '../../services/taskService';
+import TaskDropZone from '../TaskList/TaskDropZone';
+import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 
-const TaskItem = ({ 
+const TemplateItem = ({ 
   task, 
   tasks, 
   expandedTasks, 
@@ -43,28 +42,6 @@ const TaskItem = ({
   // Determine if this task is the current drop target
   const isDropTarget = dropTarget && dropTarget.id === task.id;
   const isBeingDragged = draggedTask && draggedTask.id === task.id;
-
-  const toggleTaskCompletion = async (taskId, currentStatus, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    try {
-      const result = await updateTaskCompletion(taskId, currentStatus);
-      
-      if (!result.success) throw new Error(result.error);
-      
-      setTasks(prev => 
-        prev.map(task => 
-          task.id === taskId 
-            ? { ...task, is_complete: !currentStatus } 
-            : task
-        )
-      );
-    } catch (err) {
-      console.error('Error updating task completion:', err);
-      alert(`Failed to update task: ${err.message}`);
-    }
-  };
   
   // Render children with drop zones
   let childrenContent = null;
@@ -92,7 +69,7 @@ const TaskItem = ({
     children.forEach((child, index) => {
       // Add the child with the selectTask prop
       childrenWithDropZones.push(
-        <TaskItem 
+        <TemplateItem 
           key={child.id}
           task={child} 
           tasks={tasks}
@@ -154,16 +131,16 @@ const TaskItem = ({
   return (
     <div 
       key={task.id}
-      id={`task-${task.id}`}
+      id={`template-${task.id}`}
       className={`task-container ${isBeingDragged ? 'being-dragged' : ''}`}
       style={{
         margin: isSelected ? '0 4px' : '0',
         transition: 'margin 0.2s ease'
       }}
     >
-      {/* Task header - main draggable/droppable area */}
+      {/* Template header - main draggable/droppable area */}
       <div 
-        className={`task-header ${isDropTarget && dropPosition === 'into' ? 'drop-target-into' : ''} ${isSelected ? 'selected-task' : ''}`}
+        className={`task-header ${isDropTarget && dropPosition === 'into' ? 'drop-target-into' : ''} ${isSelected ? 'selected-template' : ''}`}
         draggable={!isTopLevel}
         onDragStart={(e) => handleDragStart(e, task)}
         onDragOver={(e) => handleDragOver(e, task)}
@@ -173,7 +150,6 @@ const TaskItem = ({
         onClick={(e) => selectTask(task.id, e)}
         style={{
           backgroundColor,
-          opacity: 1,
           color: 'white',
           padding: '12px',
           display: 'flex',
@@ -192,32 +168,18 @@ const TaskItem = ({
           {!isTopLevel && (
             <span style={{ marginRight: '8px' }}>☰</span>
           )}
-          <input 
-            type="checkbox"
-            checked={task.is_complete || false}
-            onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
-            onClick={(e) => e.stopPropagation()}
-            style={{ marginRight: '12px' }}
-          />
-          <span 
-            style={{ 
-              textDecoration: task.is_complete ? 'line-through' : 'none',
-              opacity: task.is_complete ? 0.7 : 1
-            }}
-          >
+          <span>
             {task.title}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ marginRight: '12px' }}>Due: {formatDate(task.due_date)}</span>
-          
           {/* Info button to view details in the right panel */}
           <button 
             onClick={(e) => {
               e.stopPropagation();
               selectTask(task.id, e);
             }}
-            title="View task details"
+            title="View template details"
             style={{
               background: 'rgba(255, 255, 255, 0.2)',
               border: '1px solid rgba(255, 255, 255, 0.4)',
@@ -237,7 +199,7 @@ const TaskItem = ({
             <span>ⓘ</span>
           </button>
           
-          {/* Only show child tasks toggle if the task has children */}
+          {/* Only show child templates toggle if the template has children */}
           {hasChildren && (
             <button 
               onClick={(e) => {
@@ -266,4 +228,4 @@ const TaskItem = ({
   );
 };
 
-export default TaskItem;
+export default TemplateItem;

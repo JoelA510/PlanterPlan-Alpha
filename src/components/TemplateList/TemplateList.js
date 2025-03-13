@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import './TaskList.css';
-import TaskItem from './TaskItem';
-import TaskDropZone from './TaskDropZone';
+import TemplateItem from './TemplateItem';
+import TaskDropZone from '../TaskList/TaskDropZone';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { fetchAllTasks } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import { updateTaskCompletion } from '../../services/taskService';
+import '../TaskList/TaskList.css';
 
-const TaskList = () => {
+const TemplateList = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,10 +14,10 @@ const TaskList = () => {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
 
   useEffect(() => {
-    fetchTasks();
+    fetchTemplates();
   }, []);
 
-  const fetchTasks = async () => {
+  const fetchTemplates = async () => {
     try {
       setLoading(true);
       
@@ -26,14 +25,14 @@ const TaskList = () => {
 
       if (error) throw new Error(error);
       
-      // Filter to only include tasks where origin is "instance"
-      const instanceTasks = data ? data.filter(task => task.origin === "instance") : [];
-      console.log('Fetched instance tasks:', instanceTasks);
+      // Filter to only include template tasks
+      const templateTasks = data ? data.filter(task => task.origin === "template") : [];
+      console.log('Fetched templates:', templateTasks);
       
-      setTasks(instanceTasks);
+      setTasks(templateTasks);
     } catch (err) {
-      console.error('Error fetching tasks:', err);
-      setError(`Failed to load tasks: ${err.message}`);
+      console.error('Error fetching templates:', err);
+      setError(`Failed to load templates: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -61,35 +60,10 @@ const TaskList = () => {
   const selectedTask = tasks.find(task => task.id === selectedTaskId);
   
   // Initialize the drag and drop functionality
-  const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTasks);
+  const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTemplates);
   
-  // Handle task completion toggle
-  const toggleTaskCompletion = async (taskId, currentStatus, e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
-    try {
-      const result = await updateTaskCompletion(taskId, currentStatus);
-      
-      if (!result.success) throw new Error(result.error);
-      
-      setTasks(prev => 
-        prev.map(task => 
-          task.id === taskId 
-            ? { ...task, is_complete: !currentStatus } 
-            : task
-        )
-      );
-    } catch (err) {
-      console.error('Error updating task completion:', err);
-      alert(`Failed to update task: ${err.message}`);
-    }
-  };
-  
-  // Render top-level tasks (projects) with spacing between them
-  const renderTopLevelTasks = () => {
+  // Render top-level tasks (templates) with spacing between them
+  const renderTopLevelTemplates = () => {
     const topLevelTasks = tasks
       .filter(task => !task.parent_task_id)
       .sort((a, b) => a.position - b.position);
@@ -101,18 +75,18 @@ const TaskList = () => {
           padding: '32px',
           color: '#6b7280'
         }}>
-          No projects found. Create your first project to get started!
+          No templates found. Create your first template to get started!
         </div>
       );
     }
     
     const taskElements = [];
     
-    // Render each project with spacing between them
+    // Render each template with spacing between them
     topLevelTasks.forEach((task, index) => {
-      // Add the task with selectedTaskId and selectTask props
+      // Add the template using TemplateItem component
       taskElements.push(
-        <TaskItem 
+        <TemplateItem 
           key={task.id}
           task={task}
           tasks={tasks}
@@ -125,11 +99,11 @@ const TaskList = () => {
         />
       );
       
-      // Add a spacing div after each project (except the last one)
+      // Add a spacing div after each template (except the last one)
       if (index < topLevelTasks.length - 1) {
         taskElements.push(
           <div 
-            key={`project-spacer-${index}`}
+            key={`template-spacer-${index}`}
             style={{
               height: '5px',
               margin: '2px 0'
@@ -142,8 +116,8 @@ const TaskList = () => {
     return taskElements;
   };
   
-  // Render the details panel for the selected task
-  const renderTaskDetailsPanel = () => {
+  // Render the details panel for the selected template
+  const renderTemplateDetailsPanel = () => {
     if (!selectedTask) {
       return (
         <div className="empty-details-panel" style={{
@@ -166,7 +140,7 @@ const TaskList = () => {
             <polyline points="10 9 9 9 8 9"></polyline>
           </svg>
           <p style={{ marginTop: '16px', textAlign: 'center' }}>
-            Select a task to view its details
+            Select a template to view its details
           </p>
         </div>
       );
@@ -192,22 +166,6 @@ const TaskList = () => {
           borderTopRightRadius: '4px',
           position: 'relative'
         }}>
-          {/* Completion status badge */}
-          <div style={{
-            position: 'absolute',
-            top: '0',
-            right: '0',
-            backgroundColor: selectedTask.is_complete ? '#059669' : '#dc2626',
-            color: 'white',
-            padding: '4px 8px',
-            fontSize: '10px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            borderBottomLeftRadius: '4px',
-          }}>
-            {selectedTask.is_complete ? 'Completed' : 'In Progress'}
-          </div>
-          
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -215,23 +173,9 @@ const TaskList = () => {
             width: '100%'
           }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              {/* Checkbox to toggle completion status directly from panel */}
-              <input 
-                type="checkbox"
-                checked={selectedTask.is_complete || false}
-                onChange={(e) => toggleTaskCompletion(selectedTask.id, selectedTask.is_complete, e)}
-                style={{ 
-                  marginRight: '12px',
-                  width: '18px',
-                  height: '18px',
-                  accentColor: selectedTask.is_complete ? '#059669' : undefined
-                }}
-              />
               <h3 style={{ 
                 margin: 0, 
                 fontWeight: 'bold',
-                textDecoration: selectedTask.is_complete ? 'line-through' : 'none',
-                opacity: selectedTask.is_complete ? 0.8 : 1,
               }}>
                 {selectedTask.title}
               </h3>
@@ -259,53 +203,6 @@ const TaskList = () => {
         </div>
         
         <div className="details-content" style={{ padding: '16px' }}>
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px' }}>Status:</h4>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <p style={{ 
-                display: 'inline-block',
-                padding: '4px 8px',
-                backgroundColor: selectedTask.is_complete ? '#dcfce7' : '#fee2e2',
-                color: selectedTask.is_complete ? '#166534' : '#b91c1c',
-                borderRadius: '4px',
-                fontSize: '14px',
-                marginTop: '4px',
-                marginRight: '8px'
-              }}>
-                {selectedTask.is_complete ? 'Completed' : 'In Progress'}
-              </p>
-              
-              {selectedTask.is_complete && (
-                <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
-                  <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
-                  <span>Completed on {new Date().toLocaleDateString()}</span>
-                </div>
-              )}
-            </div>
-            
-            <div style={{ 
-              marginTop: '8px', 
-              height: '8px', 
-              width: '100%', 
-              backgroundColor: '#e5e7eb',
-              borderRadius: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                height: '100%',
-                width: selectedTask.is_complete ? '100%' : '0%',
-                backgroundColor: '#059669',
-                borderRadius: '4px',
-                transition: 'width 0.5s ease'
-              }} />
-            </div>
-          </div>
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Due Date:</h4>
-            <p>{selectedTask.due_date ? new Date(selectedTask.due_date).toLocaleDateString() : 'No due date'}</p>
-          </div>
-          
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Purpose:</h4>
             <p>{selectedTask.purpose || 'No purpose specified'}</p>
@@ -339,6 +236,23 @@ const TaskList = () => {
               }
             </ul>
           </div>
+          
+          <div className="detail-row" style={{ marginTop: '24px' }}>
+            <button
+              onClick={() => alert(`Create project from template: ${selectedTask.title}`)}
+              style={{
+                backgroundColor: '#10b981',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                border: 'none',
+                width: '100%'
+              }}
+            >
+              Use as Project
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -346,7 +260,7 @@ const TaskList = () => {
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
-      {/* Left panel - Task list */}
+      {/* Left panel - Template list */}
       <div style={{ 
         flex: '1 1 60%', 
         marginRight: '24px',
@@ -358,10 +272,10 @@ const TaskList = () => {
           alignItems: 'center',
           marginBottom: '24px'
         }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Projects</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Templates</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
-              onClick={() => alert('Create new project functionality would go here')}
+              onClick={() => alert('Create new template functionality would go here')}
               style={{
                 backgroundColor: '#10b981',
                 color: 'white',
@@ -371,10 +285,10 @@ const TaskList = () => {
                 border: 'none'
               }}
             >
-              New Project
+              New Template
             </button>
             <button 
-              onClick={fetchTasks}
+              onClick={fetchTemplates}
               style={{
                 backgroundColor: '#3b82f6',
                 color: 'white',
@@ -410,20 +324,20 @@ const TaskList = () => {
             padding: '32px',
             color: '#6b7280'
           }}>
-            No projects found. Create your first project to get started!
+            No templates found. Create your first template to get started!
           </div>
         ) : (
-          <div>{renderTopLevelTasks()}</div>
+          <div>{renderTopLevelTemplates()}</div>
         )}
       </div>
       
-      {/* Right panel - Task details */}
+      {/* Right panel - Template details */}
       <div style={{ 
         flex: '1 1 40%', 
         minWidth: '300px',
         maxWidth: '500px'
       }}>
-        {renderTaskDetailsPanel()}
+        {renderTemplateDetailsPanel()}
       </div>
       
       {/* Debug section */}
@@ -445,13 +359,13 @@ const TaskList = () => {
           Debug Information
         </summary>
         <div style={{ marginTop: '8px' }}>
-          <p>Total projects: {tasks.length}</p>
-          <p>Top-level projects: {tasks.filter(t => !t.parent_task_id).length}</p>
+          <p>Total templates: {tasks.length}</p>
+          <p>Top-level templates: {tasks.filter(t => !t.parent_task_id).length}</p>
           <p>Dragging: {dragAndDrop.draggedTask ? dragAndDrop.draggedTask.title : 'None'}</p>
           <p>Drop target: {dragAndDrop.dropTarget ? `${dragAndDrop.dropTarget.title} (${dragAndDrop.dropPosition})` : 'None'}</p>
-          <p>Selected task: {selectedTaskId || 'None'}</p>
+          <p>Selected template: {selectedTaskId || 'None'}</p>
           <details>
-            <summary>Project Positions</summary>
+            <summary>Template Positions</summary>
             <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
               {JSON.stringify(
                 tasks.map(t => ({ 
@@ -472,4 +386,4 @@ const TaskList = () => {
   );
 };
 
-export default TaskList;
+export default TemplateList;
