@@ -82,32 +82,57 @@ export const updateSiblingPositions = async (tasks) => {
   return { success: true, error: null };
 };
 
-// Add this function to your existing taskService.js file
 
 /**
- * Creates a new task
+ * Creates a new task in Supabase
  * @param {Object} taskData - The task data to create
  * @returns {Promise<{data: Object, error: string}>} - The created task data or error
  */
 export const createTask = async (taskData) => {
   try {
-    const response = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(taskData),
-    });
+    console.log('Creating task with data:', taskData);
     
-    const data = await response.json();
+    // Insert the task data into the 'tasks' table
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([taskData])
+      .select();
     
-    if (!response.ok) {
-      return { error: data.message || 'Failed to create task' };
+    if (error) {
+      console.error('Supabase error:', error);
+      return { error: error.message || 'Failed to create task in Supabase' };
     }
     
-    return { data };
+    // Supabase returns an array of inserted records, we want the first one
+    return { data: data[0] };
   } catch (err) {
     console.error('Error creating task:', err);
-    return { error: err.message };
+    return { error: err.message || 'Unknown error occurred' };
   }
+};
+
+// For development/testing purposes, you might want to add a mock implementation
+// that doesn't require a connection to Supabase
+
+/**
+ * Mock implementation of createTask for development/testing
+ * @param {Object} taskData - The task data to create
+ * @returns {Promise<{data: Object, error: string}>} - The created task data or error
+ */
+export const mockCreateTask = async (taskData) => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Generate a random ID
+  const id = Math.floor(Math.random() * 10000);
+  
+  // Return mock data
+  return {
+    data: {
+      ...taskData,
+      id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  };
 };
