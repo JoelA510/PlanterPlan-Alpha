@@ -81,3 +81,33 @@ export const updateSiblingPositions = async (tasks) => {
   
   return { success: true, error: null };
 };
+
+// Add this function to your existing taskService.js file
+
+/**
+ * Creates a new task
+ * @param {Object} taskData - The task data to create
+ * @returns {Promise<{data: Object, error: string}>} - The created task data or error
+ */
+export const createTask = async (taskData) => {
+  try {
+    const response = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(taskData),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return { error: data.message || 'Failed to create task' };
+    }
+    
+    return { data };
+  } catch (err) {
+    console.error('Error creating task:', err);
+    return { error: err.message };
+  }
+};

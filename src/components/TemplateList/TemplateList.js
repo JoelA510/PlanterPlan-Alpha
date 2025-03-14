@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import TemplateItem from './TemplateItem';
+import TaskForm from '../TaskForm/TaskForm'; // Updated import path
 import TaskDropZone from '../TaskList/TaskDropZone';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
-import { fetchAllTasks } from '../../services/taskService';
+import { fetchAllTasks, createTask } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import '../TaskList/TaskList.css';
 
@@ -12,6 +13,10 @@ const TemplateList = () => {
   const [error, setError] = useState(null);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  
+  // State variables for the task form
+  const [showAddTaskForm, setShowAddTaskForm] = useState(false);
+  const [addTaskParentId, setAddTaskParentId] = useState(null);
 
   useEffect(() => {
     fetchTemplates();
@@ -56,6 +61,63 @@ const TemplateList = () => {
     setSelectedTaskId(prevId => prevId === taskId ? null : taskId);
   };
   
+  // Function to handle the "Add Task" button click
+  const handleAddTaskClick = (parentId, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    setAddTaskParentId(parentId);
+    setShowAddTaskForm(true);
+    
+    // Optionally deselect any selected task when starting to add a new one
+    setSelectedTaskId(null);
+  };
+  
+  // Function to handle submitting the new task form
+  const handleTaskFormSubmit = async (taskData) => {
+    try {
+      // Determine position for new task
+      const siblingTasks = tasks.filter(t => t.parent_task_id === taskData.parent_task_id);
+      const position = siblingTasks.length > 0 
+        ? Math.max(...siblingTasks.map(t => t.position)) + 1 
+        : 0;
+      
+      // Add position to task data
+      const newTaskData = {
+        ...taskData,
+        position
+      };
+      
+      // Call API to create task
+      const result = await createTask(newTaskData);
+      
+      if (result.error) throw new Error(result.error);
+      
+      // Update local state with new task
+      if (result.data) {
+        setTasks([...tasks, result.data]);
+      }
+      
+      // Close the form
+      setShowAddTaskForm(false);
+      setAddTaskParentId(null);
+      
+      // Expand the parent task to show the new child
+      if (taskData.parent_task_id) {
+        setExpandedTasks(prev => ({
+          ...prev,
+          [taskData.parent_task_id]: true
+        }));
+      }
+      
+    } catch (err) {
+      console.error('Error creating task:', err);
+      alert(`Failed to create task: ${err.message}`);
+    }
+  };
+  
   // Get the selected task object
   const selectedTask = tasks.find(task => task.id === selectedTaskId);
   
@@ -96,6 +158,7 @@ const TemplateList = () => {
           selectTask={selectTask}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
+          onAddTask={handleAddTaskClick}  // Pass the onAddTask function
         />
       );
       
@@ -262,9 +325,10 @@ const TemplateList = () => {
     <div style={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
       {/* Left panel - Template list */}
       <div style={{ 
-        flex: '1 1 60%', 
+        flex: showAddTaskForm ? '1 1 40%' : '1 1 60%', 
         marginRight: '24px',
-        overflow: 'auto'
+        overflow: 'auto',
+        transition: 'flex 0.3s ease'
       }}>
         <div style={{
           display: 'flex',
@@ -275,7 +339,11 @@ const TemplateList = () => {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Templates</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
-              onClick={() => alert('Create new template functionality would go here')}
+              onClick={() => {
+                setAddTaskParentId(null);
+                setShowAddTaskForm(true);
+                setSelectedTaskId(null);
+              }}
               style={{
                 backgroundColor: '#10b981',
                 color: 'white',
@@ -331,14 +399,38 @@ const TemplateList = () => {
         )}
       </div>
       
-      {/* Right panel - Template details */}
-      <div style={{ 
-        flex: '1 1 40%', 
-        minWidth: '300px',
-        maxWidth: '500px'
-      }}>
-        {renderTemplateDetailsPanel()}
-      </div>
+      {/* Middle panel - Template details - only show if not showing form and a task is selected */}
+      {!showAddTaskForm && selectedTaskId && (
+        <div style={{ 
+          flex: '1 1 40%', 
+          minWidth: '300px',
+          maxWidth: '500px'
+        }}>
+          {renderTemplateDetailsPanel()}
+        </div>
+      )}
+      
+      {/* Right panel - Add Task Form - only show when adding a task */}
+      {showAddTaskForm && (
+        <div style={{ 
+          flex: '1 1 40%', 
+          minWidth: '300px',
+          maxWidth: '500px'
+        }}>
+          <TaskForm 
+            parentTaskId={addTaskParentId}
+            onSubmit={handleTaskFormSubmit}
+            onCancel={() => {
+              setShowAddTaskForm(false);
+              setAddTaskParentId(null);
+            }}
+            backgroundColor={addTaskParentId 
+              ? getBackgroundColor(getTaskLevel(tasks.find(t => t.id === addTaskParentId), tasks) + 1)
+              : getBackgroundColor(0)
+            }
+          />
+        </div>
+      )}
       
       {/* Debug section */}
       <details style={{ 
@@ -364,6 +456,7 @@ const TemplateList = () => {
           <p>Dragging: {dragAndDrop.draggedTask ? dragAndDrop.draggedTask.title : 'None'}</p>
           <p>Drop target: {dragAndDrop.dropTarget ? `${dragAndDrop.dropTarget.title} (${dragAndDrop.dropPosition})` : 'None'}</p>
           <p>Selected template: {selectedTaskId || 'None'}</p>
+          <p>Adding task to parent: {addTaskParentId || 'None (top-level)'}</p>
           <details>
             <summary>Template Positions</summary>
             <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>

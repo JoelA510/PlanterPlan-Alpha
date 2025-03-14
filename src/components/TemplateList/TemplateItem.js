@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import TaskDropZone from '../TaskList/TaskDropZone';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 
@@ -11,8 +11,11 @@ const TemplateItem = ({
   selectTask,
   setTasks,
   dragAndDrop,
+  onAddTask,
   parentTasks = []
 }) => {
+  const [isHovering, setIsHovering] = useState(false);
+  
   const { 
     draggedTask, 
     dropTarget, 
@@ -79,6 +82,7 @@ const TemplateItem = ({
           selectTask={selectTask}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
+          onAddTask={onAddTask}
           parentTasks={[...parentTasks, task]}
         />
       );
@@ -148,6 +152,8 @@ const TemplateItem = ({
         onDragEnd={handleDragEnd}
         onDrop={(e) => handleDrop(e, task)}
         onClick={(e) => selectTask(task.id, e)}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
         style={{
           backgroundColor,
           color: 'white',
@@ -171,6 +177,34 @@ const TemplateItem = ({
           <span>
             {task.title}
           </span>
+          
+          {/* Hidden plus button that appears on hover */}
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddTask(task.id, e);
+            }}
+            title="Add a new task to this template"
+            style={{
+              background: 'rgba(255, 255, 255, 0.3)',
+              border: 'none',
+              borderRadius: '50%',
+              color: 'white',
+              cursor: 'pointer',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginLeft: '12px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              opacity: isHovering ? 1 : 0,
+              transition: 'opacity 0.2s ease'
+            }}
+          >
+            +
+          </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {/* Info button to view details in the right panel */}
