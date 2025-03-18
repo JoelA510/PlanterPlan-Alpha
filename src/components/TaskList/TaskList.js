@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './TaskList.css';
 import TaskItem from './TaskItem';
 import TaskDropZone from './TaskDropZone';
+import TaskForm from '../TaskForm/TaskForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { fetchAllTasks } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
@@ -13,6 +14,7 @@ const TaskList = () => {
   const [error, setError] = useState(null);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [addingChildToTaskId, setAddingChildToTaskId] = useState(null);
 
   useEffect(() => {
     fetchTasks();
@@ -87,6 +89,69 @@ const TaskList = () => {
       alert(`Failed to update task: ${err.message}`);
     }
   };
+
+  // Handle adding child task
+  const handleAddChildTask = (parentTaskId) => {
+    setAddingChildToTaskId(parentTaskId);
+    
+    // Also expand the parent task if it's not already expanded
+    setExpandedTasks(prev => ({
+      ...prev,
+      [parentTaskId]: true
+    }));
+  };
+
+  // Handle submit of the new child task form
+  const handleAddChildTaskSubmit = (taskData) => {
+    // TODO: Actually submit the new task to the backend
+    console.log('Adding new child task:', taskData);
+    
+    // For now, just close the form
+    setAddingChildToTaskId(null);
+  };
+
+  // Render the add child task form
+  const renderAddChildTaskForm = () => {
+    if (!addingChildToTaskId) return null;
+    
+    const parentTask = tasks.find(task => task.id === addingChildToTaskId);
+    if (!parentTask) return null;
+    
+    const level = getTaskLevel(parentTask, tasks) + 1;
+    const backgroundColor = getBackgroundColor(level);
+    
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          width: '90%',
+          maxWidth: '500px',
+          maxHeight: '90vh',
+          overflow: 'auto',
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+        }}>
+          <TaskForm
+            parentTaskId={addingChildToTaskId}
+            onSubmit={handleAddChildTaskSubmit}
+            onCancel={() => setAddingChildToTaskId(null)}
+            backgroundColor={backgroundColor}
+          />
+        </div>
+      </div>
+    );
+  };
   
   // Render top-level tasks (projects) with spacing between them
   const renderTopLevelTasks = () => {
@@ -122,6 +187,7 @@ const TaskList = () => {
           selectTask={selectTask}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
+          onAddChildTask={handleAddChildTask}
         />
       );
       
@@ -339,6 +405,28 @@ const TaskList = () => {
               }
             </ul>
           </div>
+          
+          {/* Add child task button in details panel */}
+          <div className="detail-row" style={{ marginTop: '24px' }}>
+            <button
+              onClick={() => handleAddChildTask(selectedTask.id)}
+              style={{
+                backgroundColor: '#10b981',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%'
+              }}
+            >
+              <span style={{ marginRight: '8px' }}>Add Child Task</span>
+              <span>+</span>
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -426,6 +514,9 @@ const TaskList = () => {
         {renderTaskDetailsPanel()}
       </div>
       
+      {/* Add Child Task Form Modal */}
+      {renderAddChildTaskForm()}
+      
       {/* Debug section */}
       <details style={{ 
         position: 'fixed',
@@ -450,6 +541,7 @@ const TaskList = () => {
           <p>Dragging: {dragAndDrop.draggedTask ? dragAndDrop.draggedTask.title : 'None'}</p>
           <p>Drop target: {dragAndDrop.dropTarget ? `${dragAndDrop.dropTarget.title} (${dragAndDrop.dropPosition})` : 'None'}</p>
           <p>Selected task: {selectedTaskId || 'None'}</p>
+          <p>Adding child to: {addingChildToTaskId || 'None'}</p>
           <details>
             <summary>Project Positions</summary>
             <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>

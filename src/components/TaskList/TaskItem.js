@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import TaskDropZone from './TaskDropZone';
 import { formatDate, getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import { updateTaskCompletion } from '../../services/taskService';
@@ -12,8 +12,11 @@ const TaskItem = ({
   selectTask,
   setTasks,
   dragAndDrop,
+  onAddChildTask,
   parentTasks = []
 }) => {
+  const [isHovering, setIsHovering] = useState(false);
+  
   const { 
     draggedTask, 
     dropTarget, 
@@ -102,6 +105,7 @@ const TaskItem = ({
           selectTask={selectTask}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
+          onAddChildTask={onAddChildTask}
           parentTasks={[...parentTasks, task]}
         />
       );
@@ -171,6 +175,8 @@ const TaskItem = ({
         onDragEnd={handleDragEnd}
         onDrop={(e) => handleDrop(e, task)}
         onClick={(e) => selectTask(task.id, e)}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
         style={{
           backgroundColor,
           opacity: 1,
@@ -207,6 +213,34 @@ const TaskItem = ({
           >
             {task.title}
           </span>
+          
+          {/* Hidden plus button that appears on hover - exactly like in TemplateItem */}
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddChildTask(task.id, e);
+            }}
+            title="Add a new child task"
+            style={{
+              background: 'rgba(255, 255, 255, 0.3)',
+              border: 'none',
+              borderRadius: '50%',
+              color: 'white',
+              cursor: 'pointer',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginLeft: '12px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              opacity: isHovering ? 1 : 0,
+              transition: 'opacity 0.2s ease'
+            }}
+          >
+            +
+          </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <span style={{ marginRight: '12px' }}>Due: {formatDate(task.due_date)}</span>
