@@ -4,16 +4,32 @@ import TaskItem from './TaskItem';
 import TaskDropZone from './TaskDropZone';
 import TaskForm from '../TaskForm/TaskForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
+import { fetchAllTasks, createTask, updateTaskCompletion } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import { fetchAllTasks, createTask, updateTaskCompletion } from '../../services/taskService'
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [addingChildToTaskId, setAddingChildToTaskId] = useState(null);
+  
+  // New project creation states
+  const [isNewProjectDropdownOpen, setIsNewProjectDropdownOpen] = useState(false);
+  const [newProjectType, setNewProjectType] = useState(null); // 'template' or 'empty'
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [projectFormData, setProjectFormData] = useState({
+    title: '',
+    purpose: '',
+    description: '',
+    actions: [''],
+    resources: [''],
+    start_date: null,
+    due_date: null
+  });
 
   useEffect(() => {
     fetchTasks();
@@ -35,6 +51,34 @@ const TaskList = () => {
     } catch (err) {
       console.error('Error fetching tasks:', err);
       setError(`Failed to load tasks: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Function to fetch templates
+  const fetchTemplates = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await fetchAllTasks();
+
+      if (error) throw new Error(error);
+      
+      // Filter to only include template tasks
+      const templateTasks = data ? data.filter(task => task.origin === "template") : [];
+      console.log('Fetched templates:', templateTasks);
+      
+      // Get only top-level templates
+      const topLevelTemplates = templateTasks.filter(template => !template.parent_task_id);
+      
+      setTemplates(templateTasks);
+      
+      return templateTasks;
+    } catch (err) {
+      console.error('Error fetching templates:', err);
+      setError(`Failed to load templates: ${err.message}`);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -165,6 +209,210 @@ const TaskList = () => {
     setAddingChildToTaskId(null);
   };
   
+  // NEW FUNCTIONS FOR PROJECT CREATION
+  
+  // Toggle the new project dropdown
+  const toggleNewProjectDropdown = () => {
+    setIsNewProjectDropdownOpen(prev => !prev);
+  };
+  
+  // Handle new project type selection
+  const handleNewProjectTypeSelect = async (type) => {
+    setNewProjectType(type);
+    setIsNewProjectDropdownOpen(false);
+    
+    if (type === 'template') {
+      // If we're creating from template, fetch templates and show template selection
+      const fetchedTemplates = await fetchTemplates();
+      // Clear any selected task
+      setSelectedTaskId(null);
+    } else if (type === 'empty') {
+      // If creating an empty project, show the project form
+      setCreatingProject(true);
+      // Reset form data
+      setProjectFormData({
+        title: '',
+        purpose: '',
+        description: '',
+        actions: [''],
+        resources: [''],
+        start_date: null,
+        due_date: null
+      });
+      // Clear any selected task
+      setSelectedTaskId(null);
+    }
+  };
+  
+  // Handle template selection
+  const handleTemplateSelect = (templateId) => {
+    setSelectedTemplateId(templateId);
+    setCreatingProject(true);
+    
+    // Find the selected template
+    const selectedTemplate = templates.find(t => t.id === templateId);
+    
+    if (selectedTemplate) {
+      // Pre-fill form with template data
+      setProjectFormData({
+        title: `${selectedTemplate.title} - Copy`,
+        purpose: selectedTemplate.purpose || '',
+        description: selectedTemplate.description || '',
+        actions: selectedTemplate.actions?.length > 0 ? [...selectedTemplate.actions] : [''],
+        resources: selectedTemplate.resources?.length > 0 ? [...selectedTemplate.resources] : [''],
+        start_date: new Date().toISOString().split('T')[0], // Today's date
+        due_date: null
+      });
+    }
+  };
+  
+  // Handle form field changes
+  const handleProjectFormChange = (field, value) => {
+    setProjectFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  // Handle array type field changes (actions, resources)
+  const handleProjectArrayChange = (type, index, value) => {
+    setProjectFormData(prev => {
+      const newArray = [...prev[type]];
+      newArray[index] = value;
+      return {
+        ...prev,
+        [type]: newArray
+      };
+    });
+  };
+  
+  // Add item to an array field
+  const addProjectArrayItem = (type) => {
+    setProjectFormData(prev => ({
+      ...prev,
+      [type]: [...prev[type], '']
+    }));
+  };
+  
+  // Remove item from an array field
+  const removeProjectArrayItem = (type, index) => {
+    setProjectFormData(prev => {
+      const newArray = [...prev[type]];
+      newArray.splice(index, 1);
+      return {
+        ...prev,
+        [type]: newArray.length === 0 ? [''] : newArray
+      };
+    });
+  };
+  
+  // Create a new project with the filled form data
+  const handleCreateProject = async () => {
+    try {
+      // Validate form
+      if (!projectFormData.title.trim()) {
+        alert('Project title is required');
+        return;
+      }
+      
+      // Prepare project data
+      const projectData = {
+        title: projectFormData.title,
+        purpose: projectFormData.purpose,
+        description: projectFormData.description,
+        actions: projectFormData.actions.filter(a => a.trim() !== ''),
+        resources: projectFormData.resources.filter(r => r.trim() !== ''),
+        due_date: projectFormData.due_date,
+        start_date: projectFormData.start_date,
+        parent_task_id: null, // Top-level project
+        position: tasks.filter(t => !t.parent_task_id).length, // Position at the end
+        origin: 'instance',
+        is_complete: false
+      };
+      
+      // Call API to create project
+      const result = await createTask(projectData);
+      
+      if (result.error) {
+        console.error("Error creating project:", result.error);
+        throw new Error(result.error);
+      }
+      
+      // If we're creating from a template, we also need to create child tasks
+      if (newProjectType === 'template' && selectedTemplateId) {
+        await createChildTasksFromTemplate(selectedTemplateId, result.data.id);
+      }
+      
+      // Refresh task list
+      await fetchTasks();
+      
+      // Reset states
+      setNewProjectType(null);
+      setSelectedTemplateId(null);
+      setCreatingProject(false);
+      
+      // Alert success
+      alert(`Project "${projectData.title}" created successfully!`);
+      
+    } catch (error) {
+      console.error('Error creating project:', error);
+      alert(`Failed to create project: ${error.message}`);
+    }
+  };
+  
+  // Create child tasks from a template
+  const createChildTasksFromTemplate = async (templateId, newProjectId) => {
+    try {
+      // Find the template and its children
+      const templateTask = templates.find(t => t.id === templateId);
+      if (!templateTask) return;
+      
+      // Get direct children of the template
+      const childTemplates = templates.filter(t => t.parent_task_id === templateId);
+      
+      // Create each child task
+      for (let i = 0; i < childTemplates.length; i++) {
+        const childTemplate = childTemplates[i];
+        
+        // Create the child task
+        const childTaskData = {
+          title: childTemplate.title,
+          purpose: childTemplate.purpose,
+          description: childTemplate.description,
+          actions: childTemplate.actions || [],
+          resources: childTemplate.resources || [],
+          parent_task_id: newProjectId,
+          position: i,
+          origin: 'instance',
+          is_complete: false,
+          due_date: null
+        };
+        
+        const result = await createTask(childTaskData);
+        
+        if (result.error) {
+          console.error("Error creating child task:", result.error);
+          continue;
+        }
+        
+        // Recursively create child tasks of this child
+        const grandchildTemplates = templates.filter(t => t.parent_task_id === childTemplate.id);
+        if (grandchildTemplates.length > 0) {
+          await createChildTasksFromTemplate(childTemplate.id, result.data.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating child tasks from template:', error);
+    }
+  };
+  
+  // Cancel project creation
+  const handleCancelProjectCreation = () => {
+    setNewProjectType(null);
+    setSelectedTemplateId(null);
+    setCreatingProject(false);
+  };
+  
   // Render top-level tasks (projects) with spacing between them
   const renderTopLevelTasks = () => {
     const topLevelTasks = tasks
@@ -220,122 +468,36 @@ const TaskList = () => {
     return taskElements;
   };
   
-  // Render the right panel content (task details or task form)
-  const renderRightPanel = () => {
-    // If there's no selected task, show the empty state
-    if (!selectedTaskId) {
-      return (
-        <div className="empty-details-panel" style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          color: '#6b7280',
-          backgroundColor: '#f9fafb',
-          borderRadius: '4px',
-          border: '1px dashed #d1d5db',
-          padding: '24px'
-        }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
-          <p style={{ marginTop: '16px', textAlign: 'center' }}>
-            Select a task to view its details
-          </p>
-        </div>
-      );
-    }
+  // Render template selection in the right panel
+  const renderTemplateSelection = () => {
+    // Get top-level templates
+    const topLevelTemplates = templates.filter(t => !t.parent_task_id);
     
-    // Get the selected task
-    const task = tasks.find(t => t.id === selectedTaskId);
-    if (!task) return null;
-    
-    // Get the task level and background color
-    const level = getTaskLevel(task, tasks);
-    const backgroundColor = getBackgroundColor(level);
-    
-    // If we're adding a child task, show the form
-    if (addingChildToTaskId === selectedTaskId) {
-      return (
-        <TaskForm
-          parentTaskId={selectedTaskId}
-          onSubmit={handleAddChildTaskSubmit}
-          onCancel={handleCancelAddTask}
-          backgroundColor={backgroundColor}
-          originType="instance"
-        />
-      );
-    }
-    
-    // Otherwise show the task details
     return (
-      <div className="task-details-panel" style={{
+      <div style={{
         backgroundColor: '#f9fafb',
         borderRadius: '4px',
         border: '1px solid #e5e7eb',
         height: '100%',
         overflow: 'auto'
       }}>
-        <div className="details-header" style={{
-          backgroundColor: backgroundColor,
+        <div style={{
+          backgroundColor: '#3b82f6',
           color: 'white',
           padding: '16px',
           borderTopLeftRadius: '4px',
-          borderTopRightRadius: '4px',
-          position: 'relative'
+          borderTopRightRadius: '4px'
         }}>
-          {/* Completion status badge */}
-          <div style={{
-            position: 'absolute',
-            top: '0',
-            right: '0',
-            backgroundColor: task.is_complete ? '#059669' : '#dc2626',
-            color: 'white',
-            padding: '4px 8px',
-            fontSize: '10px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            borderBottomLeftRadius: '4px',
-          }}>
-            {task.is_complete ? 'Completed' : 'In Progress'}
-          </div>
-          
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            width: '100%'
+            alignItems: 'center'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {/* Checkbox to toggle completion status directly from panel */}
-              <input 
-                type="checkbox"
-                checked={task.is_complete || false}
-                onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
-                style={{ 
-                  marginRight: '12px',
-                  width: '18px',
-                  height: '18px',
-                  accentColor: task.is_complete ? '#059669' : undefined
-                }}
-              />
-              <h3 style={{ 
-                margin: 0, 
-                fontWeight: 'bold',
-                textDecoration: task.is_complete ? 'line-through' : 'none',
-                opacity: task.is_complete ? 0.8 : 1,
-              }}>
-                {task.title}
-              </h3>
-            </div>
-            
+            <h3 style={{ margin: 0, fontWeight: 'bold' }}>
+              Select a Template
+            </h3>
             <button 
-              onClick={() => setSelectedTaskId(null)}
+              onClick={handleCancelProjectCreation}
               style={{
                 background: 'rgba(255, 255, 255, 0.2)',
                 border: 'none',
@@ -355,110 +517,680 @@ const TaskList = () => {
           </div>
         </div>
         
-        <div className="details-content" style={{ padding: '16px' }}>
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px' }}>Status:</h4>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <p style={{ 
-                display: 'inline-block',
-                padding: '4px 8px',
-                backgroundColor: task.is_complete ? '#dcfce7' : '#fee2e2',
-                color: task.is_complete ? '#166534' : '#b91c1c',
-                borderRadius: '4px',
-                fontSize: '14px',
-                marginTop: '4px',
-                marginRight: '8px'
-              }}>
-                {task.is_complete ? 'Completed' : 'In Progress'}
-              </p>
-              
-              {task.is_complete && (
-                <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
-                  <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
-                  <span>Completed on {new Date().toLocaleDateString()}</span>
-                </div>
-              )}
-            </div>
-            
+        <div style={{ padding: '16px' }}>
+          <p style={{ marginBottom: '16px' }}>
+            Choose a template to use as the basis for your new project:
+          </p>
+          
+          {topLevelTemplates.length === 0 ? (
             <div style={{ 
-              marginTop: '8px', 
-              height: '8px', 
-              width: '100%', 
-              backgroundColor: '#e5e7eb',
-              borderRadius: '4px',
-              overflow: 'hidden'
+              color: '#6b7280',
+              textAlign: 'center',
+              padding: '24px'
             }}>
-              <div style={{
-                height: '100%',
-                width: task.is_complete ? '100%' : '0%',
-                backgroundColor: '#059669',
-                borderRadius: '4px',
-                transition: 'width 0.5s ease'
-              }} />
+              No templates available. You can create a template from the Templates page.
             </div>
-          </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {topLevelTemplates.map(template => {
+                const bgColor = getBackgroundColor(0); // Top level
+                
+                return (
+                  <div 
+                    key={template.id}
+                    onClick={() => handleTemplateSelect(template.id)}
+                    style={{
+                      backgroundColor: bgColor,
+                      color: 'white',
+                      padding: '12px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      border: selectedTemplateId === template.id 
+                        ? '2px solid white' 
+                        : '2px solid transparent',
+                      boxShadow: selectedTemplateId === template.id 
+                        ? `0 0 0 2px ${bgColor}` 
+                        : 'none',
+                    }}
+                  >
+                    {template.title}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Due Date:</h4>
-            <p>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}</p>
-          </div>
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Purpose:</h4>
-            <p>{task.purpose || 'No purpose specified'}</p>
-          </div>
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Description:</h4>
-            <p>{task.description || 'No description specified'}</p>
-          </div>
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Actions:</h4>
-            <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-              {task.actions && task.actions.length > 0 ? 
-                task.actions.map((action, index) => (
-                  <li key={index}>{action}</li>
-                )) : 
-                <li>No actions specified</li>
-              }
-            </ul>
-          </div>
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Resources:</h4>
-            <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-              {task.resources && task.resources.length > 0 ? 
-                task.resources.map((resource, index) => (
-                  <li key={index}>{resource}</li>
-                )) : 
-                <li>No resources specified</li>
-              }
-            </ul>
-          </div>
-          
-          {/* Add child task button in details panel */}
-          <div className="detail-row" style={{ marginTop: '24px' }}>
-            <button
-              onClick={() => handleAddChildTask(task.id)}
+          {selectedTemplateId && (
+            <div style={{ marginTop: '24px', textAlign: 'right' }}>
+              <button
+                onClick={() => setCreatingProject(true)}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none'
+                }}
+              >
+                Continue
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  // Render project creation form
+  const renderProjectForm = () => {
+    const bgColor = newProjectType === 'template' && selectedTemplateId 
+      ? getBackgroundColor(0)  // Use template color if creating from template
+      : '#3b82f6';            // Default blue for empty projects
+    
+    return (
+      <div style={{
+        backgroundColor: '#f9fafb',
+        borderRadius: '4px',
+        border: '1px solid #e5e7eb',
+        height: '100%',
+        overflow: 'auto'
+      }}>
+        <div style={{
+          backgroundColor: bgColor,
+          color: 'white',
+          padding: '16px',
+          borderTopLeftRadius: '4px',
+          borderTopRightRadius: '4px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h3 style={{ margin: 0, fontWeight: 'bold' }}>
+              {newProjectType === 'template' 
+                ? 'Create Project from Template' 
+                : 'Create New Project'}
+            </h3>
+            <button 
+              onClick={handleCancelProjectCreation}
               style={{
-                backgroundColor: '#10b981',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
+                background: 'rgba(255, 255, 255, 0.2)',
                 border: 'none',
+                borderRadius: '50%',
+                color: 'white',
+                cursor: 'pointer',
+                width: '24px',
+                height: '24px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '100%'
+                fontSize: '12px'
               }}
             >
-              <span style={{ marginRight: '8px' }}>Add Child Task</span>
-              <span>+</span>
+              ✕
             </button>
           </div>
         </div>
+        
+        <div style={{ padding: '16px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <label 
+              htmlFor="title"
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              Project Title *
+            </label>
+            <input
+              id="title"
+              type="text"
+              value={projectFormData.title}
+              onChange={(e) => handleProjectFormChange('title', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                outline: 'none'
+              }}
+              required
+            />
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <label 
+              htmlFor="purpose"
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              Purpose
+            </label>
+            <textarea
+              id="purpose"
+              value={projectFormData.purpose}
+              onChange={(e) => handleProjectFormChange('purpose', e.target.value)}
+              rows={2}
+              style={{
+                width: '100%',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                outline: 'none',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <label 
+              htmlFor="description"
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              Description
+            </label>
+            <textarea
+              id="description"
+              value={projectFormData.description}
+              onChange={(e) => handleProjectFormChange('description', e.target.value)}
+              rows={3}
+              style={{
+                width: '100%',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                outline: 'none',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <label 
+                  htmlFor="start_date"
+                  style={{ 
+                    display: 'block', 
+                    fontWeight: 'bold', 
+                    marginBottom: '4px' 
+                  }}
+                >
+                  Start Date
+                </label>
+                <input
+                  id="start_date"
+                  type="date"
+                  value={projectFormData.start_date || ''}
+                  onChange={(e) => handleProjectFormChange('start_date', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #d1d5db',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <label 
+                  htmlFor="due_date"
+                  style={{ 
+                    display: 'block', 
+                    fontWeight: 'bold', 
+                    marginBottom: '4px' 
+                  }}
+                >
+                  Due Date
+                </label>
+                <input
+                  id="due_date"
+                  type="date"
+                  value={projectFormData.due_date || ''}
+                  onChange={(e) => handleProjectFormChange('due_date', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #d1d5db',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <label 
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              Actions
+            </label>
+            {projectFormData.actions.map((action, index) => (
+              <div key={`action-${index}`} style={{ 
+                display: 'flex', 
+                marginBottom: '8px',
+                alignItems: 'center' 
+              }}>
+                <input
+                  type="text"
+                  value={action}
+                  onChange={(e) => handleProjectArrayChange('actions', index, e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #d1d5db',
+                    outline: 'none'
+                  }}
+                  placeholder="Enter an action step"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeProjectArrayItem('actions', index)}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: '#f3f4f6',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => addProjectArrayItem('actions')}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                background: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                fontSize: '12px'
+              }}
+            >
+              <span style={{ marginRight: '4px' }}>Add Action</span>
+              <span>+</span>
+            </button>
+          </div>
+          
+          <div style={{ marginBottom: '24px' }}>
+            <label 
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              Resources
+            </label>
+            {projectFormData.resources.map((resource, index) => (
+              <div key={`resource-${index}`} style={{ 
+                display: 'flex', 
+                marginBottom: '8px',
+                alignItems: 'center' 
+              }}>
+                <input
+                  type="text"
+                  value={resource}
+                  onChange={(e) => handleProjectArrayChange('resources', index, e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #d1d5db',
+                    outline: 'none'
+                  }}
+                  placeholder="Enter a resource"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeProjectArrayItem('resources', index)}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: '#f3f4f6',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => addProjectArrayItem('resources')}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                background: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                fontSize: '12px'
+              }}
+            >
+              <span style={{ marginRight: '4px' }}>Add Resource</span>
+              <span>+</span>
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <button
+              type="button"
+              onClick={handleCancelProjectCreation}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                background: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateProject}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '4px',
+                border: 'none',
+                background: '#10b981',
+                color: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              Create Project
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  // Render the right panel content (task details, task form, template selection, or project form)
+  const renderRightPanel = () => {
+    // If we're in the project creation flow
+    if (newProjectType) {
+      // Show the project form if we're at that step
+      if (creatingProject) {
+        return renderProjectForm();
+      }
+      
+      // Otherwise, if we're creating from template, show template selection
+      if (newProjectType === 'template') {
+        return renderTemplateSelection();
+      }
+    }
+    
+    // If there's a child task form
+    if (addingChildToTaskId) {
+      const task = tasks.find(t => t.id === addingChildToTaskId);
+      if (!task) return null;
+      
+      const level = getTaskLevel(task, tasks);
+      const backgroundColor = getBackgroundColor(level);
+      
+      return (
+        <TaskForm
+          parentTaskId={addingChildToTaskId}
+          onSubmit={handleAddChildTaskSubmit}
+          onCancel={handleCancelAddTask}
+          backgroundColor={backgroundColor}
+          originType="instance"
+        />
+      );
+    }
+    
+    // If a task is selected, show its details
+    if (selectedTaskId) {
+      const task = tasks.find(t => t.id === selectedTaskId);
+      if (!task) return null;
+      
+      const level = getTaskLevel(task, tasks);
+      const backgroundColor = getBackgroundColor(level);
+      
+      return (
+        <div className="task-details-panel" style={{
+          backgroundColor: '#f9fafb',
+          borderRadius: '4px',
+          border: '1px solid #e5e7eb',
+          height: '100%',
+          overflow: 'auto'
+        }}>
+          <div className="details-header" style={{
+            backgroundColor: backgroundColor,
+            color: 'white',
+            padding: '16px',
+            borderTopLeftRadius: '4px',
+            borderTopRightRadius: '4px',
+            position: 'relative'
+          }}>
+            {/* Completion status badge */}
+            <div style={{
+              position: 'absolute',
+              top: '0',
+              right: '0',
+              backgroundColor: task.is_complete ? '#059669' : '#dc2626',
+              color: 'white',
+              padding: '4px 8px',
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              borderBottomLeftRadius: '4px',
+            }}>
+              {task.is_complete ? 'Completed' : 'In Progress'}
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              width: '100%'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {/* Checkbox to toggle completion status directly from panel */}
+                <input 
+                  type="checkbox"
+                  checked={task.is_complete || false}
+                  onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
+                  style={{ 
+                    marginRight: '12px',
+                    width: '18px',
+                    height: '18px',
+                    accentColor: task.is_complete ? '#059669' : undefined
+                  }}
+                />
+                <h3 style={{ 
+                  margin: 0, 
+                  fontWeight: 'bold',
+                  textDecoration: task.is_complete ? 'line-through' : 'none',
+                  opacity: task.is_complete ? 0.8 : 1,
+                }}>
+                  {task.title}
+                </h3>
+              </div>
+              
+              <button 
+                onClick={() => setSelectedTaskId(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  color: 'white',
+                  cursor: 'pointer',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+          
+          <div className="details-content" style={{ padding: '16px' }}>
+            <div className="detail-row">
+              <h4 style={{ fontWeight: 'bold', marginBottom: '4px' }}>Status:</h4>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <p style={{ 
+                  display: 'inline-block',
+                  padding: '4px 8px',
+                  backgroundColor: task.is_complete ? '#dcfce7' : '#fee2e2',
+                  color: task.is_complete ? '#166534' : '#b91c1c',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  marginTop: '4px',
+                  marginRight: '8px'
+                }}>
+                  {task.is_complete ? 'Completed' : 'In Progress'}
+                </p>
+                
+                {task.is_complete && (
+                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
+                    <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
+                    <span>Completed on {new Date().toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ 
+                marginTop: '8px', 
+                height: '8px', 
+                width: '100%', 
+                backgroundColor: '#e5e7eb',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: task.is_complete ? '100%' : '0%',
+                  backgroundColor: '#059669',
+                  borderRadius: '4px',
+                  transition: 'width 0.5s ease'
+                }} />
+              </div>
+            </div>
+            
+            <div className="detail-row">
+              <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Due Date:</h4>
+              <p>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}</p>
+            </div>
+            
+            <div className="detail-row">
+              <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Purpose:</h4>
+              <p>{task.purpose || 'No purpose specified'}</p>
+            </div>
+            
+            <div className="detail-row">
+              <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Description:</h4>
+              <p>{task.description || 'No description specified'}</p>
+            </div>
+            
+            <div className="detail-row">
+              <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Actions:</h4>
+              <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
+                {task.actions && task.actions.length > 0 ? 
+                  task.actions.map((action, index) => (
+                    <li key={index}>{action}</li>
+                  )) : 
+                  <li>No actions specified</li>
+                }
+              </ul>
+            </div>
+            
+            <div className="detail-row">
+              <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Resources:</h4>
+              <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
+                {task.resources && task.resources.length > 0 ? 
+                  task.resources.map((resource, index) => (
+                    <li key={index}>{resource}</li>
+                  )) : 
+                  <li>No resources specified</li>
+                }
+              </ul>
+            </div>
+            
+            {/* Add child task button in details panel */}
+            <div className="detail-row" style={{ marginTop: '24px' }}>
+              <button
+                onClick={() => handleAddChildTask(task.id)}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%'
+                }}
+              >
+                <span style={{ marginRight: '8px' }}>Add Child Task</span>
+                <span>+</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // If nothing is selected, show the empty state
+    return (
+      <div className="empty-details-panel" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        color: '#6b7280',
+        backgroundColor: '#f9fafb',
+        borderRadius: '4px',
+        border: '1px dashed #d1d5db',
+        padding: '24px'
+      }}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <p style={{ marginTop: '16px', textAlign: 'center' }}>
+          Select a task to view its details
+        </p>
       </div>
     );
   };
@@ -479,19 +1211,69 @@ const TaskList = () => {
         }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Projects</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => alert('Create new project functionality would go here')}
-              style={{
-                backgroundColor: '#10b981',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                border: 'none'
-              }}
-            >
-              New Project
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={toggleNewProjectDropdown}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <span style={{ marginRight: '8px' }}>New Project</span>
+                <span>{isNewProjectDropdownOpen ? '▲' : '▼'}</span>
+              </button>
+              
+              {isNewProjectDropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                  width: '200px',
+                  zIndex: 10
+                }}>
+                  <button
+                    onClick={() => handleNewProjectTypeSelect('template')}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px 16px',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #e5e7eb',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Create from Template
+                  </button>
+                  <button
+                    onClick={() => handleNewProjectTypeSelect('empty')}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px 16px',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Create Empty Project
+                  </button>
+                </div>
+              )}
+            </div>
+            
             <button 
               onClick={fetchTasks}
               style={{
@@ -536,7 +1318,7 @@ const TaskList = () => {
         )}
       </div>
       
-      {/* Right panel - Task details or task form */}
+      {/* Right panel - Task details, Task form, Template selection, or Project form */}
       <div style={{ 
         flex: '1 1 40%', 
         minWidth: '300px',
@@ -566,6 +1348,9 @@ const TaskList = () => {
         <div style={{ marginTop: '8px' }}>
           <p>Total projects: {tasks.length}</p>
           <p>Top-level projects: {tasks.filter(t => !t.parent_task_id).length}</p>
+          <p>New project type: {newProjectType || 'None'}</p>
+          <p>Selected template: {selectedTemplateId || 'None'}</p>
+          <p>Creating project: {creatingProject ? 'Yes' : 'No'}</p>
           <p>Dragging: {dragAndDrop.draggedTask ? dragAndDrop.draggedTask.title : 'None'}</p>
           <p>Drop target: {dragAndDrop.dropTarget ? `${dragAndDrop.dropTarget.title} (${dragAndDrop.dropPosition})` : 'None'}</p>
           <p>Selected task: {selectedTaskId || 'None'}</p>
