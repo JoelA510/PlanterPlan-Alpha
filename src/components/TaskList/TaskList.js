@@ -4,9 +4,8 @@ import TaskItem from './TaskItem';
 import TaskDropZone from './TaskDropZone';
 import TaskForm from '../TaskForm/TaskForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
-import { fetchAllTasks } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import { updateTaskCompletion } from '../../services/taskService';
+import { fetchAllTasks, createTask, updateTaskCompletion } from '../../services/taskService'
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
@@ -56,6 +55,10 @@ const TaskList = () => {
       e.preventDefault();
       e.stopPropagation();
     }
+    // Cancel adding a child task if the user clicks on a different task
+    if (addingChildToTaskId && addingChildToTaskId !== taskId) {
+      setAddingChildToTaskId(null);
+    }
     setSelectedTaskId(prevId => prevId === taskId ? null : taskId);
   };
   
@@ -92,6 +95,10 @@ const TaskList = () => {
 
   // Handle adding child task
   const handleAddChildTask = (parentTaskId) => {
+    // Set the parent task as selected if it's not already
+    setSelectedTaskId(parentTaskId);
+    
+    // Indicate we're adding a child to this task
     setAddingChildToTaskId(parentTaskId);
     
     // Also expand the parent task if it's not already expanded
@@ -102,55 +109,60 @@ const TaskList = () => {
   };
 
   // Handle submit of the new child task form
-  const handleAddChildTaskSubmit = (taskData) => {
-    // TODO: Actually submit the new task to the backend
-    console.log('Adding new child task:', taskData);
-    
-    // For now, just close the form
-    setAddingChildToTaskId(null);
+  const handleAddChildTaskSubmit = async (taskData) => {
+    try {
+      console.log("Form submitted with data:", JSON.stringify(taskData, null, 2));
+      
+      // Determine position for new task
+      const siblingTasks = tasks.filter(t => t.parent_task_id === taskData.parent_task_id);
+      const position = siblingTasks.length > 0 
+        ? Math.max(...siblingTasks.map(t => t.position)) + 1 
+        : 0;
+      
+      // Add position to task data
+      const newTaskData = {
+        ...taskData,
+        position,
+        // Ensure due_date is included (even if null)
+        due_date: taskData.due_date || null
+      };
+      
+      console.log("Calling createTask with:", JSON.stringify(newTaskData, null, 2));
+      
+      // Call API to create task
+      const result = await createTask(newTaskData);
+      
+      if (result.error) {
+        console.error("Error from createTask:", result.error);
+        throw new Error(result.error);
+      }
+      
+      console.log("Task created successfully:", result.data);
+      
+      // Update local state with new task
+      if (result.data) {
+        setTasks(prev => [...prev, result.data]);
+      }
+      
+      // For now, just close the form
+      setAddingChildToTaskId(null);
+      
+      // Expand the parent task to show the new child
+      if (taskData.parent_task_id) {
+        setExpandedTasks(prev => ({
+          ...prev,
+          [taskData.parent_task_id]: true
+        }));
+      }
+    } catch (err) {
+      console.error('Error adding child task:', err);
+      alert(`Failed to create task: ${err.message}`);
+    }
   };
 
-  // Render the add child task form
-  const renderAddChildTaskForm = () => {
-    if (!addingChildToTaskId) return null;
-    
-    const parentTask = tasks.find(task => task.id === addingChildToTaskId);
-    if (!parentTask) return null;
-    
-    const level = getTaskLevel(parentTask, tasks) + 1;
-    const backgroundColor = getBackgroundColor(level);
-    
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          width: '90%',
-          maxWidth: '500px',
-          maxHeight: '90vh',
-          overflow: 'auto',
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-        }}>
-          <TaskForm
-            parentTaskId={addingChildToTaskId}
-            onSubmit={handleAddChildTaskSubmit}
-            onCancel={() => setAddingChildToTaskId(null)}
-            backgroundColor={backgroundColor}
-          />
-        </div>
-      </div>
-    );
+  // Handle canceling the add child task form
+  const handleCancelAddTask = () => {
+    setAddingChildToTaskId(null);
   };
   
   // Render top-level tasks (projects) with spacing between them
@@ -208,9 +220,10 @@ const TaskList = () => {
     return taskElements;
   };
   
-  // Render the details panel for the selected task
-  const renderTaskDetailsPanel = () => {
-    if (!selectedTask) {
+  // Render the right panel content (task details or task form)
+  const renderRightPanel = () => {
+    // If there's no selected task, show the empty state
+    if (!selectedTaskId) {
       return (
         <div className="empty-details-panel" style={{
           display: 'flex',
@@ -238,10 +251,28 @@ const TaskList = () => {
       );
     }
     
+    // Get the selected task
+    const task = tasks.find(t => t.id === selectedTaskId);
+    if (!task) return null;
+    
     // Get the task level and background color
-    const level = getTaskLevel(selectedTask, tasks);
+    const level = getTaskLevel(task, tasks);
     const backgroundColor = getBackgroundColor(level);
     
+    // If we're adding a child task, show the form
+    if (addingChildToTaskId === selectedTaskId) {
+      return (
+        <TaskForm
+          parentTaskId={selectedTaskId}
+          onSubmit={handleAddChildTaskSubmit}
+          onCancel={handleCancelAddTask}
+          backgroundColor={backgroundColor}
+          originType="instance"
+        />
+      );
+    }
+    
+    // Otherwise show the task details
     return (
       <div className="task-details-panel" style={{
         backgroundColor: '#f9fafb',
@@ -263,7 +294,7 @@ const TaskList = () => {
             position: 'absolute',
             top: '0',
             right: '0',
-            backgroundColor: selectedTask.is_complete ? '#059669' : '#dc2626',
+            backgroundColor: task.is_complete ? '#059669' : '#dc2626',
             color: 'white',
             padding: '4px 8px',
             fontSize: '10px',
@@ -271,7 +302,7 @@ const TaskList = () => {
             textTransform: 'uppercase',
             borderBottomLeftRadius: '4px',
           }}>
-            {selectedTask.is_complete ? 'Completed' : 'In Progress'}
+            {task.is_complete ? 'Completed' : 'In Progress'}
           </div>
           
           <div style={{
@@ -284,22 +315,22 @@ const TaskList = () => {
               {/* Checkbox to toggle completion status directly from panel */}
               <input 
                 type="checkbox"
-                checked={selectedTask.is_complete || false}
-                onChange={(e) => toggleTaskCompletion(selectedTask.id, selectedTask.is_complete, e)}
+                checked={task.is_complete || false}
+                onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
                 style={{ 
                   marginRight: '12px',
                   width: '18px',
                   height: '18px',
-                  accentColor: selectedTask.is_complete ? '#059669' : undefined
+                  accentColor: task.is_complete ? '#059669' : undefined
                 }}
               />
               <h3 style={{ 
                 margin: 0, 
                 fontWeight: 'bold',
-                textDecoration: selectedTask.is_complete ? 'line-through' : 'none',
-                opacity: selectedTask.is_complete ? 0.8 : 1,
+                textDecoration: task.is_complete ? 'line-through' : 'none',
+                opacity: task.is_complete ? 0.8 : 1,
               }}>
-                {selectedTask.title}
+                {task.title}
               </h3>
             </div>
             
@@ -331,17 +362,17 @@ const TaskList = () => {
               <p style={{ 
                 display: 'inline-block',
                 padding: '4px 8px',
-                backgroundColor: selectedTask.is_complete ? '#dcfce7' : '#fee2e2',
-                color: selectedTask.is_complete ? '#166534' : '#b91c1c',
+                backgroundColor: task.is_complete ? '#dcfce7' : '#fee2e2',
+                color: task.is_complete ? '#166534' : '#b91c1c',
                 borderRadius: '4px',
                 fontSize: '14px',
                 marginTop: '4px',
                 marginRight: '8px'
               }}>
-                {selectedTask.is_complete ? 'Completed' : 'In Progress'}
+                {task.is_complete ? 'Completed' : 'In Progress'}
               </p>
               
-              {selectedTask.is_complete && (
+              {task.is_complete && (
                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
                   <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
                   <span>Completed on {new Date().toLocaleDateString()}</span>
@@ -359,7 +390,7 @@ const TaskList = () => {
             }}>
               <div style={{
                 height: '100%',
-                width: selectedTask.is_complete ? '100%' : '0%',
+                width: task.is_complete ? '100%' : '0%',
                 backgroundColor: '#059669',
                 borderRadius: '4px',
                 transition: 'width 0.5s ease'
@@ -369,24 +400,24 @@ const TaskList = () => {
           
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Due Date:</h4>
-            <p>{selectedTask.due_date ? new Date(selectedTask.due_date).toLocaleDateString() : 'No due date'}</p>
+            <p>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}</p>
           </div>
           
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Purpose:</h4>
-            <p>{selectedTask.purpose || 'No purpose specified'}</p>
+            <p>{task.purpose || 'No purpose specified'}</p>
           </div>
           
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Description:</h4>
-            <p>{selectedTask.description || 'No description specified'}</p>
+            <p>{task.description || 'No description specified'}</p>
           </div>
           
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Actions:</h4>
             <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-              {selectedTask.actions && selectedTask.actions.length > 0 ? 
-                selectedTask.actions.map((action, index) => (
+              {task.actions && task.actions.length > 0 ? 
+                task.actions.map((action, index) => (
                   <li key={index}>{action}</li>
                 )) : 
                 <li>No actions specified</li>
@@ -397,8 +428,8 @@ const TaskList = () => {
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Resources:</h4>
             <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-              {selectedTask.resources && selectedTask.resources.length > 0 ? 
-                selectedTask.resources.map((resource, index) => (
+              {task.resources && task.resources.length > 0 ? 
+                task.resources.map((resource, index) => (
                   <li key={index}>{resource}</li>
                 )) : 
                 <li>No resources specified</li>
@@ -409,7 +440,7 @@ const TaskList = () => {
           {/* Add child task button in details panel */}
           <div className="detail-row" style={{ marginTop: '24px' }}>
             <button
-              onClick={() => handleAddChildTask(selectedTask.id)}
+              onClick={() => handleAddChildTask(task.id)}
               style={{
                 backgroundColor: '#10b981',
                 color: 'white',
@@ -505,17 +536,14 @@ const TaskList = () => {
         )}
       </div>
       
-      {/* Right panel - Task details */}
+      {/* Right panel - Task details or task form */}
       <div style={{ 
         flex: '1 1 40%', 
         minWidth: '300px',
         maxWidth: '500px'
       }}>
-        {renderTaskDetailsPanel()}
+        {renderRightPanel()}
       </div>
-      
-      {/* Add Child Task Form Modal */}
-      {renderAddChildTaskForm()}
       
       {/* Debug section */}
       <details style={{ 

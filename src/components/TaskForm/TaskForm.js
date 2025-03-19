@@ -4,7 +4,8 @@ const TaskForm = ({
   parentTaskId, 
   onSubmit, 
   onCancel, 
-  backgroundColor 
+  backgroundColor,
+  originType = 'template' // Default to template, but can be overridden
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -87,9 +88,18 @@ const TaskForm = ({
       onSubmit({
         ...cleanedData,
         parent_task_id: parentTaskId,
-        origin: 'template',
+        origin: originType, // Use the prop value instead of hardcoding
         is_complete: false
       });
+    }
+  };
+  
+  // Determine the header text based on origin type
+  const getHeaderText = () => {
+    if (!parentTaskId) {
+      return originType === 'template' ? 'Add Template' : 'Add Project';
+    } else {
+      return originType === 'template' ? 'Add Template Task' : 'Add Subtask';
     }
   };
   
@@ -112,7 +122,7 @@ const TaskForm = ({
         alignItems: 'center'
       }}>
         <h3 style={{ margin: 0, fontWeight: 'bold' }}>
-          {parentTaskId ? 'Add Subtask' : 'Add Template'}
+          {getHeaderText()}
         </h3>
         <button 
           onClick={onCancel}
