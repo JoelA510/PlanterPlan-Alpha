@@ -136,3 +136,71 @@ export const mockCreateTask = async (taskData) => {
     }
   };
 };
+
+/**
+ * Deletes a task and all its child tasks from Supabase
+ * @param {string|number} taskId - The ID of the task to delete
+ * @returns {Promise<{success: boolean, error: string|null}>} - Result of the operation
+ */
+export const deleteTask = async (taskId) => {
+  try {
+    console.log(`Deleting task with ID: ${taskId}`);
+    
+    // First, we need to fetch all children of this task recursively
+    const allTaskIds = await getAllChildTaskIds(taskId);
+    allTaskIds.push(taskId); // Add the parent task ID
+    
+    console.log(`Will delete the following task IDs: ${allTaskIds.join(', ')}`);
+    
+    // Delete all the tasks in a single operation
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .in('id', allTaskIds);
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return { success: false, error: error.message || 'Failed to delete task in Supabase' };
+    }
+    
+    return { success: true, error: null };
+  } catch (err) {
+    console.error('Error deleting task:', err);
+    return { success: false, error: err.message || 'Unknown error occurred' };
+  }
+};
+
+/**
+ * Helper function to recursively get all child task IDs
+ * @param {string|number} parentId - The parent task ID
+ * @returns {Promise<Array>} - Array of child task IDs
+ */
+const getAllChildTaskIds = async (parentId) => {
+  try {
+    // Get direct children
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('id')
+      .eq('parent_task_id', parentId);
+    
+    if (error) {
+      console.error('Error fetching child tasks:', error);
+      return [];
+    }
+    
+    // Extract the IDs
+    const childIds = data.map(task => task.id);
+    
+    // For each child, recursively get its children
+    const grandchildPromises = childIds.map(childId => getAllChildTaskIds(childId));
+    const grandchildResults = await Promise.all(grandchildPromises);
+    
+    // Flatten the results and combine with the direct children
+    const allDescendantIds = [...childIds, ...grandchildResults.flat()];
+    
+    return allDescendantIds;
+  } catch (err) {
+    console.error('Error in getAllChildTaskIds:', err);
+    return [];
+  }
+};

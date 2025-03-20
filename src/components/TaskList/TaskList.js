@@ -4,7 +4,7 @@ import TaskItem from './TaskItem';
 import TaskDropZone from './TaskDropZone';
 import TaskForm from '../TaskForm/TaskForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
-import { fetchAllTasks, createTask, updateTaskCompletion } from '../../services/taskService';
+import { fetchAllTasks, createTask, updateTaskCompletion, deleteTask } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 
 const TaskList = () => {
@@ -15,6 +15,8 @@ const TaskList = () => {
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [addingChildToTaskId, setAddingChildToTaskId] = useState(null);
+  const [deletingTaskId, setDeletingTaskId] = useState(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   
   // New project creation states
   const [isNewProjectDropdownOpen, setIsNewProjectDropdownOpen] = useState(false);
@@ -339,7 +341,7 @@ const TaskList = () => {
       }
       
       // If we're creating from a template, we also need to create child tasks
-      if (newProjectType === 'template' && selectedTemplateId) {
+      if (newProjectType === 'template' && selectedTemplateId && result.data) {
         await createChildTasksFromTemplate(selectedTemplateId, result.data.id);
       }
       
@@ -379,8 +381,8 @@ const TaskList = () => {
           title: childTemplate.title,
           purpose: childTemplate.purpose,
           description: childTemplate.description,
-          actions: childTemplate.actions || [],
-          resources: childTemplate.resources || [],
+          actions: Array.isArray(childTemplate.actions) ? childTemplate.actions : [],
+          resources: Array.isArray(childTemplate.resources) ? childTemplate.resources : [],
           parent_task_id: newProjectId,
           position: i,
           origin: 'instance',
@@ -411,6 +413,73 @@ const TaskList = () => {
     setNewProjectType(null);
     setSelectedTemplateId(null);
     setCreatingProject(false);
+  };
+  
+  // Handle task deletion
+  const handleDeleteTask = (taskId) => {
+    setDeletingTaskId(taskId);
+    setShowDeleteConfirmation(true);
+  };
+  
+  // Confirm and execute task deletion
+  const confirmDeleteTask = async () => {
+    try {
+      if (!deletingTaskId) return;
+      
+      // Find the task to delete
+      const taskToDelete = tasks.find(t => t.id === deletingTaskId);
+      if (!taskToDelete) throw new Error("Task not found");
+      
+      // Get all descendant tasks (children, grandchildren, etc.)
+      const getAllDescendantTaskIds = (parentId) => {
+        const directChildren = tasks.filter(t => t.parent_task_id === parentId);
+        const childIds = directChildren.map(t => t.id);
+        
+        // Recursively get grandchildren
+        const grandchildIds = directChildren.flatMap(child => 
+          getAllDescendantTaskIds(child.id)
+        );
+        
+        return [...childIds, ...grandchildIds];
+      };
+      
+      const descendantIds = getAllDescendantTaskIds(deletingTaskId);
+      const allIdsToDelete = [deletingTaskId, ...descendantIds];
+      
+      console.log(`Deleting task ${taskToDelete.title} and ${descendantIds.length} descendants`);
+      
+      // Call the delete API
+      const result = await deleteTask(deletingTaskId);
+      
+      if (result.error) throw new Error(result.error);
+      
+      // Update local state
+      setTasks(prev => prev.filter(t => !allIdsToDelete.includes(t.id)));
+      
+      // If we're deleting the currently selected task, clear the selection
+      if (selectedTaskId === deletingTaskId) {
+        setSelectedTaskId(null);
+      }
+      
+      // Reset deletion state
+      setDeletingTaskId(null);
+      setShowDeleteConfirmation(false);
+      
+      // Show success message
+      alert(`Successfully deleted "${taskToDelete.title}" and all its subtasks`);
+      
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert(`Failed to delete task: ${error.message}`);
+    } finally {
+      setShowDeleteConfirmation(false);
+    }
+  };
+  
+  // Cancel task deletion
+  const cancelDeleteTask = () => {
+    setDeletingTaskId(null);
+    setShowDeleteConfirmation(false);
   };
   
   // Render top-level tasks (projects) with spacing between them
@@ -1120,7 +1189,7 @@ const TaskList = () => {
             <div className="detail-row">
               <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Actions:</h4>
               <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-                {task.actions && task.actions.length > 0 ? 
+                {Array.isArray(task.actions) && task.actions.length > 0 ? 
                   task.actions.map((action, index) => (
                     <li key={index}>{action}</li>
                   )) : 
@@ -1132,7 +1201,7 @@ const TaskList = () => {
             <div className="detail-row">
               <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Resources:</h4>
               <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-                {task.resources && task.resources.length > 0 ? 
+                {Array.isArray(task.resources) && task.resources.length > 0 ? 
                   task.resources.map((resource, index) => (
                     <li key={index}>{resource}</li>
                   )) : 
@@ -1141,8 +1210,8 @@ const TaskList = () => {
               </ul>
             </div>
             
-            {/* Add child task button in details panel */}
-            <div className="detail-row" style={{ marginTop: '24px' }}>
+            {/* Action buttons in details panel */}
+            <div className="detail-row" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
               <button
                 onClick={() => handleAddChildTask(task.id)}
                 style={{
@@ -1155,11 +1224,28 @@ const TaskList = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: '100%'
+                  flex: '1'
                 }}
               >
                 <span style={{ marginRight: '8px' }}>Add Child Task</span>
                 <span>+</span>
+              </button>
+              
+              <button
+                onClick={() => handleDeleteTask(task.id)}
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                Delete
               </button>
             </div>
           </div>
@@ -1196,7 +1282,63 @@ const TaskList = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
+    <div style={{ display: 'flex', height: 'calc(100vh - 100px)', position: 'relative' }}>
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirmation && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            width: '400px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }}>
+            <h3 style={{ marginTop: 0, color: '#ef4444' }}>Confirm Deletion</h3>
+            <p>
+              Are you sure you want to delete this task? This will also delete all subtasks and cannot be undone.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+              <button
+                onClick={cancelDeleteTask}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  border: '1px solid #d1d5db',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteTask}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Left panel - Task list */}
       <div style={{ 
         flex: '1 1 60%', 
