@@ -20,12 +20,14 @@ export const fetchAllTasks = async (organizationId = null) => {
         position,
         is_complete,
         due_date,
-        task_lead
+        task_lead,
+        white_label_id
       `)
       .order('position', { ascending: true });
     
     // If organization ID is provided, filter by it
     if (organizationId) {
+      console.log(organizationId);
       query = query.eq('white_label_id', organizationId);
     }
 
