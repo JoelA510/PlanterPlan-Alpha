@@ -1,5 +1,61 @@
-PlanterPlan
+# PlanterPlan
+## Roadmap
+- User front-end
+    - [ ] Account creation and log in
+        - [ ]  authentication
+    - Dashboard
+      - [ ] overview of projects
+    - project task list
+      - [ ] edit a project’s settings
+      - [ ] view and edit Project Team
+        - [ ]  add user to project team : Invite team member (email)
+          - [ ]  set the role     
+            
+      - [ ]  progress bar for tasks
+      - [ ]  note taking feature for each task
+      - [ ]  edit task details
+        - [ ]  edit due date and start date
+          - [ ]  cascading effect on the following tasks
+          - [ ]  toggle N/A and not N/A
 
+      - [ ]  search for tasks
+            - [ ]  result ordering/sorting
+            - [ ]  Filter by (within or under the search)
+              - [ ]  overdue, current, due soon, not due yet, in/complete
+                - [ ]  Priority tasks (includes due soon, over due, current)
+
+      - [ ]  add task from list of master library of tasks
+      - [ ]  count of tasks (# of tasks overdue, due soon, etc)
+            - [ ]  chart (Gant?)
+      - [ ]  assign lead user for task
+      - [ ]  Email task
+      - [ ] Google Calendar integration
+        
+
+    - Resources
+        - [ ]  search for resources in resource library
+        - [ ]  display resources
+        - [ ] resource store
+            
+    - Project Status Report
+        - [ ]  Shows basic info for selected month
+        - [ ]  shows num tasks completed, overdue, and due next month
+            - [ ]  donut chart breakdown
+            - [ ]  table list
+        - [ ]  printable
+    - [ ]  Foreign language User interface 
+
+- Admin
+  - [ ]  Manage Users
+  - [ ]  licence management
+  - [ ]  white label management
+    - [ ] manage the organization's custom url, logo, css, tasks, resources, and pricing structure
+  - [ ]  template management       
+  - [ ]  New task type “Strategy Template” 
+  - [ ]  New task type “Coaching” allows tasks to automatically be assigned to user with Coach level access
+  - [ ] automatically send email notifications for tasks being due soon
+
+## Documentation
 Database Schema (Mermaid code):
 
 ```
@@ -60,13 +116,13 @@ erDiagram
     white_label_orgs }o--|| users : "admin_user_id"
 ```
 
-# PlanterPlan - Component Architecture and Logic
+### PlanterPlan - Component Architecture and Logic
 
 This documentation covers the main components and logic of the PlanterPlan application, focusing on how tasks, templates, and their relationships are managed through the codebase.
 
-## Component Architecture
+Component Architecture
 
-### Core Components
+Core Components
 
 | Component | Purpose | Key Functions |
 |-----------|---------|---------------|
@@ -78,7 +134,7 @@ This documentation covers the main components and logic of the PlanterPlan appli
 | `TaskDropZone` | Drop target between tasks | Handles drop positioning for drag and drop |
 | `OrganizationProvider` | Manages organization context | Provides organization data and branding |
 
-### Component Relationships
+Component Relationships
 
 ```
 App
@@ -94,283 +150,37 @@ App
 │           └── TaskForm
 ```
 
-## Task and Template Data Model
 
-### Task Data Structure
+## Dev notes
+### March 25 2025
+Key Logic Components
 
-```javascript
-{
-  id: "uuid",
-  title: "Task Title",
-  description: "Task Description",
-  purpose: "Task Purpose",
-  actions: ["Action 1", "Action 2"],
-  resources: ["Resource 1", "Resource 2"],
-  parent_task_id: "parent-uuid", // null for top-level tasks
-  position: 0, // position among siblings
-  is_complete: false,
-  origin: "instance" | "template", // determines if it's a task or template
-  due_date: "2023-01-01",
-  // other fields...
-}
-```
-
-### Hierarchical Structure
+1. Task Hierarchical Structure
 
 Tasks and templates are stored in a flat structure but displayed hierarchically:
 - **Top-level tasks/templates**: `parent_task_id === null`
 - **Children**: filtered by matching `parent_task_id`
 - **Ordering**: determined by `position` field
 
-## Key Logic Components
+2. Drag and Drop System
 
-### 1. Task Hierarchy and Display Logic
-
-```javascript
-// getTaskLevel - Determines the nesting level of a task
-const getTaskLevel = (task, tasks) => {
-  if (!task.parent_task_id) return 0;
-  let level = 1;
-  let parentId = task.parent_task_id;
-  while (parentId) {
-    level++;
-    const parent = tasks.find((t) => t.id === parentId);
-    parentId = parent?.parent_task_id;
-  }
-  return level;
-};
-
-// Display colors based on hierarchy level
-const getBackgroundColor = (level) => {
-  const colors = [
-    "#6b7280", // Gray for top level (level 0)
-    "#1e40af", // Dark blue (level 1)
-    "#2563eb", // Medium blue (level 2)
-    // ...more colors
-  ];
-  if (level === 0) return colors[0];
-  return level < colors.length ? colors[level] : colors[colors.length - 1];
-};
-```
-
-### 2. Drag and Drop System
-
-The drag and drop system uses a custom hook (`useTaskDragAndDrop`) that manages:
-
-```javascript
-// Key drag and drop state
-const [draggedTask, setDraggedTask] = useState(null);
-const [dropTarget, setDropTarget] = useState(null);
-const [dropPosition, setDropPosition] = useState(null); // 'into', 'between-before', 'between-after'
-const [activeDropZone, setActiveDropZone] = useState(null);
-
-// Main handlers
-const handleDragStart = (e, task) => { /* ... */ };
-const handleDragOver = (e, targetTask) => { /* ... */ };
-const handleDrop = async (e, targetTask) => { /* ... */ };
-const handleDropZoneDragOver = (e, parentId, position, prevTask, nextTask) => { /* ... */ };
-const handleDropZoneDrop = async (e, parentId, position) => { /* ... */ };
-```
-
-#### Drop Positions:
-
-- **Into**: Drop a task to make it a child of the target
-- **Between Before**: Drop before another task (same level)
-- **Between After**: Drop after another task (same level)
+The drag and drop system uses a custom hook (`useTaskDragAndDrop`):
 
 The drop operation updates:
 1. Frontend state (optimistic update)
 2. Database state (API call)
 
-### 3. Task/Template Expansion Logic
-
-```javascript
-// Tracks which tasks are expanded
-const [expandedTasks, setExpandedTasks] = useState({});
-
-// Toggle expansion
-const toggleExpandTask = (taskId, e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  setExpandedTasks(prev => ({
-    ...prev,
-    [taskId]: !prev[taskId]
-  }));
-};
-```
-
-### 4. Task Form Logic
-
-```javascript
-// Form data structure
-const [formData, setFormData] = useState({
-  title: '',
-  purpose: '',
-  description: '',
-  actions: [''],
-  resources: ['']
-});
-
-// Form submission
-const handleSubmit = (e) => {
-  e.preventDefault();
-  
-  if (validateForm()) {
-    // Filter out empty array items
-    const cleanedData = {
-      ...formData,
-      actions: formData.actions.filter(item => item.trim() !== ''),
-      resources: formData.resources.filter(item => item.trim() !== '')
-    };
-    
-    onSubmit({
-      ...cleanedData,
-      parent_task_id: parentTaskId,
-      origin: originType, // 'template' or 'instance'
-      is_complete: false
-    });
-  }
-};
-```
-
-## Task Service API
-
-The task service provides API functions for:
-
-```javascript
-// Fetch all tasks
-const fetchAllTasks = async (organizationId = null) => { /* ... */ };
-
-// Create a new task
-const createTask = async (taskData, organizationId = null) => { /* ... */ };
-
-// Update task completion status
-const updateTaskCompletion = async (taskId, currentStatus, organizationId = null) => { /* ... */ };
-
-// Update task position (drag and drop)
-const updateTaskPosition = async (taskId, newParentId, newPosition, organizationId = null) => { /* ... */ };
-
-// Update sibling positions
-const updateSiblingPositions = async (tasks, organizationId = null) => { /* ... */ };
-
-// Delete a task
-const deleteTask = async (taskId, organizationId = null) => { /* ... */ };
-```
-
-## State Management Flow
-
-1. **Task Selection**:
-   ```javascript
-   const [selectedTaskId, setSelectedTaskId] = useState(null);
-   const selectedTask = tasks.find(task => task.id === selectedTaskId);
-   ```
-
-2. **Adding Child Tasks**:
-   ```javascript
-   // Toggle form display
-   const [addingChildToTaskId, setAddingChildToTaskId] = useState(null);
-   
-   // Handle adding a child task
-   const handleAddChildTask = (parentTaskId) => {
-     setSelectedTaskId(parentTaskId);
-     setAddingChildToTaskId(parentTaskId);
-     setExpandedTasks(prev => ({
-       ...prev,
-       [parentTaskId]: true
-     }));
-   };
-   ```
-
-3. **Creating New Tasks/Templates from Form**:
-   ```javascript
-   const handleAddChildTaskSubmit = async (taskData) => {
-     // Determine position for new task
-     const siblingTasks = tasks.filter(t => t.parent_task_id === taskData.parent_task_id);
-     const position = siblingTasks.length > 0 
-       ? Math.max(...siblingTasks.map(t => t.position)) + 1 
-       : 0;
-     
-     // Create task in database
-     const result = await createTask({...taskData, position});
-     
-     // Update local state
-     if (result.data) {
-       setTasks(prev => [...prev, result.data]);
-     }
-   };
-   ```
-
-## Project Templates System
+Project Templates System
 
 The template system allows creating reusable project structures:
 
 1. **Creating Templates**: Same process as tasks but with `origin: "template"`
 2. **Using Templates**: When creating a new project, user can select a template
-3. **Template Conversion**: Creates a project by:
-   - Creating a top-level project from the template 
-   - Recursively creating child tasks for all template children
 
-```javascript
-// Create child tasks from a template
-const createChildTasksFromTemplate = async (templateId, newProjectId) => {
-  // Find the template and its children
-  const templateTask = templates.find(t => t.id === templateId);
-  if (!templateTask) return;
-  
-  // Get direct children of the template
-  const childTemplates = templates.filter(t => t.parent_task_id === templateId);
-  
-  // Create each child task
-  for (let i = 0; i < childTemplates.length; i++) {
-    const childTemplate = childTemplates[i];
-    
-    // Create the child task
-    const childTaskData = {
-      title: childTemplate.title,
-      purpose: childTemplate.purpose,
-      description: childTemplate.description,
-      actions: childTemplate.actions,
-      resources: childTemplate.resources,
-      parent_task_id: newProjectId,
-      position: i,
-      origin: 'instance',
-      is_complete: false,
-      due_date: null
-    };
-    
-    const result = await createTask(childTaskData);
-    
-    // Recursively create grandchildren
-    if (result.data) {
-      const grandchildTemplates = templates.filter(t => t.parent_task_id === childTemplate.id);
-      if (grandchildTemplates.length > 0) {
-        await createChildTasksFromTemplate(childTemplate.id, result.data.id);
-      }
-    }
-  }
-};
-```
-
-## Organization White-labeling
+Organization White-labeling
 
 The `OrganizationProvider` enables white-labeling through:
 
 1. **Route-based organization selection**: `/org/:orgSlug/*`
-2. **Organization context**:
-   ```javascript
-   // Fetch organization data
-   const { data } = await supabase
-     .from('white_label_orgs')
-     .select('*')
-     .eq('subdomain', orgSlug)
-     .single();
-     
-   // Apply branding
-   document.documentElement.style.setProperty('--primary-color', data.primary_color);
-   document.documentElement.style.setProperty('--secondary-color', data.secondary_color);
-   document.title = `${data.name} - Task Manager`;
-   ```
-
-3. **Filtered data access**: All API calls filter by organization ID for data isolation
-
-This architecture enables PlanterPlan to support multiple organizations with customized interfaces while maintaining clean separation of data and functionality.
+2. **Organization context**: fetch styles and logo from supabase and update the display
+3. **Filtered data access**: All API calls for tasks filter by organization ID for data isolation
