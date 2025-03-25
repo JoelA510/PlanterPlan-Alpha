@@ -1,8 +1,9 @@
 import { supabase } from '../supabaseClient';
 
-export const fetchAllTasks = async () => {
+export const fetchAllTasks = async (organizationId = null) => {
   try {
-    const { data, error } = await supabase
+    // Create query builder
+    let query = supabase
       .from('tasks')
       .select(`
         id,
@@ -22,6 +23,13 @@ export const fetchAllTasks = async () => {
         task_lead
       `)
       .order('position', { ascending: true });
+    
+    // If organization ID is provided, filter by it
+    if (organizationId) {
+      query = query.eq('white_label_id', organizationId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return { data, error: null };
@@ -31,12 +39,19 @@ export const fetchAllTasks = async () => {
   }
 };
 
-export const updateTaskCompletion = async (taskId, currentStatus) => {
+export const updateTaskCompletion = async (taskId, currentStatus, organizationId = null) => {
   try {
-    const { error } = await supabase
+    let query = supabase
       .from('tasks')
       .update({ is_complete: !currentStatus })
       .eq('id', taskId);
+    
+    // Add organization check for safety if provided
+    if (organizationId) {
+      query = query.eq('white_label_id', organizationId);
+    }
+    
+    const { error } = await query;
     
     if (error) throw error;
     return { success: true, error: null };
@@ -46,15 +61,22 @@ export const updateTaskCompletion = async (taskId, currentStatus) => {
   }
 };
 
-export const updateTaskPosition = async (taskId, newParentId, newPosition) => {
+export const updateTaskPosition = async (taskId, newParentId, newPosition, organizationId = null) => {
   try {
-    const { error } = await supabase
+    let query = supabase
       .from('tasks')
       .update({
         parent_task_id: newParentId,
         position: newPosition
       })
       .eq('id', taskId);
+    
+    // Add organization check for safety if provided
+    if (organizationId) {
+      query = query.eq('white_label_id', organizationId);
+    }
+    
+    const { error } = await query;
       
     if (error) throw error;
     return { success: true, error: null };
@@ -64,13 +86,20 @@ export const updateTaskPosition = async (taskId, newParentId, newPosition) => {
   }
 };
 
-export const updateSiblingPositions = async (tasks) => {
+export const updateSiblingPositions = async (tasks, organizationId = null) => {
   for (const task of tasks) {
     try {
-      const { error } = await supabase
+      let query = supabase
         .from('tasks')
         .update({ position: task.position })
         .eq('id', task.id);
+      
+      // Add organization check for safety if provided
+      if (organizationId) {
+        query = query.eq('white_label_id', organizationId);
+      }
+      
+      const { error } = await query;
         
       if (error) throw error;
     } catch (err) {
@@ -86,16 +115,22 @@ export const updateSiblingPositions = async (tasks) => {
 /**
  * Creates a new task in Supabase
  * @param {Object} taskData - The task data to create
+ * @param {string|null} organizationId - The organization ID to associate this task with
  * @returns {Promise<{data: Object, error: string}>} - The created task data or error
  */
-export const createTask = async (taskData) => {
+export const createTask = async (taskData, organizationId = null) => {
   try {
-    console.log('Creating task with data:', taskData);
+    // Add organization ID to task data if provided
+    const taskWithOrg = organizationId 
+      ? { ...taskData, organization_id: organizationId }
+      : taskData;
+    
+    console.log('Creating task with data:', taskWithOrg);
     
     // Insert the task data into the 'tasks' table
     const { data, error } = await supabase
       .from('tasks')
-      .insert([taskData])
+      .insert([taskWithOrg])
       .select();
     
     if (error) {
@@ -117,46 +152,60 @@ export const createTask = async (taskData) => {
 /**
  * Mock implementation of createTask for development/testing
  * @param {Object} taskData - The task data to create
+ * @param {string|null} organizationId - The organization ID to associate this task with
  * @returns {Promise<{data: Object, error: string}>} - The created task data or error
  */
-export const mockCreateTask = async (taskData) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
+// export const mockCreateTask = async (taskData, organizationId = null) => {
+//   // Simulate API delay
+//   await new Promise(resolve => setTimeout(resolve, 500));
   
-  // Generate a random ID
-  const id = Math.floor(Math.random() * 10000);
+//   // Generate a random ID
+//   const id = Math.floor(Math.random() * 10000);
   
-  // Return mock data
-  return {
-    data: {
-      ...taskData,
-      id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-  };
-};
+//   // Add organization ID if provided
+//   const taskWithOrg = organizationId 
+//     ? { ...taskData, organization_id: organizationId }
+//     : taskData;
+  
+//   // Return mock data
+//   return {
+//     data: {
+//       ...taskWithOrg,
+//       id,
+//       created_at: new Date().toISOString(),
+//       updated_at: new Date().toISOString()
+//     }
+//   };
+// };
 
 /**
  * Deletes a task and all its child tasks from Supabase
  * @param {string|number} taskId - The ID of the task to delete
+ * @param {string|null} organizationId - The organization ID for verification
  * @returns {Promise<{success: boolean, error: string|null}>} - Result of the operation
  */
-export const deleteTask = async (taskId) => {
+export const deleteTask = async (taskId, organizationId = null) => {
   try {
     console.log(`Deleting task with ID: ${taskId}`);
     
     // First, we need to fetch all children of this task recursively
-    const allTaskIds = await getAllChildTaskIds(taskId);
+    const allTaskIds = await getAllChildTaskIds(taskId, organizationId);
     allTaskIds.push(taskId); // Add the parent task ID
     
     console.log(`Will delete the following task IDs: ${allTaskIds.join(', ')}`);
     
     // Delete all the tasks in a single operation
-    const { error } = await supabase
+    let query = supabase
       .from('tasks')
       .delete()
       .in('id', allTaskIds);
+    
+    // Add organization check for safety if provided
+    if (organizationId) {
+      query = query.eq('white_label_id', organizationId);
+    }
+    
+    const { error } = await query;
     
     if (error) {
       console.error('Supabase error:', error);
@@ -173,15 +222,23 @@ export const deleteTask = async (taskId) => {
 /**
  * Helper function to recursively get all child task IDs
  * @param {string|number} parentId - The parent task ID
+ * @param {string|null} organizationId - The organization ID for filtering
  * @returns {Promise<Array>} - Array of child task IDs
  */
-const getAllChildTaskIds = async (parentId) => {
+const getAllChildTaskIds = async (parentId, organizationId = null) => {
   try {
-    // Get direct children
-    const { data, error } = await supabase
+    // Create query for direct children
+    let query = supabase
       .from('tasks')
       .select('id')
       .eq('parent_task_id', parentId);
+    
+    // Add organization check if provided
+    if (organizationId) {
+      query = query.eq('white_label_id', organizationId);
+    }
+    
+    const { data, error } = await query;
     
     if (error) {
       console.error('Error fetching child tasks:', error);
@@ -192,7 +249,9 @@ const getAllChildTaskIds = async (parentId) => {
     const childIds = data.map(task => task.id);
     
     // For each child, recursively get its children
-    const grandchildPromises = childIds.map(childId => getAllChildTaskIds(childId));
+    const grandchildPromises = childIds.map(childId => 
+      getAllChildTaskIds(childId, organizationId)
+    );
     const grandchildResults = await Promise.all(grandchildPromises);
     
     // Flatten the results and combine with the direct children

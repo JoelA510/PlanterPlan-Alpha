@@ -6,8 +6,12 @@ import TaskForm from '../TaskForm/TaskForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { fetchAllTasks, createTask, updateTaskCompletion, deleteTask } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
+import { useOrganization } from '../contexts/OrganizationProvider';
 
 const TaskList = () => {
+  const orgContext = useOrganization();
+  const organization = orgContext ? orgContext.organization : null;
+  
   const [tasks, setTasks] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +40,23 @@ const TaskList = () => {
   useEffect(() => {
     fetchTasks();
   }, []);
+
+  useEffect(() => {
+    async function loadTasks() {
+      setLoading(true);
+      // Pass organization ID if it exists
+      const { data, error } = await fetchAllTasks(organization?.id);
+      
+      if (error) {
+        console.error('Error loading tasks:', error);
+      } else {
+        setTasks(data || []);
+      }
+      setLoading(false);
+    }
+    
+    loadTasks();
+  }, [organization]);
 
   const fetchTasks = async () => {
     try {
