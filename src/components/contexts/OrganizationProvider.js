@@ -11,13 +11,15 @@ export function OrganizationProvider({ children }) {
   const [organization, setOrganization] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  useEffect(() => {
-    async function fetchOrganization() {
-      if (!orgSlug) {
-        setLoading(false);
-        return;
-      }
-      try {
+  // In OrganizationProvider.js, enhance the useEffect:
+
+useEffect(() => {
+  async function fetchOrganization() {
+    if (!orgSlug) {
+      setLoading(false);
+      return;
+    }
+    try {
       const { data, error } = await supabase
         .from('white_label_orgs')
         .select('*')
@@ -36,18 +38,26 @@ export function OrganizationProvider({ children }) {
       document.documentElement.style.setProperty('--primary-color', data.primary_color || '#3b82f6');
       document.documentElement.style.setProperty('--secondary-color', data.secondary_color || '#10b981');
       
-      // Set page title
-      document.title = `${data.name} - Task Manager`;
-      document.title = `${data.name} - Task Manager`;
-      } catch (err) {
-        console.error('Error in fetchOrganization:', err);
-      } finally {
-        setLoading(false);
+      // Set logo if available
+      if (data.logo) {
+        const logoElement = document.getElementById('org-logo');
+        if (logoElement) {
+          logoElement.src = data.logo;
+        }
       }
+      
+      // Set page title
+      document.title = `${data.organization_name} - PlanterPlan`;
+      
+    } catch (err) {
+      console.error('Error in fetchOrganization:', err);
+    } finally {
+      setLoading(false);
     }
-  
-    fetchOrganization();
-  }, [orgSlug, navigate]);
+  }
+
+  fetchOrganization();
+}, [orgSlug, navigate]);
   
   return (
     <OrganizationContext.Provider value={{ organization, loading }}>

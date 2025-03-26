@@ -68,7 +68,7 @@ const TaskList = () => {
       
       // Filter to only include tasks where origin is "instance"
       const instanceTasks = data ? data.filter(task => task.origin === "instance") : [];
-      console.log('Fetched instance tasks:', instanceTasks);
+      console.log('Fetched instance tasks:', data);
       
       setTasks(instanceTasks);
     } catch (err) {

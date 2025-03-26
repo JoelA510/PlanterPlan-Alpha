@@ -30,9 +30,9 @@ export const fetchAllTasks = async (organizationId = null) => {
       console.log(organizationId);
       query = query.eq('white_label_id', organizationId);
     }
-
+   
     const { data, error } = await query;
-
+    console.log(query);
     if (error) throw error;
     return { data, error: null };
   } catch (err) {
@@ -124,7 +124,7 @@ export const createTask = async (taskData, organizationId = null) => {
   try {
     // Add organization ID to task data if provided
     const taskWithOrg = organizationId 
-      ? { ...taskData, organization_id: organizationId }
+      ? { ...taskData, white_label_id: organizationId }
       : taskData;
     
     console.log('Creating task with data:', taskWithOrg);
