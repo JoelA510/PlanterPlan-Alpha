@@ -5,6 +5,7 @@ import TaskDropZone from '../TaskList/TaskDropZone';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { fetchAllTasks, createTask } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
+import { useOrganization } from '../contexts/OrganizationProvider';
 import '../TaskList/TaskList.css';
 
 const TemplateList = () => {
@@ -13,6 +14,7 @@ const TemplateList = () => {
   const [error, setError] = useState(null);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const { organization, organizationId } = useOrganization();
   
   // State variables for the task form
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
@@ -26,7 +28,7 @@ const TemplateList = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await fetchAllTasks();
+      const { data, error } = await fetchAllTasks(organizationId);
 
       if (error) throw new Error(error);
       

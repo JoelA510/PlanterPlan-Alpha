@@ -9,9 +9,12 @@ import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import { useOrganization } from '../contexts/OrganizationProvider';
 
 const TaskList = () => {
-  const orgContext = useOrganization();
-  const organization = orgContext ? orgContext.organization : null;
-  
+  const { organization, organizationId, loading: orgLoading } = useOrganization();
+  // console.log('TaskList received organization context:', { 
+  //   hasOrg: !!organization, 
+  //   orgName: organization?.organization_name,
+  //   orgId: organizationId 
+  // });
   const [tasks, setTasks] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,32 +40,21 @@ const TaskList = () => {
     due_date: null
   });
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
 
+
+  // Only fetch tasks when the organization loading is complete
   useEffect(() => {
-    async function loadTasks() {
-      setLoading(true);
-      // Pass organization ID if it exists
-      const { data, error } = await fetchAllTasks(organization?.id);
-      
-      if (error) {
-        console.error('Error loading tasks:', error);
-      } else {
-        setTasks(data || []);
-      }
-      setLoading(false);
+    if (!orgLoading) {  // Only proceed if organization loading is complete
+      console.log('Organization loading complete, fetching tasks with ID:', organizationId);
+      fetchTasks();
     }
-    
-    loadTasks();
-  }, [organization]);
+  }, [organizationId, orgLoading]);  // Depend on both organizationId and orgLoading
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
       
-      const { data, error } = await fetchAllTasks();
+      const { data, error } = await fetchAllTasks(organizationId);
 
       if (error) throw new Error(error);
       
@@ -84,7 +76,7 @@ const TaskList = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await fetchAllTasks();
+      const { data, error } = await fetchAllTasks(organizationId);
 
       if (error) throw new Error(error);
       
@@ -143,7 +135,7 @@ const TaskList = () => {
     }
     
     try {
-      const result = await updateTaskCompletion(taskId, currentStatus);
+      const result = await updateTaskCompletion(taskId, currentStatus, organizationId);
       
       if (!result.success) throw new Error(result.error);
       
@@ -197,7 +189,7 @@ const TaskList = () => {
       console.log("Calling createTask with:", JSON.stringify(newTaskData, null, 2));
       
       // Call API to create task
-      const result = await createTask(newTaskData);
+      const result = await createTask(newTaskData, organizationId);
       
       if (result.error) {
         console.error("Error from createTask:", result.error);
@@ -246,7 +238,7 @@ const TaskList = () => {
     
     if (type === 'template') {
       // If we're creating from template, fetch templates and show template selection
-      const fetchedTemplates = await fetchTemplates();
+      const fetchedTemplates = await fetchTemplates(organizationId);
       // Clear any selected task
       setSelectedTaskId(null);
     } else if (type === 'empty') {
@@ -354,7 +346,7 @@ const TaskList = () => {
       };
       
       // Call API to create project
-      const result = await createTask(projectData);
+      const result = await createTask(projectData, organizationId);
       
       if (result.error) {
         console.error("Error creating project:", result.error);
@@ -411,7 +403,7 @@ const TaskList = () => {
           due_date: null
         };
         
-        const result = await createTask(childTaskData);
+        const result = await createTask(childTaskData, organizationId);
         
         if (result.error) {
           console.error("Error creating child task:", result.error);
@@ -470,7 +462,7 @@ const TaskList = () => {
       console.log(`Deleting task ${taskToDelete.title} and ${descendantIds.length} descendants`);
       
       // Call the delete API
-      const result = await deleteTask(deletingTaskId);
+      const result = await deleteTask(deletingTaskId, organizationId);
       
       if (result.error) throw new Error(result.error);
       

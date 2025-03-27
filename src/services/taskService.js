@@ -2,7 +2,9 @@ import { supabase } from '../supabaseClient';
 
 export const fetchAllTasks = async (organizationId = null) => {
   try {
-    // Create query builder
+    console.log('fetchAllTasks called with organizationId:', organizationId);
+    
+    // Start building the query
     let query = supabase
       .from('tasks')
       .select(`
@@ -22,17 +24,28 @@ export const fetchAllTasks = async (organizationId = null) => {
         due_date,
         task_lead,
         white_label_id
-      `)
-      .order('position', { ascending: true });
+      `);
     
-    // If organization ID is provided, filter by it
+    // Apply organization filter if provided
     if (organizationId) {
-      console.log(organizationId);
+      console.log('Filtering by organization:', organizationId);
       query = query.eq('white_label_id', organizationId);
+    } else {
+      console.log('No organization ID, fetching tasks with null white_label_id');
+      query = query.is('white_label_id', null);
     }
-   
+    
+    // Add ordering
+    query = query.order('position', { ascending: true });
+    
+    // Execute the query
     const { data, error } = await query;
-    console.log(query);
+    
+    console.log('Query results:', { 
+      count: data?.length || 0,
+      data: data
+    });
+    
     if (error) throw error;
     return { data, error: null };
   } catch (err) {
@@ -40,6 +53,7 @@ export const fetchAllTasks = async (organizationId = null) => {
     return { data: null, error: err.message };
   }
 };
+
 
 export const updateTaskCompletion = async (taskId, currentStatus, organizationId = null) => {
   try {

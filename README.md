@@ -152,35 +152,59 @@ App
 
 
 ## Dev notes
+### March 26 2025
+* fixing query to fetch an org's tasks
+  * explained the problem to Claude. It gave some good fixes. essentially we need to fetch the org id from database
+  * I suggested to move the api call to taskService.js. Claude responds and suggests make a new services file for org related stuff. better for separation.
+    * new file: src/services/organizationService.js
+  * used the services to get org name and id in OrganizationProvider.
+* New problem: no tasks were being fetched; logging didn't help; realized it was bc of RLS (Claude caught it but not right away), so I disabled RLS and then it worked
+  * in taskService.js: changed all api service calls to include org id
+    * if there is no org slug, then there is no org or org id; filter data by org id is null
+      * in OrgProvider, update useOrganization() hook to allow for null to be handled for org in other components w/o error (error was fixed by claude)
+* New problem: tasks being fetched were not being filtered by the org
+  * Claude's first reponse is to just console log everything but that doesn't help unless i know what i'm looking at.
+  * After looking carefully at the logs (and un console logging unimportant stuff) I realize that figuring out the org is slow (bc of api call) but it's needed right away for fetching tasks.
+  * Solution: by Claude: useEffect to load page depends on orgId and org loading (from useOrg hook) and only fetch if not useOrg is not loading.
+* I wanted to make the side navigation more consistent
+  * Claude suggested reorganizing the App.js and making SideNavigation component along with other components that are imported into App.js
+    * code is cleaner
+
 ### March 25 2025
-Key Logic Components
+* Redid the readme
+  * changed the database on Supabase: added a white_label_org table. then updated the schema mermaid code on the readme (with claude)
+  * used https://repomix.com/ to give Claude context for building the readme
+    * give it the link to the repo. generate a markdown. then copy result into claude
+  * prompted Claude to create a readme. 
+    * result was too long, too many things that I felt wasn't as important to put so I deleted some of it.
+    below is some of what was generated. not as essential as the info in documentation so i moved it here
 
-1. Task Hierarchical Structure
+    *Key Logic Components*
 
-Tasks and templates are stored in a flat structure but displayed hierarchically:
-- **Top-level tasks/templates**: `parent_task_id === null`
-- **Children**: filtered by matching `parent_task_id`
-- **Ordering**: determined by `position` field
+    1. Task Hierarchical Structure
+      - Tasks and templates are stored in a flat structure but displayed hierarchically:
+        - Top-level tasks/templates: `parent_task_id === null`
+        - Children: filtered by matching `parent_task_id`
+        - Ordering: determined by `position` field
 
-2. Drag and Drop System
+    2. Drag and Drop System
+      - The drag and drop system uses a custom hook (`useTaskDragAndDrop`)
+        - Note: The drop operation updates the frontend state first (optimistic update), then updates the database state (API call)
 
-The drag and drop system uses a custom hook (`useTaskDragAndDrop`):
+    3. Project Templates System
+      - The template system allows creating reusable project structures:
+        1. Creating Templates: Same process as tasks but with `origin: "template"`
+        2. Using Templates: When creating a new project, user can select a template
 
-The drop operation updates:
-1. Frontend state (optimistic update)
-2. Database state (API call)
+    4. Organization White-labeling
+      - The `OrganizationProvider` enables white-labeling through:
+        1. Route-based organization selection: `/org/:orgSlug/*`
+        2. Organization context: fetch styles and logo from supabase and update the display
+        3. Filtered data access: All API calls for tasks filter by organization ID for data isolation
 
-Project Templates System
+* worked on data isolation for white label orgs
+  * gave Claud the new readme and asked it to make fixes to the current set up of the organization context and fetching an org's tasks
+    * no tasks showing
+    * tried to console log query but couldn't figure out that (should eventually figure this out)
+    * found that query wasn't correct: passing the query the org's name instead of org's id. tasks table has field for org id (not name)
 
-The template system allows creating reusable project structures:
-
-1. **Creating Templates**: Same process as tasks but with `origin: "template"`
-2. **Using Templates**: When creating a new project, user can select a template
-
-Organization White-labeling
-
-The `OrganizationProvider` enables white-labeling through:
-
-1. **Route-based organization selection**: `/org/:orgSlug/*`
-2. **Organization context**: fetch styles and logo from supabase and update the display
-3. **Filtered data access**: All API calls for tasks filter by organization ID for data isolation
