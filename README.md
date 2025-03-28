@@ -152,6 +152,15 @@ App
 
 
 ## Dev notes
+### March 28 2025
+* adding WhiteLabelOrgList.js (from Claud)
+* edit to SideNavigation.js (from Claud)
+### March 27 2025
+* admin: needs to manage white label organizations
+  * view all the orgs
+  * edit orgs
+  * claude suggests new component
+    * src/components/WhiteLabelOrgList.js
 ### March 26 2025
 * fixing query to fetch an org's tasks
   * explained the problem to Claude. It gave some good fixes. essentially we need to fetch the org id from database

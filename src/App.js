@@ -7,7 +7,8 @@ import { OrganizationProvider, useOrganization } from './components/contexts/Org
 import { fetchAllOrganizations } from './services/organizationService';
 import SideNavigation from './components/SideNavigation';
 import OrganizationHeader from './components/OrganizationHeader';
-import DefaultHeader from './components/DefaultHeader'
+import DefaultHeader from './components/DefaultHeader';
+import WhiteLabelOrgList from './components/WhiteLabelOrgList'; // Import the new component
 
 import "./App.css";
 
@@ -75,6 +76,7 @@ function App() {
                   <Route path="/dashboard" element={<div>Dashboard</div>} />
                   <Route path="/tasks" element={<TaskList />} />
                   <Route path="/templates" element={<TemplateList />} />
+                  <Route path="/white-label-orgs" element={<WhiteLabelOrgList />} />
                   <Route path="/settings" element={<div>Settings</div>} />
                 </Routes>
               </main>

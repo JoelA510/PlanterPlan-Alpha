@@ -57,6 +57,19 @@ const SideNavigation = () => {
         Templates
       </Link>
       
+      {/* Show White Label Orgs link only when NOT in org context */}
+      {!isInOrgContext && (
+        <Link to="/white-label-orgs" style={{ 
+          display: "block", 
+          padding: "10px", 
+          color: "#94a3b8",
+          textDecoration: "none",
+          marginBottom: "10px"
+        }}>
+          White Label Orgs
+        </Link>
+      )}
+      
       <Link to={`${basePath}/settings`} style={{ 
         display: "block", 
         padding: "10px", 
