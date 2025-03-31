@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient.js';
+import { Link } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 const WhiteLabelOrgList = () => {
   const [organizations, setOrganizations] = useState([]);
@@ -64,7 +65,7 @@ const WhiteLabelOrgList = () => {
           padding: '12px',
           borderRadius: '4px',
           backgroundColor: selectedOrgId === org.id 
-            ? (org.primary_color ? `${org.primary_color}30` : '#3b82f620') 
+            ? (org.primary_color ? `${org.primary_color}10` : '#3b82f610') 
             : 'white',
           border: '1px solid #e5e7eb',
           marginBottom: '12px',
@@ -249,10 +250,8 @@ const WhiteLabelOrgList = () => {
           
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>URL:</h4>
-            <a 
-              href={`https://${selectedOrg.subdomain}.yourdomain.com`} 
-              target="_blank" 
-              rel="noopener noreferrer"
+            <Link 
+              to={`/org/${selectedOrg.subdomain}/tasks`} 
               style={{
                 color: primaryColor,
                 textDecoration: 'none',
@@ -260,7 +259,7 @@ const WhiteLabelOrgList = () => {
               }}
             >
               {selectedOrg.subdomain}.yourdomain.com
-            </a>
+            </Link>
           </div>
           
           <div className="detail-row">
@@ -310,8 +309,8 @@ const WhiteLabelOrgList = () => {
           </div>
           
           <div className="detail-row" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-            <button
-              onClick={() => alert(`Navigate to ${selectedOrg.organization_name}'s dashboard`)}
+            <Link
+              to={`/org/${selectedOrg.subdomain}/tasks`}
               style={{
                 flex: 1,
                 backgroundColor: primaryColor,
@@ -319,11 +318,13 @@ const WhiteLabelOrgList = () => {
                 padding: '8px 16px',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                border: 'none'
+                border: 'none',
+                textDecoration: 'none',
+                textAlign: 'center'
               }}
             >
-              View Dashboard
-            </button>
+              Go to Tasks
+            </Link>
             
             <button
               onClick={() => alert(`Edit ${selectedOrg.organization_name}'s settings`)}
