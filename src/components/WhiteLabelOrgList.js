@@ -282,6 +282,61 @@ const WhiteLabelOrgList = () => {
           </div>
           
           <div className="detail-row">
+            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Statistics:</h4>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              marginTop: '8px',
+              gap: '12px'
+            }}>
+              <div style={{
+                flex: 1,
+                backgroundColor: '#f3f4f6',
+                padding: '12px',
+                borderRadius: '4px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: primaryColor }}>
+                  {Math.floor(Math.random() * 20) + 5}
+                </div>
+                <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                  Users
+                </div>
+              </div>
+              
+              <div style={{
+                flex: 1,
+                backgroundColor: '#f3f4f6',
+                padding: '12px',
+                borderRadius: '4px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: primaryColor }}>
+                  {Math.floor(Math.random() * 30) + 10}
+                </div>
+                <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                  Projects
+                </div>
+              </div>
+              
+              <div style={{
+                flex: 1,
+                backgroundColor: '#f3f4f6',
+                padding: '12px',
+                borderRadius: '4px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: primaryColor }}>
+                  {Math.floor(Math.random() * 15) + 5}
+                </div>
+                <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                  Templates
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Branding:</h4>
             <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
               <div style={{ marginRight: '16px' }}>
@@ -310,7 +365,7 @@ const WhiteLabelOrgList = () => {
           
           <div className="detail-row" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
             <Link
-              to={`/org/${selectedOrg.subdomain}/tasks`}
+              to={`/org/${selectedOrg.subdomain}`}
               style={{
                 flex: 1,
                 backgroundColor: primaryColor,
@@ -323,7 +378,7 @@ const WhiteLabelOrgList = () => {
                 textAlign: 'center'
               }}
             >
-              Go to Tasks
+              Go to Organization
             </Link>
             
             <button

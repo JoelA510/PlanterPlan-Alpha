@@ -80,12 +80,9 @@ const SideNavigation = () => {
         Settings
       </Link>
       
-      {/* Only show the divider and organization selector if NOT in org context */}
+      {/* No organization selector now */}
       {!isInOrgContext && (
-        <>
-          <hr style={{ margin: "20px 0", borderColor: "#475569" }} />
-          <OrganizationSelector />
-        </>
+        <hr style={{ margin: "20px 0", borderColor: "#475569" }} />
       )}
       
       {/* If in org context, show a link to go back to main app */}

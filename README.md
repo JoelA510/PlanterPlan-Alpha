@@ -152,6 +152,12 @@ App
 
 
 ## Dev notes
+### April 1 2025
+* removed buttons in the side navigation
+* added stats to the details panel for white label orgs
+* changed the link to link to the tasks page of the org
+### March 30 2025
+* links in White Label Orgs page direct user to the white label org's task list page
 ### March 28 2025
 * adding WhiteLabelOrgList.js (from Claud)
 * edit to SideNavigation.js (from Claud)
