@@ -2,31 +2,38 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import OrganizationSelector from './OrganizationSelector';
 import { useOrganization } from './contexts/OrganizationProvider';
-
+import OrganizationLogo from './OrganizationLogo';
 const SideNavigation = () => {
   const { organization, loading } = useOrganization();
   
   // Base path will be organization-aware if in org context
   const basePath = organization ? `/org/${organization.subdomain}` : '';
   const isInOrgContext = !!organization;
+  console.log("Logo data exists:", !!organization?.logo);
+  console.log('Logo data:', organization?.logo?.substring(0, 100));
+  // Logo container styling
+  const logoContainerStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '20px',
+    height: '60px' // Fixed height for logo area
+  };
   
   return (
     <nav style={{ 
       width: "240px", 
       backgroundColor: "#1e293b", 
       color: "white",
-      padding: "20px"
+      padding: "20px",
+      display: "flex",
+      flexDirection: "column",
+      height: "100vh"
     }}>
-      {/* Display org name if in org context, otherwise display app name */}
-      <h2 style={{ 
-        fontSize: "1.25rem", 
-        fontWeight: "bold",
-        marginBottom: "20px",
-        color: "white"
-      }}>
-        {isInOrgContext ? organization.organization_name : "PlanterPlan"}
-      </h2>
+      {/* Organization Logo Section */}
+      <OrganizationLogo/>
       
+      {/* Navigation Links */}
       <Link to={`${basePath}/dashboard`} style={{ 
         display: "block", 
         padding: "10px", 
@@ -85,9 +92,12 @@ const SideNavigation = () => {
         <hr style={{ margin: "20px 0", borderColor: "#475569" }} />
       )}
       
+      {/* Spacer to push the back button to the bottom */}
+      {/* <div style={{ flexGrow: 1 }} /> */}
+      
       {/* If in org context, show a link to go back to main app */}
       {isInOrgContext && (
-        <div style={{ marginTop: "auto", paddingTop: "20px" }}>
+        <div>
           <Link to="/" style={{ 
             display: "block", 
             padding: "10px", 
@@ -95,7 +105,6 @@ const SideNavigation = () => {
             textDecoration: "none",
             backgroundColor: "rgba(255,255,255,0.1)",
             borderRadius: "4px",
-            marginTop: "20px",
             textAlign: "center"
           }}>
             Back to Main App

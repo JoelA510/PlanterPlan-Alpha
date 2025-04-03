@@ -42,6 +42,101 @@ const WhiteLabelOrgList = () => {
   // Get the selected organization
   const selectedOrg = organizations.find(org => org.id === selectedOrgId);
 
+  // Function to render SVG logo with appropriate sizing for list view
+  const renderSmallLogo = (org) => {
+    if (!org.logo) {
+      return (
+        <div style={{
+          width: '24px',
+          height: '24px',
+          marginRight: '8px',
+          backgroundColor: org.primary_color || '#3b82f6',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontWeight: 'bold',
+          fontSize: '12px'
+        }}>
+          {org.organization_name.charAt(0).toUpperCase()}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{
+        width: '24px',
+        height: '24px',
+        marginRight: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          dangerouslySetInnerHTML={{ __html: org.logo }}
+        />
+      </div>
+    );
+  };
+
+  // Function to render SVG logo with appropriate sizing for details panel
+  const renderLargeLogo = (org) => {
+    if (!org.logo) {
+      return (
+        <div style={{
+          width: '100px',
+          height: '60px',
+          backgroundColor: '#f3f4f6',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: '4px',
+          color: '#6b7280',
+          fontSize: '14px',
+          border: '1px dashed #d1d5db',
+          marginBottom: '16px'
+        }}>
+          No Logo
+        </div>
+      );
+    }
+
+    return (
+      <div style={{
+        width: '100%',
+        maxWidth: '200px',
+        height: '80px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        backgroundColor: '#f9fafb',
+        borderRadius: '4px',
+        padding: '12px',
+        border: '1px solid #e5e7eb',
+        marginBottom: '16px'
+      }}>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          dangerouslySetInnerHTML={{ __html: org.logo }}
+        />
+      </div>
+    );
+  };
+
   // Render the organizations list
   const renderOrgList = () => {
     if (organizations.length === 0) {
@@ -85,35 +180,8 @@ const WhiteLabelOrgList = () => {
             alignItems: 'center',
             marginBottom: '4px'
           }}>
-            {org.logo ? (
-              <img 
-                src={org.logo} 
-                alt={`${org.organization_name} logo`} 
-                style={{ 
-                  width: '24px', 
-                  height: '24px', 
-                  marginRight: '8px',
-                  objectFit: 'contain'
-                }} 
-              />
-            ) : (
-              <div style={{
-                width: '24px',
-                height: '24px',
-                marginRight: '8px',
-                backgroundColor: org.primary_color || '#3b82f6',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '12px'
-              }}>
-                {org.organization_name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <h3 style={{ margin: 0, fontWeight: 'bold' }}>
+            {renderSmallLogo(org)}
+            <h3 style={{ margin: 0, fontWeight: 'bold', paddingLeft: '10px' }}>
               {org.organization_name}
             </h3>
           </div>
@@ -158,11 +226,14 @@ const WhiteLabelOrgList = () => {
           border: '1px dashed #d1d5db',
           padding: '24px'
         }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-            <line x1="8" y1="21" x2="16" y2="21"></line>
-            <line x1="12" y1="17" x2="12" y2="21"></line>
-          </svg>
+          {/* This div limits the SVG's size */}
+          <div style={{ width: '48px', height: '48px' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
           <p style={{ marginTop: '16px', textAlign: 'center' }}>
             Select an organization to view its details
           </p>
@@ -225,6 +296,12 @@ const WhiteLabelOrgList = () => {
         </div>
         
         <div className="details-content" style={{ padding: '16px' }}>
+          {/* Organization Logo */}
+          <div className="detail-row">
+            <h4 style={{ fontWeight: 'bold', marginBottom: '8px' }}>Logo:</h4>
+            {renderLargeLogo(selectedOrg)}
+          </div>
+          
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px' }}>Status:</h4>
             <div style={{ 
@@ -403,6 +480,18 @@ const WhiteLabelOrgList = () => {
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
+      {/* SVG style to ensure all SVGs in the component display correctly */}
+      <style>
+        {`
+          svg {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+          }
+        `}
+      </style>
+      
       {/* Left panel - Organizations list */}
       <div style={{ 
         flex: '1 1 60%', 

@@ -9,20 +9,23 @@ import { useOrganization } from '../contexts/OrganizationProvider';
 import '../TaskList/TaskList.css';
 
 const TemplateList = () => {
+  const { organization, organizationId, loading: orgLoading } = useOrganization();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
-  const { organization, organizationId } = useOrganization();
+  
   
   // State variables for the task form
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
   const [addTaskParentId, setAddTaskParentId] = useState(null);
 
   useEffect(() => {
-    fetchTemplates();
-  }, []);
+    if (!orgLoading) {
+      fetchTemplates();
+    }
+  }, [organizationId, orgLoading]);
 
   const fetchTemplates = async () => {
     try {
@@ -89,11 +92,12 @@ const TemplateList = () => {
       // Add position to task data
       const newTaskData = {
         ...taskData,
-        position
+        position,
+        white_label_id: organizationId // Add the white label organization ID here
       };
       
       // Call API to create task
-      const result = await createTask(newTaskData);
+      const result = await createTask(newTaskData, organizationId);
       
       if (result.error) throw new Error(result.error);
       
@@ -430,6 +434,8 @@ const TemplateList = () => {
               ? getBackgroundColor(getTaskLevel(tasks.find(t => t.id === addTaskParentId), tasks) + 1)
               : getBackgroundColor(0)
             }
+            originType="template"
+            organizationId={organizationId} // Add this line
           />
         </div>
       )}
