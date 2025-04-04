@@ -152,6 +152,12 @@ App
 
 
 ## Dev notes
+### April 3 2025
+* white label admin settings page
+### April 2 2025
+* added logos to the white label orgs in the admin's white label org page 
+* added logos to side bar for white label org pages
+* can add new templates and template tasks to white label orgs
 ### April 1 2025
 * removed buttons in the side navigation
 * added stats to the details panel for white label orgs

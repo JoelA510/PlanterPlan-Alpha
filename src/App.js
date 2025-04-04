@@ -9,7 +9,7 @@ import SideNavigation from './components/SideNavigation';
 import OrganizationHeader from './components/OrganizationHeader';
 import DefaultHeader from './components/DefaultHeader';
 import WhiteLabelOrgList from './components/WhiteLabelOrgList'; // Import the new component
-
+import SettingsPage from "./components/SettingsPage";
 import "./App.css";
 
 // Main App Component with both regular and org-specific routes
@@ -43,7 +43,7 @@ function App() {
                     <Route path="dashboard" element={<div>Organization Dashboard</div>} />
                     <Route path="tasks" element={<TaskList />} />
                     <Route path="templates" element={<TemplateList />} />
-                    <Route path="settings" element={<div>Settings</div>} />
+                    <Route path="settings" element={<SettingsPage/>} />
                   </Routes>
                 </main>
               </div>
