@@ -1,91 +1,123 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import TaskList from "./components/TaskList/TaskList";
-import TemplateList from "./components/TemplateList/TemplateList";
-import { createContext, useState, useEffect } from 'react';
-import { OrganizationProvider, useOrganization } from './components/contexts/OrganizationProvider'; // Import from the file
-import { fetchAllOrganizations } from './services/organizationService';
-import SideNavigation from './components/SideNavigation';
-import OrganizationHeader from './components/OrganizationHeader';
-import DefaultHeader from './components/DefaultHeader';
-import WhiteLabelOrgList from './components/WhiteLabelOrgList'; // Import the new component
-import SettingsPage from "./components/SettingsPage";
-import "./App.css";
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Layout from './components/Layout';
+import TaskList from './components/TaskList/TaskList';
+import TemplateList from './components/TemplateList/TemplateList';
+import UserSettings from './components/Settings/UserSettings';
+import AdminSettings from './components/Settings/AdminSettings';
+import NotFound from './components/NotFound';
 
-// Main App Component with both regular and org-specific routes
-function App() {
+const App = () => {
+  // This is a simple approach to test different user types without auth
+  // In a real app, this would come from your auth context or state management
+  const [userType, setUserType] = useState('planter_admin');
+  const [orgSlug, setOrgSlug] = useState('example-org');
+
+  // Simple role-switcher for development/testing
+  const RoleSwitcher = () => (
+    <div style={{
+      position: 'fixed',
+      bottom: '20px',
+      right: '20px',
+      backgroundColor: '#f9fafb',
+      border: '1px solid #e5e7eb',
+      borderRadius: '4px',
+      padding: '12px',
+      zIndex: 1000,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    }}>
+      <h3 style={{ marginTop: 0, marginBottom: '8px' }}>Test Different Roles</h3>
+      <select 
+        value={userType} 
+        onChange={(e) => setUserType(e.target.value)}
+        style={{ 
+          padding: '6px', 
+          marginBottom: '8px', 
+          width: '100%',
+          borderRadius: '4px',
+          border: '1px solid #d1d5db'
+        }}
+      >
+        <option value="planter_admin">Planter Admin</option>
+        <option value="planter_user">Planter User</option>
+        <option value="org_admin">Org Admin</option>
+        <option value="org_user">Org User</option>
+      </select>
+      
+      {(userType === 'org_admin' || userType === 'org_user') && (
+        <input
+          type="text"
+          value={orgSlug}
+          onChange={(e) => setOrgSlug(e.target.value)}
+          placeholder="Organization Slug"
+          style={{ 
+            padding: '6px', 
+            width: '100%',
+            borderRadius: '4px',
+            border: '1px solid #d1d5db'
+          }}
+        />
+      )}
+    </div>
+  );
+  
+  // Determine the correct root path based on user type
+  const getRootPath = () => {
+    switch (userType) {
+      case 'planter_admin':
+        return '/admin';
+      case 'planter_user':
+        return '/user';
+      case 'org_admin':
+        return `/org/${orgSlug}/admin`;
+      case 'org_user':
+        return `/org/${orgSlug}/user`;
+      default:
+        return '/admin';
+    }
+  };
+  
   return (
     <Router>
       <Routes>
-        {/* Organization-specific routes */}
-        <Route path="/org/:orgSlug/*" element={
-          <OrganizationProvider>
-            <div style={{ display: "flex", height: "100vh" }}>
-              <SideNavigation />
-              
-              {/* MAIN CONTENT AREA */}
-              <div style={{ 
-                flex: "1", 
-                display: "flex", 
-                flexDirection: "column"
-              }}>
-                {/* HEADER */}
-                <OrganizationHeader />
-                
-                {/* ROUTES */}
-                <main style={{ 
-                  padding: "24px",
-                  overflow: "auto",
-                  backgroundColor: "#f3f4f6" 
-                }}>
-                  <Routes>
-                    <Route index element={<TaskList />} />
-                    <Route path="dashboard" element={<div>Organization Dashboard</div>} />
-                    <Route path="tasks" element={<TaskList />} />
-                    <Route path="templates" element={<TemplateList />} />
-                    <Route path="settings" element={<SettingsPage/>} />
-                  </Routes>
-                </main>
-              </div>
-            </div>
-          </OrganizationProvider>
-        } />
+        {/* Planter Admin Routes */}
+        <Route path="/admin" element={<Layout userType="planter_admin" />}>
+          <Route index element={<TaskList />} />
+          <Route path="templates" element={<TemplateList />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
         
-        {/* Default routes */}
-        <Route path="/*" element={
-          <div style={{ display: "flex", height: "100vh" }}>
-            <SideNavigation />
-            
-            {/* MAIN CONTENT AREA */}
-            <div style={{ 
-              flex: "1", 
-              display: "flex", 
-              flexDirection: "column"
-            }}>
-              {/* HEADER */}
-              <DefaultHeader />
-              
-              {/* ROUTES */}
-              <main style={{ 
-                padding: "24px",
-                overflow: "auto",
-                backgroundColor: "#f3f4f6" 
-              }}>
-                <Routes>
-                  <Route path="/" element={<TaskList />} />
-                  <Route path="/dashboard" element={<div>Dashboard</div>} />
-                  <Route path="/tasks" element={<TaskList />} />
-                  <Route path="/templates" element={<TemplateList />} />
-                  <Route path="/white-label-orgs" element={<WhiteLabelOrgList />} />
-                  <Route path="/settings" element={<div>Settings</div>} />
-                </Routes>
-              </main>
-            </div>
-          </div>
-        } />
+        {/* Planter User Routes */}
+        <Route path="/user" element={<Layout userType="planter_user" />}>
+          <Route index element={<TaskList />} />
+          <Route path="settings" element={<UserSettings />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+        
+        {/* Org Admin Routes - uses the :slug parameter */}
+        <Route path="/org/:slug/admin" element={<Layout userType="org_admin" />}>
+          <Route index element={<TaskList />} />
+          <Route path="templates" element={<TemplateList />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+        
+        {/* Org User Routes - uses the :slug parameter */}
+        <Route path="/org/:slug/user" element={<Layout userType="org_user" />}>
+          <Route index element={<TaskList />} />
+          <Route path="settings" element={<UserSettings />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+        
+        {/* Default redirect */}
+        <Route path="*" element={<Navigate to={getRootPath()} replace />} />
       </Routes>
+      
+      {/* Role switcher for development testing */}
+      <RoleSwitcher />
     </Router>
   );
-}
+};
 
 export default App;
