@@ -6,6 +6,7 @@ import TemplateList from './components/TemplateList/TemplateList';
 import UserSettings from './components/Settings/UserSettings';
 import AdminSettings from './components/Settings/AdminSettings';
 import NotFound from './components/NotFound';
+import WhiteLabelOrgList from './components/WhiteLabelOrgList';
 
 const App = () => {
   // This is a simple approach to test different user types without auth
@@ -85,6 +86,7 @@ const App = () => {
           <Route index element={<TaskList />} />
           <Route path="templates" element={<TemplateList />} />
           <Route path="settings" element={<AdminSettings />} />
+          <Route path="white-label-orgs" element={<WhiteLabelOrgList />} />
           <Route path="*" element={<NotFound />} />
         </Route>
         

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './TaskList.css';
 import TaskItem from './TaskItem';
-import TaskDropZone from './TaskDropZone';
 import TaskForm from '../TaskForm/TaskForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { fetchAllTasks, createTask, updateTaskCompletion, deleteTask } from '../../services/taskService';

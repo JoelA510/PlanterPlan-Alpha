@@ -1,9 +1,13 @@
 import React from 'react';
 import { Outlet, Link, useLocation, useParams } from 'react-router-dom';
+import { useOrganization } from './contexts/OrganizationProvider';
+import OrganizationLogo from './OrganizationLogo';
 
 const Layout = ({ userType }) => {
   const location = useLocation();
   const { slug } = useParams(); // Get the org slug from URL if present
+  const { organization, organizationId, loading: orgLoading } = useOrganization();
+  const isInOrgContext = !!organization;
   
   // Determine the base path for navigation links based on user type
   const getBasePath = () => {
@@ -64,6 +68,15 @@ const Layout = ({ userType }) => {
       navItems.splice(1, 0, ...adminItems);
     }
     
+    // Add white label organizations link for planter_admin only
+    if (userType === 'planter_admin' && !isInOrgContext) {
+      navItems.push({
+        path: `${basePath}/white-label-orgs`,
+        label: 'White Label Orgs',
+        icon: '🏢'
+      });
+    }
+    
     return navItems.map((item) => (
       <li key={item.path}>
         <Link
@@ -97,9 +110,9 @@ const Layout = ({ userType }) => {
       case 'planter_user':
         return 'Planter User Dashboard';
       case 'org_admin':
-        return `${slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Organization'} Admin Dashboard`;
+        return `${organization ? organization.organization_name : (slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Organization')} Admin Dashboard`;
       case 'org_user':
-        return `${slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Organization'} User Dashboard`;
+        return `${organization ? organization.organization_name : (slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Organization')} User Dashboard`;
       default:
         return 'Dashboard';
     }
@@ -110,25 +123,31 @@ const Layout = ({ userType }) => {
       {/* Sidebar */}
       <div style={{
         width: '250px',
-        backgroundColor: '#f9fafb',
-        borderRight: '1px solid #e5e7eb',
+        backgroundColor: '#1e293b', // Darker background from SideNavigation
+        color: 'white',
         padding: '20px',
         position: 'fixed',
         height: '100vh',
         overflowY: 'auto'
       }}>
-        {/* Logo/App Name */}
-        <div style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          color: '#10b981',
-          marginBottom: '32px',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          <span style={{ marginRight: '8px' }}>🌱</span>
-          Planter
-        </div>
+        {/* Organization Logo or App Name */}
+        {isInOrgContext ? (
+          <OrganizationLogo />
+        ) : (
+          <div style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '20px 0',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          }}>
+            <span style={{ marginRight: '8px' }}>🌱</span>
+            Planter
+          </div>
+        )}
         
         {/* Navigation */}
         <nav>
@@ -137,6 +156,26 @@ const Layout = ({ userType }) => {
           </ul>
         </nav>
         
+        {/* Organization section removed */}
+        
+        {/* Back to Main App - only show when in org context */}
+        {isInOrgContext && (
+          <div style={{ marginTop: '24px' }}>
+            <Link to="/" style={{ 
+              display: "block", 
+              padding: "10px", 
+              color: "#94a3b8",
+              textDecoration: "none",
+              backgroundColor: "rgba(255,255,255,0.1)",
+              borderRadius: "4px",
+              textAlign: "center",
+              marginTop: "auto"
+            }}>
+              Back to Main App
+            </Link>
+          </div>
+        )}
+        
         {/* User Info - This would be dynamic in a real app */}
         <div style={{
           position: 'absolute',
@@ -144,7 +183,7 @@ const Layout = ({ userType }) => {
           left: '20px',
           right: '20px',
           padding: '12px',
-          borderTop: '1px solid #e5e7eb',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
           display: 'flex',
           alignItems: 'center'
         }}>
@@ -163,8 +202,8 @@ const Layout = ({ userType }) => {
             JD
           </div>
           <div>
-            <div style={{ fontWeight: 'bold' }}>John Doe</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+            <div style={{ fontWeight: 'bold', color: 'white' }}>John Doe</div>
+            <div style={{ fontSize: '12px', color: '#94a3b8' }}>
               {userType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </div>
           </div>

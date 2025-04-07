@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import TemplateItem from './TemplateItem';
 import TaskForm from '../TaskForm/TaskForm'; // Updated import path
-import TaskDropZone from '../TaskList/TaskDropZone';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { fetchAllTasks, createTask } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
