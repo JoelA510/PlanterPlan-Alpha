@@ -152,6 +152,18 @@ App
 
 
 ## Dev notes
+### April 8 2025
+* changed the links on the white label org page for planterplan admin
+* ran into problem that white label orgs are not loading their tasks 
+### April 7 2025
+* added white label org page back to planterplan admin site
+* reverted back to previous styling for the side navigation
+  * Layout.js now takes the place of SideNavigation.js
+    * Layout needed to copy styling from SideNavigation.js
+### April 4 2025
+* Settings page
+* implemented different routes for different user types:
+  * planter plan user, planter plan admin, white label org user, white label org admin
 ### April 3 2025
 * white label admin settings page
 ### April 2 2025

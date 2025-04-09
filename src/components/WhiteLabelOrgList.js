@@ -326,17 +326,50 @@ const WhiteLabelOrgList = () => {
           </div>
           
           <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>URL:</h4>
-            <Link 
-              to={`/org/${selectedOrg.subdomain}/tasks`} 
-              style={{
-                color: primaryColor,
-                textDecoration: 'none',
-                fontWeight: 'bold'
-              }}
-            >
-              {selectedOrg.subdomain}.yourdomain.com
-            </Link>
+            <h4 style={{ fontWeight: 'bold', marginBottom: '8px', marginTop: '16px' }}>Organization Access:</h4>
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <Link
+                to={`/org/${selectedOrg.subdomain}/user`}
+                style={{
+                  flex: 1,
+                  backgroundColor: primaryColor,
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  textDecoration: 'none',
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span style={{ marginRight: '8px' }}>👤</span> 
+                Access as User
+              </Link>
+              
+              <Link
+                to={`/org/${selectedOrg.subdomain}/admin`}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  textDecoration: 'none',
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span style={{ marginRight: '8px' }}>⚙️</span>
+                Access as Admin
+              </Link>
+            </div>
           </div>
           
           <div className="detail-row">
@@ -440,37 +473,24 @@ const WhiteLabelOrgList = () => {
             </div>
           </div>
           
-          <div className="detail-row" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-            <Link
-              to={`/org/${selectedOrg.subdomain}`}
-              style={{
-                flex: 1,
-                backgroundColor: primaryColor,
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                border: 'none',
-                textDecoration: 'none',
-                textAlign: 'center'
-              }}
-            >
-              Go to Organization
-            </Link>
-            
+          <div className="detail-row" style={{ marginTop: '24px' }}>
             <button
               onClick={() => alert(`Edit ${selectedOrg.organization_name}'s settings`)}
               style={{
-                flex: 1,
+                width: '100%',
                 backgroundColor: 'white',
                 color: '#374151',
                 padding: '8px 16px',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                border: '1px solid #d1d5db'
+                border: '1px solid #d1d5db',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              Edit Settings
+              <span style={{ marginRight: '8px' }}>🔧</span>
+              Edit Organization Settings
             </button>
           </div>
         </div>
