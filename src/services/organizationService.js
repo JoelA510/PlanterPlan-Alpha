@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 
 // In src/services/organizationService.js
 export const fetchOrganizationBySlug = async (slug) => {
-  console.log('fetchOrganizationBySlug called with slug:', slug);
+  // console.log('fetchOrganizationBySlug called with slug:', slug);
   
   try {
     const { data, error } = await supabase
@@ -52,19 +52,29 @@ export const createOrganization = async (orgData) => {
   }
 };
 
-export const updateOrganization = async (id, updates) => {
+// services/organizationService.js
+export const updateOrganization = async (updateData) => {
   try {
+    // Assuming you have a supabase client imported
     const { data, error } = await supabase
-      .from('white_label_orgs')
-      .update(updates)
-      .eq('id', id)
+      .from('white_label_orgs')  // matches your table name
+      .update({
+        primary_color: updateData.primary_color,
+        secondary_color: updateData.secondary_color,
+        tertiary_color: updateData.tertiary_color,
+        font: updateData.font,  // changed from font_family to match schema
+        logo: updateData.logo,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', updateData.id)
       .select();
     
     if (error) throw error;
-    return { data: data[0], error: null };
+    
+    return { data: data[0] };
   } catch (err) {
     console.error('Error updating organization:', err);
-    return { data: null, error: err.message };
+    return { error: err.message || 'Failed to update organization' };
   }
 };
 

@@ -145,7 +145,7 @@ const Layout = ({ userType }) => {
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
           }}>
             <span style={{ marginRight: '8px' }}>🌱</span>
-            Planter
+            Planter Plan
           </div>
         )}
         

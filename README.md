@@ -152,6 +152,8 @@ App
 
 
 ## Dev notes
+### April 9 2025
+* removed the test different roles from app.js (it wasn't working; could be useful later one in dev tho)
 ### April 8 2025
 * changed the links on the white label org page for planterplan admin
 * ran into problem that white label orgs are not loading their tasks 
@@ -164,6 +166,7 @@ App
 * Settings page
 * implemented different routes for different user types:
   * planter plan user, planter plan admin, white label org user, white label org admin
+  * there is no authentication or login; only using different paths for now
 ### April 3 2025
 * white label admin settings page
 ### April 2 2025

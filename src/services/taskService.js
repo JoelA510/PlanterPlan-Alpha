@@ -2,7 +2,7 @@ import { supabase } from '../supabaseClient';
 
 export const fetchAllTasks = async (organizationId = null) => {
   try {
-    console.log('fetchAllTasks called with organizationId:', organizationId);
+    // console.log('fetchAllTasks called with organizationId:', organizationId);
     
     // Start building the query
     let query = supabase

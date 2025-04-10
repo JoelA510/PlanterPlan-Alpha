@@ -470,6 +470,16 @@ const WhiteLabelOrgList = () => {
                   border: '1px solid #e5e7eb'
                 }} />
               </div>
+              <div>
+                <p style={{ margin: '0 0 4px 0', fontSize: '12px' }}>Tertiary Color</p>
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  backgroundColor: selectedOrg.tertiary_color || '#9ca3af',
+                  borderRadius: '4px',
+                  border: '1px solid #e5e7eb'
+                }} />
+              </div>
             </div>
           </div>
           
