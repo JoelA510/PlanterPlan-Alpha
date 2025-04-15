@@ -30,7 +30,7 @@ const TemplateList = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await fetchAllTasks(organizationId);
+      const { data, error } = await fetchAllTasks(organizationId, null, true);
 
       if (error) throw new Error(error);
       

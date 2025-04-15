@@ -1,13 +1,27 @@
 import React from 'react';
-import { Outlet, Link, useLocation, useParams } from 'react-router-dom';
+import { Outlet, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useOrganization } from './contexts/OrganizationProvider';
+import { useAuth } from './contexts/AuthContext';
+import { supabase } from '../supabaseClient';
 import OrganizationLogo from './OrganizationLogo';
 
 const Layout = ({ userType }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { slug } = useParams(); // Get the org slug from URL if present
   const { organization, organizationId, loading: orgLoading } = useOrganization();
+  const { user } = useAuth();
   const isInOrgContext = !!organization;
+  
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
   
   // Determine the base path for navigation links based on user type
   const getBasePath = () => {
@@ -118,6 +132,24 @@ const Layout = ({ userType }) => {
     }
   };
   
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (user && user.profile) {
+      const firstName = user.profile.first_name || '';
+      const lastName = user.profile.last_name || '';
+      return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+    }
+    return 'U';
+  };
+  
+  // Get user display name
+  const getUserName = () => {
+    if (user && user.profile) {
+      return `${user.profile.first_name || ''} ${user.profile.last_name || ''}`;
+    }
+    return 'User';
+  };
+  
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Sidebar */}
@@ -156,8 +188,6 @@ const Layout = ({ userType }) => {
           </ul>
         </nav>
         
-        {/* Organization section removed */}
-        
         {/* Back to Main App - only show when in org context */}
         {isInOrgContext && (
           <div style={{ marginTop: '24px' }}>
@@ -176,37 +206,66 @@ const Layout = ({ userType }) => {
           </div>
         )}
         
-        {/* User Info - This would be dynamic in a real app */}
+        {/* User Info with Logout Button */}
         <div style={{
           position: 'absolute',
           bottom: '20px',
           left: '20px',
           right: '20px',
-          padding: '12px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          display: 'flex',
-          alignItems: 'center'
+          padding: '12px 0',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
           <div style={{
-            width: '36px',
-            height: '36px',
-            backgroundColor: '#10b981',
-            borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 'bold',
-            marginRight: '12px'
+            marginBottom: '12px',
+            padding: '0 12px'
           }}>
-            JD
-          </div>
-          <div>
-            <div style={{ fontWeight: 'bold', color: 'white' }}>John Doe</div>
-            <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-              {userType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            <div style={{
+              width: '36px',
+              height: '36px',
+              backgroundColor: '#10b981',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 'bold',
+              marginRight: '12px'
+            }}>
+              {getUserInitials()}
+            </div>
+            <div>
+              <div style={{ fontWeight: 'bold', color: 'white' }}>{getUserName()}</div>
+              <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                {userType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </div>
             </div>
           </div>
+          
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              color: '#e2e8f0',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '8px 12px',
+              fontSize: '14px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+          >
+            <span style={{ marginRight: '8px' }}>🚪</span>
+            Log Out
+          </button>
         </div>
       </div>
       

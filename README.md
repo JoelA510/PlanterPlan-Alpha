@@ -152,8 +152,36 @@ App
 
 
 ## Dev notes
+### April 14 2025
+* moving forward with login and supabase auth
+  * new files: 
+    * LoginPage.js
+    * AuthContext.js
+    * ProtectedRoute.js
+    * authService.js
+  * set up email auth on supabase
+  * 
+### April 10 2025
+* display white label logo on admin appearance settings
+* start to configure tailwind for styling
+* start login form
+  * will consider auth with supabase
 ### April 9 2025
 * removed the test different roles from app.js (it wasn't working; could be useful later one in dev tho)
+* updated white_label_org table in supabase:
+  * added fields: tertiary_color, font
+* put appearance settings component as a "tab" in Admin settings
+  * start with displaying default values
+  * fetch org's styling settings from supabase
+  * update org's styling settings in supabase after editing form in settings
+    * it wasn't updating correctly at first bc of 
+  * difficulty displaying logo
+    * Claude thought that logo field in table was url and not svg
+    * Three different approaches to displaying svg's:
+      * dangerousHtml
+        * not secure? need to change for the places i used it before
+      * etc
+    * formatting issues
 ### April 8 2025
 * changed the links on the white label org page for planterplan admin
 * ran into problem that white label orgs are not loading their tasks 

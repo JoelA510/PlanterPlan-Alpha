@@ -1,8 +1,14 @@
 import { supabase } from '../supabaseClient';
 
-export const fetchAllTasks = async (organizationId = null) => {
+/**
+ * Fetches all tasks, optionally filtered by organization and/or user ID
+ * @param {string|null} organizationId - Optional organization ID to filter by
+ * @param {string|null} userId - Optional user ID to filter by creator
+ * @returns {Promise<{data: Array, error: string|null}>}
+ */
+export const fetchAllTasks = async (organizationId = null, userId = null, ignoreCreator = false) => {
   try {
-    // console.log('fetchAllTasks called with organizationId:', organizationId);
+    console.log('fetchAllTasks called with:', { organizationId, userId, ignoreCreator });
     
     // Start building the query
     let query = supabase
@@ -35,16 +41,17 @@ export const fetchAllTasks = async (organizationId = null) => {
       query = query.is('white_label_id', null);
     }
     
+    // Apply user filter if provided and not ignoring creator
+    if (userId && !ignoreCreator) {
+      console.log('Filtering by creator (user ID):', userId);
+      query = query.eq('creator', userId);
+    }
+    
     // Add ordering
     query = query.order('position', { ascending: true });
     
     // Execute the query
     const { data, error } = await query;
-    
-    console.log('Query results:', { 
-      count: data?.length || 0,
-      data: data
-    });
     
     if (error) throw error;
     return { data, error: null };
@@ -53,7 +60,6 @@ export const fetchAllTasks = async (organizationId = null) => {
     return { data: null, error: err.message };
   }
 };
-
 
 export const updateTaskCompletion = async (taskId, currentStatus, organizationId = null) => {
   try {
@@ -127,7 +133,6 @@ export const updateSiblingPositions = async (tasks, organizationId = null) => {
   return { success: true, error: null };
 };
 
-
 /**
  * Creates a new task in Supabase
  * @param {Object} taskData - The task data to create
@@ -140,6 +145,11 @@ export const createTask = async (taskData, organizationId = null) => {
     const taskWithOrg = organizationId 
       ? { ...taskData, white_label_id: organizationId }
       : taskData;
+    
+    // Ensure task has creator field
+    if (!taskWithOrg.creator) {
+      console.warn('Task created without creator field. This may cause issues with user filtering.');
+    }
     
     console.log('Creating task with data:', taskWithOrg);
     
@@ -161,38 +171,6 @@ export const createTask = async (taskData, organizationId = null) => {
     return { error: err.message || 'Unknown error occurred' };
   }
 };
-
-// For development/testing purposes, you might want to add a mock implementation
-// that doesn't require a connection to Supabase
-
-/**
- * Mock implementation of createTask for development/testing
- * @param {Object} taskData - The task data to create
- * @param {string|null} organizationId - The organization ID to associate this task with
- * @returns {Promise<{data: Object, error: string}>} - The created task data or error
- */
-// export const mockCreateTask = async (taskData, organizationId = null) => {
-//   // Simulate API delay
-//   await new Promise(resolve => setTimeout(resolve, 500));
-  
-//   // Generate a random ID
-//   const id = Math.floor(Math.random() * 10000);
-  
-//   // Add organization ID if provided
-//   const taskWithOrg = organizationId 
-//     ? { ...taskData, organization_id: organizationId }
-//     : taskData;
-  
-//   // Return mock data
-//   return {
-//     data: {
-//       ...taskWithOrg,
-//       id,
-//       created_at: new Date().toISOString(),
-//       updated_at: new Date().toISOString()
-//     }
-//   };
-// };
 
 /**
  * Deletes a task and all its child tasks from Supabase
