@@ -11,20 +11,29 @@ import {
   TemplateSelector 
 } from './TaskUIComponents';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
-import { fetchAllTasks, createTask, updateTaskCompletion, deleteTask } from '../../services/taskService';
+import { createTask, updateTaskCompletion, deleteTask } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import { useOrganization } from '../contexts/OrganizationProvider';
 import { useAuth } from '../contexts/AuthContext';
+import { useTasks } from '../contexts/TaskContext'; // Import the task context hook
 
 const TaskList = () => {
   // Context hooks
   const { organization, organizationId, loading: orgLoading } = useOrganization();
   const { user, loading: userLoading } = useAuth();
   
+  // Use the task context instead of local state for tasks
+  const { 
+    instanceTasks: tasks, 
+    templateTasks: templates, 
+    loading: tasksLoading, 
+    error: tasksError, 
+    fetchTasks, 
+    setTasks 
+  } = useTasks();
+  
   // State hooks
-  const [tasks, setTasks] = useState([]);
-  const [templates, setTemplates] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Local loading state for operations other than fetching
   const [error, setError] = useState(null);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -46,49 +55,6 @@ const TaskList = () => {
     start_date: null,
     due_date: null
   });
-
-  // Load tasks when org and user are loaded
-  useEffect(() => {
-    if (!orgLoading && !userLoading) {
-      fetchTasks();
-    }
-  }, [organizationId, user?.id, orgLoading, userLoading]);
-
-  // Fetch tasks from API
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await fetchAllTasks(organizationId, user?.id);
-      if (error) throw new Error(error);
-      
-      const instanceTasks = data ? data.filter(task => task.origin === "instance") : [];
-      setTasks(instanceTasks);
-    } catch (err) {
-      console.error('Error fetching tasks:', err);
-      setError(`Failed to load tasks: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Fetch templates from API
-  const fetchTemplates = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await fetchAllTasks(organizationId);
-      if (error) throw new Error(error);
-      
-      const templateTasks = data ? data.filter(task => task.origin === "template") : [];
-      setTemplates(templateTasks);
-      return templateTasks;
-    } catch (err) {
-      console.error('Error fetching templates:', err);
-      setError(`Failed to load templates: ${err.message}`);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Toggle task expansion
   const toggleExpandTask = (taskId, e) => {
@@ -194,7 +160,7 @@ const TaskList = () => {
     setIsNewProjectDropdownOpen(false);
     
     if (type === 'template') {
-      await fetchTemplates(organizationId);
+      // Templates are now loaded through the task context
       setSelectedTaskId(null);
     } else if (type === 'empty') {
       setCreatingProject(true);
@@ -267,6 +233,8 @@ const TaskList = () => {
         return;
       }
       
+      setLoading(true);
+      
       const projectData = {
         title: projectFormData.title,
         purpose: projectFormData.purpose,
@@ -292,7 +260,8 @@ const TaskList = () => {
         await createChildTasksFromTemplate(selectedTemplateId, result.data.id);
       }
       
-      await fetchTasks();
+      // Force refresh all tasks
+      await fetchTasks(true);
       
       setNewProjectType(null);
       setSelectedTemplateId(null);
@@ -303,6 +272,9 @@ const TaskList = () => {
     } catch (error) {
       console.error('Error creating project:', error);
       alert(`Failed to create project: ${error.message}`);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -366,6 +338,8 @@ const TaskList = () => {
     try {
       if (!deletingTaskId) return;
       
+      setLoading(true);
+      
       const taskToDelete = tasks.find(t => t.id === deletingTaskId);
       if (!taskToDelete) throw new Error("Task not found");
       
@@ -398,6 +372,7 @@ const TaskList = () => {
       console.error('Error deleting task:', error);
       alert(`Failed to delete task: ${error.message}`);
     } finally {
+      setLoading(false);
       setShowDeleteConfirmation(false);
     }
   };
@@ -557,7 +532,7 @@ const TaskList = () => {
             </div>
             
             <button 
-              onClick={fetchTasks} 
+              onClick={() => fetchTasks(true)} // Force refresh 
               className="bg-blue-500 text-white py-2 px-4 rounded border-0"
             >
               Refresh
@@ -565,11 +540,12 @@ const TaskList = () => {
           </div>
         </div>
 
-        {loading ? (
+        {/* Only show loading indicator when we have no tasks AND are actually loading */}
+        {(tasksLoading && tasks.length === 0) ? (
           <div className="text-center py-8">Loading...</div>
-        ) : error ? (
+        ) : tasksError || error ? (
           <div className="bg-red-100 border border-red-400 text-red-700 p-4 rounded mb-4">
-            {error}
+            {tasksError || error}
           </div>
         ) : (
           <div>{renderTopLevelTasks()}</div>
@@ -588,6 +564,8 @@ const TaskList = () => {
         </summary>
         <div className="mt-1.5">
           <p>Projects: {tasks.length} (Top: {tasks.filter(t => !t.parent_task_id).length})</p>
+          <p>Templates: {templates.length}</p>
+          <p>Loading: {loading || tasksLoading ? 'Yes' : 'No'}</p>
           <p>New project: {newProjectType || 'None'}</p>
           <p>Selected template: {selectedTemplateId?.substring(0, 8) || 'None'}</p>
           <p>Selected task: {selectedTaskId ? selectedTaskId.substring(0, 8) + '...' : 'None'}</p>

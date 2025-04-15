@@ -9,20 +9,23 @@ import NotFound from './components/NotFound';
 import WhiteLabelOrgList from './components/WhiteLabelOrgList';
 import { OrganizationProvider } from './components/contexts/OrganizationProvider';
 import { AuthProvider, useAuth } from './components/contexts/AuthContext';
+import { TaskProvider } from './components/contexts/TaskContext'; // Import the new TaskProvider
 import LoginPage from './components/Login/LoginPage';
 
 const App = () => {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Auth routes - accessible to everyone */}
-          <Route path="/login" element={<LoginPage />} />
-          
-          {/* Protected routes */}
-          <Route path="/*" element={<ProtectedRoutes />} />
-        </Routes>
-      </Router>
+      <TaskProvider> {/* Wrap the Router with TaskProvider */}
+        <Router>
+          <Routes>
+            {/* Auth routes - accessible to everyone */}
+            <Route path="/login" element={<LoginPage />} />
+            
+            {/* Protected routes */}
+            <Route path="/*" element={<ProtectedRoutes />} />
+          </Routes>
+        </Router>
+      </TaskProvider>
     </AuthProvider>
   );
 };

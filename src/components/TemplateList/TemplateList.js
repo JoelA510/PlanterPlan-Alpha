@@ -1,51 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import TemplateItem from './TemplateItem';
-import TaskForm from '../TaskForm/TaskForm'; // Updated import path
+import TaskDropZone from '../TaskList/TaskDropZone';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
-import { fetchAllTasks, createTask } from '../../services/taskService';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import { useOrganization } from '../contexts/OrganizationProvider';
+import { useAuth } from '../contexts/AuthContext';
+import { useTasks } from '../contexts/TaskContext'; // Import the task context hook
 import '../TaskList/TaskList.css';
 
 const TemplateList = () => {
-  const { organization, organizationId, loading: orgLoading } = useOrganization();
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Context hooks
+  const { organization, organizationId } = useOrganization();
+  const { user } = useAuth();
+  
+  // Use the task context instead of local state for tasks
+  const { 
+    templateTasks: tasks, 
+    loading, 
+    error, 
+    fetchTasks, 
+    setTasks 
+  } = useTasks();
+  
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
-  
-  
-  // State variables for the task form
-  const [showAddTaskForm, setShowAddTaskForm] = useState(false);
-  const [addTaskParentId, setAddTaskParentId] = useState(null);
-
-  useEffect(() => {
-    if (!orgLoading) {
-      fetchTemplates();
-    }
-  }, [organizationId, orgLoading]);
-
-  const fetchTemplates = async () => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await fetchAllTasks(organizationId, null, true);
-
-      if (error) throw new Error(error);
-      
-      // Filter to only include template tasks
-      const templateTasks = data ? data.filter(task => task.origin === "template") : [];
-      console.log('Fetched templates:', templateTasks);
-      
-      setTasks(templateTasks);
-    } catch (err) {
-      console.error('Error fetching templates:', err);
-      setError(`Failed to load templates: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleExpandTask = (taskId, e) => {
     e.preventDefault();
@@ -65,69 +43,11 @@ const TemplateList = () => {
     setSelectedTaskId(prevId => prevId === taskId ? null : taskId);
   };
   
-  // Function to handle the "Add Task" button click
-  const handleAddTaskClick = (parentId, e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
-    setAddTaskParentId(parentId);
-    setShowAddTaskForm(true);
-    
-    // Optionally deselect any selected task when starting to add a new one
-    setSelectedTaskId(null);
-  };
-  
-  // Function to handle submitting the new task form
-  const handleTaskFormSubmit = async (taskData) => {
-    try {
-      // Determine position for new task
-      const siblingTasks = tasks.filter(t => t.parent_task_id === taskData.parent_task_id);
-      const position = siblingTasks.length > 0 
-        ? Math.max(...siblingTasks.map(t => t.position)) + 1 
-        : 0;
-      
-      // Add position to task data
-      const newTaskData = {
-        ...taskData,
-        position,
-        white_label_id: organizationId // Add the white label organization ID here
-      };
-      
-      // Call API to create task
-      const result = await createTask(newTaskData, organizationId);
-      
-      if (result.error) throw new Error(result.error);
-      
-      // Update local state with new task
-      if (result.data) {
-        setTasks([...tasks, result.data]);
-      }
-      
-      // Close the form
-      setShowAddTaskForm(false);
-      setAddTaskParentId(null);
-      
-      // Expand the parent task to show the new child
-      if (taskData.parent_task_id) {
-        setExpandedTasks(prev => ({
-          ...prev,
-          [taskData.parent_task_id]: true
-        }));
-      }
-      
-    } catch (err) {
-      console.error('Error creating task:', err);
-      alert(`Failed to create task: ${err.message}`);
-    }
-  };
-  
   // Get the selected task object
   const selectedTask = tasks.find(task => task.id === selectedTaskId);
   
   // Initialize the drag and drop functionality
-  const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTemplates);
+  const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTasks);
   
   // Render top-level tasks (templates) with spacing between them
   const renderTopLevelTemplates = () => {
@@ -137,11 +57,7 @@ const TemplateList = () => {
     
     if (topLevelTasks.length === 0) {
       return (
-        <div style={{
-          textAlign: 'center',
-          padding: '32px',
-          color: '#6b7280'
-        }}>
+        <div className="text-center py-8 text-gray-500">
           No templates found. Create your first template to get started!
         </div>
       );
@@ -163,7 +79,6 @@ const TemplateList = () => {
           selectTask={selectTask}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
-          onAddTask={handleAddTaskClick}  // Pass the onAddTask function
         />
       );
       
@@ -172,10 +87,7 @@ const TemplateList = () => {
         taskElements.push(
           <div 
             key={`template-spacer-${index}`}
-            style={{
-              height: '5px',
-              margin: '2px 0'
-            }}
+            className="h-1.5 my-0.5"
           />
         );
       }
@@ -188,18 +100,7 @@ const TemplateList = () => {
   const renderTemplateDetailsPanel = () => {
     if (!selectedTask) {
       return (
-        <div className="empty-details-panel" style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          color: '#6b7280',
-          backgroundColor: '#f9fafb',
-          borderRadius: '4px',
-          border: '1px dashed #d1d5db',
-          padding: '24px'
-        }}>
+        <div className="empty-details-panel flex flex-col items-center justify-center h-full text-gray-500 bg-gray-50 rounded border border-dashed border-gray-300 p-6">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
@@ -207,7 +108,7 @@ const TemplateList = () => {
             <line x1="16" y1="17" x2="8" y2="17"></line>
             <polyline points="10 9 9 9 8 9"></polyline>
           </svg>
-          <p style={{ marginTop: '16px', textAlign: 'center' }}>
+          <p className="mt-4 text-center">
             Select a template to view its details
           </p>
         </div>
@@ -219,13 +120,7 @@ const TemplateList = () => {
     const backgroundColor = getBackgroundColor(level);
     
     return (
-      <div className="task-details-panel" style={{
-        backgroundColor: '#f9fafb',
-        borderRadius: '4px',
-        border: '1px solid #e5e7eb',
-        height: '100%',
-        overflow: 'auto'
-      }}>
+      <div className="task-details-panel bg-gray-50 rounded border border-gray-200 h-full overflow-auto">
         <div className="details-header" style={{
           backgroundColor: backgroundColor,
           color: 'white',
@@ -234,56 +129,36 @@ const TemplateList = () => {
           borderTopRightRadius: '4px',
           position: 'relative'
         }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            width: '100%'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <h3 style={{ 
-                margin: 0, 
-                fontWeight: 'bold',
-              }}>
+          <div className="flex justify-between items-center w-full">
+            <div className="flex items-center">
+              <h3 className="m-0 font-bold">
                 {selectedTask.title}
               </h3>
             </div>
             
             <button 
               onClick={() => setSelectedTaskId(null)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                borderRadius: '50%',
-                color: 'white',
-                cursor: 'pointer',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px'
-              }}
+              className="bg-white bg-opacity-20 border-0 rounded-full text-white cursor-pointer w-6 h-6 flex items-center justify-center text-xs"
             >
               ✕
             </button>
           </div>
         </div>
         
-        <div className="details-content" style={{ padding: '16px' }}>
+        <div className="details-content p-4">
           <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Purpose:</h4>
+            <h4 className="font-bold mb-1 mt-4">Purpose:</h4>
             <p>{selectedTask.purpose || 'No purpose specified'}</p>
           </div>
           
           <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Description:</h4>
+            <h4 className="font-bold mb-1 mt-4">Description:</h4>
             <p>{selectedTask.description || 'No description specified'}</p>
           </div>
           
           <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Actions:</h4>
-            <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
+            <h4 className="font-bold mb-1 mt-4">Actions:</h4>
+            <ul className="pl-5 mt-2 mb-0">
               {selectedTask.actions && selectedTask.actions.length > 0 ? 
                 selectedTask.actions.map((action, index) => (
                   <li key={index}>{action}</li>
@@ -294,8 +169,8 @@ const TemplateList = () => {
           </div>
           
           <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Resources:</h4>
-            <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
+            <h4 className="font-bold mb-1 mt-4">Resources:</h4>
+            <ul className="pl-5 mt-2 mb-0">
               {selectedTask.resources && selectedTask.resources.length > 0 ? 
                 selectedTask.resources.map((resource, index) => (
                   <li key={index}>{resource}</li>
@@ -305,18 +180,10 @@ const TemplateList = () => {
             </ul>
           </div>
           
-          <div className="detail-row" style={{ marginTop: '24px' }}>
+          <div className="detail-row mt-6">
             <button
               onClick={() => alert(`Create project from template: ${selectedTask.title}`)}
-              style={{
-                backgroundColor: '#10b981',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                border: 'none',
-                width: '100%'
-              }}
+              className="bg-green-500 text-white py-2 px-4 rounded border-0 w-full"
             >
               Use as Project
             </button>
@@ -327,159 +194,54 @@ const TemplateList = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
+    <div className="flex h-[calc(100vh-100px)]">
       {/* Left panel - Template list */}
-      <div style={{ 
-        flex: showAddTaskForm ? '1 1 40%' : '1 1 60%', 
-        marginRight: '24px',
-        overflow: 'auto',
-        transition: 'flex 0.3s ease'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px'
-        }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Templates</h1>
-          <div style={{ display: 'flex', gap: '12px' }}>
+      <div className="flex-1 flex-grow-6 mr-6 overflow-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Templates</h1>
+          <div className="flex gap-3">
             <button 
-              onClick={() => {
-                setAddTaskParentId(null);
-                setShowAddTaskForm(true);
-                setSelectedTaskId(null);
-              }}
-              style={{
-                backgroundColor: '#10b981',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                border: 'none'
-              }}
+              onClick={() => alert('Create new template functionality would go here')}
+              className="bg-green-500 text-white py-2 px-4 rounded border-0"
             >
               New Template
             </button>
             <button 
-              onClick={fetchTemplates}
-              style={{
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                border: 'none'
-              }}
+              onClick={() => fetchTasks(true)}
+              className="bg-blue-500 text-white py-2 px-4 rounded border-0"
             >
               Refresh
             </button>
           </div>
         </div>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '32px' }}>
-            Loading...
-          </div>
+        {/* Only show loading indicator when we have no tasks AND are actually loading */}
+        {(loading && tasks.length === 0) ? (
+          <div className="text-center py-8">Loading...</div>
         ) : error ? (
-          <div style={{
-            backgroundColor: '#fee2e2',
-            border: '1px solid #ef4444',
-            color: '#b91c1c',
-            padding: '16px',
-            borderRadius: '4px',
-            marginBottom: '16px'
-          }}>
+          <div className="bg-red-100 border border-red-400 text-red-700 p-4 rounded mb-4">
             {error}
-          </div>
-        ) : tasks.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '32px',
-            color: '#6b7280'
-          }}>
-            No templates found. Create your first template to get started!
           </div>
         ) : (
           <div>{renderTopLevelTemplates()}</div>
         )}
       </div>
       
-      {/* Middle panel - Template details - only show if not showing form and a task is selected */}
-      {!showAddTaskForm && selectedTaskId && (
-        <div style={{ 
-          flex: '1 1 40%', 
-          minWidth: '300px',
-          maxWidth: '500px'
-        }}>
-          {renderTemplateDetailsPanel()}
-        </div>
-      )}
-      
-      {/* Right panel - Add Task Form - only show when adding a task */}
-      {showAddTaskForm && (
-        <div style={{ 
-          flex: '1 1 40%', 
-          minWidth: '300px',
-          maxWidth: '500px'
-        }}>
-          <TaskForm 
-            parentTaskId={addTaskParentId}
-            onSubmit={handleTaskFormSubmit}
-            onCancel={() => {
-              setShowAddTaskForm(false);
-              setAddTaskParentId(null);
-            }}
-            backgroundColor={addTaskParentId 
-              ? getBackgroundColor(getTaskLevel(tasks.find(t => t.id === addTaskParentId), tasks) + 1)
-              : getBackgroundColor(0)
-            }
-            originType="template"
-            organizationId={organizationId} // Add this line
-          />
-        </div>
-      )}
+      {/* Right panel - Template details */}
+      <div className="flex-1 flex-grow-4 min-w-75 max-w-125">
+        {renderTemplateDetailsPanel()}
+      </div>
       
       {/* Debug section */}
-      <details style={{ 
-        position: 'fixed',
-        bottom: '10px',
-        left: '10px',
-        padding: '16px',
-        backgroundColor: '#f3f4f6',
-        borderRadius: '4px',
-        width: '300px',
-        zIndex: 100
-      }}>
-        <summary style={{ 
-          cursor: 'pointer',
-          color: '#3b82f6',
-          fontWeight: '500'
-        }}>
+      <details className="fixed bottom-2.5 left-2.5 p-2 bg-gray-100 bg-opacity-90 rounded border border-gray-200 w-56 max-h-75 overflow-y-auto text-xs z-20 shadow-sm">
+        <summary className="cursor-pointer text-blue-500 font-medium text-xs select-none">
           Debug Information
         </summary>
-        <div style={{ marginTop: '8px' }}>
+        <div className="mt-1.5">
           <p>Total templates: {tasks.length}</p>
           <p>Top-level templates: {tasks.filter(t => !t.parent_task_id).length}</p>
-          <p>Dragging: {dragAndDrop.draggedTask ? dragAndDrop.draggedTask.title : 'None'}</p>
-          <p>Drop target: {dragAndDrop.dropTarget ? `${dragAndDrop.dropTarget.title} (${dragAndDrop.dropPosition})` : 'None'}</p>
-          <p>Selected template: {selectedTaskId || 'None'}</p>
-          <p>Adding task to parent: {addTaskParentId || 'None (top-level)'}</p>
-          <details>
-            <summary>Template Positions</summary>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
-              {JSON.stringify(
-                tasks.map(t => ({ 
-                  id: t.id, 
-                  title: t.title,
-                  position: t.position, 
-                  parent: t.parent_task_id,
-                  origin: t.origin
-                })), 
-                null, 
-                2
-              )}
-            </pre>
-          </details>
+          <p>Loading: {loading ? 'Yes' : 'No'}</p>
+          <p>Selected template: {selectedTaskId ? selectedTaskId.substring(0, 8) + '...' : 'None'}</p>
         </div>
       </details>
     </div>

@@ -1,14 +1,15 @@
 import { supabase } from '../supabaseClient';
 
 /**
- * Fetches all tasks, optionally filtered by organization and/or user ID
+ * Fetches tasks with filtering by organization, user, and/or task origin
  * @param {string|null} organizationId - Optional organization ID to filter by
- * @param {string|null} userId - Optional user ID to filter by creator
+ * @param {string|null} userId - Optional user ID to filter by creator (for instance tasks)
+ * @param {string|null} origin - Optional task origin to filter by ('instance' or 'template')
  * @returns {Promise<{data: Array, error: string|null}>}
  */
-export const fetchAllTasks = async (organizationId = null, userId = null, ignoreCreator = false) => {
+export const fetchAllTasks = async (organizationId = null, userId = null, origin = null) => {
   try {
-    console.log('fetchAllTasks called with:', { organizationId, userId, ignoreCreator });
+    console.log('fetchAllTasks called with:', { organizationId, userId, origin });
     
     // Start building the query
     let query = supabase
@@ -29,7 +30,9 @@ export const fetchAllTasks = async (organizationId = null, userId = null, ignore
         is_complete,
         due_date,
         task_lead,
-        white_label_id
+        white_label_id,
+        actions,
+        resources
       `);
     
     // Apply organization filter if provided
@@ -41,8 +44,14 @@ export const fetchAllTasks = async (organizationId = null, userId = null, ignore
       query = query.is('white_label_id', null);
     }
     
-    // Apply user filter if provided and not ignoring creator
-    if (userId && !ignoreCreator) {
+    // Apply task origin filter if provided
+    if (origin) {
+      console.log('Filtering by origin:', origin);
+      query = query.eq('origin', origin);
+    }
+    
+    // Apply user filter only for instance tasks or when origin is not specified
+    if (userId && (origin === 'instance' || !origin)) {
       console.log('Filtering by creator (user ID):', userId);
       query = query.eq('creator', userId);
     }
