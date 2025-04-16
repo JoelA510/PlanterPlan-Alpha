@@ -152,6 +152,10 @@ App
 
 
 ## Dev notes
+### April 15 2025
+* ran into issue where tasks are loading after changing tabs and coming back to planter plan app
+  * claude's solution: Task Context
+* create account doesn't work
 ### April 14 2025
 * moving forward with login and supabase auth
   * new files: 
@@ -160,7 +164,15 @@ App
     * ProtectedRoute.js
     * authService.js
   * set up email auth on supabase
-  * 
+* only show user's tasks in tasklist (projects page)
+  * edit to taskService function: fetchAllTasks
+* for admin: show all templates of the org
+* reconfigured tailwind css
+  * the login page styling wasn't working
+  * running npx tailwindcss init
+    * error: tailwind is not found
+  * eventually figured out with claude:
+    * uninstall all the dependencies and reinstall them
 ### April 10 2025
 * display white label logo on admin appearance settings
 * start to configure tailwind for styling
