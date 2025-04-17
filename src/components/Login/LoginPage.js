@@ -1,6 +1,6 @@
-// src/pages/LoginPage.js
+// src/components/Login/LoginPage.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Import Link
 import { signIn } from '../../services/authService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -120,18 +120,18 @@ const LoginPage = () => {
             </form>
           </div>
           
-          {/* Links */}
+          {/* Links - Using React Router Link instead of <a> tags */}
           <div className="text-center text-sm">
             <p className="text-gray-600 mb-2">
               Don't have an account?{' '}
-              <a href="/register" className="font-medium text-blue-600">
+              <Link to="/register" className="font-medium text-blue-600">
                 Create Account
-              </a>
+              </Link>
             </p>
             <p>
-              <a href="/forgot-password" className="font-medium text-blue-600">
+              <Link to="/forgot-password" className="font-medium text-blue-600">
                 Forgot password?
-              </a>
+              </Link>
             </p>
           </div>
         </div>

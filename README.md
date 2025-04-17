@@ -156,6 +156,8 @@ App
 * ran into issue where tasks are loading after changing tabs and coming back to planter plan app
   * claude's solution: Task Context
 * create account doesn't work
+  * added new pages
+  * need to make new page for "check you email"
 ### April 14 2025
 * moving forward with login and supabase auth
   * new files: 

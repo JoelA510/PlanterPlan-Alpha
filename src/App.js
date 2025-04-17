@@ -11,7 +11,9 @@ import { OrganizationProvider } from './components/contexts/OrganizationProvider
 import { AuthProvider, useAuth } from './components/contexts/AuthContext';
 import { TaskProvider } from './components/contexts/TaskContext'; // Import the new TaskProvider
 import LoginPage from './components/Login/LoginPage';
-import RegisterPage from './components/Login/RegisterPage'; // Import the new RegisterPage
+import RegisterPage from './components/Login/RegisterPage';
+import ForgotPasswordPage from './components/Login/ForgotPasswordPage';
+import ResetPasswordPage from './components/Login/ResetPasswordPage';
 
 const App = () => {
   return (
@@ -21,7 +23,9 @@ const App = () => {
           <Routes>
             {/* Auth routes - accessible to everyone */}
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} /> {/* Add this new route */}
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             
             {/* Protected routes */}
             <Route path="/*" element={<ProtectedRoutes />} />

@@ -1,7 +1,8 @@
 // src/components/Login/RegisterPage.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { signUp } from '../../services/authService';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -57,11 +58,20 @@ const RegisterPage = () => {
     try {
       setFormLoading(true);
       
-      // TODO: Call your registration service
-      // For now, we're just showing an alert
-      alert('Registration functionality will be implemented soon');
+      // Call the signUp function from authService
+      const userData = {
+        firstName,
+        lastName
+      };
       
-      // Redirect to login page after registration
+      const result = await signUp(email, password, userData);
+      
+      if (result.error) {
+        throw result.error;
+      }
+      
+      // Show success message and redirect to login
+      alert('Registration successful! Please check your email to confirm your account.');
       navigate('/login');
       
     } catch (err) {
@@ -174,13 +184,13 @@ const RegisterPage = () => {
             </form>
           </div>
           
-          {/* Links */}
+          {/* Links - Using React Router Link */}
           <div className="text-center text-sm">
             <p className="text-gray-600">
               Already have an account?{' '}
-              <a href="/login" className="font-medium text-blue-600">
+              <Link to="/login" className="font-medium text-blue-600">
                 Sign In
-              </a>
+              </Link>
             </p>
           </div>
         </div>
