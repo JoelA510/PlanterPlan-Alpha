@@ -132,32 +132,64 @@ Core Components
 | `TemplateItem` | Represents a single template | Displays template, handles drag events |
 | `TaskForm` | Task/template creation/editing form | Handles form data for tasks/templates |
 | `TaskDropZone` | Drop target between tasks | Handles drop positioning for drag and drop |
+| `TaskDetailsPanel` | Displays detailed task information | Shows task properties, completion status, actions |
+| `TaskUIComponents` | Reusable UI components for tasks | EmptyPanel, DeleteConfirmation, ProjectForm, TemplateSelector |
+| `Layout` | Main application layout | Manages routing, navigation, user context |
 | `OrganizationProvider` | Manages organization context | Provides organization data and branding |
+| `AuthProvider` | Manages authentication | Provides user data and authentication state |
+| `TaskProvider` | Manages task data | Centralizes task fetching, caching, and updates |
+| `LoginPage`/`RegisterPage` | Authentication UI | Handles user login/registration |
+
 
 Component Relationships
 
 ```
 App
-├── OrganizationProvider
-│   └── OrganizationLayout
-│       ├── TaskList
-│       │   ├── TaskItem (recursive)
-│       │   │   └── TaskDropZone
-│       │   └── TaskForm
-│       └── TemplateList
-│           ├── TemplateItem (recursive)
-│           │   └── TaskDropZone
-│           └── TaskForm
+├── AuthProvider
+│   └── TaskProvider
+│       └── Router
+│           └── ProtectedRoutes
+│               └── OrganizationProvider
+│                   └── Layout (varies by user type)
+│                       ├── TaskList
+│                       │   ├── TaskItem (recursive)
+│                       │   │   └── TaskDropZone
+│                       │   ├── TaskDetailsPanel
+│                       │   ├── TaskForm
+│                       │   └── TaskUIComponents
+│                       ├── TemplateList
+│                       │   ├── TemplateItem (recursive)
+│                       │   │   └── TaskDropZone
+│                       │   └── TaskForm
+│                       ├── AdminSettings/UserSettings
+│                       │   └── AppearanceSettings
+│                       └── WhiteLabelOrgList
 ```
 
 
 ## Dev notes
+### April 17 2025
+* weird bug loading tasks after returning to tab occured again for user
+  * Claude's fix: refresh if there is change in user id, org id,
+    * prevents extra reloads
+  * correctly nesting the contexts: Auth context, Router, Org Context, Task Context
+* planter plan now has an row in the white label org table. 
+  * trying to update the code for the potential changes because before: planter plan had no id (whitelabelorg would be set to NULL)
+    * effects on the database
+      * change table on supabase to be organization table (do this later)
+      * all the tasks in tasks table with whitelabelorgid = NULL should be set to id of planterplan
+        * used a sql update to do that
+    * later: make sure planter plan id is being passed in all the task service functions
+### April 16 2025
+
+* Claude drafted a check your email page
+
 ### April 15 2025
 * ran into issue where tasks are loading after changing tabs and coming back to planter plan app
   * claude's solution: Task Context
 * create account doesn't work
-  * added new pages
-  * need to make new page for "check you email"
+  * added new pages for account creation, forgot password, password reset form
+* need to make new page for "check your email"
 ### April 14 2025
 * moving forward with login and supabase auth
   * new files: 

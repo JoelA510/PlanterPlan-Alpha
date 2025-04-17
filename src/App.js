@@ -18,20 +18,18 @@ import ResetPasswordPage from './components/Login/ResetPasswordPage';
 const App = () => {
   return (
     <AuthProvider>
-      <TaskProvider> {/* Wrap the Router with TaskProvider */}
-        <Router>
-          <Routes>
-            {/* Auth routes - accessible to everyone */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            
-            {/* Protected routes */}
-            <Route path="/*" element={<ProtectedRoutes />} />
-          </Routes>
-        </Router>
-      </TaskProvider>
+      <Router>
+        <Routes>
+          {/* Auth routes - accessible to everyone */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          
+          {/* Protected routes */}
+          <Route path="/*" element={<ProtectedRoutes />} />
+        </Routes>
+      </Router>
     </AuthProvider>
   );
 };
@@ -87,9 +85,11 @@ const ProtectedRoutes = () => {
     
     return (
       <OrganizationProvider>
-        <Layout userType={userType}>
-          {children}
-        </Layout>
+        <TaskProvider>
+          <Layout userType={userType}>
+            {children}
+          </Layout>
+        </TaskProvider>
       </OrganizationProvider>
     );
   };
