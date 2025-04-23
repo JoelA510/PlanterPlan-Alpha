@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useMemo } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import TaskList from './components/TaskList/TaskList';
 import TemplateList from './components/TemplateList/TemplateList';
@@ -9,34 +9,91 @@ import NotFound from './components/NotFound';
 import WhiteLabelOrgList from './components/WhiteLabelOrgList';
 import { OrganizationProvider } from './components/contexts/OrganizationProvider';
 import { AuthProvider, useAuth } from './components/contexts/AuthContext';
-import { TaskProvider } from './components/contexts/TaskContext'; // Import the new TaskProvider
+import { TaskProvider } from './components/contexts/TaskContext';
 import LoginPage from './components/Login/LoginPage';
 import RegisterPage from './components/Login/RegisterPage';
 import ForgotPasswordPage from './components/Login/ForgotPasswordPage';
 import ResetPasswordPage from './components/Login/ResetPasswordPage';
 
-const App = () => {
+// Define LayoutWithOrganization outside of ProtectedRoutes for better stability
+// Use React.memo to prevent unnecessary re-renders
+const LayoutWithOrganization = React.memo(({ userType, children, requiredRole }) => {
+  const { hasRole, user } = useAuth();
+  const navigate = useNavigate();
+  
+  // Determine the default path based on user role
+  const defaultPath = useMemo(() => {
+    if (hasRole('planterplan_admin')) {
+      return '/admin';
+    } else if (hasRole('white_label_admin') && user?.profile?.white_label_org?.subdomain) {
+      return `/org/${user.profile.white_label_org.subdomain}/admin`;
+    } else if (hasRole('white_label_user') && user?.profile?.white_label_org?.subdomain) {
+      return `/org/${user.profile.white_label_org.subdomain}/user`;
+    } else {
+      return '/user';
+    }
+  }, [hasRole, user?.profile?.white_label_org?.subdomain]);
+  
+  // Check if the user has the required role for this section
+  useEffect(() => {
+    // Map userType to actual role names
+    const roleMap = {
+      'planter_admin': 'planterplan_admin',
+      'planter_user': 'planterplan_user',
+      'org_admin': 'white_label_admin',
+      'org_user': 'white_label_user'
+    };
+    
+    const requiredAppRole = roleMap[requiredRole || userType];
+    
+    if (requiredAppRole && !hasRole(requiredAppRole)) {
+      // Use React Router navigation instead of window.location for smoother transitions
+      navigate(defaultPath, { replace: true });
+    }
+  }, [userType, requiredRole, hasRole, defaultPath, navigate]);
+
+  // Use console.log to track component lifecycle
+  useEffect(() => {
+    console.log(`LayoutWithOrganization (${userType}) mounted`);
+    return () => console.log(`LayoutWithOrganization (${userType}) unmounted`);
+  }, [userType]);
+  
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Auth routes - accessible to everyone */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          
-          {/* Protected routes */}
-          <Route path="/*" element={<ProtectedRoutes />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <OrganizationProvider>
+      <TaskProvider>
+        <Layout userType={userType}>
+          {children}
+        </Layout>
+      </TaskProvider>
+    </OrganizationProvider>
   );
-};
+});
 
 // Component to handle all protected routes
 const ProtectedRoutes = () => {
-  const { user, loading, isAdmin, hasRole } = useAuth();
+  const { user, loading, hasRole } = useAuth();
+  const navigate = useNavigate();
+  
+  // Calculate default path based on user role - moved above the conditional returns
+  const defaultPath = useMemo(() => {
+    if (!user) return '/login'; // Handle the case where user is null
+    
+    if (hasRole('planterplan_admin')) {
+      return '/admin';
+    } else if (hasRole('white_label_admin') && user?.profile?.white_label_org?.subdomain) {
+      return `/org/${user.profile.white_label_org.subdomain}/admin`;
+    } else if (hasRole('white_label_user') && user?.profile?.white_label_org?.subdomain) {
+      return `/org/${user.profile.white_label_org.subdomain}/user`;
+    } else {
+      return '/user';
+    }
+  }, [hasRole, user]);
+  
+  // Track component lifecycle
+  useEffect(() => {
+    console.log('ProtectedRoutes mounted');
+    return () => console.log('ProtectedRoutes unmounted');
+  }, []);
   
   // While checking authentication status, show loading
   if (loading) {
@@ -47,52 +104,6 @@ const ProtectedRoutes = () => {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  
-  // Determine the default path based on user role
-  let defaultPath = '/user'; // Default for regular users
-  
-  if (hasRole('planterplan_admin')) {
-    defaultPath = '/admin';
-  } else if (hasRole('white_label_admin')) {
-    // Get the white label org slug from user data
-    const orgSlug = user.profile?.white_label_org?.subdomain || '';
-    defaultPath = `/org/${orgSlug}/admin`;
-  } else if (hasRole('white_label_user')) {
-    // Get the white label org slug from user data
-    const orgSlug = user.profile?.white_label_org?.subdomain || '';
-    defaultPath = `/org/${orgSlug}/user`;
-  }
-  
-  // Create a component that wraps Layout with the OrganizationProvider
-  const LayoutWithOrganization = ({ userType, children, requiredRole }) => {
-    // Check if the user has the required role for this section
-    useEffect(() => {
-      // Map userType to actual role names
-      const roleMap = {
-        'planter_admin': 'planterplan_admin',
-        'planter_user': 'planterplan_user',
-        'org_admin': 'white_label_admin',
-        'org_user': 'white_label_user'
-      };
-      
-      const requiredAppRole = roleMap[requiredRole || userType];
-      
-      if (requiredAppRole && !hasRole(requiredAppRole)) {
-        // If user doesn't have the required role, redirect them to their appropriate section
-        window.location.href = defaultPath;
-      }
-    }, [userType, requiredRole]);
-    
-    return (
-      <OrganizationProvider>
-        <TaskProvider>
-          <Layout userType={userType}>
-            {children}
-          </Layout>
-        </TaskProvider>
-      </OrganizationProvider>
-    );
-  };
 
   return (
     <Routes>
@@ -142,6 +153,32 @@ const ProtectedRoutes = () => {
       {/* Default redirect */}
       <Route path="*" element={<Navigate to={defaultPath} replace />} />
     </Routes>
+  );
+};
+
+const App = () => {
+  // Add component lifecycle logging
+  useEffect(() => {
+    console.log('App component mounted');
+    return () => console.log('App component unmounted');
+  }, []);
+
+  return (
+    <AuthProvider>
+      {/* Add stable key to Router to prevent remounting */}
+      <Router key="app-router">
+        <Routes>
+          {/* Auth routes - accessible to everyone */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          
+          {/* Protected routes */}
+          <Route path="/*" element={<ProtectedRoutes />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 };
 

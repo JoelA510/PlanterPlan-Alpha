@@ -47,6 +47,24 @@ const TaskItem = ({
   const isDropTarget = dropTarget && dropTarget.id === task.id;
   const isBeingDragged = draggedTask && draggedTask.id === task.id;
 
+  // Helper function to ensure array type for actions and resources
+  const ensureArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  // Create safe versions of actions and resources
+  const taskActions = ensureArray(task.actions);
+  const taskResources = ensureArray(task.resources);
+
   const toggleTaskCompletion = async (taskId, currentStatus, e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -68,6 +86,19 @@ const TaskItem = ({
       alert(`Failed to update task: ${err.message}`);
     }
   };
+  
+  // Handle the add child task button click
+const handleAddChildButtonClick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  console.log("Add child button clicked for task:", task.id);
+  // Call the parent component's handler if it exists
+  if (typeof onAddChildTask === 'function') {
+    onAddChildTask(task.id);
+  } else {
+    console.error("onAddChildTask is not a function", onAddChildTask);
+  }
+};
   
   // Render children with drop zones
   let childrenContent = null;
@@ -214,12 +245,9 @@ const TaskItem = ({
             {task.title}
           </span>
           
-          {/* Hidden plus button that appears on hover - exactly like in TemplateItem */}
+          {/* Add child button that appears on hover */}
           <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddChildTask(task.id, e);
-            }}
+            onClick={handleAddChildButtonClick}
             title="Add a new child task"
             style={{
               background: 'rgba(255, 255, 255, 0.3)',
@@ -243,7 +271,9 @@ const TaskItem = ({
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ marginRight: '12px' }}>Due: {formatDate(task.due_date)}</span>
+          {task.due_date && (
+            <span style={{ marginRight: '12px' }}>Due: {formatDate(task.due_date)}</span>
+          )}
           
           {/* Info button to view details in the right panel */}
           <button 

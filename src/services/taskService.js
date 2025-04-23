@@ -174,6 +174,7 @@ export const createTask = async (taskData, organizationId = null) => {
     }
     
     // Supabase returns an array of inserted records, we want the first one
+    console.log("Successfully created task");
     return { data: data[0] };
   } catch (err) {
     console.error('Error creating task:', err);
