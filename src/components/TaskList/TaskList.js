@@ -25,6 +25,7 @@ const TaskList = () => {
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [addingChildToTaskId, setAddingChildToTaskId] = useState(null);
+  const [isAddingNewProject, setIsAddingNewProject] = useState(false); // New state for adding project
   
   useEffect(() => {
     return () => { isMountedRef.current = false; };
@@ -92,6 +93,59 @@ const toggleTaskCompletion = async (taskId, currentStatus, e) => {
     }
   }
 };
+
+  // Function to handle adding a new top-level project
+  const handleAddNewProject = () => {
+    // Clear any selected task
+    setSelectedTaskId(null);
+    
+    // Clear any child task addition
+    setAddingChildToTaskId(null);
+    
+    // Set the state to show the form
+    setIsAddingNewProject(true);
+  };
+
+  // Handle submit of the new project form
+  const handleNewProjectSubmit = async (projectData) => {
+    try {
+      // Determine position for new project
+      const topLevelProjects = tasks.filter(t => !t.parent_task_id);
+      const position = topLevelProjects.length > 0 
+        ? Math.max(...topLevelProjects.map(t => t.position || 0)) + 1 
+        : 0;
+      
+      // Add position and ensure project is an instance
+      const newProjectData = {
+        ...projectData,
+        position,
+        parent_task_id: null, // Top-level project
+        origin: "instance",
+        is_complete: false
+      };
+      
+      // Create the project using context function
+      const result = await createTask(newProjectData);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Close the form
+      setIsAddingNewProject(false);
+      
+    } catch (err) {
+      console.error('Error adding project:', err);
+      if (isMountedRef.current) {
+        alert(`Failed to create project: ${err.message}`);
+      }
+    }
+  };
+
+  // Handle canceling the add project form
+  const handleCancelAddProject = () => {
+    setIsAddingNewProject(false);
+  };
 
   // Handle adding child task
   const handleAddChildTask = (parentTaskId) => {
@@ -197,6 +251,19 @@ const toggleTaskCompletion = async (taskId, currentStatus, e) => {
   
   // UI for the right panel (details or form)
   const renderRightPanel = () => {
+    // If we're adding a new project, show the form
+    if (isAddingNewProject) {
+      return (
+        <TaskForm
+          parentTaskId={null} // No parent for top-level projects
+          onSubmit={handleNewProjectSubmit}
+          onCancel={handleCancelAddProject}
+          backgroundColor="#10b981" // Green color for new projects
+          originType="instance"
+        />
+      );
+    }
+    
     // No selected task
     if (!selectedTaskId) {
       return (
@@ -378,7 +445,7 @@ const toggleTaskCompletion = async (taskId, currentStatus, e) => {
           <h1 className="text-2xl font-bold">Projects</h1>
           <div className="flex gap-3">
             <button 
-              onClick={() => alert('Create new project functionality would go here')}
+              onClick={handleAddNewProject}
               className="bg-green-500 text-white py-2 px-4 rounded border-0"
             >
               New Project
