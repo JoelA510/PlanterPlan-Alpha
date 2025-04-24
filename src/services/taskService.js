@@ -143,39 +143,79 @@ export const updateSiblingPositions = async (tasks, organizationId = null) => {
 };
 
 /**
- * Creates a new task in Supabase
+ * Creates a new task in Supabase with license support
  * @param {Object} taskData - The task data to create
- * @param {string|null} organizationId - The organization ID to associate this task with
+ * @param {string} licenseId - Optional license ID to associate with the task
  * @returns {Promise<{data: Object, error: string}>} - The created task data or error
  */
-export const createTask = async (taskData, organizationId = null) => {
+export const createTask = async (taskData, licenseId = null) => {
   try {
-    // Add organization ID to task data if provided
-    const taskWithOrg = organizationId 
-      ? { ...taskData, white_label_id: organizationId }
-      : taskData;
+    console.log('Creating task with data:', JSON.stringify(taskData, null, 2));
     
-    // Ensure task has creator field
-    if (!taskWithOrg.creator) {
-      console.warn('Task created without creator field. This may cause issues with user filtering.');
+    // Ensure required fields are present
+    const requiredFields = ['title', 'origin'];
+    const missingFields = requiredFields.filter(field => !taskData[field]);
+    
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      return { error: `Missing required fields: ${missingFields.join(', ')}` };
     }
     
-    console.log('Creating task with data:', taskWithOrg);
-    
-    // Insert the task data into the 'tasks' table
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert([taskWithOrg])
-      .select();
-    
-    if (error) {
-      console.error('Supabase error:', error);
-      return { error: error.message || 'Failed to create task in Supabase' };
+    // If this is a top-level task (project) with no parent, check if it needs a license
+    if (!taskData.parent_task_id) {
+      // Handle license for top-level task
+      const taskWithLicense = {
+        ...taskData,
+        license_id: licenseId
+      };
+      
+      // Insert the task data into the 'tasks' table
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([taskWithLicense])
+        .select();
+      
+      if (error) {
+        console.error('Supabase error:', error);
+        return { error: error.message || 'Failed to create task in Supabase' };
+      }
+      
+      // Supabase returns an array of inserted records, we want the first one
+      return { data: data[0] };
+    } else {
+      // Child tasks inherit the license ID from their parent
+      // First, fetch the parent task to get its license_id
+      const { data: parentTask, error: parentError } = await supabase
+        .from('tasks')
+        .select('license_id')
+        .eq('id', taskData.parent_task_id)
+        .single();
+      
+      if (parentError) {
+        console.error('Error fetching parent task:', parentError);
+        return { error: parentError.message || 'Failed to fetch parent task' };
+      }
+      
+      // Create the child task with the parent's license_id
+      const taskWithLicense = {
+        ...taskData,
+        license_id: parentTask.license_id
+      };
+      
+      // Insert the task data into the 'tasks' table
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([taskWithLicense])
+        .select();
+      
+      if (error) {
+        console.error('Supabase error:', error);
+        return { error: error.message || 'Failed to create task in Supabase' };
+      }
+      
+      // Supabase returns an array of inserted records, we want the first one
+      return { data: data[0] };
     }
-    
-    // Supabase returns an array of inserted records, we want the first one
-    console.log("Successfully created task");
-    return { data: data[0] };
   } catch (err) {
     console.error('Error creating task:', err);
     return { error: err.message || 'Unknown error occurred' };

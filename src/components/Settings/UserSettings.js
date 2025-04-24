@@ -1,5 +1,6 @@
 // UserSettings.js
 import React from 'react';
+import LicenseSection from './LicenseSection'; // Import the LicenseSection component
 
 const UserSettings = () => {
   return (
@@ -11,6 +12,7 @@ const UserSettings = () => {
         border: '1px solid #e5e7eb',
         borderRadius: '4px',
         padding: '32px',
+        marginBottom: '32px',
         textAlign: 'center',
         color: '#6b7280'
       }}>
@@ -28,34 +30,64 @@ const UserSettings = () => {
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '8px' }}>User Settings</h2>
-        <p>User-specific settings will be implemented here.</p>
+        <p>Manage your profile, notification preferences, and licenses.</p>
       </div>
       
-      {/* Placeholder for user settings sections */}
-      <div style={{ marginTop: '32px' }}>
-        <div style={{ marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '16px' }}>Profile Information</h3>
-          <div style={{ 
-            backgroundColor: 'white', 
-            border: '1px solid #e5e7eb', 
-            borderRadius: '4px',
-            padding: '16px'
-          }}>
-            <p style={{ color: '#6b7280' }}>User profile settings would appear here.</p>
-          </div>
+      {/* Profile Information Section */}
+      <div style={{ 
+        backgroundColor: 'white', 
+        border: '1px solid #e5e7eb', 
+        borderRadius: '4px',
+        marginBottom: '24px',
+        overflow: 'hidden'
+      }}>
+        <div style={{ 
+          backgroundColor: '#f3f4f6', 
+          padding: '12px 16px',
+          borderBottom: '1px solid #e5e7eb'
+        }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>Profile Information</h3>
         </div>
-        
-        <div style={{ marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '16px' }}>Notification Preferences</h3>
-          <div style={{ 
-            backgroundColor: 'white', 
-            border: '1px solid #e5e7eb', 
-            borderRadius: '4px',
-            padding: '16px'
-          }}>
-            <p style={{ color: '#6b7280' }}>Notification settings would appear here.</p>
-          </div>
+        <div style={{ padding: '16px' }}>
+          <p style={{ color: '#6b7280' }}>User profile settings would appear here.</p>
         </div>
+      </div>
+      
+      {/* Notification Preferences Section */}
+      <div style={{ 
+        backgroundColor: 'white', 
+        border: '1px solid #e5e7eb', 
+        borderRadius: '4px',
+        marginBottom: '24px',
+        overflow: 'hidden'
+      }}>
+        <div style={{ 
+          backgroundColor: '#f3f4f6', 
+          padding: '12px 16px',
+          borderBottom: '1px solid #e5e7eb'
+        }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>Notification Preferences</h3>
+        </div>
+        <div style={{ padding: '16px' }}>
+          <p style={{ color: '#6b7280' }}>Notification settings would appear here.</p>
+        </div>
+      </div>
+      
+      {/* License Management Section */}
+      <div style={{ 
+        backgroundColor: 'white', 
+        border: '1px solid #e5e7eb', 
+        borderRadius: '4px',
+        overflow: 'hidden'
+      }}>
+        <div style={{ 
+          backgroundColor: '#f3f4f6', 
+          padding: '12px 16px',
+          borderBottom: '1px solid #e5e7eb'
+        }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>License Management</h3>
+        </div>
+        <LicenseSection />
       </div>
     </div>
   );
