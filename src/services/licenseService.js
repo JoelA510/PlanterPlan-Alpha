@@ -140,6 +140,55 @@ export const canUserCreateProject = async (userId) => {
 };
 
 /**
+ * Check if a user has any existing projects
+ * @param {string} userId - The user ID to check
+ * @returns {Promise<{hasProjects: boolean, count: number, error: string|null}>} - Result of the check
+ */
+export const checkUserExistingProjects = async (userId) => {
+    try {
+      if (!userId) {
+        return { 
+          hasProjects: false, 
+          count: 0, 
+          error: "User ID is required" 
+        };
+      }
+  
+      // Count user's projects (top-level tasks with origin=instance)
+      const { data: userProjects, error: projectError } = await supabase
+        .from('tasks')
+        .select('id')
+        .is('parent_task_id', null)
+        .eq('origin', 'instance')
+        .eq('creator', userId);
+      
+      if (projectError) {
+        console.error('Error fetching projects:', projectError);
+        return { 
+          hasProjects: false, 
+          count: 0, 
+          error: 'Error checking projects' 
+        };
+      }
+      
+      const projectCount = userProjects?.length || 0;
+      
+      return { 
+        hasProjects: projectCount > 0, 
+        count: projectCount,
+        error: null
+      };
+    } catch (err) {
+      console.error('Error checking user projects:', err);
+      return { 
+        hasProjects: false, 
+        count: 0, 
+        error: err.message || 'Unknown error occurred' 
+      };
+    }
+  };
+
+/**
  * Generate a random license key
  * @returns {string} - A random license key
  */

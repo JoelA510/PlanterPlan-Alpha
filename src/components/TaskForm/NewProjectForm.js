@@ -1,17 +1,26 @@
-// src/components/TaskForm.js
-import React from 'react';
-import { useTaskForm } from './useTaskForm';
+// src/components/ProjectCreation/NewProjectForm.js
+import React, { useState, useEffect } from 'react';
+import { useTasks } from '../contexts/TaskContext';
+import { useAuth } from '../contexts/AuthContext';
+import LicenseKeyEntry from '../License/LicenseKeyEntry';
+import { useTaskForm } from '../TaskForm/useTaskForm';
 
-const TaskForm = ({ 
-  parentTaskId, 
-  onSubmit, 
-  onCancel, 
-  backgroundColor,
-  originType = 'template' // Default to template, but can be overridden
-}) => {
+const NewProjectForm = ({ onSuccess, onCancel }) => {
+  const { user } = useAuth();
+  const { 
+    canCreateProject, 
+    projectLimitReason, 
+    checkProjectCreationAbility,
+    userLicenses,
+    selectedLicenseId,
+    selectLicense,
+    createTask
+  } = useTasks();
+  
   const {
     formData,
     errors,
+    setErrors,
     handleChange,
     handleArrayChange,
     addArrayItem,
@@ -20,30 +29,159 @@ const TaskForm = ({
     prepareFormData
   } = useTaskForm();
   
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const [showLicenseInput, setShowLicenseInput] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState('');
+  
+  // Get available (unused) licenses
+  const availableLicenses = userLicenses.filter(license => !license.is_used);
+  
+  useEffect(() => {
+    // Show license input if user needs to apply a license to create a project
+    if (!canCreateProject && projectLimitReason.includes('maximum number of projects')) {
+      setShowLicenseInput(true);
+    } else {
+      setShowLicenseInput(false);
+    }
+  }, [canCreateProject, projectLimitReason]);
+  
+  const handleLicenseChange = (e) => {
+    selectLicense(e.target.value);
     
-    if (validateForm()) {
-      const cleanedData = prepareFormData();
-      
-      onSubmit({
-        ...cleanedData,
-        parent_task_id: parentTaskId,
-        origin: originType,
-        is_complete: false
+    // Clear license error if it exists
+    if (errors.license) {
+      setErrors(prev => {
+        const newErrors = {...prev};
+        delete newErrors.license;
+        return newErrors;
       });
     }
   };
   
-  // Determine the header text based on origin type
-  const getHeaderText = () => {
-    if (!parentTaskId) {
-      return originType === 'template' ? 'Add Template' : 'Add Project';
-    } else {
-      return originType === 'template' ? 'Add Template Task' : 'Add Subtask';
+  const handleLicenseSuccess = () => {
+    setShowLicenseInput(false);
+    // Call checkProjectCreationAbility instead of refreshProjectCreationStatus
+    checkProjectCreationAbility();
+  };
+  
+  // Custom validation to include license validation
+  const validateWithLicense = (formData) => {
+    const additionalErrors = {};
+    
+    // If the user already has projects and needs to select a license
+    if (!canCreateProject && availableLicenses.length > 0 && !selectedLicenseId) {
+      additionalErrors.license = 'Please select a license to create an additional project';
+    }
+    
+    return additionalErrors;
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm(validateWithLicense)) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setStatus('Creating project...');
+    
+    try {
+      const cleanedData = prepareFormData();
+      
+      // Create the project
+      const taskData = {
+        ...cleanedData,
+        origin: 'instance',
+        is_complete: false,
+        creator: user.id,
+        position: 0,
+        parent_task_id: null // Ensure it's a top-level project
+      };
+      
+      const result = await createTask(taskData, selectedLicenseId);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      setStatus('Project created successfully!');
+      
+      // Refresh the project creation status
+      await checkProjectCreationAbility();
+      
+      // Reset selected license
+      selectLicense(null);
+      
+      // Call the onSuccess callback
+      if (onSuccess && result.data) {
+        onSuccess(result.data);
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
+      setStatus(`Error: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
+  // If we need to show the license key entry form
+  if (showLicenseInput) {
+    return (
+      <LicenseKeyEntry 
+        onSuccess={handleLicenseSuccess}
+        onCancel={onCancel}
+      />
+    );
+  }
+  
+  // If user can't create a project and doesn't have any available licenses
+  if (!canCreateProject && availableLicenses.length === 0) {
+    return (
+      <div style={{
+        backgroundColor: '#f9fafb',
+        borderRadius: '4px',
+        border: '1px solid #e5e7eb',
+        padding: '24px',
+        textAlign: 'center'
+      }}>
+        <h3 style={{ marginBottom: '16px', color: '#374151' }}>
+          Project Creation Limit Reached
+        </h3>
+        <p style={{ marginBottom: '16px', color: '#6b7280' }}>
+          {projectLimitReason}
+        </p>
+        <button
+          onClick={() => setShowLicenseInput(true)}
+          style={{
+            backgroundColor: '#10b981',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            border: 'none'
+          }}
+        >
+          Enter License Key
+        </button>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '4px',
+            border: '1px solid #d1d5db',
+            background: 'white',
+            marginLeft: '12px',
+            cursor: 'pointer'
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+  
+  // Regular form for creating a project
   return (
     <div style={{
       backgroundColor: '#f9fafb',
@@ -53,7 +191,7 @@ const TaskForm = ({
       overflow: 'auto'
     }}>
       <div style={{
-        backgroundColor: backgroundColor,
+        backgroundColor: '#3b82f6',
         color: 'white',
         padding: '16px',
         borderTopLeftRadius: '4px',
@@ -63,7 +201,7 @@ const TaskForm = ({
         alignItems: 'center'
       }}>
         <h3 style={{ margin: 0, fontWeight: 'bold' }}>
-          {getHeaderText()}
+          Create New Project
         </h3>
         <button 
           onClick={onCancel}
@@ -95,7 +233,7 @@ const TaskForm = ({
               marginBottom: '4px' 
             }}
           >
-            Title *
+            Project Title *
           </label>
           <input
             id="title"
@@ -117,6 +255,46 @@ const TaskForm = ({
             </p>
           )}
         </div>
+        
+        {/* License Selection if needed */}
+        {!canCreateProject && availableLicenses.length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <label 
+              htmlFor="license"
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              License Key for This Project *
+            </label>
+            <select
+              id="license"
+              value={selectedLicenseId || ''}
+              onChange={handleLicenseChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                borderRadius: '4px',
+                border: `1px solid ${errors.license ? '#ef4444' : '#d1d5db'}`,
+                outline: 'none'
+              }}
+            >
+              <option value="">Select a license</option>
+              {availableLicenses.map(license => (
+                <option key={license.id} value={license.id}>
+                  {license.license_key}
+                </option>
+              ))}
+            </select>
+            {errors.license && (
+              <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+                {errors.license}
+              </p>
+            )}
+          </div>
+        )}
         
         <div style={{ marginBottom: '16px' }}>
           <label 
@@ -174,6 +352,7 @@ const TaskForm = ({
           />
         </div>
         
+        {/* Actions array input */}
         <div style={{ marginBottom: '16px' }}>
           <label 
             style={{ 
@@ -238,6 +417,7 @@ const TaskForm = ({
           </button>
         </div>
         
+        {/* Resources array input */}
         <div style={{ marginBottom: '24px' }}>
           <label 
             style={{ 
@@ -302,6 +482,18 @@ const TaskForm = ({
           </button>
         </div>
         
+        {status && (
+          <div style={{ 
+            marginBottom: '16px',
+            padding: '8px',
+            borderRadius: '4px',
+            backgroundColor: status.includes('Error') ? '#fee2e2' : '#d1fae5',
+            color: status.includes('Error') ? '#b91c1c' : '#065f46'
+          }}>
+            {status}
+          </div>
+        )}
+        
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
           <button
             type="button"
@@ -318,16 +510,18 @@ const TaskForm = ({
           </button>
           <button
             type="submit"
+            disabled={isSubmitting}
             style={{
               padding: '8px 16px',
               borderRadius: '4px',
               border: 'none',
               background: '#10b981',
               color: 'white',
-              cursor: 'pointer'
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              opacity: isSubmitting ? 0.7 : 1
             }}
           >
-            Add Task
+            {isSubmitting ? 'Creating...' : 'Create Project'}
           </button>
         </div>
       </form>
@@ -335,4 +529,4 @@ const TaskForm = ({
   );
 };
 
-export default TaskForm;
+export default NewProjectForm;

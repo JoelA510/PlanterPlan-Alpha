@@ -6,7 +6,8 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { 
   canUserCreateProject, 
-  applyLicense 
+  applyLicense,
+  checkUserExistingProjects 
 } from '../../services/licenseService';
 
 // Create a context for tasks

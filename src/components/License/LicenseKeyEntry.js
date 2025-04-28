@@ -1,9 +1,9 @@
 // src/components/License/LicenseKeyEntry.js
 import React, { useState } from 'react';
-import { useTask } from '../contexts/TaskContext';
+import { useTasks } from '../contexts/TaskContext';
 
 const LicenseKeyEntry = ({ onSuccess, onCancel }) => {
-  const { applyLicenseKey } = useTask();
+  const { applyLicenseKey } = useTasks();
   const [licenseKey, setLicenseKey] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
