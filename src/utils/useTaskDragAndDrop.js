@@ -86,6 +86,149 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
     }
   };
 
+  // Helper function to update the tasks state
+  const updateTasksState = (newParentId, newPosition, oldParentId, isSameParent) => {
+    // Make sure we're working with an array
+    if (!Array.isArray(tasks)) {
+      console.error('Tasks is not an array:', tasks);
+      return; // Exit early if tasks is not an array
+    }
+
+    try {
+      // Create a deep copy of the tasks array to work with
+      const updatedTasks = tasks.map(t => ({...t}));
+      
+      // 1. Handle old parent container (update positions of remaining tasks)
+      if (!isSameParent) {
+        const oldSiblings = updatedTasks
+          .filter(t => t.parent_task_id === oldParentId && t.id !== draggedTask.id)
+          .sort((a, b) => a.position - b.position);
+          
+        // Normalize positions after removing the dragged task
+        oldSiblings.forEach((task, index) => {
+          task.position = index;
+        });
+      }
+      
+      // 2. Handle new parent container (make space for dragged task)
+      const newSiblings = updatedTasks
+        .filter(t => t.parent_task_id === newParentId && t.id !== draggedTask.id)
+        .sort((a, b) => a.position - b.position);
+      
+      // Shift positions for tasks after the insertion point
+      newSiblings.forEach(task => {
+        if (task.position >= newPosition) {
+          task.position += 1;
+        }
+      });
+      
+      // 3. Update the dragged task
+      const taskToUpdate = updatedTasks.find(t => t.id === draggedTask.id);
+      if (taskToUpdate) {
+        taskToUpdate.parent_task_id = newParentId;
+        taskToUpdate.position = newPosition;
+      }
+      
+      // Directly call the setTasks function with the updated array
+      setTasks(updatedTasks);
+    } catch (err) {
+      console.error('Error in updateTasksState:', err);
+    }
+  };
+
+  // Helper function to update the database
+  const updateDatabase = async (newParentId, newPosition, oldParentId, isSameParent) => {
+    if (!Array.isArray(tasks)) {
+      console.error('Tasks is not an array in updateDatabase:', tasks);
+      return false; // Exit early
+    }
+
+    try {
+      console.log('==== DRAG AND DROP DATABASE UPDATE ====');
+      console.log('Dragged task:', draggedTask.id, draggedTask.title);
+      console.log('New parent ID:', newParentId);
+      console.log('New position:', newPosition);
+      console.log('Old parent ID:', oldParentId);
+      console.log('Is same parent:', isSameParent);
+
+      // 1. Update the dragged task in Supabase
+      console.log('STEP 1: Updating dragged task position...');
+      const updateResult = await updateTaskPosition(draggedTask.id, newParentId, newPosition);
+      console.log('Update result:', updateResult);
+      
+      if (!updateResult.success) {
+        console.error('Error updating dragged task:', updateResult.error);
+        throw new Error(updateResult.error);
+      }
+      
+      // 2. Update positions in old parent container (if we changed parents)
+      if (!isSameParent) {
+        console.log('STEP 2: Updating positions in old parent container...');
+        const oldSiblings = tasks
+          .filter(t => t.parent_task_id === oldParentId && t.id !== draggedTask.id)
+          .sort((a, b) => a.position - b.position)
+          .map((task, index) => ({
+            id: task.id,
+            position: index
+          }));
+        
+        console.log('Old siblings to update:', oldSiblings.length);
+        if (oldSiblings.length > 0) {
+          console.log('Old siblings:', oldSiblings);
+          
+          const updateOldResult = await updateSiblingPositions(oldSiblings);
+          console.log('Update old siblings result:', updateOldResult);
+          
+          if (!updateOldResult.success) {
+            console.error('Error updating old siblings:', updateOldResult.error);
+            throw new Error(updateOldResult.error);
+          }
+        }
+      }
+      
+      // 3. Update positions in new parent container
+      console.log('STEP 3: Updating positions in new parent container...');
+      const newSiblings = tasks
+        .filter(t => t.parent_task_id === newParentId && t.id !== draggedTask.id)
+        .sort((a, b) => a.position - b.position);
+      
+      // Only update siblings whose positions would change
+      const updatedSiblings = newSiblings.map((task, i) => {
+        // Calculate the correct position (accounting for the insertion)
+        let correctPosition = i;
+        if (i >= newPosition) correctPosition = i + 1;
+        
+        // Only include this task if its position will change
+        if (task.position !== correctPosition) {
+          return {
+            id: task.id,
+            position: correctPosition
+          };
+        }
+        return null;
+      }).filter(Boolean); // Remove null entries
+      
+      console.log('New siblings to update:', updatedSiblings.length);
+      if (updatedSiblings.length > 0) {
+        console.log('New siblings:', updatedSiblings);
+        
+        const updateNewResult = await updateSiblingPositions(updatedSiblings);
+        console.log('Update new siblings result:', updateNewResult);
+        
+        if (!updateNewResult.success) {
+          console.error('Error updating new siblings:', updateNewResult.error);
+          throw new Error(updateNewResult.error);
+        }
+      }
+      
+      console.log('==== DATABASE UPDATE COMPLETED SUCCESSFULLY ====');
+      return true;
+    } catch (err) {
+      console.error('==== DATABASE UPDATE FAILED ====', err);
+      throw err; // Rethrow to be caught by the calling function
+    }
+  };
+
   // Handle drop
   const handleDrop = async (e, targetTask) => {
     e.preventDefault();
@@ -236,87 +379,6 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
       setDropTarget(null);
       setDropPosition(null);
     }
-  };
-
-  // Helper function to update the tasks state
-  const updateTasksState = (newParentId, newPosition, oldParentId, isSameParent) => {
-    setTasks(prevTasks => {
-      // Create a deep copy to work with
-      const updatedTasks = prevTasks.map(t => ({...t}));
-      
-      // 1. Handle old parent container (update positions of remaining tasks)
-      if (!isSameParent) {
-        const oldSiblings = updatedTasks
-          .filter(t => t.parent_task_id === oldParentId && t.id !== draggedTask.id)
-          .sort((a, b) => a.position - b.position);
-          
-        // Normalize positions after removing the dragged task
-        oldSiblings.forEach((task, index) => {
-          task.position = index;
-        });
-      }
-      
-      // 2. Handle new parent container (make space for dragged task)
-      const newSiblings = updatedTasks
-        .filter(t => t.parent_task_id === newParentId && t.id !== draggedTask.id)
-        .sort((a, b) => a.position - b.position);
-      
-      // Shift positions for tasks after the insertion point
-      newSiblings.forEach(task => {
-        if (task.position >= newPosition) {
-          task.position += 1;
-        }
-      });
-      
-      // 3. Update the dragged task
-      const taskToUpdate = updatedTasks.find(t => t.id === draggedTask.id);
-      if (taskToUpdate) {
-        taskToUpdate.parent_task_id = newParentId;
-        taskToUpdate.position = newPosition;
-      }
-      
-      return updatedTasks;
-    });
-  };
-
-  // Helper function to update the database
-  const updateDatabase = async (newParentId, newPosition, oldParentId, isSameParent) => {
-    // 1. Update the dragged task in Supabase
-    const updateResult = await updateTaskPosition(draggedTask.id, newParentId, newPosition);
-    if (!updateResult.success) throw new Error(updateResult.error);
-    
-    // 2. Update positions in old parent container (if we changed parents)
-    if (!isSameParent) {
-      const oldSiblings = tasks
-        .filter(t => t.parent_task_id === oldParentId && t.id !== draggedTask.id)
-        .sort((a, b) => a.position - b.position)
-        .map((task, index) => ({
-          ...task,
-          position: index
-        }));
-      
-      const updateOldResult = await updateSiblingPositions(oldSiblings);
-      if (!updateOldResult.success) throw new Error(updateOldResult.error);
-    }
-    
-    // 3. Update positions in new parent container
-    const newSiblings = tasks
-      .filter(t => t.parent_task_id === newParentId && t.id !== draggedTask.id)
-      .sort((a, b) => a.position - b.position)
-      .map((task, i) => {
-        // Calculate the correct position (accounting for the insertion)
-        let correctPosition = i;
-        if (i >= newPosition) correctPosition = i + 1;
-        
-        return {
-          ...task,
-          position: correctPosition
-        };
-      })
-      .filter(task => task.position !== tasks.find(t => t.id === task.id)?.position);
-    
-    const updateNewResult = await updateSiblingPositions(newSiblings);
-    if (!updateNewResult.success) throw new Error(updateNewResult.error);
   };
 
   // Helper function to check if a drop zone is active

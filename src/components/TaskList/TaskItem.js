@@ -70,17 +70,22 @@ const TaskItem = ({
     e.stopPropagation();
     
     try {
+      console.log("Toggling task completion:", { taskId, currentStatus });
+      
+      // Call the API to update the task status
       const result = await updateTaskCompletion(taskId, currentStatus);
       
       if (!result.success) throw new Error(result.error);
       
-      setTasks(prev => 
-        prev.map(task => 
-          task.id === taskId 
-            ? { ...task, is_complete: !currentStatus } 
-            : task
-        )
+      // Create a new array with the updated task
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId 
+          ? { ...task, is_complete: !currentStatus } 
+          : task
       );
+      
+      // Pass the array instead of a function
+      setTasks(updatedTasks);
     } catch (err) {
       console.error('Error updating task completion:', err);
       alert(`Failed to update task: ${err.message}`);
@@ -230,12 +235,12 @@ const handleAddChildButtonClick = (e) => {
             <span style={{ marginRight: '8px' }}>☰</span>
           )}
           <input 
-            type="checkbox"
-            checked={task.is_complete || false}
-            onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
-            onClick={(e) => e.stopPropagation()}
-            style={{ marginRight: '12px' }}
-          />
+  type="checkbox"
+  checked={task.is_complete === true}  // Ensure this is a boolean
+  onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
+  onClick={(e) => e.stopPropagation()}
+  style={{ marginRight: '12px' }}
+/>
           <span 
             style={{ 
               textDecoration: task.is_complete ? 'line-through' : 'none',

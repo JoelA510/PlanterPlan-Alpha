@@ -44,45 +44,45 @@ export const generateLicense = async (licenseData) => {
  * @param {string} userId - The user ID to apply the license to
  * @returns {Promise<{success: boolean, error: string}>} - Result of the operation
  */
-export const applyLicense = async (licenseKey, userId) => {
-  try {
-    // First check if the license key is valid and unused
-    const { data: license, error: fetchError } = await supabase
-      .from('licenses')
-      .select('*')
-      .eq('license_key', licenseKey)
-      .eq('is_used', false)
-      .maybeSingle();
+// export const applyLicense = async (licenseKey, userId) => {
+//   try {
+//     // First check if the license key is valid and unused
+//     const { data: license, error: fetchError } = await supabase
+//       .from('licenses')
+//       .select('*')
+//       .eq('license_key', licenseKey)
+//       .eq('is_used', false)
+//       .maybeSingle();
     
-    if (fetchError) {
-      console.error('Error fetching license:', fetchError);
-      return { success: false, error: 'Error validating license key' };
-    }
+//     if (fetchError) {
+//       console.error('Error fetching license:', fetchError);
+//       return { success: false, error: 'Error validating license key' };
+//     }
     
-    if (!license) {
-      return { success: false, error: 'Invalid or already used license key' };
-    }
+//     if (!license) {
+//       return { success: false, error: 'Invalid or already used license key' };
+//     }
     
-    // Update the license to mark it as used
-    const { error: updateError } = await supabase
-      .from('licenses')
-      .update({ 
-        is_used: true,
-        user_id: userId
-      })
-      .eq('id', license.id);
+//     // Update the license to mark it as used
+//     const { error: updateError } = await supabase
+//       .from('licenses')
+//       .update({ 
+//         is_used: true,
+//         user_id: userId
+//       })
+//       .eq('id', license.id);
     
-    if (updateError) {
-      console.error('Error updating license:', updateError);
-      return { success: false, error: 'Error applying license key' };
-    }
+//     if (updateError) {
+//       console.error('Error updating license:', updateError);
+//       return { success: false, error: 'Error applying license key' };
+//     }
     
-    return { success: true, data: license };
-  } catch (err) {
-    console.error('Error applying license:', err);
-    return { success: false, error: err.message || 'Unknown error occurred' };
-  }
-};
+//     return { success: true, data: license };
+//   } catch (err) {
+//     console.error('Error applying license:', err);
+//     return { success: false, error: err.message || 'Unknown error occurred' };
+//   }
+// };
 
 /**
  * Check if a user can create a new project
@@ -213,8 +213,94 @@ const generateRandomLicenseKey = () => {
   return result;
 };
 
+// src/services/licenseService.js
+
+/**
+ * Checks if a license key is valid and available for a user
+ * @param {string} licenseKey - The license key to validate
+ * @param {string} userId - The user ID to check against
+ * @returns {Promise<{success: boolean, data: Object, error: string}>} - The license data or error
+ */
+export const validateLicense = async (licenseKey, userId) => {
+  try {
+    console.log("Validating license - key:", licenseKey, "userId:", userId);
+    
+    // Add timeout to the request (adjust as needed)
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 10000); // 10 second timeout
+    
+    // Simplified query - first just check if the license exists
+    const { data, error } = await supabase
+      .from('licenses')
+      .select('*')
+      .eq('license_key', licenseKey)
+      .maybeSingle()
+      .abortSignal(abortController.signal);
+    
+    clearTimeout(timeoutId);
+    
+    if (error) {
+      console.error('Error validating license:', error);
+      return { success: false, error: `Error validating license key: ${error.message}` };
+    }
+    
+    if (!data) {
+      console.log('License key not found:', licenseKey);
+      return { success: false, error: 'Invalid license key' };
+    }
+    
+    console.log("License found:", data);
+    
+    // Now check if it's already used
+    if (data.is_used) {
+      console.log('License already used:', licenseKey);
+      return { success: false, error: 'License key already used' };
+    }
+    
+    // Check if it's assigned to the user or not assigned to anyone
+    if (data.user_id && data.user_id !== userId) {
+      console.log('License belongs to another user:', data.user_id);
+      return { success: false, error: 'License key belongs to another user' };
+    }
+    
+    console.log("License validation successful:", data);
+    return { success: true, data: data };
+  } catch (err) {
+    console.error('Error in validateLicense:', err);
+    if (err.name === 'AbortError') {
+      return { success: false, error: 'Request timed out - Supabase API might be unavailable' };
+    }
+    return { success: false, error: err.message || 'Unknown error validating license' };
+  }
+};
+
+/**
+ * Updates a license to mark it as used
+ * @param {string} licenseId - The ID of the license to update
+ * @returns {Promise<{success: boolean, error: string}>} - Status of the operation
+ */
+export const markLicenseAsUsed = async (licenseId) => {
+  try {
+    const { error } = await supabase
+      .from('licenses')
+      .update({ is_used: true })
+      .eq('id', licenseId);
+    
+    if (error) {
+      console.error('Error marking license as used:', error);
+      return { success: false, error: 'Error updating license status' };
+    }
+    
+    return { success: true };
+  } catch (err) {
+    console.error('Error in markLicenseAsUsed:', err);
+    return { success: false, error: err.message || 'Unknown error updating license' };
+  }
+};
+
 export default {
   generateLicense,
-  applyLicense,
-  canUserCreateProject
+  canUserCreateProject,
+  validateLicense,
+  markLicenseAsUsed,
 };

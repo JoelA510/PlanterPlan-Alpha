@@ -25,15 +25,12 @@ const TaskList = () => {
     fetchTasks, 
     setTasks,
     createTask,
-    canCreateProject,
-    projectLimitReason,
     userLicenses,
     selectedLicenseId,
     isCheckingLicense,
-    applyLicenseKey,
-    selectLicense,
     fetchUserLicenses,
-    getSelectedLicense
+    getSelectedLicense,
+    userHasProjects,
   } = useTasks();
   
   // Local state
@@ -41,6 +38,10 @@ const TaskList = () => {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [addingChildToTaskId, setAddingChildToTaskId] = useState(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  // Add state for active license for new project
+  const [projectLicenseId, setProjectLicenseId] = useState(null);
+  // Add local loading state for the refresh button
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     // Only fetch on initial mount to avoid redundant fetches
@@ -51,6 +52,26 @@ const TaskList = () => {
     
     return () => { isMountedRef.current = false; };
   }, []);
+  
+  // Reset the project license ID when the selected license changes
+  useEffect(() => {
+    if (selectedLicenseId) {
+      setProjectLicenseId(selectedLicenseId);
+    }
+  }, [selectedLicenseId]);
+
+  // Handle refresh button click
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      // Explicitly call fetchTasks with forceRefresh=true
+      await fetchTasks(true);
+    } catch (error) {
+      console.error('Error refreshing tasks:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Toggle task expansion
   const toggleExpandTask = (taskId, e) => {
@@ -109,66 +130,21 @@ const TaskList = () => {
       }
     }
   };
-
-  // State for license key dialog
-  const [showLicenseDialog, setShowLicenseDialog] = useState(false);
-  const [licenseKey, setLicenseKey] = useState('');
-  const [licenseError, setLicenseError] = useState(null);
-  const [isApplyingLicense, setIsApplyingLicense] = useState(false);
   
   // Function to handle creating a new project
   const handleCreateNewProject = () => {
-    // If user can't create a project, show license dialog instead
-    if (!canCreateProject) {
-      setShowLicenseDialog(true);
-      return;
-    }
-    
     // Prevent multiple clicks
     if (isCreatingProject) return;
     
+    // Start with no license ID selected for the new project
+    setProjectLicenseId(null);
     setIsCreatingProject(true);
     setSelectedTaskId(null);
     setAddingChildToTaskId(null);
   };
 
-  // Apply license key
-  const handleApplyLicenseKey = async () => {
-    if (!licenseKey.trim()) {
-      setLicenseError('Please enter a license key');
-      return;
-    }
-    
-    try {
-      setIsApplyingLicense(true);
-      setLicenseError(null);
-      
-      const result = await applyLicenseKey(licenseKey.trim());
-      
-      if (result.success) {
-        // Close license dialog
-        setShowLicenseDialog(false);
-        setLicenseKey('');
-        
-        // Set a timeout to prevent immediate state updates
-        setTimeout(() => {
-          // If user can now create projects, open the project creation form
-          if (canCreateProject) {
-            setIsCreatingProject(true);
-          }
-        }, 200);
-      } else {
-        setLicenseError(result.error || 'Invalid license key');
-      }
-    } catch (error) {
-      setLicenseError(error.message || 'An error occurred');
-    } finally {
-      setIsApplyingLicense(false);
-    }
-  };
-
   // Handle submit of new project
-  const handleProjectCreated = async (projectData) => {
+  const handleProjectCreated = async (projectData, licenseId = null) => {
     try {
       // Determine position for new project
       const topLevelProjects = tasks.filter(t => !t.parent_task_id);
@@ -185,23 +161,31 @@ const TaskList = () => {
         is_complete: false
       };
       
-      // Create the project using context function with selected license if applicable
-      const result = await createTask(newProjectData, selectedLicenseId);
+      // Use the license ID that was passed from the form, or fall back to the component state
+      const finalLicenseId = licenseId !== null ? licenseId : projectLicenseId;
+      console.log('Creating project with license ID:', finalLicenseId);
+      
+      // Create the project using context function with license ID if applicable
+      const result = await createTask(newProjectData, finalLicenseId);
       
       if (result.error) {
         throw new Error(result.error);
       }
       
       // Refresh tasks to include the new project
-      fetchTasks();
+      await fetchTasks(true);
       
       // Select the new project if it was created successfully
       if (result.data) {
         setSelectedTaskId(result.data.id);
       }
       
-      // Close the project creation form
+      // Reset license ID and close the project creation form
+      setProjectLicenseId(null);
       setIsCreatingProject(false);
+      
+      // Also refresh license info after project creation
+      fetchUserLicenses();
     } catch (err) {
       console.error('Error creating project:', err);
       if (isMountedRef.current) {
@@ -213,6 +197,7 @@ const TaskList = () => {
   // Handle canceling project creation
   const handleCancelProjectCreation = () => {
     setIsCreatingProject(false);
+    setProjectLicenseId(null);
   };
 
   // Handle adding child task
@@ -249,6 +234,7 @@ const TaskList = () => {
       };
       
       // Create the task using context function
+      // Child tasks don't need a license ID - they inherit from parent
       const result = await createTask(newTaskData);
       
       if (result.error) {
@@ -256,7 +242,7 @@ const TaskList = () => {
       }
       
       // Refresh tasks to include the new task
-      fetchTasks();
+      await fetchTasks(true);
       
       // Reset the adding child task state
       setAddingChildToTaskId(null);
@@ -344,6 +330,7 @@ const TaskList = () => {
         <NewProjectForm 
           onSuccess={handleProjectCreated}
           onCancel={handleCancelProjectCreation}
+          userHasProjects={userHasProjects}
         />
       );
     }
@@ -533,6 +520,14 @@ const TaskList = () => {
             <p>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}</p>
           </div>
           
+          {/* Display license information for top-level projects */}
+          {!task.parent_task_id && (
+            <div className="detail-row">
+              <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>License:</h4>
+              <p>{task.license_id ? `License ID: ${task.license_id}` : 'Free project'}</p>
+            </div>
+          )}
+          
           <div className="detail-row">
             <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Purpose:</h4>
             <p>{task.purpose || 'No purpose specified'}</p>
@@ -595,154 +590,6 @@ const TaskList = () => {
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
-      {/* License Key Dialog */}
-      {showLicenseDialog && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 1000,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '24px',
-            width: '90%',
-            maxWidth: '500px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h2 style={{ fontSize: '1.5rem', marginTop: 0, marginBottom: '16px' }}>Enter License Key</h2>
-            <p style={{ marginBottom: '16px', color: '#4b5563' }}>
-              {projectLimitReason || 'You need a license key to create more projects.'}
-            </p>
-            
-            {licenseError && (
-              <div style={{
-                backgroundColor: '#fee2e2',
-                color: '#b91c1c',
-                padding: '12px',
-                borderRadius: '4px',
-                marginBottom: '16px'
-              }}>
-                {licenseError}
-              </div>
-            )}
-            
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontWeight: 500 
-              }}>
-                License Key
-              </label>
-              <input 
-                type="text"
-                value={licenseKey}
-                onChange={(e) => setLicenseKey(e.target.value)}
-                placeholder="Enter your license key"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '4px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '1rem'
-                }}
-              />
-            </div>
-            
-            {userLicenses.length > 0 && (
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ fontWeight: 500, marginBottom: '8px' }}>Your Licenses</p>
-                <div style={{
-                  maxHeight: '150px',
-                  overflowY: 'auto',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '4px'
-                }}>
-                  {userLicenses.map(license => (
-                    <div key={license.id} style={{
-                      padding: '12px',
-                      borderBottom: '1px solid #e5e7eb',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{license.plan_name}</div>
-                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                          {license.is_used ? 'Used' : 'Available'}
-                        </div>
-                      </div>
-                      {!license.is_used && (
-                        <button
-                          onClick={() => {
-                            selectLicense(license.id);
-                            setShowLicenseDialog(false);
-                            setIsCreatingProject(true);
-                          }}
-                          style={{
-                            backgroundColor: '#10b981',
-                            color: 'white',
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Use
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'flex-end',
-              gap: '12px',
-              marginTop: '24px'
-            }}>
-              <button
-                onClick={() => setShowLicenseDialog(false)}
-                style={{
-                  padding: '10px 16px',
-                  borderRadius: '4px',
-                  border: '1px solid #d1d5db',
-                  backgroundColor: 'white',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApplyLicenseKey}
-                disabled={isApplyingLicense}
-                style={{
-                  padding: '10px 16px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  cursor: isApplyingLicense ? 'not-allowed' : 'pointer',
-                  opacity: isApplyingLicense ? 0.7 : 1
-                }}
-              >
-                {isApplyingLicense ? 'Processing...' : 'Apply License'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    
       {/* Left panel - Task list */}
       <div style={{ 
         flex: '1 1 60%', 
@@ -759,70 +606,36 @@ const TaskList = () => {
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
               onClick={handleCreateNewProject}
-              disabled={isCreatingProject || loading || (isCheckingLicense && !canCreateProject)}
+              disabled={isCreatingProject || loading}
               style={{
                 backgroundColor: '#10b981',
                 color: 'white',
                 padding: '8px 16px',
                 borderRadius: '4px',
-                cursor: (isCreatingProject || loading || (isCheckingLicense && !canCreateProject)) ? 'not-allowed' : 'pointer',
+                cursor: (isCreatingProject || loading) ? 'not-allowed' : 'pointer',
                 border: 'none',
-                opacity: (isCreatingProject || loading || (isCheckingLicense && !canCreateProject)) ? 0.7 : 1
+                opacity: (isCreatingProject || loading) ? 0.7 : 1
               }}
             >
               New Project
             </button>
             <button 
-              onClick={() => fetchTasks(true)}
-              disabled={loading}
+              onClick={handleRefresh}
+              disabled={loading || isRefreshing}
               style={{
                 backgroundColor: '#3b82f6',
                 color: 'white',
                 padding: '8px 16px',
                 borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer',
+                cursor: (loading || isRefreshing) ? 'not-allowed' : 'pointer',
                 border: 'none',
-                opacity: loading ? 0.7 : 1
+                opacity: (loading || isRefreshing) ? 0.7 : 1
               }}
             >
-              {loading ? 'Refreshing...' : 'Refresh'}
+              {loading || isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
         </div>
-
-        {/* Display license status message if applicable */}
-        {!initialLoading && !error && tasks.length > 0 && !canCreateProject && (
-          <div style={{
-            backgroundColor: '#fff7ed',
-            border: '1px solid #fdba74',
-            color: '#c2410c',
-            padding: '12px 16px',
-            borderRadius: '4px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div>
-              <p style={{ margin: 0, fontWeight: 'bold' }}>Project Limit Reached</p>
-              <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>{projectLimitReason}</p>
-            </div>
-            <button
-              onClick={handleCreateNewProject}
-              style={{
-                backgroundColor: '#ea580c',
-                color: 'white',
-                padding: '6px 12px',
-                borderRadius: '4px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              Enter License Key
-            </button>
-          </div>
-        )}
 
         {initialLoading ? (
           <div style={{ textAlign: 'center', padding: '32px' }}>
@@ -854,43 +667,23 @@ const TaskList = () => {
             padding: '32px',
             color: '#6b7280'
           }}>
-            {canCreateProject ? (
-              <div>
-                <p>No projects found. Create your first project to get started!</p>
-                <button
-                  onClick={handleCreateNewProject}
-                  style={{
-                    backgroundColor: '#10b981',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    border: 'none',
-                    marginTop: '16px'
-                  }}
-                >
-                  Create First Project
-                </button>
-              </div>
-            ) : (
-              <div>
-                <p>No projects found. You need a license key to create a project.</p>
-                <button
-                  onClick={handleCreateNewProject}
-                  style={{
-                    backgroundColor: '#10b981',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    border: 'none',
-                    marginTop: '16px'
-                  }}
-                >
-                  Enter License Key
-                </button>
-              </div>
-            )}
+            <div>
+              <p>No projects found. Create your first project to get started!</p>
+              <button
+                onClick={handleCreateNewProject}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  marginTop: '16px'
+                }}
+              >
+                Create First Project
+              </button>
+            </div>
           </div>
         ) : (
           <div>{renderTopLevelTasks()}</div>
@@ -905,50 +698,6 @@ const TaskList = () => {
       }}>
         {renderRightPanel()}
       </div>
-      
-      {/* Debug section - comment out for production */}
-      {/* <details style={{ 
-        position: 'fixed',
-        bottom: '10px',
-        left: '10px',
-        padding: '16px',
-        backgroundColor: '#f3f4f6',
-        borderRadius: '4px',
-        width: '300px',
-        zIndex: 100
-      }}>
-        <summary style={{ 
-          cursor: 'pointer',
-          color: '#3b82f6',
-          fontWeight: '500'
-        }}>
-          Debug Information
-        </summary>
-        <div style={{ marginTop: '8px' }}>
-          <p>Total projects: {tasks.length}</p>
-          <p>Top-level projects: {tasks.filter(t => !t.parent_task_id).length}</p>
-          <p>Dragging: {dragAndDrop.draggedTask ? dragAndDrop.draggedTask.title : 'None'}</p>
-          <p>Drop target: {dragAndDrop.dropTarget ? `${dragAndDrop.dropTarget.title} (${dragAndDrop.dropPosition})` : 'None'}</p>
-          <p>Selected task: {selectedTaskId || 'None'}</p>
-          <p>Adding child to: {addingChildToTaskId || 'None'}</p>
-          <details>
-            <summary>Project Positions</summary>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
-              {JSON.stringify(
-                tasks.map(t => ({ 
-                  id: t.id, 
-                  title: t.title,
-                  position: t.position, 
-                  parent: t.parent_task_id,
-                  origin: t.origin
-                })), 
-                null, 
-                2
-              )}
-            </pre>
-          </details>
-        </div>
-      </details> */}
     </div>
   );
 };

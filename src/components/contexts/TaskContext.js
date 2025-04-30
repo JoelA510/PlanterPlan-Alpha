@@ -6,8 +6,9 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { 
   canUserCreateProject, 
-  applyLicense,
-  checkUserExistingProjects 
+  validateLicense,
+  markLicenseAsUsed,
+  checkUserExistingProjects,
 } from '../../services/licenseService';
 
 // Create a context for tasks
@@ -39,6 +40,7 @@ export const TaskProvider = ({ children }) => {
   
   // License system state
   const [canCreateProject, setCanCreateProject] = useState(false);
+  const [userHasProjects, setUserHasProjects] = useState(false);
   const [projectLimitReason, setProjectLimitReason] = useState('');
   const [userLicenses, setUserLicenses] = useState([]);
   const [selectedLicenseId, setSelectedLicenseId] = useState(null);
@@ -122,6 +124,7 @@ export const TaskProvider = ({ children }) => {
   const createNewTask = useCallback(async (taskData, licenseId = null) => {
     try {
       console.log('Creating task with data:', taskData);
+      console.log('License key', licenseId);
       
       if (!user?.id) {
         throw new Error('Cannot create task: User ID is missing');
@@ -130,11 +133,15 @@ export const TaskProvider = ({ children }) => {
       // Check if this is a top-level project creation
       const isTopLevelProject = !taskData.parent_task_id && taskData.origin === "instance";
       
-      // For top-level projects, check if the user can create a new project
-      if (isTopLevelProject && !canCreateProject && !licenseId) {
-        throw new Error(projectLimitReason || 'You cannot create additional projects at this time.');
+      // For top-level projects, check if the user already has projects
+      if (isTopLevelProject) {
+        // const hasProjects = await checkForExistingProjects();
+
+        // If user has projects but no license is provided, block creation
+        if (userHasProjects && !licenseId) {
+          throw new Error('You already have a project. Please provide a license key to create additional projects.');
+        }
       }
-      
       // Enhance task data with necessary fields
       const enhancedTaskData = {
         ...taskData,
@@ -147,7 +154,7 @@ export const TaskProvider = ({ children }) => {
       console.log('Enhanced task data:', enhancedTaskData);
       
       // Call the service function
-      const result = await createTask(enhancedTaskData);
+      const result = await createTask(enhancedTaskData, licenseId);
       
       if (result.error) {
         console.error('Error from createTask API:', result.error);
@@ -178,17 +185,33 @@ export const TaskProvider = ({ children }) => {
       console.error('Error creating task:', err);
       return { data: null, error: err.message };
     }
-  }, [user?.id, organizationId, canCreateProject, projectLimitReason]);
+  }, [user?.id, organizationId, userHasProjects]);
   
-  // Update tasks state safely
+  // Update tasks state safely - FIX HERE
   const updateTasks = useCallback((newTasks) => {
-    // Group tasks by origin
-    const instance = newTasks.filter(task => task.origin === "instance");
-    const template = newTasks.filter(task => task.origin === "template");
-    
-    setTasks(newTasks);
-    setInstanceTasks(instance);
-    setTemplateTasks(template);
+    // Ensure newTasks is an array
+    if (!Array.isArray(newTasks)) {
+      console.error('updateTasks received non-array value:', newTasks);
+      return;
+    }
+
+    try {
+      // Group tasks by origin
+      const instance = newTasks.filter(task => task.origin === "instance");
+      const template = newTasks.filter(task => task.origin === "template");
+      
+      // Debug log
+      console.log('updateTasks called with', newTasks.length, 'tasks');
+      console.log('Instance tasks:', instance.length);
+      console.log('Template tasks:', template.length);
+
+      // Update all task states
+      setTasks(newTasks);
+      setInstanceTasks(instance);
+      setTemplateTasks(template);
+    } catch (err) {
+      console.error('Error in updateTasks:', err);
+    }
   }, []);
   
   // License system functions
@@ -216,6 +239,19 @@ export const TaskProvider = ({ children }) => {
       setIsCheckingLicense(false);
     }
   }, [user?.id]);
+
+  const checkForExistingProjects = useCallback(async () => {
+    if (!user?.id) return false;
+    
+    try {
+      const { hasProjects } = await checkUserExistingProjects(user.id);
+      setUserHasProjects(hasProjects); // Add this state variable to the context
+      return hasProjects;
+    } catch (error) {
+      console.error('Error checking for existing projects:', error);
+      return false;
+    }
+  }, [user?.id]);
   
   // Fetch all licenses for the current user
   const fetchUserLicenses = useCallback(async () => {
@@ -241,25 +277,55 @@ export const TaskProvider = ({ children }) => {
   // Apply a license key to the user's account
   const applyLicenseKey = useCallback(async (licenseKey) => {
     if (!user?.id) {
+      console.error('License application failed: No user ID available');
       return { success: false, error: 'User not authenticated' };
     }
     
     try {
-      const result = await applyLicense(licenseKey, user.id);
+      console.log('Validating license key', { licenseKey: licenseKey, userId: user.id });
+      const result = await validateLicense(licenseKey, user.id);
+      console.log('License validation result', result, result.data.id);
       
       if (result.success) {
-        // Refresh project creation status and user licenses
-        await checkProjectCreationAbility();
-        await fetchUserLicenses();
-        return { success: true };
+        try {
+          const markedLicenseRes = await markLicenseAsUsed(result.data.id);
+          console.log('License marked as used successfully');
+          if (markedLicenseRes.success) {
+            
+            return { 
+              success: true, 
+              licenseId: result.data.id
+            };
+          } else {
+            console.error('Failed to mark license as used', markedLicenseRes.error);
+            // Continue despite this error since validation succeeded
+            return { 
+              success: false, 
+              error: result.error 
+            };
+          }
+        } catch (error) {
+          console.error('Failed during marking license as used', error );
+          return { 
+            success: false, 
+            error: error.message || 'An unexpected error occurred'
+          };
+        }
       } else {
-        return { success: false, error: result.error };
+        console.error('License validation failed', { error: result.error });
+        return { 
+          success: false, 
+          error: result.error 
+        };
       }
     } catch (error) {
-      console.error('Error applying license key:', error);
-      return { success: false, error: error.message };
+      console.error('Unexpected error during license application', error);
+      return { 
+        success: false, 
+        error: error.message || 'An unexpected error occurred'
+      };
     }
-  }, [user?.id, checkProjectCreationAbility, fetchUserLicenses]);
+  }, [user?.id]);
   
   // Select a license for a new project
   const selectLicense = useCallback((licenseId) => {
@@ -282,8 +348,9 @@ export const TaskProvider = ({ children }) => {
       fetchTasks();
       checkProjectCreationAbility();
       fetchUserLicenses();
+      checkForExistingProjects();
     }
-  }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks, checkProjectCreationAbility, fetchUserLicenses]);
+  }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks, checkProjectCreationAbility, fetchUserLicenses, checkForExistingProjects]);
   
   // Create the context value
   const contextValue = {
@@ -303,12 +370,13 @@ export const TaskProvider = ({ children }) => {
     projectLimitReason,
     userLicenses,
     selectedLicenseId,
+    userHasProjects,
     isCheckingLicense,
     checkProjectCreationAbility,
     fetchUserLicenses,
     applyLicenseKey,
     selectLicense,
-    getSelectedLicense
+    getSelectedLicense,
   };
   
   return (

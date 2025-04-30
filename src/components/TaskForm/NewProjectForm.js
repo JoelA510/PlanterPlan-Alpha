@@ -1,20 +1,14 @@
 // src/components/ProjectCreation/NewProjectForm.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTasks } from '../contexts/TaskContext';
 import { useAuth } from '../contexts/AuthContext';
-import LicenseKeyEntry from '../License/LicenseKeyEntry';
 import { useTaskForm } from '../TaskForm/useTaskForm';
 
-const NewProjectForm = ({ onSuccess, onCancel }) => {
+const NewProjectForm = ({ onSuccess, onCancel, userHasProjects }) => {
   const { user } = useAuth();
   const { 
-    canCreateProject, 
-    projectLimitReason, 
-    checkProjectCreationAbility,
-    userLicenses,
-    selectedLicenseId,
-    selectLicense,
-    createTask
+    createTask,
+    applyLicenseKey
   } = useTasks();
   
   const {
@@ -29,48 +23,35 @@ const NewProjectForm = ({ onSuccess, onCancel }) => {
     prepareFormData
   } = useTaskForm();
   
-  const [showLicenseInput, setShowLicenseInput] = useState(false);
+  // Add state for license key
+  const [licenseKey, setLicenseKey] = useState('');
+  const [licenseStatus, setLicenseStatus] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState('');
-  
-  // Get available (unused) licenses
-  const availableLicenses = userLicenses.filter(license => !license.is_used);
-  
-  useEffect(() => {
-    // Show license input if user needs to apply a license to create a project
-    if (!canCreateProject && projectLimitReason.includes('maximum number of projects')) {
-      setShowLicenseInput(true);
-    } else {
-      setShowLicenseInput(false);
-    }
-  }, [canCreateProject, projectLimitReason]);
-  
-  const handleLicenseChange = (e) => {
-    selectLicense(e.target.value);
-    
+  // const [licenseId, setLicenseId] = useState(null);
+
+  // Handle license key change
+  const handleLicenseKeyChange = (e) => {
+    setLicenseKey(e.target.value);
     // Clear license error if it exists
-    if (errors.license) {
+    if (errors.licenseKey) {
       setErrors(prev => {
         const newErrors = {...prev};
-        delete newErrors.license;
+        delete newErrors.licenseKey;
         return newErrors;
       });
     }
+    // Clear license status
+    setLicenseStatus('');
   };
-  
-  const handleLicenseSuccess = () => {
-    setShowLicenseInput(false);
-    // Call checkProjectCreationAbility instead of refreshProjectCreationStatus
-    checkProjectCreationAbility();
-  };
-  
-  // Custom validation to include license validation
-  const validateWithLicense = (formData) => {
+
+  // Custom validation to include license key validation when required
+  const validateProjectForm = (formData) => {
     const additionalErrors = {};
     
-    // If the user already has projects and needs to select a license
-    if (!canCreateProject && availableLicenses.length > 0 && !selectedLicenseId) {
-      additionalErrors.license = 'Please select a license to create an additional project';
+    // If user already has projects, license key is required
+    if (userHasProjects && !licenseKey.trim()) {
+      additionalErrors.licenseKey = 'License key is required for additional projects';
     }
     
     return additionalErrors;
@@ -79,14 +60,37 @@ const NewProjectForm = ({ onSuccess, onCancel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm(validateWithLicense)) {
+    if (!validateForm(validateProjectForm)) {
       return;
     }
     
     setIsSubmitting(true);
-    setStatus('Creating project...');
     
     try {
+      // Variable to store license ID if needed
+      let licenseId = null;
+  
+      // If user already has projects, first apply the license key
+      if (userHasProjects) {
+        setStatus('Validating license key...');
+        const licenseResult = await applyLicenseKey(licenseKey.trim());
+        console.log("applyLicenseKey result: ", licenseResult);
+  
+        if (!licenseResult.success) {
+          setLicenseStatus('error');
+          throw new Error(licenseResult.error || 'Invalid license key');
+        }
+        
+        // Capture the license ID from the result to pass to createTask
+        licenseId = licenseResult.licenseId || licenseResult.id;
+        console.log("Using license ID:", licenseId);
+        
+        setLicenseStatus('success');
+        setStatus('License key applied successfully. Creating project...');
+      } else {
+        setStatus('Creating project...');
+      }
+      
       const cleanedData = prepareFormData();
       
       // Create the project
@@ -98,20 +102,15 @@ const NewProjectForm = ({ onSuccess, onCancel }) => {
         position: 0,
         parent_task_id: null // Ensure it's a top-level project
       };
-      
-      const result = await createTask(taskData, selectedLicenseId);
+  
+      // Pass the license ID to the createTask function
+      const result = await createTask(taskData, licenseId);
       
       if (result.error) {
         throw new Error(result.error);
       }
       
       setStatus('Project created successfully!');
-      
-      // Refresh the project creation status
-      await checkProjectCreationAbility();
-      
-      // Reset selected license
-      selectLicense(null);
       
       // Call the onSuccess callback
       if (onSuccess && result.data) {
@@ -124,62 +123,6 @@ const NewProjectForm = ({ onSuccess, onCancel }) => {
       setIsSubmitting(false);
     }
   };
-  
-  // If we need to show the license key entry form
-  if (showLicenseInput) {
-    return (
-      <LicenseKeyEntry 
-        onSuccess={handleLicenseSuccess}
-        onCancel={onCancel}
-      />
-    );
-  }
-  
-  // If user can't create a project and doesn't have any available licenses
-  if (!canCreateProject && availableLicenses.length === 0) {
-    return (
-      <div style={{
-        backgroundColor: '#f9fafb',
-        borderRadius: '4px',
-        border: '1px solid #e5e7eb',
-        padding: '24px',
-        textAlign: 'center'
-      }}>
-        <h3 style={{ marginBottom: '16px', color: '#374151' }}>
-          Project Creation Limit Reached
-        </h3>
-        <p style={{ marginBottom: '16px', color: '#6b7280' }}>
-          {projectLimitReason}
-        </p>
-        <button
-          onClick={() => setShowLicenseInput(true)}
-          style={{
-            backgroundColor: '#10b981',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            border: 'none'
-          }}
-        >
-          Enter License Key
-        </button>
-        <button
-          onClick={onCancel}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '4px',
-            border: '1px solid #d1d5db',
-            background: 'white',
-            marginLeft: '12px',
-            cursor: 'pointer'
-          }}
-        >
-          Cancel
-        </button>
-      </div>
-    );
-  }
   
   // Regular form for creating a project
   return (
@@ -224,6 +167,54 @@ const NewProjectForm = ({ onSuccess, onCancel }) => {
       </div>
       
       <form onSubmit={handleSubmit} style={{ padding: '16px' }}>
+        {/* License key input field - only show if user already has projects */}
+        {userHasProjects && (
+          <div style={{ marginBottom: '16px' }}>
+            <label 
+              htmlFor="licenseKey"
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              License Key *
+            </label>
+            <div style={{ marginBottom: '8px' }}>
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#6b7280', 
+                margin: '0 0 8px 0' 
+              }}>
+                You already have a project. A license key is required to create additional projects.
+              </p>
+            </div>
+            <input
+              id="licenseKey"
+              name="licenseKey"
+              type="text"
+              value={licenseKey}
+              onChange={handleLicenseKeyChange}
+              placeholder="Enter your license key"
+              style={{
+                width: '100%',
+                padding: '8px',
+                borderRadius: '4px',
+                border: `1px solid ${errors.licenseKey ? '#ef4444' : 
+                  licenseStatus === 'success' ? '#10b981' : 
+                  licenseStatus === 'error' ? '#ef4444' : '#d1d5db'}`,
+                outline: 'none',
+                backgroundColor: licenseStatus === 'success' ? '#d1fae5' : 'white'
+              }}
+            />
+            {errors.licenseKey && (
+              <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+                {errors.licenseKey}
+              </p>
+            )}
+          </div>
+        )}
+
         <div style={{ marginBottom: '16px' }}>
           <label 
             htmlFor="title"
@@ -255,46 +246,6 @@ const NewProjectForm = ({ onSuccess, onCancel }) => {
             </p>
           )}
         </div>
-        
-        {/* License Selection if needed */}
-        {!canCreateProject && availableLicenses.length > 0 && (
-          <div style={{ marginBottom: '16px' }}>
-            <label 
-              htmlFor="license"
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px' 
-              }}
-            >
-              License Key for This Project *
-            </label>
-            <select
-              id="license"
-              value={selectedLicenseId || ''}
-              onChange={handleLicenseChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: `1px solid ${errors.license ? '#ef4444' : '#d1d5db'}`,
-                outline: 'none'
-              }}
-            >
-              <option value="">Select a license</option>
-              {availableLicenses.map(license => (
-                <option key={license.id} value={license.id}>
-                  {license.license_key}
-                </option>
-              ))}
-            </select>
-            {errors.license && (
-              <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                {errors.license}
-              </p>
-            )}
-          </div>
-        )}
         
         <div style={{ marginBottom: '16px' }}>
           <label 
@@ -487,8 +438,12 @@ const NewProjectForm = ({ onSuccess, onCancel }) => {
             marginBottom: '16px',
             padding: '8px',
             borderRadius: '4px',
-            backgroundColor: status.includes('Error') ? '#fee2e2' : '#d1fae5',
-            color: status.includes('Error') ? '#b91c1c' : '#065f46'
+            backgroundColor: status.includes('Error') ? '#fee2e2' : 
+                            status.includes('License key applied') ? '#d1fae5' :
+                            status.includes('Validating') ? '#fff7ed' : '#d1fae5',
+            color: status.includes('Error') ? '#b91c1c' : 
+                   status.includes('License key applied') ? '#065f46' :
+                   status.includes('Validating') ? '#c2410c' : '#065f46'
           }}>
             {status}
           </div>
