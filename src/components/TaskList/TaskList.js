@@ -142,52 +142,23 @@ const TaskList = () => {
   };
 
   // Handle submit of new project
-  const handleProjectCreated = async (projectData, licenseId = null) => {
+  const handleProjectCreated = async (projectData) => {
     try {
-      // Determine position for new project
-      const topLevelProjects = tasks.filter(t => !t.parent_task_id);
-      const position = topLevelProjects.length > 0 
-        ? Math.max(...topLevelProjects.map(t => t.position || 0)) + 1 
-        : 0;
-      
-      // Add position and ensure project is an instance
-      const newProjectData = {
-        ...projectData,
-        position,
-        parent_task_id: null, // Top-level project
-        origin: "instance",
-        is_complete: false
-      };
-      
-      // Use the license ID that was passed from the form, or fall back to the component state
-      const finalLicenseId = licenseId !== null ? licenseId : projectLicenseId;
-      console.log('Creating project with license ID:', finalLicenseId);
-      
-      // Create the project using context function with license ID if applicable
-      const result = await createTask(newProjectData, finalLicenseId);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
+      console.log('Project created successfully:', projectData.id);
       
       // Refresh tasks to include the new project
       await fetchTasks(true);
       
-      // Select the new project if it was created successfully
-      if (result.data) {
-        setSelectedTaskId(result.data.id);
-      }
+      // Select the new project
+      setSelectedTaskId(projectData.id);
       
       // Reset license ID and close the project creation form
       setProjectLicenseId(null);
       setIsCreatingProject(false);
-      
-      // Also refresh license info after project creation
-      fetchUserLicenses();
     } catch (err) {
-      console.error('Error creating project:', err);
+      console.error('Error handling project creation:', err);
       if (isMountedRef.current) {
-        alert(`Failed to create project: ${err.message}`);
+        alert(`Error refreshing data: ${err.message}`);
       }
     }
   };
