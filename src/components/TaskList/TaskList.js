@@ -2,17 +2,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './TaskList.css';
 import TaskItem from './TaskItem';
-import TaskDropZone from './TaskDropZone';
 import TaskForm from '../TaskForm/TaskForm';
 import NewProjectForm from '../TaskForm/NewProjectForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { useTasks } from '../contexts/TaskContext';
-import { useAuth } from '../contexts/AuthContext';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import { updateTaskCompletion } from '../../services/taskService';
+import { updateTaskCompletion, deleteTask } from '../../services/taskService';
+import TaskDetailsPanel from './TaskDetailsPanel';
 
 const TaskList = () => {
-  const { user } = useAuth();
   // Initialize refs first 
   const isMountedRef = useRef(true);
   const initialFetchDoneRef = useRef(false);
@@ -266,6 +264,71 @@ const TaskList = () => {
   const handleCancelAddTask = () => {
     setAddingChildToTaskId(null);
   };
+
+  // Update the handleDeleteTask function in TaskList.js
+const handleDeleteTask = async (taskId) => {
+  // Find the task to check if it has children
+  const taskToDelete = tasks.find(t => t.id === taskId);
+  if (!taskToDelete) return;
+  
+  const hasChildren = tasks.some(t => t.parent_task_id === taskId);
+  
+  // Prepare confirmation message
+  let confirmMessage = 'Are you sure you want to delete this task?';
+  if (hasChildren) {
+    confirmMessage = 'This task has subtasks that will also be deleted. Are you sure you want to continue?';
+  }
+  confirmMessage += ' This action cannot be undone.';
+  
+  // Ask for confirmation
+  if (!window.confirm(confirmMessage)) {
+    return;
+  }
+  
+  try {
+    // Use the deleteTask function from the service
+    const result = await deleteTask(taskId, true); // true to delete children
+    
+    if (!result.success) throw new Error(result.error);
+    
+    // Update the local state to remove the deleted tasks
+    if (result.deletedIds && Array.isArray(result.deletedIds)) {
+      // Create the filtered array first, then update the state
+      const updatedTasks = tasks.filter(task => !result.deletedIds.includes(task.id));
+      setTasks(updatedTasks);
+      
+      // If the selected task was deleted, clear the selection
+      if (result.deletedIds.includes(selectedTaskId)) {
+        setSelectedTaskId(null);
+      }
+    } else {
+      // Fallback if deletedIds is not returned
+      const updatedTasks = tasks.filter(task => task.id !== taskId);
+      setTasks(updatedTasks);
+      
+      // If the selected task was deleted, clear the selection
+      if (selectedTaskId === taskId) {
+        setSelectedTaskId(null);
+      }
+    }
+    
+    // Show success message
+    const deletedCount = result.deletedIds ? result.deletedIds.length : 1;
+    const childCount = deletedCount - 1;
+    
+    alert(hasChildren 
+      ? `Task and ${childCount} subtask${childCount !== 1 ? 's' : ''} deleted successfully` 
+      : 'Task deleted successfully');
+      
+    // Refresh tasks after deletion
+    await fetchTasks(true);
+  } catch (err) {
+    console.error('Error deleting task:', err);
+    if (isMountedRef.current) {
+      alert(`Failed to delete task: ${err.message}`);
+    }
+  }
+};
   
   // Render top-level tasks (projects) with spacing between them
   const renderTopLevelTasks = () => {
@@ -364,13 +427,9 @@ const TaskList = () => {
       );
     }
     
-    // Get task
-    const task = tasks.find(t => t.id === selectedTaskId);
-    if (!task) return null;
-    
-    // Get color for the task
-    const level = getTaskLevel(task, tasks);
-    const backgroundColor = getBackgroundColor(level);
+    // Get the selected task object
+    const selectedTask = tasks.find(task => task.id === selectedTaskId);
+    if (!selectedTask) return null;
     
     // If we're adding a child task, show the form
     if (addingChildToTaskId === selectedTaskId) {
@@ -379,212 +438,23 @@ const TaskList = () => {
           parentTaskId={selectedTaskId}
           onSubmit={handleAddChildTaskSubmit}
           onCancel={handleCancelAddTask}
-          backgroundColor={backgroundColor}
+          backgroundColor={getBackgroundColor(getTaskLevel(selectedTask, tasks))}
           originType="instance"
         />
       );
     }
     
-    // Ensure arrays are valid
-    const actions = Array.isArray(task.actions) ? task.actions : [];
-    const resources = Array.isArray(task.resources) ? task.resources : [];
-    
-    // Otherwise show the task details
+    // Otherwise use the TaskDetailsPanel component
     return (
-      <div className="task-details-panel" style={{
-        backgroundColor: '#f9fafb',
-        borderRadius: '4px',
-        border: '1px solid #e5e7eb',
-        height: '100%',
-        overflow: 'auto'
-      }}>
-        <div className="details-header" style={{
-          backgroundColor: backgroundColor,
-          color: 'white',
-          padding: '16px',
-          borderTopLeftRadius: '4px',
-          borderTopRightRadius: '4px',
-          position: 'relative'
-        }}>
-          {/* Completion status badge */}
-          <div style={{
-            position: 'absolute',
-            top: '0',
-            right: '0',
-            backgroundColor: task.is_complete ? '#059669' : '#dc2626',
-            color: 'white',
-            padding: '4px 8px',
-            fontSize: '10px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            borderBottomLeftRadius: '4px',
-          }}>
-            {task.is_complete ? 'Completed' : 'In Progress'}
-          </div>
-          
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            width: '100%'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {/* Checkbox to toggle completion status directly from panel */}
-              <input 
-                type="checkbox"
-                checked={task.is_complete || false}
-                onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
-                style={{ 
-                  marginRight: '12px',
-                  width: '18px',
-                  height: '18px',
-                  accentColor: task.is_complete ? '#059669' : undefined
-                }}
-              />
-              <h3 style={{ 
-                margin: 0, 
-                fontWeight: 'bold',
-                textDecoration: task.is_complete ? 'line-through' : 'none',
-                opacity: task.is_complete ? 0.8 : 1,
-              }}>
-                {task.title}
-              </h3>
-            </div>
-            
-            <button 
-              onClick={() => setSelectedTaskId(null)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                borderRadius: '50%',
-                color: 'white',
-                cursor: 'pointer',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px'
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        
-        <div className="details-content" style={{ padding: '16px' }}>
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px' }}>Status:</h4>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <p style={{ 
-                display: 'inline-block',
-                padding: '4px 8px',
-                backgroundColor: task.is_complete ? '#dcfce7' : '#fee2e2',
-                color: task.is_complete ? '#166534' : '#b91c1c',
-                borderRadius: '4px',
-                fontSize: '14px',
-                marginTop: '4px',
-                marginRight: '8px'
-              }}>
-                {task.is_complete ? 'Completed' : 'In Progress'}
-              </p>
-              
-              {task.is_complete && (
-                <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
-                  <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
-                  <span>Completed on {new Date().toLocaleDateString()}</span>
-                </div>
-              )}
-            </div>
-            
-            <div style={{ 
-              marginTop: '8px', 
-              height: '8px', 
-              width: '100%', 
-              backgroundColor: '#e5e7eb',
-              borderRadius: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                height: '100%',
-                width: task.is_complete ? '100%' : '0%',
-                backgroundColor: '#059669',
-                borderRadius: '4px',
-                transition: 'width 0.5s ease'
-              }} />
-            </div>
-          </div>
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Due Date:</h4>
-            <p>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}</p>
-          </div>
-          
-          {/* Display license information for top-level projects */}
-          {!task.parent_task_id && (
-            <div className="detail-row">
-              <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>License:</h4>
-              <p>{task.license_id ? `License ID: ${task.license_id}` : 'Free project'}</p>
-            </div>
-          )}
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Purpose:</h4>
-            <p>{task.purpose || 'No purpose specified'}</p>
-          </div>
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Description:</h4>
-            <p>{task.description || 'No description specified'}</p>
-          </div>
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Actions:</h4>
-            <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-              {actions.length > 0 ? 
-                actions.map((action, index) => (
-                  <li key={index}>{action}</li>
-                )) : 
-                <li>No actions specified</li>
-              }
-            </ul>
-          </div>
-          
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Resources:</h4>
-            <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-              {resources.length > 0 ? 
-                resources.map((resource, index) => (
-                  <li key={index}>{resource}</li>
-                )) : 
-                <li>No resources specified</li>
-              }
-            </ul>
-          </div>
-          
-          {/* Add child task button in details panel */}
-          <div className="detail-row" style={{ marginTop: '24px' }}>
-            <button
-              onClick={() => handleAddChildTask(task.id)}
-              style={{
-                backgroundColor: '#10b981',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%'
-              }}
-            >
-              <span style={{ marginRight: '8px' }}>Add Child Task</span>
-              <span>+</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <TaskDetailsPanel
+        key={`${selectedTask.id}-${selectedTask.is_complete}`}
+        task={selectedTask}
+        tasks={tasks}
+        toggleTaskCompletion={toggleTaskCompletion}
+        onClose={() => setSelectedTaskId(null)}
+        onAddChildTask={handleAddChildTask}
+        onDeleteTask={handleDeleteTask}
+      />
     );
   };
 

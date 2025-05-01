@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import { formatDate } from '../../utils/taskUtils'; // Ensure this is imported
 
 /**
  * TaskDetailsPanel - Component for displaying task details
@@ -20,10 +19,32 @@ const TaskDetailsPanel = ({
   onAddChildTask,
   onDeleteTask
 }) => {
+  // Use local state to track completion status
+  const [isComplete, setIsComplete] = useState(task?.is_complete || false);
+  
+  // Update local state when the task prop changes
+  useEffect(() => {
+    if (task) {
+      setIsComplete(task.is_complete || false);
+    }
+  }, [task, task?.is_complete]);
+  
+  // Handle toggling completion with local state update
+  const handleToggleCompletion = (e) => {
+    if (task) {
+      setIsComplete(!isComplete);
+      toggleTaskCompletion(task.id, isComplete, e);
+    }
+  };
+  
   if (!task) return null;
   
   const level = getTaskLevel(task, tasks);
   const backgroundColor = getBackgroundColor(level);
+  
+  // Ensure arrays are valid
+  const actions = Array.isArray(task.actions) ? task.actions : [];
+  const resources = Array.isArray(task.resources) ? task.resources : [];
   
   return (
     <div className="task-details-panel" style={{
@@ -41,12 +62,12 @@ const TaskDetailsPanel = ({
         borderTopRightRadius: '4px',
         position: 'relative'
       }}>
-        Completion status badge
+        {/* Completion status badge */}
         <div style={{
           position: 'absolute',
           top: '0',
           right: '0',
-          backgroundColor: task.is_complete ? '#059669' : '#dc2626',
+          backgroundColor: isComplete ? '#059669' : '#dc2626',
           color: 'white',
           padding: '4px 8px',
           fontSize: '10px',
@@ -54,7 +75,7 @@ const TaskDetailsPanel = ({
           textTransform: 'uppercase',
           borderBottomLeftRadius: '4px',
         }}>
-          {task.is_complete ? 'Completed' : 'In Progress'}
+          {isComplete ? 'Completed' : 'In Progress'}
         </div>
         
         <div style={{
@@ -64,25 +85,23 @@ const TaskDetailsPanel = ({
           width: '100%'
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {/* Checkbox commented out as requested */}
-            {/* 
+            {/* Checkbox to toggle completion status directly from panel */}
             <input 
               type="checkbox"
-              checked={task.is_complete || false}
-              onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
+              checked={isComplete}
+              onChange={handleToggleCompletion}
               style={{ 
                 marginRight: '12px',
                 width: '18px',
                 height: '18px',
-                accentColor: task.is_complete ? '#059669' : undefined
+                accentColor: isComplete ? '#059669' : undefined
               }}
             />
-            */}
             <h3 style={{ 
               margin: 0, 
               fontWeight: 'bold',
-              // textDecoration: task.is_complete ? 'line-through' : 'none',
-              opacity: task.is_complete ? 0.8 : 1,
+              textDecoration: isComplete ? 'line-through' : 'none',
+              opacity: isComplete ? 0.8 : 1,
             }}>
               {task.title}
             </h3>
@@ -116,17 +135,17 @@ const TaskDetailsPanel = ({
             <p style={{ 
               display: 'inline-block',
               padding: '4px 8px',
-              backgroundColor: task.is_complete ? '#dcfce7' : '#fee2e2',
-              color: task.is_complete ? '#166534' : '#b91c1c',
+              backgroundColor: isComplete ? '#dcfce7' : '#fee2e2',
+              color: isComplete ? '#166534' : '#b91c1c',
               borderRadius: '4px',
               fontSize: '14px',
               marginTop: '4px',
               marginRight: '8px'
             }}>
-              {task.is_complete ? 'Completed' : 'In Progress'}
+              {isComplete ? 'Completed' : 'In Progress'}
             </p>
             
-            {task.is_complete && (
+            {isComplete && (
               <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
                 <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
                 <span>Completed on {new Date().toLocaleDateString()}</span>
@@ -144,7 +163,7 @@ const TaskDetailsPanel = ({
           }}>
             <div style={{
               height: '100%',
-              width: task.is_complete ? '100%' : '0%',
+              width: isComplete ? '100%' : '0%',
               backgroundColor: '#059669',
               borderRadius: '4px',
               transition: 'width 0.5s ease'
@@ -156,6 +175,14 @@ const TaskDetailsPanel = ({
           <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Due Date:</h4>
           <p>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}</p>
         </div>
+        
+        {/* Display license information for top-level projects */}
+        {!task.parent_task_id && (
+          <div className="detail-row">
+            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>License:</h4>
+            <p>{task.license_id ? `License ID: ${task.license_id}` : 'Free project'}</p>
+          </div>
+        )}
         
         <div className="detail-row">
           <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Purpose:</h4>
@@ -170,8 +197,8 @@ const TaskDetailsPanel = ({
         <div className="detail-row">
           <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Actions:</h4>
           <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-            {task.actions && task.actions.length > 0 ? 
-              task.actions.map((action, index) => (
+            {actions.length > 0 ? 
+              actions.map((action, index) => (
                 <li key={index}>{action}</li>
               )) : 
               <li>No actions specified</li>
@@ -182,8 +209,8 @@ const TaskDetailsPanel = ({
         <div className="detail-row">
           <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Resources:</h4>
           <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
-            {task.resources && task.resources.length > 0 ? 
-              task.resources.map((resource, index) => (
+            {resources.length > 0 ? 
+              resources.map((resource, index) => (
                 <li key={index}>{resource}</li>
               )) : 
               <li>No resources specified</li>
@@ -191,8 +218,13 @@ const TaskDetailsPanel = ({
           </ul>
         </div>
         
-        {/* Action buttons row */}
-        <div className="detail-row" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+        {/* Action buttons */}
+        <div className="detail-row" style={{ 
+          marginTop: '24px', 
+          display: 'flex', 
+          gap: '12px'
+        }}>
+          {/* Add Child Task button */}
           <button
             onClick={() => onAddChildTask(task.id)}
             style={{
@@ -202,17 +234,17 @@ const TaskDetailsPanel = ({
               borderRadius: '4px',
               cursor: 'pointer',
               border: 'none',
+              flex: '1',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1
+              justifyContent: 'center'
             }}
           >
             <span style={{ marginRight: '8px' }}>Add Child Task</span>
             <span>+</span>
           </button>
           
-          {/* Delete button
+          {/* Delete Task button */}
           <button
             onClick={() => onDeleteTask(task.id)}
             style={{
@@ -226,10 +258,9 @@ const TaskDetailsPanel = ({
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            title="Delete this task and all its subtasks"
           >
             Delete
-          </button> */}
+          </button>
         </div>
       </div>
     </div>

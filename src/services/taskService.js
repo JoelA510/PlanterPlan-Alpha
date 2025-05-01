@@ -214,3 +214,91 @@ export const updateTaskCompletion = async (taskId, currentStatus) => {
     return { success: false, error: err.message };
   }
 };
+
+/**
+ * Deletes a task and all its children from Supabase
+ * @param {string} taskId - The ID of the task to delete
+ * @param {boolean} deleteChildren - Whether to also delete child tasks
+ * @returns {Promise<{success: boolean, error: string, deletedIds: string[]}>} - The result
+ */
+export const deleteTask = async (taskId, deleteChildren = true) => {
+  try {
+    console.log('Deleting task with ID:', taskId);
+    
+    if (deleteChildren) {
+      return await deleteTaskWithChildren(taskId);
+    } else {
+      // Just delete the single task
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId);
+      
+      if (error) {
+        console.error('Supabase error:', error);
+        return { success: false, error: error.message || 'Failed to delete task in Supabase' };
+      }
+      
+      console.log('Task deleted successfully');
+      return { success: true, deletedIds: [taskId] };
+    }
+  } catch (err) {
+    console.error('Error deleting task:', err);
+    return { success: false, error: err.message || 'Unknown error occurred' };
+  }
+};
+
+/**
+ * Deletes a task and all its children recursively from Supabase
+ * @param {string} taskId - The ID of the parent task to delete
+ * @returns {Promise<{success: boolean, error: string, deletedIds: string[]}>} - The result
+ */
+export const deleteTaskWithChildren = async (taskId) => {
+  try {
+    // First, fetch all tasks to find children
+    const { data: allTasks, error: fetchError } = await supabase
+      .from('tasks')
+      .select('id, parent_task_id');
+    
+    if (fetchError) {
+      console.error('Error fetching tasks:', fetchError);
+      return { success: false, error: fetchError.message || 'Failed to fetch tasks' };
+    }
+    
+    // Helper function to recursively find all child task IDs
+    const findAllChildren = (parentId, tasks) => {
+      const children = tasks.filter(t => t.parent_task_id === parentId).map(t => t.id);
+      let allChildren = [...children];
+      
+      for (const childId of children) {
+        const grandchildren = findAllChildren(childId, tasks);
+        allChildren = [...allChildren, ...grandchildren];
+      }
+      
+      return allChildren;
+    };
+    
+    // Get all child tasks (including the parent task)
+    const childTaskIds = findAllChildren(taskId, allTasks);
+    const allTasksToDelete = [taskId, ...childTaskIds];
+    
+    console.log(`Deleting task ${taskId} with ${childTaskIds.length} children`);
+    
+    // Delete all tasks in one operation
+    const { error: deleteError } = await supabase
+      .from('tasks')
+      .delete()
+      .in('id', allTasksToDelete);
+    
+    if (deleteError) {
+      console.error('Error deleting tasks:', deleteError);
+      return { success: false, error: deleteError.message || 'Failed to delete tasks' };
+    }
+    
+    console.log('Tasks deleted successfully:', allTasksToDelete);
+    return { success: true, deletedIds: allTasksToDelete };
+  } catch (err) {
+    console.error('Error deleting task with children:', err);
+    return { success: false, error: err.message || 'Unknown error occurred' };
+  }
+};

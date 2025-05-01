@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
-import { fetchAllTasks, createTask } from '../../services/taskService';
+import { fetchAllTasks, createTask, deleteTask as deleteTaskService } from '../../services/taskService';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationProvider';
 import { useLocation } from 'react-router-dom';
@@ -187,7 +187,51 @@ export const TaskProvider = ({ children }) => {
     }
   }, [user?.id, organizationId, userHasProjects]);
   
-  // Update tasks state safely - FIX HERE
+  // Delete a task and its children
+  const deleteTask = useCallback(async (taskId, deleteChildren = true) => {
+    try {
+      // Find the task
+      const taskToDelete = tasks.find(t => t.id === taskId);
+      if (!taskToDelete) {
+        throw new Error('Task not found');
+      }
+      
+      console.log(`Deleting task ${taskId} (with children: ${deleteChildren})`);
+      
+      // Call service function to delete the task and its children
+      const result = await deleteTaskService(taskId, deleteChildren);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      // Remove all deleted tasks from local state
+      if (result.deletedIds && Array.isArray(result.deletedIds)) {
+        // Update all task arrays
+        setTasks(prev => prev.filter(task => !result.deletedIds.includes(task.id)));
+        setInstanceTasks(prev => prev.filter(task => !result.deletedIds.includes(task.id)));
+        setTemplateTasks(prev => prev.filter(task => !result.deletedIds.includes(task.id)));
+        
+        console.log(`Deleted ${result.deletedIds.length} tasks`);
+        
+        // If this was a top-level project, refresh project creation ability
+        if (!taskToDelete.parent_task_id) {
+          checkProjectCreationAbility();
+        }
+      }
+      
+      return { 
+        success: true, 
+        deletedIds: result.deletedIds,
+        hasChildren: result.deletedIds && result.deletedIds.length > 1
+      };
+    } catch (err) {
+      console.error('Error deleting task:', err);
+      return { success: false, error: err.message };
+    }
+  }, [tasks]);
+  
+  // Update tasks state safely
   const updateTasks = useCallback((newTasks) => {
     // Ensure newTasks is an array
     if (!Array.isArray(newTasks)) {
@@ -354,7 +398,7 @@ export const TaskProvider = ({ children }) => {
   
   // Create the context value
   const contextValue = {
-    // Original task context values
+    // Task management
     tasks,
     instanceTasks,
     templateTasks,
@@ -364,8 +408,9 @@ export const TaskProvider = ({ children }) => {
     fetchTasks,
     setTasks: updateTasks,
     createTask: createNewTask,
+    deleteTask, // Add deleteTask to the context value
     
-    // License system values
+    // License system
     canCreateProject,
     projectLimitReason,
     userLicenses,
