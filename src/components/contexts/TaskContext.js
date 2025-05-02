@@ -1,5 +1,4 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
-import { fetchAllTasks, createTask, deleteTask as deleteTaskService } from '../../services/taskService';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationProvider';
 import { useLocation } from 'react-router-dom';
@@ -10,6 +9,9 @@ import {
   markLicenseAsUsed,
   checkUserExistingProjects,
 } from '../../services/licenseService';
+
+// Import the taskService hook instead of individual functions
+import { useTaskService } from '../../services/taskService';
 
 // Create a context for tasks
 const TaskContext = createContext();
@@ -29,6 +31,9 @@ export const TaskProvider = ({ children }) => {
   const { organization, organizationId, loading: orgLoading } = useOrganization();
   const location = useLocation();
   
+  // Use the taskService hook to get reconnection-capable functions
+  const taskService = useTaskService();
+  
   // State for tasks
   const [tasks, setTasks] = useState([]);
   const [instanceTasks, setInstanceTasks] = useState([]);
@@ -37,6 +42,10 @@ export const TaskProvider = ({ children }) => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
+  
+  // Template management state
+  const [addingTemplateToId, setAddingTemplateToId] = useState(null);
+  const [isAddingTopLevelTemplate, setIsAddingTopLevelTemplate] = useState(false);
   
   // License system state
   const [canCreateProject, setCanCreateProject] = useState(false);
@@ -48,7 +57,6 @@ export const TaskProvider = ({ children }) => {
   
   // Refs for tracking state without triggering re-renders
   const initialFetchDoneRef = useRef(false);
-  const lastActivityTimeRef = useRef(Date.now());
   
   // Fetch all tasks (both instances and templates)
   const fetchTasks = useCallback(async (forceRefresh = false) => {
@@ -69,11 +77,12 @@ export const TaskProvider = ({ children }) => {
       
       console.log('Fetching tasks with params:', { organizationId, userId: user.id });
       
+      // Use the taskService functions from the hook
       // Fetch instance tasks - filter by user AND organization
-      const instanceResult = await fetchAllTasks(organizationId, user.id, 'instance');
+      const instanceResult = await taskService.fetchAllTasks(organizationId, user.id, 'instance');
       
       // Fetch template tasks - filter by organization only (not by user)
-      const templateResult = await fetchAllTasks(organizationId, null, 'template');
+      const templateResult = await taskService.fetchAllTasks(organizationId, null, 'template');
       
       const instanceData = instanceResult.data || [];
       const templateData = templateResult.data || [];
@@ -118,7 +127,7 @@ export const TaskProvider = ({ children }) => {
       setIsFetching(false);
       setInitialLoading(false);
     }
-  }, [organizationId, user?.id, instanceTasks, templateTasks]);
+  }, [organizationId, user?.id, instanceTasks, templateTasks, taskService]);
   
   // Create a new task
   const createNewTask = useCallback(async (taskData, licenseId = null) => {
@@ -135,8 +144,6 @@ export const TaskProvider = ({ children }) => {
       
       // For top-level projects, check if the user already has projects
       if (isTopLevelProject) {
-        // const hasProjects = await checkForExistingProjects();
-
         // If user has projects but no license is provided, block creation
         if (userHasProjects && !licenseId) {
           throw new Error('You already have a project. Please provide a license key to create additional projects.');
@@ -153,8 +160,8 @@ export const TaskProvider = ({ children }) => {
       
       console.log('Enhanced task data:', enhancedTaskData);
       
-      // Call the service function
-      const result = await createTask(enhancedTaskData, licenseId);
+      // Use the taskService createTask function
+      const result = await taskService.createTask(enhancedTaskData);
       
       if (result.error) {
         console.error('Error from createTask API:', result.error);
@@ -178,6 +185,10 @@ export const TaskProvider = ({ children }) => {
         if (isTopLevelProject) {
           checkProjectCreationAbility();
         }
+        
+        // Reset template creation state
+        setAddingTemplateToId(null);
+        setIsAddingTopLevelTemplate(false);
       }
       
       return { data: result.data, error: null };
@@ -185,7 +196,63 @@ export const TaskProvider = ({ children }) => {
       console.error('Error creating task:', err);
       return { data: null, error: err.message };
     }
-  }, [user?.id, organizationId, userHasProjects]);
+  }, [user?.id, organizationId, userHasProjects, taskService]);
+  
+  // Template-specific functions
+  
+  // Handle adding a template (either top-level or child)
+  const handleAddTemplate = useCallback((parentId = null) => {
+    if (parentId) {
+      setAddingTemplateToId(parentId);
+      setIsAddingTopLevelTemplate(false);
+    } else {
+      setIsAddingTopLevelTemplate(true);
+      setAddingTemplateToId(null);
+    }
+  }, []);
+  
+  // Cancel adding a template
+  const cancelAddTemplate = useCallback(() => {
+    setAddingTemplateToId(null);
+    setIsAddingTopLevelTemplate(false);
+  }, []);
+  
+  // Create a template with proper position calculation
+  const createTemplate = useCallback(async (templateData) => {
+    try {
+      console.log("Creating template with data:", JSON.stringify(templateData, null, 2));
+      
+      // Determine position for new template
+      let position = 0;
+      
+      if (templateData.parent_task_id) {
+        const siblingTemplates = templateTasks.filter(t => 
+          t.parent_task_id === templateData.parent_task_id
+        );
+        position = siblingTemplates.length > 0 
+          ? Math.max(...siblingTemplates.map(t => t.position || 0)) + 1 
+          : 0;
+      } else {
+        const topLevelTemplates = templateTasks.filter(t => !t.parent_task_id);
+        position = topLevelTemplates.length > 0 
+          ? Math.max(...topLevelTemplates.map(t => t.position || 0)) + 1 
+          : 0;
+      }
+      
+      // Add position and origin to template data
+      const enhancedTemplateData = {
+        ...templateData,
+        position,
+        origin: 'template'
+      };
+      
+      // Call create task function
+      return await createNewTask(enhancedTemplateData);
+    } catch (err) {
+      console.error('Error creating template:', err);
+      return { error: err.message };
+    }
+  }, [templateTasks, createNewTask]);
   
   // Delete a task and its children
   const deleteTask = useCallback(async (taskId, deleteChildren = true) => {
@@ -198,8 +265,8 @@ export const TaskProvider = ({ children }) => {
       
       console.log(`Deleting task ${taskId} (with children: ${deleteChildren})`);
       
-      // Call service function to delete the task and its children
-      const result = await deleteTaskService(taskId, deleteChildren);
+      // Use the taskService deleteTask function
+      const result = await taskService.deleteTask(taskId, deleteChildren);
       
       if (!result.success) {
         throw new Error(result.error);
@@ -229,7 +296,22 @@ export const TaskProvider = ({ children }) => {
       console.error('Error deleting task:', err);
       return { success: false, error: err.message };
     }
-  }, [tasks]);
+  }, [tasks, taskService]);
+  
+  // Update task position
+  const updateTaskPosition = useCallback(async (taskId, parentId, position) => {
+    return await taskService.updateTaskPosition(taskId, parentId, position);
+  }, [taskService]);
+  
+  // Update sibling positions
+  const updateSiblingPositions = useCallback(async (tasks) => {
+    return await taskService.updateSiblingPositions(tasks);
+  }, [taskService]);
+  
+  // Update task completion status
+  const updateTaskCompletion = useCallback(async (taskId, currentStatus) => {
+    return await taskService.updateTaskCompletion(taskId, currentStatus);
+  }, [taskService]);
   
   // Update tasks state safely
   const updateTasks = useCallback((newTasks) => {
@@ -289,7 +371,7 @@ export const TaskProvider = ({ children }) => {
     
     try {
       const { hasProjects } = await checkUserExistingProjects(user.id);
-      setUserHasProjects(hasProjects); // Add this state variable to the context
+      setUserHasProjects(hasProjects);
       return hasProjects;
     } catch (error) {
       console.error('Error checking for existing projects:', error);
@@ -303,7 +385,7 @@ export const TaskProvider = ({ children }) => {
     
     try {
       console.log("Fetching user licenses");
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('licenses')
         .select('*')
         .eq('user_id', user.id)
@@ -408,7 +490,18 @@ export const TaskProvider = ({ children }) => {
     fetchTasks,
     setTasks: updateTasks,
     createTask: createNewTask,
-    deleteTask, // Add deleteTask to the context value
+    deleteTask,
+    // Expose additional task service functions directly
+    updateTaskPosition,
+    updateSiblingPositions,
+    updateTaskCompletion,
+    
+    // Template management
+    addingTemplateToId,
+    isAddingTopLevelTemplate,
+    handleAddTemplate,
+    cancelAddTemplate,
+    createTemplate,
     
     // License system
     canCreateProject,

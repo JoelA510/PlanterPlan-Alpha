@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TemplateItem from './TemplateItem';
 import TaskDropZone from '../TaskList/TaskDropZone';
+import TaskForm from '../TaskForm/TaskForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { useTasks } from '../contexts/TaskContext';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import '../TaskList/TaskList.css';
 
 const TemplateList = () => {
-  // Use the tasks context
+  // Use the tasks context with enhanced template functionality
   const { 
     templateTasks: tasks, 
     loading, 
@@ -15,7 +16,11 @@ const TemplateList = () => {
     error, 
     fetchTasks, 
     setTasks,
-    createTask
+    addingTemplateToId,
+    isAddingTopLevelTemplate,
+    handleAddTemplate,
+    cancelAddTemplate,
+    createTemplate,
   } = useTasks();
   
   const isMountedRef = useRef(true);
@@ -54,13 +59,38 @@ const TemplateList = () => {
   // Initialize drag and drop
   const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTasks);
   
+  // Handle task form submission
+  const handleTaskFormSubmit = async (taskData) => {
+    try {
+      const result = await createTemplate(taskData);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Expand the parent task to show the new child
+      if (taskData.parent_task_id) {
+        setExpandedTasks(prev => ({
+          ...prev,
+          [taskData.parent_task_id]: true
+        }));
+      }
+      
+      return result;
+    } catch (err) {
+      console.error('Error adding template:', err);
+      alert(`Failed to create template: ${err.message}`);
+      return { error: err.message };
+    }
+  };
+  
   // Render top-level tasks (templates) with spacing between them
   const renderTopLevelTemplates = () => {
     const topLevelTasks = tasks
       .filter(task => !task.parent_task_id)
       .sort((a, b) => (a.position || 0) - (b.position || 0));
     
-    if (topLevelTasks.length === 0) {
+    if (topLevelTasks.length === 0 && !isAddingTopLevelTemplate) {
       return (
         <div style={{
           textAlign: 'center',
@@ -88,6 +118,7 @@ const TemplateList = () => {
           selectTask={selectTask}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
+          onAddTask={handleAddTemplate}
         />
       );
       
@@ -108,8 +139,41 @@ const TemplateList = () => {
     return taskElements;
   };
   
-  // Render the details panel for the selected template
-  const renderTemplateDetailsPanel = () => {
+  // Render the right panel content (task details or task form)
+  const renderRightPanel = () => {
+    // If we're adding a top-level template
+    if (isAddingTopLevelTemplate) {
+      return (
+        <TaskForm
+          parentTaskId={null}
+          onSubmit={handleTaskFormSubmit}
+          onCancel={cancelAddTemplate}
+          backgroundColor="#3b82f6"
+          originType="template"
+        />
+      );
+    }
+    
+    // If we're adding a child task
+    if (addingTemplateToId) {
+      const parentTask = tasks.find(t => t.id === addingTemplateToId);
+      if (!parentTask) return null;
+      
+      const level = getTaskLevel(parentTask, tasks);
+      const backgroundColor = getBackgroundColor(level);
+      
+      return (
+        <TaskForm
+          parentTaskId={addingTemplateToId}
+          onSubmit={handleTaskFormSubmit}
+          onCancel={cancelAddTemplate}
+          backgroundColor={backgroundColor}
+          originType="template"
+        />
+      );
+    }
+    
+    // If there's no selected task, show the empty state
     if (!selectedTask) {
       return (
         <div className="empty-details-panel" style={{
@@ -232,6 +296,45 @@ const TemplateList = () => {
               }
             </ul>
           </div>
+          
+          {/* Add child template button in details panel */}
+          <div className="detail-row" style={{ marginTop: '24px' }}>
+            <button
+              onClick={() => handleAddTemplate(selectedTask.id)}
+              style={{
+                backgroundColor: '#10b981',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%'
+              }}
+            >
+              <span style={{ marginRight: '8px' }}>Add Child Template</span>
+              <span>+</span>
+            </button>
+          </div>
+          
+          <div className="detail-row" style={{ marginTop: '16px' }}>
+            <button
+              onClick={() => alert(`Create project from template: ${selectedTask.title}`)}
+              style={{
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                border: 'none',
+                width: '100%'
+              }}
+            >
+              Use as Project
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -254,7 +357,7 @@ const TemplateList = () => {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Templates</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
-              onClick={() => alert('Create new template functionality would go here')}
+              onClick={() => handleAddTemplate(null)}
               style={{
                 backgroundColor: '#10b981',
                 color: 'white',
@@ -298,26 +401,20 @@ const TemplateList = () => {
           }}>
             {error}
           </div>
-        ) : tasks.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '32px',
-            color: '#6b7280'
-          }}>
-            No templates found. Create your first template to get started!
-          </div>
         ) : (
-          <div>{renderTopLevelTemplates()}</div>
+          <div>
+            {renderTopLevelTemplates()}
+          </div>
         )}
       </div>
       
-      {/* Right panel - Template details */}
+      {/* Right panel - Template details or task form */}
       <div style={{ 
         flex: '1 1 40%', 
         minWidth: '300px',
         maxWidth: '500px'
       }}>
-        {renderTemplateDetailsPanel()}
+        {renderRightPanel()}
       </div>
     </div>
   );

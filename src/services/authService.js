@@ -106,34 +106,60 @@ export const getCurrentSession = async () => {
  * Get current user with profile data
  */
 export const getCurrentUser = async () => {
+  console.log("START: getCurrentUser function called"); // Entry point
   try {
     // Get auth user
+    console.log("STEP 1: About to call supabase.auth.getUser()");
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError) throw userError;
-    if (!user) return { user: null };
-
+    console.log("STEP 2: supabase.auth.getUser() completed", { 
+      userExists: !!user, 
+      errorExists: !!userError 
+    });
+    
+    if (userError) {
+      console.log("ERROR in auth.getUser():", userError);
+      throw userError;
+    }
+    
+    if (!user) {
+      console.log("No user found, returning { user: null }");
+      return { user: null };
+    }
+    
+    console.log("STEP 3: About to query users table for profile data", { userId: user.id });
     // Get profile data from users table
     const { data: profileData, error: profileError } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single();
+    
+    console.log("STEP 4: Profile query completed", { 
+      profileExists: !!profileData, 
+      errorExists: !!profileError,
+      errorCode: profileError ? profileError.code : null
+    });
 
-    if (profileError && profileError.code !== 'PGRST116') throw profileError;
-
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.log("ERROR in profile query:", profileError);
+      throw profileError;
+    }
+    
     // Combine auth user and profile data
-    return { 
+    console.log("STEP 5: Creating combined user object");
+    const combinedUser = {
       user: {
         ...user,
         profile: profileData || {}
       }
     };
+    console.log("END: getCurrentUser function returning success");
+    return combinedUser;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    console.error('ERROR: Exception in getCurrentUser:', error);
     return { error };
   }
 };
-
 /**
  * Request password reset email
  */
