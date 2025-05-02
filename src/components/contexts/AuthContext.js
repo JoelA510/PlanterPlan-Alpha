@@ -1,4 +1,4 @@
-/ src/context/AuthContext.js
+// src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabaseClient';
 import { getCurrentUser } from '../../services/authService';
@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
       // Set up auth state change listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log(Auth event: ${event});
+          // console.log("Auth event: ${event}");
           setSession(session);
 
           if (session) {
