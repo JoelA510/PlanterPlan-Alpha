@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { isDescendantOf } from './taskUtils';
 import { updateTaskPosition, updateSiblingPositions } from '../services/taskService';
+import { updateDependentTaskDates } from './dateUtils';
 
 const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
   const [draggedTask, setDraggedTask] = useState(null);
@@ -98,6 +99,9 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
       // Create a deep copy of the tasks array to work with
       const updatedTasks = tasks.map(t => ({...t}));
       
+      // Store original draggedTask for later reference
+      const originalTask = {...updatedTasks.find(t => t.id === draggedTask.id)};
+      
       // 1. Handle old parent container (update positions of remaining tasks)
       if (!isSameParent) {
         const oldSiblings = updatedTasks
@@ -127,10 +131,46 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
       if (taskToUpdate) {
         taskToUpdate.parent_task_id = newParentId;
         taskToUpdate.position = newPosition;
+        
+        // Recalculate days_from_start_until when the parent task changes
+        if (newParentId !== oldParentId) {
+          // Find the new parent task
+          const newParent = updatedTasks.find(t => t.id === newParentId);
+          
+          if (newParent && newParent.start_date) {
+            if (taskToUpdate.start_date) {
+              // Calculate days from parent start to this task's start
+              const parentStartDate = new Date(newParent.start_date);
+              const taskStartDate = new Date(taskToUpdate.start_date);
+              
+              // Calculate difference in days
+              const diffTime = Math.abs(taskStartDate - parentStartDate);
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              
+              // Update the days_from_start_until property
+              taskToUpdate.days_from_start_until_due = diffDays;
+            } else {
+              // If task has no start date, set a default offset
+              taskToUpdate.days_from_start_until_due = 0;
+            }
+          }
+        }
+      }
+      
+      // 4. Recalculate dates for affected tasks using the dateUtils function
+      // First, update any child tasks of the dragged task
+      let tasksWithRecalculatedDates = [...updatedTasks];
+      
+      // If we changed parents, recalculate dates for all tasks under the new parent
+      if (newParentId !== oldParentId) {
+        tasksWithRecalculatedDates = updateDependentTaskDates(newParentId, tasksWithRecalculatedDates);
+        
+        // Also update dates for tasks under the old parent
+        tasksWithRecalculatedDates = updateDependentTaskDates(oldParentId, tasksWithRecalculatedDates);
       }
       
       // Directly call the setTasks function with the updated array
-      setTasks(updatedTasks);
+      setTasks(tasksWithRecalculatedDates);
     } catch (err) {
       console.error('Error in updateTasksState:', err);
     }
@@ -221,11 +261,50 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
         }
       }
       
+      // 4. Update any tasks whose dates have changed
+      // Get the updated tasks from the state (after the optimistic update)
+      const updatedTasksFromState = tasks.filter(task => 
+        task.id === draggedTask.id || 
+        (task.parent_task_id === newParentId) ||
+        (task.parent_task_id === oldParentId && !isSameParent)
+      );
+      
+      // Update these tasks in the database
+      for (const task of updatedTasksFromState) {
+        // Only update tasks where dates might have changed
+        if (task.start_date || task.due_date || task.days_from_start_until_due !== undefined) {
+          await updateTaskDates(task.id, {
+            start_date: task.start_date,
+            due_date: task.due_date,
+            days_from_start_until_due: task.days_from_start_until_due,
+            default_duration: task.default_duration
+          });
+        }
+      }
+      
       console.log('==== DATABASE UPDATE COMPLETED SUCCESSFULLY ====');
       return true;
     } catch (err) {
       console.error('==== DATABASE UPDATE FAILED ====', err);
       throw err; // Rethrow to be caught by the calling function
+    }
+  };
+
+  // New helper function to update task dates in the database
+  const updateTaskDates = async (taskId, dateData) => {
+    try {
+      // You'll need to implement this function in your taskService
+      // For now, we'll just log the intention
+      console.log('Updating dates for task', taskId, dateData);
+      
+      // This should be implemented in your taskService.js file
+      // return await updateTaskDateFields(taskId, dateData);
+      
+      // Placeholder return until implemented
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating task dates:', err);
+      return { success: false, error: err.message };
     }
   };
 

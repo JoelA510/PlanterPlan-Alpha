@@ -23,11 +23,11 @@ const TaskList = () => {
     fetchTasks, 
     setTasks,
     createTask,
-    userLicenses,
+    // userLicenses,
     selectedLicenseId,
     isCheckingLicense,
-    fetchUserLicenses,
-    getSelectedLicense,
+    // fetchUserLicenses,
+    // getSelectedLicense,
     userHasProjects,
   } = useTasks();
   

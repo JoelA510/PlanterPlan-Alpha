@@ -808,3 +808,56 @@ export const deleteTaskWithChildren = async (taskId) => {
     return { success: false, error: err.message || 'Unknown error occurred' };
   }
 };
+
+/**
+ * Update task date fields in the database
+ * @param {string} taskId - The ID of the task to update
+ * @param {Object} dateData - Object containing date fields to update (start_date, due_date, etc.)
+ * @returns {Promise<{success: boolean, error: string|null, data: Object}>} Result of the update
+ */
+export const updateTaskDateFields = async (taskId, dateData) => {
+  try {
+    console.log('Updating task date fields:', { taskId, dateData });
+    
+    // Format dates for the database
+    const formattedData = {};
+    
+    if (dateData.start_date !== undefined) {
+      formattedData.start_date = dateData.start_date;
+    }
+    
+    if (dateData.due_date !== undefined) {
+      formattedData.due_date = dateData.due_date;
+    }
+    
+    if (dateData.days_from_start_until_due !== undefined) {
+      formattedData.days_from_start_until_due = dateData.days_from_start_until_due;
+    }
+    
+    if (dateData.default_duration !== undefined) {
+      formattedData.default_duration = dateData.default_duration;
+    }
+    
+    // Only proceed if we have data to update
+    if (Object.keys(formattedData).length === 0) {
+      return { success: true, message: 'No date fields to update' };
+    }
+    
+    // Update the task in Supabase
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(formattedData)
+      .eq('id', taskId)
+      .select();
+    
+    if (error) {
+      console.error('Supabase error updating task dates:', error);
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, data: data[0] };
+  } catch (err) {
+    console.error('Error updating task date fields:', err);
+    return { success: false, error: err.message };
+  }
+};

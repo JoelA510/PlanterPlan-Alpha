@@ -10,8 +10,23 @@ import {
   checkUserExistingProjects,
 } from '../../services/licenseService';
 
-// Import the taskService hook instead of individual functions
-import { useTaskService } from '../../services/taskService';
+// Import functions from taskService directly if you're not using useTaskService
+import { 
+  fetchAllTasks, 
+  createTask, 
+  updateTaskPosition, 
+  updateSiblingPositions, 
+  updateTaskCompletion,
+  deleteTask,
+  updateTaskDateFields 
+} from '../../services/taskService';
+
+// Import the date utility functions
+import { 
+  calculateDueDate,
+  calculateStartDate,
+  updateDependentTaskDates
+} from '../../utils/dateUtils';
 
 // Create a context for tasks
 const TaskContext = createContext();
@@ -30,9 +45,6 @@ export const TaskProvider = ({ children }) => {
   const { user, loading: userLoading } = useAuth();
   const { organization, organizationId, loading: orgLoading } = useOrganization();
   const location = useLocation();
-  
-  // Use the taskService hook to get reconnection-capable functions
-  const taskService = useTaskService();
   
   // State for tasks
   const [tasks, setTasks] = useState([]);
@@ -58,6 +70,33 @@ export const TaskProvider = ({ children }) => {
   // Refs for tracking state without triggering re-renders
   const initialFetchDoneRef = useRef(false);
   
+  // Update tasks state safely - DEFINE THIS FIRST since it's used by other functions
+  const updateTasks = useCallback((newTasks) => {
+    // Ensure newTasks is an array
+    if (!Array.isArray(newTasks)) {
+      console.error('updateTasks received non-array value:', newTasks);
+      return;
+    }
+
+    try {
+      // Group tasks by origin
+      const instance = newTasks.filter(task => task.origin === "instance");
+      const template = newTasks.filter(task => task.origin === "template");
+      
+      // Debug log
+      console.log('updateTasks called with', newTasks.length, 'tasks');
+      console.log('Instance tasks:', instance.length);
+      console.log('Template tasks:', template.length);
+
+      // Update all task states
+      setTasks(newTasks);
+      setInstanceTasks(instance);
+      setTemplateTasks(template);
+    } catch (err) {
+      console.error('Error in updateTasks:', err);
+    }
+  }, []);
+  
   // Fetch all tasks (both instances and templates)
   const fetchTasks = useCallback(async (forceRefresh = false) => {
     // Skip if already fetching or missing required IDs
@@ -77,12 +116,11 @@ export const TaskProvider = ({ children }) => {
       
       console.log('Fetching tasks with params:', { organizationId, userId: user.id });
       
-      // Use the taskService functions from the hook
       // Fetch instance tasks - filter by user AND organization
-      const instanceResult = await taskService.fetchAllTasks(organizationId, user.id, 'instance');
+      const instanceResult = await fetchAllTasks(organizationId, user.id, 'instance');
       
       // Fetch template tasks - filter by organization only (not by user)
-      const templateResult = await taskService.fetchAllTasks(organizationId, null, 'template');
+      const templateResult = await fetchAllTasks(organizationId, null, 'template');
       
       const instanceData = instanceResult.data || [];
       const templateData = templateResult.data || [];
@@ -114,8 +152,6 @@ export const TaskProvider = ({ children }) => {
       // Mark initial fetch as complete
       initialFetchDoneRef.current = true;
       
-      // Also check project creation ability after fetching tasks
-      checkProjectCreationAbility();
       
       return { instanceTasks: instanceData, templateTasks: templateData };
     } catch (err) {
@@ -127,9 +163,9 @@ export const TaskProvider = ({ children }) => {
       setIsFetching(false);
       setInitialLoading(false);
     }
-  }, [organizationId, user?.id, instanceTasks, templateTasks, taskService]);
+  }, [organizationId, user?.id, instanceTasks, templateTasks]);
   
-  // Create a new task
+  // Create a new task with date handling
   const createNewTask = useCallback(async (taskData, licenseId = null) => {
     try {
       console.log('Creating task with data:', taskData);
@@ -149,19 +185,62 @@ export const TaskProvider = ({ children }) => {
           throw new Error('You already have a project. Please provide a license key to create additional projects.');
         }
       }
-      // Enhance task data with necessary fields
-      const enhancedTaskData = {
+      
+      // Handle date calculations
+      let enhancedTaskData = {
         ...taskData,
         creator: user.id,
-        origin: taskData.origin || "instance", // Default to instance if not specified
-        white_label_id: organizationId, // Automatically add the white_label_id here
-        license_id: licenseId // Include license ID if provided
+        origin: taskData.origin || "instance",
+        white_label_id: organizationId,
+        license_id: licenseId
       };
+      
+      // If this is a child task and has days_from_start_until set
+      if (taskData.parent_task_id && taskData.days_from_start_until_due !== undefined) {
+        // Find the parent task
+        const parentTask = tasks.find(t => t.id === taskData.parent_task_id);
+        
+        if (parentTask && parentTask.start_date) {
+          // Calculate start date based on parent's start date and days_from_start_until
+          const calculatedStartDate = calculateStartDate(
+            parentTask.start_date,
+            taskData.days_from_start_until_due
+          );
+          
+          if (calculatedStartDate) {
+            // Format as ISO string for database
+            enhancedTaskData.start_date = calculatedStartDate.toISOString();
+            
+            // If task has a default_duration, calculate the due date
+            if (taskData.default_duration) {
+              const calculatedDueDate = calculateDueDate(
+                calculatedStartDate,
+                taskData.default_duration
+              );
+              
+              if (calculatedDueDate) {
+                enhancedTaskData.due_date = calculatedDueDate.toISOString();
+              }
+            }
+          }
+        }
+      }
+      // If this task has start_date and default_duration but no due_date
+      else if (taskData.start_date && taskData.default_duration && !taskData.due_date) {
+        const calculatedDueDate = calculateDueDate(
+          taskData.start_date,
+          taskData.default_duration
+        );
+        
+        if (calculatedDueDate) {
+          enhancedTaskData.due_date = calculatedDueDate.toISOString();
+        }
+      }
       
       console.log('Enhanced task data:', enhancedTaskData);
       
-      // Use the taskService createTask function
-      const result = await taskService.createTask(enhancedTaskData);
+      // Use the createTask function
+      const result = await createTask(enhancedTaskData);
       
       if (result.error) {
         console.error('Error from createTask API:', result.error);
@@ -181,10 +260,36 @@ export const TaskProvider = ({ children }) => {
         // Update the combined tasks list
         setTasks(prev => [...prev, result.data]);
         
-        // If this was a top-level project, refresh the project creation ability
-        if (isTopLevelProject) {
-          checkProjectCreationAbility();
+        // Update dates for child tasks if any dates changed in the parent
+        if (taskData.parent_task_id) {
+          // Update dates for all tasks under the parent
+          const updatedTasks = updateDependentTaskDates(
+            taskData.parent_task_id,
+            [...tasks, result.data]
+          );
+          
+          // Update all task arrays with the recalculated dates
+          updateTasks(updatedTasks);
+          
+          // Update affected tasks in database
+          for (const updatedTask of updatedTasks) {
+            // Skip the newly created task (already saved with correct dates)
+            if (updatedTask.id === result.data.id) continue;
+            
+            // Only update tasks with changed dates
+            const originalTask = tasks.find(t => t.id === updatedTask.id);
+            if (originalTask && (
+              originalTask.start_date !== updatedTask.start_date ||
+              originalTask.due_date !== updatedTask.due_date
+            )) {
+              await updateTaskDateFields(updatedTask.id, {
+                start_date: updatedTask.start_date,
+                due_date: updatedTask.due_date
+              });
+            }
+          }
         }
+        
         
         // Reset template creation state
         setAddingTemplateToId(null);
@@ -196,7 +301,84 @@ export const TaskProvider = ({ children }) => {
       console.error('Error creating task:', err);
       return { data: null, error: err.message };
     }
-  }, [user?.id, organizationId, userHasProjects, taskService]);
+  }, [user?.id, organizationId, userHasProjects, tasks, updateTasks]);
+  
+  // Update a task's date fields
+  const updateTaskDates = useCallback(async (taskId, dateData) => {
+    try {
+      console.log('Updating task dates:', taskId, dateData);
+      
+      // Find the task to update
+      const taskToUpdate = tasks.find(t => t.id === taskId);
+      if (!taskToUpdate) {
+        throw new Error('Task not found');
+      }
+      
+      // Calculate due date if start_date and default_duration are provided but due_date is not
+      let enhancedDateData = { ...dateData };
+      
+      if (dateData.start_date && dateData.default_duration && !dateData.due_date) {
+        const calculatedDueDate = calculateDueDate(
+          dateData.start_date,
+          dateData.default_duration
+        );
+        
+        if (calculatedDueDate) {
+          enhancedDateData.due_date = calculatedDueDate.toISOString();
+        }
+      }
+      
+      // Update the task in the database
+      const result = await updateTaskDateFields(taskId, enhancedDateData);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Update the task in local state
+      const updatedTask = { ...taskToUpdate, ...enhancedDateData };
+      
+      // Create updated task lists
+      const updatedTasks = tasks.map(t => t.id === taskId ? updatedTask : t);
+      
+      // If this task has children, we need to update their dates too
+      const hasChildren = tasks.some(t => t.parent_task_id === taskId);
+      
+      if (hasChildren) {
+        // Recalculate dates for all child tasks
+        const tasksWithUpdatedDates = updateDependentTaskDates(taskId, updatedTasks);
+        
+        // Update all tasks in the state
+        updateTasks(tasksWithUpdatedDates);
+        
+        // Update child tasks in database
+        const childTasks = tasksWithUpdatedDates.filter(t => t.parent_task_id === taskId);
+        
+        for (const childTask of childTasks) {
+          const originalChild = tasks.find(t => t.id === childTask.id);
+          
+          // Only update if dates actually changed
+          if (originalChild && (
+            originalChild.start_date !== childTask.start_date ||
+            originalChild.due_date !== childTask.due_date
+          )) {
+            await updateTaskDateFields(childTask.id, {
+              start_date: childTask.start_date,
+              due_date: childTask.due_date
+            });
+          }
+        }
+      } else {
+        // No children, just update this task
+        updateTasks(updatedTasks);
+      }
+      
+      return { success: true, data: updatedTask };
+    } catch (err) {
+      console.error('Error updating task dates:', err);
+      return { success: false, error: err.message };
+    }
+  }, [tasks, updateTasks]);
   
   // Template-specific functions
   
@@ -255,7 +437,7 @@ export const TaskProvider = ({ children }) => {
   }, [templateTasks, createNewTask]);
   
   // Delete a task and its children
-  const deleteTask = useCallback(async (taskId, deleteChildren = true) => {
+  const deleteTaskHandler = useCallback(async (taskId, deleteChildren = true) => {
     try {
       // Find the task
       const taskToDelete = tasks.find(t => t.id === taskId);
@@ -265,8 +447,11 @@ export const TaskProvider = ({ children }) => {
       
       console.log(`Deleting task ${taskId} (with children: ${deleteChildren})`);
       
-      // Use the taskService deleteTask function
-      const result = await taskService.deleteTask(taskId, deleteChildren);
+      // Store parent ID to update dates for siblings later
+      const parentId = taskToDelete.parent_task_id;
+      
+      // Use the deleteTask function
+      const result = await deleteTask(taskId, deleteChildren);
       
       if (!result.success) {
         throw new Error(result.error);
@@ -283,7 +468,34 @@ export const TaskProvider = ({ children }) => {
         
         // If this was a top-level project, refresh project creation ability
         if (!taskToDelete.parent_task_id) {
-          checkProjectCreationAbility();
+
+        }
+        // Otherwise, update sibling positions and dates
+        else if (parentId) {
+          // Get remaining siblings
+          const remainingSiblings = tasks
+            .filter(t => !result.deletedIds.includes(t.id))
+            .filter(t => t.parent_task_id === parentId)
+            .sort((a, b) => a.position - b.position);
+          
+          // Update sibling positions
+          if (remainingSiblings.length > 0) {
+            const updatedSiblings = remainingSiblings.map((task, index) => ({
+              id: task.id,
+              position: index
+            }));
+            
+            await updateSiblingPositions(updatedSiblings);
+            
+            // Also update dates for the parent's child tasks
+            const tasksWithUpdatedDates = updateDependentTaskDates(
+              parentId,
+              tasks.filter(t => !result.deletedIds.includes(t.id))
+            );
+            
+            // Update local state with new dates
+            updateTasks(tasksWithUpdatedDates);
+          }
         }
       }
       
@@ -296,76 +508,12 @@ export const TaskProvider = ({ children }) => {
       console.error('Error deleting task:', err);
       return { success: false, error: err.message };
     }
-  }, [tasks, taskService]);
-  
-  // Update task position
-  const updateTaskPosition = useCallback(async (taskId, parentId, position) => {
-    return await taskService.updateTaskPosition(taskId, parentId, position);
-  }, [taskService]);
-  
-  // Update sibling positions
-  const updateSiblingPositions = useCallback(async (tasks) => {
-    return await taskService.updateSiblingPositions(tasks);
-  }, [taskService]);
-  
-  // Update task completion status
-  const updateTaskCompletion = useCallback(async (taskId, currentStatus) => {
-    return await taskService.updateTaskCompletion(taskId, currentStatus);
-  }, [taskService]);
-  
-  // Update tasks state safely
-  const updateTasks = useCallback((newTasks) => {
-    // Ensure newTasks is an array
-    if (!Array.isArray(newTasks)) {
-      console.error('updateTasks received non-array value:', newTasks);
-      return;
-    }
-
-    try {
-      // Group tasks by origin
-      const instance = newTasks.filter(task => task.origin === "instance");
-      const template = newTasks.filter(task => task.origin === "template");
-      
-      // Debug log
-      console.log('updateTasks called with', newTasks.length, 'tasks');
-      console.log('Instance tasks:', instance.length);
-      console.log('Template tasks:', template.length);
-
-      // Update all task states
-      setTasks(newTasks);
-      setInstanceTasks(instance);
-      setTemplateTasks(template);
-    } catch (err) {
-      console.error('Error in updateTasks:', err);
-    }
-  }, []);
+  // }, [tasks, updateTasks, checkProjectCreationAbility]);
+  }, [tasks, updateTasks]);
   
   // License system functions
   
   // Check if user can create a new project
-  const checkProjectCreationAbility = useCallback(async () => {
-    if (!user?.id) return;
-    
-    try {
-      setIsCheckingLicense(true);
-      const result = await canUserCreateProject(user.id);
-      
-      setCanCreateProject(result.canCreate);
-      setProjectLimitReason(result.reason);
-      
-      if (result.licenses) {
-        // This only includes unused licenses, so we'll fetch all separately
-        fetchUserLicenses();
-      }
-    } catch (error) {
-      console.error('Error checking project creation ability:', error);
-      setCanCreateProject(false);
-      setProjectLimitReason('Error checking project creation ability');
-    } finally {
-      setIsCheckingLicense(false);
-    }
-  }, [user?.id]);
-
   const checkForExistingProjects = useCallback(async () => {
     if (!user?.id) return false;
     
@@ -458,11 +606,6 @@ export const TaskProvider = ({ children }) => {
     setSelectedLicenseId(licenseId);
   }, []);
   
-  // Get the currently selected license
-  const getSelectedLicense = useCallback(() => {
-    if (!selectedLicenseId) return null;
-    return userLicenses.find(license => license.id === selectedLicenseId);
-  }, [selectedLicenseId, userLicenses]);
   
   // Initial fetch when component mounts
   useEffect(() => {
@@ -472,11 +615,11 @@ export const TaskProvider = ({ children }) => {
     
     if (!initialFetchDoneRef.current && user?.id) {
       fetchTasks();
-      checkProjectCreationAbility();
-      fetchUserLicenses();
+      // fetchUserLicenses();
       checkForExistingProjects();
     }
-  }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks, checkProjectCreationAbility, fetchUserLicenses, checkForExistingProjects]);
+  // }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks, checkProjectCreationAbility, fetchUserLicenses, checkForExistingProjects]);
+  }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks, checkForExistingProjects]);
   
   // Create the context value
   const contextValue = {
@@ -490,7 +633,9 @@ export const TaskProvider = ({ children }) => {
     fetchTasks,
     setTasks: updateTasks,
     createTask: createNewTask,
-    deleteTask,
+    deleteTask: deleteTaskHandler,
+    // Date-specific functions
+    updateTaskDates,
     // Expose additional task service functions directly
     updateTaskPosition,
     updateSiblingPositions,
@@ -506,15 +651,14 @@ export const TaskProvider = ({ children }) => {
     // License system
     canCreateProject,
     projectLimitReason,
-    userLicenses,
+    // userLicenses,
     selectedLicenseId,
     userHasProjects,
     isCheckingLicense,
-    checkProjectCreationAbility,
     fetchUserLicenses,
     applyLicenseKey,
     selectLicense,
-    getSelectedLicense,
+    // getSelectedLicense,
   };
   
   return (

@@ -1,24 +1,30 @@
 // src/components/TaskForm.js
 import React from 'react';
 import { useTaskForm } from './useTaskForm';
+import { formatDate } from '../../utils/dateUtils';
 
 const TaskForm = ({ 
-  parentTaskId, 
+  parentTaskId,
+  parentStartDate,
   onSubmit, 
   onCancel, 
   backgroundColor,
-  originType = 'template' // Default to template, but can be overridden
+  originType = 'template', // Default to template, but can be overridden
+  initialData = null // For editing existing tasks
 }) => {
   const {
     formData,
     errors,
+    calculatedDueDate,
     handleChange,
+    handleDateChange,
     handleArrayChange,
     addArrayItem,
     removeArrayItem,
     validateForm,
-    prepareFormData
-  } = useTaskForm();
+    prepareFormData,
+    useDurationBasedScheduling
+  } = useTaskForm(initialData, parentStartDate);
   
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -37,7 +43,9 @@ const TaskForm = ({
   
   // Determine the header text based on origin type
   const getHeaderText = () => {
-    if (!parentTaskId) {
+    if (initialData) {
+      return 'Edit Task';
+    } else if (!parentTaskId) {
       return originType === 'template' ? 'Add Template' : 'Add Project';
     } else {
       return originType === 'template' ? 'Add Template Task' : 'Add Subtask';
@@ -114,6 +122,179 @@ const TaskForm = ({
           {errors.title && (
             <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
               {errors.title}
+            </p>
+          )}
+        </div>
+        
+        {/* Date scheduling section */}
+        <div style={{ 
+          marginBottom: '16px',
+          padding: '12px',
+          backgroundColor: '#f3f4f6',
+          borderRadius: '4px',
+        }}>
+          <h4 style={{ fontWeight: 'bold', marginTop: 0, marginBottom: '12px' }}>
+            Schedule
+          </h4>
+          
+          {/* Start date */}
+          <div style={{ marginBottom: '12px' }}>
+            <label 
+              htmlFor="start_date"
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              Start Date
+            </label>
+            <input
+              id="start_date"
+              name="start_date"
+              type="date"
+              value={formData.start_date}
+              onChange={handleDateChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                outline: 'none'
+              }}
+            />
+          </div>
+          
+          {/* When parent task exists, show days_from_start_until field */}
+          {parentTaskId && parentStartDate && (
+            <div style={{ marginBottom: '12px' }}>
+              <label 
+                htmlFor="days_from_start_until_due"
+                style={{ 
+                  display: 'block', 
+                  fontWeight: 'bold', 
+                  marginBottom: '4px' 
+                }}
+              >
+                Days After Parent Start
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  id="days_from_start_until_due"
+                  name="days_from_start_until_due"
+                  type="number"
+                  min="0"
+                  value={formData.days_from_start_until_due}
+                  onChange={handleChange}
+                  style={{
+                    width: '80px',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid #d1d5db',
+                    outline: 'none',
+                    marginRight: '8px'
+                  }}
+                />
+                <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                  Parent starts on: {formatDate(parentStartDate)}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {/* Duration field */}
+          <div style={{ marginBottom: '12px' }}>
+            <label 
+              htmlFor="default_duration"
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              Duration (days)
+            </label>
+            <input
+              id="default_duration"
+              name="default_duration"
+              type="number"
+              min="1"
+              value={formData.default_duration}
+              onChange={handleChange}
+              style={{
+                width: '80px',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                outline: 'none'
+              }}
+            />
+          </div>
+          
+          {/* Due date */}
+          <div style={{ marginBottom: '8px' }}>
+            <label 
+              htmlFor="due_date"
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px' 
+              }}
+            >
+              Due Date
+            </label>
+            <input
+              id="due_date"
+              name="due_date"
+              type="date"
+              value={formData.due_date}
+              onChange={handleDateChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                outline: 'none'
+              }}
+            />
+          </div>
+          
+          {/* Show calculated due date if available */}
+          {calculatedDueDate && !formData.due_date && (
+            <div style={{ 
+              marginBottom: '8px',
+              backgroundColor: '#dcfce7',
+              padding: '8px 12px',
+              borderRadius: '4px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>
+                Calculated Due Date: {formatDate(calculatedDueDate)}
+              </span>
+              <button
+                type="button"
+                onClick={useDurationBasedScheduling}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  backgroundColor: '#059669',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                Use This Date
+              </button>
+            </div>
+          )}
+          
+          {/* Date range error */}
+          {errors.date_range && (
+            <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+              {errors.date_range}
             </p>
           )}
         </div>
@@ -327,7 +508,7 @@ const TaskForm = ({
               cursor: 'pointer'
             }}
           >
-            Add Task
+            {initialData ? 'Update Task' : 'Add Task'}
           </button>
         </div>
       </form>

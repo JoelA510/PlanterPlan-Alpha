@@ -47,3 +47,67 @@ export const isDescendantOf = (potentialChild, potentialParentId, tasks) => {
 
   return false;
 };
+
+// Add to taskUtils.js or create a new dateUtils.js file
+export const calculateDueDate = (startDate, durationDays) => {
+  if (!startDate || !durationDays) return null;
+  
+  const dueDate = new Date(startDate);
+  dueDate.setDate(dueDate.getDate() + durationDays);
+  return dueDate;
+};
+
+export const calculateStartDate = (parentStartDate, position, siblingTasks) => {
+  // If no parent start date, this is a top-level task
+  if (!parentStartDate) return new Date();
+  
+  // Sort siblings by position
+  const sortedSiblings = [...siblingTasks].sort((a, b) => a.position - b.position);
+  
+  let startDate = new Date(parentStartDate);
+  
+  // Calculate start date based on position and previous siblings' durations
+  for (let i = 0; i < position; i++) {
+    if (i < sortedSiblings.length) {
+      const siblingDuration = sortedSiblings[i].default_duration || 1;
+      startDate.setDate(startDate.getDate() + siblingDuration);
+    }
+  }
+  
+  return startDate;
+};
+
+export const updateChildDates = (tasks, parentId, parentStartDate) => {
+  // Get direct children of this parent
+  const children = tasks
+    .filter(task => task.parent_task_id === parentId)
+    .sort((a, b) => a.position - b.position);
+  
+  // No children, nothing to update
+  if (children.length === 0) return tasks;
+  
+  let updatedTasks = [...tasks];
+  let currentDate = new Date(parentStartDate);
+  
+  // Update each child's dates
+  children.forEach(child => {
+    const startDate = new Date(currentDate);
+    const duration = child.default_duration || 1;
+    const dueDate = calculateDueDate(startDate, duration);
+    
+    // Update this child
+    updatedTasks = updatedTasks.map(task => 
+      task.id === child.id 
+        ? { ...task, start_date: startDate, due_date: dueDate } 
+        : task
+    );
+    
+    // Move date forward for next sibling
+    currentDate.setDate(currentDate.getDate() + duration);
+    
+    // Recursively update this child's children
+    updatedTasks = updateChildDates(updatedTasks, child.id, startDate);
+  });
+  
+  return updatedTasks;
+};
