@@ -1,93 +1,89 @@
-// src/context/AuthContext.js
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+// src/AuthContext.jsx
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '../../supabaseClient';
-import { getCurrentUser } from '../../services/authService';
 
-const AuthContext = createContext();
+const AuthContext = createContext()
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null);
+  const [userOrgId, setUserOrgId] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
+
+  // Fetch user information including role and white_label_org_id
+  const fetchUserInfo = useCallback(async (authUser) => {
+    if (!authUser) return;
+    
+    try {
+      // Get the user's details from the users table
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching user info:', error);
+        return;
+      }
+      
+      // Set the user's role and organization ID
+      setUserRole(data.role);
+      setUserOrgId(data.white_label_org_id);
+      setUserInfo(data);
+      console.log("fetchng user info");
+      console.log(user);
+      console.log(data);
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+    }
+  }, []);
 
   useEffect(() => {
-    // Get initial session and set up auth listener
-    async function setupAuth() {
-      setLoading(true);
-
-      // Get current session
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-
-      if (session) {
-        // Fetch user with profile data
-        const { user: userData, error } = await getCurrentUser();
-        if (!error && userData) {
-          setUser(userData);
+    // Check for an active session on mount
+    // Check for an active session on mount
+    const initAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log(user);
+        setUser(user);
+        
+        if (user) {
+          await fetchUserInfo(user);
         }
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // Set up auth state change listener
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          // console.log("Auth event: ${event}");
-          setSession(session);
+    initAuth();
 
-          if (session) {
-            const { user: userData } = await getCurrentUser();
-            console.log(userData.id);
-            setUser(userData);
-          } else {
-            setUser(null);
-          }
-        }
-      );
+    // Listen to auth state changes
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
 
-      setLoading(false);
-
-      // Clean up subscription on unmount
-      return () => {
-        subscription.unsubscribe();
-      };
+    return () => {
+      listener.subscription.unsubscribe()
     }
+  }, [])
 
-    setupAuth();
-  }, []); // No dependencies for initial setup
-
-  // Determine if user has a specific role
   const hasRole = useCallback((role) => {
     if (!user) return false;
     return user.profile?.role === role;
   }, [user]);
 
-  // Check if user is any type of admin
-  const isAdmin = useCallback(() => {
-    if (!user) return false;
-    return user.profile?.role === 'planterplan_admin' || user.profile?.role === 'white_label_admin';
-  }, [user]);
-
-  // Check if user belongs to a white label org
-  const isWhiteLabel = useCallback(() => {
-    if (!user) return false;
-    return user.profile?.role === 'white_label_user' || user.profile?.role === 'white_label_admin';
-  }, [user]);
-
-  const value = {
-    user,
-    session,
-    loading,
-    hasRole,
-    isAdmin,
-    isWhiteLabel
-  };
+  const value = { user, loading, hasRole, userRole, userInfo, userOrgId }
 
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
-  );
+  )
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
+// Custom hook for convenience
+export const useAuth = () => {
+  return useContext(AuthContext)
 }

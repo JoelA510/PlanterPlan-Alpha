@@ -10,7 +10,7 @@ const Layout = ({ userType }) => {
   const navigate = useNavigate();
   const { slug } = useParams(); // Get the org slug from URL if present
   const { organization, organizationId, loading: orgLoading } = useOrganization();
-  const { user } = useAuth();
+  const { user, userInfo } = useAuth();
   const isInOrgContext = !!organization;
   
   // Handle logout
@@ -143,9 +143,15 @@ const Layout = ({ userType }) => {
   };
   
   // Get user display name
+  // const getUserName = () => {
+  //   if (user && user.profile) {
+  //     return `${user.profile.first_name || ''} ${user.profile.last_name || ''}`;
+  //   }
+  //   return 'User';
+  // };
   const getUserName = () => {
-    if (user && user.profile) {
-      return `${user.profile.first_name || ''} ${user.profile.last_name || ''}`;
+    if (user && userInfo ) {
+      return `${userInfo.first_name || ''} ${userInfo.last_name || ''}`;
     }
     return 'User';
   };

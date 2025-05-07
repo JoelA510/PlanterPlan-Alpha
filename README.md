@@ -168,6 +168,11 @@ App
 
 
 ## Dev notes
+### May 7 2025
+* I think i fixed the Auth context
+  * I used chat gpt to do a simple auth and copied that into claude to add features and edits
+  * no longer getting stuck when you leave the tab and then come back (for now?)
+* next: need to update the uses of Auth context provider useAuth()
 ### April 17 2025
 * weird bug loading tasks after returning to tab occured again for user
   * Claude's fix: refresh if there is change in user id, org id,
