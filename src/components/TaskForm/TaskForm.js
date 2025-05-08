@@ -1,4 +1,6 @@
-// src/components/TaskForm.js
+// This is a complete implementation of the TaskForm component with array safeguards
+// Replace your existing TaskForm component with this version
+
 import React from 'react';
 import { useTaskForm } from './useTaskForm';
 import { formatDate } from '../../utils/dateUtils';
@@ -10,7 +12,8 @@ const TaskForm = ({
   onCancel, 
   backgroundColor,
   originType = 'template', // Default to template, but can be overridden
-  initialData = null // For editing existing tasks
+  initialData = null, // For editing existing tasks
+  isEditing = false  // Flag to indicate we're editing
 }) => {
   const {
     formData,
@@ -36,14 +39,16 @@ const TaskForm = ({
         ...cleanedData,
         parent_task_id: parentTaskId,
         origin: originType,
-        is_complete: false
+        is_complete: formData.is_complete !== undefined ? formData.is_complete : false
       });
     }
   };
   
-  // Determine the header text based on origin type
+  // Determine the header text based on origin type and whether we're editing
   const getHeaderText = () => {
-    if (initialData) {
+    if (isEditing) {
+      return 'Edit Task';
+    } else if (initialData) {
       return 'Edit Task';
     } else if (!parentTaskId) {
       return originType === 'template' ? 'Add Template' : 'Add Project';
@@ -51,6 +56,20 @@ const TaskForm = ({
       return originType === 'template' ? 'Add Template Task' : 'Add Subtask';
     }
   };
+  
+  // IMPORTANT: Safeguard arrays to prevent mapping errors
+  // These are fallbacks in case formData has issues
+  const safeActions = Array.isArray(formData.actions) ? formData.actions : [];
+  const safeResources = Array.isArray(formData.resources) ? formData.resources : [];
+  
+  // Add console logging to debug the form data
+  console.log('TaskForm rendering with data:', {
+    formData,
+    safeActions,
+    safeResources,
+    isEditing,
+    initialData: !!initialData
+  });
   
   return (
     <div style={{
@@ -109,7 +128,7 @@ const TaskForm = ({
             id="title"
             name="title"
             type="text"
-            value={formData.title}
+            value={formData.title || ''}
             onChange={handleChange}
             style={{
               width: '100%',
@@ -153,7 +172,7 @@ const TaskForm = ({
               id="start_date"
               name="start_date"
               type="date"
-              value={formData.start_date}
+              value={formData.start_date || ''}
               onChange={handleDateChange}
               style={{
                 width: '100%',
@@ -184,7 +203,7 @@ const TaskForm = ({
                   name="days_from_start_until_due"
                   type="number"
                   min="0"
-                  value={formData.days_from_start_until_due}
+                  value={formData.days_from_start_until_due || 0}
                   onChange={handleChange}
                   style={{
                     width: '80px',
@@ -219,7 +238,7 @@ const TaskForm = ({
               name="default_duration"
               type="number"
               min="1"
-              value={formData.default_duration}
+              value={formData.default_duration || 1}
               onChange={handleChange}
               style={{
                 width: '80px',
@@ -247,7 +266,7 @@ const TaskForm = ({
               id="due_date"
               name="due_date"
               type="date"
-              value={formData.due_date}
+              value={formData.due_date || ''}
               onChange={handleDateChange}
               style={{
                 width: '100%',
@@ -313,7 +332,7 @@ const TaskForm = ({
           <textarea
             id="purpose"
             name="purpose"
-            value={formData.purpose}
+            value={formData.purpose || ''}
             onChange={handleChange}
             rows={2}
             style={{
@@ -341,7 +360,7 @@ const TaskForm = ({
           <textarea
             id="description"
             name="description"
-            value={formData.description}
+            value={formData.description || ''}
             onChange={handleChange}
             rows={3}
             style={{
@@ -365,7 +384,7 @@ const TaskForm = ({
           >
             Actions
           </label>
-          {formData.actions.map((action, index) => (
+          {safeActions.map((action, index) => (
             <div key={`action-${index}`} style={{ 
               display: 'flex', 
               marginBottom: '8px',
@@ -373,7 +392,7 @@ const TaskForm = ({
             }}>
               <input
                 type="text"
-                value={action}
+                value={action || ''}
                 onChange={(e) => handleArrayChange('actions', index, e.target.value)}
                 style={{
                   flex: 1,
@@ -429,7 +448,7 @@ const TaskForm = ({
           >
             Resources
           </label>
-          {formData.resources.map((resource, index) => (
+          {safeResources.map((resource, index) => (
             <div key={`resource-${index}`} style={{ 
               display: 'flex', 
               marginBottom: '8px',
@@ -437,7 +456,7 @@ const TaskForm = ({
             }}>
               <input
                 type="text"
-                value={resource}
+                value={resource || ''}
                 onChange={(e) => handleArrayChange('resources', index, e.target.value)}
                 style={{
                   flex: 1,
@@ -508,7 +527,7 @@ const TaskForm = ({
               cursor: 'pointer'
             }}
           >
-            {initialData ? 'Update Task' : 'Add Task'}
+            {isEditing || initialData ? 'Update Task' : 'Add Task'}
           </button>
         </div>
       </form>

@@ -7,7 +7,7 @@ import NewProjectForm from '../TaskForm/NewProjectForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { useTasks } from '../contexts/TaskContext';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import { updateTaskCompletion, deleteTask } from '../../services/taskService';
+import { updateTaskCompletion, deleteTask, updateTaskComplete } from '../../services/taskService';
 import TaskDetailsPanel from './TaskDetailsPanel';
 
 const TaskList = () => {
@@ -29,6 +29,7 @@ const TaskList = () => {
     // fetchUserLicenses,
     // getSelectedLicense,
     userHasProjects,
+
   } = useTasks();
   
   // Local state
@@ -40,6 +41,10 @@ const TaskList = () => {
   const [projectLicenseId, setProjectLicenseId] = useState(null);
   // Add local loading state for the refresh button
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Refs for tracking state without triggering re-renders
+
+  
+  
 
   useEffect(() => {
     // Only fetch on initial mount to avoid redundant fetches
@@ -236,6 +241,7 @@ const TaskList = () => {
     setAddingChildToTaskId(null);
   };
 
+
   // Update the handleDeleteTask function in TaskList.js
 const handleDeleteTask = async (taskId) => {
   // Find the task to check if it has children
@@ -298,6 +304,43 @@ const handleDeleteTask = async (taskId) => {
     if (isMountedRef.current) {
       alert(`Failed to delete task: ${err.message}`);
     }
+  }
+};
+// Handle editing a task
+const handleEditTask = async (taskId, updatedTaskData) => {
+  try {
+    // Find the task to update
+    const taskToUpdate = tasks.find(t => t.id === taskId);
+    if (!taskToUpdate) {
+      throw new Error('Task not found');
+    }
+    
+    console.log('Updating task with data:', updatedTaskData);
+    
+    // Use the updateTaskComplete function from the service
+    const result = await updateTaskComplete(taskId, updatedTaskData);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update task');
+    }
+    
+    // Update the local state with the updated task
+    const updatedTasks = tasks.map(task => 
+      task.id === taskId ? { ...task, ...result.data } : task
+    );
+    
+    // Update local state
+    setTasks(updatedTasks);
+    
+    // Show success message
+    alert('Task updated successfully');
+    
+    // Optionally refresh tasks to ensure we have the latest data
+    await fetchTasks(true);
+    
+  } catch (err) {
+    console.error('Error updating task:', err);
+    alert(`Failed to update task: ${err.message}`);
   }
 };
   
@@ -414,8 +457,7 @@ const handleDeleteTask = async (taskId) => {
         />
       );
     }
-    
-    // Otherwise use the TaskDetailsPanel component
+    // Update this in the renderRightPanel function where the TaskDetailsPanel is returned
     return (
       <TaskDetailsPanel
         key={`${selectedTask.id}-${selectedTask.is_complete}`}
@@ -425,8 +467,10 @@ const handleDeleteTask = async (taskId) => {
         onClose={() => setSelectedTaskId(null)}
         onAddChildTask={handleAddChildTask}
         onDeleteTask={handleDeleteTask}
+        onEditTask={handleEditTask}
       />
     );
+    
   };
 
   return (

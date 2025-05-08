@@ -134,9 +134,9 @@ const Layout = ({ userType }) => {
   
   // Get user initials for avatar
   const getUserInitials = () => {
-    if (user && user.profile) {
-      const firstName = user.profile.first_name || '';
-      const lastName = user.profile.last_name || '';
+    if (user && userInfo) {
+      const firstName = userInfo.first_name || '';
+      const lastName = userInfo.last_name || '';
       return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
     }
     return 'U';

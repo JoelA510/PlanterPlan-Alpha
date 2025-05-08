@@ -1,4 +1,4 @@
-// src/hooks/useTaskForm.js
+// src/components/TaskForm/useTaskForm.js
 import { useState, useEffect } from 'react';
 import { calculateDueDate, isValidDateRange } from '../../utils/dateUtils';
 
@@ -9,7 +9,56 @@ import { calculateDueDate, isValidDateRange } from '../../utils/dateUtils';
  * @returns {Object} Form state and handlers
  */
 export const useTaskForm = (initialData = {}, parentStartDate = null) => {
-  // Set default values with any passed initialData
+  // Helper function to ensure array fields are properly formatted
+  const ensureArray = (value) => {
+    if (Array.isArray(value)) {
+      return value.length > 0 ? value : [''];
+    }
+    
+    if (value === undefined || value === null) {
+      return [''];
+    }
+    
+    // If it's a string, try to parse it as JSON (it might be a serialized array)
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? (parsed.length > 0 ? parsed : ['']) : [value];
+      } catch (e) {
+        // If parsing fails, treat it as a single item array
+        return [value];
+      }
+    }
+    
+    // For any other value, wrap it in an array
+    return [value];
+  };
+  
+  // Process initialData to ensure arrays are properly formatted
+  const processedInitialData = { ...initialData };
+  
+  // Log initial data for debugging
+  console.log('useTaskForm initialData:', initialData);
+  
+  // Ensure actions and resources are arrays
+  if (initialData) {
+    try {
+      processedInitialData.actions = ensureArray(initialData.actions);
+      processedInitialData.resources = ensureArray(initialData.resources);
+      
+      // Log the processed arrays
+      console.log('Processed arrays:', {
+        actions: processedInitialData.actions,
+        resources: processedInitialData.resources
+      });
+    } catch (e) {
+      console.error('Error processing arrays:', e);
+      processedInitialData.actions = [''];
+      processedInitialData.resources = [''];
+    }
+  }
+  
+  // Set default values with any processed initialData
   const [formData, setFormData] = useState({
     title: '',
     purpose: '',
@@ -20,11 +69,34 @@ export const useTaskForm = (initialData = {}, parentStartDate = null) => {
     days_from_start_until_due: 0,
     default_duration: 1,
     due_date: '',
-    ...initialData
+    ...processedInitialData
   });
   
   const [errors, setErrors] = useState({});
   const [calculatedDueDate, setCalculatedDueDate] = useState(null);
+  
+  // Force actions and resources to be arrays in case they weren't properly converted
+  useEffect(() => {
+    const updatedData = { ...formData };
+    let needsUpdate = false;
+    
+    if (!Array.isArray(updatedData.actions)) {
+      console.log('Fixing actions array:', updatedData.actions);
+      updatedData.actions = ensureArray(updatedData.actions);
+      needsUpdate = true;
+    }
+    
+    if (!Array.isArray(updatedData.resources)) {
+      console.log('Fixing resources array:', updatedData.resources);
+      updatedData.resources = ensureArray(updatedData.resources);
+      needsUpdate = true;
+    }
+    
+    if (needsUpdate) {
+      console.log('Updating form data with fixed arrays');
+      setFormData(updatedData);
+    }
+  }, []);
   
   // Calculate due date when start date or duration changes
   useEffect(() => {
@@ -113,7 +185,9 @@ export const useTaskForm = (initialData = {}, parentStartDate = null) => {
   
   const handleArrayChange = (type, index, value) => {
     setFormData(prev => {
-      const newArray = [...prev[type]];
+      // Make sure we're working with an array
+      const currentArray = Array.isArray(prev[type]) ? prev[type] : [''];
+      const newArray = [...currentArray];
       newArray[index] = value;
       return {
         ...prev,
@@ -123,15 +197,21 @@ export const useTaskForm = (initialData = {}, parentStartDate = null) => {
   };
   
   const addArrayItem = (type) => {
-    setFormData(prev => ({
-      ...prev,
-      [type]: [...prev[type], '']
-    }));
+    setFormData(prev => {
+      // Make sure we're working with an array
+      const currentArray = Array.isArray(prev[type]) ? prev[type] : [''];
+      return {
+        ...prev,
+        [type]: [...currentArray, '']
+      };
+    });
   };
   
   const removeArrayItem = (type, index) => {
     setFormData(prev => {
-      const newArray = [...prev[type]];
+      // Make sure we're working with an array
+      const currentArray = Array.isArray(prev[type]) ? prev[type] : [''];
+      const newArray = [...currentArray];
       newArray.splice(index, 1);
       return {
         ...prev,
@@ -143,7 +223,7 @@ export const useTaskForm = (initialData = {}, parentStartDate = null) => {
   const validateForm = (additionalValidation = () => ({})) => {
     const newErrors = {};
     
-    if (!formData.title.trim()) {
+    if (!formData.title?.trim()) {
       newErrors.title = 'Title is required';
     }
     
@@ -166,8 +246,12 @@ export const useTaskForm = (initialData = {}, parentStartDate = null) => {
     // Filter out empty array items before submitting
     const cleanedData = {
       ...formData,
-      actions: formData.actions.filter(item => item.trim() !== ''),
-      resources: formData.resources.filter(item => item.trim() !== '')
+      actions: Array.isArray(formData.actions) 
+        ? formData.actions.filter(item => item && item.trim() !== '') 
+        : [],
+      resources: Array.isArray(formData.resources) 
+        ? formData.resources.filter(item => item && item.trim() !== '') 
+        : []
     };
     
     // Process numeric fields

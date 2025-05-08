@@ -8,6 +8,7 @@ import {
   validateLicense,
   markLicenseAsUsed,
   checkUserExistingProjects,
+
 } from '../../services/licenseService';
 
 // Import functions from taskService directly if you're not using useTaskService
@@ -18,7 +19,8 @@ import {
   updateSiblingPositions, 
   updateTaskCompletion,
   deleteTask,
-  updateTaskDateFields 
+  updateTaskDateFields,
+  updateTaskComplete, 
 } from '../../services/taskService';
 
 // Import the date utility functions
@@ -27,6 +29,7 @@ import {
   calculateStartDate,
   updateDependentTaskDates
 } from '../../utils/dateUtils';
+
 
 // Create a context for tasks
 const TaskContext = createContext();
@@ -54,6 +57,7 @@ export const TaskProvider = ({ children }) => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
+  const isMountedRef = useRef(true);
   
   // Template management state
   const [addingTemplateToId, setAddingTemplateToId] = useState(null);
@@ -303,6 +307,46 @@ export const TaskProvider = ({ children }) => {
     }
   }, [user?.id, organizationId, userHasProjects, tasks, updateTasks]);
   
+// This should be placed INSIDE the TaskProvider component function, NOT at the top level
+const updateTaskHandler = async (taskId, updatedTaskData) => {
+  try {
+    // Call the updateTaskComplete service function
+    const result = await updateTaskComplete(taskId, updatedTaskData);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update task');
+    }
+    
+    // Update the state with the modified task
+    setTasks(prev => 
+      prev.map(task => 
+        task.id === taskId ? { ...task, ...result.data } : task
+      )
+    );
+    
+    // If the task has children, its date changes may affect them
+    if (result.data.start_date || result.data.due_date) {
+      const childTasks = tasks.filter(t => t.parent_task_id === taskId);
+      if (childTasks.length > 0) {
+        // Recalculate dates for all tasks under this parent
+        const tasksWithUpdatedDates = updateDependentTaskDates(
+          taskId,
+          tasks.map(t => t.id === taskId ? { ...t, ...result.data } : t)
+        );
+        
+        // Update all tasks with the recalculated dates
+        updateTasks(tasksWithUpdatedDates);
+      }
+    }
+    
+    return { success: true, data: result.data };
+  } catch (err) {
+    console.error('Error updating task:', err);
+    return { success: false, error: err.message };
+  }
+};  
+// Add the updateTa
+
   // Update a task's date fields
   const updateTaskDates = useCallback(async (taskId, dateData) => {
     try {
@@ -621,6 +665,16 @@ export const TaskProvider = ({ children }) => {
   // }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks, checkProjectCreationAbility, fetchUserLicenses, checkForExistingProjects]);
   }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks, checkForExistingProjects]);
   
+  useEffect(() => {
+    // Set the ref to true on mount
+    isMountedRef.current = true;
+    
+    // Clean up function to set ref to false on unmount
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Create the context value
   const contextValue = {
     // Task management
@@ -659,6 +713,10 @@ export const TaskProvider = ({ children }) => {
     applyLicenseKey,
     selectLicense,
     // getSelectedLicense,
+    setTasks: updateTasks,
+    createTask: createNewTask,
+    deleteTask: deleteTaskHandler,
+    updateTask: updateTaskHandler, 
   };
   
   return (

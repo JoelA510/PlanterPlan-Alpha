@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
+import TaskForm from '../TaskForm/TaskForm';
 
 /**
  * TaskDetailsPanel - Component for displaying task details
@@ -10,6 +11,7 @@ import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
  * @param {Function} props.onClose - Function to close the details panel
  * @param {Function} props.onAddChildTask - Function to add a child task
  * @param {Function} props.onDeleteTask - Function to delete the task
+ * @param {Function} props.onEditTask - Function to update the task after editing
  */
 const TaskDetailsPanel = ({
   task,
@@ -17,10 +19,13 @@ const TaskDetailsPanel = ({
   toggleTaskCompletion,
   onClose,
   onAddChildTask,
-  onDeleteTask
+  onDeleteTask,
+  onEditTask
 }) => {
   // Use local state to track completion status
   const [isComplete, setIsComplete] = useState(task?.is_complete || false);
+  // Add state for edit mode
+  const [isEditing, setIsEditing] = useState(false);
   
   // Update local state when the task prop changes
   useEffect(() => {
@@ -36,15 +41,66 @@ const TaskDetailsPanel = ({
       toggleTaskCompletion(task.id, isComplete, e);
     }
   };
+
+  // Handle edit button click
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  // Handle task update
+  const handleTaskUpdate = (updatedTaskData) => {
+    onEditTask(task.id, updatedTaskData);
+    setIsEditing(false);
+  };
   
   if (!task) return null;
   
   const level = getTaskLevel(task, tasks);
   const backgroundColor = getBackgroundColor(level);
+
+  // Find parent task for displaying parent-child relationships
+  const parentTask = task.parent_task_id ? tasks.find(t => t.id === task.parent_task_id) : null;
+  
+  // If in edit mode, show the task form
+  if (isEditing) {
+    return (
+      <TaskForm
+        initialData={task}
+        parentTaskId={task.parent_task_id}
+        parentStartDate={parentTask?.start_date}
+        onSubmit={handleTaskUpdate}
+        onCancel={handleCancelEdit}
+        backgroundColor={backgroundColor}
+        originType={task.origin}
+        isEditing={true}
+      />
+    );
+  }
   
   // Ensure arrays are valid
   const actions = Array.isArray(task.actions) ? task.actions : [];
   const resources = Array.isArray(task.resources) ? task.resources : [];
+  
+  // Format dates for display
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return 'Not set';
+    
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return 'Invalid date';
+    }
+  };
   
   return (
     <div className="task-details-panel" style={{
@@ -129,6 +185,7 @@ const TaskDetailsPanel = ({
       </div>
       
       <div className="details-content" style={{ padding: '16px' }}>
+        {/* Status section */}
         <div className="detail-row">
           <h4 style={{ fontWeight: 'bold', marginBottom: '4px' }}>Status:</h4>
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -148,7 +205,7 @@ const TaskDetailsPanel = ({
             {isComplete && (
               <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
                 <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
-                <span>Completed on {new Date().toLocaleDateString()}</span>
+                <span>Marked as completed</span>
               </div>
             )}
           </div>
@@ -171,9 +228,94 @@ const TaskDetailsPanel = ({
           </div>
         </div>
         
-        <div className="detail-row">
-          <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Due Date:</h4>
-          <p>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}</p>
+        {/* Enhanced date information section */}
+        <div className="date-info-section" style={{ 
+          backgroundColor: '#f0f9ff', 
+          borderRadius: '4px',
+          padding: '12px',
+          marginTop: '16px'
+        }}>
+          <h4 style={{ fontWeight: 'bold', marginBottom: '8px', marginTop: '0' }}>Task Schedule</h4>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {/* Start Date */}
+            <div>
+              <span style={{ fontSize: '12px', color: '#4b5563' }}>Start Date</span>
+              <p style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold', 
+                margin: '4px 0 0 0',
+                color: task.start_date ? '#000' : '#9ca3af'
+              }}>
+                {task.start_date ? formatDisplayDate(task.start_date) : 'Not set'}
+              </p>
+            </div>
+            
+            {/* Due Date */}
+            <div>
+              <span style={{ fontSize: '12px', color: '#4b5563' }}>Due Date</span>
+              <p style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold', 
+                margin: '4px 0 0 0',
+                color: task.due_date ? '#000' : '#9ca3af'
+              }}>
+                {task.due_date ? formatDisplayDate(task.due_date) : 'Not set'}
+              </p>
+            </div>
+            
+            {/* Duration */}
+            <div>
+              <span style={{ fontSize: '12px', color: '#4b5563' }}>Duration</span>
+              <p style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold', 
+                margin: '4px 0 0 0',
+                color: task.default_duration ? '#000' : '#9ca3af'
+              }}>
+                {task.default_duration ? `${task.default_duration} day${task.default_duration !== 1 ? 's' : ''}` : 'Not set'}
+              </p>
+            </div>
+            
+            {/* Days from Parent Start */}
+            {task.parent_task_id && (
+              <div>
+                <span style={{ fontSize: '12px', color: '#4b5563' }}>Days After Parent Start</span>
+                <p style={{ 
+                  fontSize: '14px', 
+                  fontWeight: 'bold', 
+                  margin: '4px 0 0 0',
+                  color: task.days_from_start_until_due ? '#000' : '#9ca3af'
+                }}>
+                  {task.days_from_start_until_due ? `${task.days_from_start_until_due} day${task.days_from_start_until_due !== 1 ? 's' : ''}` : 'Not set'}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {/* Parent task name if applicable */}
+          {parentTask && (
+            <div style={{ marginTop: '12px', fontSize: '14px' }}>
+              <span style={{ color: '#4b5563' }}>Parent Task: </span>
+              <span style={{ fontWeight: 'bold' }}>{parentTask.title}</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Created/Modified dates */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          fontSize: '12px', 
+          color: '#6b7280',
+          marginTop: '12px'
+        }}>
+          {task.created_at && (
+            <div>Created: {formatDisplayDate(task.created_at)}</div>
+          )}
+          {task.last_modified && (
+            <div>Last modified: {formatDisplayDate(task.last_modified)}</div>
+          )}
         </div>
         
         {/* Display license information for top-level projects */}
@@ -224,6 +366,26 @@ const TaskDetailsPanel = ({
           display: 'flex', 
           gap: '12px'
         }}>
+          {/* Edit Task Button */}
+          <button
+            onClick={handleEditClick}
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              border: 'none',
+              flex: '1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <span style={{ marginRight: '8px' }}>Edit Task</span>
+            <span>✎</span>
+          </button>
+          
           {/* Add Child Task button */}
           <button
             onClick={() => onAddChildTask(task.id)}
@@ -243,8 +405,12 @@ const TaskDetailsPanel = ({
             <span style={{ marginRight: '8px' }}>Add Child Task</span>
             <span>+</span>
           </button>
-          
-          {/* Delete Task button */}
+        </div>
+        
+        {/* Delete Task button - separate row */}
+        <div className="detail-row" style={{ 
+          marginTop: '12px'
+        }}>
           <button
             onClick={() => onDeleteTask(task.id)}
             style={{
@@ -254,12 +420,13 @@ const TaskDetailsPanel = ({
               borderRadius: '4px',
               cursor: 'pointer',
               border: 'none',
+              width: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}
           >
-            Delete
+            Delete Task
           </button>
         </div>
       </div>

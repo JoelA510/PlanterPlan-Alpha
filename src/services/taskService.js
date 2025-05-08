@@ -861,3 +861,165 @@ export const updateTaskDateFields = async (taskId, dateData) => {
     return { success: false, error: err.message };
   }
 };
+/**
+ * Updates an existing task with new data
+ * @param {string} taskId - The ID of the task to update
+ * @param {Object} taskData - Object containing fields to update
+ * @returns {Promise<{success: boolean, error: string|null, data: Object}>} Result of the update
+ */
+export const updateTask = async (taskId, taskData) => {
+  try {
+    console.log('Updating task:', { taskId, taskData });
+    
+    if (!taskId) {
+      return { success: false, error: 'Task ID is required' };
+    }
+    
+    // Extract only the updatable fields to avoid overwriting system fields
+    const updatableFields = [
+      'title', 
+      'description', 
+      'purpose', 
+      'actions', 
+      'resources',
+      'task_lead',
+      'marked_na',
+      'is_complete',
+      'published'
+    ];
+    
+    // Create an object with only the fields we want to update
+    const updateData = {};
+    
+    // Copy only valid fields from taskData to updateData
+    updatableFields.forEach(field => {
+      if (field in taskData) {
+        updateData[field] = taskData[field];
+      }
+    });
+    
+    // Add a modified timestamp
+    updateData.last_modified = new Date().toISOString();
+    
+    // Only proceed if we have data to update
+    if (Object.keys(updateData).length === 0) {
+      return { success: true, message: 'No fields to update' };
+    }
+    
+    // Update the task in Supabase
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', taskId)
+      .select();
+    
+    if (error) {
+      console.error('Supabase error updating task:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('Task updated successfully:', data);
+    return { success: true, data: data[0] };
+  } catch (err) {
+    console.error('Error updating task:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Updates a task with both content and date fields
+ * @param {string} taskId - The ID of the task to update
+ * @param {Object} taskData - Complete task data to update
+ * @returns {Promise<{success: boolean, error: string|null, data: Object}>} Result of the update
+ */
+export const updateTaskComplete = async (taskId, taskData) => {
+  try {
+    console.log('Performing complete task update:', { taskId });
+    
+    // Process array fields first - before any updates
+    const processedTaskData = processArrayFields(taskData);
+    console.log('Processed task data:', processedTaskData);
+    
+    // First, update date-specific fields
+    const dateFields = {
+      start_date: processedTaskData.start_date,
+      due_date: processedTaskData.due_date,
+      days_from_start_until_due: processedTaskData.days_from_start_until_due,
+      default_duration: processedTaskData.default_duration
+    };
+    
+    const dateResult = await updateTaskDateFields(taskId, dateFields);
+    
+    if (!dateResult.success) {
+      console.error('Error updating task date fields:', dateResult.error);
+      return dateResult;
+    }
+    
+    // Then update the remaining content fields
+    const contentResult = await updateTask(taskId, processedTaskData);
+    
+    if (!contentResult.success) {
+      console.error('Error updating task content:', contentResult.error);
+      return contentResult;
+    }
+    
+    // Merge the updated data
+    const updatedData = {
+      ...dateResult.data,
+      ...contentResult.data
+    };
+    
+    return { success: true, data: updatedData };
+  } catch (err) {
+    console.error('Error performing complete task update:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Ensures that array fields are properly formatted for the database
+ * @param {Object} taskData - Task data to process
+ * @returns {Object} - Processed task data with properly formatted arrays
+ */
+const processArrayFields = (taskData) => {
+  const result = { ...taskData };
+  
+  // Helper function to process a specific field
+  const processField = (fieldName) => {
+    if (fieldName in result) {
+      const value = result[fieldName];
+      
+      // Ensure field is an array
+      if (!Array.isArray(value)) {
+        if (typeof value === 'string') {
+          try {
+            // Try to parse as JSON
+            const parsed = JSON.parse(value);
+            result[fieldName] = Array.isArray(parsed) ? parsed : [value];
+          } catch (e) {
+            // If parsing fails, treat it as a single item array
+            result[fieldName] = [value];
+          }
+        } else if (value === null || value === undefined) {
+          // Handle null/undefined values
+          result[fieldName] = [];
+        } else {
+          // For any other value, wrap it in an array
+          result[fieldName] = [value];
+        }
+      }
+      
+      // Filter out empty strings if it's an array
+      if (Array.isArray(result[fieldName])) {
+        result[fieldName] = result[fieldName].filter(item => item !== '');
+      }
+    }
+  };
+  
+  // Process actions and resources fields
+  processField('actions');
+  processField('resources');
+  
+  return result;
+};
+
