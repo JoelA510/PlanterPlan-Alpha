@@ -9,6 +9,7 @@ import { useTasks } from '../contexts/TaskContext';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import { updateTaskCompletion, deleteTask, updateTaskComplete } from '../../services/taskService';
 import TaskDetailsPanel from './TaskDetailsPanel';
+import TemplateProjectCreator from '../TemplateProject/TemplateProjectCreator';
 
 const TaskList = () => {
   // Initialize refs first 
@@ -42,7 +43,8 @@ const TaskList = () => {
   // Add local loading state for the refresh button
   const [isRefreshing, setIsRefreshing] = useState(false);
   // Refs for tracking state without triggering re-renders
-
+  const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
+  const [showProjectMenu, setShowProjectMenu] = useState(false);
   
   
 
@@ -135,16 +137,21 @@ const TaskList = () => {
   };
   
   // Function to handle creating a new project
-  const handleCreateNewProject = () => {
-    // Prevent multiple clicks
-    if (isCreatingProject) return;
-    
-    // Start with no license ID selected for the new project
-    setProjectLicenseId(null);
-    setIsCreatingProject(true);
-    setSelectedTaskId(null);
-    setAddingChildToTaskId(null);
-  };
+  // Function to handle creating a new project
+const handleCreateNewProject = () => {
+  console.log('handleCreateNewProject: START');
+  
+  // Reset all states to make sure we're in a clean state
+  setIsCreatingFromTemplate(false);
+  setAddingChildToTaskId(null);
+  setSelectedTaskId(null);
+  
+  // Set creating project state
+  console.log('handleCreateNewProject: Setting isCreatingProject to true');
+  setIsCreatingProject(true);
+  console.log('handleCreateNewProject: END');
+};
+
 
   // Handle submit of new project
   const handleProjectCreated = async (projectData) => {
@@ -343,6 +350,60 @@ const handleEditTask = async (taskId, updatedTaskData) => {
     alert(`Failed to update task: ${err.message}`);
   }
 };
+  // Add a function to handle creating a project from template
+  const handleCreateFromTemplate = () => {
+    console.log('handleCreateFromTemplate: START');
+    
+    // Reset all states to make sure we're in a clean state
+    setIsCreatingProject(false);
+    setAddingChildToTaskId(null);
+    setSelectedTaskId(null);
+    
+    // Set creating from template state
+    console.log('handleCreateFromTemplate: Setting isCreatingFromTemplate to true');
+    setIsCreatingFromTemplate(true);
+    console.log('handleCreateFromTemplate: END');
+  };
+
+// Add a function to handle successful project creation from template
+const handleProjectFromTemplateCreated = async (projectData) => {
+  try {
+    console.log('Project created from template successfully:', projectData.id);
+    
+    // Refresh tasks to include the new project
+    await fetchTasks(true);
+    
+    // Select the new project
+    setSelectedTaskId(projectData.id);
+    
+    // Close the template creator
+    setIsCreatingFromTemplate(false);
+  } catch (err) {
+    console.error('Error handling project creation from template:', err);
+    if (isMountedRef.current) {
+      alert(`Error refreshing data: ${err.message}`);
+    }
+  }
+};
+
+// Add a function to handle cancelling project creation from template
+const handleCancelTemplateProjectCreation = () => {
+  setIsCreatingFromTemplate(false);
+};
+
+// Add a click outside handler for the dropdown
+// useEffect(() => {
+//   const handleClickOutside = (event) => {
+//     if (showProjectMenu) {
+//       setShowProjectMenu(false);
+//     }
+//   };
+  
+//   document.addEventListener('mousedown', handleClickOutside);
+//   return () => {
+//     document.removeEventListener('mousedown', handleClickOutside);
+//   };
+// }, [showProjectMenu]);
   
   // Render top-level tasks (projects) with spacing between them
   const renderTopLevelTasks = () => {
@@ -407,6 +468,15 @@ const handleEditTask = async (taskId, updatedTaskData) => {
         <NewProjectForm 
           onSuccess={handleProjectCreated}
           onCancel={handleCancelProjectCreation}
+          userHasProjects={userHasProjects}
+        />
+      );
+    }
+    if (isCreatingFromTemplate) {
+      return (
+        <TemplateProjectCreator 
+          onSuccess={handleProjectFromTemplateCreated}
+          onCancel={handleCancelTemplateProjectCreation}
           userHasProjects={userHasProjects}
         />
       );
@@ -489,21 +559,61 @@ const handleEditTask = async (taskId, updatedTaskData) => {
         }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Projects</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="dropdown" style={{ position: 'relative' }}>
             <button 
-              onClick={handleCreateNewProject}
-              disabled={isCreatingProject || loading}
+              className="project-dropdown-button"
+              onClick={() => setShowProjectMenu(!showProjectMenu)}
               style={{
                 backgroundColor: '#10b981',
                 color: 'white',
                 padding: '8px 16px',
                 borderRadius: '4px',
-                cursor: (isCreatingProject || loading) ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 border: 'none',
-                opacity: (isCreatingProject || loading) ? 0.7 : 1
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              New Project
+              New Project <span style={{ fontSize: '10px', marginTop: '2px' }}>▼</span>
             </button>
+            
+            {showProjectMenu && (
+              <div 
+                className="project-dropdown-menu"
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '0',
+                  zIndex: 10,
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  width: '200px',
+                  marginTop: '4px'
+                }}
+              >
+                <div style={{ padding: '8px 12px', cursor: 'pointer' }}
+                    onClick={() => {
+                      console.log('Blank Project clicked');
+                      handleCreateNewProject();
+                      setShowProjectMenu(false);
+                    }}>
+                  Blank Project
+                </div>
+                <div style={{ borderTop: '1px solid #e5e7eb' }}></div>
+                <div style={{ padding: '8px 12px', cursor: 'pointer' }}
+                    onClick={() => {
+                      console.log('From Template clicked');
+                      handleCreateFromTemplate();
+                      setShowProjectMenu(false);
+                    }}>
+                  From Template
+                </div>
+              </div>
+            )}
+            </div>
             <button 
               onClick={handleRefresh}
               disabled={loading || isRefreshing}
@@ -521,7 +631,6 @@ const handleEditTask = async (taskId, updatedTaskData) => {
             </button>
           </div>
         </div>
-
         {initialLoading ? (
           <div style={{ textAlign: 'center', padding: '32px' }}>
             <div style={{ 

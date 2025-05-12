@@ -649,6 +649,115 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
   const selectLicense = useCallback((licenseId) => {
     setSelectedLicenseId(licenseId);
   }, []);
+
+  // Function to create a new project from a template
+const createProjectFromTemplate = useCallback(async (templateId, projectData, licenseId = null) => {
+  try {
+    console.log('Creating project from template:', templateId);
+    
+    if (!user?.id) {
+      throw new Error('Cannot create project: User ID is missing');
+    }
+    
+    if (!templateId) {
+      throw new Error('Template ID is required');
+    }
+    
+    // Find the template to clone
+    const template = templateTasks.find(t => t.id === templateId);
+    if (!template) {
+      throw new Error(`Template with ID ${templateId} not found`);
+    }
+    
+    // Prepare the initial project data
+    const projectBaseData = {
+      title: projectData.name || template.title,
+      description: template.description,
+      purpose: template.purpose,
+      actions: template.actions || [],
+      resources: template.resources || [],
+      origin: 'instance',
+      is_complete: false,
+      creator: user.id,
+      white_label_id: organizationId,
+      license_id: licenseId,
+      start_date: projectData.startDate || new Date().toISOString(),
+      parent_task_id: null, // Top-level project
+      position: 0, // Will be at the top of the projects list
+      default_duration: template.default_duration
+    };
+    
+    // If the template has a due date or default_duration, calculate the new project's due date
+    if (projectBaseData.start_date && template.default_duration) {
+      const calculatedDueDate = calculateDueDate(
+        projectBaseData.start_date,
+        template.default_duration
+      );
+      
+      if (calculatedDueDate) {
+        projectBaseData.due_date = calculatedDueDate.toISOString();
+      }
+    }
+    
+    // Create the top-level project
+    const result = await createTask(projectBaseData, licenseId);
+    
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    
+    // Store the created project
+    const newProject = result.data;
+    
+    // Now recursively clone all child templates
+    const cloneChildren = async (parentTemplateId, parentProjectId) => {
+      // Find all child templates
+      const childTemplates = templateTasks.filter(t => t.parent_task_id === parentTemplateId);
+      
+      // Clone each child template
+      for (const childTemplate of childTemplates) {
+        // Prepare child task data
+        const childData = {
+          title: childTemplate.title,
+          description: childTemplate.description,
+          purpose: childTemplate.purpose,
+          actions: childTemplate.actions || [],
+          resources: childTemplate.resources || [],
+          origin: 'instance',
+          is_complete: false,
+          creator: user.id,
+          white_label_id: organizationId,
+          parent_task_id: parentProjectId,
+          position: childTemplate.position || 0,
+          days_from_start_until_due: childTemplate.days_from_start_until_due,
+          default_duration: childTemplate.default_duration
+        };
+        
+        // Create the child task
+        const childResult = await createTask(childData);
+        
+        if (childResult.error) {
+          console.error('Error creating child task:', childResult.error);
+          continue; // Continue with other children even if one fails
+        }
+        
+        // Recursively clone this child's children
+        await cloneChildren(childTemplate.id, childResult.data.id);
+      }
+    };
+    
+    // Start the recursive cloning process
+    await cloneChildren(templateId, newProject.id);
+    
+    // Refresh tasks to include the new project
+    await fetchTasks(true);
+    
+    return { data: newProject, error: null };
+  } catch (err) {
+    console.error('Error creating project from template:', err);
+    return { data: null, error: err.message };
+  }
+}, [user?.id, organizationId, templateTasks, createTask, fetchTasks]);
   
   
   // Initial fetch when component mounts
@@ -717,6 +826,7 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
     createTask: createNewTask,
     deleteTask: deleteTaskHandler,
     updateTask: updateTaskHandler, 
+    createProjectFromTemplate,
   };
   
   return (

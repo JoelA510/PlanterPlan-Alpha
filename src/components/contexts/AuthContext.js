@@ -69,10 +69,14 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
+  // const hasRole = useCallback((role) => {
+  //   if (!user) return false;
+  //   return userInfo.role === role;
+  // }, [user]);
   const hasRole = useCallback((role) => {
-    if (!user) return false;
+    if (!user || !userInfo) return false;
     return userInfo.role === role;
-  }, [user]);
+  }, [user, userInfo]);
 
   const value = { user, loading, hasRole, userRole, userInfo, userOrgId }
 

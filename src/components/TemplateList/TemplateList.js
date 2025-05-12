@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TemplateItem from './TemplateItem';
-import TaskDropZone from '../TaskList/TaskDropZone';
 import TaskForm from '../TaskForm/TaskForm';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { useTasks } from '../contexts/TaskContext';
@@ -319,22 +318,7 @@ const TemplateList = () => {
             </button>
           </div>
           
-          <div className="detail-row" style={{ marginTop: '16px' }}>
-            <button
-              onClick={() => alert(`Create project from template: ${selectedTask.title}`)}
-              style={{
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                border: 'none',
-                width: '100%'
-              }}
-            >
-              Use as Project
-            </button>
-          </div>
+          
         </div>
       </div>
     );

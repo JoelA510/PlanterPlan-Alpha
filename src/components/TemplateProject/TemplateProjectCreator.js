@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useTasks } from '../contexts/TaskContext';
 import { useAuth } from '../contexts/AuthContext';
 
-const TemplateProjectCreator = ({ onSuccess, onCancel }) => {
-  const { templateTasks, instanceTasks, createTask, applyLicenseKey, userHasProjects } = useTasks();
+const TemplateProjectCreator = ({ onSuccess, onCancel, userHasProjects }) => {
+  const { templateTasks, createProjectFromTemplate, applyLicenseKey } = useTasks();
   const { user } = useAuth();
   
   // State for the component
@@ -45,73 +45,6 @@ const TemplateProjectCreator = ({ onSuccess, onCancel }) => {
     setLicenseKey(e.target.value);
     setLicenseStatus('');
     setError(null);
-  };
-  
-  // Create a function to recursively clone a template and its children
-  const cloneTemplateStructure = async (templateId, parentId, licenseId) => {
-    try {
-      // Find the template to clone
-      const template = templateTasks.find(t => t.id === templateId);
-      if (!template) {
-        throw new Error(`Template with ID ${templateId} not found`);
-      }
-      
-      // Prepare the task data for the new project/task
-      const taskData = {
-        title: parentId ? template.title : projectName, // Use custom name only for the top-level project
-        description: template.description,
-        purpose: template.purpose,
-        actions: template.actions || [],
-        resources: template.resources || [],
-        parent_task_id: parentId,
-        origin: 'instance',
-        is_complete: false,
-        creator: user.id,
-        position: template.position || 0,
-        white_label_id: template.white_label_id,
-        days_from_start_until_due: template.days_from_start_until_due,
-        default_duration: template.default_duration
-      };
-      
-      // If this is the top-level project, set start date and license
-      if (!parentId) {
-        taskData.start_date = startDate;
-        // Only pass license ID for top-level projects
-        const result = await createTask(taskData, licenseId);
-        
-        if (result.error) {
-          throw new Error(result.error);
-        }
-        
-        // Now clone all children
-        const children = templateTasks.filter(t => t.parent_task_id === templateId);
-        
-        for (const child of children) {
-          await cloneTemplateStructure(child.id, result.data.id);
-        }
-        
-        return result.data;
-      } else {
-        // For children, just create normally without license
-        const result = await createTask(taskData);
-        
-        if (result.error) {
-          throw new Error(result.error);
-        }
-        
-        // Recursively clone this task's children
-        const children = templateTasks.filter(t => t.parent_task_id === templateId);
-        
-        for (const child of children) {
-          await cloneTemplateStructure(child.id, result.data.id);
-        }
-        
-        return result.data;
-      }
-    } catch (error) {
-      console.error('Error cloning template:', error);
-      throw error;
-    }
   };
   
   // Handle form submission
@@ -168,14 +101,24 @@ const TemplateProjectCreator = ({ onSuccess, onCancel }) => {
         setStatus('Creating project from template...');
       }
       
-      // Start the cloning process with the selected template
-      const newProject = await cloneTemplateStructure(selectedTemplateId, null, licenseId);
+      // Create project data
+      const projectData = {
+        name: projectName,
+        startDate: startDate
+      };
+      
+      // Call the createProjectFromTemplate function from the context
+      const result = await createProjectFromTemplate(selectedTemplateId, projectData, licenseId);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
       
       setStatus('Project created successfully!');
       
       // Call the onSuccess callback with the new project
-      if (onSuccess && newProject) {
-        onSuccess(newProject);
+      if (onSuccess && result.data) {
+        onSuccess(result.data);
       }
     } catch (error) {
       console.error('Error creating project from template:', error);
