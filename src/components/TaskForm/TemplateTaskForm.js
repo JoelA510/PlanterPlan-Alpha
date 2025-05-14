@@ -1,33 +1,25 @@
-// This is the updated TaskForm component with date mode selection
-// src/components/TaskForm/TaskForm.js
-
+// src/components/TaskForm/TemplateTaskForm.js
 import React from 'react';
-import { useTaskForm } from './useTaskForm';
-import { formatDate } from '../../utils/dateUtils';
+import { useTemplateTaskForm } from './useTemplateTaskForm';
 
-const TaskForm = ({ 
+const TemplateTaskForm = ({ 
   parentTaskId,
-  parentStartDate,
   onSubmit, 
   onCancel, 
   backgroundColor,
-  originType = 'template', // Default to template, but can be overridden
-  initialData = null, // For editing existing tasks
-  isEditing = false  // Flag to indicate we're editing
+  initialData = null,
+  isEditing = false
 }) => {
   const {
     formData,
     errors,
-    dateMode,
-    handleDateModeChange,
     handleChange,
-    handleDateChange,
     handleArrayChange,
     addArrayItem,
     removeArrayItem,
     validateForm,
-    prepareFormData
-  } = useTaskForm(initialData, parentStartDate);
+    prepareFormData,
+  } = useTemplateTaskForm(initialData);
   
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -38,27 +30,25 @@ const TaskForm = ({
       onSubmit({
         ...cleanedData,
         parent_task_id: parentTaskId,
-        origin: originType,
+        origin: 'template',
         is_complete: formData.is_complete !== undefined ? formData.is_complete : false
       });
     }
   };
   
-  // Determine the header text based on origin type and whether we're editing
   const getHeaderText = () => {
     if (isEditing) {
-      return 'Edit Task';
+      return 'Edit Template';
     } else if (initialData) {
-      return 'Edit Task';
+      return 'Edit Template';
     } else if (!parentTaskId) {
-      return originType === 'template' ? 'Add Template' : 'Add Project';
+      return 'Add Template';
     } else {
-      return originType === 'template' ? 'Add Template Task' : 'Add Subtask';
+      return 'Add Child Template';
     }
   };
   
-  // IMPORTANT: Safeguard arrays to prevent mapping errors
-  // These are fallbacks in case formData has issues
+  // Safe arrays
   const safeActions = Array.isArray(formData.actions) ? formData.actions : [];
   const safeResources = Array.isArray(formData.resources) ? formData.resources : [];
   
@@ -70,6 +60,7 @@ const TaskForm = ({
       height: '100%',
       overflow: 'auto'
     }}>
+      {/* Header */}
       <div style={{
         backgroundColor: backgroundColor,
         color: 'white',
@@ -103,7 +94,9 @@ const TaskForm = ({
         </button>
       </div>
       
+      {/* Form */}
       <form onSubmit={handleSubmit} style={{ padding: '16px' }}>
+        {/* Title Field */}
         <div style={{ marginBottom: '16px' }}>
           <label 
             htmlFor="title"
@@ -113,7 +106,7 @@ const TaskForm = ({
               marginBottom: '4px' 
             }}
           >
-            Title *
+            Template Title *
           </label>
           <input
             id="title"
@@ -136,88 +129,57 @@ const TaskForm = ({
           )}
         </div>
         
-        {/* Date scheduling section */}
-        <div style={{ 
-          marginBottom: '16px',
-          padding: '12px',
-          backgroundColor: '#f3f4f6',
-          borderRadius: '4px',
-        }}>
-          <h4 style={{ fontWeight: 'bold', marginTop: 0, marginBottom: '12px' }}>
-            Schedule
-          </h4>
-          
-          {/* Date Mode Selection */}
-          <div style={{ marginBottom: '16px' }}>
-            <p style={{ 
+        {/* Duration Field */}
+        <div style={{ marginBottom: '16px' }}>
+          <label 
+            htmlFor="duration_days"
+            style={{ 
+              display: 'block', 
               fontWeight: 'bold', 
-              fontSize: '14px',
-              marginBottom: '8px'
-            }}>
-              Choose Scheduling Method:
-            </p>
-            
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <label style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                cursor: 'pointer',
-                padding: '8px 12px',
-                backgroundColor: dateMode === 'calculateEndDate' ? '#e0f2fe' : 'transparent',
-                borderRadius: '4px',
-                border: `1px solid ${dateMode === 'calculateEndDate' ? '#38bdf8' : '#d1d5db'}`,
-              }}>
-                <input
-                  type="radio"
-                  name="dateMode"
-                  checked={dateMode === 'calculateEndDate'}
-                  onChange={() => handleDateModeChange('calculateEndDate')}
-                  style={{ marginRight: '8px' }}
-                />
-                Set Start + Duration
-              </label>
-              
-              <label style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                cursor: 'pointer',
-                padding: '8px 12px',
-                backgroundColor: dateMode === 'calculateDuration' ? '#e0f2fe' : 'transparent',
-                borderRadius: '4px',
-                border: `1px solid ${dateMode === 'calculateDuration' ? '#38bdf8' : '#d1d5db'}`,
-              }}>
-                <input
-                  type="radio"
-                  name="dateMode"
-                  checked={dateMode === 'calculateDuration'}
-                  onChange={() => handleDateModeChange('calculateDuration')}
-                  style={{ marginRight: '8px' }}
-                />
-                Set Start + End Date
-              </label>
-            </div>
-          </div>
-          
-          {/* Start date - Always editable */}
-          <div style={{ marginBottom: '12px' }}>
+              marginBottom: '4px' 
+            }}
+          >
+            Duration (days)
+          </label>
+          <input
+            id="duration_days"
+            name="duration_days"
+            type="number"
+            min="1"
+            value={formData.duration_days || 1}
+            onChange={handleChange}
+            style={{
+              width: '80px',
+              padding: '8px',
+              borderRadius: '4px',
+              border: '1px solid #d1d5db',
+              outline: 'none'
+            }}
+          />
+        </div>
+        
+        {/* Parent Task Offset - Only for child templates */}
+        {parentTaskId && (
+          <div style={{ marginBottom: '16px' }}>
             <label 
-              htmlFor="start_date"
+              htmlFor="days_from_start_until_due"
               style={{ 
                 display: 'block', 
                 fontWeight: 'bold', 
                 marginBottom: '4px' 
               }}
             >
-              Start Date
+              Days After Parent Start
             </label>
             <input
-              id="start_date"
-              name="start_date"
-              type="date"
-              value={formData.start_date || ''}
-              onChange={handleDateChange}
+              id="days_from_start_until_due"
+              name="days_from_start_until_due"
+              type="number"
+              min="0"
+              value={formData.days_from_start_until_due || 0}
+              onChange={handleChange}
               style={{
-                width: '100%',
+                width: '80px',
                 padding: '8px',
                 borderRadius: '4px',
                 border: '1px solid #d1d5db',
@@ -225,115 +187,9 @@ const TaskForm = ({
               }}
             />
           </div>
-          
-          {/* Duration field - Editable only in calculateEndDate mode */}
-          <div style={{ marginBottom: '12px' }}>
-            <label 
-              htmlFor="duration_days"
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px',
-                color: dateMode === 'calculateDuration' ? '#9ca3af' : 'inherit'
-              }}
-            >
-              Duration (days) {dateMode === 'calculateDuration' && '(Auto-calculated)'}
-            </label>
-            <input
-              id="duration_days"
-              name="duration_days"
-              type="number"
-              min="1"
-              value={formData.duration_days || 1}
-              onChange={handleChange}
-              disabled={dateMode === 'calculateDuration'}
-              style={{
-                width: '80px',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                outline: 'none',
-                backgroundColor: dateMode === 'calculateDuration' ? '#f3f4f6' : 'white'
-              }}
-            />
-          </div>
-          
-          {/* Due date - Editable only in calculateDuration mode */}
-          <div style={{ marginBottom: '8px' }}>
-            <label 
-              htmlFor="due_date"
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px',
-                color: dateMode === 'calculateEndDate' ? '#9ca3af' : 'inherit'
-              }}
-            >
-              Due Date {dateMode === 'calculateEndDate' && '(Auto-calculated)'}
-            </label>
-            <input
-              id="due_date"
-              name="due_date"
-              type="date"
-              value={formData.due_date || ''}
-              onChange={handleDateChange}
-              disabled={dateMode === 'calculateEndDate'}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                outline: 'none',
-                backgroundColor: dateMode === 'calculateEndDate' ? '#f3f4f6' : 'white'
-              }}
-            />
-          </div>
-          
-          {/* When parent task exists, show days_from_start_until field */}
-          {parentTaskId && parentStartDate && (
-            <div style={{ marginBottom: '12px' }}>
-              <label 
-                htmlFor="days_from_start_until_due"
-                style={{ 
-                  display: 'block', 
-                  fontWeight: 'bold', 
-                  marginBottom: '4px' 
-                }}
-              >
-                Days After Parent Start
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  id="days_from_start_until_due"
-                  name="days_from_start_until_due"
-                  type="number"
-                  min="0"
-                  value={formData.days_from_start_until_due || 0}
-                  onChange={handleChange}
-                  style={{
-                    width: '80px',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    border: '1px solid #d1d5db',
-                    outline: 'none',
-                    marginRight: '8px'
-                  }}
-                />
-                <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                  Parent starts on: {formatDate(parentStartDate)}
-                </span>
-              </div>
-            </div>
-          )}
-          
-          {/* Date range error - only show in calculateDuration mode */}
-          {dateMode === 'calculateDuration' && errors.date_range && (
-            <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-              {errors.date_range}
-            </p>
-          )}
-        </div>
+        )}
         
+        {/* Purpose Field */}
         <div style={{ marginBottom: '16px' }}>
           <label 
             htmlFor="purpose"
@@ -359,9 +215,11 @@ const TaskForm = ({
               outline: 'none',
               resize: 'vertical'
             }}
+            placeholder="What is the purpose of this template?"
           />
         </div>
         
+        {/* Description Field */}
         <div style={{ marginBottom: '16px' }}>
           <label 
             htmlFor="description"
@@ -387,25 +245,17 @@ const TaskForm = ({
               outline: 'none',
               resize: 'vertical'
             }}
+            placeholder="Provide detailed description for this template"
           />
         </div>
         
+        {/* Actions Field */}
         <div style={{ marginBottom: '16px' }}>
-          <label 
-            style={{ 
-              display: 'block', 
-              fontWeight: 'bold', 
-              marginBottom: '4px' 
-            }}
-          >
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
             Actions
           </label>
           {safeActions.map((action, index) => (
-            <div key={`action-${index}`} style={{ 
-              display: 'flex', 
-              marginBottom: '8px',
-              alignItems: 'center' 
-            }}>
+            <div key={`action-${index}`} style={{ display: 'flex', marginBottom: '8px', alignItems: 'center' }}>
               <input
                 type="text"
                 value={action || ''}
@@ -454,22 +304,13 @@ const TaskForm = ({
           </button>
         </div>
         
+        {/* Resources Field */}
         <div style={{ marginBottom: '24px' }}>
-          <label 
-            style={{ 
-              display: 'block', 
-              fontWeight: 'bold', 
-              marginBottom: '4px' 
-            }}
-          >
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
             Resources
           </label>
           {safeResources.map((resource, index) => (
-            <div key={`resource-${index}`} style={{ 
-              display: 'flex', 
-              marginBottom: '8px',
-              alignItems: 'center' 
-            }}>
+            <div key={`resource-${index}`} style={{ display: 'flex', marginBottom: '8px', alignItems: 'center' }}>
               <input
                 type="text"
                 value={resource || ''}
@@ -518,6 +359,7 @@ const TaskForm = ({
           </button>
         </div>
         
+        {/* Form Buttons */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
           <button
             type="button"
@@ -543,7 +385,7 @@ const TaskForm = ({
               cursor: 'pointer'
             }}
           >
-            {isEditing || initialData ? 'Update Task' : 'Add Task'}
+            {isEditing || initialData ? 'Update Template' : 'Create Template'}
           </button>
         </div>
       </form>
@@ -551,4 +393,4 @@ const TaskForm = ({
   );
 };
 
-export default TaskForm;
+export default TemplateTaskForm;

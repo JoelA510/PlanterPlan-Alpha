@@ -216,10 +216,10 @@ export const TaskProvider = ({ children }) => {
             enhancedTaskData.start_date = calculatedStartDate.toISOString();
             
             // If task has a default_duration, calculate the due date
-            if (taskData.default_duration) {
+            if (taskData.duration_days) {
               const calculatedDueDate = calculateDueDate(
                 calculatedStartDate,
-                taskData.default_duration
+                taskData.duration_days
               );
               
               if (calculatedDueDate) {
@@ -230,10 +230,10 @@ export const TaskProvider = ({ children }) => {
         }
       }
       // If this task has start_date and default_duration but no due_date
-      else if (taskData.start_date && taskData.default_duration && !taskData.due_date) {
+      else if (taskData.start_date && taskData.duration_days && !taskData.due_date) {
         const calculatedDueDate = calculateDueDate(
           taskData.start_date,
-          taskData.default_duration
+          taskData.duration_days
         );
         
         if (calculatedDueDate) {
@@ -361,10 +361,10 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
       // Calculate due date if start_date and default_duration are provided but due_date is not
       let enhancedDateData = { ...dateData };
       
-      if (dateData.start_date && dateData.default_duration && !dateData.due_date) {
+      if (dateData.start_date && dateData.duration_days && !dateData.due_date) {
         const calculatedDueDate = calculateDueDate(
           dateData.start_date,
-          dateData.default_duration
+          dateData.duration_days
         );
         
         if (calculatedDueDate) {
@@ -481,41 +481,70 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
   }, [templateTasks, createNewTask]);
   
   // Delete a task and its children
-  const deleteTaskHandler = useCallback(async (taskId, deleteChildren = true) => {
-    try {
-      // Find the task
-      const taskToDelete = tasks.find(t => t.id === taskId);
-      if (!taskToDelete) {
-        throw new Error('Task not found');
-      }
-      
-      console.log(`Deleting task ${taskId} (with children: ${deleteChildren})`);
-      
-      // Store parent ID to update dates for siblings later
-      const parentId = taskToDelete.parent_task_id;
-      
-      // Use the deleteTask function
-      const result = await deleteTask(taskId, deleteChildren);
-      
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-      
-      // Remove all deleted tasks from local state
-      if (result.deletedIds && Array.isArray(result.deletedIds)) {
-        // Update all task arrays
-        setTasks(prev => prev.filter(task => !result.deletedIds.includes(task.id)));
-        setInstanceTasks(prev => prev.filter(task => !result.deletedIds.includes(task.id)));
-        setTemplateTasks(prev => prev.filter(task => !result.deletedIds.includes(task.id)));
+const deleteTaskHandler = useCallback(async (taskId, deleteChildren = true) => {
+  try {
+    // Find the task
+    const taskToDelete = tasks.find(t => t.id === taskId);
+    if (!taskToDelete) {
+      throw new Error('Task not found');
+    }
+    
+    console.log(`Deleting task ${taskId} (with children: ${deleteChildren})`);
+    
+    // Store parent ID to update dates for siblings later
+    const parentId = taskToDelete.parent_task_id;
+    
+    // Use the deleteTask function
+    const result = await deleteTask(taskId, deleteChildren);
+    
+    if (!result.success) {
+      // Check for specific error types we can handle
+      if (result.error && (
+        result.error.includes("Invalid time value") || 
+        result.error.includes("Invalid date")
+      )) {
+        console.warn("Date calculation issue during deletion, continuing with UI update");
         
-        console.log(`Deleted ${result.deletedIds.length} tasks`);
+        // We can still update the UI even if there were issues with date calculations
+        // Get IDs of children to be removed
+        const childTaskIds = [];
+        const findAllChildren = (parentId) => {
+          const children = tasks.filter(t => t.parent_task_id === parentId).map(t => t.id);
+          childTaskIds.push(...children);
+          children.forEach(childId => findAllChildren(childId));
+        };
         
-        // If this was a top-level project, refresh project creation ability
-        if (!taskToDelete.parent_task_id) {
-
+        // Include all children if we're supposed to delete them
+        let allTaskIdsToDelete = [taskId];
+        if (deleteChildren) {
+          findAllChildren(taskId);
+          allTaskIdsToDelete = [...allTaskIdsToDelete, ...childTaskIds];
         }
-        // Otherwise, update sibling positions and dates
-        else if (parentId) {
+        
+        // Update all task arrays
+        updateTasks(tasks.filter(task => !allTaskIdsToDelete.includes(task.id)));
+        
+        // Skip date calculation for siblings
+        return { 
+          success: true, 
+          deletedIds: allTaskIdsToDelete,
+          hasChildren: childTaskIds.length > 0
+        };
+      }
+      
+      throw new Error(result.error);
+    }
+    
+    // Remove all deleted tasks from local state
+    if (result.deletedIds && Array.isArray(result.deletedIds)) {
+      // Update all task arrays
+      updateTasks(tasks.filter(task => !result.deletedIds.includes(task.id)));
+      
+      console.log(`Deleted ${result.deletedIds.length} tasks`);
+      
+      // Update sibling positions and dates only if we have a parent task
+      if (parentId) {
+        try {
           // Get remaining siblings
           const remainingSiblings = tasks
             .filter(t => !result.deletedIds.includes(t.id))
@@ -531,29 +560,49 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
             
             await updateSiblingPositions(updatedSiblings);
             
-            // Also update dates for the parent's child tasks
-            const tasksWithUpdatedDates = updateDependentTaskDates(
-              parentId,
-              tasks.filter(t => !result.deletedIds.includes(t.id))
-            );
-            
-            // Update local state with new dates
-            updateTasks(tasksWithUpdatedDates);
+            // Try to update dates for the parent's child tasks
+            try {
+              const tasksWithUpdatedDates = updateDependentTaskDates(
+                parentId,
+                tasks.filter(t => !result.deletedIds.includes(t.id))
+              );
+              
+              // Update local state with new dates
+              updateTasks(tasksWithUpdatedDates);
+            } catch (dateErr) {
+              console.error('Error updating sibling dates after deletion:', dateErr);
+              // Continue despite date calculation errors
+            }
           }
+        } catch (siblingErr) {
+          console.error('Error updating siblings after deletion:', siblingErr);
+          // Continue despite sibling update errors
         }
       }
-      
-      return { 
-        success: true, 
-        deletedIds: result.deletedIds,
-        hasChildren: result.deletedIds && result.deletedIds.length > 1
-      };
-    } catch (err) {
-      console.error('Error deleting task:', err);
-      return { success: false, error: err.message };
     }
-  // }, [tasks, updateTasks, checkProjectCreationAbility]);
-  }, [tasks, updateTasks]);
+    
+    return { 
+      success: true, 
+      deletedIds: result.deletedIds,
+      hasChildren: result.deletedIds && result.deletedIds.length > 1
+    };
+  } catch (err) {
+    console.error('Error deleting task:', err);
+    
+    // Return a more specific error for dates
+    if (err.message && (
+      err.message.includes("Invalid time value") || 
+      err.message.includes("Invalid date")
+    )) {
+      return { 
+        success: false, 
+        error: "Date calculation error during deletion. Try refreshing the page." 
+      };
+    }
+    
+    return { success: false, error: err.message };
+  }
+}, [tasks, updateTasks]);
   
   // License system functions
   
@@ -684,14 +733,14 @@ const createProjectFromTemplate = useCallback(async (templateId, projectData, li
       start_date: projectData.startDate || new Date().toISOString(),
       parent_task_id: null, // Top-level project
       position: 0, // Will be at the top of the projects list
-      default_duration: template.default_duration
+      duration_days: template.duration_days
     };
     
     // If the template has a due date or default_duration, calculate the new project's due date
-    if (projectBaseData.start_date && template.default_duration) {
+    if (projectBaseData.start_date && template.duration_days) {
       const calculatedDueDate = calculateDueDate(
         projectBaseData.start_date,
-        template.default_duration
+        template.duration_days
       );
       
       if (calculatedDueDate) {
@@ -730,7 +779,7 @@ const createProjectFromTemplate = useCallback(async (templateId, projectData, li
           parent_task_id: parentProjectId,
           position: childTemplate.position || 0,
           days_from_start_until_due: childTemplate.days_from_start_until_due,
-          default_duration: childTemplate.default_duration
+          duration_days: childTemplate.duration_days
         };
         
         // Create the child task
