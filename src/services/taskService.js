@@ -834,8 +834,8 @@ export const updateTaskDateFields = async (taskId, dateData) => {
       formattedData.days_from_start_until_due = dateData.days_from_start_until_due;
     }
     
-    if (dateData.default_duration !== undefined) {
-      formattedData.default_duration = dateData.default_duration;
+    if (dateData.duration_days !== undefined) {
+      formattedData.duration_days = dateData.duration_days;
     }
     
     // Only proceed if we have data to update
@@ -945,7 +945,7 @@ export const updateTaskComplete = async (taskId, taskData) => {
       start_date: processedTaskData.start_date,
       due_date: processedTaskData.due_date,
       days_from_start_until_due: processedTaskData.days_from_start_until_due,
-      default_duration: processedTaskData.default_duration
+      duration_days: processedTaskData.duration_days
     };
     
     const dateResult = await updateTaskDateFields(taskId, dateFields);

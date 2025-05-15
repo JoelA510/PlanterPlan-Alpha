@@ -270,7 +270,7 @@ const TemplateList = () => {
   
   // Render the right panel content (task details or task form)
   const renderRightPanel = () => {
-    // If we're adding a top-level template
+    // For when we're adding a top-level template
     if (isAddingTopLevelTemplate) {
       return (
         <TemplateTaskForm
@@ -278,11 +278,12 @@ const TemplateList = () => {
           onSubmit={handleTaskFormSubmit}
           onCancel={cancelAddTemplate}
           backgroundColor="#3b82f6"
+          tasks={tasks} // Pass the tasks array
         />
       );
     }
     
-    // If we're adding a child task
+    // For when we're adding a child task
     if (addingTemplateToId) {
       const parentTask = tasks.find(t => t.id === addingTemplateToId);
       if (!parentTask) return null;
@@ -296,6 +297,7 @@ const TemplateList = () => {
           onSubmit={handleTaskFormSubmit}
           onCancel={cancelAddTemplate}
           backgroundColor={backgroundColor}
+          tasks={tasks} // Pass the tasks array
         />
       );
     }

@@ -154,8 +154,8 @@ export const recalculateTaskDates = (task, allTasks) => {
           updatedTask.start_date = safeToISOString(newStartDate);
           
           // If task has a default duration, recalculate due date
-          if (updatedTask.start_date && updatedTask.default_duration) {
-            const dueDate = calculateDueDate(newStartDate, updatedTask.default_duration);
+          if (updatedTask.start_date && updatedTask.duration_days) {
+            const dueDate = calculateDueDate(newStartDate, updatedTask.duration_days);
             if (dueDate) {
               updatedTask.due_date = safeToISOString(dueDate);
             }

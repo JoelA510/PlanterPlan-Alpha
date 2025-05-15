@@ -119,9 +119,9 @@ const Layout = ({ userType }) => {
   // Return user-specific header title
   const getHeaderTitle = () => {
     switch (userType) {
-      case 'planter_admin':
+      case 'planterplan_admin':
         return 'Planter Admin Dashboard';
-      case 'planter_user':
+      case 'planterplan_user':
         return 'Planter User Dashboard';
       case 'org_admin':
         return `${organization ? organization.organization_name : (slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Organization')} Admin Dashboard`;

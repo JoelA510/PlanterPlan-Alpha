@@ -55,7 +55,6 @@ export const useTemplateTaskForm = (initialData = {}) => {
     actions: [''],
     resources: [''],
     duration_days: 1,
-    days_from_start_until_due: 0,
     ...processedInitialData
   });
   
@@ -177,9 +176,7 @@ export const useTemplateTaskForm = (initialData = {}) => {
       cleanedData.duration_days = parseInt(cleanedData.duration_days, 10);
     }
     
-    if (cleanedData.days_from_start_until_due) {
-      cleanedData.days_from_start_until_due = parseInt(cleanedData.days_from_start_until_due, 10);
-    }
+    
     
     return cleanedData;
   };
