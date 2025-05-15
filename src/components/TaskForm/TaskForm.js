@@ -11,7 +11,7 @@ const TaskForm = ({
   onSubmit, 
   onCancel, 
   backgroundColor,
-  originType = 'template', // Default to template, but can be overridden
+  originType = 'instance', // Default to template, but can be overridden
   initialData = null, // For editing existing tasks
   isEditing = false  // Flag to indicate we're editing
 }) => {
@@ -136,203 +136,61 @@ const TaskForm = ({
           )}
         </div>
         
-        {/* Date scheduling section */}
-        <div style={{ 
-          marginBottom: '16px',
-          padding: '12px',
-          backgroundColor: '#f3f4f6',
-          borderRadius: '4px',
-        }}>
-          <h4 style={{ fontWeight: 'bold', marginTop: 0, marginBottom: '12px' }}>
-            Schedule
-          </h4>
-          
-          {/* Date Mode Selection */}
-          <div style={{ marginBottom: '16px' }}>
-            <p style={{ 
-              fontWeight: 'bold', 
-              fontSize: '14px',
-              marginBottom: '8px'
-            }}>
-              Choose Scheduling Method:
-            </p>
-            
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <label style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                cursor: 'pointer',
-                padding: '8px 12px',
-                backgroundColor: dateMode === 'calculateEndDate' ? '#e0f2fe' : 'transparent',
-                borderRadius: '4px',
-                border: `1px solid ${dateMode === 'calculateEndDate' ? '#38bdf8' : '#d1d5db'}`,
-              }}>
-                <input
-                  type="radio"
-                  name="dateMode"
-                  checked={dateMode === 'calculateEndDate'}
-                  onChange={() => handleDateModeChange('calculateEndDate')}
-                  style={{ marginRight: '8px' }}
-                />
-                Set Start + Duration
-              </label>
-              
-              <label style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                cursor: 'pointer',
-                padding: '8px 12px',
-                backgroundColor: dateMode === 'calculateDuration' ? '#e0f2fe' : 'transparent',
-                borderRadius: '4px',
-                border: `1px solid ${dateMode === 'calculateDuration' ? '#38bdf8' : '#d1d5db'}`,
-              }}>
-                <input
-                  type="radio"
-                  name="dateMode"
-                  checked={dateMode === 'calculateDuration'}
-                  onChange={() => handleDateModeChange('calculateDuration')}
-                  style={{ marginRight: '8px' }}
-                />
-                Set Start + End Date
-              </label>
-            </div>
-          </div>
-          
-          {/* Start date - Always editable */}
-          <div style={{ marginBottom: '12px' }}>
-            <label 
-              htmlFor="start_date"
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px' 
-              }}
-            >
-              Start Date
-            </label>
-            <input
-              id="start_date"
-              name="start_date"
-              type="date"
-              value={formData.start_date || ''}
-              onChange={handleDateChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                outline: 'none'
-              }}
-            />
-          </div>
-          
-          {/* Duration field - Editable only in calculateEndDate mode */}
-          <div style={{ marginBottom: '12px' }}>
-            <label 
-              htmlFor="duration_days"
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px',
-                color: dateMode === 'calculateDuration' ? '#9ca3af' : 'inherit'
-              }}
-            >
-              Duration (days) {dateMode === 'calculateDuration' && '(Auto-calculated)'}
-            </label>
-            <input
-              id="duration_days"
-              name="duration_days"
-              type="number"
-              min="1"
-              value={formData.duration_days || 1}
-              onChange={handleChange}
-              disabled={dateMode === 'calculateDuration'}
-              style={{
-                width: '80px',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                outline: 'none',
-                backgroundColor: dateMode === 'calculateDuration' ? '#f3f4f6' : 'white'
-              }}
-            />
-          </div>
-          
-          {/* Due date - Editable only in calculateDuration mode */}
-          <div style={{ marginBottom: '8px' }}>
-            <label 
-              htmlFor="due_date"
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px',
-                color: dateMode === 'calculateEndDate' ? '#9ca3af' : 'inherit'
-              }}
-            >
-              Due Date {dateMode === 'calculateEndDate' && '(Auto-calculated)'}
-            </label>
-            <input
-              id="due_date"
-              name="due_date"
-              type="date"
-              value={formData.due_date || ''}
-              onChange={handleDateChange}
-              disabled={dateMode === 'calculateEndDate'}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                outline: 'none',
-                backgroundColor: dateMode === 'calculateEndDate' ? '#f3f4f6' : 'white'
-              }}
-            />
-          </div>
-          
-          {/* When parent task exists, show days_from_start_until field */}
-          {parentTaskId && parentStartDate && (
-            <div style={{ marginBottom: '12px' }}>
-              <label 
-                htmlFor="days_from_start_until_due"
-                style={{ 
-                  display: 'block', 
-                  fontWeight: 'bold', 
-                  marginBottom: '4px' 
-                }}
-              >
-                Days After Parent Start
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  id="days_from_start_until_due"
-                  name="days_from_start_until_due"
-                  type="number"
-                  min="0"
-                  value={formData.days_from_start_until_due || 0}
-                  onChange={handleChange}
-                  style={{
-                    width: '80px',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    border: '1px solid #d1d5db',
-                    outline: 'none',
-                    marginRight: '8px'
-                  }}
-                />
-                <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                  Parent starts on: {formatDate(parentStartDate)}
-                </span>
-              </div>
-            </div>
-          )}
-          
-          {/* Date range error - only show in calculateDuration mode */}
-          {dateMode === 'calculateDuration' && errors.date_range && (
-            <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-              {errors.date_range}
-            </p>
-          )}
+        {/* Simplified schedule section - only duration for instance tasks */}
+<div style={{ 
+  marginBottom: '16px',
+  padding: '12px',
+  backgroundColor: '#f3f4f6',
+  borderRadius: '4px',
+}}>
+  
+  {/* Only show duration field */}
+  <div style={{ marginBottom: '12px' }}>
+    <label 
+      htmlFor="duration_days"
+      style={{ 
+        display: 'block', 
+        fontWeight: 'bold', 
+        marginBottom: '4px'
+      }}
+    >
+      Duration (days)
+    </label>
+    <input
+      id="duration_days"
+      name="duration_days"
+      type="number"
+      min="1"
+      value={formData.duration_days || 1}
+      onChange={handleChange}
+      style={{
+        width: '80px',
+        padding: '8px',
+        borderRadius: '4px',
+        border: '1px solid #d1d5db',
+        outline: 'none'
+      }}
+    />
+    
+    {/* Display the current date range (read-only) */}
+    {formData.start_date && formData.due_date && (
+      <div style={{ 
+        marginTop: '12px', 
+        fontSize: '14px', 
+        color: '#4b5563',
+        backgroundColor: '#f9fafb',
+        padding: '8px',
+        borderRadius: '4px' 
+      }}>
+        <div><strong>Start Date:</strong> {formatDate(formData.start_date)}</div>
+        <div><strong>End Date:</strong> {formatDate(formData.due_date)}</div>
+        <div style={{ marginTop: '4px', fontSize: '12px', fontStyle: 'italic' }}>
+          Note: Changing duration will update the end date accordingly.
         </div>
+      </div>
+    )}
+  </div>
+</div>
         
         <div style={{ marginBottom: '16px' }}>
           <label 

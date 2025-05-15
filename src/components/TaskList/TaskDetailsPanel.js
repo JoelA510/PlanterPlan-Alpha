@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import TemplateTaskForm from '../TaskForm/TemplateTaskForm';
+import TaskForm from '../TaskForm/TaskForm';
 import { calculateParentDuration } from '../../utils/sequentialTaskManager';
 
 const TaskDetailsPanel = ({
@@ -65,7 +65,7 @@ const TaskDetailsPanel = ({
   // Edit mode
   if (isEditing) {
     return (
-      <TemplateTaskForm
+      <TaskForm
         initialData={task}
         parentTaskId={task.parent_task_id}
         onSubmit={handleTaskUpdate}
@@ -94,6 +94,23 @@ const TaskDetailsPanel = ({
       });
     } catch (e) {
       return 'Invalid date';
+    }
+  };
+
+  // Calculate actual due date based on start date and appropriate duration
+  const getActualDueDate = () => {
+    if (!task.start_date) return null;
+    
+    try {
+      const startDate = new Date(task.start_date);
+      const dueDate = new Date(startDate);
+      // Use calculatedDuration for tasks with children, storedDuration otherwise
+      const effectiveDuration = hasChildren ? calculatedDuration : storedDuration;
+      dueDate.setDate(dueDate.getDate() + effectiveDuration);
+      return dueDate;
+    } catch (e) {
+      console.error('Error calculating due date:', e);
+      return null;
     }
   };
   
@@ -287,7 +304,7 @@ const TaskDetailsPanel = ({
                 fontWeight: 'bold', 
                 margin: '4px 0 0 0'
               }}>
-                {formatDisplayDate(task.due_date)}
+                {formatDisplayDate(getActualDueDate())}
               </p>
             </div>
           </div>
