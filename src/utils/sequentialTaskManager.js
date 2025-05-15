@@ -27,9 +27,19 @@ export const calculateParentDuration = (parentId, tasks) => {
       // Sort children by position to ensure sequential calculation
       const sortedChildren = [...childTasks].sort((a, b) => a.position - b.position);
       
-      // Sum the durations of all direct children
+      // Sum the durations of all direct children, but calculate recursively if needed
       const totalDuration = sortedChildren.reduce((sum, child) => {
-        return sum + (child.duration_days || 1);
+        // Check if this child has its own children
+        const hasChildren = tasks.some(t => t.parent_task_id === child.id);
+        
+        if (hasChildren) {
+          // Recursively calculate this child's duration
+          const calculatedDuration = calculateParentDuration(child.id, tasks);
+          return sum + calculatedDuration;
+        } else {
+          // Use the stored duration for leaf tasks
+          return sum + (child.duration_days || 1);
+        }
       }, 0);
       
       return Math.max(1, totalDuration);

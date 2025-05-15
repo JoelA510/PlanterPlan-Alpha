@@ -1,58 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import TaskForm from '../TaskForm/TaskForm';
+import TemplateTaskForm from '../TaskForm/TemplateTaskForm';
+import { calculateParentDuration } from '../../utils/sequentialTaskManager';
 
-/**
- * TaskDetailsPanel - Component for displaying task details
- * @param {Object} props
- * @param {Object} props.task - The task to display details for
- * @param {Array} props.tasks - The full list of tasks
- * @param {Function} props.toggleTaskCompletion - Function to toggle task completion
- * @param {Function} props.onClose - Function to close the details panel
- * @param {Function} props.onAddChildTask - Function to add a child task
- * @param {Function} props.onDeleteTask - Function to delete the task
- * @param {Function} props.onEditTask - Function to update the task after editing
- */
 const TaskDetailsPanel = ({
   task,
   tasks,
-  toggleTaskCompletion,
   onClose,
-  onAddChildTask,
+  onAddTask,
   onDeleteTask,
   onEditTask
 }) => {
-  // Use local state to track completion status
-  const [isComplete, setIsComplete] = useState(task?.is_complete || false);
-  // Add state for edit mode
+  // State for edit mode and calculations
   const [isEditing, setIsEditing] = useState(false);
+  const [hasChildren, setHasChildren] = useState(false);
+  const [calculatedDuration, setCalculatedDuration] = useState(task?.duration_days || 1);
   
-  // Update local state when the task prop changes
+  // Check if this task has children and calculate duration
   useEffect(() => {
-    if (task) {
-      setIsComplete(task.is_complete || false);
+    if (task && task.id && Array.isArray(tasks)) {
+      // Find children of this task
+      const children = tasks.filter(t => t.parent_task_id === task.id);
+      const childExists = children.length > 0;
+      setHasChildren(childExists);
+      
+      if (childExists) {
+        // Calculate duration based on children
+        const calcDuration = calculateParentDuration(task.id, tasks);
+        setCalculatedDuration(calcDuration);
+      } else {
+        // For tasks with no children, calculated duration equals stored duration
+        setCalculatedDuration(task.duration_days || 1);
+      }
     }
-  }, [task, task?.is_complete]);
+  }, [task, tasks]);
   
-  // Handle toggling completion with local state update
-  const handleToggleCompletion = (e) => {
-    if (task) {
-      setIsComplete(!isComplete);
-      toggleTaskCompletion(task.id, isComplete, e);
-    }
-  };
-
-  // Handle edit button click
+  // Button handlers
   const handleEditClick = () => {
     setIsEditing(true);
   };
 
-  // Handle cancel edit
   const handleCancelEdit = () => {
     setIsEditing(false);
   };
 
-  // Handle task update
   const handleTaskUpdate = (updatedTaskData) => {
     onEditTask(task.id, updatedTaskData);
     setIsEditing(false);
@@ -66,18 +57,22 @@ const TaskDetailsPanel = ({
   // Find parent task for displaying parent-child relationships
   const parentTask = task.parent_task_id ? tasks.find(t => t.id === task.parent_task_id) : null;
   
-  // If in edit mode, show the task form
+  // Find children for this task, sorted by position for sequential display
+  const children = tasks
+    .filter(t => t.parent_task_id === task.id)
+    .sort((a, b) => a.position - b.position);
+  
+  // Edit mode
   if (isEditing) {
     return (
-      <TaskForm
+      <TemplateTaskForm
         initialData={task}
         parentTaskId={task.parent_task_id}
-        parentStartDate={parentTask?.start_date}
         onSubmit={handleTaskUpdate}
         onCancel={handleCancelEdit}
         backgroundColor={backgroundColor}
-        originType={task.origin}
         isEditing={true}
+        tasks={tasks}
       />
     );
   }
@@ -102,6 +97,9 @@ const TaskDetailsPanel = ({
     }
   };
   
+  // Get original (stored) duration
+  const storedDuration = task.duration_days || 1;
+  
   return (
     <div className="task-details-panel" style={{
       backgroundColor: '#f9fafb',
@@ -118,22 +116,6 @@ const TaskDetailsPanel = ({
         borderTopRightRadius: '4px',
         position: 'relative'
       }}>
-        {/* Completion status badge */}
-        <div style={{
-          position: 'absolute',
-          top: '0',
-          right: '0',
-          backgroundColor: isComplete ? '#059669' : '#dc2626',
-          color: 'white',
-          padding: '4px 8px',
-          fontSize: '10px',
-          fontWeight: 'bold',
-          textTransform: 'uppercase',
-          borderBottomLeftRadius: '4px',
-        }}>
-          {isComplete ? 'Completed' : 'In Progress'}
-        </div>
-        
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -141,23 +123,9 @@ const TaskDetailsPanel = ({
           width: '100%'
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {/* Checkbox to toggle completion status directly from panel */}
-            <input 
-              type="checkbox"
-              checked={isComplete}
-              onChange={handleToggleCompletion}
-              style={{ 
-                marginRight: '12px',
-                width: '18px',
-                height: '18px',
-                accentColor: isComplete ? '#059669' : undefined
-              }}
-            />
             <h3 style={{ 
               margin: 0, 
               fontWeight: 'bold',
-              textDecoration: isComplete ? 'line-through' : 'none',
-              opacity: isComplete ? 0.8 : 1,
             }}>
               {task.title}
             </h3>
@@ -185,118 +153,230 @@ const TaskDetailsPanel = ({
       </div>
       
       <div className="details-content" style={{ padding: '16px' }}>
-        {/* Status section */}
-        <div className="detail-row">
-          <h4 style={{ fontWeight: 'bold', marginBottom: '4px' }}>Status:</h4>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <p style={{ 
-              display: 'inline-block',
-              padding: '4px 8px',
-              backgroundColor: isComplete ? '#dcfce7' : '#fee2e2',
-              color: isComplete ? '#166534' : '#b91c1c',
-              borderRadius: '4px',
-              fontSize: '14px',
-              marginTop: '4px',
-              marginRight: '8px'
-            }}>
-              {isComplete ? 'Completed' : 'In Progress'}
-            </p>
-            
-            {isComplete && (
-              <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px' }}>
-                <span style={{ color: '#059669', marginRight: '4px' }}>✓</span>
-                <span>Marked as completed</span>
-              </div>
-            )}
-          </div>
-          
-          <div style={{ 
-            marginTop: '8px', 
-            height: '8px', 
-            width: '100%', 
-            backgroundColor: '#e5e7eb',
-            borderRadius: '4px',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              height: '100%',
-              width: isComplete ? '100%' : '0%',
-              backgroundColor: '#059669',
-              borderRadius: '4px',
-              transition: 'width 0.5s ease'
-            }} />
-          </div>
+        {/* Task Type Badge */}
+        <div style={{ 
+          display: 'inline-block',
+          backgroundColor: task.origin === 'template' ? '#e0f2fe' : '#dcfce7',
+          color: task.origin === 'template' ? '#0369a1' : '#166534',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          marginBottom: '16px'
+        }}>
+          {task.origin === 'template' ? 'Template' : 'Task'}
         </div>
         
-        {/* Enhanced date information section */}
-        <div className="date-info-section" style={{ 
+        {/* Enhanced schedule information section */}
+        <div className="schedule-info-section" style={{ 
           backgroundColor: '#f0f9ff', 
           borderRadius: '4px',
           padding: '12px',
           marginTop: '16px'
         }}>
-          <h4 style={{ fontWeight: 'bold', marginBottom: '8px', marginTop: '0' }}>Task Schedule</h4>
+          <h4 style={{ fontWeight: 'bold', marginBottom: '8px', marginTop: '0' }}>Schedule Details</h4>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {/* Start Date */}
+            {/* Duration Display - Updated to show both durations */}
             <div>
+              <span style={{ fontSize: '12px', color: '#4b5563' }}>Duration</span>
+              
+              {/* If has children, show both calculated and stored durations clearly */}
+              {hasChildren ? (
+                <div style={{ marginTop: '4px' }}>
+                  {/* Calculated Duration */}
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    marginBottom: '4px'
+                  }}>
+                    <p style={{ 
+                      fontSize: '16px', 
+                      fontWeight: 'bold', 
+                      margin: '0',
+                      color: '#000'
+                    }}>
+                      {calculatedDuration} day{calculatedDuration !== 1 ? 's' : ''}
+                    </p>
+                    
+                    <span style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      backgroundColor: '#93c5fd',
+                      color: '#1e40af',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                      marginLeft: '6px'
+                    }}>
+                      CALCULATED
+                    </span>
+                  </div>
+                  
+                  {/* Stored Duration */}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <p style={{ 
+                      fontSize: '14px', 
+                      margin: '0',
+                      color: '#6b7280'
+                    }}>
+                      {storedDuration} day{storedDuration !== 1 ? 's' : ''} 
+                    </p>
+                    <span style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      backgroundColor: '#e5e7eb',
+                      color: '#374151',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                      marginLeft: '6px'
+                    }}>
+                      STORED
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                // For tasks without children, show just the stored duration
+                <p style={{ 
+                  fontSize: '16px', 
+                  fontWeight: 'bold', 
+                  margin: '4px 0 0 0',
+                  color: '#000'
+                }}>
+                  {storedDuration} day{storedDuration !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+            
+            {/* Position in parent */}
+            {<div>
+              <span style={{ fontSize: '12px', color: '#4b5563' }}>Position</span>
+              <p style={{ 
+                fontSize: '16px', 
+                fontWeight: 'bold', 
+                margin: '4px 0 0 0'
+              }}>
+                { task.position !== undefined ? task.position + 1 : 'Not set'}
+                
+              </p>
+            </div>}
+          </div>
+          
+          {/* Date range information */}
+          <div style={{ 
+            marginTop: '16px',
+            display: 'flex',
+            gap: '12px'
+          }}>
+            {/* Start date */}
+            <div style={{ flex: 1 }}>
               <span style={{ fontSize: '12px', color: '#4b5563' }}>Start Date</span>
               <p style={{ 
                 fontSize: '14px', 
                 fontWeight: 'bold', 
-                margin: '4px 0 0 0',
-                color: task.start_date ? '#000' : '#9ca3af'
+                margin: '4px 0 0 0'
               }}>
-                {task.start_date ? formatDisplayDate(task.start_date) : 'Not set'}
+                {formatDisplayDate(task.start_date)}
               </p>
             </div>
             
-            {/* Due Date */}
-            <div>
+            {/* Due date */}
+            <div style={{ flex: 1 }}>
               <span style={{ fontSize: '12px', color: '#4b5563' }}>Due Date</span>
               <p style={{ 
                 fontSize: '14px', 
                 fontWeight: 'bold', 
-                margin: '4px 0 0 0',
-                color: task.due_date ? '#000' : '#9ca3af'
+                margin: '4px 0 0 0'
               }}>
-                {task.due_date ? formatDisplayDate(task.due_date) : 'Not set'}
+                {formatDisplayDate(task.due_date)}
               </p>
             </div>
-            
-            {/* Duration */}
-            <div>
-              <span style={{ fontSize: '12px', color: '#4b5563' }}>Duration</span>
-              <p style={{ 
-                fontSize: '14px', 
-                fontWeight: 'bold', 
-                margin: '4px 0 0 0',
-                color: task.default_duration ? '#000' : '#9ca3af'
-              }}>
-                {task.default_duration ? `${task.default_duration} day${task.default_duration !== 1 ? 's' : ''}` : 'Not set'}
-              </p>
-            </div>
-            
-            {/* Days from Parent Start */}
-            {task.parent_task_id && (
-              <div>
-                <span style={{ fontSize: '12px', color: '#4b5563' }}>Days After Parent Start</span>
-                <p style={{ 
-                  fontSize: '14px', 
-                  fontWeight: 'bold', 
-                  margin: '4px 0 0 0',
-                  color: task.days_from_start_until_due ? '#000' : '#9ca3af'
-                }}>
-                  {task.days_from_start_until_due ? `${task.days_from_start_until_due} day${task.days_from_start_until_due !== 1 ? 's' : ''}` : 'Not set'}
-                </p>
-              </div>
-            )}
           </div>
+          
+          
+          {/* Child Tasks Timeline - sequential flow */}
+          {hasChildren && (
+            <div style={{ marginTop: '16px' }}>
+              <h5 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold' }}>
+                Child Tasks
+              </h5>
+              <div style={{ 
+                fontSize: '14px', 
+                backgroundColor: 'white', 
+                border: '1px solid #e5e7eb',
+                borderRadius: '4px',
+                padding: '8px'
+              }}>
+                <ol style={{ 
+                  margin: '0',
+                  padding: '0 0 0 16px'
+                }}>
+                  {children.map((child, index) => {
+                    // Calculate effective duration for this child
+                    const childHasChildren = tasks.some(t => t.parent_task_id === child.id);
+                    const storedDuration = child.duration_days || 1;
+                    let displayDuration = storedDuration;
+                    
+                    // If child has its own children, calculate its effective duration
+                    if (childHasChildren) {
+                      displayDuration = calculateParentDuration(child.id, tasks);
+                    }
+                    
+                    return (
+                      <li key={child.id} style={{ marginBottom: '6px' }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between',
+                          padding: '4px 8px',
+                          backgroundColor: index % 2 === 0 ? '#f9fafb' : 'white',
+                          borderRadius: '2px'
+                        }}>
+                          <span style={{ fontWeight: 'bold' }}>{child.title}</span>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ color: '#6b7280', fontSize: '12px' }}>
+                              {displayDuration} day{displayDuration !== 1 ? 's' : ''}
+                            </span>
+                            
+                            {/* Add a badge for calculated durations */}
+                            {childHasChildren && displayDuration !== storedDuration && (
+                              <span style={{
+                                fontSize: '9px',
+                                padding: '1px 4px',
+                                backgroundColor: '#93c5fd',
+                                color: '#1e40af',
+                                borderRadius: '8px',
+                                fontWeight: 'bold',
+                                marginLeft: '4px'
+                              }}>
+                                CALC
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Show an arrow connecting tasks if not the last one */}
+                        {index < children.length - 1 && (
+                          <div style={{ 
+                            textAlign: 'center', 
+                            padding: '2px 0',
+                            color: '#9ca3af'
+                          }}>
+                            ↓
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+
+              
+            </div>
+          )}
           
           {/* Parent task name if applicable */}
           {parentTask && (
             <div style={{ marginTop: '12px', fontSize: '14px' }}>
-              <span style={{ color: '#4b5563' }}>Parent Task: </span>
+              <span style={{ color: '#4b5563' }}>Parent: </span>
               <span style={{ fontWeight: 'bold' }}>{parentTask.title}</span>
             </div>
           )}
@@ -318,14 +398,7 @@ const TaskDetailsPanel = ({
           )}
         </div>
         
-        {/* Display license information for top-level projects */}
-        {!task.parent_task_id && (
-          <div className="detail-row">
-            <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>License:</h4>
-            <p>{task.license_id ? `License ID: ${task.license_id}` : 'Free project'}</p>
-          </div>
-        )}
-        
+        {/* Other task details */}
         <div className="detail-row">
           <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Purpose:</h4>
           <p>{task.purpose || 'No purpose specified'}</p>
@@ -366,7 +439,7 @@ const TaskDetailsPanel = ({
           display: 'flex', 
           gap: '12px'
         }}>
-          {/* Edit Task Button */}
+          {/* Edit Button */}
           <button
             onClick={handleEditClick}
             style={{
@@ -382,13 +455,13 @@ const TaskDetailsPanel = ({
               justifyContent: 'center'
             }}
           >
-            <span style={{ marginRight: '8px' }}>Edit Task</span>
+            <span style={{ marginRight: '8px' }}>Edit</span>
             <span>✎</span>
           </button>
           
-          {/* Add Child Task button */}
+          {/* Add Child button */}
           <button
-            onClick={() => onAddChildTask(task.id)}
+            onClick={() => onAddTask(task.id)}
             style={{
               backgroundColor: '#10b981',
               color: 'white',
@@ -402,12 +475,12 @@ const TaskDetailsPanel = ({
               justifyContent: 'center'
             }}
           >
-            <span style={{ marginRight: '8px' }}>Add Child Task</span>
+            <span style={{ marginRight: '8px' }}>Add Child</span>
             <span>+</span>
           </button>
         </div>
         
-        {/* Delete Task button - separate row */}
+        {/* Delete button - separate row */}
         <div className="detail-row" style={{ 
           marginTop: '12px'
         }}>
@@ -426,7 +499,7 @@ const TaskDetailsPanel = ({
               justifyContent: 'center'
             }}
           >
-            Delete Task
+            Delete
           </button>
         </div>
       </div>

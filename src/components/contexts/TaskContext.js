@@ -339,6 +339,9 @@ export const TaskProvider = ({ children }) => {
 /**
  * Updates a task including cascading duration updates for templates
  */
+/**
+ * Updates a task including recalculating due dates based on calculated durations
+ */
 const updateTaskHandler = async (taskId, updatedTaskData) => {
   try {
     // Find the original task
@@ -347,19 +350,83 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
       throw new Error('Task not found');
     }
     
-    // Call the regular update function (no special handling needed for durations)
+    // First perform the regular update
     const result = await updateTaskComplete(taskId, updatedTaskData);
     
     if (!result.success) {
       throw new Error(result.error || 'Failed to update task');
     }
     
-    // Update all tasks with the new data (the updateTasks function will handle calculated durations)
-    const updatedTaskList = tasks.map(task => 
+    // Update all tasks with the new data
+    let updatedTaskList = tasks.map(task => 
       task.id === taskId ? { ...task, ...result.data } : task
     );
     
-    // Update the state
+    // Now, check if this task has children or is a child of another task
+    const hasChildren = updatedTaskList.some(t => t.parent_task_id === taskId);
+    const parentId = originalTask.parent_task_id;
+    
+    // If this task has children, we need to update its due date based on calculated duration
+    if (hasChildren) {
+      // Calculate the effective duration
+      const calculatedDuration = calculateParentDuration(taskId, updatedTaskList);
+      
+      // If the calculated duration differs from stored, update the due date
+      if (calculatedDuration !== (originalTask.duration_days || 1)) {
+        const task = updatedTaskList.find(t => t.id === taskId);
+        
+        if (task && task.start_date) {
+          // Calculate new due date based on start date + calculated duration
+          const startDate = new Date(task.start_date);
+          const newDueDate = new Date(startDate);
+          newDueDate.setDate(newDueDate.getDate() + calculatedDuration);
+          
+          // Update the task's due date in the database
+          const dateUpdateResult = await updateTaskDateFields(taskId, {
+            due_date: newDueDate.toISOString()
+          });
+          
+          if (!dateUpdateResult.success) {
+            console.warn('Failed to update task due date:', dateUpdateResult.error);
+          } else {
+            // Update the task in our list
+            updatedTaskList = updatedTaskList.map(t => 
+              t.id === taskId ? { ...t, due_date: newDueDate.toISOString() } : t
+            );
+          }
+        }
+      }
+    }
+    
+    // If this task has a parent, we need to update the parent's due date
+    if (parentId) {
+      // Recalculate parent due date
+      const parentCalculatedDuration = calculateParentDuration(parentId, updatedTaskList);
+      const parent = updatedTaskList.find(t => t.id === parentId);
+      
+      if (parent && parent.start_date) {
+        // Calculate new due date for parent
+        const parentStartDate = new Date(parent.start_date);
+        const newParentDueDate = new Date(parentStartDate);
+        newParentDueDate.setDate(newParentDueDate.getDate() + parentCalculatedDuration);
+        
+        // Update parent due date
+        const parentUpdateResult = await updateTaskDateFields(parentId, {
+          due_date: newParentDueDate.toISOString()
+        });
+        
+        if (!parentUpdateResult.success) {
+          console.warn('Failed to update parent task due date:', parentUpdateResult.error);
+        } else {
+          // Update the parent in our list
+          updatedTaskList = updatedTaskList.map(t => 
+            t.id === parentId ? { ...t, due_date: newParentDueDate.toISOString() } : t
+          );
+        }
+      }
+    }
+    
+    // Update the state with our modified list
     updateTasks(updatedTaskList);
     
     return { success: true, data: result.data };
@@ -368,7 +435,6 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
     return { success: false, error: err.message };
   }
 };
-
   // Update a task's date fields
   const updateTaskDates = useCallback(async (taskId, dateData) => {
     try {
@@ -783,7 +849,13 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
   }, []);
 
   // Function to create a new project from a template
-const createProjectFromTemplate = useCallback(async (templateId, projectData, licenseId = null) => {
+/**
+ * Create a new project from a template with proper date handling
+ * @param {string} templateId - ID of the template to use
+ * @param {Object} projectData - Basic project data including start date
+ * @param {string} licenseId - Optional license ID for the project
+ */
+const createProjectFromTemplate = async (templateId, projectData, licenseId = null) => {
   try {
     console.log('Creating project from template:', templateId);
     
@@ -801,6 +873,19 @@ const createProjectFromTemplate = useCallback(async (templateId, projectData, li
       throw new Error(`Template with ID ${templateId} not found`);
     }
     
+    // Calculate the effective duration for the template (use calculated duration if it has children)
+    let effectiveDuration = template.duration_days || 1;
+    const templateChildren = templateTasks.filter(t => t.parent_task_id === templateId);
+    
+    if (templateChildren.length > 0) {
+      // Calculate the sum of child durations
+      effectiveDuration = calculateParentDuration(templateId, templateTasks);
+      console.log(`Using calculated duration for project: ${effectiveDuration} days (stored: ${template.duration_days} days)`);
+    }
+    
+    // Set the project start date (from user input or default to today)
+    const projectStartDate = projectData.startDate ? new Date(projectData.startDate) : new Date();
+    
     // Prepare the initial project data
     const projectBaseData = {
       title: projectData.name || template.title,
@@ -813,26 +898,24 @@ const createProjectFromTemplate = useCallback(async (templateId, projectData, li
       creator: user.id,
       white_label_id: organizationId,
       license_id: licenseId,
-      start_date: projectData.startDate || new Date().toISOString(),
+      start_date: projectStartDate.toISOString(),
       parent_task_id: null, // Top-level project
       position: 0, // Will be at the top of the projects list
-      duration_days: template.duration_days
+      duration_days: template.duration_days // Store original duration from template
     };
     
-    // If the template has a due date or default_duration, calculate the new project's due date
-    if (projectBaseData.start_date && template.duration_days) {
-      const calculatedDueDate = calculateDueDate(
-        projectBaseData.start_date,
-        template.duration_days
-      );
-      
-      if (calculatedDueDate) {
-        projectBaseData.due_date = calculatedDueDate.toISOString();
-      }
+    // Calculate the project due date based on EFFECTIVE duration
+    const calculatedDueDate = calculateDueDate(
+      projectStartDate,
+      effectiveDuration
+    );
+    
+    if (calculatedDueDate) {
+      projectBaseData.due_date = calculatedDueDate.toISOString();
     }
     
     // Create the top-level project
-    const result = await createTask(projectBaseData, licenseId);
+    const result = await createTask(projectBaseData);
     
     if (result.error) {
       throw new Error(result.error);
@@ -841,45 +924,144 @@ const createProjectFromTemplate = useCallback(async (templateId, projectData, li
     // Store the created project
     const newProject = result.data;
     
-    // Now recursively clone all child templates
-    const cloneChildren = async (parentTemplateId, parentProjectId) => {
-      // Find all child templates
-      const childTemplates = templateTasks.filter(t => t.parent_task_id === parentTemplateId);
-      
-      // Clone each child template
-      for (const childTemplate of childTemplates) {
-        // Prepare child task data
-        const childData = {
-          title: childTemplate.title,
-          description: childTemplate.description,
-          purpose: childTemplate.purpose,
-          actions: childTemplate.actions || [],
-          resources: childTemplate.resources || [],
-          origin: 'instance',
-          is_complete: false,
-          creator: user.id,
-          white_label_id: organizationId,
-          parent_task_id: parentProjectId,
-          position: childTemplate.position || 0,
-          days_from_start_until_due: childTemplate.days_from_start_until_due,
-          duration_days: childTemplate.duration_days
-        };
-        
-        // Create the child task
-        const childResult = await createTask(childData);
-        
-        if (childResult.error) {
-          console.error('Error creating child task:', childResult.error);
-          continue; // Continue with other children even if one fails
-        }
-        
-        // Recursively clone this child's children
-        await cloneChildren(childTemplate.id, childResult.data.id);
-      }
+    // Track template-to-project ID mapping
+    const templateToProjectMap = {
+      [templateId]: newProject.id
     };
     
-    // Start the recursive cloning process
-    await cloneChildren(templateId, newProject.id);
+    // Collect all template tasks in a hierarchical structure
+    const allTemplateTasks = [];
+    const buildTemplateHierarchy = (parentTemplateId = templateId) => {
+      // Get direct children of this parent
+      const children = templateTasks.filter(t => t.parent_task_id === parentTemplateId);
+      
+      // Sort children by position
+      children.sort((a, b) => a.position - b.position);
+      
+      // Add children to our collection
+      allTemplateTasks.push(...children);
+      
+      // Recursively process each child's children
+      children.forEach(child => buildTemplateHierarchy(child.id));
+    };
+    
+    // Build the full hierarchy
+    buildTemplateHierarchy();
+    
+    // Group tasks by their level in the hierarchy for sequential processing
+    const tasksByLevel = {};
+    allTemplateTasks.forEach(task => {
+      // Determine task level (by counting parents)
+      let level = 1; // Start at level 1 (direct children of the root)
+      let currentParentId = task.parent_task_id;
+      
+      while (currentParentId !== templateId) {
+        level++;
+        const parent = templateTasks.find(t => t.id === currentParentId);
+        if (!parent) break; // Safety check
+        currentParentId = parent.parent_task_id;
+      }
+      
+      // Add to the appropriate level group
+      if (!tasksByLevel[level]) tasksByLevel[level] = [];
+      tasksByLevel[level].push(task);
+    });
+    
+    // Process each level in order (breadth-first approach)
+    const levels = Object.keys(tasksByLevel).sort((a, b) => parseInt(a) - parseInt(b));
+    
+    for (const level of levels) {
+      const tasksAtLevel = tasksByLevel[level];
+      
+      // Group by parent to handle sequential timing within each parent
+      const tasksByParent = {};
+      tasksAtLevel.forEach(task => {
+        if (!tasksByParent[task.parent_task_id]) tasksByParent[task.parent_task_id] = [];
+        tasksByParent[task.parent_task_id].push(task);
+      });
+      
+      // Process each parent group
+      for (const [templateParentId, childTasks] of Object.entries(tasksByParent)) {
+        // Look up the corresponding project parent ID
+        const projectParentId = templateToProjectMap[templateParentId];
+        
+        if (!projectParentId) {
+          console.error(`Missing project parent ID for template parent ${templateParentId}`);
+          continue;
+        }
+        
+        // Get the parent's start date
+        let parentStartDate;
+        if (templateParentId === templateId) {
+          // This is a direct child of the root template
+          parentStartDate = projectStartDate;
+        } else {
+          // Find the created parent task
+          const { data: parentTask } = await supabase
+            .from('tasks')
+            .select('start_date')
+            .eq('id', projectParentId)
+            .single();
+            
+          if (parentTask && parentTask.start_date) {
+            parentStartDate = new Date(parentTask.start_date);
+          } else {
+            parentStartDate = projectStartDate;
+          }
+        }
+        
+        // Calculate and create children sequentially
+        let currentDate = new Date(parentStartDate);
+        
+        for (const childTemplate of childTasks) {
+          // Use calculated duration for parent tasks, stored duration for leaf tasks
+          const childChildren = templateTasks.filter(t => t.parent_task_id === childTemplate.id);
+          let effectiveChildDuration = childTemplate.duration_days || 1;
+          
+          if (childChildren.length > 0) {
+            // This child is a parent - use calculated duration
+            effectiveChildDuration = calculateParentDuration(childTemplate.id, templateTasks);
+            console.log(`Using calculated duration for task ${childTemplate.title}: ${effectiveChildDuration} days (stored: ${childTemplate.duration_days} days)`);
+          }
+          
+          // Calculate child dates
+          const startDate = new Date(currentDate);
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + effectiveChildDuration);
+          
+          // Create the child task
+          const childData = {
+            title: childTemplate.title,
+            description: childTemplate.description,
+            purpose: childTemplate.purpose,
+            actions: childTemplate.actions || [],
+            resources: childTemplate.resources || [],
+            origin: 'instance',
+            is_complete: false,
+            creator: user.id,
+            white_label_id: organizationId,
+            parent_task_id: projectParentId,
+            position: childTemplate.position || 0,
+            duration_days: childTemplate.duration_days, // Still store original duration
+            start_date: startDate.toISOString(),
+            due_date: endDate.toISOString() // But use effective duration for due date
+          };
+          
+          const childResult = await createTask(childData);
+          
+          if (childResult.error) {
+            console.error('Error creating child task:', childResult.error);
+            continue;
+          }
+          
+          // Store the mapping from template ID to project task ID
+          templateToProjectMap[childTemplate.id] = childResult.data.id;
+          
+          // Update the date for the next task
+          currentDate = new Date(endDate);
+        }
+      }
+    }
     
     // Refresh tasks to include the new project
     await fetchTasks(true);
@@ -889,8 +1071,7 @@ const createProjectFromTemplate = useCallback(async (templateId, projectData, li
     console.error('Error creating project from template:', err);
     return { data: null, error: err.message };
   }
-}, [user?.id, organizationId, templateTasks, createTask, fetchTasks]);
-  
+};
   
   // Initial fetch when component mounts
   useEffect(() => {

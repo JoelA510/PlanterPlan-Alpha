@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { isDescendantOf } from './taskUtils';
 import { updateTaskPosition, updateSiblingPositions } from '../services/taskService';
 import { updateDependentTaskDates } from './dateUtils';
+import { 
+  calculateParentDuration, 
+  updateAncestorDurations,
+  getTasksRequiringUpdates,
+  updateTasksInDatabase
+} from './sequentialTaskManager';
 
 const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
   const [draggedTask, setDraggedTask] = useState(null);
@@ -86,15 +92,13 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
       setDropPosition(null);
     }
   };
-
-  // Helper function to update the tasks state
   const updateTasksState = (newParentId, newPosition, oldParentId, isSameParent) => {
     // Make sure we're working with an array
     if (!Array.isArray(tasks)) {
       console.error('Tasks is not an array:', tasks);
       return; // Exit early if tasks is not an array
     }
-
+  
     try {
       // Create a deep copy of the tasks array to work with
       const updatedTasks = tasks.map(t => ({...t}));
@@ -132,6 +136,10 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
         taskToUpdate.parent_task_id = newParentId;
         taskToUpdate.position = newPosition;
         
+        // Handle dates if needed (keeping this part from the original)
+        // [date handling code...]
+      
+        
         // Recalculate days_from_start_until when the parent task changes
         if (newParentId !== oldParentId) {
           // Find the new parent task
@@ -155,26 +163,73 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
             }
           }
         }
+      
+      
       }
       
-      // 4. Recalculate dates for affected tasks using the dateUtils function
-      // First, update any child tasks of the dragged task
-      let tasksWithRecalculatedDates = [...updatedTasks];
-      
-      // If we changed parents, recalculate dates for all tasks under the new parent
-      if (newParentId !== oldParentId) {
-        tasksWithRecalculatedDates = updateDependentTaskDates(newParentId, tasksWithRecalculatedDates);
+      // 4. For templates: Recalculate display durations
+      if (originalTask.origin === 'template') {
+        console.log('Recalculating template durations for display...');
         
-        // Also update dates for tasks under the old parent
-        tasksWithRecalculatedDates = updateDependentTaskDates(oldParentId, tasksWithRecalculatedDates);
+        // First, update durations for the old parent (if changing parents)
+        if (!isSameParent && oldParentId) {
+          // Calculate the new duration for the old parent
+          const oldParentIndex = updatedTasks.findIndex(t => t.id === oldParentId);
+          if (oldParentIndex >= 0) {
+            // Calculate using our recursive function, but don't update the database
+            const calculatedDuration = calculateParentDuration(oldParentId, updatedTasks);
+            
+            // Add or update the calculatedDuration display property
+            updatedTasks[oldParentIndex].calculatedDuration = calculatedDuration;
+            
+            // If this old parent has ancestors, update their display durations
+            let parentId = updatedTasks[oldParentIndex].parent_task_id;
+            while (parentId) {
+              const parentIndex = updatedTasks.findIndex(t => t.id === parentId);
+              if (parentIndex >= 0) {
+                updatedTasks[parentIndex].calculatedDuration = 
+                  calculateParentDuration(parentId, updatedTasks);
+                parentId = updatedTasks[parentIndex].parent_task_id;
+              } else {
+                break;
+              }
+            }
+          }
+        }
+        
+        // Then, update durations for the new parent
+        if (newParentId) {
+          const newParentIndex = updatedTasks.findIndex(t => t.id === newParentId);
+          if (newParentIndex >= 0) {
+            // Calculate using our recursive function, but don't update the database
+            const calculatedDuration = calculateParentDuration(newParentId, updatedTasks);
+            
+            // Add or update the calculatedDuration display property
+            updatedTasks[newParentIndex].calculatedDuration = calculatedDuration;
+            
+            // If this new parent has ancestors, update their display durations
+            let parentId = updatedTasks[newParentIndex].parent_task_id;
+            while (parentId) {
+              const parentIndex = updatedTasks.findIndex(t => t.id === parentId);
+              if (parentIndex >= 0) {
+                updatedTasks[parentIndex].calculatedDuration = 
+                  calculateParentDuration(parentId, updatedTasks);
+                parentId = updatedTasks[parentIndex].parent_task_id;
+              } else {
+                break;
+              }
+            }
+          }
+        }
       }
       
-      // Directly call the setTasks function with the updated array
-      setTasks(tasksWithRecalculatedDates);
+      // Update the state with our modified task list
+      setTasks(updatedTasks);
     } catch (err) {
       console.error('Error in updateTasksState:', err);
     }
   };
+  
 
   // Helper function to update the database
   const updateDatabase = async (newParentId, newPosition, oldParentId, isSameParent) => {
@@ -182,7 +237,7 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
       console.error('Tasks is not an array in updateDatabase:', tasks);
       return false; // Exit early
     }
-
+  
     try {
       console.log('==== DRAG AND DROP DATABASE UPDATE ====');
       console.log('Dragged task:', draggedTask.id, draggedTask.title);
@@ -190,8 +245,8 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
       console.log('New position:', newPosition);
       console.log('Old parent ID:', oldParentId);
       console.log('Is same parent:', isSameParent);
-
-      // 1. Update the dragged task in Supabase
+  
+      // 1. Update the dragged task in Supabase - ONLY position and parent
       console.log('STEP 1: Updating dragged task position...');
       const updateResult = await updateTaskPosition(draggedTask.id, newParentId, newPosition);
       console.log('Update result:', updateResult);
@@ -261,25 +316,12 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
         }
       }
       
-      // 4. Update any tasks whose dates have changed
-      // Get the updated tasks from the state (after the optimistic update)
-      const updatedTasksFromState = tasks.filter(task => 
-        task.id === draggedTask.id || 
-        (task.parent_task_id === newParentId) ||
-        (task.parent_task_id === oldParentId && !isSameParent)
-      );
-      
-      // Update these tasks in the database
-      for (const task of updatedTasksFromState) {
-        // Only update tasks where dates might have changed
-        if (task.start_date || task.due_date || task.days_from_start_until_due !== undefined) {
-          await updateTaskDates(task.id, {
-            start_date: task.start_date,
-            due_date: task.due_date,
-            days_from_start_until_due: task.days_from_start_until_due,
-            default_duration: task.default_duration
-          });
-        }
+      // For templates, update the UI with recalculated durations
+      // but DO NOT update durations in the database
+      if (draggedTask.origin === 'template') {
+        // This will be handled by the state update function
+        // which should recalculate all durations for display
+        console.log('Template moved - durations will be recalculated for UI display only');
       }
       
       console.log('==== DATABASE UPDATE COMPLETED SUCCESSFULLY ====');
@@ -290,6 +332,7 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
     }
   };
 
+  
   // New helper function to update task dates in the database
   const updateTaskDates = async (taskId, dateData) => {
     try {
@@ -320,7 +363,7 @@ const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
     try {
       // Calculate the new parent ID and position
       let newParentId, newPosition;
-
+  
       // Case 1: Dropping INTO a task (making it a child)
       if (dropPosition === 'into') {
         newParentId = targetTask.id;
