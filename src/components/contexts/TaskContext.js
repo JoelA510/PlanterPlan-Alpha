@@ -62,6 +62,8 @@ export const TaskProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
   const [instanceTasks, setInstanceTasks] = useState([]);
   const [templateTasks, setTemplateTasks] = useState([]);
+  const [enhancedTasks, setEnhancedTasks] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -83,52 +85,92 @@ export const TaskProvider = ({ children }) => {
   // Refs for tracking state without triggering re-renders
   const initialFetchDoneRef = useRef(false);
   
+  // Process tasks to add calculated properties
+  const processTasksWithCalculations = useCallback((rawTasks) => {
+    if (!Array.isArray(rawTasks) || rawTasks.length === 0) return [];
+    
+    // Create a deep copy of the tasks to avoid mutating the original
+    const processedTasks = rawTasks.map(task => ({...task}));
+    
+    // First pass: determine which tasks have children
+    const tasksWithChildren = new Set();
+    processedTasks.forEach(task => {
+      if (task.parent_task_id) {
+        tasksWithChildren.add(task.parent_task_id);
+      }
+    });
+    
+    // Second pass: calculate durations and due dates
+    const enhancedTasksArray = processedTasks.map(task => {
+      const hasChildren = tasksWithChildren.has(task.id);
+      const storedDuration = task.duration_days || 1;
+      
+      // Only calculate for tasks with children
+      let calculatedDuration = storedDuration;
+      if (hasChildren) {
+        calculatedDuration = calculateParentDuration(task.id, processedTasks);
+      }
+      
+      // Calculate actual due date based on effective duration
+      let calculatedDueDate = null;
+      if (task.start_date) {
+        try {
+          const startDate = new Date(task.start_date);
+          const dueDate = new Date(startDate);
+          // Use the appropriate duration
+          const effectiveDuration = hasChildren ? calculatedDuration : storedDuration;
+          dueDate.setDate(startDate.getDate() + effectiveDuration);
+          calculatedDueDate = dueDate.toISOString();
+        } catch (e) {
+          console.error('Error calculating due date for task:', task.id, e);
+        }
+      }
+      
+      // Return the enhanced task with pre-calculated values
+      return {
+        ...task,
+        hasChildren,
+        calculatedDuration,
+        effectiveDuration: hasChildren ? calculatedDuration : storedDuration,
+        calculatedDueDate
+      };
+    });
+    
+    return enhancedTasksArray;
+  }, []);
+
+  // Add utility function to find enhanced task by ID
+  const getEnhancedTask = useCallback((taskId) => {
+    return enhancedTasks.find(t => t.id === taskId) || null;
+  }, [enhancedTasks]);
+
   // Update tasks state safely - DEFINE THIS FIRST since it's used by other functions
+  // Update the updateTasks function to process calculations
   const updateTasks = useCallback((newTasks) => {
     if (!Array.isArray(newTasks)) {
       console.error('updateTasks received non-array value:', newTasks);
       return;
     }
-  
+    
     try {
-      // Create a copy of the tasks with display durations calculated
-      const tasksWithCalculatedDurations = newTasks.map(task => {
-        // Check if this task has children
-        const hasChildren = newTasks.some(t => t.parent_task_id === task.id);
-        
-        if (hasChildren && task.origin === 'template') {
-          // Calculate the duration for display purposes
-          const calculatedDuration = calculateParentDuration(task.id, newTasks);
-          
-          // Create a new object with the calculated display duration
-          return {
-            ...task,
-            // Add a display-only property (won't be sent to database)
-            calculatedDuration
-          };
-        }
-        
-        // Task has no children, use the stored value
-        return task;
-      });
-  
-      // Group tasks by origin
-      const instance = tasksWithCalculatedDurations.filter(task => task.origin === "instance");
-      const template = tasksWithCalculatedDurations.filter(task => task.origin === "template");
+      // Process the tasks with calculations
+      const processedTasks = processTasksWithCalculations(newTasks);
       
-      // Debug log
-      console.log('updateTasks called with', tasksWithCalculatedDurations.length, 'tasks');
-      console.log('Instance tasks:', instance.length);
-      console.log('Template tasks:', template.length);
-  
-      // Update all task states
-      setTasks(tasksWithCalculatedDurations);
+      // Update the enhanced tasks state
+      setEnhancedTasks(processedTasks);
+      
+      // Group tasks by origin as before
+      const instance = newTasks.filter(task => task.origin === "instance");
+      const template = newTasks.filter(task => task.origin === "template");
+      
+      // Update original task states
+      setTasks(newTasks);
       setInstanceTasks(instance);
       setTemplateTasks(template);
     } catch (err) {
       console.error('Error in updateTasks:', err);
     }
-  }, []);
+  }, [processTasksWithCalculations]);
   
   // Fetch all tasks (both instances and templates)
   const fetchTasks = useCallback(async (forceRefresh = false) => {
@@ -179,8 +221,13 @@ export const TaskProvider = ({ children }) => {
       // Update state with new data
       setInstanceTasks(instanceData);
       setTemplateTasks(templateData);
-      setTasks([...instanceData, ...templateData]);
+      const allTasks = [...instanceData, ...templateData];
+      setTasks(allTasks);
       setError(null);
+
+      // Process and set enhanced tasks
+      const enhanced = processTasksWithCalculations(allTasks);
+      setEnhancedTasks(enhanced);
       
       // Mark initial fetch as complete
       initialFetchDoneRef.current = true;
@@ -196,7 +243,7 @@ export const TaskProvider = ({ children }) => {
       setIsFetching(false);
       setInitialLoading(false);
     }
-  }, [organizationId, user?.id, instanceTasks, templateTasks]);
+  }, [organizationId, user?.id, instanceTasks, templateTasks, processTasksWithCalculations]);
   
   // Create a new task with date handling
   const createNewTask = useCallback(async (taskData, licenseId = null) => {
@@ -1140,6 +1187,9 @@ const createProjectFromTemplate = async (templateId, projectData, licenseId = nu
     deleteTask: deleteTaskHandler,
     updateTask: updateTaskHandler, 
     createProjectFromTemplate,
+    enhancedTasks,
+    getEnhancedTask,
+    
   };
   
   return (

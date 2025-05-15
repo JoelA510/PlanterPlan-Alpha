@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import TaskDropZone from './TaskDropZone';
 import { formatDate, getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import { updateTaskCompletion } from '../../services/taskService';
+import { useTasks } from '../contexts/TaskContext';
 
 const TaskItem = ({ 
   task, 
@@ -15,6 +16,17 @@ const TaskItem = ({
   onAddChildTask,
   parentTasks = []
 }) => {
+
+  const { getEnhancedTask } = useTasks(); // Get the utility function from context
+  // Get the enhanced version of this task with pre-calculated values
+  const enhancedTask = getEnhancedTask(task.id);
+  // Now you can directly use the pre-calculated values
+  // const hasChildren = enhancedTask?.hasChildren || false;
+  const calculatedDuration = enhancedTask?.calculatedDuration || task.duration_days || 1;
+  const storedDuration = task.duration_days || 1;
+  const effectiveDuration = enhancedTask?.effectiveDuration || storedDuration;
+  const calculatedDueDate = enhancedTask?.calculatedDueDate;
+
   const [isHovering, setIsHovering] = useState(false);
   
   const { 
@@ -276,8 +288,8 @@ const handleAddChildButtonClick = (e) => {
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          {task.due_date && (
-            <span style={{ marginRight: '12px' }}>Due: {formatDate(task.due_date)}</span>
+          {calculatedDueDate && (
+            <span style={{ marginRight: '12px' }}>Due: {formatDate(calculatedDueDate)}</span>
           )}
           
           {/* Info button to view details in the right panel */}
