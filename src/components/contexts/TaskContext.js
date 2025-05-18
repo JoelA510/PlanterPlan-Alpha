@@ -63,6 +63,7 @@ export const TaskProvider = ({ children }) => {
   const [instanceTasks, setInstanceTasks] = useState([]);
   const [templateTasks, setTemplateTasks] = useState([]);
   const [enhancedTasks, setEnhancedTasks] = useState([]);
+  const [enhancedTasksMap, setEnhancedTasksMap] = useState({});
 
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -86,32 +87,52 @@ export const TaskProvider = ({ children }) => {
   const initialFetchDoneRef = useRef(false);
   
   // Process tasks to add calculated properties
+  // Modified function that creates a map of task IDs to calculated properties
   const processTasksWithCalculations = useCallback((rawTasks) => {
-    if (!Array.isArray(rawTasks) || rawTasks.length === 0) return [];
+    if (!Array.isArray(rawTasks) || rawTasks.length === 0) return {};
     
-    // Create a deep copy of the tasks to avoid mutating the original
-    const processedTasks = rawTasks.map(task => ({...task}));
+    // Create a mapping object for the calculated properties
+    const calculatedPropertiesMap = {};
     
     // First pass: determine which tasks have children
-    const tasksWithChildren = new Set();
-    processedTasks.forEach(task => {
-      if (task.parent_task_id) {
-        tasksWithChildren.add(task.parent_task_id);
+    const tasksWithChildren = {};
+    rawTasks.forEach(task => {
+      if (task && task.parent_task_id) {
+        // Count children for each parent
+        if (!tasksWithChildren[task.parent_task_id]) {
+          tasksWithChildren[task.parent_task_id] = 0;
+        }
+        tasksWithChildren[task.parent_task_id]++;
       }
     });
     
-    // Second pass: calculate durations and due dates
-    const enhancedTasksArray = processedTasks.map(task => {
-      const hasChildren = tasksWithChildren.has(task.id);
+    console.log("Tasks with children counts:", tasksWithChildren);
+    
+    // Second pass: calculate durations and due dates for each task
+    rawTasks.forEach(task => {
+      if (!task || !task.id) return; // Skip invalid tasks
+      
+      // Determine if this task has children
+      const childCount = tasksWithChildren[task.id] || 0;
+      const hasChildren = childCount > 0;
+      
+      console.log(`Processing task ${task.id} (${task.title}): hasChildren=${hasChildren}, childCount=${childCount}`);
+      
+      // Get the stored duration (default to 1 if not set)
       const storedDuration = task.duration_days || 1;
       
-      // Only calculate for tasks with children
+      // Calculate the effective duration based on children
       let calculatedDuration = storedDuration;
       if (hasChildren) {
-        calculatedDuration = calculateParentDuration(task.id, processedTasks);
+        try {
+          calculatedDuration = calculateParentDuration(task.id, rawTasks);
+          // console.log(`  Calculated duration for ${task.id}: ${calculatedDuration} (stored: ${storedDuration})`);
+        } catch (e) {
+          console.error(`  Error calculating duration for task ${task.id}:`, e);
+        }
       }
       
-      // Calculate actual due date based on effective duration
+      // Calculate an effective due date if start date is available
       let calculatedDueDate = null;
       if (task.start_date) {
         try {
@@ -121,31 +142,54 @@ export const TaskProvider = ({ children }) => {
           const effectiveDuration = hasChildren ? calculatedDuration : storedDuration;
           dueDate.setDate(startDate.getDate() + effectiveDuration);
           calculatedDueDate = dueDate.toISOString();
+          // console.log(`  Calculated due date for ${task.id}: ${calculatedDueDate}`);
         } catch (e) {
-          console.error('Error calculating due date for task:', task.id, e);
+          console.error(`  Error calculating due date for task ${task.id}:`, e);
         }
       }
       
-      // Return the enhanced task with pre-calculated values
-      return {
-        ...task,
+      // Store the calculated properties in the map
+      calculatedPropertiesMap[task.id] = {
         hasChildren,
+        childCount,
         calculatedDuration,
         effectiveDuration: hasChildren ? calculatedDuration : storedDuration,
-        calculatedDueDate
+        calculatedDueDate,
+        // Add a timestamp for debugging
+        calculatedAt: new Date().toISOString()
       };
     });
     
-    return enhancedTasksArray;
+    console.log("Final calculated properties map:", calculatedPropertiesMap);
+    // setEnhancedTasksMap(calculatedPropertiesMap);
+    return calculatedPropertiesMap;
   }, []);
 
-  // Add utility function to find enhanced task by ID
+  // Updated helper function to get enhanced task properties
   const getEnhancedTask = useCallback((taskId) => {
-    return enhancedTasks.find(t => t.id === taskId) || null;
-  }, [enhancedTasks]);
+    if (!taskId) return null;
+    
+    // Find the base task
+    const baseTask = tasks.find(t => t.id === taskId);
+    if (!baseTask) return null;
+    
+    // Get the enhanced properties (with fallbacks)
+    const enhancedProps = enhancedTasksMap[taskId] || {
+      hasChildren: false,
+      childCount: 0,
+      calculatedDuration: baseTask.duration_days || 1,
+      effectiveDuration: baseTask.duration_days || 1,
+      calculatedDueDate: baseTask.due_date
+    };
+    
+    // Return a new object combining the base task and enhanced properties
+    return {
+      ...baseTask,
+      ...enhancedProps
+    };
+  }, [tasks, enhancedTasksMap]);
 
   // Update tasks state safely - DEFINE THIS FIRST since it's used by other functions
-  // Update the updateTasks function to process calculations
   const updateTasks = useCallback((newTasks) => {
     if (!Array.isArray(newTasks)) {
       console.error('updateTasks received non-array value:', newTasks);
@@ -153,11 +197,11 @@ export const TaskProvider = ({ children }) => {
     }
     
     try {
-      // Process the tasks with calculations
-      const processedTasks = processTasksWithCalculations(newTasks);
+      // Process the tasks to get calculated properties map
+      const calculatedPropertiesMap = processTasksWithCalculations(newTasks);
       
-      // Update the enhanced tasks state
-      setEnhancedTasks(processedTasks);
+      // Update the enhanced tasks state with the map
+      setEnhancedTasksMap(calculatedPropertiesMap);
       
       // Group tasks by origin as before
       const instance = newTasks.filter(task => task.origin === "instance");
@@ -227,7 +271,8 @@ export const TaskProvider = ({ children }) => {
 
       // Process and set enhanced tasks
       const enhanced = processTasksWithCalculations(allTasks);
-      setEnhancedTasks(enhanced);
+      // console.log("fetch", enhanced);
+      setEnhancedTasksMap(enhanced);
       
       // Mark initial fetch as complete
       initialFetchDoneRef.current = true;
@@ -1187,7 +1232,7 @@ const createProjectFromTemplate = async (templateId, projectData, licenseId = nu
     deleteTask: deleteTaskHandler,
     updateTask: updateTaskHandler, 
     createProjectFromTemplate,
-    enhancedTasks,
+    enhancedTasksMap,
     getEnhancedTask,
     
   };

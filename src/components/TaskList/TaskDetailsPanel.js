@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import TaskForm from '../TaskForm/TaskForm';
-import { calculateParentDuration } from '../../utils/sequentialTaskManager';
+import { useTasks } from '../contexts/TaskContext';
 
 const TaskDetailsPanel = ({
   task,
@@ -11,29 +11,60 @@ const TaskDetailsPanel = ({
   onDeleteTask,
   onEditTask
 }) => {
-  // State for edit mode and calculations
+  // State for edit mode
   const [isEditing, setIsEditing] = useState(false);
-  const [hasChildren, setHasChildren] = useState(false);
-  const [calculatedDuration, setCalculatedDuration] = useState(task?.duration_days || 1);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Check if this task has children and calculate duration
+  // Use the task context to get enhanced task data
+  const { enhancedTasksMap = {}, loading: contextLoading, getEnhancedTask } = useTasks();
+
   useEffect(() => {
-    if (task && task.id && Array.isArray(tasks)) {
-      // Find children of this task
-      const children = tasks.filter(t => t.parent_task_id === task.id);
-      const childExists = children.length > 0;
-      setHasChildren(childExists);
-      
-      if (childExists) {
-        // Calculate duration based on children
-        const calcDuration = calculateParentDuration(task.id, tasks);
-        setCalculatedDuration(calcDuration);
-      } else {
-        // For tasks with no children, calculated duration equals stored duration
-        setCalculatedDuration(task.duration_days || 1);
-      }
+    // console.log(task.id);
+    
+    if (!contextLoading && task) {
+      setIsLoading(false);
+      // console.log("ENHANCED MAP", enhancedTasksMap);
     }
-  }, [task, tasks]);
+  }, [contextLoading, task, enhancedTasksMap]);
+
+  // Early return if task is not defined
+  if (!task) return null;
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="task-details-panel" style={{
+        backgroundColor: '#f9fafb',
+        borderRadius: '4px',
+        border: '1px solid #e5e7eb',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            borderTop: '3px solid #3b82f6',
+            borderRight: '3px solid #3b82f6',
+            borderBottom: '3px solid #e5e7eb',
+            borderLeft: '3px solid #e5e7eb',
+            borderRadius: '50%',
+            width: '24px',
+            height: '24px',
+            margin: '0 auto 16px auto',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <p>Loading task details...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Get enhanced properties for this task from the map
+  const enhancedProps = getEnhancedTask(task.id);
+  
+  // Extract properties from the enhanced data
+  const { hasChildren, calculatedDuration, effectiveDuration } = enhancedProps;
   
   // Button handlers
   const handleEditClick = () => {
@@ -96,26 +127,12 @@ const TaskDetailsPanel = ({
       return 'Invalid date';
     }
   };
-
-  // Calculate actual due date based on start date and appropriate duration
-  const getActualDueDate = () => {
-    if (!task.start_date) return null;
-    
-    try {
-      const startDate = new Date(task.start_date);
-      const dueDate = new Date(startDate);
-      // Use calculatedDuration for tasks with children, storedDuration otherwise
-      const effectiveDuration = hasChildren ? calculatedDuration : storedDuration;
-      dueDate.setDate(dueDate.getDate() + effectiveDuration);
-      return dueDate;
-    } catch (e) {
-      console.error('Error calculating due date:', e);
-      return null;
-    }
-  };
   
   // Get original (stored) duration
   const storedDuration = task.duration_days || 1;
+  
+  // No need to calculate the actual due date - use the one from enhancedProps
+  const actualDueDate = enhancedProps.calculatedDueDate || task.due_date;
   
   return (
     <div className="task-details-panel" style={{
@@ -265,7 +282,7 @@ const TaskDetailsPanel = ({
             </div>
             
             {/* Position in parent */}
-            {<div>
+            <div>
               <span style={{ fontSize: '12px', color: '#4b5563' }}>Position</span>
               <p style={{ 
                 fontSize: '16px', 
@@ -273,9 +290,8 @@ const TaskDetailsPanel = ({
                 margin: '4px 0 0 0'
               }}>
                 { task.position !== undefined ? task.position + 1 : 'Not set'}
-                
               </p>
-            </div>}
+            </div>
           </div>
           
           {/* Date range information */}
@@ -296,7 +312,7 @@ const TaskDetailsPanel = ({
               </p>
             </div>
             
-            {/* Due date */}
+            {/* Due date - now using the pre-calculated due date from enhancedProps */}
             <div style={{ flex: 1 }}>
               <span style={{ fontSize: '12px', color: '#4b5563' }}>Due Date</span>
               <p style={{ 
@@ -304,11 +320,10 @@ const TaskDetailsPanel = ({
                 fontWeight: 'bold', 
                 margin: '4px 0 0 0'
               }}>
-                {formatDisplayDate(getActualDueDate())}
+                {formatDisplayDate(actualDueDate)}
               </p>
             </div>
           </div>
-          
           
           {/* Child Tasks Timeline - sequential flow */}
           {hasChildren && (
@@ -328,15 +343,17 @@ const TaskDetailsPanel = ({
                   padding: '0 0 0 16px'
                 }}>
                   {children.map((child, index) => {
-                    // Calculate effective duration for this child
-                    const childHasChildren = tasks.some(t => t.parent_task_id === child.id);
-                    const storedDuration = child.duration_days || 1;
-                    let displayDuration = storedDuration;
+                    // Get enhanced properties for this child from the map
+                    const childEnhanced = enhancedTasksMap[child.id] || {
+                      hasChildren: false,
+                      calculatedDuration: child.duration_days || 1,
+                      effectiveDuration: child.duration_days || 1
+                    };
                     
-                    // If child has its own children, calculate its effective duration
-                    if (childHasChildren) {
-                      displayDuration = calculateParentDuration(child.id, tasks);
-                    }
+                    // Display the appropriate duration based on whether this child has children
+                    const childStoredDuration = child.duration_days || 1;
+                    const displayDuration = childEnhanced.hasChildren ? 
+                      childEnhanced.calculatedDuration : childStoredDuration;
                     
                     return (
                       <li key={child.id} style={{ marginBottom: '6px' }}>
@@ -354,7 +371,7 @@ const TaskDetailsPanel = ({
                             </span>
                             
                             {/* Add a badge for calculated durations */}
-                            {childHasChildren && displayDuration !== storedDuration && (
+                            {childEnhanced.hasChildren && displayDuration !== childStoredDuration && (
                               <span style={{
                                 fontSize: '9px',
                                 padding: '1px 4px',
@@ -385,8 +402,6 @@ const TaskDetailsPanel = ({
                   })}
                 </ol>
               </div>
-
-              
             </div>
           )}
           
@@ -398,6 +413,9 @@ const TaskDetailsPanel = ({
             </div>
           )}
         </div>
+        
+        {/* Rest of the component remains unchanged */}
+        {/* ... */}
         
         {/* Created/Modified dates */}
         <div style={{ 
