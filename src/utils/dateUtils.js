@@ -54,6 +54,75 @@ export const calculateStartDate = (parentStartDate, daysFromStartUntil) => {
 };
 
 /**
+ * Determines the appropriate start date for a task based on its position
+ * @param {Object} task - The task to determine start date for
+ * @param {Array} allTasks - All tasks in the system
+ * @returns {Date|null} - The calculated start date or null if cannot be determined
+ */
+export const determineTaskStartDate = (task, allTasks) => {
+  try {
+    if (!task || !Array.isArray(allTasks)) {
+      return null;
+    }
+    
+    // If it's a top-level task with no parent, return its existing start date or null
+    if (!task.parent_task_id) {
+      return task.start_date ? new Date(task.start_date) : null;
+    }
+    
+    // Find the parent task
+    const parentTask = allTasks.find(t => t.id === task.parent_task_id);
+    if (!parentTask || !parentTask.start_date) {
+      return null; // Can't calculate without parent's start date
+    }
+    
+    // Get all siblings of this task (excluding itself)
+    const siblings = allTasks
+      .filter(t => t.parent_task_id === task.parent_task_id && t.id !== task.id)
+      .sort((a, b) => (a.position || 0) - (b.position || 0));
+    
+    // If this is the first child (position 0), use parent's start date
+    if (task.position === 0 || siblings.length === 0) {
+      return new Date(parentTask.start_date);
+    }
+    
+    // Find the previous sibling based on position
+    const taskPosition = task.position || 0;
+    const previousSiblings = siblings.filter(s => (s.position || 0) < taskPosition);
+    
+    if (previousSiblings.length === 0) {
+      // If no previous siblings found but position > 0, something's wrong
+      // Fall back to parent's start date
+      return new Date(parentTask.start_date);
+    }
+    
+    // Get the immediately previous sibling (highest position less than current task)
+    const previousSibling = previousSiblings.reduce((prev, current) => 
+      (current.position > prev.position) ? current : prev
+    );
+    
+    // Use the due date of the previous task as this task's start date
+    if (previousSibling.due_date) {
+      return new Date(previousSibling.due_date);
+    }
+    
+    // If previous sibling has no due date but has start date and duration, calculate it
+    if (previousSibling.start_date && previousSibling.duration_days) {
+      const prevStartDate = new Date(previousSibling.start_date);
+      const result = new Date(prevStartDate);
+      result.setDate(result.getDate() + parseInt(previousSibling.duration_days, 10));
+      return result;
+    }
+    
+    // Fall back to parent's start date if we can't determine from siblings
+    return new Date(parentTask.start_date);
+  } catch (err) {
+    console.error('Error determining task start date:', err);
+    return null;
+  }
+};
+
+/**
  * Format a date for display
  * @param {Date|string} date - The date to format
  * @returns {string} - Formatted date string or 'No date' if date is invalid

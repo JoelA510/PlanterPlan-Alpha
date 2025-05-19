@@ -168,6 +168,19 @@ App
 
 
 ## Dev notes
+
+### May 19 2025
+* issue: create new task needs to have the right start date based on duedate
+* we working on task reordering
+  * we want to implement a sparse positioning system so that we don't have to make updates to all sibling tasks every time a task is reordered
+  * we want to implement caching for the tasks
+  * we want to do batch updates
+### May 18 2025
+* issue: start date is stored as a date type in Supabase. don't need to do a conversion to local time.
+  * solved:  added the formatDisplayDate function and use that instead of formatDate in taskUtils
+### May 15 2025
+* issue: end date was not right
+  * solved: changed how due date was being calculated. all "effective" due dates and durations are calculated in TaskContext when tasks are loaded. the "effective" due dates and durations are stored in a separate array. Made a getter function to get a task's due date and duration.
 ### May 7 2025
 * I think i fixed the Auth context
   * I used chat gpt to do a simple auth and copied that into claude to add features and edits

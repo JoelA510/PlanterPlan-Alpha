@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { useTaskForm } from './useTaskForm';
-import { formatDate } from '../../utils/dateUtils';
+import { formatDisplayDate } from '../../utils/taskUtils';
 
 const TaskForm = ({ 
   parentTaskId,
@@ -182,8 +182,8 @@ const TaskForm = ({
         padding: '8px',
         borderRadius: '4px' 
       }}>
-        <div><strong>Start Date:</strong> {formatDate(formData.start_date)}</div>
-        <div><strong>End Date:</strong> {formatDate(formData.due_date)}</div>
+        <div><strong>Start Date:</strong> {formatDisplayDate(formData.start_date)}</div>
+        <div><strong>End Date:</strong> {formatDisplayDate(formData.due_date)}</div>
         <div style={{ marginTop: '4px', fontSize: '12px', fontStyle: 'italic' }}>
           Note: Changing duration will update the end date accordingly.
         </div>

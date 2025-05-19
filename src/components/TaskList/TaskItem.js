@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import TaskDropZone from './TaskDropZone';
-import { formatDate, getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
+import { formatDisplayDate, getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import { updateTaskCompletion } from '../../services/taskService';
 import { useTasks } from '../contexts/TaskContext';
 
@@ -57,6 +57,10 @@ const TaskItem = ({
   
   // Determine if this task is the current drop target
   const isDropTarget = dropTarget && dropTarget.id === task.id;
+  const isDropTargetBefore = isDropTarget && dropPosition === 'between-before';
+  const isDropTargetAfter = isDropTarget && dropPosition === 'between-after';
+  const isDropTargetInto = isDropTarget && dropPosition === 'into';
+
   const isBeingDragged = draggedTask && draggedTask.id === task.id;
 
   // Helper function to ensure array type for actions and resources
@@ -215,7 +219,15 @@ const handleAddChildButtonClick = (e) => {
     >
       {/* Task header - main draggable/droppable area */}
       <div 
-        className={`task-header ${isDropTarget && dropPosition === 'into' ? 'drop-target-into' : ''} ${isSelected ? 'selected-task' : ''}`}
+        className={`task-header ${
+          isDropTargetInto ? 'drop-target-into' : ''
+        } ${
+          isDropTargetBefore ? 'drop-target-before' : ''
+        } ${
+          isDropTargetAfter ? 'drop-target-after' : ''
+        } ${
+          isSelected ? 'selected-task' : ''
+        }`}
         draggable={!isTopLevel}
         onDragStart={(e) => handleDragStart(e, task)}
         onDragOver={(e) => handleDragOver(e, task)}
@@ -239,8 +251,13 @@ const handleAddChildButtonClick = (e) => {
           borderRadius: '4px',
           transition: 'all 0.2s ease',
           boxShadow: isSelected ? '0 0 0 2px white, 0 0 0 4px ' + backgroundColor : 'none',
-          zIndex: isSelected ? 1 : 'auto'
-        }}
+          zIndex: isSelected ? 1 : 'auto',
+          borderTop: isDropTargetBefore ? '3px solid #3b82f6' : undefined,
+          borderBottom: isDropTargetAfter ? '3px solid #3b82f6' : undefined,
+          boxShadow: isDropTargetInto 
+              ? '0 0 0 2px #3b82f6' 
+              : (isSelected ? '0 0 0 2px white, 0 0 0 4px ' + backgroundColor : 'none'),
+        }}  
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {!isTopLevel && (
@@ -289,7 +306,7 @@ const handleAddChildButtonClick = (e) => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {calculatedDueDate && (
-            <span style={{ marginRight: '12px' }}>Due: {formatDate(calculatedDueDate)}</span>
+            <span style={{ marginRight: '12px' }}>Due: {formatDisplayDate(calculatedDueDate)}</span>
           )}
           
           {/* Info button to view details in the right panel */}

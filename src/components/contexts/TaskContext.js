@@ -27,7 +27,8 @@ import {
 import { 
   calculateDueDate,
   calculateStartDate,
-  updateDependentTaskDates
+  updateDependentTaskDates,
+  determineTaskStartDate,
 } from '../../utils/dateUtils';
 
 // Replace the existing imports
@@ -320,37 +321,60 @@ export const TaskProvider = ({ children }) => {
         license_id: licenseId
       };
       
-      // If this is a child task and has days_from_start_until set
-      if (taskData.parent_task_id && taskData.days_from_start_until_due !== undefined) {
-        // Find the parent task
-        const parentTask = tasks.find(t => t.id === taskData.parent_task_id);
+      // Determine the start date based on position
+      if (taskData.parent_task_id) {
+        // Use our new function to determine the start date
+        const calculatedStartDate = determineTaskStartDate({
+          ...taskData,
+          // Include position if it's not already there
+          position: taskData.position !== undefined ? taskData.position : 
+            // Calculate position (last child by default)
+            tasks.filter(t => t.parent_task_id === taskData.parent_task_id).length 
+        }, tasks);
         
-        if (parentTask && parentTask.start_date) {
-          // Calculate start date based on parent's start date and days_from_start_until
-          const calculatedStartDate = calculateStartDate(
-            parentTask.start_date,
-            taskData.days_from_start_until_due
-          );
+        if (calculatedStartDate) {
+          // Format as ISO string for database
+          enhancedTaskData.start_date = calculatedStartDate.toISOString();
           
-          if (calculatedStartDate) {
-            // Format as ISO string for database
-            enhancedTaskData.start_date = calculatedStartDate.toISOString();
+          // Calculate due date from the new start date if duration is provided
+          if (taskData.duration_days) {
+            const calculatedDueDate = calculateDueDate(
+              calculatedStartDate,
+              taskData.duration_days
+            );
             
-            // If task has a default_duration, calculate the due date
-            if (taskData.duration_days) {
-              const calculatedDueDate = calculateDueDate(
-                calculatedStartDate,
-                taskData.duration_days
-              );
+            if (calculatedDueDate) {
+              enhancedTaskData.due_date = calculatedDueDate.toISOString();
+            }
+          }
+        } else if (taskData.days_from_start_until_due !== undefined) {
+          // Fall back to the existing calculation method if our new function returns null
+          const parentTask = tasks.find(t => t.id === taskData.parent_task_id);
+          
+          if (parentTask && parentTask.start_date) {
+            const fallbackDate = calculateStartDate(
+              parentTask.start_date,
+              taskData.days_from_start_until_due
+            );
+            
+            if (fallbackDate) {
+              enhancedTaskData.start_date = fallbackDate.toISOString();
               
-              if (calculatedDueDate) {
-                enhancedTaskData.due_date = calculatedDueDate.toISOString();
+              if (taskData.duration_days) {
+                const calculatedDueDate = calculateDueDate(
+                  fallbackDate,
+                  taskData.duration_days
+                );
+                
+                if (calculatedDueDate) {
+                  enhancedTaskData.due_date = calculatedDueDate.toISOString();
+                }
               }
             }
           }
         }
-      }
-      // If this task has start_date and default_duration but no due_date
+      } 
+      // For tasks with start_date and duration_days but no due_date
       else if (taskData.start_date && taskData.duration_days && !taskData.due_date) {
         const calculatedDueDate = calculateDueDate(
           taskData.start_date,
@@ -1234,7 +1258,7 @@ const createProjectFromTemplate = async (templateId, projectData, licenseId = nu
     createProjectFromTemplate,
     enhancedTasksMap,
     getEnhancedTask,
-    
+    determineTaskStartDate: (task) => determineTaskStartDate(task, tasks),
   };
   
   return (

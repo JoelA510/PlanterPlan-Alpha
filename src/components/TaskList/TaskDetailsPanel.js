@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
+import { getBackgroundColor, getTaskLevel, formatDisplayDate } from '../../utils/taskUtils';
 import TaskForm from '../TaskForm/TaskForm';
 import { useTasks } from '../contexts/TaskContext';
 
@@ -113,20 +113,20 @@ const TaskDetailsPanel = ({
   const resources = Array.isArray(task.resources) ? task.resources : [];
   
   // Format dates for display
-  const formatDisplayDate = (dateString) => {
-    if (!dateString) return 'Not set';
+  // const formatDisplayDate = (dateString) => {
+  //   if (!dateString) return 'Not set';
     
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (e) {
-      return 'Invalid date';
-    }
-  };
+  //   try {
+  //     return new Date(dateString).toLocaleDateString('en-US', {
+  //       weekday: 'short',
+  //       year: 'numeric',
+  //       month: 'short',
+  //       day: 'numeric'
+  //     });
+  //   } catch (e) {
+  //     return 'Invalid date';
+  //   }
+  // };
   
   // Get original (stored) duration
   const storedDuration = task.duration_days || 1;

@@ -1,8 +1,56 @@
+// src/utils/taskUtils.js
+
 export const formatDate = (dateString) => {
   if (!dateString) return "N/A";
   return new Date(dateString).toLocaleDateString();
 };
 
+export const formatDisplayDate = (dateString) => {
+  if (!dateString) return 'No date';
+  
+  try {
+    // For date-only values from PostgreSQL, ensure we parse without timezone shifting
+    // Split by T to handle both date-only strings and ISO strings
+    const datePart = dateString.split('T')[0];
+    
+    // Create parts for year, month, day
+    const [year, month, day] = datePart.split('-').map(num => parseInt(num, 10));
+    
+    // Create a date using the UTC values to avoid timezone adjustment
+    // month is 0-indexed in JavaScript, so subtract 1
+    const date = new Date(year, month - 1, day);
+    
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return 'Invalid date';
+  }
+};
+
+// export const formatDate = (dateString) => {
+//   if (!dateString) return 'Not set';
+  
+//   try {
+//     // Parse the date and adjust for timezone
+//     const date = new Date(dateString);
+//     // Create a new date object with only the date part in local time
+//     const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+//     return localDate.toLocaleDateString('en-US', {
+//       weekday: 'short',
+//       year: 'numeric',
+//       month: 'short',
+//       day: 'numeric'
+//     });
+//   } catch (e) {
+//     return 'Invalid date';
+//   }
+// };
 // Get background color based on nesting level
 export const getBackgroundColor = (level) => {
   const colors = [
@@ -76,6 +124,8 @@ export const calculateStartDate = (parentStartDate, position, siblingTasks) => {
   
   return startDate;
 };
+
+
 
 export const updateChildDates = (tasks, parentId, parentStartDate) => {
   // Get direct children of this parent
