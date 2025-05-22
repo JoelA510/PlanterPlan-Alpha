@@ -37,8 +37,10 @@ export const calculateParentDuration = (parentId, tasks) => {
           const calculatedDuration = calculateParentDuration(child.id, tasks);
           return sum + calculatedDuration;
         } else {
-          // Use the stored duration for leaf tasks
-          return sum + (child.duration_days || 1);
+          // Use the default_duration (stored duration) for leaf tasks if available, 
+          // otherwise fall back to duration_days or 1
+          const defaultDuration = child.default_duration || child.duration_days || 1;
+          return sum + defaultDuration;
         }
       }, 0);
       
@@ -145,12 +147,12 @@ export const calculateParentDuration = (parentId, tasks) => {
   };
   
   /**
-   * Update the duration of a task and all its ancestors
-   * @param {string} taskId - The ID of the task to start updating from
-   * @param {Array} tasks - Array of all tasks
-   * @returns {Array} - Updated tasks array with new durations
-   */
-  export const updateAncestorDurations = (taskId, tasks) => {
+ * Update the duration of a task and all its ancestors
+ * @param {string} taskId - The ID of the task to start updating from
+ * @param {Array} tasks - Array of all tasks
+ * @returns {Array} - Updated tasks array with new durations
+ */
+export const updateAncestorDurations = (taskId, tasks) => {
     if (!taskId || !Array.isArray(tasks) || tasks.length === 0) {
       return tasks;
     }
@@ -183,15 +185,17 @@ export const calculateParentDuration = (parentId, tasks) => {
         const parentIndex = updatedTasks.findIndex(t => t.id === currentParentId);
         if (parentIndex === -1) return;
         
-        // Only update if the duration has changed
+        // Only update if the effective duration has changed
+        // Note: We're updating duration_days which is the effective duration, 
+        // leaving default_duration unchanged
         if (updatedTasks[parentIndex].duration_days !== newDuration) {
-          const oldDuration = updatedTasks[parentIndex].duration_days || 1;
-          
-          // Update the parent's duration
+          // Update the parent's duration_days
           updatedTasks[parentIndex] = {
             ...updatedTasks[parentIndex],
             duration_days: newDuration
           };
+          
+          // Note: We don't change the default_duration, which is what the user set
           
           // Get start date of this parent
           const parentStart = updatedTasks[parentIndex].start_date;

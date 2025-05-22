@@ -1,44 +1,22 @@
-// src/components/TaskForm/TemplateTaskForm.js
-import React, { useState, useEffect } from 'react';
-import { calculateParentDuration } from '../../utils/sequentialTaskManager';
+// src/components/TaskForm/CreateNewTemplateForm.js
+import React, { useState } from 'react';
 
-const TemplateTaskForm = ({ 
-  parentTaskId,  // Now always required - never null
+const CreateNewTemplateForm = ({ 
   onSubmit, 
   onCancel, 
-  backgroundColor,
-  initialData = null,
-  isEditing = false,
-  tasks = []
+  backgroundColor = '#3b82f6'
 }) => {
-  // Simple state management without the complex hook
+  // Simple state management for new template creation
   const [formData, setFormData] = useState({
     title: '',
     purpose: '',
     description: '',
     actions: [''],
     resources: [''],
-    duration_days: 1,
-    days_from_start_until_due: 0,
-    ...initialData  // Safe since we're not passing null anymore
+    duration_days: 1
   });
   
   const [errors, setErrors] = useState({});
-  const [hasChildren, setHasChildren] = useState(false);
-  const [minRequiredDuration, setMinRequiredDuration] = useState(1);
-  
-  // Check if this is a task with children (for editing mode)
-  useEffect(() => {
-    if (isEditing && initialData && initialData.id && Array.isArray(tasks)) {
-      const childExists = tasks.some(task => task.parent_task_id === initialData.id);
-      setHasChildren(childExists);
-      
-      if (childExists) {
-        const calculatedDuration = calculateParentDuration(initialData.id, tasks);
-        setMinRequiredDuration(calculatedDuration);
-      }
-    }
-  }, [isEditing, initialData, tasks]);
 
   // Handle basic input changes
   const handleChange = (e) => {
@@ -61,8 +39,7 @@ const TemplateTaskForm = ({
   // Handle array field changes
   const handleArrayChange = (type, index, value) => {
     setFormData(prev => {
-      const currentArray = Array.isArray(prev[type]) ? prev[type] : [''];
-      const newArray = [...currentArray];
+      const newArray = [...prev[type]];
       newArray[index] = value;
       return {
         ...prev,
@@ -73,20 +50,16 @@ const TemplateTaskForm = ({
 
   // Add new array item
   const addArrayItem = (type) => {
-    setFormData(prev => {
-      const currentArray = Array.isArray(prev[type]) ? prev[type] : [''];
-      return {
-        ...prev,
-        [type]: [...currentArray, '']
-      };
-    });
+    setFormData(prev => ({
+      ...prev,
+      [type]: [...prev[type], '']
+    }));
   };
 
   // Remove array item
   const removeArrayItem = (type, index) => {
     setFormData(prev => {
-      const currentArray = Array.isArray(prev[type]) ? prev[type] : [''];
-      const newArray = [...currentArray];
+      const newArray = [...prev[type]];
       newArray.splice(index, 1);
       return {
         ...prev,
@@ -115,17 +88,12 @@ const TemplateTaskForm = ({
   const prepareFormData = () => {
     return {
       ...formData,
-      actions: Array.isArray(formData.actions) 
-        ? formData.actions.filter(item => item && item.trim() !== '') 
-        : [],
-      resources: Array.isArray(formData.resources) 
-        ? formData.resources.filter(item => item && item.trim() !== '') 
-        : [],
+      actions: formData.actions.filter(item => item && item.trim() !== ''),
+      resources: formData.resources.filter(item => item && item.trim() !== ''),
       duration_days: parseInt(formData.duration_days, 10),
-      days_from_start_until_due: parseInt(formData.days_from_start_until_due || 0, 10),
-      parent_task_id: parentTaskId,
       origin: 'template',
-      is_complete: formData.is_complete !== undefined ? formData.is_complete : false
+      is_complete: false,
+      parent_task_id: null // Always null for new top-level templates
     };
   };
 
@@ -135,28 +103,10 @@ const TemplateTaskForm = ({
     
     if (validateForm()) {
       const cleanedData = prepareFormData();
-      
-      // If this task has children, inform the user about duration calculation
-      if (hasChildren && cleanedData.duration_days < minRequiredDuration) {
-        alert(`This template has child tasks that require at least ${minRequiredDuration} days. The duration value you've set will be stored, but the template will display with the calculated duration based on its children.`);
-      }
-      
       onSubmit(cleanedData);
     }
   };
-  
-  // Simplified header text - always for child templates
-  const getHeaderText = () => {
-    if (isEditing) {
-      return 'Edit Template';
-    }
-    return 'Add Child Template';  // Simplified since parentTaskId is always present
-  };
-  
-  // Safe arrays
-  const safeActions = Array.isArray(formData.actions) ? formData.actions : [''];
-  const safeResources = Array.isArray(formData.resources) ? formData.resources : [''];
-  
+
   return (
     <div style={{
       backgroundColor: '#f9fafb',
@@ -177,7 +127,7 @@ const TemplateTaskForm = ({
         alignItems: 'center'
       }}>
         <h3 style={{ margin: 0, fontWeight: 'bold' }}>
-          {getHeaderText()}
+          Create New Template
         </h3>
         <button 
           onClick={onCancel}
@@ -217,7 +167,7 @@ const TemplateTaskForm = ({
             id="title"
             name="title"
             type="text"
-            value={formData.title || ''}
+            value={formData.title}
             onChange={handleChange}
             style={{
               width: '100%',
@@ -252,7 +202,7 @@ const TemplateTaskForm = ({
               name="duration_days"
               type="number"
               min="1"
-              value={formData.duration_days || 1}
+              value={formData.duration_days}
               onChange={handleChange}
               style={{
                 width: '80px',
@@ -264,27 +214,12 @@ const TemplateTaskForm = ({
             />
             <span style={{ fontSize: '14px', color: '#6b7280' }}>days</span>
           </div>
-          
-          {/* Show helper text if this is a parent template with children */}
-          {hasChildren && (
-            <p style={{ 
-              fontSize: '12px', 
-              color: '#6b7280', 
-              margin: '4px 0 0 0',
-              fontStyle: 'italic'
-            }}>
-              Note: This template has children that require at least {minRequiredDuration} days. The displayed duration will be auto-calculated.
-            </p>
-          )}
-          
           {errors.duration_days && (
             <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
               {errors.duration_days}
             </p>
           )}
         </div>
-        
-        
         
         {/* Purpose Field */}
         <div style={{ marginBottom: '16px' }}>
@@ -301,7 +236,7 @@ const TemplateTaskForm = ({
           <textarea
             id="purpose"
             name="purpose"
-            value={formData.purpose || ''}
+            value={formData.purpose}
             onChange={handleChange}
             rows={2}
             style={{
@@ -330,7 +265,7 @@ const TemplateTaskForm = ({
           <textarea
             id="description"
             name="description"
-            value={formData.description || ''}
+            value={formData.description}
             onChange={handleChange}
             rows={3}
             style={{
@@ -355,7 +290,7 @@ const TemplateTaskForm = ({
           >
             Actions
           </label>
-          {safeActions.map((action, index) => (
+          {formData.actions.map((action, index) => (
             <div key={`action-${index}`} style={{ 
               display: 'flex', 
               marginBottom: '8px',
@@ -363,7 +298,7 @@ const TemplateTaskForm = ({
             }}>
               <input
                 type="text"
-                value={action || ''}
+                value={action}
                 onChange={(e) => handleArrayChange('actions', index, e.target.value)}
                 style={{
                   flex: 1,
@@ -420,7 +355,7 @@ const TemplateTaskForm = ({
           >
             Resources
           </label>
-          {safeResources.map((resource, index) => (
+          {formData.resources.map((resource, index) => (
             <div key={`resource-${index}`} style={{ 
               display: 'flex', 
               marginBottom: '8px',
@@ -428,7 +363,7 @@ const TemplateTaskForm = ({
             }}>
               <input
                 type="text"
-                value={resource || ''}
+                value={resource}
                 onChange={(e) => handleArrayChange('resources', index, e.target.value)}
                 style={{
                   flex: 1,
@@ -500,7 +435,7 @@ const TemplateTaskForm = ({
               cursor: 'pointer'
             }}
           >
-            {isEditing ? 'Update Template' : 'Add Child Template'}
+            Create Template
           </button>
         </div>
       </form>
@@ -508,4 +443,4 @@ const TemplateTaskForm = ({
   );
 };
 
-export default TemplateTaskForm;
+export default CreateNewTemplateForm;

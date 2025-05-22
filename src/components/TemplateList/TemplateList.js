@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import TemplateItem from './TemplateItem';
 import TaskDropZone from '../TaskList/TaskDropZone';
 import TemplateTaskForm from '../TaskForm/TemplateTaskForm';
+import CreateNewTemplateForm from '../TaskForm/CreateNewTemplateForm';
 import TemplateDetailsPanel from './TemplateDetailsPanel';
 import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { useTasks } from '../contexts/TaskContext';
@@ -17,11 +18,17 @@ const TemplateList = () => {
     error, 
     fetchTasks, 
     setTasks,
-    addingTemplateToId,
-    isAddingTopLevelTemplate,
-    handleAddTemplate,
-    cancelAddTemplate,
-    createTemplate,
+
+    // New template task specific functions and state
+    handleAddTemplateTask,
+    handleCreateNewTemplate,
+    cancelTemplateCreation,
+    createNewTemplate,
+    addTemplateTask,
+    // Template state
+    isCreatingNewTemplate,
+    addingChildToTemplateId,
+
     deleteTask,
     updateTask
   } = useTasks();
@@ -75,30 +82,40 @@ const TemplateList = () => {
   // Initialize drag and drop
   const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTasks);
   
-  // Handle task form submission
-  const handleTaskFormSubmit = async (taskData) => {
-    try {
-      const result = await createTemplate(taskData);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      // Expand the parent task to show the new child
-      if (taskData.parent_task_id) {
-        setExpandedTasks(prev => ({
-          ...prev,
-          [taskData.parent_task_id]: true
-        }));
-      }
-      
-      return result;
-    } catch (err) {
-      console.error('Error adding template:', err);
-      alert(`Failed to create template: ${err.message}`);
-      return { error: err.message };
+
+// Handler for creating a new top-level template
+const handleNewTemplateSubmit = async (templateData) => {
+  try {
+    const result = await createNewTemplate(templateData);
+    
+    if (result.error) {
+      throw new Error(result.error);
     }
-  };
+    
+    return result;
+  } catch (err) {
+    console.error('Error creating new template:', err);
+    alert(`Failed to create new template: ${err.message}`);
+    return { error: err.message };
+  }
+};
+
+// Handler for adding a template task (child) to an existing template
+const handleTemplateTaskSubmit = async (templateData) => {
+  try {
+    const result = await addTemplateTask(templateData);
+    
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    
+    return result;
+  } catch (err) {
+    console.error('Error adding template task:', err);
+    alert(`Failed to add template task: ${err.message}`);
+    return { error: err.message };
+  }
+};
 
   // Handle edit template
   const handleEditTemplate = async (templateId, updatedData) => {
@@ -219,7 +236,7 @@ const TemplateList = () => {
       .filter(task => !task.parent_task_id)
       .sort((a, b) => (a.position || 0) - (b.position || 0));
     
-    if (topLevelTasks.length === 0 && !isAddingTopLevelTemplate) {
+    if (topLevelTasks.length === 0 && !isCreatingNewTemplate) {
       return (
         <div style={{
           textAlign: 'center',
@@ -247,7 +264,8 @@ const TemplateList = () => {
           selectTask={selectTask}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
-          onAddTask={handleAddTemplate}
+          onAddTask={handleAddTemplateTask}
+          
         />
       );
       
@@ -271,21 +289,20 @@ const TemplateList = () => {
   // Render the right panel content (task details or task form)
   const renderRightPanel = () => {
     // For when we're adding a top-level template
-    if (isAddingTopLevelTemplate) {
+    if (isCreatingNewTemplate) {
       return (
-        <TemplateTaskForm
-          parentTaskId={null}
-          onSubmit={handleTaskFormSubmit}
-          onCancel={cancelAddTemplate}
+        <CreateNewTemplateForm
+          onSubmit={handleNewTemplateSubmit}
+          onCancel={cancelTemplateCreation}
           backgroundColor="#3b82f6"
-          tasks={tasks} // Pass the tasks array
         />
       );
     }
     
-    // For when we're adding a child task
-    if (addingTemplateToId) {
-      const parentTask = tasks.find(t => t.id === addingTemplateToId);
+    // For when we're adding a child template task to an existing template
+    // For adding a child template to an existing template
+    if (addingChildToTemplateId) {
+      const parentTask = tasks.find(t => t.id === addingChildToTemplateId);
       if (!parentTask) return null;
       
       const level = getTaskLevel(parentTask, tasks);
@@ -293,11 +310,11 @@ const TemplateList = () => {
       
       return (
         <TemplateTaskForm
-          parentTaskId={addingTemplateToId}
-          onSubmit={handleTaskFormSubmit}
-          onCancel={cancelAddTemplate}
+          parentTaskId={addingChildToTemplateId}
+          onSubmit={handleTemplateTaskSubmit}  // Use specific handler
+          onCancel={cancelTemplateCreation}
           backgroundColor={backgroundColor}
-          tasks={tasks} // Pass the tasks array
+          tasks={tasks}
         />
       );
     }
@@ -337,7 +354,7 @@ const TemplateList = () => {
         task={selectedTask}
         tasks={tasks}
         onClose={() => setSelectedTaskId(null)}
-        onAddTask={handleAddTemplate}
+        onAddTask={handleAddTemplateTask}
         onDeleteTask={handleDeleteTemplate}
         onEditTask={handleEditTemplate}
       />
@@ -361,7 +378,7 @@ const TemplateList = () => {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Templates</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
-              onClick={() => handleAddTemplate(null)}
+              onClick={() => handleCreateNewTemplate(null)}
               style={{
                 backgroundColor: '#10b981',
                 color: 'white',

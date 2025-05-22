@@ -393,7 +393,7 @@ const updateDatabase = async (newParentId, newPosition, oldParentId, isSameParen
     }
     
     // Check if we need to renormalize positions
-    const needsRenormalization = checkIfRenormalizationNeeded(tasks, newParentId);
+    let needsRenormalization = checkIfRenormalizationNeeded(tasks, newParentId);
     
     // Enhanced renormalization in updateDatabase function
 if (needsRenormalization) {
@@ -516,7 +516,7 @@ const handleDrop = async (e, targetTask) => {
     }
 
     // STEP 1: Optimistically update the frontend state
-    const needsRenormalization = updateTasksState(newParentId, newPosition, oldParentId, isSameParent);
+    let needsRenormalization = updateTasksState(newParentId, newPosition, oldParentId, isSameParent);
     // Override with our force flag if needed
     needsRenormalization = needsRenormalization || forceRenormalize;
     
