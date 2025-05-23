@@ -10,6 +10,7 @@ import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import { updateTaskCompletion, deleteTask, updateTaskComplete } from '../../services/taskService';
 import TaskDetailsPanel from './TaskDetailsPanel';
 import TemplateProjectCreator from '../TemplateProject/TemplateProjectCreator';
+import { getNextAvailablePosition } from '../../utils/sparsePositioning';
 
 const TaskList = () => {
   // Initialize refs first 
@@ -197,51 +198,46 @@ const handleCreateNewProject = () => {
   };
 
   // Handle submit of the new child task form
-  const handleAddChildTaskSubmit = async (taskData) => {
-    try {
-      // Determine position for new task
-      const siblingTasks = tasks.filter(t => t.parent_task_id === taskData.parent_task_id);
-      const position = siblingTasks.length > 0 
-        ? Math.max(...siblingTasks.map(t => t.position || 0)) + 1 
-        : 0;
-      
-      // Add position and ensure task is an instance
-      const newTaskData = {
-        ...taskData,
-        position,
-        origin: "instance",
-        is_complete: false,
-        due_date: taskData.due_date || null
-      };
-      
-      // Create the task using context function
-      // Child tasks don't need a license ID - they inherit from parent
-      const result = await createTask(newTaskData);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      // Refresh tasks to include the new task
-      await fetchTasks(true);
-      
-      // Reset the adding child task state
-      setAddingChildToTaskId(null);
-      
-      // Expand the parent task to show the new child
-      if (taskData.parent_task_id) {
-        setExpandedTasks(prev => ({
-          ...prev,
-          [taskData.parent_task_id]: true
-        }));
-      }
-    } catch (err) {
-      console.error('Error adding child task:', err);
-      if (isMountedRef.current) {
-        alert(`Failed to create task: ${err.message}`);
-      }
+const handleAddChildTaskSubmit = async (taskData) => {
+  try {
+
+    // Add position and ensure task is an instance
+    const newTaskData = {
+      ...taskData,
+      origin: "instance",
+      is_complete: false,
+      due_date: taskData.due_date || null
+    };
+    
+    
+    // Create the task using context function
+    // Child tasks don't need a license ID - they inherit from parent
+    const result = await createTask(newTaskData);
+    
+    if (result.error) {
+      throw new Error(result.error);
     }
-  };
+    
+    // Refresh tasks to include the new task
+    await fetchTasks(true);
+    
+    // Reset the adding child task state
+    setAddingChildToTaskId(null);
+    
+    // Expand the parent task to show the new child
+    if (taskData.parent_task_id) {
+      setExpandedTasks(prev => ({
+        ...prev,
+        [taskData.parent_task_id]: true
+      }));
+    }
+  } catch (err) {
+    console.error('Error adding child task:', err);
+    if (isMountedRef.current) {
+      alert(`Failed to create task: ${err.message}`);
+    }
+  }
+};
 
   // Handle canceling the add child task form
   const handleCancelAddTask = () => {

@@ -55,6 +55,539 @@
   - [ ]  New task type “Coaching” allows tasks to automatically be assigned to user with Coach level access
   - [ ] automatically send email notifications for tasks being due soon
 
+## Team management Roadmap
+Role-Based Access Control System for Project-Level Team Management
+Technical Implementation Roadmap
+Phase 1: Database Schema & Core Data Model
+PR #1: Extend Database Schema for Project Team Management
+
+Database migrations for new tables and relationships
+
+Create project_memberships table
+
+id (uuid, primary key)
+project_id (uuid, foreign key to tasks table where parent_task_id is null)
+user_id (uuid, foreign key to users table)
+role (enum: 'owner', 'full_user', 'limited_user', 'coach')
+invited_by (uuid, foreign key to users table)
+invited_at (timestamptz)
+accepted_at (timestamptz, nullable)
+status (enum: 'pending', 'accepted', 'declined', 'revoked')
+created_at (timestamptz)
+updated_at (timestamptz)
+
+
+Create project_invitations table
+
+id (uuid, primary key)
+project_id (uuid, foreign key to tasks table)
+email (text)
+role (enum: 'owner', 'full_user', 'limited_user', 'coach')
+invited_by (uuid, foreign key to users table)
+invitation_token (uuid, unique)
+expires_at (timestamptz)
+status (enum: 'pending', 'accepted', 'declined', 'expired', 'revoked')
+created_at (timestamptz)
+updated_at (timestamptz)
+
+
+
+
+Update existing tables to support team assignments
+
+Add assigned_users jsonb column to tasks table (array of user IDs)
+Add coaching_notes text column to tasks table
+Add is_coaching_task boolean column to tasks table
+
+
+Create database views for efficient querying
+
+project_team_members_view (combines memberships with user details)
+user_project_permissions_view (flattened permissions per user/project)
+
+
+
+PR #2: Database Constraints and RLS Policies
+
+Add database constraints and indexes
+
+Unique constraints on project_memberships (project_id, user_id)
+Unique constraints on project_invitations (project_id, email) where status = 'pending'
+Indexes on frequently queried columns
+Check constraints for role validation
+
+
+Implement Row Level Security (RLS) policies
+
+Policy for project_memberships table (users can see their own memberships and project owners can see all)
+Policy for project_invitations table (invited users and project admins)
+Update existing tasks table RLS to incorporate project-level permissions
+Policy for accessing projects based on membership
+
+
+
+Phase 2: Backend API Layer
+PR #3: Core Permission Service
+
+Create project permission service module
+
+src/services/projectPermissionService.js
+
+getUserProjectRole(userId, projectId) - get user's role in specific project
+canUserAccessProject(userId, projectId) - basic access check
+canUserEditTask(userId, taskId, projectId) - task-level permission check
+canUserManageTeam(userId, projectId) - team management permission
+canUserInviteMembers(userId, projectId) - invitation permission
+getUserProjectPermissions(userId, projectId) - comprehensive permissions object
+
+
+
+
+Permission constants and role definitions
+
+Define permission matrices for each role
+Create permission constants (READ, WRITE, DELETE, INVITE, MANAGE_TEAM, etc.)
+Role hierarchy definitions
+
+
+
+PR #4: Project Membership API Endpoints
+
+Core membership management functions
+
+getProjectMembers(projectId) - get all members of a project
+addProjectMember(projectId, userId, role, invitedBy) - direct member addition
+updateMemberRole(projectId, userId, newRole, updatedBy) - role changes
+removeMember(projectId, userId, removedBy) - remove team member
+getUserProjects(userId) - get all projects user has access to
+
+
+Membership validation and business logic
+
+Ensure project owner always exists
+Prevent removing last project owner
+Validate role transitions
+Audit trail for membership changes
+
+
+
+PR #5: Invitation System API
+
+Invitation management functions
+
+createInvitation(projectId, email, role, invitedBy) - create new invitation
+getProjectInvitations(projectId) - get pending invitations
+getPendingInvitationsForUser(userId) - get user's pending invitations
+acceptInvitation(invitationToken, userId) - accept invitation
+declineInvitation(invitationToken) - decline invitation
+revokeInvitation(invitationId, revokedBy) - cancel invitation
+resendInvitation(invitationId) - resend invitation email
+
+
+Invitation validation and security
+
+Token generation and validation
+Expiration handling
+Duplicate invitation prevention
+Security checks for invitation acceptance
+
+
+
+Phase 3: Frontend State Management & Context Updates
+PR #6: Extend Authentication Context for Project Permissions
+
+Update AuthContext to include project-level permissions
+
+Add userProjectRoles state to track user's roles across projects
+Add currentProjectPermissions for active project context
+Implement hasProjectPermission(projectId, permission) helper
+Add getUserProjectRole(projectId) helper
+Update session management to include project permissions
+
+
+Permission hooks and utilities
+
+Create useProjectPermissions(projectId) hook
+Create useCanEditTask(taskId) hook
+Create useCanManageTeam(projectId) hook
+Permission-aware component wrapper utilities
+
+
+
+PR #7: Project Team Context Provider
+
+Create new ProjectTeamContext
+
+src/components/contexts/ProjectTeamContext.js
+
+State for current project's team members
+State for pending invitations
+Functions for team management operations
+Integration with permission system
+
+
+
+
+Team management state and operations
+
+teamMembers - current project team
+pendingInvitations - pending invites for project
+inviteUser(email, role) - invitation workflow
+updateMemberRole(userId, newRole) - role management
+removeMember(userId) - member removal
+cancelInvitation(invitationId) - invitation cancellation
+
+
+
+PR #8: Update TaskContext for Permission Integration
+
+Integrate project permissions into TaskContext
+
+Update task fetching to respect project permissions
+Add permission checks before task operations
+Filter tasks based on user's project access
+Update task creation/editing to include permission validation
+
+
+Task-level permission enforcement
+
+Modify createTask to check project permissions
+Update updateTask with permission validation
+Add canUserEditTask checks throughout
+Handle assigned task filtering for limited users
+
+
+
+Phase 4: Permission Enforcement Layer
+PR #9: Task-Level Permission Enforcement
+
+Update TaskItem component with permission-aware UI
+
+Hide/show edit controls based on permissions
+Add permission checks for drag-and-drop operations
+Update task completion toggle with role validation
+Show/hide add child task button based on permissions
+
+
+Update TaskDetailsPanel with role-based controls
+
+Conditional rendering of edit/delete buttons
+Role-based field access (coaching notes only for coaches)
+Assignment controls for project owners/full users
+Permission-aware task form rendering
+
+
+
+PR #10: TaskForm Permission Integration
+
+Update TaskForm components with role-based access
+
+Disable fields based on user role and task type
+Show/hide coaching-specific fields
+Add assignment user selection for appropriate roles
+Validate form submissions against user permissions
+
+
+Permission-aware form validation
+
+Client-side permission validation
+Role-specific field requirements
+Assignment validation for limited users
+Coach-specific field validation
+
+
+
+PR #11: Project-Level Access Control
+
+Update TaskList with project permission filtering
+
+Filter projects based on user membership
+Show role-based project actions
+Hide/show create project button based on permissions
+Add team management access points
+
+
+Navigation and routing permission checks
+
+Update Layout component with project-aware navigation
+Add route guards for team management pages
+Permission-based menu item rendering
+Project context switching validation
+
+
+
+Phase 5: Team Management User Interface
+PR #12: Core Team Management Components
+
+Create ProjectTeamPanel component
+
+src/components/ProjectTeam/ProjectTeamPanel.js
+
+Team member list with roles
+Pending invitation display
+Role management controls
+Member removal functionality
+
+
+
+
+Create TeamMemberItem component
+
+Individual team member display
+Role badge and status indicators
+Action buttons (edit role, remove) based on permissions
+User avatar and contact information
+
+
+
+PR #13: Invitation Management Interface
+
+Create InvitationForm component
+
+Email input and validation
+Role selection dropdown
+Form submission and error handling
+Integration with invitation API
+
+
+Create PendingInvitationsList component
+
+Display pending invitations
+Resend invitation functionality
+Cancel invitation capability
+Invitation status tracking
+
+
+
+PR #14: Team Management Integration
+
+Integrate team management into TaskDetailsPanel
+
+Add "Team" tab to project details
+Show team management controls for project owners
+Display current user's role and permissions
+Add quick team access from project header
+
+
+Create dedicated team management page
+
+Full team management interface
+Advanced filtering and sorting
+Bulk operations for larger teams
+Team analytics and usage insights
+
+
+
+Phase 6: Assignment and Coaching Features
+PR #15: Task Assignment System
+
+Update TaskForm with assignment capabilities
+
+Multi-select user picker for task assignment
+Assignment validation based on project membership
+Visual indicators for assigned tasks
+Assignment notification system
+
+
+Create AssignmentManager component
+
+Bulk assignment operations
+Assignment history tracking
+Workload distribution visualization
+Assignment conflict resolution
+
+
+
+PR #16: Coaching Task Features
+
+Add coaching-specific task fields
+
+Coaching notes field in TaskForm
+Coaching task type toggle
+Coach-only editing permissions
+Coaching progress indicators
+
+
+Create CoachingDashboard component
+
+Overview of coaching tasks
+Progress tracking for coached team members
+Coaching analytics and insights
+Feedback and evaluation tools
+
+
+
+Phase 7: Email Notification System
+PR #17: Email Service Infrastructure
+
+Create email service module
+
+src/services/emailService.js
+
+Email template system
+SMTP/API integration (SendGrid/AWS SES)
+Queue management for bulk emails
+Email tracking and delivery status
+
+
+
+
+Email template system
+
+Invitation email templates
+Role change notification templates
+Task assignment notification templates
+Coaching update notification templates
+
+
+
+PR #18: Notification Triggers and Workflows
+
+Implement notification triggers
+
+Project invitation notifications
+Role change notifications
+Task assignment notifications
+Project updates for team members
+
+
+User notification preferences
+
+Email notification settings
+Digest vs. immediate notifications
+Notification type filtering
+Unsubscribe functionality
+
+
+
+Phase 8: Enhanced Permission Features
+PR #19: Advanced Permission Controls
+
+Custom permission sets
+
+Granular permission configuration
+Project-specific permission overrides
+Temporary permission elevation
+Permission inheritance rules
+
+
+Permission audit and logging
+
+Activity logging for permission changes
+Audit trail for sensitive operations
+Permission usage analytics
+Security compliance reporting
+
+
+
+PR #20: Bulk Operations and Management
+
+Bulk team management operations
+
+Multi-user invitation system
+Bulk role changes
+CSV import/export for team data
+Template-based team setup
+
+
+Advanced team management features
+
+Team groups and sub-teams
+Permission delegation
+Time-based access controls
+Integration with external directory services
+
+
+
+Phase 9: Integration and Polish
+PR #21: Error Handling and Edge Cases
+
+Comprehensive error handling
+
+Permission denied error handling
+Network failure recovery
+Invalid state recovery
+User-friendly error messages
+
+
+Edge case handling
+
+Concurrent permission changes
+User deletion with active memberships
+Project deletion with team members
+Invitation expiration handling
+
+
+
+PR #22: Performance Optimization
+
+Performance improvements
+
+Permission caching strategies
+Lazy loading for team data
+Optimized database queries
+Client-side permission caching
+
+
+Scalability enhancements
+
+Pagination for large teams
+Search and filtering optimization
+Real-time updates for team changes
+Mobile responsiveness for team management
+
+
+
+PR #23: Testing and Documentation
+
+Comprehensive testing suite
+
+Unit tests for permission logic
+Integration tests for team workflows
+E2E tests for invitation flows
+Permission enforcement testing
+
+
+Documentation and migration guides
+
+API documentation
+User guide for team management
+Migration guide for existing projects
+Developer documentation for permission system
+
+
+
+Technical Implementation Notes
+Database Considerations:
+
+Use UUIDs for all primary keys to avoid enumeration attacks
+Implement proper indexing strategy for permission queries
+Consider partitioning for large-scale deployments
+Use database triggers for audit logging
+
+Security Considerations:
+
+Implement rate limiting for invitation endpoints
+Use signed tokens for invitation URLs
+Validate all permissions server-side
+Implement CSRF protection for sensitive operations
+
+Performance Considerations:
+
+Cache user permissions in Redis/memory
+Use database views for complex permission queries
+Implement efficient permission checking algorithms
+Consider GraphQL for flexible team data fetching
+
+Integration Points:
+
+Existing AuthContext and authentication flow
+Current TaskContext and task management
+Organization-level permissions and white-labeling
+Existing UI components and styling patterns
+
+This roadmap provides a comprehensive, incrementally buildable approach to implementing the RBAC system while maintaining compatibility with the existing codebase and allowing parallel development by multiple contributors.
+
 ## Documentation
 Database Schema (Mermaid code):
 
