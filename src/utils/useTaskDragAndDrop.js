@@ -6,8 +6,10 @@ import {
   calculateParentDuration, 
   updateAncestorDurations,
   getTasksRequiringUpdates,
-  updateTasksInDatabase
+  updateTasksInDatabase,
+  calculateSequentialStartDates,
 } from './sequentialTaskManager';
+import { useTasks } from '../components/contexts/TaskContext';
 
 // Add to the top of useTaskDragAndDrop.js
 const taskCache = {
@@ -79,6 +81,7 @@ const getCachedChildren = (parentId, allTasks) => {
 
 
 const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
+  const { updateTaskAfterDragDropOptimistic, updateTasksOptimistic } = useTasks();
   // First, add these constants at the top of useTaskDragAndDrop.js
 const POSITION_INCREMENT = 1000; // Base increment between tasks
 const MIN_POSITION_GAP = 10;     // Minimum acceptable gap before renormalization
@@ -461,7 +464,8 @@ if (needsRenormalization) {
     }
   };
 // Update handleDrop in useTaskDragAndDrop.js
-const handleDrop = async (e, targetTask) => {
+// Update handleDrop in useTaskDragAndDrop.js
+const handleDr = async (e, targetTask) => {
   e.preventDefault();
 
   // Validate essential data is present
@@ -478,7 +482,7 @@ const handleDrop = async (e, targetTask) => {
       newParentId = targetTask.id;
       
       // Count existing children to place at the end
-      const children = getCachedChildren(targetTask.id, tasks);
+      const children = tasks.filter(t => t.parent_task_id === targetTask.id);
       newPosition = children.length;
     } 
     // Case 2: Dropping BETWEEN tasks (after or before)
@@ -486,8 +490,9 @@ const handleDrop = async (e, targetTask) => {
       newParentId = targetTask.parent_task_id;
       
       // Get siblings at the target level (excluding the dragged task)
-      const siblings = getCachedChildren(targetTask.parent_task_id, tasks)
-        .filter(t => t.id !== draggedTask.id);
+      const siblings = tasks
+        .filter(t => t.parent_task_id === targetTask.parent_task_id && t.id !== draggedTask.id)
+        .sort((a, b) => a.position - b.position);
       
       // Find the target's index among its siblings
       const targetIndex = siblings.findIndex(t => t.id === targetTask.id);
@@ -500,55 +505,12 @@ const handleDrop = async (e, targetTask) => {
     const oldParentId = draggedTask.parent_task_id;
     const isSameParent = oldParentId === newParentId;
     
-    // Check if this is a cross-milestone move
-    const isCrossMilestoneMove = !isSameParent;
-    // In handleDrop function, add this check before calling updateTasksState
-    // Get siblings at the new parent level
-    const targetSiblings = tasks
-    .filter(t => t.parent_task_id === newParentId && t.id !== draggedTask.id)
-    .sort((a, b) => a.position - b.position);
-
-    // Force renormalization if any position is getting too small
-    let forceRenormalize = false;
-    if (targetSiblings.length > 0 && targetSiblings[0].position < MIN_POSITION_GAP * 2) {
-    forceRenormalize = true;
-    console.log('Forcing renormalization because positions are getting too small');
-    }
-
     // STEP 1: Optimistically update the frontend state
-    let needsRenormalization = updateTasksState(newParentId, newPosition, oldParentId, isSameParent);
-    // Override with our force flag if needed
-    needsRenormalization = needsRenormalization || forceRenormalize;
+    updateTasksState(newParentId, newPosition, oldParentId, isSameParent);
     
     // STEP 2: Update the database
-    await updateDatabase(newParentId, newPosition, oldParentId, isSameParent);
-    
-    // STEP 3: If this was a cross-milestone move, invalidate caches for both old and new parents
-    if (isCrossMilestoneMove) {
-      taskCache.invalidate(draggedTask.id, oldParentId);
-      taskCache.invalidate(draggedTask.id, newParentId);
-      
-      // If dates are affected by the move, handle them
-      if (draggedTask.start_date) {
-        // Implement date adjustments for cross-milestone moves if needed
-        // This would use the existing date utility functions in your code
-      }
-    }
-    
-    // STEP 4: If renormalization was needed, invalidate more cache entries
-    if (needsRenormalization) {
-      // Clear caches for the affected parent
-      taskCache.invalidate(null, newParentId);
-      
-      // Refresh task data if renormalization made significant changes
-      // This is optional and depends on how much data might have changed
-      // Could be a light refresh that just updates positions
-      const tasksToRefresh = getCachedChildren(newParentId, tasks);
-      if (tasksToRefresh.length > 10) { // Only for larger sets
-        // Fetch fresh data just for this parent's children
-        fetchTasksForParent(newParentId);
-      }
-    }
+    // Instead of calling updateDatabase directly, use our new function
+    // await updateTaskAfterDragDrop(draggedTask.id, newParentId, newPosition, oldParentId);
     
   } catch (err) {
     console.error('Error updating task positions:', err);
@@ -619,7 +581,7 @@ const fetchTasksForParent = async (parentId) => {
   };
 
   // Handler for dropping on a drop zone
-  const handleDropZoneDrop = async (e, parentId, position) => {
+  const handleDropZoneDro = async (e, parentId, position) => {
     e.preventDefault();
     
     if (!draggedTask || !activeDropZone) return;
@@ -683,6 +645,200 @@ const checkIfRenormalizationNeeded = (tasks, parentId) => {
   }
   
   return false; // Spacing is fine
+};
+
+// Update the syncToServer function to use the optimistic version
+const syncToServer = async (taskId, newParentId, newPosition, oldParentId) => {
+  try {
+    console.log('🔄 Background sync starting for task:', taskId);
+    await updateTaskAfterDragDropOptimistic(taskId, newParentId, newPosition, oldParentId);
+    console.log('✅ Background sync completed for task:', taskId);
+  } catch (error) {
+    console.error('❌ Background sync failed:', error);
+    // Optional: Show a subtle notification to user
+  }
+};
+
+// Enhanced updateTasksState for immediate client calculations
+const updateTasksStateOptimistic = (newParentId, newPosition, oldParentId, isSameParent) => {
+  if (!Array.isArray(tasks)) {
+    console.error('Tasks is not an array:', tasks);
+    return;
+  }
+
+  try {
+    console.log('🚀 Optimistic update starting...');
+    
+    // Create a deep copy of the tasks array
+    const updatedTasks = tasks.map(t => ({...t}));
+    
+    // Store original draggedTask for reference
+    const originalTask = {...updatedTasks.find(t => t.id === draggedTask.id)};
+    
+    // Calculate sparse position for the dragged task
+    const newSiblings = updatedTasks
+      .filter(t => t.parent_task_id === newParentId && t.id !== draggedTask.id)
+      .sort((a, b) => a.position - b.position);
+    
+    const newSparsePosition = calculateInsertPosition(newSiblings, newPosition);
+    
+    // Update the dragged task's position and parent
+    const taskToUpdate = updatedTasks.find(t => t.id === draggedTask.id);
+    if (taskToUpdate) {
+      taskToUpdate.parent_task_id = newParentId;
+      taskToUpdate.position = newSparsePosition;
+      
+      console.log(`📍 Updated task position: ${taskToUpdate.title} → position ${newSparsePosition}`);
+    }
+
+    // Recalculate durations and dates for affected hierarchy
+    let finalTasks = [...updatedTasks];
+
+    // Find the root project to recalculate from
+    const findRootProject = (task, allTasks) => {
+      if (!task.parent_task_id) return task;
+      const parent = allTasks.find(t => t.id === task.parent_task_id);
+      return parent ? findRootProject(parent, allTasks) : task;
+    };
+
+    const movedTask = finalTasks.find(t => t.id === draggedTask.id);
+    const rootProject = findRootProject(movedTask, finalTasks);
+
+    if (rootProject && rootProject.start_date) {
+      console.log(`🔄 Recalculating dates from root: ${rootProject.title}`);
+      
+      // Use existing utility to recalculate all dates sequentially
+      finalTasks = calculateSequentialStartDates(
+        rootProject.id, 
+        rootProject.start_date, 
+        finalTasks
+      );
+      
+      console.log('📅 Sequential dates recalculated');
+    }
+
+    // For instance tasks, also update parent durations
+    if (originalTask.origin === 'instance') {
+      console.log('📊 Updating parent durations for instance task...');
+      
+      // Update old parent duration if changing parents
+      if (!isSameParent && oldParentId) {
+        const oldParentIndex = finalTasks.findIndex(t => t.id === oldParentId);
+        if (oldParentIndex >= 0) {
+          const hasChildren = finalTasks.some(t => t.parent_task_id === oldParentId);
+          if (hasChildren) {
+            const newDuration = calculateParentDuration(oldParentId, finalTasks);
+            finalTasks[oldParentIndex].duration_days = newDuration;
+            console.log(`📊 Old parent duration updated: ${newDuration} days`);
+          }
+        }
+      }
+      
+      // Update new parent duration
+      if (newParentId) {
+        const newParentIndex = finalTasks.findIndex(t => t.id === newParentId);
+        if (newParentIndex >= 0) {
+          const hasChildren = finalTasks.some(t => t.parent_task_id === newParentId);
+          if (hasChildren) {
+            const newDuration = calculateParentDuration(newParentId, finalTasks);
+            finalTasks[newParentIndex].duration_days = newDuration;
+            console.log(`📊 New parent duration updated: ${newDuration} days`);
+          }
+        }
+      }
+    }
+
+    console.log('✅ Optimistic update complete - updating UI');
+    
+    // Update the state with all calculated changes
+    setTasks(finalTasks);
+    updateTasksOptimistic(finalTasks);
+    
+  } catch (err) {
+    console.error('❌ Error in optimistic update:', err);
+    // Don't throw - let the operation continue
+  }
+};
+
+// Updated handleDrop function
+const handleDrop = async (e, targetTask) => {
+  e.preventDefault();
+
+  if (!draggedTask || !dropTarget || !dropPosition) {
+    return;
+  }
+
+  try {
+    // Calculate the new parent ID and position
+    let newParentId, newPosition;
+
+    if (dropPosition === 'into') {
+      newParentId = targetTask.id;
+      const children = tasks.filter(t => t.parent_task_id === targetTask.id);
+      newPosition = children.length;
+    } 
+    else if (dropPosition === 'between-after' || dropPosition === 'between-before') {
+      newParentId = targetTask.parent_task_id;
+      const siblings = tasks
+        .filter(t => t.parent_task_id === targetTask.parent_task_id && t.id !== draggedTask.id)
+        .sort((a, b) => a.position - b.position);
+      
+      const targetIndex = siblings.findIndex(t => t.id === targetTask.id);
+      newPosition = dropPosition === 'between-after' ? targetIndex + 1 : targetIndex;
+    }
+
+    const oldParentId = draggedTask.parent_task_id;
+    const isSameParent = oldParentId === newParentId;
+    
+    console.log('🎯 Drop detected - starting optimistic update');
+    
+    // STEP 1: Update UI immediately (optimistic)
+    updateTasksStateOptimistic(newParentId, newPosition, oldParentId, isSameParent);
+    
+    // STEP 2: Sync to server in background (don't await)
+    syncToServer(draggedTask.id, newParentId, newPosition, oldParentId);
+    
+  } catch (err) {
+    console.error('❌ Error in handleDrop:', err);
+    alert('Failed to update task position. Please refresh the page.');
+  } finally {
+    // Reset drag state immediately
+    setDraggedTask(null);
+    setDropTarget(null);
+    setDropPosition(null);
+  }
+};
+
+// Updated handleDropZoneDrop function
+const handleDropZoneDrop = async (e, parentId, position) => {
+  e.preventDefault();
+  
+  if (!draggedTask || !activeDropZone) return;
+  
+  try {
+    const newParentId = parentId;
+    const newPosition = position;
+    const oldParentId = draggedTask.parent_task_id;
+    const isSameParent = oldParentId === newParentId;
+    
+    console.log('🎯 Drop zone drop - starting optimistic update');
+    
+    // STEP 1: Update UI immediately (optimistic)
+    updateTasksStateOptimistic(newParentId, newPosition, oldParentId, isSameParent);
+    
+    // STEP 2: Sync to server in background (don't await)
+    syncToServer(draggedTask.id, newParentId, newPosition, oldParentId);
+    
+  } catch (err) {
+    console.error('❌ Error in handleDropZoneDrop:', err);
+    alert('Failed to update task position. Please refresh the page.');
+  } finally {
+    // Reset drag state immediately
+    setDraggedTask(null);
+    setActiveDropZone(null);
+    setDropTarget(null);
+    setDropPosition(null);
+  }
 };
 
   return {
