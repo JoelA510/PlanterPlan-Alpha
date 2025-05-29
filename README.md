@@ -54,6 +54,179 @@
   - [ ]  New task type “Strategy Template” 
   - [ ]  New task type “Coaching” allows tasks to automatically be assigned to user with Coach level access
   - [ ] automatically send email notifications for tasks being due soon
+## 
+## Ultra-Simplified Task Search System - Implementation Roadmap
+
+### Phase 1: Core Search Features (5 PRs)
+
+#### **PR #1: Search Foundation**
+- [ ] Create `SearchContext.js` with basic search state
+- [ ] Add `SearchBar` component with input and clear button
+- [ ] Create basic text search across task titles and descriptions
+- [ ] Add debounced search (300ms delay) to prevent excessive calls
+- [ ] Show search results count
+
+#### **PR #2: Search UI and Results**
+- [ ] Add search suggestions dropdown with matching tasks
+- [ ] Implement search term highlighting in results
+- [ ] Add "no results found" state with helpful message
+- [ ] Create active filters display as removable chips
+- [ ] Add "clear all" button to reset search
+
+#### **PR #3: Status Filters**
+- [ ] Add completion status filters: "completed", "incomplete"
+- [ ] Implement quick filter buttons for common searches
+- [ ] Add date-based priority detection: "overdue", "due today", "due soon"
+- [ ] Create filter combinations (multiple filters at once)
+
+#### **PR #4: Personal and Team Filters**
+- [ ] Add "My Tasks" filter (tasks created by or assigned to current user)
+- [ ] Implement "Created by me" filter
+- [ ] Add user selection filter: "assigned to [user]"
+- [ ] Create organization filter for multi-org users
+
+#### **PR #5: Date and Search Operators**
+- [ ] Add date range filtering with date picker
+- [ ] Implement relative dates: "today", "this week", "next week"
+- [ ] Add field-specific search: "title:keyword", "description:keyword"
+- [ ] Support exclude terms with minus operator: "-keyword"
+
+#### Success Criteria
+- Users can find tasks 50% faster than current view-switching method
+- Search handles 90% of common task discovery use cases
+- Mobile-responsive and accessible interface
+
+This streamlined 5-PR roadmap focuses on the essential search functionality that will provide the biggest impact for users while being achievable for a single external developer.
+
+## Dual-LLM Self-Adapting Search
+Using the LLM for **both** schema inference and query extraction to make it completely dynamic. Here's the architecture:
+
+### Flow
+```
+Tasks Data → LLM Schema Inference → Search Capabilities
+Natural Language + Search Capabilities → LLM Query Extraction → Executable Query → Results
+```
+
+### 1. LLM Schema Inference
+**Function:** `inferSearchCapabilities(tasks)`
+
+```javascript
+const prompt = `
+Analyze this sample of task data and describe what search/filter operations are possible:
+
+${JSON.stringify(tasks.slice(0, 10), null, 2)}
+
+Describe the search capabilities in natural language. What can users search for, filter by, or sort by? What are the data types and possible values?
+`;
+
+// LLM Response Example:
+// "Users can filter by completion status (true/false), search text in titles and descriptions, 
+//  filter by duration in days (numbers 1-30), sort by due dates, filter by assigned users 
+//  (sarah, john, mike), find tasks by hierarchy level..."
+```
+
+### 2. LLM Query Extraction  
+**Function:** `extractQuery(naturalLanguage, capabilities)`
+
+```javascript
+const prompt = `
+Given these search capabilities:
+"${searchCapabilities}"
+
+Convert this user query into a structured search:
+"${naturalLanguage}"
+
+Return JSON with the specific operations to perform on the data.
+`;
+
+// LLM Response Example for "next 5 tasks longer than 3 days":
+// {
+//   "operations": [
+//     {"type": "filter", "condition": "duration_days > 3"},
+//     {"type": "sort", "field": "due_date", "order": "ascending"},
+//     {"type": "limit", "count": 5}
+//   ]
+// }
+```
+
+### 3. Universal Query Executor
+**Function:** `executeOperations(operations, tasks)`
+
+```javascript
+function executeOperations(operations, tasks) {
+  let results = [...tasks];
+  
+  for (const op of operations) {
+    switch (op.type) {
+      case 'filter':
+        results = results.filter(task => evaluateCondition(task, op.condition));
+        break;
+      case 'sort':
+        results = results.sort((a, b) => compareFields(a, b, op.field, op.order));
+        break;
+      case 'limit':
+        results = results.slice(0, op.count);
+        break;
+      case 'textSearch':
+        results = results.filter(task => searchText(task, op.terms));
+        break;
+    }
+  }
+  
+  return results;
+}
+```
+
+### Complete System
+```javascript
+// Single entry point - completely self-adapting
+async function searchTasks(naturalLanguage, tasks) {
+  // Step 1: LLM understands what's searchable in this data
+  const capabilities = await inferSearchCapabilities(tasks);
+  
+  // Step 2: LLM converts natural language to operations  
+  const operations = await extractQuery(naturalLanguage, capabilities);
+  
+  // Step 3: Execute operations against data
+  return executeOperations(operations, tasks);
+}
+```
+
+### Evolution Example
+
+**Today's Data:**
+```javascript
+[
+  { title: "Write docs", duration_days: 5, assigned_to: "sarah", is_complete: false },
+  { title: "Fix bug", duration_days: 2, assigned_to: "john", is_complete: true }
+]
+```
+
+**LLM Infers:** "Can filter by duration_days (numbers), assigned_to (sarah/john), completion status..."
+
+---
+
+**Tomorrow's Data (completely different structure):**
+```javascript  
+[
+  { name: "Write docs", effort_hours: 40, team: ["sarah"], status: "in_progress" },
+  { name: "Fix bug", effort_hours: 16, team: ["john"], status: "done" }
+]
+```
+
+**LLM Infers:** "Can filter by effort_hours (numbers), team members (sarah/john), status (in_progress/done)..."
+
+**Same Query:** "next 5 tasks longer than 3 days"
+
+**LLM Adapts:** Converts "3 days" to "24 hours" and uses `effort_hours > 72` instead of `duration_days > 3`
+
+### Key Benefits
+- **Zero assumptions:** No hardcoded field names, types, or operations
+- **Self-discovering:** LLM figures out what's possible from actual data
+- **Completely adaptive:** Works with any task structure, any field names
+- **Natural language interface:** LLM handles all complexity of interpretation
+
+The system becomes truly **data-structure agnostic** because the LLM does all the heavy lifting of understanding both what's available and how to query it.
 
 ## Team Management Roadmap Checklist
 Role-Based Access Control System for Project-Level Team Management
@@ -380,7 +553,18 @@ Role-Based Access Control System for Project-Level Team Management
     - [ ] Migration guide for existing projects
     - [ ] Developer documentation for permission system
 
-
+## Date Engine Roadmap
+(I will develop the roadmap more thoroughly later)
+### Sequential Date Engine Roadmap
+- [ ] Edit the date's end date/duration will change the rest of the dates
+- [ ] Delete a task will change the rest of the dates
+- [ ] Add a task will change the rest of the dates
+### AI powered Date Engine Roadmap
+#### features:
+- User will ask AI to change a task date and AI will adjust dates
+  - AI might have settings for dates in mind that user can specify
+  - AI might ask user follow up questions to adjust dates correctly
+  - Changes are logged so user can see what was adjusted and can undo or alter the date adjustments
 
 Technical Implementation Notes
 Database Considerations:

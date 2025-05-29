@@ -11,6 +11,7 @@ import { updateTaskCompletion, deleteTask, updateTaskComplete } from '../../serv
 import TaskDetailsPanel from './TaskDetailsPanel';
 import TemplateProjectCreator from '../TemplateProject/TemplateProjectCreator';
 import { getNextAvailablePosition } from '../../utils/sparsePositioning';
+import InvitationTest from '../InvitationTest';
 
 const TaskList = () => {
   // Initialize refs first 
@@ -47,6 +48,7 @@ const TaskList = () => {
   const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
   const [showProjectMenu, setShowProjectMenu] = useState(false);
   
+  const [showInvitationTest, setShowInvitationTest] = useState(false);
   
 
   useEffect(() => {
@@ -458,6 +460,9 @@ const handleCancelTemplateProjectCreation = () => {
   
   // Render the right panel content (task details, task form, or project creation)
   const renderRightPanel = () => {
+    if (showInvitationTest) {
+      return <InvitationTest />;
+    }
     // If creating a new project, show the project creation form
     if (isCreatingProject) {
       return (
@@ -555,6 +560,19 @@ const handleCancelTemplateProjectCreation = () => {
         }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Projects</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            onClick={() => setShowInvitationTest(!showInvitationTest)}
+            style={{
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              border: 'none'
+            }}
+          >
+            🧪 Invitations
+          </button>
           <div className="dropdown" style={{ position: 'relative' }}>
             <button 
               className="project-dropdown-button"
