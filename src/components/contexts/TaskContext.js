@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationProvider';
 import { useLocation } from 'react-router-dom';
@@ -70,11 +70,8 @@ export const TaskProvider = ({ children }) => {
   const { organization, organizationId, loading: orgLoading } = useOrganization();
   const location = useLocation();
   
-  // State for tasks
+  // State for tasks - ONLY the main tasks array
   const [tasks, setTasks] = useState([]);
-  const [instanceTasks, setInstanceTasks] = useState([]);
-  const [templateTasks, setTemplateTasks] = useState([]);
-  const [enhancedTasks, setEnhancedTasks] = useState([]);
   const [enhancedTasksMap, setEnhancedTasksMap] = useState({});
 
   const [loading, setLoading] = useState(true);
@@ -98,6 +95,17 @@ export const TaskProvider = ({ children }) => {
   
   // Refs for tracking state without triggering re-renders
   const initialFetchDoneRef = useRef(false);
+  
+  // Derived task arrays using useMemo for performance
+  const instanceTasks = useMemo(() => 
+    tasks.filter(task => task.origin === "instance"), 
+    [tasks]
+  );
+  
+  const templateTasks = useMemo(() => 
+    tasks.filter(task => task.origin === "template"), 
+    [tasks]
+  );
   
   // Process tasks to add calculated properties
   // Modified function that creates a map of task IDs to calculated properties
@@ -174,7 +182,6 @@ export const TaskProvider = ({ children }) => {
     });
     
     console.log("Final calculated properties map:", calculatedPropertiesMap);
-    // setEnhancedTasksMap(calculatedPropertiesMap);
     return calculatedPropertiesMap;
   }, []);
 
@@ -216,14 +223,8 @@ export const TaskProvider = ({ children }) => {
       // Update the enhanced tasks state with the map
       setEnhancedTasksMap(calculatedPropertiesMap);
       
-      // Group tasks by origin as before
-      const instance = newTasks.filter(task => task.origin === "instance");
-      const template = newTasks.filter(task => task.origin === "template");
-      
-      // Update original task states
+      // Update main tasks array only
       setTasks(newTasks);
-      setInstanceTasks(instance);
-      setTemplateTasks(template);
     } catch (err) {
       console.error('Error in updateTasks:', err);
     }
@@ -275,22 +276,19 @@ export const TaskProvider = ({ children }) => {
         templateCount: templateData.length
       });
       
-      // Update state with new data
-      setInstanceTasks(instanceData);
-      setTemplateTasks(templateData);
+      // Combine all tasks and update state
       const allTasks = [...instanceData, ...templateData];
       setTasks(allTasks);
       setError(null);
 
       // Process and set enhanced tasks
       const enhanced = processTasksWithCalculations(allTasks);
-      // console.log("fetch", enhanced);
       setEnhancedTasksMap(enhanced);
       
       // Mark initial fetch as complete
       initialFetchDoneRef.current = true;
       
-      
+      // Return filtered arrays for backward compatibility
       return { instanceTasks: instanceData, templateTasks: templateData };
     } catch (err) {
       console.error('Error fetching tasks:', err);
@@ -429,13 +427,6 @@ const createNewTask = useCallback(async (taskData, licenseId = null) => {
     console.log('Task created successfully:', result.data);
     
     if (result.data) {
-      // Add the new task to the appropriate list based on origin
-      if (result.data.origin === "instance") {
-        setInstanceTasks(prev => [...prev, result.data]);
-      } else if (result.data.origin === "template") {
-        setTemplateTasks(prev => [...prev, result.data]);
-      }
-      
       // Update the combined tasks list
       setTasks(prev => [...prev, result.data]);
       
@@ -776,14 +767,8 @@ const updateTasksOptimistic = useCallback((newTasks) => {
     // Update the enhanced tasks state with the map
     setEnhancedTasksMap(calculatedPropertiesMap);
     
-    // Group tasks by origin
-    const instance = newTasks.filter(task => task && task.origin === "instance");
-    const template = newTasks.filter(task => task && task.origin === "template");
-    
     // Update original task states
     setTasks(newTasks);
-    setInstanceTasks(instance);
-    setTemplateTasks(template);
     
     console.log('✅ Tasks updated with enhanced calculations');
   } catch (err) {
@@ -988,7 +973,7 @@ const getAllTasksInHierarchy = (rootId, allTasks) => {
       console.error('Error creating new template:', err);
       return { error: err.message };
     }
-  }, [templateTasks, createNewTask, fetchTasks]);
+  }, [createNewTask, fetchTasks]);
 
   /**
    * Handle starting the creation of a child template
@@ -1091,12 +1076,12 @@ const addTemplateTask = useCallback(async (templateData) => {
       await updateTasksInDatabase(tasksToUpdate, updateTaskComplete);
       
       // Update state with new calculated durations
-      setTemplateTasks(updatedTasks.filter(t => t.origin === 'template'));
-      setTasks(prev => {
-        // Replace templates while keeping instance tasks
-        const instanceTasks = prev.filter(t => t.origin === 'instance');
-        return [...instanceTasks, ...updatedTasks.filter(t => t.origin === 'template')];
+      const updatedAllTasks = tasks.map(task => {
+        const updatedTask = updatedTasks.find(ut => ut.id === task.id);
+        return updatedTask || task;
       });
+      
+      updateTasks(updatedAllTasks);
     }
     
     return result;
@@ -1104,7 +1089,7 @@ const addTemplateTask = useCallback(async (templateData) => {
     console.error('Error adding template task:', err);
     return { error: err.message };
   }
-}, [templateTasks, createNewTask, updateTaskComplete, fetchTasks, setTemplateTasks, setTasks]);
+}, [templateTasks, createNewTask, updateTaskComplete, fetchTasks, tasks, updateTasks]);
 
 
   /**
@@ -2327,8 +2312,8 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
   const contextValue = {
     // Task management
     tasks,
-    instanceTasks,
-    templateTasks,
+    instanceTasks, // Now a derived value via useMemo
+    templateTasks, // Now a derived value via useMemo
     loading,
     initialLoading,
     error,
@@ -2381,29 +2366,29 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     setTasks: updateTasks,
     createTask: createNewTask,
     deleteTask: deleteTaskHandler,
-    updateTask: updateTaskHandler, 
-    createProjectFromTemplate,
-    enhancedTasksMap,
-    getEnhancedTask,
-    determineTaskStartDate: (task) => determineTaskStartDate(task, tasks),
+updateTask: updateTaskHandler, 
+createProjectFromTemplate,
+enhancedTasksMap,
+getEnhancedTask,
+determineTaskStartDate: (task) => determineTaskStartDate(task, tasks),
 
-    // Invitation system
-    projectInvitations,
-    userPendingInvitations,
-    invitationLoading,
-    sendProjectInvitation,
-    fetchProjectInvitations,
-    fetchUserPendingInvitations,
-    acceptProjectInvitation,
-    declineProjectInvitation,
-    revokeProjectInvitation,
-  };
-  
-  return (
-    <TaskContext.Provider value={contextValue}>
-      {children}
-    </TaskContext.Provider>
-  );
+// Invitation system
+projectInvitations,
+userPendingInvitations,
+invitationLoading,
+sendProjectInvitation,
+fetchProjectInvitations,
+fetchUserPendingInvitations,
+acceptProjectInvitation,
+declineProjectInvitation,
+revokeProjectInvitation,
+};
+
+return (
+<TaskContext.Provider value={contextValue}>
+  {children}
+</TaskContext.Provider>
+);
 };
 
 export default TaskContext;
