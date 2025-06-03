@@ -51,6 +51,14 @@ import {
   revokeInvitation, 
 } from '../../services/invitationService';
 
+import { 
+  canUserEditTask, 
+  canUserAccessProject,
+  PERMISSIONS 
+} from '../../services/permissionService';
+
+import { filterTasksByPermissions } from '../../utils/permissionUtils';
+
 
 // Create a context for tasks
 const TaskContext = createContext();
@@ -66,7 +74,15 @@ export const useTasks = () => {
 
 // Provider component that wraps your app
 export const TaskProvider = ({ children }) => {
-  const { user, loading: userLoading } = useAuth();
+  // Get enhanced useAuth with permission functions
+  const { 
+    user, 
+    loading: userLoading,
+    hasProjectPermission,
+    getUserProjectRoleWithCache,
+    setCurrentProject,
+    getProjectRole
+  } = useAuth();
   const { organization, organizationId, loading: orgLoading } = useOrganization();
   const location = useLocation();
   
@@ -95,6 +111,10 @@ export const TaskProvider = ({ children }) => {
   const [userLicenses, setUserLicenses] = useState([]);
   const [selectedLicenseId, setSelectedLicenseId] = useState(null);
   const [isCheckingLicense, setIsCheckingLicense] = useState(true);
+
+  // Add new permission-related state
+  const [userProjectPermissions, setUserProjectPermissions] = useState({});
+  const [permissionLoading, setPermissionLoading] = useState(false);
   
   // Refs for tracking state without triggering re-renders
   const initialFetchDoneRef = useRef(false);
@@ -228,7 +248,156 @@ export const TaskProvider = ({ children }) => {
       console.error('Error in updateTasks:', err);
     }
   }, [processTasksWithCalculations]);
-  
+
+  // function to filter tasks based on user permissions
+  const filterTasksWithPermissions = useCallback(async (tasks, userId) => {
+    if (!Array.isArray(tasks) || !userId) return tasks;
+    
+    // Group tasks by project (top-level tasks)
+    const projectTasks = {};
+    const nonProjectTasks = [];
+    
+    for (const task of tasks) {
+      if (!task.parent_task_id) {
+        // This is a top-level project
+        if (!projectTasks[task.id]) {
+          projectTasks[task.id] = [];
+        }
+      } else {
+        // Find the root project for this task
+        const rootProject = await findRootProject(task, tasks);
+        if (rootProject) {
+          if (!projectTasks[rootProject.id]) {
+            projectTasks[rootProject.id] = [];
+          }
+          projectTasks[rootProject.id].push(task);
+        } else {
+          nonProjectTasks.push(task);
+        }
+      }
+    }
+    
+    // Filter projects and their tasks based on access
+    const accessibleTasks = [];
+    
+    for (const [projectId, projectTaskList] of Object.entries(projectTasks)) {
+      try {
+        const { canAccess } = await canUserAccessProject(userId, projectId);
+        
+        if (canAccess) {
+          // Add the project itself
+          const project = tasks.find(t => t.id === projectId);
+          if (project) {
+            accessibleTasks.push(project);
+          }
+          
+          // Get user's role and permissions for this project
+          const userRole = await getUserProjectRoleWithCache(projectId);
+          const hasReadPermission = await hasProjectPermission(projectId, PERMISSIONS.READ);
+          
+          if (hasReadPermission) {
+            // User can see all tasks in this project
+            accessibleTasks.push(...projectTaskList);
+          } else {
+            // Apply role-based filtering
+            const filteredProjectTasks = filterTasksByPermissions(
+              projectTaskList, 
+              userRole, 
+              userId, 
+              { [PERMISSIONS.READ]: hasReadPermission }
+            );
+            accessibleTasks.push(...filteredProjectTasks);
+          }
+        }
+      } catch (error) {
+        console.error(`Error checking access for project ${projectId}:`, error);
+        // On error, exclude the project to be safe
+      }
+    }
+    
+    // Add any tasks that don't belong to projects
+    accessibleTasks.push(...nonProjectTasks);
+    
+    return accessibleTasks;
+  }, [getUserProjectRoleWithCache, hasProjectPermission]);
+
+
+  // ===================================
+  // === Joined Projects Functions ===
+  // ===================================
+
+  const [joinedProjects, setJoinedProjects] = useState([]);
+
+  const fetchUserJoinedProjects = useCallback(async () => {
+    try {
+      if (!user?.id) return { joinedProjects: [] };
+      
+      console.log('Fetching joined projects for user:', user.id);
+      
+      // Get user's accepted memberships
+      const { data: memberships, error } = await supabase
+        .from('project_memberships')
+        .select(`
+          project_id,
+          role,
+          accepted_at,
+          project:tasks!project_memberships_project_id_fkey(
+            id,
+            title,
+            description,
+            purpose,
+            start_date,
+            due_date,
+            duration_days,
+            is_complete,
+            creator,
+            white_label_id
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'accepted')
+        .not('project', 'is', null); // Ensure project exists
+      
+      if (error) {
+        console.error('Error fetching joined projects:', error);
+        return { joinedProjects: [], error: error.message };
+      }
+      
+      // Extract the project data and add membership info
+      const projects = (memberships || []).map(membership => ({
+        ...membership.project,
+        userRole: membership.role,
+        joinedAt: membership.accepted_at,
+        isJoinedProject: true
+      }));
+      
+      console.log(`Found ${projects.length} joined projects`);
+      setJoinedProjects(projects);
+      
+      return { joinedProjects: projects };
+    } catch (err) {
+      console.error('Error fetching joined projects:', err);
+      setJoinedProjects([]);
+      return { joinedProjects: [], error: err.message };
+    }
+  }, [user?.id]);
+
+  // Helper function to find root project
+  const findRootProject = useCallback(async (task, allTasks) => {
+    let currentTask = task;
+    let iterations = 0;
+    const maxIterations = 20; // Prevent infinite loops
+    
+    while (currentTask.parent_task_id && iterations < maxIterations) {
+      const parent = allTasks.find(t => t.id === currentTask.parent_task_id);
+      if (!parent) break;
+      currentTask = parent;
+      iterations++;
+    }
+    
+    return currentTask.parent_task_id ? null : currentTask;
+  }, []);
+
   // Fetch all tasks (both instances and templates)
   const fetchTasks = useCallback(async (forceRefresh = false) => {
     // Skip if already fetching or missing required IDs
@@ -274,19 +443,32 @@ export const TaskProvider = ({ children }) => {
         instanceCount: instanceData.length,
         templateCount: templateData.length
       });
-      
+      // After fetching tasks, filter based on permissions
+      let processedInstanceTasks = instanceData;
+
+      if (instanceData.length > 0 && user?.id) {
+        processedInstanceTasks = await filterTasksWithPermissions(instanceData, user.id);
+      }
+
       // Update state with new data
-      setInstanceTasks(instanceData);
+      setInstanceTasks(processedInstanceTasks);
       setTemplateTasks(templateData);
-      const allTasks = [...instanceData, ...templateData];
+      const allTasks = [...processedInstanceTasks, ...templateData];
       setTasks(allTasks);
       setError(null);
+      
 
       // Process and set enhanced tasks
       const enhanced = processTasksWithCalculations(allTasks);
       // console.log("fetch", enhanced);
       setEnhancedTasksMap(enhanced);
       
+      // Fetch joined projects (projects user has accepted invitations to)
+      const joinedResult = await fetchUserJoinedProjects();
+      console.log('Joined projects fetch complete:', {
+        joinedCount: joinedResult.joinedProjects?.length || 0
+      });
+
       // Mark initial fetch as complete
       initialFetchDoneRef.current = true;
       
@@ -295,197 +477,222 @@ export const TaskProvider = ({ children }) => {
     } catch (err) {
       console.error('Error fetching tasks:', err);
       setError(`Failed to load tasks: ${err.message}`);
-      return { error: err.message, instanceTasks, templateTasks };
+      return { error: err.message, instanceTasks, templateTasks, joinedProjects: joinedResult.joinedProjects || [] };
     } finally {
       setLoading(false);
       setIsFetching(false);
       setInitialLoading(false);
     }
-  }, [organizationId, user?.id, instanceTasks, templateTasks, processTasksWithCalculations]);
+
+    const joinedResult = await fetchUserJoinedProjects();
+    console.log('Joined projects fetch complete:', {
+      joinedCount: joinedResult.joinedProjects?.length || 0
+    });
+    }, [organizationId, user?.id, instanceTasks, templateTasks, processTasksWithCalculations, fetchUserJoinedProjects]);
   
-  // Create a new task with date handling and sparse positioning
-const createNewTask = useCallback(async (taskData, licenseId = null) => {
-  try {
-    console.log('Creating task with data:', taskData);
-    console.log('License key', licenseId);
+    // Create a new task with date handling and sparse positioning
+    const createNewTask = useCallback(async (taskData, licenseId = null) => {
+    try {
+      console.log('Creating task with data:', taskData);
+      console.log('License key', licenseId);
     
-    if (!user?.id) {
-      throw new Error('Cannot create task: User ID is missing');
-    }
-    
-    // Check if this is a top-level project creation
-    const isTopLevelProject = !taskData.parent_task_id && taskData.origin === "instance";
-    
-    // For top-level projects, check if the user already has projects
-    if (isTopLevelProject) {
-      // If user has projects but no license is provided, block creation
-      if (userHasProjects && !licenseId) {
-        throw new Error('You already have a project. Please provide a license key to create additional projects.');
+      if (!user?.id) {
+        throw new Error('Cannot create task: User ID is missing');
       }
-    }
-    
-    // Handle sparse positioning if not already set
-    let enhancedTaskData = {
-      ...taskData,
-      creator: user.id,
-      origin: taskData.origin || "instance",
-      white_label_id: organizationId,
-      license_id: licenseId
-    };
-    
-    // Calculate sparse position if not explicitly provided
-    if (enhancedTaskData.position === undefined) {
-      enhancedTaskData.position = getNextAvailablePosition(tasks, taskData.parent_task_id);
-      console.log('Calculated sparse position:', enhancedTaskData.position, 'for parent:', taskData.parent_task_id);
-    }
-    
-    // Determine the start date based on position
-    if (taskData.parent_task_id) {
-      // Use our function to determine the start date
-      const calculatedStartDate = determineTaskStartDate({
-        ...enhancedTaskData,
-        // position is now guaranteed to be set above
-      }, tasks);
       
-      if (calculatedStartDate) {
-        // Format as ISO string for database
-        enhancedTaskData.start_date = calculatedStartDate.toISOString();
+      // Check if this is a top-level project creation
+      const isTopLevelProject = !taskData.parent_task_id && taskData.origin === "instance";
+      
+      // For top-level projects, check if the user already has projects
+      if (isTopLevelProject) {
+        // If user has projects but no license is provided, block creation
+        if (userHasProjects && !licenseId) {
+          throw new Error('You already have a project. Please provide a license key to create additional projects.');
+        }
+      }
+
+      // If this is a child task, check if user can edit the parent project
+      if (taskData.parent_task_id) {
+        const rootProject = await findRootProject({ parent_task_id: taskData.parent_task_id }, tasks);
         
-        // Calculate due date from the new start date if duration is provided
-        if (taskData.duration_days) {
+        if (rootProject) {
+          const { canEdit } = await canUserEditTask(user.id, taskData.parent_task_id, rootProject.id);
+          
+          if (!canEdit) {
+            throw new Error('You do not have permission to add tasks to this project');
+          }
+        }
+      }
+    
+      // Handle sparse positioning if not already set
+      let enhancedTaskData = {
+        ...taskData,
+        creator: user.id,
+        origin: taskData.origin || "instance",
+        white_label_id: organizationId,
+        license_id: licenseId
+      };
+    
+      // Calculate sparse position if not explicitly provided
+      if (enhancedTaskData.position === undefined) {
+        enhancedTaskData.position = getNextAvailablePosition(tasks, taskData.parent_task_id);
+        console.log('Calculated sparse position:', enhancedTaskData.position, 'for parent:', taskData.parent_task_id);
+      }
+      
+      // Determine the start date based on position
+      if (taskData.parent_task_id) {
+        // Use our function to determine the start date
+        const calculatedStartDate = determineTaskStartDate({
+          ...enhancedTaskData,
+          // position is now guaranteed to be set above
+        }, tasks);
+        
+        if (calculatedStartDate) {
+          // Format as ISO string for database
+          enhancedTaskData.start_date = calculatedStartDate.toISOString();
+          
+          // Calculate due date from the new start date if duration is provided
+          if (taskData.duration_days) {
+            const calculatedDueDate = calculateDueDate(
+              calculatedStartDate,
+              taskData.duration_days
+            );
+            
+            if (calculatedDueDate) {
+              enhancedTaskData.due_date = calculatedDueDate.toISOString();
+            }
+          }
+        } else if (taskData.days_from_start_until_due !== undefined) {
+          // Fall back to the existing calculation method if our new function returns null
+          const parentTask = tasks.find(t => t.id === taskData.parent_task_id);
+          
+          if (parentTask && parentTask.start_date) {
+            const fallbackDate = calculateStartDate(
+              parentTask.start_date,
+              taskData.days_from_start_until_due
+            );
+            
+            if (fallbackDate) {
+              enhancedTaskData.start_date = fallbackDate.toISOString();
+              
+              if (taskData.duration_days) {
+                const calculatedDueDate = calculateDueDate(
+                  fallbackDate,
+                  taskData.duration_days
+                );
+                
+                if (calculatedDueDate) {
+                  enhancedTaskData.due_date = calculatedDueDate.toISOString();
+                }
+              }
+            }
+          }
+        }
+      } else if (taskData.start_date && taskData.duration_days && !taskData.due_date) {
+        // For tasks with start_date and duration_days but no due_date
+        const calculatedDueDate = calculateDueDate(
+          taskData.start_date,
+          taskData.duration_days
+        );
+        
+        if (calculatedDueDate) {
+          enhancedTaskData.due_date = calculatedDueDate.toISOString();
+        }
+      } else if (isTopLevelProject && !enhancedTaskData.start_date) {
+        // For top-level projects without a start date, set to current date
+        enhancedTaskData.start_date = new Date().toISOString();
+        
+        if (enhancedTaskData.duration_days) {
           const calculatedDueDate = calculateDueDate(
-            calculatedStartDate,
-            taskData.duration_days
+            new Date(),
+            enhancedTaskData.duration_days
           );
           
           if (calculatedDueDate) {
             enhancedTaskData.due_date = calculatedDueDate.toISOString();
           }
         }
-      } else if (taskData.days_from_start_until_due !== undefined) {
-        // Fall back to the existing calculation method if our new function returns null
-        const parentTask = tasks.find(t => t.id === taskData.parent_task_id);
+      }
+    
+      console.log('Enhanced task data with sparse positioning:', enhancedTaskData);
+    
+      // Use the createTask function
+      const result = await createTask(enhancedTaskData);
+      
+      if (result.error) {
+        console.error('Error from createTask API:', result.error);
+        throw new Error(result.error);
+      }
+      
+      console.log('Task created successfully:', result.data);
+    
+      if (result.data) {
+        // Add the new task to the appropriate list based on origin
+        if (result.data.origin === "instance") {
+          setInstanceTasks(prev => [...prev, result.data]);
+        } else if (result.data.origin === "template") {
+          setTemplateTasks(prev => [...prev, result.data]);
+        }
         
-        if (parentTask && parentTask.start_date) {
-          const fallbackDate = calculateStartDate(
-            parentTask.start_date,
-            taskData.days_from_start_until_due
+        // Update the combined tasks list
+        setTasks(prev => [...prev, result.data]);
+        
+        // Update dates for child tasks if any dates changed in the parent
+        if (taskData.parent_task_id) {
+          // Update dates for all tasks under the parent
+          const updatedTasks = updateDependentTaskDates(
+            taskData.parent_task_id,
+            [...tasks, result.data]
           );
           
-          if (fallbackDate) {
-            enhancedTaskData.start_date = fallbackDate.toISOString();
+          // Update all task arrays with the recalculated dates
+          updateTasks(updatedTasks);
+          
+          // Update affected tasks in database
+          for (const updatedTask of updatedTasks) {
+            // Skip the newly created task (already saved with correct dates)
+            if (updatedTask.id === result.data.id) continue;
             
-            if (taskData.duration_days) {
-              const calculatedDueDate = calculateDueDate(
-                fallbackDate,
-                taskData.duration_days
-              );
-              
-              if (calculatedDueDate) {
-                enhancedTaskData.due_date = calculatedDueDate.toISOString();
-              }
+            // Only update tasks with changed dates
+            const originalTask = tasks.find(t => t.id === updatedTask.id);
+            if (originalTask && (
+              originalTask.start_date !== updatedTask.start_date ||
+              originalTask.due_date !== updatedTask.due_date
+            )) {
+              await updateTaskDateFields(updatedTask.id, {
+                start_date: updatedTask.start_date,
+                due_date: updatedTask.due_date
+              });
             }
           }
         }
-      }
-    } 
-    // For tasks with start_date and duration_days but no due_date
-    else if (taskData.start_date && taskData.duration_days && !taskData.due_date) {
-      const calculatedDueDate = calculateDueDate(
-        taskData.start_date,
-        taskData.duration_days
-      );
       
-      if (calculatedDueDate) {
-        enhancedTaskData.due_date = calculatedDueDate.toISOString();
+        // Reset template creation state
+        setAddingChildToTemplateId(null);
+        setIsCreatingNewTemplate(false);
       }
+    
+      return { data: result.data, error: null };
+    } catch (err) {
+      console.error('Error creating task:', err);
+      return { data: null, error: err.message };
     }
-    // For top-level projects without a start date, set to current date
-    else if (isTopLevelProject && !enhancedTaskData.start_date) {
-      enhancedTaskData.start_date = new Date().toISOString();
-      
-      if (enhancedTaskData.duration_days) {
-        const calculatedDueDate = calculateDueDate(
-          new Date(),
-          enhancedTaskData.duration_days
-        );
-        
-        if (calculatedDueDate) {
-          enhancedTaskData.due_date = calculatedDueDate.toISOString();
-        }
-      }
-    }
-    
-    console.log('Enhanced task data with sparse positioning:', enhancedTaskData);
-    
-    // Use the createTask function
-    const result = await createTask(enhancedTaskData);
-    
-    if (result.error) {
-      console.error('Error from createTask API:', result.error);
-      throw new Error(result.error);
-    }
-    
-    console.log('Task created successfully:', result.data);
-    
-    if (result.data) {
-      // Add the new task to the appropriate list based on origin
-      if (result.data.origin === "instance") {
-        setInstanceTasks(prev => [...prev, result.data]);
-      } else if (result.data.origin === "template") {
-        setTemplateTasks(prev => [...prev, result.data]);
-      }
-      
-      // Update the combined tasks list
-      setTasks(prev => [...prev, result.data]);
-      
-      // Update dates for child tasks if any dates changed in the parent
-      if (taskData.parent_task_id) {
-        // Update dates for all tasks under the parent
-        const updatedTasks = updateDependentTaskDates(
-          taskData.parent_task_id,
-          [...tasks, result.data]
-        );
-        
-        // Update all task arrays with the recalculated dates
-        updateTasks(updatedTasks);
-        
-        // Update affected tasks in database
-        for (const updatedTask of updatedTasks) {
-          // Skip the newly created task (already saved with correct dates)
-          if (updatedTask.id === result.data.id) continue;
-          
-          // Only update tasks with changed dates
-          const originalTask = tasks.find(t => t.id === updatedTask.id);
-          if (originalTask && (
-            originalTask.start_date !== updatedTask.start_date ||
-            originalTask.due_date !== updatedTask.due_date
-          )) {
-            await updateTaskDateFields(updatedTask.id, {
-              start_date: updatedTask.start_date,
-              due_date: updatedTask.due_date
-            });
-          }
-        }
-      }
-      
-      // Reset template creation state
-      setAddingChildToTemplateId(null);
-      setIsCreatingNewTemplate(false);
-    }
-    
-    return { data: result.data, error: null };
-  } catch (err) {
-    console.error('Error creating task:', err);
-    return { data: null, error: err.message };
-  }
-}, [user?.id, organizationId, userHasProjects, tasks, updateTasks]);
+  }, [user?.id, organizationId, userHasProjects, tasks, updateTasks, findRootProject]);
   
 /**
  * Updates a task including recalculating durations for templates
  */
 const updateTaskHandler = async (taskId, updatedTaskData) => {
   try {
+    const { canEdit, error: permissionError } = await canUserEditTask(user.id, taskId);
+    if (permissionError) {
+      throw new Error(permissionError);
+    }
+    
+    if (!canEdit) {
+      throw new Error('You do not have permission to edit this task');
+    }
+
     // Find the original task
     const originalTask = tasks.find(t => t.id === taskId);
     if (!originalTask) {
@@ -1112,10 +1319,29 @@ const addTemplateTask = useCallback(async (templateData) => {
   */
   const deleteTaskHandler = useCallback(async (taskId, deleteChildren = true) => {
     try {
+      // Check if user can delete this task
+      const { canEdit, error: permissionError } = await canUserEditTask(user.id, taskId);
+
+      if (permissionError) {
+        throw new Error(permissionError);
+      }
+      
+      if (!canEdit) {
+        throw new Error('You do not have permission to delete this task');
+      }
+
       // Find the task
       const taskToDelete = tasks.find(t => t.id === taskId);
       if (!taskToDelete) {
         throw new Error('Task not found');
+      }
+      if (taskToDelete && !taskToDelete.parent_task_id) {
+        // This is a top-level project
+        const canManage = await hasProjectPermission(taskId, PERMISSIONS.MANAGE_TEAM);
+        
+        if (!canManage) {
+          throw new Error('You do not have permission to delete this project');
+        }
       }
       
       console.log(`Deleting task ${taskId} (with children: ${deleteChildren})`);
@@ -1258,8 +1484,47 @@ const addTemplateTask = useCallback(async (templateData) => {
       
       return { success: false, error: err.message };
     }
-  }, [tasks, deleteTask, updateTaskComplete, updateTasks]);
-  
+  }, [tasks, deleteTask, updateTaskComplete, updateTasks, hasProjectPermission]);
+  // Function to check if user can perform action on task
+
+  const canPerformTaskAction = useCallback(async (taskId, action) => {
+    if (!user?.id || !taskId) return false;
+    
+    try {
+      switch (action) {
+        case 'edit':
+        case 'delete':
+          const { canEdit } = await canUserEditTask(user.id, taskId);
+          return canEdit;
+          
+        case 'view':
+          // Find the project and check read access
+          const task = tasks.find(t => t.id === taskId);
+          if (!task) return false;
+          
+          const rootProject = await findRootProject(task, tasks);
+          if (!rootProject) return true; // Non-project tasks are viewable
+          
+          const { canAccess } = await canUserAccessProject(user.id, rootProject.id);
+          return canAccess;
+          
+        default:
+          return false;
+      }
+    } catch (error) {
+      console.error('Error checking task action permission:', error);
+      return false;
+    }
+  }, [user?.id, tasks, findRootProject]);
+
+  // Function to set current project context
+  const setCurrentProjectContext = useCallback(async (projectId) => {
+    if (projectId) {
+      await setCurrentProject(projectId);
+    }
+  }, [setCurrentProject]);
+
+
   // ===================================
   // === LICENSE Specific Functions ===
   // ===================================
@@ -2290,7 +2555,10 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     }
   }, [user?.id, fetchProjectInvitations]);
 
-    
+
+  
+
+
   
   // Initial fetch when component mounts
   useEffect(() => {
@@ -2348,14 +2616,6 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     updateTaskAfterDragDropOptimistic,
     updateTasksOptimistic,
 
-    // Template management
-    // TODO: maybe delete later
-    // addingTemplateToId,
-    // isAddingTopLevelTemplate,
-    // handleAddTemplate,
-    // cancelAddTemplate,
-    // createTemplate,
-
     // NEW - Template Task management
     isCreatingNewTemplate,
     addingChildToTemplateId,
@@ -2383,6 +2643,7 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     deleteTask: deleteTaskHandler,
     updateTask: updateTaskHandler, 
     createProjectFromTemplate,
+    
     enhancedTasksMap,
     getEnhancedTask,
     determineTaskStartDate: (task) => determineTaskStartDate(task, tasks),
@@ -2397,6 +2658,18 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     acceptProjectInvitation,
     declineProjectInvitation,
     revokeProjectInvitation,
+
+    joinedProjects,
+    fetchUserJoinedProjects,
+
+    // New permission-related functions
+    canPerformTaskAction,
+    setCurrentProjectContext,
+    filterTasksWithPermissions,
+    findRootProject,
+    // Permission state
+    userProjectPermissions,
+    permissionLoading,
   };
   
   return (

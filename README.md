@@ -1,8 +1,8 @@
 # PlanterPlan
 ## Roadmap
 - User front-end
-    - [ ] Account creation and log in
-        - [ ]  authentication
+    - [x] Account creation and log in
+        - [x]  authentication
     - Dashboard
       - [ ] overview of projects
     - project task list
@@ -279,18 +279,18 @@ Role-Based Access Control System for Project-Level Team Management
 
 #### Phase 2: Backend API Layer
 
-- [ ] **PR #3: Core Permission Service**
-  - [ ] Create project permission service module
-    - [ ] getUserProjectRole(userId, projectId) - get user's role in specific project
-    - [ ] canUserAccessProject(userId, projectId) - basic access check
-    - [ ] canUserEditTask(userId, taskId, projectId) - task-level permission check
-    - [ ] canUserManageTeam(userId, projectId) - team management permission
-    - [ ] canUserInviteMembers(userId, projectId) - invitation permission
-    - [ ] getUserProjectPermissions(userId, projectId) - comprehensive permissions object
-  - [ ] Permission constants and role definitions
-    - [ ] Define permission matrices for each role
-    - [ ] Create permission constants (READ, WRITE, DELETE, INVITE, MANAGE_TEAM, etc.)
-    - [ ] Role hierarchy definitions
+- [x] **PR #3: Core Permission Service**
+  - [x] Create project permission service module
+    - [x] getUserProjectRole(userId, projectId) - get user's role in specific project
+    - [x] canUserAccessProject(userId, projectId) - basic access check
+    - [x] canUserEditTask(userId, taskId, projectId) - task-level permission check
+    - [x] canUserManageTeam(userId, projectId) - team management permission
+    - [x] canUserInviteMembers(userId, projectId) - invitation permission
+    - [x] getUserProjectPermissions(userId, projectId) - comprehensive permissions object
+  - [x] Permission constants and role definitions
+    - [x] Define permission matrices for each role
+    - [x] Create permission constants (READ, WRITE, DELETE, INVITE, MANAGE_TEAM, etc.)
+    - [x] Role hierarchy definitions
 
 - [ ] **PR #4: Project Membership API Endpoints**
   - [ ] Core membership management functions
@@ -307,12 +307,12 @@ Role-Based Access Control System for Project-Level Team Management
 
 - [ ] **PR #5: Invitation System API**
   - [ ] Invitation management functions
-    - [ ] createInvitation(projectId, email, role, invitedBy) - create new invitation
-    - [ ] getProjectInvitations(projectId) - get pending invitations
-    - [ ] getPendingInvitationsForUser(userId) - get user's pending invitations
-    - [ ] acceptInvitation(invitationToken, userId) - accept invitation
-    - [ ] declineInvitation(invitationToken) - decline invitation
-    - [ ] revokeInvitation(invitationId, revokedBy) - cancel invitation
+    - [x] createInvitation(projectId, email, role, invitedBy) - create new invitation
+    - [x] getProjectInvitations(projectId) - get pending invitations
+    - [x] getPendingInvitationsForUser(userId) - get user's pending invitations
+    - [x] acceptInvitation(invitationToken, userId) - accept invitation
+    - [x] declineInvitation(invitationToken) - decline invitation
+    - [x] revokeInvitation(invitationId, revokedBy) - cancel invitation
     - [ ] resendInvitation(invitationId) - resend invitation email
   - [ ] Invitation validation and security
     - [ ] Token generation and validation
@@ -616,7 +616,7 @@ erDiagram
         uuid creator FK
         timestamptz created_at
         timestamptz last_modified
-        int4 default_duration
+        int4 duration_days
         int4 days_from_start_until
         uuid parent_task_id FK
         int4 position
@@ -627,6 +627,10 @@ erDiagram
         uuid task_lead FK
         uuid modified_by FK
         uuid white_label_id FK
+        int4 default_duration
+        _uuid assigned_users
+        text coaching_notes
+        bool is_coaching_task
     }
     
     white_label_orgs {
@@ -648,6 +652,35 @@ erDiagram
         text first_name
         text last_name
         timestamptz created_at
+        text role
+        uuid white_label_org_id FK
+    }
+    
+    project_invitations {
+        uuid id PK
+        uuid project_id FK
+        text email
+        project_membership_role role
+        uuid invited_by FK
+        uuid invitation_token
+        timestamptz expires_at
+        project_invitation_status status
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz accepted_at
+    }
+    
+    project_memberships {
+        uuid id PK
+        uuid project_id FK
+        uuid user_id FK
+        project_membership_role role
+        uuid invited_by FK
+        timestamptz invited_at
+        timestamptz accepted_at
+        project_membership_status status
+        timestamptz created_at
+        timestamptz updated_at
     }
     
     tasks ||--o{ tasks : "parent_task_id"
@@ -656,6 +689,14 @@ erDiagram
     tasks }o--|| users : "task_lead"
     tasks }o--|| white_label_orgs : "white_label_id"
     white_label_orgs }o--|| users : "admin_user_id"
+    users }o--|| white_label_orgs : "white_label_org_id"
+    
+    %% Project team management relationships
+    project_invitations }o--|| tasks : "project_id"
+    project_invitations }o--|| users : "invited_by"
+    project_memberships }o--|| tasks : "project_id"
+    project_memberships }o--|| users : "user_id"
+    project_memberships }o--|| users : "invited_by"
 ```
 
 ### PlanterPlan - Component Architecture and Logic

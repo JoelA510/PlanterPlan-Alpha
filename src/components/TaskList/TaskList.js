@@ -33,6 +33,7 @@ const TaskList = () => {
     // getSelectedLicense,
     userHasProjects,
 
+    joinedProjects,
   } = useTasks();
   
   // Local state
@@ -389,19 +390,79 @@ const handleCancelTemplateProjectCreation = () => {
   setIsCreatingFromTemplate(false);
 };
 
-// Add a click outside handler for the dropdown
-// useEffect(() => {
-//   const handleClickOutside = (event) => {
-//     if (showProjectMenu) {
-//       setShowProjectMenu(false);
-//     }
-//   };
+
+const renderJoinedProjects = () => {
+  if (joinedProjects.length === 0) {
+    return null; // Don't show section if no joined projects
+  }
   
-//   document.addEventListener('mousedown', handleClickOutside);
-//   return () => {
-//     document.removeEventListener('mousedown', handleClickOutside);
-//   };
-// }, [showProjectMenu]);
+  const joinedElements = [];
+  
+  joinedProjects.forEach((project, index) => {
+    // Add the project with special styling to indicate it's joined
+    joinedElements.push(
+      <div key={project.id} style={{ position: 'relative' }}>
+        {/* Role badge */}
+        <div style={{
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          backgroundColor: '#e0f2fe',
+          color: '#0369a1',
+          padding: '2px 6px',
+          borderRadius: '10px',
+          fontSize: '10px',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          zIndex: 2
+        }}>
+          {project.userRole?.replace('_', ' ')}
+        </div>
+        
+        <TaskItem 
+          task={project}
+          tasks={[...tasks, ...joinedProjects]} // Combine for hierarchy context
+          expandedTasks={expandedTasks}
+          toggleExpandTask={toggleExpandTask}
+          selectedTaskId={selectedTaskId}
+          selectTask={selectTask}
+          setTasks={setTasks}
+          dragAndDrop={dragAndDrop}
+          onAddChildTask={handleAddChildTask}
+        />
+      </div>
+    );
+    
+    // Add spacing between projects
+    if (index < joinedProjects.length - 1) {
+      joinedElements.push(
+        <div 
+          key={`joined-spacer-${index}`}
+          style={{
+            height: '5px',
+            margin: '2px 0'
+          }}
+        />
+      );
+    }
+  });
+  
+  return (
+    <div>
+      <h2 style={{ 
+        fontSize: '1.25rem', 
+        fontWeight: 'bold', 
+        marginBottom: '16px',
+        color: '#374151',
+        borderBottom: '2px solid #e5e7eb',
+        paddingBottom: '8px'
+      }}>
+        Joined Projects ({joinedProjects.length})
+      </h2>
+      {joinedElements}
+    </div>
+  );
+};
   
   // Render top-level tasks (projects) with spacing between them
   const renderTopLevelTasks = () => {
@@ -669,32 +730,53 @@ const handleCancelTemplateProjectCreation = () => {
           }}>
             {error}
           </div>
-        ) : tasks.filter(t => !t.parent_task_id).length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '32px',
-            color: '#6b7280'
-          }}>
-            <div>
-              <p>No projects found. Create your first project to get started!</p>
-              <button
-                onClick={handleCreateNewProject}
-                style={{
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  border: 'none',
-                  marginTop: '16px'
-                }}
-              >
-                Create First Project
-              </button>
-            </div>
-          </div>
         ) : (
-          <div>{renderTopLevelTasks()}</div>
+          <div>
+            {/* My Projects section */}
+            <div style={{marginBottom: '32px'}}>
+              { tasks.filter(t => !t.parent_task_id).length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '32px',
+                  color: '#6b7280'
+                }}>
+                  <div>
+                    <p>No projects found. Create your first project to get started!</p>
+                    <button
+                      onClick={handleCreateNewProject}
+                      style={{
+                        backgroundColor: '#10b981',
+                        color: 'white',
+                        padding: '8px 16px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        border: 'none',
+                        marginTop: '16px'
+                      }}
+                    >
+                      Create First Project
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h2 style={{ 
+                    fontSize: '1.25rem', 
+                    fontWeight: 'bold', 
+                    marginBottom: '16px',
+                    color: '#374151',
+                    borderBottom: '2px solid #e5e7eb',
+                    paddingBottom: '8px'
+                  }}>
+                    My Projects ({tasks.filter(t => !t.parent_task_id).length})
+                  </h2>
+                  {renderTopLevelTasks()}
+                </div>
+              )}
+            </div>
+            {/* Joined Projects section - BELOW My Projects */}
+            {renderJoinedProjects()}
+          </div>
         )}
       </div>
       

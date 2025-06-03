@@ -4,6 +4,8 @@ import { useTasks } from './contexts/TaskContext';
 import { useAuth } from './contexts/AuthContext';
 import { getInvitationsSentByUser } from '../services/invitationService';
 import { supabase } from '../supabaseClient';
+import { getUserProjectRole, canUserEditTask, PERMISSIONS } from '../services/permissionService';
+
 const InvitationTest = () => {
   const { user } = useAuth();
   const {
@@ -34,6 +36,28 @@ const InvitationTest = () => {
 
   // Get top-level projects for the dropdown
   const projects = instanceTasks.filter(task => !task.parent_task_id);
+
+  // Add this test function in your component
+  const testPermissions = async () => {
+    if (!user?.id || !selectedProjectId) {
+      setMessage('Please select a project and ensure you are logged in');
+      return;
+    }
+
+    try {
+      console.log('Testing permissions for user:', user.id, 'project:', selectedProjectId);
+      
+      const roleResult = await getUserProjectRole(user.id, selectedProjectId);
+      console.log('User role result:', roleResult);
+      
+      const editResult = await canUserEditTask(user.id, selectedProjectId, selectedProjectId);
+      console.log('Can edit task result:', editResult);
+      
+      setMessage(`Your role: ${roleResult.role || 'No access'}`);
+    } catch (error) {
+      setMessage(`Error testing permissions: ${error.message}`);
+    }
+  };
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -193,7 +217,8 @@ const InvitationTest = () => {
 
   return (
     <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
-      <h2>Invitation System Test (Simplified)</h2>
+      <h2>Invitation System</h2>
+      <button onClick={testPermissions}>Test My Permissions</button>
       
       {message && (
         <div style={{
