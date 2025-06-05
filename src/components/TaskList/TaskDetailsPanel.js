@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getBackgroundColor, getTaskLevel, formatDisplayDate } from '../../utils/taskUtils';
+import { calculateParentDuration } from '../../utils/sequentialTaskManager';
+import { calculateDueDate } from '../../utils/dateUtils';
 import TaskForm from '../TaskForm/TaskForm';
 import { useTasks } from '../contexts/TaskContext';
 
@@ -15,17 +17,14 @@ const TaskDetailsPanel = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Use the task context to get enhanced task data
-  const { enhancedTasksMap = {}, loading: contextLoading, getEnhancedTask } = useTasks();
+  // Use the task context to get loading state
+  const { loading: contextLoading } = useTasks();
 
   useEffect(() => {
-    // console.log(task.id);
-    
     if (!contextLoading && task) {
       setIsLoading(false);
-      // console.log("ENHANCED MAP", enhancedTasksMap);
     }
-  }, [contextLoading, task, enhancedTasksMap]);
+  }, [contextLoading, task]);
 
   // Early return if task is not defined
   if (!task) return null;
@@ -60,11 +59,59 @@ const TaskDetailsPanel = ({
     );
   }
   
-  // Get enhanced properties for this task from the map
-  const enhancedProps = getEnhancedTask(task.id);
+  // Calculate task properties on-demand
+  const hasChildren = tasks.some(t => t.parent_task_id === task.id);
   
-  // Extract properties from the enhanced data
-  const { hasChildren, calculatedDuration, effectiveDuration } = enhancedProps;
+  // Calculate effective duration - use calculated duration for parents, stored for leaf tasks
+  const getEffectiveDuration = () => {
+    if (hasChildren) {
+      try {
+        return calculateParentDuration(task.id, tasks);
+      } catch (e) {
+        console.warn(`Error calculating parent duration for task ${task.id}:`, e);
+        return task.duration_days || 1;
+      }
+    }
+    return task.duration_days || 1;
+  };
+  
+  // Calculate due date on-demand
+  const getCalculatedDueDate = () => {
+    if (!task.start_date) return task.due_date;
+    
+    try {
+      const effectiveDuration = getEffectiveDuration();
+      const dueDate = calculateDueDate(task.start_date, effectiveDuration);
+      return dueDate ? dueDate.toISOString() : task.due_date;
+    } catch (e) {
+      console.warn(`Error calculating due date for task ${task.id}:`, e);
+      return task.due_date;
+    }
+  };
+
+  // Helper function to get task properties for any task
+  const getTaskProperties = (targetTask) => {
+    const taskHasChildren = tasks.some(t => t.parent_task_id === targetTask.id);
+    
+    let calculatedDuration = targetTask.duration_days || 1;
+    if (taskHasChildren) {
+      try {
+        calculatedDuration = calculateParentDuration(targetTask.id, tasks);
+      } catch (e) {
+        console.warn(`Error calculating duration for task ${targetTask.id}:`, e);
+      }
+    }
+    
+    return {
+      hasChildren: taskHasChildren,
+      calculatedDuration,
+      effectiveDuration: calculatedDuration
+    };
+  };
+
+  const calculatedDuration = getEffectiveDuration();
+  const effectiveDuration = calculatedDuration;
+  const actualDueDate = getCalculatedDueDate();
   
   // Button handlers
   const handleEditClick = () => {
@@ -112,27 +159,8 @@ const TaskDetailsPanel = ({
   const actions = Array.isArray(task.actions) ? task.actions : [];
   const resources = Array.isArray(task.resources) ? task.resources : [];
   
-  // Format dates for display
-  // const formatDisplayDate = (dateString) => {
-  //   if (!dateString) return 'Not set';
-    
-  //   try {
-  //     return new Date(dateString).toLocaleDateString('en-US', {
-  //       weekday: 'short',
-  //       year: 'numeric',
-  //       month: 'short',
-  //       day: 'numeric'
-  //     });
-  //   } catch (e) {
-  //     return 'Invalid date';
-  //   }
-  // };
-  
   // Get original (stored) duration
   const storedDuration = task.duration_days || 1;
-  
-  // No need to calculate the actual due date - use the one from enhancedProps
-  const actualDueDate = enhancedProps.calculatedDueDate || task.due_date;
   
   return (
     <div className="task-details-panel" style={{
@@ -312,7 +340,7 @@ const TaskDetailsPanel = ({
               </p>
             </div>
             
-            {/* Due date - now using the pre-calculated due date from enhancedProps */}
+            {/* Due date - now using the calculated due date */}
             <div style={{ flex: 1 }}>
               <span style={{ fontSize: '12px', color: '#4b5563' }}>Due Date</span>
               <p style={{ 
@@ -343,17 +371,13 @@ const TaskDetailsPanel = ({
                   padding: '0 0 0 16px'
                 }}>
                   {children.map((child, index) => {
-                    // Get enhanced properties for this child from the map
-                    const childEnhanced = enhancedTasksMap[child.id] || {
-                      hasChildren: false,
-                      calculatedDuration: child.duration_days || 1,
-                      effectiveDuration: child.duration_days || 1
-                    };
+                    // Get properties for this child using our helper function
+                    const childProps = getTaskProperties(child);
                     
                     // Display the appropriate duration based on whether this child has children
                     const childStoredDuration = child.duration_days || 1;
-                    const displayDuration = childEnhanced.hasChildren ? 
-                      childEnhanced.calculatedDuration : childStoredDuration;
+                    const displayDuration = childProps.hasChildren ? 
+                      childProps.calculatedDuration : childStoredDuration;
                     
                     return (
                       <li key={child.id} style={{ marginBottom: '6px' }}>
@@ -371,7 +395,7 @@ const TaskDetailsPanel = ({
                             </span>
                             
                             {/* Add a badge for calculated durations */}
-                            {childEnhanced.hasChildren && displayDuration !== childStoredDuration && (
+                            {childProps.hasChildren && displayDuration !== childStoredDuration && (
                               <span style={{
                                 fontSize: '9px',
                                 padding: '1px 4px',
@@ -413,9 +437,6 @@ const TaskDetailsPanel = ({
             </div>
           )}
         </div>
-        
-        {/* Rest of the component remains unchanged */}
-        {/* ... */}
         
         {/* Created/Modified dates */}
         <div style={{ 

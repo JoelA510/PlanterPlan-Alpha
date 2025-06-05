@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import TaskDropZone from './TaskDropZone';
 import { formatDisplayDate, getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
+import { calculateParentDuration } from '../../utils/sequentialTaskManager';
+import { calculateDueDate } from '../../utils/dateUtils';
 import { updateTaskCompletion } from '../../services/taskService';
 import { useTasks } from '../contexts/TaskContext';
 
@@ -17,15 +19,40 @@ const TaskItem = ({
   parentTasks = []
 }) => {
 
-  const { getEnhancedTask } = useTasks(); // Get the utility function from context
-  // Get the enhanced version of this task with pre-calculated values
-  const enhancedTask = getEnhancedTask(task.id);
-  // Now you can directly use the pre-calculated values
-  // const hasChildren = enhancedTask?.hasChildren || false;
-  const calculatedDuration = enhancedTask?.calculatedDuration || task.duration_days || 1;
+  // Calculate task properties on-demand
+  const hasChildren = tasks.some(t => t.parent_task_id === task.id);
+  
+  // Calculate effective duration - use calculated duration for parents, stored for leaf tasks
+  const getEffectiveDuration = () => {
+    if (hasChildren) {
+      try {
+        return calculateParentDuration(task.id, tasks);
+      } catch (e) {
+        console.warn(`Error calculating parent duration for task ${task.id}:`, e);
+        return task.duration_days || 1;
+      }
+    }
+    return task.duration_days || 1;
+  };
+  
+  // Calculate due date on-demand
+  const getCalculatedDueDate = () => {
+    if (!task.start_date) return null;
+    
+    try {
+      const effectiveDuration = getEffectiveDuration();
+      const dueDate = calculateDueDate(task.start_date, effectiveDuration);
+      return dueDate ? dueDate.toISOString() : null;
+    } catch (e) {
+      console.warn(`Error calculating due date for task ${task.id}:`, e);
+      return task.due_date || null;
+    }
+  };
+
+  const calculatedDuration = hasChildren ? getEffectiveDuration() : (task.duration_days || 1);
   const storedDuration = task.duration_days || 1;
-  const effectiveDuration = enhancedTask?.effectiveDuration || storedDuration;
-  const calculatedDueDate = enhancedTask?.calculatedDueDate;
+  const effectiveDuration = getEffectiveDuration();
+  const calculatedDueDate = getCalculatedDueDate();
 
   const [isHovering, setIsHovering] = useState(false);
   
@@ -46,7 +73,6 @@ const TaskItem = ({
 
   const isExpanded = expandedTasks[task.id];
   const isSelected = selectedTaskId === task.id;
-  const hasChildren = tasks.some(t => t.parent_task_id === task.id);
   const children = tasks
     .filter(t => t.parent_task_id === task.id)
     .sort((a, b) => a.position - b.position);

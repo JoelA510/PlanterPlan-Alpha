@@ -72,7 +72,6 @@ export const TaskProvider = ({ children }) => {
   
   // State for tasks - ONLY the main tasks array
   const [tasks, setTasks] = useState([]);
-  const [enhancedTasksMap, setEnhancedTasksMap] = useState({});
 
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -106,110 +105,8 @@ export const TaskProvider = ({ children }) => {
     tasks.filter(task => task.origin === "template"), 
     [tasks]
   );
-  
-  // Process tasks to add calculated properties
-  // Modified function that creates a map of task IDs to calculated properties
-  const processTasksWithCalculations = useCallback((rawTasks) => {
-    if (!Array.isArray(rawTasks) || rawTasks.length === 0) return {};
-    
-    // Create a mapping object for the calculated properties
-    const calculatedPropertiesMap = {};
-    
-    // First pass: determine which tasks have children
-    const tasksWithChildren = {};
-    rawTasks.forEach(task => {
-      if (task && task.parent_task_id) {
-        // Count children for each parent
-        if (!tasksWithChildren[task.parent_task_id]) {
-          tasksWithChildren[task.parent_task_id] = 0;
-        }
-        tasksWithChildren[task.parent_task_id]++;
-      }
-    });
-    
-    console.log("Tasks with children counts:", tasksWithChildren);
-    
-    // Second pass: calculate durations and due dates for each task
-    rawTasks.forEach(task => {
-      if (!task || !task.id) return; // Skip invalid tasks
-      
-      // Determine if this task has children
-      const childCount = tasksWithChildren[task.id] || 0;
-      const hasChildren = childCount > 0;
-      
-      // console.log(`Processing task ${task.id} (${task.title}): hasChildren=${hasChildren}, childCount=${childCount}`);
-      
-      // Get the stored duration (default to 1 if not set)
-      const storedDuration = task.duration_days || 1;
-      
-      // Calculate the effective duration based on children
-      let calculatedDuration = storedDuration;
-      if (hasChildren) {
-        try {
-          calculatedDuration = calculateParentDuration(task.id, rawTasks);
-          // console.log(`  Calculated duration for ${task.id}: ${calculatedDuration} (stored: ${storedDuration})`);
-        } catch (e) {
-          console.error(`  Error calculating duration for task ${task.id}:`, e);
-        }
-      }
-      
-      // Calculate an effective due date if start date is available
-      let calculatedDueDate = null;
-      if (task.start_date) {
-        try {
-          const startDate = new Date(task.start_date);
-          const dueDate = new Date(startDate);
-          // Use the appropriate duration
-          const effectiveDuration = hasChildren ? calculatedDuration : storedDuration;
-          dueDate.setDate(startDate.getDate() + effectiveDuration);
-          calculatedDueDate = dueDate.toISOString();
-          // console.log(`  Calculated due date for ${task.id}: ${calculatedDueDate}`);
-        } catch (e) {
-          console.error(`  Error calculating due date for task ${task.id}:`, e);
-        }
-      }
-      
-      // Store the calculated properties in the map
-      calculatedPropertiesMap[task.id] = {
-        hasChildren,
-        childCount,
-        calculatedDuration,
-        effectiveDuration: hasChildren ? calculatedDuration : storedDuration,
-        calculatedDueDate,
-        // Add a timestamp for debugging
-        calculatedAt: new Date().toISOString()
-      };
-    });
-    
-    console.log("Final calculated properties map:", calculatedPropertiesMap);
-    return calculatedPropertiesMap;
-  }, []);
 
-  // Updated helper function to get enhanced task properties
-  const getEnhancedTask = useCallback((taskId) => {
-    if (!taskId) return null;
-    
-    // Find the base task
-    const baseTask = tasks.find(t => t.id === taskId);
-    if (!baseTask) return null;
-    
-    // Get the enhanced properties (with fallbacks)
-    const enhancedProps = enhancedTasksMap[taskId] || {
-      hasChildren: false,
-      childCount: 0,
-      calculatedDuration: baseTask.duration_days || 1,
-      effectiveDuration: baseTask.duration_days || 1,
-      calculatedDueDate: baseTask.due_date
-    };
-    
-    // Return a new object combining the base task and enhanced properties
-    return {
-      ...baseTask,
-      ...enhancedProps
-    };
-  }, [tasks, enhancedTasksMap]);
-
-  // Update tasks state safely - DEFINE THIS FIRST since it's used by other functions
+  // Update tasks state safely - simplified without enhanced calculations
   const updateTasks = useCallback((newTasks) => {
     if (!Array.isArray(newTasks)) {
       console.error('updateTasks received non-array value:', newTasks);
@@ -217,18 +114,12 @@ export const TaskProvider = ({ children }) => {
     }
     
     try {
-      // Process the tasks to get calculated properties map
-      const calculatedPropertiesMap = processTasksWithCalculations(newTasks);
-      
-      // Update the enhanced tasks state with the map
-      setEnhancedTasksMap(calculatedPropertiesMap);
-      
       // Update main tasks array only
       setTasks(newTasks);
     } catch (err) {
       console.error('Error in updateTasks:', err);
     }
-  }, [processTasksWithCalculations]);
+  }, []);
   
   // Fetch all tasks (both instances and templates)
   const fetchTasks = useCallback(async (forceRefresh = false) => {
@@ -280,10 +171,6 @@ export const TaskProvider = ({ children }) => {
       const allTasks = [...instanceData, ...templateData];
       setTasks(allTasks);
       setError(null);
-
-      // Process and set enhanced tasks
-      const enhanced = processTasksWithCalculations(allTasks);
-      setEnhancedTasksMap(enhanced);
       
       // Mark initial fetch as complete
       initialFetchDoneRef.current = true;
@@ -299,7 +186,7 @@ export const TaskProvider = ({ children }) => {
       setIsFetching(false);
       setInitialLoading(false);
     }
-  }, [organizationId, user?.id, instanceTasks, templateTasks, processTasksWithCalculations]);
+  }, [organizationId, user?.id, instanceTasks, templateTasks]);
   
   // Create a new task with date handling and sparse positioning
 const createNewTask = useCallback(async (taskData, licenseId = null) => {
@@ -751,7 +638,7 @@ const updateTaskAfterDragDropOptimistic = useCallback(async (taskId, newParentId
   }
 }, [tasks]);
 
-// Enhanced updateTasks function to recalculate enhancedTasksMap
+// Simplified updateTasksOptimistic function
 const updateTasksOptimistic = useCallback((newTasks) => {
   if (!Array.isArray(newTasks)) {
     console.error('updateTasksOptimistic received non-array value:', newTasks);
@@ -759,22 +646,16 @@ const updateTasksOptimistic = useCallback((newTasks) => {
   }
   
   try {
-    console.log('🔄 Updating tasks with enhanced calculations...');
+    console.log('🔄 Updating tasks optimistically...');
     
-    // Process the tasks to get calculated properties map
-    const calculatedPropertiesMap = processTasksWithCalculations(newTasks);
-    
-    // Update the enhanced tasks state with the map
-    setEnhancedTasksMap(calculatedPropertiesMap);
-    
-    // Update original task states
+    // Update tasks state directly
     setTasks(newTasks);
     
-    console.log('✅ Tasks updated with enhanced calculations');
+    console.log('✅ Tasks updated optimistically');
   } catch (err) {
     console.error('❌ Error in updateTasksOptimistic:', err);
   }
-}, [processTasksWithCalculations]);
+}, []);
 
 /**
  * Update durations for all tasks in a hierarchy from bottom up
@@ -2368,8 +2249,6 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     deleteTask: deleteTaskHandler,
 updateTask: updateTaskHandler, 
 createProjectFromTemplate,
-enhancedTasksMap,
-getEnhancedTask,
 determineTaskStartDate: (task) => determineTaskStartDate(task, tasks),
 
 // Invitation system
