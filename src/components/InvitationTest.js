@@ -2,12 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { useTasks } from './contexts/TaskContext';
 import { useAuth } from './contexts/AuthContext';
+import { useInvitations } from '../hooks/useInvitations'; // Import the new hook
 import { getInvitationsSentByUser } from '../services/invitationService';
 import { supabase } from '../supabaseClient';
+
 const InvitationTest = () => {
   const { user } = useAuth();
+  const { instanceTasks, fetchTasks } = useTasks(); // Only get what we need from TaskContext
+  
+  // Use the new invitation hook
   const {
-    instanceTasks,
     projectInvitations,
     userPendingInvitations,
     invitationLoading,
@@ -17,7 +21,7 @@ const InvitationTest = () => {
     acceptProjectInvitation,
     declineProjectInvitation,
     revokeProjectInvitation
-  } = useTasks();
+  } = useInvitations();
 
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -129,7 +133,8 @@ const InvitationTest = () => {
   };
 
   const handleAcceptInvitation = async (invitationId) => {
-    const result = await acceptProjectInvitation(invitationId);
+    // Pass fetchTasks as the onSuccess callback to refresh tasks when invitation is accepted
+    const result = await acceptProjectInvitation(invitationId, () => fetchTasks(true));
     if (result.success) {
       setMessage('Invitation accepted successfully!');
       // Refresh both pending and accepted invitations
