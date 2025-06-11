@@ -1,16 +1,10 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationProvider';
+import { useLicenses } from '../../hooks/useLicenses'; // Import the new license hook
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { getNextAvailablePosition, generateSparsePositions } from '../../utils/sparsePositioning';
-import { 
-  canUserCreateProject, 
-  validateLicense,
-  markLicenseAsUsed,
-  checkUserExistingProjects,
-
-} from '../../services/licenseService';
 
 // Import functions from taskService directly if you're not using useTaskService
 import { 
@@ -59,6 +53,19 @@ export const TaskProvider = ({ children }) => {
   const { user, loading: userLoading } = useAuth();
   const { organization, organizationId, loading: orgLoading } = useOrganization();
   const location = useLocation();
+
+  // Use the license hook
+  const {
+    canCreateProject,
+    userHasProjects,
+    projectLimitReason,
+    userLicenses,
+    selectedLicenseId,
+    isCheckingLicense,
+    validateProjectCreation,
+    // We can still expose the license functions through the task context if needed
+    ...licenseActions
+  } = useLicenses();
   
   // State for tasks - ONLY the main tasks array
   const [tasks, setTasks] = useState([]);
@@ -72,15 +79,6 @@ export const TaskProvider = ({ children }) => {
   // Template management state
   const [isCreatingNewTemplate, setIsCreatingNewTemplate] = useState(false);
   const [addingChildToTemplateId, setAddingChildToTemplateId] = useState(null);
-  
-  
-  // License system state
-  const [canCreateProject, setCanCreateProject] = useState(false);
-  const [userHasProjects, setUserHasProjects] = useState(false);
-  const [projectLimitReason, setProjectLimitReason] = useState('');
-  const [userLicenses, setUserLicenses] = useState([]);
-  const [selectedLicenseId, setSelectedLicenseId] = useState(null);
-  const [isCheckingLicense, setIsCheckingLicense] = useState(true);
   
   // Refs for tracking state without triggering re-renders
   const initialFetchDoneRef = useRef(false);
@@ -193,10 +191,12 @@ const createNewTask = useCallback(async (taskData, licenseId = null) => {
     
     // For top-level projects, check if the user already has projects
     if (isTopLevelProject) {
-      // If user has projects but no license is provided, block creation
-      if (userHasProjects && !licenseId) {
-        throw new Error('You already have a project. Please provide a license key to create additional projects.');
+      const validation = validateProjectCreation(licenseId);
+      if (!validation.canCreate) {
+        throw new Error(validation.reason);
       }
+      // Use the validated license ID
+      licenseId = validation.licenseId;
     }
     
     // Handle sparse positioning if not already set
@@ -347,7 +347,7 @@ const createNewTask = useCallback(async (taskData, licenseId = null) => {
     console.error('Error creating task:', err);
     return { data: null, error: err.message };
   }
-}, [user?.id, organizationId, userHasProjects, tasks, updateTasks]);
+}, [user?.id, organizationId, validateProjectCreation, tasks, updateTasks]);
   
 /**
  * Updates a task including recalculating durations for templates
@@ -1116,102 +1116,7 @@ const addTemplateTask = useCallback(async (templateData) => {
     }
   }, [tasks, deleteTask, updateTaskComplete, updateTasks]);
   
-  // ===================================
-  // === LICENSE Specific Functions ===
-  // ===================================
   
-  // Check if user can create a new project
-  const checkForExistingProjects = useCallback(async () => {
-    if (!user?.id) return false;
-    
-    try {
-      const { hasProjects } = await checkUserExistingProjects(user.id);
-      setUserHasProjects(hasProjects);
-      return hasProjects;
-    } catch (error) {
-      console.error('Error checking for existing projects:', error);
-      return false;
-    }
-  }, [user?.id]);
-  
-  // Fetch all licenses for the current user
-  const fetchUserLicenses = useCallback(async () => {
-    if (!user?.id) return;
-    
-    try {
-      console.log("Fetching user licenses");
-      let { data, error } = await supabase
-        .from('licenses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw new Error(error.message);
-      
-      setUserLicenses(data || []);
-      console.log(data);
-    } catch (error) {
-      console.error('Error fetching user licenses:', error);
-    }
-  }, [user?.id]);
-  
-  // Apply a license key to the user's account
-  const applyLicenseKey = useCallback(async (licenseKey) => {
-    if (!user?.id) {
-      console.error('License application failed: No user ID available');
-      return { success: false, error: 'User not authenticated' };
-    }
-    
-    try {
-      console.log('Validating license key', { licenseKey: licenseKey, userId: user.id });
-      const result = await validateLicense(licenseKey, user.id);
-      console.log('License validation result', result, result.data.id);
-      
-      if (result.success) {
-        try {
-          const markedLicenseRes = await markLicenseAsUsed(result.data.id);
-          console.log('License marked as used successfully');
-          if (markedLicenseRes.success) {
-            
-            return { 
-              success: true, 
-              licenseId: result.data.id
-            };
-          } else {
-            console.error('Failed to mark license as used', markedLicenseRes.error);
-            // Continue despite this error since validation succeeded
-            return { 
-              success: false, 
-              error: result.error 
-            };
-          }
-        } catch (error) {
-          console.error('Failed during marking license as used', error );
-          return { 
-            success: false, 
-            error: error.message || 'An unexpected error occurred'
-          };
-        }
-      } else {
-        console.error('License validation failed', { error: result.error });
-        return { 
-          success: false, 
-          error: result.error 
-        };
-      }
-    } catch (error) {
-      console.error('Unexpected error during license application', error);
-      return { 
-        success: false, 
-        error: error.message || 'An unexpected error occurred'
-      };
-    }
-  }, [user?.id]);
-  
-  // Select a license for a new project
-  const selectLicense = useCallback((licenseId) => {
-    setSelectedLicenseId(licenseId);
-  }, []);
 
   // Simplified createProjectFromTemplate function
 // Replace the existing function in TaskContext.js
@@ -1955,11 +1860,8 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     
     if (!initialFetchDoneRef.current && user?.id) {
       fetchTasks();
-      // fetchUserLicenses();
-      checkForExistingProjects();
     }
-  // }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks, checkProjectCreationAbility, fetchUserLicenses, checkForExistingProjects]);
-  }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks, checkForExistingProjects]);
+  }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks]);
   
   useEffect(() => {
     // Set the ref to true on mount
@@ -2018,13 +1920,13 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     // License system
     canCreateProject,
     projectLimitReason,
-    // userLicenses,
+    userLicenses,
     selectedLicenseId,
     userHasProjects,
     isCheckingLicense,
-    fetchUserLicenses,
-    applyLicenseKey,
-    selectLicense,
+    ...licenseActions,
+    
+    
     // getSelectedLicense,
     setTasks: updateTasks,
     createTask: createNewTask,
