@@ -95,15 +95,23 @@ export const TaskProvider = ({ children }) => {
   );
 
   // Update tasks state safely - simplified without enhanced calculations
-  const updateTasks = useCallback((newTasks) => {
+  const updateTasks = useCallback((newTasks, isOptimistic = false) => {
     if (!Array.isArray(newTasks)) {
       console.error('updateTasks received non-array value:', newTasks);
       return;
     }
     
     try {
-      // Update main tasks array only
+      if (isOptimistic) {
+        console.log('🔄 Updating tasks optimistically...');
+      }
+      
+      // Update main tasks array
       setTasks(newTasks);
+      
+      if (isOptimistic) {
+        console.log('✅ Tasks updated optimistically');
+      }
     } catch (err) {
       console.error('Error in updateTasks:', err);
     }
@@ -628,24 +636,6 @@ const updateTaskAfterDragDropOptimistic = useCallback(async (taskId, newParentId
   }
 }, [tasks]);
 
-// Simplified updateTasksOptimistic function
-const updateTasksOptimistic = useCallback((newTasks) => {
-  if (!Array.isArray(newTasks)) {
-    console.error('updateTasksOptimistic received non-array value:', newTasks);
-    return;
-  }
-  
-  try {
-    console.log('🔄 Updating tasks optimistically...');
-    
-    // Update tasks state directly
-    setTasks(newTasks);
-    
-    console.log('✅ Tasks updated optimistically');
-  } catch (err) {
-    console.error('❌ Error in updateTasksOptimistic:', err);
-  }
-}, []);
 
 /**
  * Update durations for all tasks in a hierarchy from bottom up
@@ -1839,7 +1829,7 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
       });
       
       // Update local state with calculated dates
-      updateTasks(updatedTasksForUI);
+      updateTasks(updatedTasksForUI, true);
     }
     
     // Step 9: Final refresh to ensure database and UI are in sync
@@ -1896,7 +1886,6 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     
     // Add the optimistic update function
     updateTaskAfterDragDropOptimistic,
-    updateTasksOptimistic,
 
     // Template management
     // TODO: maybe delete later
