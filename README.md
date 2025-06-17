@@ -567,35 +567,7 @@ Role-Based Access Control System for Project-Level Team Management
   - Changes are logged so user can see what was adjusted and can undo or alter the date adjustments
 
 Technical Implementation Notes
-Database Considerations:
 
-Use UUIDs for all primary keys to avoid enumeration attacks
-Implement proper indexing strategy for permission queries
-Consider partitioning for large-scale deployments
-Use database triggers for audit logging
-
-Security Considerations:
-
-Implement rate limiting for invitation endpoints
-Use signed tokens for invitation URLs
-Validate all permissions server-side
-Implement CSRF protection for sensitive operations
-
-Performance Considerations:
-
-Cache user permissions in Redis/memory
-Use database views for complex permission queries
-Implement efficient permission checking algorithms
-Consider GraphQL for flexible team data fetching
-
-Integration Points:
-
-Existing AuthContext and authentication flow
-Current TaskContext and task management
-Organization-level permissions and white-labeling
-Existing UI components and styling patterns
-
-This roadmap provides a comprehensive, incrementally buildable approach to implementing the RBAC system while maintaining compatibility with the existing codebase and allowing parallel development by multiple contributors.
 
 ## Documentation
 Database Schema (Mermaid code):

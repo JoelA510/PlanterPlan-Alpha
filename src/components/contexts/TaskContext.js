@@ -76,9 +76,6 @@ export const TaskProvider = ({ children }) => {
   const [isFetching, setIsFetching] = useState(false);
   const isMountedRef = useRef(true);
   
-  // Template management state
-  const [isCreatingNewTemplate, setIsCreatingNewTemplate] = useState(false);
-  const [addingChildToTemplateId, setAddingChildToTemplateId] = useState(null);
   
   // Refs for tracking state without triggering re-renders
   const initialFetchDoneRef = useRef(false);
@@ -345,9 +342,6 @@ const createNewTask = useCallback(async (taskData, licenseId = null) => {
         }
       }
       
-      // Reset template creation state
-      setAddingChildToTemplateId(null);
-      setIsCreatingNewTemplate(false);
     }
     
     return { data: result.data, error: null };
@@ -761,197 +755,6 @@ const getAllTasksInHierarchy = (rootId, allTasks) => {
   
   return result;
 };
-  
-  // ===================================
-  // === TEMPLATE Specific Functions ===
-  // ===================================
-
-  
-  /**
-   * Handle starting the creation of a new top-level template
-   */
-  const handleCreateNewTemplate = useCallback(() => {
-    // Clear any child template creation state
-    setAddingChildToTemplateId(null);
-    // Set the new template creation state
-    setIsCreatingNewTemplate(true);
-  }, []);
-
-  /**
-   * Cancel new template creation and adding template task
-   */
-  const cancelTemplateCreation = useCallback(() => {
-    setIsCreatingNewTemplate(false);
-    setAddingChildToTemplateId(null);
-  }, []);
-
-  /**
-   * Create a new top-level template
-   * @param {Object} templateData - Data for the new template
-   */
-  const createNewTemplate = useCallback(async (templateData) => {
-    try {
-      console.log("Creating new top-level template with data:", JSON.stringify(templateData, null, 2));
-      
-      // Ensure this is a top-level template
-      if (templateData.parent_task_id) {
-        throw new Error('Top-level templates should not have a parent ID');
-      }
-      
-      // Ensure both duration fields are set
-      if (templateData.default_duration === undefined) {
-        templateData.default_duration = templateData.duration_days || 1;
-      }
-      
-      if (templateData.duration_days === undefined) {
-        templateData.duration_days = templateData.default_duration;
-      }
-      
-      // Add position and origin to template data
-      const enhancedTemplateData = {
-        ...templateData,
-        origin: 'template',
-        parent_task_id: null
-      };
-      
-      // Call create task function
-      const result = await createNewTask(enhancedTemplateData);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      // Reset template creation state
-      setIsCreatingNewTemplate(false);
-      
-      console.log('New template created successfully:', result.data);
-      
-      // Refresh tasks to include the new template
-      await fetchTasks(true);
-      
-      return result;
-    } catch (err) {
-      console.error('Error creating new template:', err);
-      return { error: err.message };
-    }
-  }, [createNewTask, fetchTasks]);
-
-  /**
-   * Handle starting the creation of a child template
-   * @param {string} parentId - ID of the parent template
-   */
-  const handleAddTemplateTask = useCallback((parentId) => {
-    if (!parentId) {
-      console.error('Parent ID is required to add a child template');
-      return;
-    }
-    
-    // Clear the new template creation state
-    setIsCreatingNewTemplate(false);
-    // Set the parent template ID
-    setAddingChildToTemplateId(parentId);
-  }, []);
-
-/**
- * Add a template task (child) to an existing template
- * @param {Object} templateData - Data for the new template task
- */
-const addTemplateTask = useCallback(async (templateData) => {
-  try {
-    console.log("Adding template task with data:", JSON.stringify(templateData, null, 2));
-    
-    // Ensure this is a child template task
-    if (!templateData.parent_task_id) {
-      throw new Error('Parent template ID is required for template tasks');
-    }
-    
-    // Find the parent template
-    const parentTemplate = templateTasks.find(t => t.id === templateData.parent_task_id);
-    if (!parentTemplate) {
-      throw new Error(`Parent template with ID ${templateData.parent_task_id} not found`);
-    }
-    
-    
-    
-    // Ensure both duration fields are set
-    if (templateData.default_duration === undefined) {
-      templateData.default_duration = templateData.duration_days || 1;
-    }
-    
-    if (templateData.duration_days === undefined) {
-      templateData.duration_days = templateData.default_duration;
-    }
-    
-    // Add origin to template data
-    const enhancedTemplateData = {
-      ...templateData,
-      origin: 'template'
-    };
-    
-    // Call create task function
-    const result = await createNewTask(enhancedTemplateData);
-    
-    if (result.error) {
-      throw new Error(result.error);
-    }
-    
-    // Reset template creation state
-    setAddingChildToTemplateId(null);
-    
-    console.log('Template task added successfully:', result.data);
-    
-    // If this template has affected ancestors, update them
-    if (templateData.affectedAncestors && templateData.affectedAncestors.length > 0 && result.data) {
-      console.log('Updating affected ancestors:', templateData.affectedAncestors);
-      
-      // Get the latest templates including the new one
-      const newTask = result.data;
-      const allTemplates = [...templateTasks, newTask];
-      
-      // Prepare the updates for all affected ancestors
-      const ancestorUpdates = templateData.affectedAncestors.map(ancestor => ({
-        id: ancestor.id,
-        duration_days: ancestor.newDuration
-        // Note: We don't update default_duration, which stays as what the user set
-      }));
-      
-      // Batch update the ancestors
-      for (const update of ancestorUpdates) {
-        await updateTaskComplete(update.id, { duration_days: update.duration_days });
-      }
-      
-      // Refresh tasks to get the latest state
-      await fetchTasks(true);
-    } else {
-      // Even if no ancestors explicitly listed, update parents automatically
-      const newTask = result.data;
-      const allTemplates = [...templateTasks, newTask];
-      
-      // Update parent durations and recalculate dates
-      const updatedTasks = updateAncestorDurations(newTask.id, allTemplates);
-      
-      // Get tasks that need database updates
-      const tasksToUpdate = getTasksRequiringUpdates(allTemplates, updatedTasks);
-      
-      // Update tasks in database
-      await updateTasksInDatabase(tasksToUpdate, updateTaskComplete);
-      
-      // Update state with new calculated durations
-      const updatedAllTasks = tasks.map(task => {
-        const updatedTask = updatedTasks.find(ut => ut.id === task.id);
-        return updatedTask || task;
-      });
-      
-      updateTasks(updatedAllTasks);
-    }
-    
-    return result;
-  } catch (err) {
-    console.error('Error adding template task:', err);
-    return { error: err.message };
-  }
-}, [templateTasks, createNewTask, updateTaskComplete, fetchTasks, tasks, updateTasks]);
-
 
   /**
   * Deletes a task and all its children with duration updates
@@ -1887,24 +1690,8 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     // Add the optimistic update function
     updateTaskAfterDragDropOptimistic,
 
-    // Template management
-    // TODO: maybe delete later
-    // addingTemplateToId,
-    // isAddingTopLevelTemplate,
-    // handleAddTemplate,
-    // cancelAddTemplate,
-    // createTemplate,
 
-    // NEW - Template Task management
-    isCreatingNewTemplate,
-    addingChildToTemplateId,
-
-    handleCreateNewTemplate,
-    handleAddTemplateTask,
-    cancelTemplateCreation,
     
-    createNewTemplate,
-    addTemplateTask,
     
     // License system
     canCreateProject,

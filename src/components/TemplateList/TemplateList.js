@@ -18,17 +18,7 @@ const TemplateList = () => {
     error, 
     fetchTasks, 
     setTasks,
-
-    // New template task specific functions and state
-    handleAddTemplateTask,
-    handleCreateNewTemplate,
-    cancelTemplateCreation,
-    createNewTemplate,
-    addTemplateTask,
-    // Template state
-    isCreatingNewTemplate,
-    addingChildToTemplateId,
-
+    createTask,
     deleteTask,
     updateTask
   } = useTasks();
@@ -39,6 +29,10 @@ const TemplateList = () => {
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Local state for template creation
+  const [isCreatingNewTemplate, setIsCreatingNewTemplate] = useState(false);
+  const [addingChildToTemplateId, setAddingChildToTemplateId] = useState(null);
   
   useEffect(() => {
     return () => { isMountedRef.current = false; };
@@ -54,6 +48,22 @@ const TemplateList = () => {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  // Template helper functions
+  const handleCreateNewTemplate = () => {
+    setAddingChildToTemplateId(null);
+    setIsCreatingNewTemplate(true);
+  };
+
+  const handleAddTemplateTask = (parentId) => {
+    setIsCreatingNewTemplate(false);
+    setAddingChildToTemplateId(parentId);
+  };
+
+  const cancelTemplateCreation = () => {
+    setIsCreatingNewTemplate(false);
+    setAddingChildToTemplateId(null);
   };
 
   // Toggle task expansion
@@ -82,40 +92,53 @@ const TemplateList = () => {
   // Initialize drag and drop
   const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTasks);
   
-
-// Handler for creating a new top-level template
-const handleNewTemplateSubmit = async (templateData) => {
-  try {
-    const result = await createNewTemplate(templateData);
-    
-    if (result.error) {
-      throw new Error(result.error);
+  // Handler for creating a new top-level template
+  const handleNewTemplateSubmit = async (templateData) => {
+    try {
+      const result = await createTask({
+        ...templateData,
+        origin: 'template',
+        parent_task_id: null
+      });
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Reset state
+      setIsCreatingNewTemplate(false);
+      
+      return result;
+    } catch (err) {
+      console.error('Error creating new template:', err);
+      alert(`Failed to create new template: ${err.message}`);
+      return { error: err.message };
     }
-    
-    return result;
-  } catch (err) {
-    console.error('Error creating new template:', err);
-    alert(`Failed to create new template: ${err.message}`);
-    return { error: err.message };
-  }
-};
+  };
 
-// Handler for adding a template task (child) to an existing template
-const handleTemplateTaskSubmit = async (templateData) => {
-  try {
-    const result = await addTemplateTask(templateData);
-    
-    if (result.error) {
-      throw new Error(result.error);
+  // Handler for adding a template task (child) to an existing template
+  const handleTemplateTaskSubmit = async (templateData) => {
+    try {
+      const result = await createTask({
+        ...templateData,
+        origin: 'template',
+        parent_task_id: addingChildToTemplateId
+      });
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Reset state
+      setAddingChildToTemplateId(null);
+      
+      return result;
+    } catch (err) {
+      console.error('Error adding template task:', err);
+      alert(`Failed to add template task: ${err.message}`);
+      return { error: err.message };
     }
-    
-    return result;
-  } catch (err) {
-    console.error('Error adding template task:', err);
-    alert(`Failed to add template task: ${err.message}`);
-    return { error: err.message };
-  }
-};
+  };
 
   // Handle edit template
   const handleEditTemplate = async (templateId, updatedData) => {
@@ -378,7 +401,7 @@ const handleTemplateTaskSubmit = async (templateData) => {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Templates</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
-              onClick={() => handleCreateNewTemplate(null)}
+              onClick={handleCreateNewTemplate}
               style={{
                 backgroundColor: '#10b981',
                 color: 'white',
