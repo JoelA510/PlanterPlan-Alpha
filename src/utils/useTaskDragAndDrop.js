@@ -10,6 +10,12 @@ import {
   calculateSequentialStartDates,
 } from './sequentialTaskManager';
 import { useTasks } from '../components/contexts/TaskContext';
+import { 
+  calculateMovePosition, 
+  generateNormalizedPositions,
+  checkIfRenormalizationNeeded,
+  debugPositions 
+} from './sparsePositioning';
 
 // Add to the top of useTaskDragAndDrop.js
 const taskCache = {
@@ -81,7 +87,7 @@ const getCachedChildren = (parentId, allTasks) => {
 
 
 const useTaskDragAndDrop = (tasks, setTasks, fetchTasks) => {
-  const { updateTaskAfterDragDropOptimistic, updateTasksOptimistic } = useTasks();
+  const { updateTaskAfterDragDrop, updateTasksOptimistic } = useTasks();
   // First, add these constants at the top of useTaskDragAndDrop.js
 const POSITION_INCREMENT = 1000; // Base increment between tasks
 const MIN_POSITION_GAP = 10;     // Minimum acceptable gap before renormalization
@@ -650,12 +656,22 @@ const checkIfRenormalizationNeeded = (tasks, parentId) => {
 // Update the syncToServer function to use the optimistic version
 const syncToServer = async (taskId, newParentId, newPosition, oldParentId) => {
   try {
-    console.log('🔄 Background sync starting for task:', taskId);
-    await updateTaskAfterDragDropOptimistic(taskId, newParentId, newPosition, oldParentId);
+    // console.log('🔄 Background sync starting for task:', taskId);
+    // console.log('🔄 Array index received:', newPosition); // This will be 0,1,2...
+    
+    // ✅ Calculate sparse position from the array index
+    const newSiblings = tasks
+      .filter(t => t.parent_task_id === newParentId && t.id !== taskId)
+      .sort((a, b) => a.position - b.position);
+    
+    const sparsePosition = calculateInsertPosition(newSiblings, newPosition);
+    console.log('🔄 Calculated sparse position:', sparsePosition); // This will be 1000,2000...
+    
+    // Use sparse position instead of array index
+    await updateTaskAfterDragDrop(taskId, newParentId, sparsePosition, oldParentId);
     console.log('✅ Background sync completed for task:', taskId);
   } catch (error) {
     console.error('❌ Background sync failed:', error);
-    // Optional: Show a subtle notification to user
   }
 };
 

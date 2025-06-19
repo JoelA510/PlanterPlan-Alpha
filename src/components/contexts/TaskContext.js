@@ -524,111 +524,7 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
     }
   }, [tasks, updateTasks]);
 
-// Simple background sync for drag/drop operations
-const updateTaskAfterDragDropOptimistic = useCallback(async (taskId, newParentId, newPosition, oldParentId) => {
-  try {
-    console.log(`🔄 Background sync: task=${taskId}, newParent=${newParentId}, newPos=${newPosition}`);
-    
-    // Step 1: Update the task's position and parent in the database
-    const result = await updateTaskPosition(taskId, newParentId, newPosition);
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to update task position');
-    }
 
-    // Step 2: Get the root project to recalculate dates from
-    const currentTasks = tasks; // Use current tasks from context
-    const movedTask = currentTasks.find(t => t.id === taskId);
-    
-    if (!movedTask) {
-      console.warn('Moved task not found in current tasks');
-      return { success: true };
-    }
-
-    // Find the root project
-    const findRootProject = (task, allTasks) => {
-      if (!task.parent_task_id) return task;
-      const parent = allTasks.find(t => t.id === task.parent_task_id);
-      return parent ? findRootProject(parent, allTasks) : task;
-    };
-
-    const rootProject = findRootProject(movedTask, currentTasks);
-
-    if (!rootProject || !rootProject.start_date) {
-      console.log('No root project with start date found - skipping date updates');
-      return { success: true };
-    }
-
-    console.log(`📅 Recalculating dates from root: ${rootProject.id} (${rootProject.title})`);
-
-    // Step 3: Get all tasks in this project hierarchy
-    const getAllTasksInHierarchy = (rootId, allTasks) => {
-      const result = [];
-      
-      const collectTasks = (parentId) => {
-        const parent = allTasks.find(t => t.id === parentId);
-        if (parent) result.push(parent);
-        
-        const children = allTasks.filter(t => t.parent_task_id === parentId);
-        result.push(...children);
-        
-        children.forEach(child => collectTasks(child.id));
-      };
-      
-      collectTasks(rootId);
-      return result;
-    };
-
-    const projectTasks = getAllTasksInHierarchy(rootProject.id, currentTasks);
-    console.log(`Found ${projectTasks.length} tasks in project hierarchy`);
-
-    // Step 4: Recalculate dates using existing utility
-    const tasksWithUpdatedDates = calculateSequentialStartDates(
-      rootProject.id,
-      rootProject.start_date,
-      projectTasks
-    );
-
-    // Step 5: Update affected tasks in database
-    const updatePromises = [];
-    
-    for (const task of tasksWithUpdatedDates) {
-      const originalTask = projectTasks.find(t => t.id === task.id);
-      if (!originalTask) continue;
-      
-      // Only update if dates or durations changed
-      if (originalTask.start_date !== task.start_date || 
-          originalTask.due_date !== task.due_date ||
-          originalTask.duration_days !== task.duration_days) {
-        
-        console.log(`📅 Updating dates for: ${task.title || task.id}`);
-        console.log(`  Start: ${originalTask.start_date} → ${task.start_date}`);
-        console.log(`  Due: ${originalTask.due_date} → ${task.due_date}`);
-        console.log(`  Duration: ${originalTask.duration_days} → ${task.duration_days}`);
-        
-        updatePromises.push(
-          updateTaskDateFields(task.id, {
-            start_date: task.start_date,
-            due_date: task.due_date,
-            duration_days: task.duration_days
-          })
-        );
-      }
-    }
-
-    // Wait for all date updates to complete
-    if (updatePromises.length > 0) {
-      console.log(`📅 Executing ${updatePromises.length} date updates...`);
-      await Promise.all(updatePromises);
-      console.log('✅ All date updates completed');
-    }
-
-    return { success: true };
-  } catch (err) {
-    console.error('❌ Background sync error:', err);
-    return { success: false, error: err.message };
-  }
-}, [tasks]);
 
 
 /**
@@ -1687,12 +1583,6 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     updateTaskCompletion,
     updateTaskAfterDragDrop,
     
-    // Add the optimistic update function
-    updateTaskAfterDragDropOptimistic,
-
-
-    
-    
     // License system
     canCreateProject,
     projectLimitReason,
@@ -1701,7 +1591,6 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     userHasProjects,
     isCheckingLicense,
     ...licenseActions,
-    
     
     // getSelectedLicense,
     setTasks: updateTasks,
