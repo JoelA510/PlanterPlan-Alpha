@@ -54,6 +54,17 @@ export const calculateStartDate = (parentStartDate, daysFromStartUntil) => {
 };
 
 /**
+ * Calculate the end date for a task based on start date and duration
+ * @param {Date|string} startDate - The start date
+ * @param {number} durationDays - The duration in days
+ * @returns {Date|null} - The calculated end date or null if inputs are invalid
+ */
+export const calculateTaskEndDate = (startDate, durationDays) => {
+  // This is essentially the same as calculateDueDate, but with a clearer name
+  return calculateDueDate(startDate, durationDays);
+};
+
+/**
  * Determines the appropriate start date for a task based on its position
  * @param {Object} task - The task to determine start date for
  * @param {Array} allTasks - All tasks in the system
@@ -121,6 +132,154 @@ export const determineTaskStartDate = (task, allTasks) => {
     return null;
   }
 };
+
+/**
+ * Calculate sequential start dates for a project hierarchy
+ * @param {string} rootTaskId - Root task ID
+ * @param {Date} projectStartDate - Project start date
+ * @param {Array} tasks - All tasks in the hierarchy
+ * @returns {Array} - Tasks with calculated sequential dates
+ */
+export const calculateSequentialStartDates = (rootTaskId, projectStartDate, tasks) => {
+  try {
+    if (!rootTaskId || !projectStartDate || !Array.isArray(tasks)) {
+      console.error('Invalid parameters for calculateSequentialStartDates');
+      return tasks;
+    }
+
+    // Create a copy of tasks to avoid mutating the original
+    const updatedTasks = tasks.map(task => ({ ...task }));
+    
+    // Build parent-child relationship map
+    const childrenByParent = {};
+    updatedTasks.forEach(task => {
+      if (task.parent_task_id) {
+        if (!childrenByParent[task.parent_task_id]) {
+          childrenByParent[task.parent_task_id] = [];
+        }
+        childrenByParent[task.parent_task_id].push(task);
+      }
+    });
+
+    // Sort children by position for each parent
+    Object.keys(childrenByParent).forEach(parentId => {
+      childrenByParent[parentId].sort((a, b) => (a.position || 0) - (b.position || 0));
+    });
+
+    // Recursive function to process tasks level by level
+    const processTaskAndChildren = (taskId, taskStartDate) => {
+      const task = updatedTasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      // Set the task's start date
+      task.start_date = safeToISOString(taskStartDate);
+      
+      // Calculate and set the task's due date
+      const taskDuration = task.duration_days || task.default_duration || 1;
+      const taskEndDate = calculateDueDate(taskStartDate, taskDuration);
+      if (taskEndDate) {
+        task.due_date = safeToISOString(taskEndDate);
+      }
+
+      // Process children sequentially
+      const children = childrenByParent[taskId] || [];
+      let currentDate = new Date(taskStartDate);
+
+      children.forEach(child => {
+        // Process this child and its descendants
+        processTaskAndChildren(child.id, currentDate);
+        
+        // Move current date to after this child's completion
+        const childDuration = child.duration_days || child.default_duration || 1;
+        currentDate = calculateDueDate(currentDate, childDuration) || currentDate;
+      });
+
+      // Update parent's due date to match the last child's due date
+      if (children.length > 0) {
+        const lastChild = children[children.length - 1];
+        if (lastChild.due_date) {
+          task.due_date = lastChild.due_date;
+          
+          // Update duration to match the time span
+          const startDate = new Date(task.start_date);
+          const endDate = new Date(lastChild.due_date);
+          const durationMs = endDate.getTime() - startDate.getTime();
+          const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
+          task.duration_days = Math.max(1, durationDays);
+        }
+      }
+    };
+
+    // Start processing from the root task
+    processTaskAndChildren(rootTaskId, projectStartDate);
+
+    return updatedTasks;
+  } catch (err) {
+    console.error('Error in calculateSequentialStartDates:', err);
+    return tasks;
+  }
+};
+
+/**
+ * Calculate sequential dates for an entire task hierarchy
+ * @param {Array} tasks - All tasks in the hierarchy
+ * @param {Date} rootStartDate - Start date for the root task
+ * @returns {Array} - Tasks with updated sequential dates
+ */
+export const calculateSequentialDatesForHierarchy = (tasks, rootStartDate) => {
+  try {
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      return tasks;
+    }
+
+    // Find the root task (task with no parent)
+    const rootTask = tasks.find(t => !t.parent_task_id);
+    if (!rootTask) {
+      console.warn('No root task found in hierarchy');
+      return tasks;
+    }
+
+    // Use the existing calculateSequentialStartDates function
+    return calculateSequentialStartDates(rootTask.id, rootStartDate, tasks);
+  } catch (err) {
+    console.error('Error in calculateSequentialDatesForHierarchy:', err);
+    return tasks;
+  }
+};
+
+/**
+ * Update dates for all tasks in a hierarchy after a change
+ * @param {string} rootTaskId - Root task ID of the hierarchy
+ * @param {Date} newStartDate - New start date for the hierarchy
+ * @param {Array} tasks - All tasks in the hierarchy
+ * @returns {Array} - Tasks with updated dates
+ */
+export const updateTaskDatesInHierarchy = (rootTaskId, newStartDate, tasks) => {
+  try {
+    if (!rootTaskId || !newStartDate || !Array.isArray(tasks)) {
+      console.error('Invalid parameters for updateTaskDatesInHierarchy');
+      return tasks;
+    }
+
+    // Find the root task and ensure it has the correct start date
+    const updatedTasks = tasks.map(task => {
+      if (task.id === rootTaskId) {
+        return {
+          ...task,
+          start_date: safeToISOString(newStartDate)
+        };
+      }
+      return { ...task };
+    });
+
+    // Use calculateSequentialStartDates to recalculate all dates
+    return calculateSequentialStartDates(rootTaskId, newStartDate, updatedTasks);
+  } catch (err) {
+    console.error('Error in updateTaskDatesInHierarchy:', err);
+    return tasks;
+  }
+};
+
 
 /**
  * Format a date for display

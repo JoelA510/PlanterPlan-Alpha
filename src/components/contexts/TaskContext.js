@@ -24,6 +24,9 @@ import {
   calculateStartDate,
   updateDependentTaskDates,
   determineTaskStartDate,
+  calculateSequentialDatesForHierarchy,
+  calculateTaskEndDate,
+  updateTaskDatesInHierarchy
 } from '../../utils/dateUtils';
 
 // Replace the existing imports
@@ -181,7 +184,6 @@ export const TaskProvider = ({ children }) => {
     }
   }, [organizationId, user?.id, instanceTasks, templateTasks]);
   
-  // Create a new task with date handling and sparse positioning
 const createNewTask = useCallback(async (taskData, licenseId = null) => {
   try {
     console.log('Creating task with data:', taskData);
@@ -219,19 +221,17 @@ const createNewTask = useCallback(async (taskData, licenseId = null) => {
       console.log('Calculated sparse position:', enhancedTaskData.position, 'for parent:', taskData.parent_task_id);
     }
     
-    // Determine the start date based on position
+    // *** CONSOLIDATED DATE CALCULATIONS - delegate to dateUtils ***
+    // Determine the start date based on position using dateUtils
     if (taskData.parent_task_id) {
-      // Use our function to determine the start date
       const calculatedStartDate = determineTaskStartDate({
         ...enhancedTaskData,
-        // position is now guaranteed to be set above
       }, tasks);
       
       if (calculatedStartDate) {
-        // Format as ISO string for database
         enhancedTaskData.start_date = calculatedStartDate.toISOString();
         
-        // Calculate due date from the new start date if duration is provided
+        // Calculate due date using dateUtils
         if (taskData.duration_days) {
           const calculatedDueDate = calculateDueDate(
             calculatedStartDate,
@@ -243,7 +243,7 @@ const createNewTask = useCallback(async (taskData, licenseId = null) => {
           }
         }
       } else if (taskData.days_from_start_until_due !== undefined) {
-        // Fall back to the existing calculation method if our new function returns null
+        // Fall back to dateUtils calculation method
         const parentTask = tasks.find(t => t.id === taskData.parent_task_id);
         
         if (parentTask && parentTask.start_date) {
@@ -269,7 +269,7 @@ const createNewTask = useCallback(async (taskData, licenseId = null) => {
         }
       }
     } 
-    // For tasks with start_date and duration_days but no due_date
+    // For tasks with start_date and duration_days but no due_date - use dateUtils
     else if (taskData.start_date && taskData.duration_days && !taskData.due_date) {
       const calculatedDueDate = calculateDueDate(
         taskData.start_date,
@@ -280,13 +280,14 @@ const createNewTask = useCallback(async (taskData, licenseId = null) => {
         enhancedTaskData.due_date = calculatedDueDate.toISOString();
       }
     }
-    // For top-level projects without a start date, set to current date
+    // For top-level projects without a start date, set to current date and calculate due date
     else if (isTopLevelProject && !enhancedTaskData.start_date) {
-      enhancedTaskData.start_date = new Date().toISOString();
+      const currentDate = new Date();
+      enhancedTaskData.start_date = currentDate.toISOString();
       
       if (enhancedTaskData.duration_days) {
         const calculatedDueDate = calculateDueDate(
-          new Date(),
+          currentDate,
           enhancedTaskData.duration_days
         );
         
@@ -312,9 +313,8 @@ const createNewTask = useCallback(async (taskData, licenseId = null) => {
       // Update the combined tasks list
       setTasks(prev => [...prev, result.data]);
       
-      // Update dates for child tasks if any dates changed in the parent
+      // Update dates for child tasks if any dates changed in the parent - delegate to dateUtils
       if (taskData.parent_task_id) {
-        // Update dates for all tasks under the parent
         const updatedTasks = updateDependentTaskDates(
           taskData.parent_task_id,
           [...tasks, result.data]
@@ -447,179 +447,89 @@ const updateTaskHandler = async (taskId, updatedTaskData) => {
     return { success: false, error: err.message };
   }
 };
-  // Update a task's date fields
-  const updateTaskDates = useCallback(async (taskId, dateData) => {
-    try {
-      console.log('Updating task dates:', taskId, dateData);
-      
-      // Find the task to update
-      const taskToUpdate = tasks.find(t => t.id === taskId);
-      if (!taskToUpdate) {
-        throw new Error('Task not found');
-      }
-      
-      // Calculate due date if start_date and default_duration are provided but due_date is not
-      let enhancedDateData = { ...dateData };
-      
-      if (dateData.start_date && dateData.duration_days && !dateData.due_date) {
-        const calculatedDueDate = calculateDueDate(
-          dateData.start_date,
-          dateData.duration_days
-        );
-        
-        if (calculatedDueDate) {
-          enhancedDateData.due_date = calculatedDueDate.toISOString();
-        }
-      }
-      
-      // Update the task in the database
-      const result = await updateTaskDateFields(taskId, enhancedDateData);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      // Update the task in local state
-      const updatedTask = { ...taskToUpdate, ...enhancedDateData };
-      
-      // Create updated task lists
-      const updatedTasks = tasks.map(t => t.id === taskId ? updatedTask : t);
-      
-      // If this task has children, we need to update their dates too
-      const hasChildren = tasks.some(t => t.parent_task_id === taskId);
-      
-      if (hasChildren) {
-        // Recalculate dates for all child tasks
-        const tasksWithUpdatedDates = updateDependentTaskDates(taskId, updatedTasks);
-        
-        // Update all tasks in the state
-        updateTasks(tasksWithUpdatedDates);
-        
-        // Update child tasks in database
-        const childTasks = tasksWithUpdatedDates.filter(t => t.parent_task_id === taskId);
-        
-        for (const childTask of childTasks) {
-          const originalChild = tasks.find(t => t.id === childTask.id);
-          
-          // Only update if dates actually changed
-          if (originalChild && (
-            originalChild.start_date !== childTask.start_date ||
-            originalChild.due_date !== childTask.due_date
-          )) {
-            await updateTaskDateFields(childTask.id, {
-              start_date: childTask.start_date,
-              due_date: childTask.due_date
-            });
-          }
-        }
-      } else {
-        // No children, just update this task
-        updateTasks(updatedTasks);
-      }
-      
-      return { success: true, data: updatedTask };
-    } catch (err) {
-      console.error('Error updating task dates:', err);
-      return { success: false, error: err.message };
+
+// Update a task's date fields - delegate calculations to dateUtils
+const updateTaskDates = useCallback(async (taskId, dateData) => {
+  try {
+    console.log('Updating task dates:', taskId, dateData);
+    
+    // Find the task to update
+    const taskToUpdate = tasks.find(t => t.id === taskId);
+    if (!taskToUpdate) {
+      throw new Error('Task not found');
     }
-  }, [tasks, updateTasks]);
-
-
-
-
-/**
- * Update durations for all tasks in a hierarchy from bottom up
- * @param {Array} tasks - Array of tasks to update
- * @returns {Array} - Array of tasks with updated durations
- */
-const updateTaskDurations = (tasks) => {
-  if (!Array.isArray(tasks) || tasks.length === 0) {
-    return tasks;
-  }
-  
-  // Create a copy of tasks to avoid mutating the original
-  const updatedTasks = [...tasks];
-  
-  // First, build a parent-child relationship map for faster lookups
-  const childrenByParent = {};
-  updatedTasks.forEach(task => {
-    if (task.parent_task_id) {
-      if (!childrenByParent[task.parent_task_id]) {
-        childrenByParent[task.parent_task_id] = [];
-      }
-      childrenByParent[task.parent_task_id].push(task);
-    }
-  });
-  
-  // Create a task map for quicker lookups by ID
-  const taskMap = {};
-  updatedTasks.forEach(task => {
-    taskMap[task.id] = task;
-  });
-  
-  // Function to get all leaf tasks (tasks with no children)
-  const getLeafTasks = () => {
-    return updatedTasks.filter(task => !childrenByParent[task.id] || childrenByParent[task.id].length === 0);
-  };
-  
-  // Function to check if all children of a task have been processed
-  const allChildrenProcessed = (taskId, processedSet) => {
-    const children = childrenByParent[taskId] || [];
-    return children.every(child => processedSet.has(child.id));
-  };
-  
-  // Process tasks from bottom up
-  const processedTasks = new Set();
-  
-  // Start with leaf tasks (they keep their original durations)
-  const leafTasks = getLeafTasks();
-  leafTasks.forEach(task => {
-    processedTasks.add(task.id);
-  });
-  
-  // Continue processing until all tasks are done
-  let tasksToProcess = updatedTasks.length - processedTasks.size;
-  while (tasksToProcess > 0) {
-    // Find tasks whose children are all processed
-    for (const task of updatedTasks) {
-      // Skip already processed tasks
-      if (processedTasks.has(task.id)) continue;
+    
+    // *** CONSOLIDATED DATE CALCULATIONS - delegate to dateUtils ***
+    let enhancedDateData = { ...dateData };
+    
+    // Calculate due date using dateUtils if needed
+    if (dateData.start_date && dateData.duration_days && !dateData.due_date) {
+      const calculatedDueDate = calculateDueDate(
+        dateData.start_date,
+        dateData.duration_days
+      );
       
-      // Check if all children are processed
-      if (allChildrenProcessed(task.id, processedTasks)) {
-        // Get children and calculate total duration
-        const children = childrenByParent[task.id] || [];
-        
-        if (children.length > 0) {
-          // For tasks with children, calculate total duration based on sequential children
-          let totalDuration = 0;
-          
-          // Sort children by position for sequential calculation
-          const sortedChildren = [...children].sort((a, b) => a.position - b.position);
-          
-          sortedChildren.forEach(child => {
-            totalDuration += child.duration_days || 1;
-          });
-          
-          // Update this task's duration
-          taskMap[task.id].duration_days = Math.max(1, totalDuration);
-        }
-        
-        // Mark as processed
-        processedTasks.add(task.id);
-        tasksToProcess--;
+      if (calculatedDueDate) {
+        enhancedDateData.due_date = calculatedDueDate.toISOString();
       }
     }
     
-    // Safety check to avoid infinite loops
-    if (tasksToProcess > 0 && processedTasks.size === updatedTasks.length - tasksToProcess) {
-      console.warn('Unable to process all tasks - possible circular dependency');
-      break;
+    // Update the task in the database
+    const result = await updateTaskDateFields(taskId, enhancedDateData);
+    
+    if (result.error) {
+      throw new Error(result.error);
     }
+    
+    // Update the task in local state
+    const updatedTask = { ...taskToUpdate, ...enhancedDateData };
+    
+    // Create updated task lists
+    const updatedTasks = tasks.map(t => t.id === taskId ? updatedTask : t);
+    
+    // If this task has children, we need to update their dates too - delegate to dateUtils
+    const hasChildren = tasks.some(t => t.parent_task_id === taskId);
+    
+    if (hasChildren) {
+      // Recalculate dates for all child tasks using dateUtils
+      const tasksWithUpdatedDates = updateDependentTaskDates(taskId, updatedTasks);
+      
+      // Update all tasks in the state
+      updateTasks(tasksWithUpdatedDates);
+      
+      // Update child tasks in database
+      const childTasks = tasksWithUpdatedDates.filter(t => t.parent_task_id === taskId);
+      
+      for (const childTask of childTasks) {
+        const originalChild = tasks.find(t => t.id === childTask.id);
+        
+        // Only update if dates actually changed
+        if (originalChild && (
+          originalChild.start_date !== childTask.start_date ||
+          originalChild.due_date !== childTask.due_date
+        )) {
+          await updateTaskDateFields(childTask.id, {
+            start_date: childTask.start_date,
+            due_date: childTask.due_date
+          });
+        }
+      }
+    } else {
+      // No children, just update this task
+      updateTasks(updatedTasks);
+    }
+    
+    return { success: true, data: updatedTask };
+  } catch (err) {
+    console.error('Error updating task dates:', err);
+    return { success: false, error: err.message };
   }
-  
-  return updatedTasks;
-};
+}, [tasks, updateTasks]);
+
+
+
+
+
 
 /**
  * Get all tasks in a hierarchy (parent and all descendants)
@@ -838,6 +748,7 @@ const createProjectFromTemplate = async (templateId, projectData, licenseId = nu
     // Calculate the effective duration for the template
     const effectiveDuration = template.duration_days || template.default_duration || 1;
     
+    // *** CONSOLIDATED DATE CALCULATIONS - delegate to dateUtils ***
     // Set the project start date (from user input or default to today)
     const projectStartDate = projectData.startDate ? new Date(projectData.startDate) : new Date();
     
@@ -860,7 +771,7 @@ const createProjectFromTemplate = async (templateId, projectData, licenseId = nu
       duration_days: effectiveDuration
     };
     
-    // Calculate the project due date based on duration
+    // Calculate the project due date using dateUtils
     const calculatedDueDate = calculateDueDate(
       projectStartDate,
       effectiveDuration
@@ -968,17 +879,15 @@ const createProjectFromTemplate = async (templateId, projectData, licenseId = nu
     
     console.log(`Created ${createdTasksArray.length} tasks total`);
     
-    // Use the in-memory createdTasksArray instead of fetching from database
-    // This ensures we have the complete hierarchy
-    
-    // Now use calculateSequentialStartDates to set all dates correctly
+    // *** CONSOLIDATED DATE CALCULATIONS - delegate to dateUtils ***
+    // Use calculateSequentialStartDates from dateUtils to set all dates correctly
     const tasksWithCalculatedDates = calculateSequentialStartDates(
       newProject.id,
       projectStartDate,
       createdTasksArray
     );
     
-    console.log('Calculated dates for all tasks');
+    console.log('Calculated dates for all tasks using dateUtils');
     
     // Update all tasks with their calculated dates
     const updatePromises = [];
@@ -1074,102 +983,6 @@ const getAllTemplateTasksInHierarchy = async (rootTemplateId) => {
   return result;
 };
 
-/**
- * Build a flat map of all templates in the hierarchy
- * @param {string} rootTemplateId - Root template ID
- * @param {Array} allTemplates - All template tasks
- * @returns {Map} - Map of template ID to template data with hierarchy info
- */
-const buildTemplateHierarchyMap = (rootTemplateId, allTemplates) => {
-  const hierarchyMap = new Map();
-  
-  // Recursive function to traverse hierarchy
-  const traverseTemplate = (templateId, parentId = null, level = 0) => {
-    const template = allTemplates.find(t => t.id === templateId);
-    if (!template) return;
-    
-    // Add template to map with hierarchy info
-    hierarchyMap.set(templateId, {
-      ...template,
-      hierarchyLevel: level,
-      hierarchyParent: parentId
-    });
-    
-    // Find and process children
-    const children = allTemplates
-      .filter(t => t.parent_task_id === templateId)
-      .sort((a, b) => (a.position || 0) - (b.position || 0));
-    
-    children.forEach(child => {
-      traverseTemplate(child.id, templateId, level + 1);
-    });
-  };
-  
-  // Start traversal from root
-  traverseTemplate(rootTemplateId);
-  
-  return hierarchyMap;
-};
-
-/**
- * Create instance tasks from template hierarchy
- * @param {Map} templateHierarchy - Template hierarchy map
- * @param {Date} projectStartDate - Project start date
- * @param {Object} projectData - Project data
- * @param {string} licenseId - License ID
- * @returns {Array} - Array of new instance tasks (not yet in database)
- */
-const createInstanceTasksFromTemplates = (templateHierarchy, projectStartDate, projectData, licenseId) => {
-  const newTasks = [];
-  const templateToInstanceMap = new Map(); // Map template ID to new instance ID
-  
-  // Convert templates to instances, maintaining hierarchy
-  for (const [templateId, template] of templateHierarchy) {
-    // Generate new ID for this instance
-    const newInstanceId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Map template parent to instance parent
-    let instanceParentId = null;
-    if (template.hierarchyParent) {
-      instanceParentId = templateToInstanceMap.get(template.hierarchyParent);
-    }
-    
-    // Calculate sparse position
-    const position = getNextAvailablePosition(
-      newTasks.filter(t => t.parent_task_id === instanceParentId), 
-      null
-    );
-    
-    // Create instance task data
-    const instanceTask = {
-      id: newInstanceId, // Temporary ID for local processing
-      title: template.hierarchyLevel === 0 ? (projectData.name || template.title) : template.title,
-      description: template.description,
-      purpose: template.purpose,
-      actions: template.actions || [],
-      resources: template.resources || [],
-      origin: 'instance',
-      is_complete: false,
-      creator: user.id,
-      white_label_id: organizationId,
-      license_id: template.hierarchyLevel === 0 ? licenseId : null, // Only root gets license
-      parent_task_id: instanceParentId,
-      position: position,
-      default_duration: template.default_duration || 1,
-      duration_days: template.duration_days || 1,
-      start_date: null, // Will be calculated in next step
-      due_date: null,   // Will be calculated in next step
-      // Store template reference for debugging
-      _templateId: templateId,
-      _hierarchyLevel: template.hierarchyLevel
-    };
-    
-    newTasks.push(instanceTask);
-    templateToInstanceMap.set(templateId, newInstanceId);
-  }
-  
-  return newTasks;
-};
 
 /**
  * Calculate sequential dates for all tasks
@@ -1378,92 +1191,15 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
     
     console.log(`Found ${projectTasks.length} tasks in the project hierarchy`);
     
-    // Step 5: First update durations and dates with the correct sequential approach
-    // Create a copy of tasks to avoid mutating the original
-    let tasksWithUpdatedDates = [...projectTasks];
+    // *** CONSOLIDATED DATE CALCULATIONS - delegate to dateUtils ***
+    // Step 5: Use dateUtils to recalculate all dates in the hierarchy
+    const tasksWithUpdatedDates = updateTaskDatesInHierarchy(
+      rootProject.id,
+      new Date(rootProject.start_date),
+      projectTasks
+    );
     
-    // Function to process a parent and all its children recursively
-    const processParentAndChildren = (parentId, parentStartDate) => {
-      // Find the parent task
-      const parentIndex = tasksWithUpdatedDates.findIndex(t => t.id === parentId);
-      if (parentIndex === -1) return null;
-      
-      const parent = tasksWithUpdatedDates[parentIndex];
-      
-      // Get all direct children sorted by position
-      const children = tasksWithUpdatedDates
-        .filter(t => t.parent_task_id === parentId)
-        .sort((a, b) => a.position - b.position);
-      
-      if (children.length === 0) {
-        // No children, just use the parent's original duration for its end date
-        const parentDuration = parent.duration_days || 1;
-        const parentEndDate = new Date(parentStartDate);
-        parentEndDate.setDate(parentEndDate.getDate() + parentDuration);
-        
-        // Update parent with start and due dates
-        tasksWithUpdatedDates[parentIndex] = {
-          ...tasksWithUpdatedDates[parentIndex],
-          start_date: parentStartDate.toISOString(),
-          due_date: parentEndDate.toISOString()
-        };
-        
-        return parentEndDate; // Return parent's end date
-      }
-      
-      // Process each child in sequence
-      let currentDate = new Date(parentStartDate);
-      let lastChildEndDate = null;
-      
-      for (let i = 0; i < children.length; i++) {
-        const childId = children[i].id;
-        const childIndex = tasksWithUpdatedDates.findIndex(t => t.id === childId);
-        
-        // Set this child's start date to current date
-        tasksWithUpdatedDates[childIndex] = {
-          ...tasksWithUpdatedDates[childIndex],
-          start_date: currentDate.toISOString()
-        };
-        
-        // Process this child and its descendants
-        const childEndDate = processParentAndChildren(childId, currentDate);
-        
-        // Update current date to child's end date for next sibling
-        if (childEndDate) {
-          currentDate = new Date(childEndDate);
-          lastChildEndDate = new Date(childEndDate);
-        } else {
-          // If child end date wasn't returned, use child's duration
-          const childDuration = children[i].duration_days || 1;
-          currentDate.setDate(currentDate.getDate() + childDuration);
-          lastChildEndDate = new Date(currentDate);
-        }
-      }
-      
-      // Update parent's due date to match last child's end date
-      if (lastChildEndDate) {
-        tasksWithUpdatedDates[parentIndex] = {
-          ...tasksWithUpdatedDates[parentIndex],
-          start_date: parentStartDate.toISOString(),
-          due_date: lastChildEndDate.toISOString()
-        };
-        
-        // Update parent's duration based on the time span
-        const durationMs = lastChildEndDate.getTime() - parentStartDate.getTime();
-        const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
-        
-        tasksWithUpdatedDates[parentIndex] = {
-          ...tasksWithUpdatedDates[parentIndex],
-          duration_days: Math.max(1, durationDays)
-        };
-      }
-      
-      // Return the parent's end date
-      return lastChildEndDate || null;
-    };
-    
-    // Start the recursive processing from the root
-    processParentAndChildren(rootProject.id, new Date(rootProject.start_date));
+    console.log('Recalculated dates for entire hierarchy using dateUtils');
     
     // Step 6: Create update promises for each affected task
     const dateUpdatePromises = [];
@@ -1483,15 +1219,14 @@ const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldPare
         console.log(` - Due: ${originalTask.due_date} → ${updatedTask.due_date}`);
         console.log(` - Duration: ${originalTask.duration_days} → ${updatedTask.duration_days}`);
         
-        // Calculate days from parent start
+        // Calculate days from parent start using dateUtils if needed
         let daysFromStart = 0;
         if (updatedTask.parent_task_id) {
           const parent = tasksWithUpdatedDates.find(t => t.id === updatedTask.parent_task_id);
           if (parent && parent.start_date && updatedTask.start_date) {
-            const parentStart = new Date(parent.start_date);
-            const taskStart = new Date(updatedTask.start_date);
-            const diffTime = Math.abs(taskStart - parentStart);
-            daysFromStart = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const parentStartDate = new Date(parent.start_date);
+            const taskStartDate = new Date(updatedTask.start_date);
+            daysFromStart = Math.max(0, Math.ceil((taskStartDate - parentStartDate) / (1000 * 60 * 60 * 24)));
           }
         }
         
