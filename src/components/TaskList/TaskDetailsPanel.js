@@ -4,6 +4,7 @@ import { calculateParentDuration } from '../../utils/sequentialTaskManager';
 import { calculateDueDate } from '../../utils/dateUtils';
 import TaskForm from '../TaskForm/TaskForm';
 import { useTasks } from '../contexts/TaskContext';
+import { getProjectMembers } from '../../services/teamManagementService';
 
 const TaskDetailsPanel = ({
   task,
@@ -16,6 +17,9 @@ const TaskDetailsPanel = ({
   // State for edit mode
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [projectMembers, setProjectMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState(null);
   
   // Use the task context to get loading state
   const { loading: contextLoading } = useTasks();
@@ -25,6 +29,42 @@ const TaskDetailsPanel = ({
       setIsLoading(false);
     }
   }, [contextLoading, task]);
+
+  // Fetch project members for top-level projects
+  useEffect(() => {
+    const fetchProjectMembers = async () => {
+      // Only fetch members for top-level projects (no parent_task_id)
+      if (!task || task.parent_task_id) {
+        setProjectMembers([]);
+        return;
+      }
+
+      setMembersLoading(true);
+      setMembersError(null);
+
+      try {
+        const result = await getProjectMembers(task.id);
+        
+        if (result.error) {
+          console.error('Error fetching project members:', result.error);
+          setMembersError(result.error);
+          setProjectMembers([]);
+        } else {
+          setProjectMembers(result.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching project members:', error);
+        setMembersError('Failed to load project members');
+        setProjectMembers([]);
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+
+    if (!isLoading && task) {
+      fetchProjectMembers();
+    }
+  }, [task, isLoading]);
 
   // Early return if task is not defined
   if (!task) return null;
@@ -129,8 +169,32 @@ const TaskDetailsPanel = ({
   
   if (!task) return null;
   
+  // Check if this is a top-level project
+  const isTopLevelProject = !task.parent_task_id;
+  
   const level = getTaskLevel(task, tasks);
   const backgroundColor = getBackgroundColor(level);
+
+  // Helper function to get role display name and color
+  const getRoleDisplay = (role) => {
+    const roleMap = {
+      'owner': { label: 'Owner', color: '#dc2626', bgColor: '#fee2e2' },
+      'full_user': { label: 'Full User', color: '#059669', bgColor: '#ecfdf5' },
+      'limited_user': { label: 'Limited User', color: '#d97706', bgColor: '#fef3c7' },
+      'coach': { label: 'Coach', color: '#7c3aed', bgColor: '#f3e8ff' }
+    };
+    return roleMap[role] || { label: role, color: '#6b7280', bgColor: '#f3f4f6' };
+  };
+
+  // Helper function to get member status display
+  const getStatusDisplay = (status) => {
+    const statusMap = {
+      'accepted': { label: 'Active', color: '#059669', bgColor: '#ecfdf5' },
+      'pending': { label: 'Pending', color: '#d97706', bgColor: '#fef3c7' },
+      'declined': { label: 'Declined', color: '#dc2626', bgColor: '#fee2e2' }
+    };
+    return statusMap[status] || { label: status, color: '#6b7280', bgColor: '#f3f4f6' };
+  };
 
   // Find parent task for displaying parent-child relationships
   const parentTask = task.parent_task_id ? tasks.find(t => t.id === task.parent_task_id) : null;
@@ -228,6 +292,172 @@ const TaskDetailsPanel = ({
         }}>
           {task.origin === 'template' ? 'Template' : 'Task'}
         </div>
+        
+        {/* Project Members Section - Only for top-level projects */}
+        {isTopLevelProject && (
+          <div className="project-members-section" style={{ 
+            backgroundColor: '#f8fafc', 
+            borderRadius: '4px',
+            padding: '12px',
+            marginTop: '16px'
+          }}>
+            <h4 style={{ fontWeight: 'bold', marginBottom: '12px', marginTop: '0' }}>
+              Project Members
+            </h4>
+            
+            {membersLoading ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <div style={{ 
+                  borderTop: '2px solid #3b82f6',
+                  borderRight: '2px solid #3b82f6',
+                  borderBottom: '2px solid #e5e7eb',
+                  borderLeft: '2px solid #e5e7eb',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  margin: '0 auto 8px auto',
+                  animation: 'spin 1s linear infinite'
+                }} />
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>Loading members...</p>
+              </div>
+            ) : membersError ? (
+              <div style={{
+                backgroundColor: '#fee2e2',
+                border: '1px solid #fecaca',
+                color: '#b91c1c',
+                padding: '12px',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}>
+                {membersError}
+              </div>
+            ) : projectMembers.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
+                No members found for this project
+              </div>
+            ) : (
+              <div style={{
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                {/* Table Header */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 1fr 1fr 1fr',
+                  gap: '12px',
+                  padding: '12px',
+                  backgroundColor: '#f1f5f9',
+                  borderBottom: '1px solid #e5e7eb',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  color: '#475569'
+                }}>
+                  <div>Member</div>
+                  <div>Role</div>
+                  <div>Status</div>
+                  <div>Joined</div>
+                </div>
+                
+                {/* Table Rows */}
+                {projectMembers.map((member, index) => {
+                  const roleDisplay = getRoleDisplay(member.role);
+                  const statusDisplay = getStatusDisplay(member.status);
+                  const userName = member.user 
+                    ? `${member.user.first_name || ''} ${member.user.last_name || ''}`.trim() || member.user.email
+                    : 'Unknown User';
+                  
+                  return (
+                    <div 
+                      key={member.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '2fr 1fr 1fr 1fr',
+                        gap: '12px',
+                        padding: '12px',
+                        borderBottom: index < projectMembers.length - 1 ? '1px solid #f1f5f9' : 'none',
+                        fontSize: '14px',
+                        alignItems: 'center'
+                      }}
+                    >
+                      {/* Member Name and Email */}
+                      <div>
+                        <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
+                          {userName}
+                        </div>
+                        {member.user && member.user.email && (
+                          <div style={{ 
+                            fontSize: '12px', 
+                            color: '#6b7280'
+                          }}>
+                            {member.user.email}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Role */}
+                      <div>
+                        <span style={{
+                          fontSize: '12px',
+                          padding: '4px 8px',
+                          backgroundColor: roleDisplay.bgColor,
+                          color: roleDisplay.color,
+                          borderRadius: '12px',
+                          fontWeight: 'bold'
+                        }}>
+                          {roleDisplay.label}
+                        </span>
+                      </div>
+                      
+                      {/* Status */}
+                      <div>
+                        <span style={{
+                          fontSize: '12px',
+                          padding: '4px 8px',
+                          backgroundColor: statusDisplay.bgColor,
+                          color: statusDisplay.color,
+                          borderRadius: '12px',
+                          fontWeight: 'bold'
+                        }}>
+                          {statusDisplay.label}
+                        </span>
+                      </div>
+                      
+                      {/* Join Date */}
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                        {member.accepted_at 
+                          ? formatDisplayDate(member.accepted_at) 
+                          : (member.invited_at ? `Invited ${formatDisplayDate(member.invited_at)}` : 'N/A')
+                        }
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {/* Summary Footer */}
+                <div style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#f8fafc',
+                  borderTop: '1px solid #e5e7eb',
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  textAlign: 'center'
+                }}>
+                  {projectMembers.length} member{projectMembers.length !== 1 ? 's' : ''} total
+                  {projectMembers.filter(m => m.status === 'accepted').length !== projectMembers.length && 
+                    ` • ${projectMembers.filter(m => m.status === 'accepted').length} active`
+                  }
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         {/* Enhanced schedule information section */}
         <div className="schedule-info-section" style={{ 

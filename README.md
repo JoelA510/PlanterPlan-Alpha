@@ -306,7 +306,7 @@ Role-Based Access Control System for Project-Level Team Management
     - [ ] Audit trail for membership changes
 
 - [ ] **PR #5: Invitation System API**
-  - [ ] Invitation management functions
+  - [x] Invitation management functions
     - [ ] createInvitation(projectId, email, role, invitedBy) - create new invitation
     - [ ] getProjectInvitations(projectId) - get pending invitations
     - [ ] getPendingInvitationsForUser(userId) - get user's pending invitations
