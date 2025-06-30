@@ -6,16 +6,10 @@ import { useTaskCreation } from '../../hooks/useTaskCreation';
 import { useTemplateToProject } from '../../hooks/useTemplateToProject';
 import { useTaskDeletion } from '../../hooks/useTaskDeletion';
 import { useTaskUpdate } from '../../hooks/useTaskUpdate';
+import { useTaskDragDrop } from '../../hooks/useTaskDragDrop';
 import { useLocation } from 'react-router-dom';
 import { useTaskDates } from '../../hooks/useTaskDates';
-
-// Import functions from taskService
-import { 
-  fetchAllTasks, 
-  updateTaskPosition, 
-  updateSiblingPositions, 
-  updateTaskCompletion,
-} from '../../services/taskService';
+import { fetchAllTasks, updateTaskCompletion } from '../../services/taskService';
 
 // Create a context for tasks
 const TaskContext = createContext();
@@ -32,613 +26,274 @@ export const useTasks = () => {
 // Provider component that wraps your app
 export const TaskProvider = ({ children }) => {
   const { user, loading: userLoading } = useAuth();
-  const { organization, organizationId, loading: orgLoading } = useOrganization();
-  const location = useLocation();
-
-  // Use the license hook
-  const licenseHookResult = useLicenses();
-  const {
-    canCreateProject,
-    userHasProjects,
-    projectLimitReason,
-    userLicenses,
-    selectedLicenseId,
-    isCheckingLicense,
-    validateProjectCreation,
-    // Get individual license actions
-    applyLicenseKey,
-    selectLicense,
-    getSelectedLicense,
-    clearSelectedLicense,
-    checkProjectCreationAbility,
-    fetchUserLicenses
-  } = licenseHookResult;
-
-  // Use the task creation hook
-  const {
-    createTask: createTaskFromHook,
-    isCreating: isCreatingTask,
-    creationError,
-    clearCreationError
-  } = useTaskCreation();
-
-  // Use the template-to-project conversion hook
-  const {
-    createProjectFromTemplate: createProjectFromTemplateFromHook,
-    isConverting: isConvertingTemplate,
-    conversionError,
-    conversionProgress,
-    clearConversionError,
-    resetProgress
-  } = useTemplateToProject();
-
-  // Use the task deletion hook
-  const {
-    deleteTask: deleteTaskFromHook,
-    isDeleting: isDeletingTask,
-    deletionError,
-    deletionProgress,
-    getDeletionConfirmationMessage,
-    clearDeletionError,
-    resetProgress: resetDeletionProgress
-  } = useTaskDeletion();
-
-  // Use the task update hook
-  const {
-    updateTask: updateTaskFromHook,
-    updateTaskDates: updateTaskDatesFromHook,
-    isUpdating: isUpdatingTask,
-    updateError,
-    updateProgress,
-    getUpdateStatus,
-    clearUpdateError,
-    resetProgress: resetUpdateProgress
-  } = useTaskUpdate();
+  const { organizationId, loading: orgLoading } = useOrganization();
   
-  // State for tasks - ONLY the main tasks array
+  // Core state - just the tasks array and fetching state
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
-  const isMountedRef = useRef(true);
   const initialFetchDoneRef = useRef(false);
 
   // Helper function to get project start date
   const getProjectStartDate = useCallback(() => {
-    // Try to find a root task with start_date, or use today
     const rootTasks = tasks.filter(t => !t.parent_task_id);
     const projectWithStartDate = rootTasks.find(t => t.start_date);
-    
-    if (projectWithStartDate) {
-      return projectWithStartDate.start_date;
-    }
-    
-    // Fallback to today
-    return new Date().toISOString().split('T')[0];
+    return projectWithStartDate?.start_date || new Date().toISOString().split('T')[0];
   }, [tasks]);
 
-  // Initialize the date management system
-  const {
-    taskDates,
-    isCalculating: datesCalculating,
-    recalculateAllDates,
-    updateTaskDates: updateTaskDatesIncremental,
-    getTaskDates,
-    getTaskStartDate,
-    getTaskDueDate,
-    getTaskDuration,
-    isTaskOverdue,
-    isTaskDueToday,
-    getCacheStats,
-    clearCache
-  } = useTaskDates(tasks, getProjectStartDate());
-  
-  // Derived task arrays using useMemo for performance
+  // Derived task arrays
   const instanceTasks = useMemo(() => 
-    tasks.filter(task => task.origin === "instance"), 
-    [tasks]
+    tasks.filter(task => task.origin === "instance"), [tasks]
   );
   
   const templateTasks = useMemo(() => 
-    tasks.filter(task => task.origin === "template"), 
-    [tasks]
+    tasks.filter(task => task.origin === "template"), [tasks]
   );
 
-  // Update tasks state safely
-  const updateTasks = useCallback((newTasks, isOptimistic = false) => {
-    if (!Array.isArray(newTasks)) {
-      console.error('updateTasks received non-array value:', newTasks);
-      return;
-    }
-    
-    try {
-      if (isOptimistic) {
-        console.log('🔄 Updating tasks optimistically...');
-      }
-      
-      setTasks(newTasks);
-      
-      if (isOptimistic) {
-        console.log('✅ Tasks updated optimistically');
-      }
-    } catch (err) {
-      console.error('Error in updateTasks:', err);
-    }
-  }, []);
-  
-  // Fetch all tasks (both instances and templates)
+  // Fetch all tasks
   const fetchTasks = useCallback(async (forceRefresh = false) => {
-    if (isFetching && !forceRefresh) {
-      console.log('Already fetching tasks, skipping this request');
-      return { instanceTasks, templateTasks };
-    }
-    
-    if (!user?.id) {
-      console.warn('Missing user ID, skipping fetch');
-      return { instanceTasks, templateTasks };
-    }
+    if (isFetching && !forceRefresh) return { instanceTasks, templateTasks };
+    if (!user?.id) return { instanceTasks, templateTasks };
     
     try {
       setIsFetching(true);
       setLoading(true);
       
-      console.log('Fetching tasks with params:', { organizationId, userId: user.id });
+      const [instanceResult, templateResult] = await Promise.all([
+        fetchAllTasks(organizationId, user.id, 'instance'),
+        fetchAllTasks(organizationId, null, 'template')
+      ]);
       
-      // Fetch instance tasks - filter by user AND organization
-      const instanceResult = await fetchAllTasks(organizationId, user.id, 'instance');
-      
-      // Fetch template tasks - filter by organization only (not by user)
-      const templateResult = await fetchAllTasks(organizationId, null, 'template');
-      
-      const instanceData = instanceResult.data || [];
-      const templateData = templateResult.data || [];
-      
-      if (instanceResult.error) {
-        console.error('Error fetching instance tasks:', instanceResult.error);
-      }
-      
-      if (templateResult.error) {
-        console.error('Error fetching template tasks:', templateResult.error);
-      }
-      
-      // If both requests failed, throw an error
-      if (instanceResult.error && templateResult.error) {
-        throw new Error(`Failed to fetch tasks: ${instanceResult.error}`);
-      }
-      
-      console.log('Fetch complete:', {
-        instanceCount: instanceData.length,
-        templateCount: templateData.length
-      });
-      
-      // Combine all tasks and update state
-      const allTasks = [...instanceData, ...templateData];
+      const allTasks = [...(instanceResult.data || []), ...(templateResult.data || [])];
       setTasks(allTasks);
       setError(null);
-      
-      // Mark initial fetch as complete
       initialFetchDoneRef.current = true;
       
-      // Return filtered arrays for backward compatibility
-      return { instanceTasks: instanceData, templateTasks: templateData };
+      return { 
+        instanceTasks: instanceResult.data || [], 
+        templateTasks: templateResult.data || [] 
+      };
     } catch (err) {
-      console.error('Error fetching tasks:', err);
       setError(`Failed to load tasks: ${err.message}`);
       return { error: err.message, instanceTasks, templateTasks };
     } finally {
       setLoading(false);
       setIsFetching(false);
-      setInitialLoading(false);
     }
-  }, [organizationId, user?.id, instanceTasks, templateTasks]);
+  }, [organizationId, user?.id, instanceTasks, templateTasks, isFetching]);
 
-  // Helper functions for finding related tasks
-  const getTaskDescendants = useCallback((taskId, taskList = tasks) => {
-    const descendants = [];
-    const findChildren = (parentId) => {
-      const children = taskList.filter(t => t.parent_task_id === parentId);
-      children.forEach(child => {
-        descendants.push(child.id);
-        findChildren(child.id);
-      });
-    };
-    findChildren(taskId);
-    return descendants;
-  }, [tasks]);
+  // Initialize date management system
+  const dateHookResult = useTaskDates(tasks, getProjectStartDate());
 
-  const getTaskSiblings = useCallback((taskId, taskList = tasks) => {
-    const task = taskList.find(t => t.id === taskId);
-    if (!task) return [];
-    
-    return taskList
-      .filter(t => t.parent_task_id === task.parent_task_id && t.id !== taskId)
-      .map(t => t.id);
-  }, [tasks]);
+  // Initialize all operation hooks with integration callbacks
+  const creationHookResult = useTaskCreation();
+  const templateHookResult = useTemplateToProject();
+  const deletionHookResult = useTaskDeletion();
+  const updateHookResult = useTaskUpdate();
+  const dragDropHookResult = useTaskDragDrop();
+  const licenseHookResult = useLicenses();
 
-  // Wrapper for task creation that integrates with our state management
-  const createNewTask = useCallback(async (taskData, licenseId = null) => {
-    const result = await createTaskFromHook(taskData, {
+  // Integration callbacks for hooks
+  const integrationCallbacks = useMemo(() => ({
+    // For task creation
+    onTaskCreated: async (newTask) => {
+      setTasks(prev => [...prev, newTask]);
+      const affectedTaskIds = [newTask.id];
+      if (newTask.parent_task_id) {
+        const siblings = tasks
+          .filter(t => t.parent_task_id === newTask.parent_task_id)
+          .filter(t => (t.position || 0) >= (newTask.position || 0));
+        affectedTaskIds.push(...siblings.map(t => t.id));
+      }
+      await dateHookResult.updateTaskDates(affectedTaskIds);
+    },
+
+    // For template conversion
+    onProjectCreated: async (rootProject, createdTasks) => {
+      setTasks(prev => [...prev, ...createdTasks]);
+      setTimeout(() => fetchTasks(true), 1000);
+    },
+
+    // For task deletion
+    onTasksDeleted: async (deletedIds) => {
+      console.log(`Tasks deleted successfully: ${deletedIds.length} tasks`);
+    },
+    onTasksUpdated: async (updatedTasks) => {
+      setTasks(updatedTasks);
+    },
+
+    // For task updates
+    onTaskUpdated: async (updatedTask) => {
+      setTasks(prev => prev.map(task => 
+        task.id === updatedTask.id ? updatedTask : task
+      ));
+    },
+    onRefreshNeeded: async () => {
+      await fetchTasks(true);
+    },
+
+    // For drag and drop
+    onTasksRefreshed: async () => {
+      await fetchTasks(true);
+    },
+    onDateRecalculationNeeded: async (affectedTaskIds) => {
+      await dateHookResult.updateTaskDates(affectedTaskIds);
+    }
+  }), [tasks, fetchTasks, dateHookResult.updateTaskDates]);
+
+  // Create enhanced hook functions with integration
+  const createTask = useCallback(async (taskData, licenseId = null) => {
+    return await creationHookResult.createTask(taskData, {
       licenseId,
       existingTasks: tasks,
-      onTaskCreated: async (newTask) => {
-        // Update the tasks list
-        setTasks(prev => [...prev, newTask]);
-        
-        // Trigger incremental date recalculation for affected tasks
-        const affectedTaskIds = [newTask.id];
-        if (newTask.parent_task_id) {
-          // Also update siblings that come after this task
-          const siblings = tasks
-            .filter(t => t.parent_task_id === newTask.parent_task_id)
-            .filter(t => (t.position || 0) >= (newTask.position || 0));
-          affectedTaskIds.push(...siblings.map(t => t.id));
-        }
-        
-        // Let the date system handle recalculation
-        await updateTaskDatesIncremental(affectedTaskIds);
-      }
+      onTaskCreated: integrationCallbacks.onTaskCreated
     });
+  }, [creationHookResult.createTask, tasks, integrationCallbacks.onTaskCreated]);
 
-    return result;
-  }, [createTaskFromHook, tasks, updateTaskDatesIncremental]);
-
-  // Wrapper for template-to-project conversion that integrates with our state management
   const createProjectFromTemplate = useCallback(async (templateId, projectData, licenseId = null) => {
-    const result = await createProjectFromTemplateFromHook(templateId, projectData, {
+    return await templateHookResult.createProjectFromTemplate(templateId, projectData, {
       licenseId,
       templateTasks,
-      onProjectCreated: async (rootProject, createdTasks) => {
-        // Update the tasks list with all created tasks
-        setTasks(prev => [...prev, ...createdTasks]);
-        
-        // Trigger a full refresh to get the latest state with proper calculations
-        setTimeout(() => {
-          fetchTasks(true);
-        }, 1000);
-      }
+      onProjectCreated: integrationCallbacks.onProjectCreated
     });
+  }, [templateHookResult.createProjectFromTemplate, templateTasks, integrationCallbacks.onProjectCreated]);
 
-    return result;
-  }, [createProjectFromTemplateFromHook, templateTasks, fetchTasks]);
-
-  // Wrapper for task deletion that integrates with our state management
-  const deleteTaskHandler = useCallback(async (taskId, deleteChildren = true) => {
-    const result = await deleteTaskFromHook(taskId, {
+  const deleteTask = useCallback(async (taskId, deleteChildren = true) => {
+    return await deletionHookResult.deleteTask(taskId, {
       deleteChildren,
       existingTasks: tasks,
-      onTasksDeleted: async (deletedIds, hasChildren) => {
-        console.log(`Tasks deleted successfully: ${deletedIds.length} tasks`);
-        
-        // Get siblings that will be affected by the deletion
-        const taskToDelete = tasks.find(t => t.id === taskId);
-        if (taskToDelete) {
-          const siblings = getTaskSiblings(taskId, tasks);
-          
-          // Trigger date recalculation for affected siblings if this is an instance task
-          if (taskToDelete.origin === 'instance' && siblings.length > 0) {
-            setTimeout(async () => {
-              await updateTaskDatesIncremental(siblings);
-            }, 100);
-          }
-        }
-      },
-      onTasksUpdated: async (updatedTasks) => {
-        // Update our local state with the new task list
-        setTasks(updatedTasks);
-      }
+      onTasksDeleted: integrationCallbacks.onTasksDeleted,
+      onTasksUpdated: integrationCallbacks.onTasksUpdated
     });
+  }, [deletionHookResult.deleteTask, tasks, integrationCallbacks.onTasksDeleted, integrationCallbacks.onTasksUpdated]);
 
-    return result;
-  }, [deleteTaskFromHook, tasks, getTaskSiblings, updateTaskDatesIncremental]);
-
-  // Wrapper for task updates that integrates with our state management
-  const updateTaskHandler = useCallback(async (taskId, updatedTaskData) => {
-    const result = await updateTaskFromHook(taskId, updatedTaskData, {
+  const updateTask = useCallback(async (taskId, updatedTaskData) => {
+    return await updateHookResult.updateTask(taskId, updatedTaskData, {
       existingTasks: tasks,
-      onTaskUpdated: async (updatedTask) => {
-        // Update single task in state
-        setTasks(prev => prev.map(task => 
-          task.id === taskId ? updatedTask : task
-        ));
-        
-        // Determine which tasks need date recalculation
-        const affectedTaskIds = [taskId];
-        
-        // If duration changed, affect descendants and siblings
-        if (updatedTaskData.duration_days !== undefined) {
-          const descendants = getTaskDescendants(taskId);
-          const siblings = getTaskSiblings(taskId);
-          affectedTaskIds.push(...descendants, ...siblings);
-        }
-        
-        // If hierarchy changed, affect old and new parent branches
-        if (updatedTaskData.parent_task_id !== undefined) {
-          const oldParentChildren = getTaskSiblings(taskId, tasks);
-          const newParentChildren = getTaskSiblings(taskId);
-          affectedTaskIds.push(...oldParentChildren, ...newParentChildren);
-        }
-        
-        // Trigger incremental date recalculation
-        await updateTaskDatesIncremental([...new Set(affectedTaskIds)]);
-      },
-      onTasksUpdated: async (updatedTaskList) => {
-        // Update multiple tasks in state
-        setTasks(updatedTaskList);
-      },
-      onRefreshNeeded: async () => {
-        // Trigger full refresh when needed (e.g., complex template updates)
-        await fetchTasks(true);
-      }
+      onTaskUpdated: integrationCallbacks.onTaskUpdated,
+      onTasksUpdated: integrationCallbacks.onTasksUpdated,
+      onRefreshNeeded: integrationCallbacks.onRefreshNeeded
     });
+  }, [updateHookResult.updateTask, tasks, integrationCallbacks]);
 
-    return result;
-  }, [updateTaskFromHook, tasks, getTaskDescendants, getTaskSiblings, updateTaskDatesIncremental, fetchTasks]);
-
-  // Wrapper for task date updates that integrates with our state management
   const updateTaskDates = useCallback(async (taskId, dateData) => {
-    const result = await updateTaskDatesFromHook(taskId, dateData, {
+    return await updateHookResult.updateTaskDates(taskId, dateData, {
       existingTasks: tasks,
-      onTaskUpdated: async (updatedTask) => {
-        // Update the task in local state
-        setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-      },
-      onDateRecalculationNeeded: async (affectedTaskIds) => {
-        // Trigger incremental date recalculation
-        await updateTaskDatesIncremental(affectedTaskIds);
-      }
+      onTaskUpdated: integrationCallbacks.onTaskUpdated,
+      onDateRecalculationNeeded: integrationCallbacks.onDateRecalculationNeeded
     });
+  }, [updateHookResult.updateTaskDates, tasks, integrationCallbacks]);
 
-    return result;
-  }, [updateTaskDatesFromHook, tasks, updateTaskDatesIncremental]);
+  const updateTaskAfterDragDrop = useCallback(async (taskId, newParentId, newPosition, oldParentId) => {
+    return await dragDropHookResult.updateTaskAfterDragDrop(taskId, newParentId, newPosition, oldParentId, {
+      existingTasks: tasks,
+      onTasksRefreshed: integrationCallbacks.onTasksRefreshed,
+      onDateRecalculationNeeded: integrationCallbacks.onDateRecalculationNeeded
+    });
+  }, [dragDropHookResult.updateTaskAfterDragDrop, tasks, integrationCallbacks]);
 
-  // Update task after drag & drop with new date system
-  const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldParentId) => {
-    try {
-      console.log(`Updating task after drag/drop: task=${taskId}, newParent=${newParentId}, newPos=${newPosition}`);
+  // Enhanced drag handlers with tasks integration
+  const handleDragOver = useCallback((e, targetTask) => {
+    return dragDropHookResult.handleDragOver(e, targetTask, tasks);
+  }, [dragDropHookResult.handleDragOver, tasks]);
 
-      // Update position in database
-      const result = await updateTaskPosition(taskId, newParentId, newPosition);
+  const handleDrop = useCallback(async (e, targetTask) => {
+    return await dragDropHookResult.handleDrop(e, targetTask, tasks, updateTaskAfterDragDrop);
+  }, [dragDropHookResult.handleDrop, tasks, updateTaskAfterDragDrop]);
 
-      if (result.error) {
-        throw new Error(result.error || 'Failed to update task position');
-      }
+  const handleDropZoneDragOver = useCallback((e, parentId, position, prevTask, nextTask) => {
+    return dragDropHookResult.handleDropZoneDragOver(e, parentId, position, prevTask, nextTask, tasks);
+  }, [dragDropHookResult.handleDropZoneDragOver, tasks]);
 
-      // Force refresh tasks to get updated positions
-      await fetchTasks(true);
+  const handleDropZoneDrop = useCallback(async (e, parentId, position) => {
+    return await dragDropHookResult.handleDropZoneDrop(e, parentId, position, tasks, updateTaskAfterDragDrop);
+  }, [dragDropHookResult.handleDropZoneDrop, tasks, updateTaskAfterDragDrop]);
 
-      // Get affected task IDs for date recalculation
-      const affectedTaskIds = [taskId];
-      
-      // Add old siblings (if parent changed)
-      if (oldParentId && oldParentId !== newParentId) {
-        const oldSiblings = tasks.filter(t => t.parent_task_id === oldParentId);
-        affectedTaskIds.push(...oldSiblings.map(t => t.id));
-      }
-      
-      // Add new siblings
-      if (newParentId) {
-        const newSiblings = tasks.filter(t => t.parent_task_id === newParentId);
-        affectedTaskIds.push(...newSiblings.map(t => t.id));
-      }
+  const getDragFeedback = useCallback((task) => {
+    return dragDropHookResult.getDragFeedback(task, tasks);
+  }, [dragDropHookResult.getDragFeedback, tasks]);
 
-      // Trigger incremental date recalculation
-      await updateTaskDatesIncremental([...new Set(affectedTaskIds)]);
-
-      return { success: true };
-    } catch (err) {
-      console.error('Error updating tasks after drag/drop:', err);
-      return { success: false, error: err.message };
-    }
-  };
-
-  // Get all tasks in a hierarchy (utility function)
-  const getAllTasksInHierarchy = (rootId, allTasks) => {
-    if (!rootId || !Array.isArray(allTasks) || allTasks.length === 0) {
-      return [];
-    }
-    
-    const result = [];
-    
-    const collectTasks = (parentId) => {
-      const parent = allTasks.find(t => t.id === parentId);
-      if (parent) result.push(parent);
-      
-      const children = allTasks.filter(t => t.parent_task_id === parentId);
-      result.push(...children);
-      
-      children.forEach(child => collectTasks(child.id));
-    };
-    
-    collectTasks(rootId);
-    return result;
-  };
-  
-  // Initial fetch when component mounts
+  // Initial fetch
   useEffect(() => {
-    if (userLoading || orgLoading) {
-      return;
-    }
-    
-    if (!initialFetchDoneRef.current && user?.id) {
+    if (!userLoading && !orgLoading && !initialFetchDoneRef.current && user?.id) {
       fetchTasks();
     }
   }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks]);
-  
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
-  // Create the context value
+  // Create the context value - pass through hook results directly
   const contextValue = useMemo(() => ({
-    // Task management
+    // Core task data
     tasks,
     instanceTasks,
     templateTasks,
     loading,
-    initialLoading,
     error,
     isFetching,
-
-    // Date-related functions and state
-    taskDates,
-    datesCalculating,
-    getTaskDates,
-    getTaskStartDate,
-    getTaskDueDate,
-    getTaskDuration,
-    isTaskOverdue,
-    isTaskDueToday,
-    recalculateAllDates,
-    updateTaskDates: updateTaskDatesIncremental,
-
-    // Core task operations
     fetchTasks,
-    createTask: createNewTask, // Uses extracted hook internally
-    updateTask: updateTaskHandler, // Now uses extracted hook internally
-    deleteTask: deleteTaskHandler, // Uses extracted hook internally
-    updateTaskAfterDragDrop,
-    createProjectFromTemplate, // Uses extracted hook internally
 
-    // Task creation specific state (from the extracted hook)
-    isCreatingTask,
-    creationError,
-    clearCreationError,
-
-    // Template conversion specific state (from the extracted hook)
-    isConvertingTemplate,
-    conversionError,
-    conversionProgress,
-    clearConversionError,
-    resetProgress,
-
-    // Task deletion specific state (from the extracted hook)
-    isDeletingTask,
-    deletionError,
-    deletionProgress,
-    getDeletionConfirmationMessage,
-    clearDeletionError,
-    resetDeletionProgress,
-
-    // Task update specific state (from the extracted hook)
-    isUpdatingTask,
-    updateError,
-    updateProgress,
-    getUpdateStatus,
-    clearUpdateError,
-    resetUpdateProgress,
-
-    // Direct task service functions
-    updateTaskPosition,
-    updateSiblingPositions,
-    updateTaskCompletion,
-    updateTaskDates, // Now uses extracted hook internally
-
-    // License system
-    canCreateProject,
-    projectLimitReason,
-    userLicenses,
-    selectedLicenseId,
-    userHasProjects,
-    isCheckingLicense,
-    validateProjectCreation,
-    applyLicenseKey,
-    selectLicense,
-    getSelectedLicense,
-    clearSelectedLicense,
-    checkProjectCreationAbility,
-    fetchUserLicenses,
-
-    // Utility functions
-    updateTasks,
-    determineTaskStartDate: (task) => getTaskStartDate(task.id),
-    getAllTasksInHierarchy,
-    
-    // Debug functions
-    getCacheStats,
-    clearCache
-  }), [
-    // Task state
-    tasks,
-    instanceTasks,
-    templateTasks,
-    loading,
-    initialLoading,
-    error,
-    isFetching,
-    
-    // Task creation state
-    isCreatingTask,
-    creationError,
-    clearCreationError,
-
-    // Template conversion state
-    isConvertingTemplate,
-    conversionError,
-    conversionProgress,
-    clearConversionError,
-    resetProgress,
-
-    // Task deletion state
-    isDeletingTask,
-    deletionError,
-    deletionProgress,
-    getDeletionConfirmationMessage,
-    clearDeletionError,
-    resetDeletionProgress,
-
-    // Task update state
-    isUpdatingTask,
-    updateError,
-    updateProgress,
-    getUpdateStatus,
-    clearUpdateError,
-    resetUpdateProgress,
-    
-    // Date state
-    taskDates,
-    datesCalculating,
-    getTaskDates,
-    getTaskStartDate,
-    getTaskDueDate,
-    getTaskDuration,
-    isTaskOverdue,
-    isTaskDueToday,
-    recalculateAllDates,
-    updateTaskDatesIncremental,
-    
-    // Functions
-    fetchTasks,
-    createNewTask,
-    updateTaskHandler,
-    deleteTaskHandler,
+    // Task operations (integrated with state management)
+    createTask,
+    updateTask,
+    deleteTask,
+    updateTaskDates,
     updateTaskAfterDragDrop,
     createProjectFromTemplate,
+
+    // Direct access to all hook state and functions
+    ...creationHookResult,
+    ...templateHookResult,
+    ...deletionHookResult,
+    ...updateHookResult,
+    ...dragDropHookResult,
+    ...dateHookResult,
+    ...licenseHookResult,
+
+    // Enhanced drag handlers
+    handleDragOver,
+    handleDrop,
+    handleDropZoneDragOver,
+    handleDropZoneDrop,
+    getDragFeedback,
+
+    // Legacy function for compatibility
+    updateTaskCompletion,
+    
+    // Utility
+    determineTaskStartDate: (task) => dateHookResult.getTaskStartDate(task.id)
+  }), [
+    // Core state
+    tasks,
+    instanceTasks,
+    templateTasks,
+    loading,
+    error,
+    isFetching,
+    fetchTasks,
+
+    // Integrated operations
+    createTask,
+    updateTask,
+    deleteTask,
     updateTaskDates,
-    updateTasks,
-    
-    // License state
-    canCreateProject,
-    projectLimitReason,
-    userLicenses,
-    selectedLicenseId,
-    userHasProjects,
-    isCheckingLicense,
-    validateProjectCreation,
-    applyLicenseKey,
-    selectLicense,
-    getSelectedLicense,
-    clearSelectedLicense,
-    checkProjectCreationAbility,
-    fetchUserLicenses,
-    
-    // Debug
-    getCacheStats,
-    clearCache
+    updateTaskAfterDragDrop,
+    createProjectFromTemplate,
+
+    // All hook results
+    creationHookResult,
+    templateHookResult,
+    deletionHookResult,
+    updateHookResult,
+    dragDropHookResult,
+    dateHookResult,
+    licenseHookResult,
+
+    // Enhanced handlers
+    handleDragOver,
+    handleDrop,
+    handleDropZoneDragOver,
+    handleDropZoneDrop,
+    getDragFeedback
   ]);
 
   return (

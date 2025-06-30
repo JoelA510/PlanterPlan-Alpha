@@ -69,6 +69,7 @@
             - Move updateTaskAfterDragDrop and related logic
             - Integrate with existing drag-drop hook better
             - Simplify TaskList, TemplateList
+    - TaskContext is now a thin coordinator that provides integration, while all the complex logic lives in focused hooks.
 
 ### May 19 2025
 * issue: create new task needs to have the right start date based on duedate
