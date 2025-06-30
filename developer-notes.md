@@ -44,11 +44,31 @@
         - useTaskDragDrop - drag and drop operations
         - useTemplateToProject - template conversion logic
     - let's break it down into incremental steps
-        - Extract Task Creation Logic
-        - Extract Template-to-Project Conversion
-        - Extract Task Deletion Logic
-        - Extract Task Update Logic
-        - Extract Drag & Drop Operations
+        - Step 1: Extract Task Creation Logic
+            - Target: useTaskCreation hook
+            - Move createNewTask function and all its complexity
+            - Handle license validation, positioning, date calculations
+            - Simplify NewProjectForm, TaskForm, TemplateProjectCreator
+        - Step 2: Extract Template-to-Project Conversion
+            - Target: useTemplateToProject hook
+            - Move createProjectFromTemplate and getAllTemplateTasksInHierarchy
+            - Handle the complex hierarchy creation and date calculations
+            - Simplify TemplateProjectCreator, UseTemplateForm
+        - Step 3: Extract Task Deletion Logic
+            - Target: useTaskDeletion hook
+            - Move deleteTaskHandler with all its error handling
+            - Handle cascade deletion, hierarchy updates, date recalculation
+            - Simplify TaskList, TaskDetailsPanel, TemplateList
+        - Step 4: Extract Task Update Logic
+            - Target: useTaskUpdate hook
+            - Move updateTaskHandler and updateTaskDates
+            - Handle template vs instance differences, date propagation
+            - Simplify TaskForm, TemplateTaskForm, TaskDetailsPanel
+        - Step 5: Extract Drag & Drop Operations
+            - Target: useTaskDragDrop hook (enhance existing)
+            - Move updateTaskAfterDragDrop and related logic
+            - Integrate with existing drag-drop hook better
+            - Simplify TaskList, TemplateList
 
 ### May 19 2025
 * issue: create new task needs to have the right start date based on duedate

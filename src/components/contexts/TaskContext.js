@@ -5,6 +5,7 @@ import { useLicenses } from '../../hooks/useLicenses';
 import { useTaskCreation } from '../../hooks/useTaskCreation';
 import { useTemplateToProject } from '../../hooks/useTemplateToProject';
 import { useTaskDeletion } from '../../hooks/useTaskDeletion';
+import { useTaskUpdate } from '../../hooks/useTaskUpdate';
 import { useLocation } from 'react-router-dom';
 import { useTaskDates } from '../../hooks/useTaskDates';
 
@@ -14,23 +15,7 @@ import {
   updateTaskPosition, 
   updateSiblingPositions, 
   updateTaskCompletion,
-  updateTaskDateFields,
-  updateTaskComplete, 
 } from '../../services/taskService';
-
-// Import the date utility functions (for fallback calculations)
-import { 
-  calculateDueDate,
-} from '../../utils/dateUtils';
-
-// Import sequential task manager functions (for templates only)
-import { 
-  calculateParentDuration, 
-  updateAncestorDurations,
-  updateAfterReordering,
-  getTasksRequiringUpdates,
-  updateTasksInDatabase
-} from '../../utils/sequentialTaskManager';
 
 // Create a context for tasks
 const TaskContext = createContext();
@@ -97,6 +82,18 @@ export const TaskProvider = ({ children }) => {
     clearDeletionError,
     resetProgress: resetDeletionProgress
   } = useTaskDeletion();
+
+  // Use the task update hook
+  const {
+    updateTask: updateTaskFromHook,
+    updateTaskDates: updateTaskDatesFromHook,
+    isUpdating: isUpdatingTask,
+    updateError,
+    updateProgress,
+    getUpdateStatus,
+    clearUpdateError,
+    resetProgress: resetUpdateProgress
+  } = useTaskUpdate();
   
   // State for tasks - ONLY the main tasks array
   const [tasks, setTasks] = useState([]);
@@ -335,156 +332,65 @@ export const TaskProvider = ({ children }) => {
     return result;
   }, [deleteTaskFromHook, tasks, getTaskSiblings, updateTaskDatesIncremental]);
 
-  // Update task handler with date system integration
-  const updateTaskHandler = async (taskId, updatedTaskData) => {
-    try {
-      const originalTask = tasks.find(t => t.id === taskId);
-      if (!originalTask) {
-        throw new Error('Task not found');
-      }
-      
-      // Check if default_duration was changed (for templates)
-      const defaultDurationChanged = 
-        updatedTaskData.default_duration !== undefined && 
-        updatedTaskData.default_duration !== originalTask.default_duration;
-      
-      // Handle template duration changes with ancestor impacts
-      if (originalTask.origin === 'template' && defaultDurationChanged && 
-          updatedTaskData.affectedAncestors && updatedTaskData.affectedAncestors.length > 0) {
+  // Wrapper for task updates that integrates with our state management
+  const updateTaskHandler = useCallback(async (taskId, updatedTaskData) => {
+    const result = await updateTaskFromHook(taskId, updatedTaskData, {
+      existingTasks: tasks,
+      onTaskUpdated: async (updatedTask) => {
+        // Update single task in state
+        setTasks(prev => prev.map(task => 
+          task.id === taskId ? updatedTask : task
+        ));
         
-        console.log('Handling ancestor impacts:', updatedTaskData.affectedAncestors);
+        // Determine which tasks need date recalculation
+        const affectedTaskIds = [taskId];
         
-        const ancestorUpdates = updatedTaskData.affectedAncestors.map(ancestor => ({
-          id: ancestor.id,
-          duration_days: ancestor.newDuration
-        }));
-        
-        const taskUpdateData = { ...updatedTaskData };
-        delete taskUpdateData.affectedAncestors;
-        
-        const result = await updateTaskComplete(taskId, taskUpdateData);
-        
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to update task');
+        // If duration changed, affect descendants and siblings
+        if (updatedTaskData.duration_days !== undefined) {
+          const descendants = getTaskDescendants(taskId);
+          const siblings = getTaskSiblings(taskId);
+          affectedTaskIds.push(...descendants, ...siblings);
         }
         
-        for (const update of ancestorUpdates) {
-          await updateTaskComplete(update.id, { duration_days: update.duration_days });
+        // If hierarchy changed, affect old and new parent branches
+        if (updatedTaskData.parent_task_id !== undefined) {
+          const oldParentChildren = getTaskSiblings(taskId, tasks);
+          const newParentChildren = getTaskSiblings(taskId);
+          affectedTaskIds.push(...oldParentChildren, ...newParentChildren);
         }
         
+        // Trigger incremental date recalculation
+        await updateTaskDatesIncremental([...new Set(affectedTaskIds)]);
+      },
+      onTasksUpdated: async (updatedTaskList) => {
+        // Update multiple tasks in state
+        setTasks(updatedTaskList);
+      },
+      onRefreshNeeded: async () => {
+        // Trigger full refresh when needed (e.g., complex template updates)
         await fetchTasks(true);
-        return { success: true, data: result.data };
       }
-      
-      // Standard update flow
-      const result = await updateTaskComplete(taskId, updatedTaskData);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to update task');
-      }
-      
-      // Update tasks state
-      let updatedTaskList = tasks.map(task => 
-        task.id === taskId ? { ...task, ...result.data } : task
-      );
-      
-      // Handle template task updates
-      if (originalTask.origin === 'template') {
-        const hasChildren = updatedTaskList.some(t => t.parent_task_id === taskId);
-        
-        if (hasChildren) {
-          updatedTaskList = updateAncestorDurations(taskId, updatedTaskList);
-          const tasksToUpdate = getTasksRequiringUpdates(tasks, updatedTaskList);
-          await updateTasksInDatabase(tasksToUpdate, updateTaskComplete);
-        }
-        
-        if (originalTask.parent_task_id && defaultDurationChanged) {
-          updatedTaskList = updateAncestorDurations(originalTask.id, updatedTaskList);
-          const tasksToUpdate = getTasksRequiringUpdates(tasks, updatedTaskList);
-          await updateTasksInDatabase(tasksToUpdate, updateTaskComplete);
-        }
-      }
-      
-      setTasks(updatedTaskList);
-      
-      // Determine which tasks need date recalculation
-      const affectedTaskIds = [taskId];
-      
-      // If duration changed, affect descendants and siblings
-      if (updatedTaskData.duration_days !== undefined) {
-        const descendants = getTaskDescendants(taskId, updatedTaskList);
-        const siblings = getTaskSiblings(taskId, updatedTaskList);
-        affectedTaskIds.push(...descendants, ...siblings);
-      }
-      
-      // If hierarchy changed, affect old and new parent branches
-      if (updatedTaskData.parent_task_id !== undefined) {
-        const oldParentChildren = getTaskSiblings(taskId, tasks);
-        const newParentChildren = getTaskSiblings(taskId, updatedTaskList);
-        affectedTaskIds.push(...oldParentChildren, ...newParentChildren);
-      }
-      
-      // Trigger incremental date recalculation
-      await updateTaskDatesIncremental([...new Set(affectedTaskIds)]);
-      
-      return { success: true, data: result.data };
-    } catch (err) {
-      console.error('Error updating task:', err);
-      return { success: false, error: err.message };
-    }
-  };
+    });
 
-  // Update task dates with new system
+    return result;
+  }, [updateTaskFromHook, tasks, getTaskDescendants, getTaskSiblings, updateTaskDatesIncremental, fetchTasks]);
+
+  // Wrapper for task date updates that integrates with our state management
   const updateTaskDates = useCallback(async (taskId, dateData) => {
-    try {
-      console.log('Updating task dates:', taskId, dateData);
-      
-      const taskToUpdate = tasks.find(t => t.id === taskId);
-      if (!taskToUpdate) {
-        throw new Error('Task not found');
+    const result = await updateTaskDatesFromHook(taskId, dateData, {
+      existingTasks: tasks,
+      onTaskUpdated: async (updatedTask) => {
+        // Update the task in local state
+        setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
+      },
+      onDateRecalculationNeeded: async (affectedTaskIds) => {
+        // Trigger incremental date recalculation
+        await updateTaskDatesIncremental(affectedTaskIds);
       }
-      
-      let enhancedDateData = { ...dateData };
-      
-      // Calculate due date if needed
-      if (dateData.start_date && dateData.duration_days && !dateData.due_date) {
-        const calculatedDueDate = calculateDueDate(
-          dateData.start_date,
-          dateData.duration_days
-        );
-        
-        if (calculatedDueDate) {
-          enhancedDateData.due_date = calculatedDueDate.toISOString();
-        }
-      }
-      
-      // Update the task in the database
-      const result = await updateTaskDateFields(taskId, enhancedDateData);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      // Update the task in local state
-      const updatedTask = { ...taskToUpdate, ...enhancedDateData };
-      const updatedTasks = tasks.map(t => t.id === taskId ? updatedTask : t);
-      setTasks(updatedTasks);
-      
-      // Get affected task IDs for date recalculation
-      const affectedTaskIds = [taskId];
-      const descendants = getTaskDescendants(taskId, updatedTasks);
-      const siblings = getTaskSiblings(taskId, updatedTasks);
-      affectedTaskIds.push(...descendants, ...siblings);
-      
-      // Trigger incremental date recalculation
-      await updateTaskDatesIncremental([...new Set(affectedTaskIds)]);
-      
-      return { success: true, data: updatedTask };
-    } catch (err) {
-      console.error('Error updating task dates:', err);
-      return { success: false, error: err.message };
-    }
-  }, [tasks, getTaskDescendants, getTaskSiblings, updateTaskDatesIncremental]);
+    });
+
+    return result;
+  }, [updateTaskDatesFromHook, tasks, updateTaskDatesIncremental]);
 
   // Update task after drag & drop with new date system
   const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldParentId) => {
@@ -593,8 +499,8 @@ export const TaskProvider = ({ children }) => {
     // Core task operations
     fetchTasks,
     createTask: createNewTask, // Uses extracted hook internally
-    updateTask: updateTaskHandler,
-    deleteTask: deleteTaskHandler, // Now uses extracted hook internally
+    updateTask: updateTaskHandler, // Now uses extracted hook internally
+    deleteTask: deleteTaskHandler, // Uses extracted hook internally
     updateTaskAfterDragDrop,
     createProjectFromTemplate, // Uses extracted hook internally
 
@@ -618,11 +524,19 @@ export const TaskProvider = ({ children }) => {
     clearDeletionError,
     resetDeletionProgress,
 
+    // Task update specific state (from the extracted hook)
+    isUpdatingTask,
+    updateError,
+    updateProgress,
+    getUpdateStatus,
+    clearUpdateError,
+    resetUpdateProgress,
+
     // Direct task service functions
     updateTaskPosition,
     updateSiblingPositions,
     updateTaskCompletion,
-    updateTaskDates,
+    updateTaskDates, // Now uses extracted hook internally
 
     // License system
     canCreateProject,
@@ -676,6 +590,14 @@ export const TaskProvider = ({ children }) => {
     getDeletionConfirmationMessage,
     clearDeletionError,
     resetDeletionProgress,
+
+    // Task update state
+    isUpdatingTask,
+    updateError,
+    updateProgress,
+    getUpdateStatus,
+    clearUpdateError,
+    resetUpdateProgress,
     
     // Date state
     taskDates,
