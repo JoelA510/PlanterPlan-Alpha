@@ -8,6 +8,13 @@
 - ok I created a new admin user for myself
 
 - now let's try to push a simple commit moving the devleoper notes into its own separate file
+    - ok that worked
+
+- what's interesting is that I was able to use Repomix to compress the repo to feed into Claude
+    - I selected `compress-code` and `remove comments` and added `*.json, *.lock` to "Ingore Patterns"
+
+- ok let's start implementing the search bar   
+    - let's drop the LLM idea for now, and focus on a radically simpler smart-filter-based search 
 
 ### May 19 2025
 * issue: create new task needs to have the right start date based on duedate
