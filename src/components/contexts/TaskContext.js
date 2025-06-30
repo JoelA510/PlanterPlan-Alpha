@@ -2,15 +2,14 @@ import React, { createContext, useState, useContext, useEffect, useCallback, use
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationProvider';
 import { useLicenses } from '../../hooks/useLicenses';
+import { useTaskCreation } from '../../hooks/useTaskCreation';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
-import { getNextAvailablePosition } from '../../utils/sparsePositioning';
 import { useTaskDates } from '../../hooks/useTaskDates';
 
 // Import functions from taskService
 import { 
   fetchAllTasks, 
-  createTask, 
   updateTaskPosition, 
   updateSiblingPositions, 
   updateTaskCompletion,
@@ -22,8 +21,6 @@ import {
 // Import the date utility functions (for fallback calculations)
 import { 
   calculateDueDate,
-  calculateStartDate,
-  determineTaskStartDate,
 } from '../../utils/dateUtils';
 
 // Import sequential task manager functions (for templates only)
@@ -72,6 +69,14 @@ export const TaskProvider = ({ children }) => {
     checkProjectCreationAbility,
     fetchUserLicenses
   } = licenseHookResult;
+
+  // Use the task creation hook
+  const {
+    createTask: createTaskFromHook,
+    isCreating: isCreatingTask,
+    creationError,
+    clearCreationError
+  } = useTaskCreation();
   
   // State for tasks - ONLY the main tasks array
   const [tasks, setTasks] = useState([]);
@@ -234,140 +239,32 @@ export const TaskProvider = ({ children }) => {
       .map(t => t.id);
   }, [tasks]);
 
-  // Create new task with date system integration
+  // Wrapper for task creation that integrates with our state management
   const createNewTask = useCallback(async (taskData, licenseId = null) => {
-    try {
-      console.log('Creating task with data:', taskData);
-      console.log('License key', licenseId);
-      
-      if (!user?.id) {
-        throw new Error('Cannot create task: User ID is missing');
-      }
-      
-      // Check if this is a top-level project creation
-      const isTopLevelProject = !taskData.parent_task_id && taskData.origin === "instance";
-      
-      // For top-level projects, check if the user already has projects
-      if (isTopLevelProject) {
-        const validation = validateProjectCreation(licenseId);
-        if (!validation.canCreate) {
-          throw new Error(validation.reason);
-        }
-        licenseId = validation.licenseId;
-      }
-      
-      // Handle sparse positioning if not already set
-      let enhancedTaskData = {
-        ...taskData,
-        creator: user.id,
-        origin: taskData.origin || "instance",
-        white_label_id: organizationId,
-        license_id: licenseId
-      };
-      
-      // Calculate sparse position if not explicitly provided
-      if (enhancedTaskData.position === undefined) {
-        enhancedTaskData.position = getNextAvailablePosition(tasks, taskData.parent_task_id);
-        console.log('Calculated sparse position:', enhancedTaskData.position, 'for parent:', taskData.parent_task_id);
-      }
-      
-      // For initial date setting, use fallback calculations
-      // The date cache system will recalculate these properly after creation
-      if (taskData.parent_task_id) {
-        const calculatedStartDate = determineTaskStartDate({
-          ...enhancedTaskData,
-        }, tasks);
-        
-        if (calculatedStartDate) {
-          enhancedTaskData.start_date = calculatedStartDate.toISOString();
-          
-          if (taskData.duration_days) {
-            const calculatedDueDate = calculateDueDate(
-              calculatedStartDate,
-              taskData.duration_days
-            );
-            
-            if (calculatedDueDate) {
-              enhancedTaskData.due_date = calculatedDueDate.toISOString();
-            }
-          }
-        } else if (taskData.days_from_start_until_due !== undefined) {
-          const parentTask = tasks.find(t => t.id === taskData.parent_task_id);
-          
-          if (parentTask && parentTask.start_date) {
-            const fallbackDate = calculateStartDate(
-              parentTask.start_date,
-              taskData.days_from_start_until_due
-            );
-            
-            if (fallbackDate) {
-              enhancedTaskData.start_date = fallbackDate.toISOString();
-              
-              if (taskData.duration_days) {
-                const calculatedDueDate = calculateDueDate(
-                  fallbackDate,
-                  taskData.duration_days
-                );
-                
-                if (calculatedDueDate) {
-                  enhancedTaskData.due_date = calculatedDueDate.toISOString();
-                }
-              }
-            }
-          }
-        }
-      } else if (isTopLevelProject && !enhancedTaskData.start_date) {
-        const currentDate = new Date();
-        enhancedTaskData.start_date = currentDate.toISOString();
-        
-        if (enhancedTaskData.duration_days) {
-          const calculatedDueDate = calculateDueDate(
-            currentDate,
-            enhancedTaskData.duration_days
-          );
-          
-          if (calculatedDueDate) {
-            enhancedTaskData.due_date = calculatedDueDate.toISOString();
-          }
-        }
-      }
-      
-      console.log('Enhanced task data with sparse positioning:', enhancedTaskData);
-      
-      // Create the task
-      const result = await createTask(enhancedTaskData);
-      
-      if (result.error) {
-        console.error('Error from createTask API:', result.error);
-        throw new Error(result.error);
-      }
-      
-      console.log('Task created successfully:', result.data);
-      
-      if (result.data) {
+    const result = await createTaskFromHook(taskData, {
+      licenseId,
+      existingTasks: tasks,
+      onTaskCreated: async (newTask) => {
         // Update the tasks list
-        setTasks(prev => [...prev, result.data]);
+        setTasks(prev => [...prev, newTask]);
         
         // Trigger incremental date recalculation for affected tasks
-        const affectedTaskIds = [result.data.id];
-        if (result.data.parent_task_id) {
+        const affectedTaskIds = [newTask.id];
+        if (newTask.parent_task_id) {
           // Also update siblings that come after this task
           const siblings = tasks
-            .filter(t => t.parent_task_id === result.data.parent_task_id)
-            .filter(t => (t.position || 0) >= (result.data.position || 0));
+            .filter(t => t.parent_task_id === newTask.parent_task_id)
+            .filter(t => (t.position || 0) >= (newTask.position || 0));
           affectedTaskIds.push(...siblings.map(t => t.id));
         }
         
         // Let the date system handle recalculation
         await updateTaskDatesIncremental(affectedTaskIds);
       }
-      
-      return { data: result.data, error: null };
-    } catch (err) {
-      console.error('Error creating task:', err);
-      return { data: null, error: err.message };
-    }
-  }, [user?.id, organizationId, validateProjectCreation, tasks, updateTaskDatesIncremental]);
+    });
+
+    return result;
+  }, [createTaskFromHook, tasks, updateTaskDatesIncremental]);
 
   // Update task handler with date system integration
   const updateTaskHandler = async (taskId, updatedTaskData) => {
@@ -721,7 +618,6 @@ export const TaskProvider = ({ children }) => {
         license_id: licenseId,
         start_date: projectStartDate.toISOString(),
         parent_task_id: null,
-        position: getNextAvailablePosition(instanceTasks, null),
         default_duration: template.default_duration || 1,
         duration_days: effectiveDuration
       };
@@ -731,14 +627,14 @@ export const TaskProvider = ({ children }) => {
         projectBaseData.due_date = calculatedDueDate.toISOString();
       }
       
-      // Create the top-level project
-      const result = await createTask(projectBaseData);
+      // Use the new task creation system for the root project
+      const projectResult = await createNewTask(projectBaseData, licenseId);
       
-      if (result.error) {
-        throw new Error(result.error);
+      if (projectResult.error) {
+        throw new Error(projectResult.error);
       }
       
-      const newProject = result.data;
+      const newProject = projectResult.data;
       console.log('Created root project:', newProject);
       
       const createdTasksArray = [newProject];
@@ -789,18 +685,14 @@ export const TaskProvider = ({ children }) => {
             resources: templateTask.resources || [],
             origin: 'instance',
             is_complete: false,
-            creator: user.id,
-            white_label_id: organizationId,
             parent_task_id: projectParentId,
-            position: templateTask.position || getNextAvailablePosition(
-              createdTasksArray.filter(t => t.parent_task_id === projectParentId),
-              projectParentId
-            ),
+            position: templateTask.position,
             default_duration: templateTask.default_duration || 1,
             duration_days: templateTask.duration_days || 1,
           };
           
-          const childResult = await createTask(childTaskData);
+          // Use the new task creation system for child tasks too
+          const childResult = await createNewTask(childTaskData);
           
           if (childResult.error) {
             console.error('Error creating child task:', childResult.error);
@@ -814,53 +706,7 @@ export const TaskProvider = ({ children }) => {
       
       console.log(`Created ${createdTasksArray.length} tasks total`);
       
-      // Use the old sequential calculation for initial setup, then let date system take over
-      const tasksWithCalculatedDates = calculateSequentialStartDates(
-        newProject.id,
-        projectStartDate,
-        createdTasksArray
-      );
-      
-      console.log('Calculated dates for all tasks using sequential method');
-      
-      // Update all tasks with their calculated dates
-      const updatePromises = [];
-      
-      for (const task of tasksWithCalculatedDates) {
-        if (task.id === newProject.id && 
-            task.start_date === newProject.start_date && 
-            task.due_date === newProject.due_date) {
-          continue;
-        }
-        
-        const originalTask = createdTasksArray.find(t => t.id === task.id);
-        if (!originalTask) continue;
-        
-        if (originalTask.start_date !== task.start_date || 
-            originalTask.due_date !== task.due_date ||
-            originalTask.duration_days !== task.duration_days) {
-          
-          console.log(`Updating task ${task.id} (${task.title || 'unnamed'}):`);
-          console.log(` - Start: ${originalTask.start_date} → ${task.start_date}`);
-          console.log(` - Due: ${originalTask.due_date} → ${task.due_date}`);
-          console.log(` - Duration: ${originalTask.duration_days} → ${task.duration_days}`);
-          
-          updatePromises.push(
-            updateTaskDateFields(task.id, {
-              start_date: task.start_date,
-              due_date: task.due_date,
-              duration_days: task.duration_days
-            })
-          );
-        }
-      }
-      
-      if (updatePromises.length > 0) {
-        console.log(`Updating dates for ${updatePromises.length} tasks`);
-        await Promise.all(updatePromises);
-      }
-      
-      // Refresh tasks to get the latest state
+      // Refresh tasks to get the latest state with all calculations
       await fetchTasks(true);
       
       return { data: newProject, error: null };
@@ -968,11 +814,16 @@ export const TaskProvider = ({ children }) => {
 
     // Core task operations
     fetchTasks,
-    createTask: createNewTask,
+    createTask: createNewTask, // Now uses the extracted hook internally
     updateTask: updateTaskHandler,
     deleteTask: deleteTaskHandler,
     updateTaskAfterDragDrop,
     createProjectFromTemplate,
+
+    // Task creation specific state (from the extracted hook)
+    isCreatingTask,
+    creationError,
+    clearCreationError,
 
     // Direct task service functions
     updateTaskPosition,
@@ -1011,6 +862,11 @@ export const TaskProvider = ({ children }) => {
     initialLoading,
     error,
     isFetching,
+    
+    // Task creation state
+    isCreatingTask,
+    creationError,
+    clearCreationError,
     
     // Date state
     taskDates,

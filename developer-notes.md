@@ -35,6 +35,20 @@
         - For hierarchy change (parent_task_id)
             - Affects old parent branch + new parent branch
             - Recalculate both affected branches
+    - date updates are not happening but at least we have solid architecture now
+
+- let's take a moment to refactor TaskContext.js
+    - Move large, self-contained operations to custom hooks
+        - useTaskCreation - handles all create logic including validation
+        - useTaskDeletion - handles deletion with cascading effects
+        - useTaskDragDrop - drag and drop operations
+        - useTemplateToProject - template conversion logic
+    - let's break it down into incremental steps
+        - Extract Task Creation Logic
+        - Extract Template-to-Project Conversion
+        - Extract Task Deletion Logic
+        - Extract Task Update Logic
+        - Extract Drag & Drop Operations
 
 ### May 19 2025
 * issue: create new task needs to have the right start date based on duedate
