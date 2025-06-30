@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getBackgroundColor, getTaskLevel, formatDisplayDate } from '../../utils/taskUtils';
-import { calculateParentDuration } from '../../utils/sequentialTaskManager';
-import { calculateDueDate } from '../../utils/dateUtils';
 import TaskForm from '../TaskForm/TaskForm';
 import { useTasks } from '../contexts/TaskContext';
 import { getProjectMembers } from '../../services/teamManagementService';
@@ -21,8 +19,17 @@ const TaskDetailsPanel = ({
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState(null);
   
-  // Use the task context to get loading state
-  const { loading: contextLoading } = useTasks();
+  // Get date functions from the new date cache system
+  const { 
+    loading: contextLoading,
+    getTaskStartDate, 
+    getTaskDueDate, 
+    getTaskDuration,
+    isTaskOverdue,
+    isTaskDueToday,
+    taskDates,
+    datesCalculating
+  } = useTasks();
 
   useEffect(() => {
     if (!contextLoading && task) {
@@ -99,59 +106,72 @@ const TaskDetailsPanel = ({
     );
   }
   
-  // Calculate task properties on-demand
+  // Calculate task properties using new date system
   const hasChildren = tasks.some(t => t.parent_task_id === task.id);
   
-  // Calculate effective duration - use calculated duration for parents, stored for leaf tasks
+  // Use the new date system instead of local calculations
   const getEffectiveDuration = () => {
-    if (hasChildren) {
-      try {
-        return calculateParentDuration(task.id, tasks);
-      } catch (e) {
-        console.warn(`Error calculating parent duration for task ${task.id}:`, e);
-        return task.duration_days || 1;
-      }
-    }
-    return task.duration_days || 1;
-  };
-  
-  // Calculate due date on-demand
-  const getCalculatedDueDate = () => {
-    if (!task.start_date) return task.due_date;
-    
     try {
-      const effectiveDuration = getEffectiveDuration();
-      const dueDate = calculateDueDate(task.start_date, effectiveDuration);
+      return getTaskDuration(task.id);
+    } catch (error) {
+      console.warn(`Error getting duration for task ${task.id}:`, error);
+      return task.duration_days || 1;
+    }
+  };
+
+  const getCalculatedDueDate = () => {
+    try {
+      const dueDate = getTaskDueDate(task.id);
       return dueDate ? dueDate.toISOString() : task.due_date;
-    } catch (e) {
-      console.warn(`Error calculating due date for task ${task.id}:`, e);
+    } catch (error) {
+      console.warn(`Error getting due date for task ${task.id}:`, error);
       return task.due_date;
     }
   };
 
-  // Helper function to get task properties for any task
+  const getCalculatedStartDate = () => {
+    try {
+      const startDate = getTaskStartDate(task.id);
+      return startDate ? startDate.toISOString() : task.start_date;
+    } catch (error) {
+      console.warn(`Error getting start date for task ${task.id}:`, error);
+      return task.start_date;
+    }
+  };
+
+  // Helper function to get task properties for any task using new date system
   const getTaskProperties = (targetTask) => {
     const taskHasChildren = tasks.some(t => t.parent_task_id === targetTask.id);
     
-    let calculatedDuration = targetTask.duration_days || 1;
-    if (taskHasChildren) {
-      try {
-        calculatedDuration = calculateParentDuration(targetTask.id, tasks);
-      } catch (e) {
-        console.warn(`Error calculating duration for task ${targetTask.id}:`, e);
+    let calculatedDuration;
+    try {
+      if (taskHasChildren) {
+        calculatedDuration = getTaskDuration(targetTask.id);
+      } else {
+        calculatedDuration = targetTask.duration_days || 1;
       }
+    } catch (error) {
+      console.warn(`Error calculating duration for task ${targetTask.id}:`, error);
+      calculatedDuration = targetTask.duration_days || 1;
     }
     
     return {
       hasChildren: taskHasChildren,
       calculatedDuration,
-      effectiveDuration: calculatedDuration
+      effectiveDuration: calculatedDuration,
+      isCalculated: taskHasChildren
     };
   };
 
+  // Get calculated values for this task
   const calculatedDuration = getEffectiveDuration();
-  const effectiveDuration = calculatedDuration;
   const actualDueDate = getCalculatedDueDate();
+  const actualStartDate = getCalculatedStartDate();
+  const taskProperties = getTaskProperties(task);
+
+  // Task status using new date system
+  const taskIsOverdue = isTaskOverdue(task.id);
+  const taskIsDueToday = isTaskDueToday(task.id);
   
   // Button handlers
   const handleEditClick = () => {
@@ -166,8 +186,6 @@ const TaskDetailsPanel = ({
     onEditTask(task.id, updatedTaskData);
     setIsEditing(false);
   };
-  
-  if (!task) return null;
   
   // Check if this is a top-level project
   const isTopLevelProject = !task.parent_task_id;
@@ -292,6 +310,21 @@ const TaskDetailsPanel = ({
         }}>
           {task.origin === 'template' ? 'Template' : 'Task'}
         </div>
+
+        {/* Show calculation status if dates are being calculated */}
+        {datesCalculating && (
+          <div style={{
+            padding: '8px 12px',
+            backgroundColor: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '4px',
+            marginBottom: '16px',
+            fontSize: '12px',
+            color: '#92400e'
+          }}>
+            📊 Recalculating dates...
+          </div>
+        )}
         
         {/* Project Members Section - Only for top-level projects */}
         {isTopLevelProject && (
@@ -469,7 +502,7 @@ const TaskDetailsPanel = ({
           <h4 style={{ fontWeight: 'bold', marginBottom: '8px', marginTop: '0' }}>Schedule Details</h4>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {/* Duration Display - Updated to show both durations */}
+            {/* Duration Display - Updated to show both durations with calculation indicator */}
             <div>
               <span style={{ fontSize: '12px', color: '#4b5563' }}>Duration</span>
               
@@ -552,7 +585,7 @@ const TaskDetailsPanel = ({
             </div>
           </div>
           
-          {/* Date range information */}
+          {/* Date range information with status indicators */}
           <div style={{ 
             marginTop: '16px',
             display: 'flex',
@@ -566,19 +599,22 @@ const TaskDetailsPanel = ({
                 fontWeight: 'bold', 
                 margin: '4px 0 0 0'
               }}>
-                {formatDisplayDate(task.start_date)}
+                {formatDisplayDate(actualStartDate)}
               </p>
             </div>
             
-            {/* Due date - now using the calculated due date */}
+            {/* Due date with status indicators */}
             <div style={{ flex: 1 }}>
               <span style={{ fontSize: '12px', color: '#4b5563' }}>Due Date</span>
               <p style={{ 
                 fontSize: '14px', 
                 fontWeight: 'bold', 
-                margin: '4px 0 0 0'
+                margin: '4px 0 0 0',
+                color: taskIsOverdue ? '#dc2626' : taskIsDueToday ? '#f59e0b' : 'inherit'
               }}>
                 {formatDisplayDate(actualDueDate)}
+                {taskIsOverdue && ' ⚠️'}
+                {taskIsDueToday && ' 📅'}
               </p>
             </div>
           </div>
@@ -601,31 +637,34 @@ const TaskDetailsPanel = ({
                   padding: '0 0 0 16px'
                 }}>
                   {children.map((child, index) => {
-                    // Get properties for this child using our helper function
+                    // Get properties for this child using our helper function with new date system
                     const childProps = getTaskProperties(child);
-                    
-                    // Display the appropriate duration based on whether this child has children
-                    const childStoredDuration = child.duration_days || 1;
-                    const displayDuration = childProps.hasChildren ? 
-                      childProps.calculatedDuration : childStoredDuration;
+                    const childStartDate = getCalculatedStartDate ? getTaskStartDate(child.id) : child.start_date;
+                    const childDueDate = getCalculatedDueDate ? getTaskDueDate(child.id) : child.due_date;
                     
                     return (
                       <li key={child.id} style={{ marginBottom: '6px' }}>
                         <div style={{ 
                           display: 'flex', 
                           justifyContent: 'space-between',
+                          alignItems: 'center',
                           padding: '4px 8px',
                           backgroundColor: index % 2 === 0 ? '#f9fafb' : 'white',
                           borderRadius: '2px'
                         }}>
-                          <span style={{ fontWeight: 'bold' }}>{child.title}</span>
+                          <div>
+                            <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{child.title}</div>
+                            <div style={{ color: '#6b7280', fontSize: '11px' }}>
+                              {formatDisplayDate(childStartDate)} → {formatDisplayDate(childDueDate)}
+                            </div>
+                          </div>
                           <div style={{ display: 'flex', alignItems: 'center' }}>
                             <span style={{ color: '#6b7280', fontSize: '12px' }}>
-                              {displayDuration} day{displayDuration !== 1 ? 's' : ''}
+                              {childProps.effectiveDuration} day{childProps.effectiveDuration !== 1 ? 's' : ''}
                             </span>
                             
                             {/* Add a badge for calculated durations */}
-                            {childProps.hasChildren && displayDuration !== childStoredDuration && (
+                            {childProps.isCalculated && (
                               <span style={{
                                 fontSize: '9px',
                                 padding: '1px 4px',
@@ -667,6 +706,27 @@ const TaskDetailsPanel = ({
             </div>
           )}
         </div>
+
+        {/* Show date calculation details for debugging */}
+        {process.env.NODE_ENV === 'development' && taskDates[task.id] && (
+          <details style={{ marginTop: '12px', fontSize: '12px' }}>
+            <summary style={{ color: '#6b7280', cursor: 'pointer' }}>
+              Date Calculation Details (Development)
+            </summary>
+            <div style={{ 
+              marginTop: '8px', 
+              padding: '8px', 
+              backgroundColor: '#f3f4f6',
+              borderRadius: '4px',
+              fontFamily: 'monospace'
+            }}>
+              <div>Cached Start: {taskDates[task.id].start_date}</div>
+              <div>Cached Due: {taskDates[task.id].due_date}</div>
+              <div>Cached Duration: {taskDates[task.id].duration_days}</div>
+              <div>Cache Version: {taskDates[task.id].calculation_version}</div>
+            </div>
+          </details>
+        )}
         
         {/* Created/Modified dates */}
         <div style={{ 

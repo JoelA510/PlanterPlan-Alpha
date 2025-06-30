@@ -16,6 +16,26 @@
 - ok let's start implementing the search bar   
     - let's drop the LLM idea for now, and focus on a radically simpler smart-filter-based search 
 
+- ok now let's do the date engine
+    - the template itself has the info to help with dates, but right now we are using duration (how long tasks and their children take) but the updates are not working well
+    - Claude seems to think it's because date calculations are happenign at differen times (drag&drop, task updates, component re-renders)
+        - also `position` determines the visual order but date calculations assume sequential execution
+        - database the source of calculated values, but then drag & drop changes need to update the database immediately, creating sync complexity.
+        -  Parent durations are calculated from children, but if children dates change, parent durations need to recalculate. This creates a cascade that's hard to manage.
+    - on one hand, we need to do a database change, but then we having to wait for that is slow, hence the optimistic update but that's what creates the inconsistency 
+        - we need a TaskContext cache that stores a hash of current task structure to detect changes 
+        - For drag & drop (position change)
+            - Identify which tasks are affected (the moved task + its siblings in new position)
+            - Only recalculate dates for those tasks
+            - Leave all other cached dates unchanged
+        - For duration change
+            - Identify affected tasks (the changed task + all its descendants + parent chain)
+            - Recalculate only that branch
+            - Leave unrelated branches cached
+        - For hierarchy change (parent_task_id)
+            - Affects old parent branch + new parent branch
+            - Recalculate both affected branches
+
 ### May 19 2025
 * issue: create new task needs to have the right start date based on duedate
 * we working on task reordering

@@ -1,58 +1,75 @@
 import React, { useState } from 'react';
 import TaskDropZone from './TaskDropZone';
 import { formatDisplayDate, getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import { calculateParentDuration } from '../../utils/sequentialTaskManager';
-import { calculateDueDate } from '../../utils/dateUtils';
 import { updateTaskCompletion } from '../../services/taskService';
 import { useTasks } from '../contexts/TaskContext';
 
 const TaskItem = ({ 
-  task, 
-  tasks, 
-  expandedTasks, 
-  toggleExpandTask, 
-  selectedTaskId,
+  task,
+  tasks,
+  onAddChildTask,
+  onDeleteTask,
+  onSelectTask,
+  isSelected,
+  expandedTasks,
+  toggleExpandTask,
   selectTask,
+  selectedTaskId,
   setTasks,
   dragAndDrop,
-  onAddChildTask,
   parentTasks = []
 }) => {
+
+  // Get date functions from context
+  const { 
+    getTaskStartDate, 
+    getTaskDueDate, 
+    getTaskDuration,
+    isTaskOverdue,
+    isTaskDueToday 
+  } = useTasks();
 
   // Calculate task properties on-demand
   const hasChildren = tasks.some(t => t.parent_task_id === task.id);
   
-  // Calculate effective duration - use calculated duration for parents, stored for leaf tasks
+  // Use the new date system instead of local calculations
   const getEffectiveDuration = () => {
-    if (hasChildren) {
-      try {
-        return calculateParentDuration(task.id, tasks);
-      } catch (e) {
-        console.warn(`Error calculating parent duration for task ${task.id}:`, e);
-        return task.duration_days || 1;
-      }
-    }
-    return task.duration_days || 1;
-  };
-  
-  // Calculate due date on-demand
-  const getCalculatedDueDate = () => {
-    if (!task.start_date) return null;
-    
     try {
-      const effectiveDuration = getEffectiveDuration();
-      const dueDate = calculateDueDate(task.start_date, effectiveDuration);
-      return dueDate ? dueDate.toISOString() : null;
-    } catch (e) {
-      console.warn(`Error calculating due date for task ${task.id}:`, e);
-      return task.due_date || null;
+      return getTaskDuration(task.id);
+    } catch (error) {
+      console.warn(`Error getting duration for task ${task.id}:`, error);
+      return task.duration_days || 1;
     }
   };
 
-  const calculatedDuration = hasChildren ? getEffectiveDuration() : (task.duration_days || 1);
-  const storedDuration = task.duration_days || 1;
-  const effectiveDuration = getEffectiveDuration();
+  const getCalculatedDueDate = () => {
+    try {
+      const dueDate = getTaskDueDate(task.id);
+      return dueDate ? dueDate.toISOString() : task.due_date;
+    } catch (error) {
+      console.warn(`Error getting due date for task ${task.id}:`, error);
+      return task.due_date;
+    }
+  };
+
+  const getCalculatedStartDate = () => {
+    try {
+      const startDate = getTaskStartDate(task.id);
+      return startDate ? startDate.toISOString() : task.start_date;
+    } catch (error) {
+      console.warn(`Error getting start date for task ${task.id}:`, error);
+      return task.start_date;
+    }
+  };
+
+  // Get calculated values
+  const calculatedDuration = getEffectiveDuration();
   const calculatedDueDate = getCalculatedDueDate();
+  const calculatedStartDate = getCalculatedStartDate();
+
+  // Task status helpers using new date system
+  const taskIsOverdue = isTaskOverdue(task.id);
+  const taskIsDueToday = isTaskDueToday(task.id);
 
   const [isHovering, setIsHovering] = useState(false);
   
@@ -72,7 +89,6 @@ const TaskItem = ({
   } = dragAndDrop;
 
   const isExpanded = expandedTasks[task.id];
-  const isSelected = selectedTaskId === task.id;
   const children = tasks
     .filter(t => t.parent_task_id === task.id)
     .sort((a, b) => a.position - b.position);
@@ -135,17 +151,17 @@ const TaskItem = ({
   };
   
   // Handle the add child task button click
-const handleAddChildButtonClick = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  console.log("Add child button clicked for task:", task.id);
-  // Call the parent component's handler if it exists
-  if (typeof onAddChildTask === 'function') {
-    onAddChildTask(task.id);
-  } else {
-    console.error("onAddChildTask is not a function", onAddChildTask);
-  }
-};
+  const handleAddChildButtonClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("Add child button clicked for task:", task.id);
+    // Call the parent component's handler if it exists
+    if (typeof onAddChildTask === 'function') {
+      onAddChildTask(task.id);
+    } else {
+      console.error("onAddChildTask is not a function", onAddChildTask);
+    }
+  };
   
   // Render children with drop zones
   let childrenContent = null;
@@ -181,9 +197,12 @@ const handleAddChildButtonClick = (e) => {
           toggleExpandTask={toggleExpandTask}
           selectedTaskId={selectedTaskId}
           selectTask={selectTask}
+          isSelected={selectedTaskId === child.id}
           setTasks={setTasks}
           dragAndDrop={dragAndDrop}
           onAddChildTask={onAddChildTask}
+          onDeleteTask={onDeleteTask}
+          onSelectTask={onSelectTask}
           parentTasks={[...parentTasks, task]}
         />
       );
@@ -276,7 +295,6 @@ const handleAddChildButtonClick = (e) => {
           cursor: isTopLevel ? 'pointer' : 'grab',
           borderRadius: '4px',
           transition: 'all 0.2s ease',
-          boxShadow: isSelected ? '0 0 0 2px white, 0 0 0 4px ' + backgroundColor : 'none',
           zIndex: isSelected ? 1 : 'auto',
           borderTop: isDropTargetBefore ? '3px solid #3b82f6' : undefined,
           borderBottom: isDropTargetAfter ? '3px solid #3b82f6' : undefined,
@@ -290,12 +308,12 @@ const handleAddChildButtonClick = (e) => {
             <span style={{ marginRight: '8px' }}>☰</span>
           )}
           <input 
-  type="checkbox"
-  checked={task.is_complete === true}  // Ensure this is a boolean
-  onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
-  onClick={(e) => e.stopPropagation()}
-  style={{ marginRight: '12px' }}
-/>
+            type="checkbox"
+            checked={task.is_complete === true}
+            onChange={(e) => toggleTaskCompletion(task.id, task.is_complete, e)}
+            onClick={(e) => e.stopPropagation()}
+            style={{ marginRight: '12px' }}
+          />
           <span 
             style={{ 
               textDecoration: task.is_complete ? 'line-through' : 'none',
@@ -330,9 +348,33 @@ const handleAddChildButtonClick = (e) => {
             +
           </button>
         </div>
+
         <div style={{ display: 'flex', alignItems: 'center' }}>
+          {/* Duration display with calculation indicator */}
+          <span style={{ 
+            fontSize: '12px', 
+            color: 'rgba(255, 255, 255, 0.9)', 
+            marginRight: '8px' 
+          }}>
+            {calculatedDuration} day{calculatedDuration !== 1 ? 's' : ''}
+            {hasChildren && (
+              <span style={{ marginLeft: '4px', fontSize: '10px', opacity: 0.7 }}>
+                (calc)
+              </span>
+            )}
+          </span>
+
+          {/* Due date display with status indicators */}
           {calculatedDueDate && (
-            <span style={{ marginRight: '12px' }}>Due: {formatDisplayDate(calculatedDueDate)}</span>
+            <span style={{ 
+              marginRight: '12px',
+              fontSize: '12px',
+              color: taskIsOverdue ? '#fecaca' : taskIsDueToday ? '#fde68a' : 'rgba(255, 255, 255, 0.9)'
+            }}>
+              Due: {formatDisplayDate(calculatedDueDate)}
+              {taskIsOverdue && ' ⚠️'}
+              {taskIsDueToday && ' 📅'}
+            </span>
           )}
           
           {/* Info button to view details in the right panel */}
