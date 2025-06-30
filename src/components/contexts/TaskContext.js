@@ -3,8 +3,8 @@ import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationProvider';
 import { useLicenses } from '../../hooks/useLicenses';
 import { useTaskCreation } from '../../hooks/useTaskCreation';
+import { useTemplateToProject } from '../../hooks/useTemplateToProject';
 import { useLocation } from 'react-router-dom';
-import { supabase } from '../../supabaseClient';
 import { useTaskDates } from '../../hooks/useTaskDates';
 
 // Import functions from taskService
@@ -26,7 +26,6 @@ import {
 // Import sequential task manager functions (for templates only)
 import { 
   calculateParentDuration, 
-  calculateSequentialStartDates,
   updateAncestorDurations,
   updateAfterReordering,
   getTasksRequiringUpdates,
@@ -77,6 +76,16 @@ export const TaskProvider = ({ children }) => {
     creationError,
     clearCreationError
   } = useTaskCreation();
+
+  // Use the template-to-project conversion hook
+  const {
+    createProjectFromTemplate: createProjectFromTemplateFromHook,
+    isConverting: isConvertingTemplate,
+    conversionError,
+    conversionProgress,
+    clearConversionError,
+    resetProgress
+  } = useTemplateToProject();
   
   // State for tasks - ONLY the main tasks array
   const [tasks, setTasks] = useState([]);
@@ -265,6 +274,25 @@ export const TaskProvider = ({ children }) => {
 
     return result;
   }, [createTaskFromHook, tasks, updateTaskDatesIncremental]);
+
+  // Wrapper for template-to-project conversion that integrates with our state management
+  const createProjectFromTemplate = useCallback(async (templateId, projectData, licenseId = null) => {
+    const result = await createProjectFromTemplateFromHook(templateId, projectData, {
+      licenseId,
+      templateTasks,
+      onProjectCreated: async (rootProject, createdTasks) => {
+        // Update the tasks list with all created tasks
+        setTasks(prev => [...prev, ...createdTasks]);
+        
+        // Trigger a full refresh to get the latest state with proper calculations
+        setTimeout(() => {
+          fetchTasks(true);
+        }, 1000);
+      }
+    });
+
+    return result;
+  }, [createProjectFromTemplateFromHook, templateTasks, fetchTasks]);
 
   // Update task handler with date system integration
   const updateTaskHandler = async (taskId, updatedTaskData) => {
@@ -584,171 +612,7 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  // Create project from template (simplified for date system)
-  const createProjectFromTemplate = async (templateId, projectData, licenseId = null) => {
-    try {
-      console.log('Creating project from template:', templateId);
-      
-      if (!user?.id) {
-        throw new Error('Cannot create project: User ID is missing');
-      }
-      
-      if (!templateId) {
-        throw new Error('Template ID is required');
-      }
-      
-      const template = templateTasks.find(t => t.id === templateId);
-      if (!template) {
-        throw new Error(`Template with ID ${templateId} not found`);
-      }
-      
-      const effectiveDuration = template.duration_days || template.default_duration || 1;
-      const projectStartDate = projectData.startDate ? new Date(projectData.startDate) : new Date();
-      
-      const projectBaseData = {
-        title: projectData.name || template.title,
-        description: template.description,
-        purpose: template.purpose,
-        actions: template.actions || [],
-        resources: template.resources || [],
-        origin: 'instance',
-        is_complete: false,
-        creator: user.id,
-        white_label_id: organizationId,
-        license_id: licenseId,
-        start_date: projectStartDate.toISOString(),
-        parent_task_id: null,
-        default_duration: template.default_duration || 1,
-        duration_days: effectiveDuration
-      };
-      
-      const calculatedDueDate = calculateDueDate(projectStartDate, effectiveDuration);
-      if (calculatedDueDate) {
-        projectBaseData.due_date = calculatedDueDate.toISOString();
-      }
-      
-      // Use the new task creation system for the root project
-      const projectResult = await createNewTask(projectBaseData, licenseId);
-      
-      if (projectResult.error) {
-        throw new Error(projectResult.error);
-      }
-      
-      const newProject = projectResult.data;
-      console.log('Created root project:', newProject);
-      
-      const createdTasksArray = [newProject];
-      const templateToProjectMap = { [templateId]: newProject.id };
-      
-      // Get all template tasks in the hierarchy
-      const templateTasksTree = await getAllTemplateTasksInHierarchy(templateId);
-      console.log(`Found ${templateTasksTree.length} template tasks in hierarchy`);
-      
-      // Create all child tasks by level
-      const templateTasksByLevel = {};
-      templateTasksTree.forEach(task => {
-        let level = 0;
-        let currentTask = task;
-        while (currentTask.parent_task_id) {
-          level++;
-          currentTask = templateTasksTree.find(t => t.id === currentTask.parent_task_id) || {};
-        }
-        
-        if (!templateTasksByLevel[level]) {
-          templateTasksByLevel[level] = [];
-        }
-        templateTasksByLevel[level].push(task);
-      });
-      
-      const levels = Object.keys(templateTasksByLevel).sort((a, b) => parseInt(a) - parseInt(b));
-      
-      for (const level of levels) {
-        if (level === '0') continue;
-        
-        const tasksAtLevel = templateTasksByLevel[level];
-        console.log(`Processing ${tasksAtLevel.length} tasks at level ${level}`);
-        
-        for (const templateTask of tasksAtLevel) {
-          const templateParentId = templateTask.parent_task_id;
-          const projectParentId = templateToProjectMap[templateParentId];
-          
-          if (!projectParentId) {
-            console.error(`Missing project parent ID for template: ${templateTask.title}`);
-            continue;
-          }
-          
-          const childTaskData = {
-            title: templateTask.title,
-            description: templateTask.description,
-            purpose: templateTask.purpose,
-            actions: templateTask.actions || [],
-            resources: templateTask.resources || [],
-            origin: 'instance',
-            is_complete: false,
-            parent_task_id: projectParentId,
-            position: templateTask.position,
-            default_duration: templateTask.default_duration || 1,
-            duration_days: templateTask.duration_days || 1,
-          };
-          
-          // Use the new task creation system for child tasks too
-          const childResult = await createNewTask(childTaskData);
-          
-          if (childResult.error) {
-            console.error('Error creating child task:', childResult.error);
-            continue;
-          }
-          
-          createdTasksArray.push(childResult.data);
-          templateToProjectMap[templateTask.id] = childResult.data.id;
-        }
-      }
-      
-      console.log(`Created ${createdTasksArray.length} tasks total`);
-      
-      // Refresh tasks to get the latest state with all calculations
-      await fetchTasks(true);
-      
-      return { data: newProject, error: null };
-    } catch (err) {
-      console.error('Error creating project from template:', err);
-      return { data: null, error: err.message };
-    }
-  };
-
-  // Helper function to get all template tasks in a hierarchy
-  const getAllTemplateTasksInHierarchy = async (rootTemplateId) => {
-    let templates = templateTasks;
-    
-    if (!templates || templates.length === 0) {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('origin', 'template');
-        
-      if (error) throw new Error(error.message);
-      templates = data || [];
-    }
-    
-    const result = [];
-    
-    const collectTemplates = (parentId) => {
-      const children = templates.filter(t => t.parent_task_id === parentId);
-      result.push(...children);
-      
-      children.forEach(child => collectTemplates(child.id));
-    };
-    
-    const rootTemplate = templates.find(t => t.id === rootTemplateId);
-    if (rootTemplate) {
-      result.push(rootTemplate);
-      collectTemplates(rootTemplateId);
-    }
-    
-    return result;
-  };
-
-  // Get all tasks in a hierarchy
+  // Get all tasks in a hierarchy (utility function)
   const getAllTasksInHierarchy = (rootId, allTasks) => {
     if (!rootId || !Array.isArray(allTasks) || allTasks.length === 0) {
       return [];
@@ -814,16 +678,23 @@ export const TaskProvider = ({ children }) => {
 
     // Core task operations
     fetchTasks,
-    createTask: createNewTask, // Now uses the extracted hook internally
+    createTask: createNewTask, // Uses extracted hook internally
     updateTask: updateTaskHandler,
     deleteTask: deleteTaskHandler,
     updateTaskAfterDragDrop,
-    createProjectFromTemplate,
+    createProjectFromTemplate, // Now uses extracted hook internally
 
     // Task creation specific state (from the extracted hook)
     isCreatingTask,
     creationError,
     clearCreationError,
+
+    // Template conversion specific state (from the extracted hook)
+    isConvertingTemplate,
+    conversionError,
+    conversionProgress,
+    clearConversionError,
+    resetProgress,
 
     // Direct task service functions
     updateTaskPosition,
@@ -849,6 +720,7 @@ export const TaskProvider = ({ children }) => {
     // Utility functions
     updateTasks,
     determineTaskStartDate: (task) => getTaskStartDate(task.id),
+    getAllTasksInHierarchy,
     
     // Debug functions
     getCacheStats,
@@ -867,6 +739,13 @@ export const TaskProvider = ({ children }) => {
     isCreatingTask,
     creationError,
     clearCreationError,
+
+    // Template conversion state
+    isConvertingTemplate,
+    conversionError,
+    conversionProgress,
+    clearConversionError,
+    resetProgress,
     
     // Date state
     taskDates,
