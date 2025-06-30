@@ -4,6 +4,7 @@ import { useOrganization } from './OrganizationProvider';
 import { useLicenses } from '../../hooks/useLicenses';
 import { useTaskCreation } from '../../hooks/useTaskCreation';
 import { useTemplateToProject } from '../../hooks/useTemplateToProject';
+import { useTaskDeletion } from '../../hooks/useTaskDeletion';
 import { useLocation } from 'react-router-dom';
 import { useTaskDates } from '../../hooks/useTaskDates';
 
@@ -13,7 +14,6 @@ import {
   updateTaskPosition, 
   updateSiblingPositions, 
   updateTaskCompletion,
-  deleteTask,
   updateTaskDateFields,
   updateTaskComplete, 
 } from '../../services/taskService';
@@ -86,6 +86,17 @@ export const TaskProvider = ({ children }) => {
     clearConversionError,
     resetProgress
   } = useTemplateToProject();
+
+  // Use the task deletion hook
+  const {
+    deleteTask: deleteTaskFromHook,
+    isDeleting: isDeletingTask,
+    deletionError,
+    deletionProgress,
+    getDeletionConfirmationMessage,
+    clearDeletionError,
+    resetProgress: resetDeletionProgress
+  } = useTaskDeletion();
   
   // State for tasks - ONLY the main tasks array
   const [tasks, setTasks] = useState([]);
@@ -294,6 +305,36 @@ export const TaskProvider = ({ children }) => {
     return result;
   }, [createProjectFromTemplateFromHook, templateTasks, fetchTasks]);
 
+  // Wrapper for task deletion that integrates with our state management
+  const deleteTaskHandler = useCallback(async (taskId, deleteChildren = true) => {
+    const result = await deleteTaskFromHook(taskId, {
+      deleteChildren,
+      existingTasks: tasks,
+      onTasksDeleted: async (deletedIds, hasChildren) => {
+        console.log(`Tasks deleted successfully: ${deletedIds.length} tasks`);
+        
+        // Get siblings that will be affected by the deletion
+        const taskToDelete = tasks.find(t => t.id === taskId);
+        if (taskToDelete) {
+          const siblings = getTaskSiblings(taskId, tasks);
+          
+          // Trigger date recalculation for affected siblings if this is an instance task
+          if (taskToDelete.origin === 'instance' && siblings.length > 0) {
+            setTimeout(async () => {
+              await updateTaskDatesIncremental(siblings);
+            }, 100);
+          }
+        }
+      },
+      onTasksUpdated: async (updatedTasks) => {
+        // Update our local state with the new task list
+        setTasks(updatedTasks);
+      }
+    });
+
+    return result;
+  }, [deleteTaskFromHook, tasks, getTaskSiblings, updateTaskDatesIncremental]);
+
   // Update task handler with date system integration
   const updateTaskHandler = async (taskId, updatedTaskData) => {
     try {
@@ -445,133 +486,6 @@ export const TaskProvider = ({ children }) => {
     }
   }, [tasks, getTaskDescendants, getTaskSiblings, updateTaskDatesIncremental]);
 
-  // Delete task handler with date system integration
-  const deleteTaskHandler = useCallback(async (taskId, deleteChildren = true) => {
-    try {
-      const taskToDelete = tasks.find(t => t.id === taskId);
-      if (!taskToDelete) {
-        throw new Error('Task not found');
-      }
-      
-      console.log(`Deleting task ${taskId} (with children: ${deleteChildren})`);
-      
-      // Get siblings that will be affected by the deletion
-      const siblings = getTaskSiblings(taskId, tasks);
-      const parentId = taskToDelete.parent_task_id;
-      const isTemplate = taskToDelete.origin === 'template';
-      
-      const result = await deleteTask(taskId, deleteChildren);
-      
-      if (!result.success) {
-        if (result.error && (
-          result.error.includes("Invalid time value") || 
-          result.error.includes("Invalid date")
-        )) {
-          console.warn("Date calculation issue during deletion, continuing with UI update");
-          
-          const childTaskIds = [];
-          const findAllChildren = (parentId) => {
-            const children = tasks.filter(t => t.parent_task_id === parentId).map(t => t.id);
-            childTaskIds.push(...children);
-            children.forEach(childId => findAllChildren(childId));
-          };
-          
-          let allTaskIdsToDelete = [taskId];
-          if (deleteChildren) {
-            findAllChildren(taskId);
-            allTaskIdsToDelete = [...allTaskIdsToDelete, ...childTaskIds];
-          }
-          
-          const updatedTaskList = tasks.filter(task => !allTaskIdsToDelete.includes(task.id));
-          
-          if (isTemplate && parentId) {
-            const reorderedTasks = updateAfterReordering(parentId, updatedTaskList);
-            const parent = reorderedTasks.find(t => t.id === parentId);
-            if (parent) {
-              const newDuration = calculateParentDuration(parentId, reorderedTasks);
-              if (parent.duration_days !== newDuration) {
-                const tasksWithUpdatedDurations = updateAncestorDurations(parentId, reorderedTasks);
-                const tasksToUpdate = getTasksRequiringUpdates(updatedTaskList, tasksWithUpdatedDurations);
-                await updateTasksInDatabase(tasksToUpdate, updateTaskComplete);
-                updateTasks(tasksWithUpdatedDurations);
-                return { 
-                  success: true, 
-                  deletedIds: allTaskIdsToDelete,
-                  hasChildren: childTaskIds.length > 0
-                };
-              }
-            }
-            updateTasks(reorderedTasks);
-          } else {
-            updateTasks(updatedTaskList);
-          }
-          
-          return { 
-            success: true, 
-            deletedIds: allTaskIdsToDelete,
-            hasChildren: childTaskIds.length > 0
-          };
-        }
-        
-        throw new Error(result.error);
-      }
-      
-      // Remove all deleted tasks from local state
-      if (result.deletedIds && Array.isArray(result.deletedIds)) {
-        const updatedTaskList = tasks.filter(task => !result.deletedIds.includes(task.id));
-        
-        console.log(`Deleted ${result.deletedIds.length} tasks`);
-        
-        if (isTemplate && parentId) {
-          const reorderedTasks = updateAfterReordering(parentId, updatedTaskList);
-          const parent = reorderedTasks.find(t => t.id === parentId);
-          if (parent) {
-            const newDuration = calculateParentDuration(parentId, reorderedTasks);
-            if (parent.duration_days !== newDuration) {
-              const withUpdatedDurations = updateAncestorDurations(parentId, reorderedTasks);
-              const tasksToUpdate = getTasksRequiringUpdates(updatedTaskList, withUpdatedDurations);
-              await updateTasksInDatabase(tasksToUpdate, updateTaskComplete);
-              updateTasks(withUpdatedDurations);
-              return { 
-                success: true, 
-                deletedIds: result.deletedIds,
-                hasChildren: result.deletedIds.length > 1
-              };
-            }
-          }
-          updateTasks(reorderedTasks);
-        } else {
-          updateTasks(updatedTaskList);
-          
-          // Trigger date recalculation for affected siblings
-          if (siblings.length > 0) {
-            await updateTaskDatesIncremental(siblings);
-          }
-        }
-      }
-      
-      return { 
-        success: true, 
-        deletedIds: result.deletedIds,
-        hasChildren: result.deletedIds && result.deletedIds.length > 1
-      };
-    } catch (err) {
-      console.error('Error deleting task:', err);
-      
-      if (err.message && (
-        err.message.includes("Invalid time value") || 
-        err.message.includes("Invalid date")
-      )) {
-        return { 
-          success: false, 
-          error: "Date calculation error during deletion. Try refreshing the page." 
-        };
-      }
-      
-      return { success: false, error: err.message };
-    }
-  }, [tasks, getTaskSiblings, updateTaskDatesIncremental, updateTasks]);
-
   // Update task after drag & drop with new date system
   const updateTaskAfterDragDrop = async (taskId, newParentId, newPosition, oldParentId) => {
     try {
@@ -680,9 +594,9 @@ export const TaskProvider = ({ children }) => {
     fetchTasks,
     createTask: createNewTask, // Uses extracted hook internally
     updateTask: updateTaskHandler,
-    deleteTask: deleteTaskHandler,
+    deleteTask: deleteTaskHandler, // Now uses extracted hook internally
     updateTaskAfterDragDrop,
-    createProjectFromTemplate, // Now uses extracted hook internally
+    createProjectFromTemplate, // Uses extracted hook internally
 
     // Task creation specific state (from the extracted hook)
     isCreatingTask,
@@ -695,6 +609,14 @@ export const TaskProvider = ({ children }) => {
     conversionProgress,
     clearConversionError,
     resetProgress,
+
+    // Task deletion specific state (from the extracted hook)
+    isDeletingTask,
+    deletionError,
+    deletionProgress,
+    getDeletionConfirmationMessage,
+    clearDeletionError,
+    resetDeletionProgress,
 
     // Direct task service functions
     updateTaskPosition,
@@ -746,6 +668,14 @@ export const TaskProvider = ({ children }) => {
     conversionProgress,
     clearConversionError,
     resetProgress,
+
+    // Task deletion state
+    isDeletingTask,
+    deletionError,
+    deletionProgress,
+    getDeletionConfirmationMessage,
+    clearDeletionError,
+    resetDeletionProgress,
     
     // Date state
     taskDates,
