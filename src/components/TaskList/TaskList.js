@@ -12,6 +12,9 @@ import TaskDetailsPanel from './TaskDetailsPanel';
 import TemplateProjectCreator from '../TemplateProject/TemplateProjectCreator';
 import { getNextAvailablePosition } from '../../utils/sparsePositioning';
 import InvitationTest from '../InvitationTest';
+import SearchBar from '../Search/SearchBar';
+import SearchResults from '../Search/SearchResults';
+import { useSearch } from '../contexts/SearchContext';
 
 const TaskList = () => {
   // Initialize refs first 
@@ -49,6 +52,9 @@ const TaskList = () => {
   const [showProjectMenu, setShowProjectMenu] = useState(false);
   
   const [showInvitationTest, setShowInvitationTest] = useState(false);
+
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const { isSearchActive, filteredTasks } = useSearch();
   
 
   useEffect(() => {
@@ -544,6 +550,16 @@ const handleCancelTemplateProjectCreation = () => {
     
   };
 
+    // Handle task selection from search results
+  const handleTaskSelectFromSearch = (task) => {
+    setSelectedTaskId(task.id);
+    setShowSearchResults(false);
+  };
+
+  const toggleSearchResults = () => {
+    setShowSearchResults(!showSearchResults);
+  };
+
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
       {/* Left panel - Task list */}
@@ -552,6 +568,9 @@ const handleCancelTemplateProjectCreation = () => {
         marginRight: '24px',
         overflow: 'auto'
       }}>
+        {/* ADD SEARCH BAR HERE - Before the Projects header */}
+        <SearchBar onToggleResults={toggleSearchResults} />
+
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -560,73 +579,73 @@ const handleCancelTemplateProjectCreation = () => {
         }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Projects</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
-            onClick={() => setShowInvitationTest(!showInvitationTest)}
-            style={{
-              backgroundColor: '#8b5cf6',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              border: 'none'
-            }}
-          >
-            🧪 Invitations
-          </button>
-          <div className="dropdown" style={{ position: 'relative' }}>
             <button 
-              className="project-dropdown-button"
-              onClick={() => setShowProjectMenu(!showProjectMenu)}
+              onClick={() => setShowInvitationTest(!showInvitationTest)}
               style={{
-                backgroundColor: '#10b981',
+                backgroundColor: '#8b5cf6',
                 color: 'white',
                 padding: '8px 16px',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
+                border: 'none'
               }}
             >
-              New Project <span style={{ fontSize: '10px', marginTop: '2px' }}>▼</span>
+              🧪 Invitations
             </button>
-            
-            {showProjectMenu && (
-              <div 
-                className="project-dropdown-menu"
+            <div className="dropdown" style={{ position: 'relative' }}>
+              <button 
+                className="project-dropdown-button"
+                onClick={() => setShowProjectMenu(!showProjectMenu)}
                 style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: '0',
-                  zIndex: 10,
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '8px 16px',
                   borderRadius: '4px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  width: '200px',
-                  marginTop: '4px'
+                  cursor: 'pointer',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                <div style={{ padding: '8px 12px', cursor: 'pointer' }}
-                    onClick={() => {
-                      console.log('Blank Project clicked');
-                      handleCreateNewProject();
-                      setShowProjectMenu(false);
-                    }}>
-                  Blank Project
+                New Project <span style={{ fontSize: '10px', marginTop: '2px' }}>▼</span>
+              </button>
+              
+              {showProjectMenu && (
+                <div 
+                  className="project-dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: '0',
+                    zIndex: 10,
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '4px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    width: '200px',
+                    marginTop: '4px'
+                  }}
+                >
+                  <div style={{ padding: '8px 12px', cursor: 'pointer' }}
+                      onClick={() => {
+                        console.log('Blank Project clicked');
+                        handleCreateNewProject();
+                        setShowProjectMenu(false);
+                      }}>
+                    Blank Project
+                  </div>
+                  <div style={{ borderTop: '1px solid #e5e7eb' }}></div>
+                  <div style={{ padding: '8px 12px', cursor: 'pointer' }}
+                      onClick={() => {
+                        console.log('From Template clicked');
+                        handleCreateFromTemplate();
+                        setShowProjectMenu(false);
+                      }}>
+                    From Template
+                  </div>
                 </div>
-                <div style={{ borderTop: '1px solid #e5e7eb' }}></div>
-                <div style={{ padding: '8px 12px', cursor: 'pointer' }}
-                    onClick={() => {
-                      console.log('From Template clicked');
-                      handleCreateFromTemplate();
-                      setShowProjectMenu(false);
-                    }}>
-                  From Template
-                </div>
-              </div>
-            )}
+              )}
             </div>
             <button 
               onClick={handleRefresh}
@@ -645,6 +664,39 @@ const handleCancelTemplateProjectCreation = () => {
             </button>
           </div>
         </div>
+
+        {/* ADD SEARCH NOTIFICATION BAR - When search is active but results aren't shown */}
+        {isSearchActive && !showSearchResults && (
+          <div style={{
+            padding: '12px 16px',
+            backgroundColor: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '14px', color: '#1e40af' }}>
+              {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''} match your search
+            </span>
+            <button
+              onClick={() => setShowSearchResults(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#3b82f6',
+                cursor: 'pointer',
+                fontSize: '14px',
+                textDecoration: 'underline'
+              }}
+            >
+              View Results
+            </button>
+          </div>
+        )}
+
+        {/* EXISTING CONTENT - Keep your existing loading, error, and task rendering logic */}
         {initialLoading ? (
           <div style={{ textAlign: 'center', padding: '32px' }}>
             <div style={{ 
@@ -706,6 +758,14 @@ const handleCancelTemplateProjectCreation = () => {
       }}>
         {renderRightPanel()}
       </div>
+
+      {/* ADD SEARCH RESULTS MODAL - Shows when search results are toggled */}
+      {showSearchResults && (
+        <SearchResults 
+          onTaskSelect={handleTaskSelectFromSearch}
+          onClose={() => setShowSearchResults(false)}
+        />
+      )}
     </div>
   );
 };

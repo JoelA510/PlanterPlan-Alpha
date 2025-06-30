@@ -14,6 +14,7 @@ import LoginPage from './components/Login/LoginPage';
 import RegisterPage from './components/Login/RegisterPage';
 import ForgotPasswordPage from './components/Login/ForgotPasswordPage';
 import ResetPasswordPage from './components/Login/ResetPasswordPage';
+import { SearchProvider } from './components/contexts/SearchContext';
 
 // Define LayoutWithOrganization outside of ProtectedRoutes for better stability
 // Use React.memo to prevent unnecessary re-renders
@@ -61,9 +62,11 @@ const LayoutWithOrganization = React.memo(({ userType, children, requiredRole })
   return (
     <OrganizationProvider>
       <TaskProvider>
-        <Layout userType={userType}>
-          {children}
-        </Layout>
+        <SearchProvider>
+          <Layout userType={userType}>
+            {children}
+          </Layout>
+        </SearchProvider>
       </TaskProvider>
     </OrganizationProvider>
   );
