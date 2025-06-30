@@ -683,6 +683,14 @@ App
 
 ## Dev notes
 
+## June 30th [Lorenzo]
+
+- ok, the first Deep Work set is just orientation
+  - I had to setup the .env file, now Supabase works
+
+- ok I created a new admin user for myself
+  
+
 ### May 19 2025
 * issue: create new task needs to have the right start date based on duedate
 * we working on task reordering
