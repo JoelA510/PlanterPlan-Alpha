@@ -256,7 +256,10 @@ const TaskList = () => {
    * New simplified drag handler using drop zones
    */
   const handleDragEnd = async ({ active, over }) => {
-    console.log('Drag ended:', { active: active?.id, over: over?.id, overData: over?.data?.current });
+    console.log('=== DRAG END DEBUG ===');
+    console.log('Active:', active);
+    console.log('Over:', over);
+    console.log('Over data:', over?.data?.current);
     
     if (!over) {
       console.log('No drop target');
@@ -266,10 +269,10 @@ const TaskList = () => {
 
     // Check if dropping on a drop zone or a task
     const dropData = over.data.current;
-    console.log('Drop data:', dropData);
+    console.log('Drop data type:', dropData?.type);
 
     if (!dropData) {
-      console.log('No drop data available');
+      console.log('No drop data available - this might be a drop zone without proper data');
       setActiveDropZone(null);
       return;
     }
@@ -278,71 +281,76 @@ const TaskList = () => {
       let result;
       
       if (dropData.type === 'between') {
+        console.log('=== BETWEEN DROP ===');
         console.log('Moving task between siblings:', { taskId: active.id, parentId: dropData.parentId, position: dropData.position });
         result = await moveTaskBetween(active.id, dropData.parentId, dropData.position);
+        
       } else if (dropData.type === 'into') {
+        console.log('=== INTO DROP ===');
         console.log('Moving task into parent:', { taskId: active.id, parentId: dropData.parentId });
         result = await moveTaskInto(active.id, dropData.parentId);
+        
       } else if (dropData.type === 'task') {
-        // Dropped on a task instead of a drop zone - treat as reorder
-        console.log('Dropped on task, treating as reorder');
+        console.log('=== TASK DROP ===');
+        console.log('Dropped on task, treating as reorder/move');
         const draggedTask = tasks.find(t => t.id === active.id);
         const targetTask = tasks.find(t => t.id === over.id);
         
-        if (draggedTask && targetTask && draggedTask.parent_task_id === targetTask.parent_task_id) {
-          // Get ALL siblings including dragged task for position comparison
-          const allSiblings = tasks
-            .filter(t => t.parent_task_id === draggedTask.parent_task_id)
-            .sort((a, b) => (a.position || 0) - (b.position || 0));
-          
-          // Get siblings WITHOUT dragged task for insertion calculation
-          const siblingsWithoutDragged = allSiblings.filter(t => t.id !== active.id);
-          
-          // Find current positions in the full array
-          const draggedCurrentIndex = allSiblings.findIndex(t => t.id === active.id);
-          const targetCurrentIndex = allSiblings.findIndex(t => t.id === over.id);
-          
-          // Find target position in the array without dragged task
-          const targetIndexInNewArray = siblingsWithoutDragged.findIndex(t => t.id === over.id);
-          
-          // Determine if we're moving up or down
-          const movingUp = draggedCurrentIndex > targetCurrentIndex;
-          
-          console.log('Reorder details:', {
-            draggedTask: draggedTask.title,
-            targetTask: targetTask.title,
-            draggedCurrentIndex,
-            targetCurrentIndex,
-            targetIndexInNewArray,
-            movingUp,
-            allSiblings: allSiblings.map(s => ({ title: s.title, position: s.position, id: s.id })),
-            siblingsWithoutDragged: siblingsWithoutDragged.map(s => ({ title: s.title, position: s.position }))
-          });
-          
-          // Calculate insertion position based on direction
-          let insertPosition;
-          if (movingUp) {
-            // Moving up: insert before target
-            insertPosition = targetIndexInNewArray;
+        console.log('Dragged task:', draggedTask ? { id: draggedTask.id, title: draggedTask.title, parent: draggedTask.parent_task_id } : 'NOT FOUND');
+        console.log('Target task:', targetTask ? { id: targetTask.id, title: targetTask.title, parent: targetTask.parent_task_id } : 'NOT FOUND');
+        
+        if (draggedTask && targetTask) {
+          if (draggedTask.parent_task_id === targetTask.parent_task_id) {
+            console.log('=== SAME PARENT REORDER ===');
+            // Same parent logic (existing code)
+            const allSiblings = tasks
+              .filter(t => t.parent_task_id === draggedTask.parent_task_id)
+              .sort((a, b) => (a.position || 0) - (b.position || 0));
+            
+            const siblingsWithoutDragged = allSiblings.filter(t => t.id !== active.id);
+            const draggedCurrentIndex = allSiblings.findIndex(t => t.id === active.id);
+            const targetCurrentIndex = allSiblings.findIndex(t => t.id === over.id);
+            const targetIndexInNewArray = siblingsWithoutDragged.findIndex(t => t.id === over.id);
+            const movingUp = draggedCurrentIndex > targetCurrentIndex;
+            
+            let insertPosition = movingUp ? targetIndexInNewArray : targetIndexInNewArray + 1;
+            console.log('Same parent calculated position:', insertPosition);
+            result = await moveTaskBetween(active.id, draggedTask.parent_task_id, insertPosition);
+            
           } else {
-            // Moving down: insert after target
-            insertPosition = targetIndexInNewArray + 1;
+            console.log('=== CROSS MILESTONE MOVE ===');
+            console.log('From parent:', draggedTask.parent_task_id, 'To parent:', targetTask.parent_task_id);
+            
+            // Different parents - move to new parent as sibling of target
+            const targetSiblings = tasks
+              .filter(t => t.parent_task_id === targetTask.parent_task_id && t.id !== active.id)
+              .sort((a, b) => (a.position || 0) - (b.position || 0));
+            
+            const targetIndexInSiblings = targetSiblings.findIndex(t => t.id === over.id);
+            const insertPosition = targetIndexInSiblings + 1;
+            
+            console.log('Cross-milestone details:', {
+              targetSiblings: targetSiblings.map(s => ({ id: s.id, title: s.title, position: s.position })),
+              targetIndexInSiblings,
+              insertPosition
+            });
+            
+            result = await moveTaskBetween(active.id, targetTask.parent_task_id, insertPosition);
           }
-          
-          console.log('Calculated insert position:', insertPosition);
-          result = await moveTaskBetween(active.id, draggedTask.parent_task_id, insertPosition);
         } else {
-          console.log('Cannot drop task on task with different parent');
+          console.log('ERROR: Could not find dragged or target task');
           setActiveDropZone(null);
           return;
         }
+        
       } else {
         console.log('Unknown drop type:', dropData.type);
+        console.log('Full dropData object:', dropData);
         setActiveDropZone(null);
         return;
       }
 
-      console.log('Move result:', result);
+      console.log('Move operation result:', result);
 
       if (result && result.success) {
         console.log('Move successful, refreshing tasks');
