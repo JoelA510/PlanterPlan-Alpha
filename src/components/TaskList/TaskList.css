@@ -1,75 +1,262 @@
-/* Styling for the TaskList component */
+/* TaskList.css - Simplified for single context + drop zones */
 
+/* Base task styling */
 .task-header {
   user-select: none;
+  transition: all 0.2s ease;
 }
 
-.task-header.drop-target-into {
-  border: 2px dashed #3b82f6 !important;
-  transform: scale(1.02);
-  transition: transform 0.2s ease;
-  box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
+/* Task item wrapper for better drag handling */
+.sortable-task-wrapper {
+  position: relative;
+  will-change: transform, opacity;
 }
 
+.sortable-task-wrapper[data-is-dragging="true"] {
+  pointer-events: none; /* Prevents interference during drag */
+  z-index: 1000;
+}
+
+/* Task item styles */
+.task-item {
+  position: relative;
+  border-radius: 4px;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.task-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Being dragged state */
 .being-dragged {
   opacity: 0.4;
+  transform: scale(1.02);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
-/* Update drop indicators for the new between paradigm */
-.drop-indicator {
-  position: absolute;
-  left: 12px; /* Indent slightly from the left */
-  right: 12px; /* Indent slightly from the right */
-  height: 3px;
-  background-color: #3b82f6;
-  z-index: 20; /* Higher z-index to ensure visibility */
-  border-radius: 1.5px;
-  pointer-events: none; /* Don't interfere with drag events */
-}
+/* DROP ZONE STYLES */
 
-/* Update positions for before/after to be more centered between tasks */
-.drop-indicator.before {
-  top: -6px; /* Position in the middle of the gap */
-}
-
-.drop-indicator.after {
-  bottom: -6px; /* Position in the middle of the gap */
-}
-
-.task-container {
+/* Between drop zones - for reordering siblings */
+.task-drop-zone-between {
   position: relative;
-}
-
-/* Enhance the indicator visibility */
-.drop-indicator.active {
   height: 4px;
-  box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+  margin: 2px 0;
+  border-radius: 2px;
+  background-color: transparent;
+  transition: all 0.2s ease;
+  cursor: default;
+  /* Slightly larger hit area for better targeting */
+  min-height: 8px;
 }
 
-.task-drop-zone {
-  height: 12px;
-  margin: 0;
-  position: relative;
-  z-index: 10;
-}
-
-.task-drop-zone.active {
-  background-color: rgba(59, 130, 246, 0.1);
-}
-
-.task-drop-zone .indicator {
-  display: none;
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  height: 3px;
-  top: 50%;
-  transform: translateY(-50%);
+.task-drop-zone-between.active {
+  height: 8px;
   background-color: #3b82f6;
-  border-radius: 1.5px;
+  box-shadow: 
+    0 0 8px rgba(59, 130, 246, 0.5),
+    0 2px 4px rgba(59, 130, 246, 0.3);
+  transform: scaleY(1.5);
+  cursor: copy;
+}
+
+.task-drop-zone-between:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+  height: 6px;
+}
+
+/* Into drop zones - for making children */
+.task-drop-zone-into {
+  position: relative;
+  min-height: 20px;
+  margin: 4px 0 4px 24px; /* Indented to show hierarchy */
+  border: 2px dashed #e5e7eb;
+  border-radius: 6px;
+  background-color: rgba(243, 244, 246, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #9ca3af;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.task-drop-zone-into.active {
+  min-height: 32px;
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #1e40af;
+  font-weight: bold;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  cursor: copy;
+}
+
+.task-drop-zone-into:hover {
+  border-color: #9ca3af;
+  background-color: rgba(243, 244, 246, 0.8);
+}
+
+/* Pulse animation for active into zones */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.task-drop-zone-into.active > div {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Drop zone group container */
+.drop-zone-group {
+  position: relative;
+}
+
+/* TASK HIERARCHY VISUAL INDICATORS */
+
+/* Visual connection lines for hierarchy (optional enhancement) */
+.task-item::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.task-item:hover::before {
+  opacity: 1;
+}
+
+/* DRAG OVERLAY STYLES */
+
+/* Enhance the drag overlay from DndContextProvider */
+.dnd-drag-overlay {
+  background-color: #3b82f6;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-weight: bold;
+  opacity: 0.9;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  transform: rotate(2deg);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+  max-width: 250px;
+  text-align: center;
+  z-index: 1001;
+}
+
+/* RESPONSIVE DESIGN */
+
+/* Smaller screens - reduce indentation */
+@media (max-width: 768px) {
+  .task-drop-zone-into {
+    margin-left: 12px; /* Less indentation on mobile */
+    font-size: 11px;
+  }
+  
+  .task-item {
+    font-size: 14px;
+  }
+  
+  /* Larger touch targets for mobile */
+  .task-drop-zone-between {
+    min-height: 12px;
+  }
+  
+  .task-drop-zone-into {
+    min-height: 28px;
+  }
+}
+
+/* ACCESSIBILITY */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .task-drop-zone-between.active {
+    background-color: #000;
+    box-shadow: 0 0 0 2px #fff;
+  }
+  
+  .task-drop-zone-into.active {
+    border-color: #000;
+    background-color: #fff;
+    color: #000;
+  }
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .task-drop-zone-between,
+  .task-drop-zone-into,
+  .task-item,
+  .sortable-task-wrapper {
+    transition: none;
+    animation: none;
+  }
+  
+  .task-drop-zone-into.active > div {
+    animation: none;
+  }
+}
+
+/* Focus indicators for keyboard navigation */
+.task-drop-zone-between:focus,
+.task-drop-zone-into:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* UTILITY CLASSES */
+
+/* For debugging - can be removed in production */
+.debug-drop-zone {
+  border: 1px solid red !important;
+  background-color: rgba(255, 0, 0, 0.1) !important;
+}
+
+.debug-task-item {
+  border: 1px solid green !important;
+}
+
+/* Loading states */
+.task-list-loading {
+  opacity: 0.6;
   pointer-events: none;
 }
 
-.task-drop-zone.active .indicator {
-  display: block;
+/* Error states */
+.task-list-error .task-item {
+  opacity: 0.5;
 }
+
+/* Success feedback */
+.task-move-success {
+  animation: successPulse 0.6s ease-out;
+}
+
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); background-color: rgba(34, 197, 94, 0.2); }
+  100% { transform: scale(1); }
+}
+
+/* CLEANUP - Remove old styles that are no longer needed */
+
+/* These classes from the old system can be removed:
+.drop-indicator
+.drop-indicator.before  
+.drop-indicator.after
+.drop-indicator.active
+.task-drop-zone (old version)
+.task-drop-zone.active (old version)
+.task-drop-zone .indicator
+.task-container (if it was only for old drag logic)
+*/

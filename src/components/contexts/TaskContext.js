@@ -6,7 +6,6 @@ import { useTaskCreation } from '../../hooks/useTaskCreation';
 import { useTemplateToProject } from '../../hooks/useTemplateToProject';
 import { useTaskDeletion } from '../../hooks/useTaskDeletion';
 import { useTaskUpdate } from '../../hooks/useTaskUpdate';
-import { useTaskDragDrop } from '../../hooks/useTaskDragDrop';
 import { useLocation } from 'react-router-dom';
 import { useTaskDates } from '../../hooks/useTaskDates';
 import { fetchAllTasks, updateTaskCompletion } from '../../services/taskService';
@@ -91,10 +90,9 @@ export const TaskProvider = ({ children }) => {
   const templateHookResult = useTemplateToProject();
   const deletionHookResult = useTaskDeletion();
   const updateHookResult = useTaskUpdate();
-  const dragDropHookResult = useTaskDragDrop();
   const licenseHookResult = useLicenses();
 
-  // Integration callbacks for hooks
+  // Integration callbacks for hooks (simplified - removed drag/drop callbacks)
   const integrationCallbacks = useMemo(() => ({
     // For task creation
     onTaskCreated: async (newTask) => {
@@ -131,14 +129,6 @@ export const TaskProvider = ({ children }) => {
     },
     onRefreshNeeded: async () => {
       await fetchTasks(true);
-    },
-
-    // For drag and drop
-    onTasksRefreshed: async () => {
-      await fetchTasks(true);
-    },
-    onDateRecalculationNeeded: async (affectedTaskIds) => {
-      await dateHookResult.updateTaskDates(affectedTaskIds);
     }
   }), [tasks, fetchTasks, dateHookResult.updateTaskDates]);
 
@@ -180,39 +170,9 @@ export const TaskProvider = ({ children }) => {
   const updateTaskDates = useCallback(async (taskId, dateData) => {
     return await updateHookResult.updateTaskDates(taskId, dateData, {
       existingTasks: tasks,
-      onTaskUpdated: integrationCallbacks.onTaskUpdated,
-      onDateRecalculationNeeded: integrationCallbacks.onDateRecalculationNeeded
+      onTaskUpdated: integrationCallbacks.onTaskUpdated
     });
   }, [updateHookResult.updateTaskDates, tasks, integrationCallbacks]);
-
-  const updateTaskAfterDragDrop = useCallback(async (taskId, newParentId, newPosition, oldParentId) => {
-    return await dragDropHookResult.updateTaskAfterDragDrop(taskId, newParentId, newPosition, oldParentId, {
-      existingTasks: tasks,
-      onTasksRefreshed: integrationCallbacks.onTasksRefreshed,
-      onDateRecalculationNeeded: integrationCallbacks.onDateRecalculationNeeded
-    });
-  }, [dragDropHookResult.updateTaskAfterDragDrop, tasks, integrationCallbacks]);
-
-  // Enhanced drag handlers with tasks integration
-  const handleDragOver = useCallback((e, targetTask) => {
-    return dragDropHookResult.handleDragOver(e, targetTask, tasks);
-  }, [dragDropHookResult.handleDragOver, tasks]);
-
-  const handleDrop = useCallback(async (e, targetTask) => {
-    return await dragDropHookResult.handleDrop(e, targetTask, tasks, updateTaskAfterDragDrop);
-  }, [dragDropHookResult.handleDrop, tasks, updateTaskAfterDragDrop]);
-
-  const handleDropZoneDragOver = useCallback((e, parentId, position, prevTask, nextTask) => {
-    return dragDropHookResult.handleDropZoneDragOver(e, parentId, position, prevTask, nextTask, tasks);
-  }, [dragDropHookResult.handleDropZoneDragOver, tasks]);
-
-  const handleDropZoneDrop = useCallback(async (e, parentId, position) => {
-    return await dragDropHookResult.handleDropZoneDrop(e, parentId, position, tasks, updateTaskAfterDragDrop);
-  }, [dragDropHookResult.handleDropZoneDrop, tasks, updateTaskAfterDragDrop]);
-
-  const getDragFeedback = useCallback((task) => {
-    return dragDropHookResult.getDragFeedback(task, tasks);
-  }, [dragDropHookResult.getDragFeedback, tasks]);
 
   // Initial fetch
   useEffect(() => {
@@ -221,7 +181,7 @@ export const TaskProvider = ({ children }) => {
     }
   }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks]);
 
-  // Create the context value - pass through hook results directly
+  // Create the context value - simplified without drag/drop complexity
   const contextValue = useMemo(() => ({
     // Core task data
     tasks,
@@ -231,13 +191,13 @@ export const TaskProvider = ({ children }) => {
     error,
     isFetching,
     fetchTasks,
+    setTasks, // Expose setTasks for direct manipulation in TaskList
 
     // Task operations (integrated with state management)
     createTask,
     updateTask,
     deleteTask,
     updateTaskDates,
-    updateTaskAfterDragDrop,
     createProjectFromTemplate,
 
     // Direct access to all hook state and functions
@@ -245,16 +205,8 @@ export const TaskProvider = ({ children }) => {
     ...templateHookResult,
     ...deletionHookResult,
     ...updateHookResult,
-    ...dragDropHookResult,
     ...dateHookResult,
     ...licenseHookResult,
-
-    // Enhanced drag handlers
-    handleDragOver,
-    handleDrop,
-    handleDropZoneDragOver,
-    handleDropZoneDrop,
-    getDragFeedback,
 
     // Legacy function for compatibility
     updateTaskCompletion,
@@ -276,7 +228,6 @@ export const TaskProvider = ({ children }) => {
     updateTask,
     deleteTask,
     updateTaskDates,
-    updateTaskAfterDragDrop,
     createProjectFromTemplate,
 
     // All hook results
@@ -284,16 +235,8 @@ export const TaskProvider = ({ children }) => {
     templateHookResult,
     deletionHookResult,
     updateHookResult,
-    dragDropHookResult,
     dateHookResult,
-    licenseHookResult,
-
-    // Enhanced handlers
-    handleDragOver,
-    handleDrop,
-    handleDropZoneDragOver,
-    handleDropZoneDrop,
-    getDragFeedback
+    licenseHookResult
   ]);
 
   return (

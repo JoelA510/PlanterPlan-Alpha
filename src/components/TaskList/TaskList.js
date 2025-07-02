@@ -1,544 +1,670 @@
 // src/components/TaskList/TaskList.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './TaskList.css';
 import TaskItem from './TaskItem';
 import TaskForm from '../TaskForm/TaskForm';
 import NewProjectForm from '../TaskForm/NewProjectForm';
-import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
+import DndContextProvider from '../dnd/DndContextProvider';
+import SortableTaskWrapper from '../dnd/SortableTaskWrapper';
 import { useTasks } from '../contexts/TaskContext';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
-import { updateTaskCompletion, deleteTask, updateTaskComplete } from '../../services/taskService';
+import {
+  updateTaskCompletion,
+  deleteTask,
+  updateTaskComplete,
+  updateTaskPosition,
+} from '../../services/taskService';
 import TaskDetailsPanel from './TaskDetailsPanel';
 import TemplateProjectCreator from '../TemplateProject/TemplateProjectCreator';
-import { getNextAvailablePosition } from '../../utils/sparsePositioning';
 import InvitationTest from '../InvitationTest';
 import SearchBar from '../Search/SearchBar';
 import SearchResults from '../Search/SearchResults';
 import { useSearch } from '../contexts/SearchContext';
 
+// Drop Zone Component
+const DropZone = ({ type, parentId, position, onDragOver, onDrop, isActive }) => {
+  const dropData = {
+    type, // 'between' or 'into'
+    parentId,
+    position
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    onDrop(dropData);
+  };
+
+  if (type === 'between') {
+    return (
+      <div 
+        className={`drop-zone-between ${isActive ? 'active' : ''}`}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        style={{
+          height: '4px',
+          margin: '2px 0',
+          borderRadius: '2px',
+          backgroundColor: isActive ? '#3b82f6' : 'transparent',
+          transition: 'background-color 0.2s ease'
+        }}
+      />
+    );
+  }
+
+  if (type === 'into') {
+    return (
+      <div 
+        className={`drop-zone-into ${isActive ? 'active' : ''}`}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        style={{
+          minHeight: '20px',
+          margin: '4px 0 4px 24px',
+          border: isActive ? '2px dashed #3b82f6' : '2px dashed transparent',
+          borderRadius: '4px',
+          backgroundColor: isActive ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          color: '#6b7280',
+          transition: 'all 0.2s ease'
+        }}
+      >
+        {isActive ? 'Drop here to add as child' : 'Drop zone'}
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const TaskList = () => {
-  // Initialize refs first 
+  /* ------------------------- refs ------------------------- */
   const isMountedRef = useRef(true);
   const initialFetchDoneRef = useRef(false);
-  
-  const { 
-    instanceTasks: tasks, 
-    loading, 
-    initialLoading, 
-    error, 
-    fetchTasks, 
+  const [activeDropZone, setActiveDropZone] = useState(null);
+
+  /* ----------------------- context ------------------------ */
+  const {
+    instanceTasks: tasks,
+    loading,
+    initialLoading,
+    error,
+    fetchTasks,
     setTasks,
     createTask,
-    // userLicenses,
     selectedLicenseId,
-    isCheckingLicense,
-    // fetchUserLicenses,
-    // getSelectedLicense,
     userHasProjects,
-
   } = useTasks();
-  
-  // Local state
+
+  const { isSearchActive, filteredTasks } = useSearch();
+
+  /* ---------------------- local state --------------------- */
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [addingChildToTaskId, setAddingChildToTaskId] = useState(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
-  // Add state for active license for new project
   const [projectLicenseId, setProjectLicenseId] = useState(null);
-  // Add local loading state for the refresh button
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // Refs for tracking state without triggering re-renders
   const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
   const [showProjectMenu, setShowProjectMenu] = useState(false);
-  
   const [showInvitationTest, setShowInvitationTest] = useState(false);
-
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const { isSearchActive, filteredTasks } = useSearch();
-  
 
+  /* -------------------- lifecycle hooks ------------------- */
   useEffect(() => {
-    // Only fetch on initial mount to avoid redundant fetches
-    // since the context already handles automatic fetching
     if (!initialFetchDoneRef.current) {
-      initialFetchDoneRef.current = true; // Mark as done immediately to prevent loops
+      initialFetchDoneRef.current = true;
     }
-    
-    return () => { isMountedRef.current = false; };
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
-  
-  // Reset the project license ID when the selected license changes
+
   useEffect(() => {
     if (selectedLicenseId) {
       setProjectLicenseId(selectedLicenseId);
     }
   }, [selectedLicenseId]);
 
-  // Handle refresh button click
+  /* ------------------- helper functions ------------------- */
+  
+  // Get all visible tasks in a flattened array respecting expansion state
+  const getVisibleTasks = useMemo(() => {
+    const result = [];
+    
+    const addTaskAndChildren = (task, level = 0) => {
+      result.push({ ...task, level });
+      
+      if (expandedTasks[task.id]) {
+        const children = tasks
+          .filter(t => t.parent_task_id === task.id)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        
+        children.forEach(child => addTaskAndChildren(child, level + 1));
+      }
+    };
+
+    // Start with top-level tasks
+    const topLevelTasks = tasks
+      .filter(t => !t.parent_task_id)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    
+    topLevelTasks.forEach(task => addTaskAndChildren(task));
+    
+    return result;
+  }, [tasks, expandedTasks]);
+
+  // Check if task has children
+  const hasChildren = (task) => {
+    return tasks.some(t => t.parent_task_id === task.id);
+  };
+
+  // Simple move operations
+  const moveTaskBetween = async (taskId, parentId, position) => {
+    try {
+      console.log('moveTaskBetween called:', { taskId, parentId, position });
+      
+      // Get siblings in the target parent (excluding the task being moved)
+      const siblings = tasks
+        .filter(t => t.parent_task_id === parentId && t.id !== taskId)
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
+      
+      console.log('Siblings:', siblings.map(s => ({ id: s.id, title: s.title, position: s.position })));
+      
+      // Calculate the correct position based on where we're inserting
+      let newPosition;
+      if (position === 0) {
+        // Insert at the beginning
+        newPosition = siblings.length > 0 ? (siblings[0].position || 0) - 1000 : 1000;
+      } else if (position >= siblings.length) {
+        // Insert at the end
+        newPosition = siblings.length > 0 ? (siblings[siblings.length - 1].position || 0) + 1000 : 1000;
+      } else {
+        // Insert between existing tasks
+        const prevPosition = siblings[position - 1]?.position || 0;
+        const nextPosition = siblings[position]?.position || (prevPosition + 2000);
+        newPosition = prevPosition + ((nextPosition - prevPosition) / 2);
+      }
+      
+      console.log('Calculated new position:', newPosition);
+      
+      const result = await updateTaskPosition(taskId, parentId, newPosition);
+      console.log('updateTaskPosition result:', result);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      return { success: true, data: result };
+    } catch (err) {
+      console.error('Error moving task between:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const moveTaskInto = async (taskId, parentId) => {
+    try {
+      console.log('moveTaskInto called:', { taskId, parentId });
+      
+      // Find how many children the parent already has (excluding the task being moved)
+      const existingChildren = tasks.filter(t => t.parent_task_id === parentId && t.id !== taskId);
+      const maxPosition = existingChildren.length > 0 
+        ? Math.max(...existingChildren.map(t => t.position || 0))
+        : 0;
+      const newPosition = maxPosition + 1000;
+      
+      console.log('Existing children count:', existingChildren.length);
+      console.log('Calculated position for new child:', newPosition);
+      
+      const result = await updateTaskPosition(taskId, parentId, newPosition);
+      console.log('updateTaskPosition result:', result);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Expand the parent so user can see the moved task
+      setExpandedTasks(prev => ({ ...prev, [parentId]: true }));
+      
+      return { success: true, data: result };
+    } catch (err) {
+      console.error('Error moving task into:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  /* ----------------------- handlers ----------------------- */
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
-      // Explicitly call fetchTasks with forceRefresh=true
       await fetchTasks(true);
-    } catch (error) {
-      console.error('Error refreshing tasks:', error);
+    } catch (err) {
+      console.error('Error refreshing tasks:', err);
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Toggle task expansion
-  const toggleExpandTask = (taskId, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setExpandedTasks(prev => ({
-      ...prev,
-      [taskId]: !prev[taskId]
-    }));
-  };
-  
-  // Function to select a task and show its details in the right panel
-  const selectTask = (taskId, e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+  /**
+   * New simplified drag handler using drop zones
+   */
+  const handleDragEnd = async ({ active, over }) => {
+    console.log('Drag ended:', { active: active?.id, over: over?.id, overData: over?.data?.current });
+    
+    if (!over) {
+      console.log('No drop target');
+      setActiveDropZone(null);
+      return;
     }
-    // Cancel adding a child task if the user clicks on a different task
+
+    // Check if dropping on a drop zone or a task
+    const dropData = over.data.current;
+    console.log('Drop data:', dropData);
+
+    if (!dropData) {
+      console.log('No drop data available');
+      setActiveDropZone(null);
+      return;
+    }
+
+    try {
+      let result;
+      
+      if (dropData.type === 'between') {
+        console.log('Moving task between siblings:', { taskId: active.id, parentId: dropData.parentId, position: dropData.position });
+        result = await moveTaskBetween(active.id, dropData.parentId, dropData.position);
+      } else if (dropData.type === 'into') {
+        console.log('Moving task into parent:', { taskId: active.id, parentId: dropData.parentId });
+        result = await moveTaskInto(active.id, dropData.parentId);
+      } else if (dropData.type === 'task') {
+        // Dropped on a task instead of a drop zone - treat as reorder
+        console.log('Dropped on task, treating as reorder');
+        const draggedTask = tasks.find(t => t.id === active.id);
+        const targetTask = tasks.find(t => t.id === over.id);
+        
+        if (draggedTask && targetTask && draggedTask.parent_task_id === targetTask.parent_task_id) {
+          // Get ALL siblings including dragged task for position comparison
+          const allSiblings = tasks
+            .filter(t => t.parent_task_id === draggedTask.parent_task_id)
+            .sort((a, b) => (a.position || 0) - (b.position || 0));
+          
+          // Get siblings WITHOUT dragged task for insertion calculation
+          const siblingsWithoutDragged = allSiblings.filter(t => t.id !== active.id);
+          
+          // Find current positions in the full array
+          const draggedCurrentIndex = allSiblings.findIndex(t => t.id === active.id);
+          const targetCurrentIndex = allSiblings.findIndex(t => t.id === over.id);
+          
+          // Find target position in the array without dragged task
+          const targetIndexInNewArray = siblingsWithoutDragged.findIndex(t => t.id === over.id);
+          
+          // Determine if we're moving up or down
+          const movingUp = draggedCurrentIndex > targetCurrentIndex;
+          
+          console.log('Reorder details:', {
+            draggedTask: draggedTask.title,
+            targetTask: targetTask.title,
+            draggedCurrentIndex,
+            targetCurrentIndex,
+            targetIndexInNewArray,
+            movingUp,
+            allSiblings: allSiblings.map(s => ({ title: s.title, position: s.position, id: s.id })),
+            siblingsWithoutDragged: siblingsWithoutDragged.map(s => ({ title: s.title, position: s.position }))
+          });
+          
+          // Calculate insertion position based on direction
+          let insertPosition;
+          if (movingUp) {
+            // Moving up: insert before target
+            insertPosition = targetIndexInNewArray;
+          } else {
+            // Moving down: insert after target
+            insertPosition = targetIndexInNewArray + 1;
+          }
+          
+          console.log('Calculated insert position:', insertPosition);
+          result = await moveTaskBetween(active.id, draggedTask.parent_task_id, insertPosition);
+        } else {
+          console.log('Cannot drop task on task with different parent');
+          setActiveDropZone(null);
+          return;
+        }
+      } else {
+        console.log('Unknown drop type:', dropData.type);
+        setActiveDropZone(null);
+        return;
+      }
+
+      console.log('Move result:', result);
+
+      if (result && result.success) {
+        console.log('Move successful, refreshing tasks');
+        await fetchTasks(true);
+      } else {
+        console.error('Move failed:', result);
+        alert(`Failed to move task: ${result?.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error in drag handler:', err);
+      alert(`Failed to move task: ${err.message}`);
+    } finally {
+      setActiveDropZone(null);
+    }
+  };
+
+  const handleDragStart = ({ active }) => {
+    // Optional: Could set some visual state here
+  };
+
+  const handleDropZoneInteraction = (dropData) => {
+    setActiveDropZone(dropData);
+  };
+
+  /* ---------- expand / select / CRUD handlers ---------- */
+  const toggleExpandTask = (taskId, e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setExpandedTasks((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
+  };
+
+  const selectTask = (taskId, e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     if (addingChildToTaskId && addingChildToTaskId !== taskId) {
       setAddingChildToTaskId(null);
     }
-    setSelectedTaskId(prevId => prevId === taskId ? null : taskId);
+    setSelectedTaskId((prev) => (prev === taskId ? null : taskId));
   };
-  
-  // Get the selected task object
-  const selectedTask = tasks.find(task => task.id === selectedTaskId);
-  
-  // Initialize the drag and drop functionality
-  const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTasks);
-  
-  // Handle task completion toggle
+
   const toggleTaskCompletion = async (taskId, currentStatus, e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
+    e?.preventDefault();
+    e?.stopPropagation();
     try {
-      const result = await updateTaskCompletion(taskId, currentStatus);
-      
-      if (!result.success) throw new Error(result.error);
-      
+      const res = await updateTaskCompletion(taskId, currentStatus);
+      if (!res.success) throw new Error(res.error);
       if (isMountedRef.current) {
-        setTasks(prev => 
-          prev.map(task => 
-            task.id === taskId 
-              ? { ...task, is_complete: !currentStatus } 
-              : task
-          )
-        );
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, is_complete: !currentStatus } : t)));
       }
     } catch (err) {
-      console.error('Error updating task completion:', err);
-      if (isMountedRef.current) {
-        alert(`Failed to update task: ${err.message}`);
-      }
+      console.error('Error updating completion:', err);
+      alert(`Failed to update task: ${err.message}`);
     }
   };
-  
-  // Function to handle creating a new project
-  // Function to handle creating a new project
-const handleCreateNewProject = () => {
-  console.log('handleCreateNewProject: START');
-  
-  // Reset all states to make sure we're in a clean state
-  setIsCreatingFromTemplate(false);
-  setAddingChildToTaskId(null);
-  setSelectedTaskId(null);
-  
-  // Set creating project state
-  console.log('handleCreateNewProject: Setting isCreatingProject to true');
-  setIsCreatingProject(true);
-  console.log('handleCreateNewProject: END');
-};
 
+  /* ---------- project / template / child task helpers ---------- */
+  const handleCreateNewProject = () => {
+    setIsCreatingFromTemplate(false);
+    setAddingChildToTaskId(null);
+    setSelectedTaskId(null);
+    setIsCreatingProject(true);
+  };
 
-  // Handle submit of new project
   const handleProjectCreated = async (projectData) => {
     try {
-      console.log('Project created successfully:', projectData.id);
-      
-      // Refresh tasks to include the new project
       await fetchTasks(true);
-      
-      // Select the new project
       setSelectedTaskId(projectData.id);
-      
-      // Reset license ID and close the project creation form
       setProjectLicenseId(null);
       setIsCreatingProject(false);
     } catch (err) {
-      console.error('Error handling project creation:', err);
-      if (isMountedRef.current) {
-        alert(`Error refreshing data: ${err.message}`);
-      }
+      console.error(err);
+      alert(`Error refreshing data: ${err.message}`);
     }
   };
 
-  // Handle canceling project creation
   const handleCancelProjectCreation = () => {
     setIsCreatingProject(false);
     setProjectLicenseId(null);
   };
 
-  // Handle adding child task
-  const handleAddChildTask = (parentTaskId) => {
-    // Set the parent task as selected if it's not already
-    setSelectedTaskId(parentTaskId);
-    
-    // Indicate we're adding a child to this task
-    setAddingChildToTaskId(parentTaskId);
-    
-    // Also expand the parent task if it's not already expanded
-    setExpandedTasks(prev => ({
-      ...prev,
-      [parentTaskId]: true
-    }));
+  const handleAddChildTask = (parentId) => {
+    setSelectedTaskId(parentId);
+    setAddingChildToTaskId(parentId);
+    setExpandedTasks((prev) => ({ ...prev, [parentId]: true }));
   };
 
-  // Handle submit of the new child task form
-const handleAddChildTaskSubmit = async (taskData) => {
-  try {
-
-    // Add position and ensure task is an instance
-    const newTaskData = {
-      ...taskData,
-      origin: "instance",
-      is_complete: false,
-      due_date: taskData.due_date || null
-    };
-    
-    
-    // Create the task using context function
-    // Child tasks don't need a license ID - they inherit from parent
-    const result = await createTask(newTaskData);
-    
-    if (result.error) {
-      throw new Error(result.error);
-    }
-    
-    // Refresh tasks to include the new task
-    await fetchTasks(true);
-    
-    // Reset the adding child task state
-    setAddingChildToTaskId(null);
-    
-    // Expand the parent task to show the new child
-    if (taskData.parent_task_id) {
-      setExpandedTasks(prev => ({
-        ...prev,
-        [taskData.parent_task_id]: true
-      }));
-    }
-  } catch (err) {
-    console.error('Error adding child task:', err);
-    if (isMountedRef.current) {
+  const handleAddChildTaskSubmit = async (taskData) => {
+    try {
+      const newTask = { ...taskData, origin: 'instance', is_complete: false, due_date: taskData.due_date || null };
+      const res = await createTask(newTask);
+      if (res.error) throw new Error(res.error);
+      await fetchTasks(true);
+      setAddingChildToTaskId(null);
+      if (taskData.parent_task_id) {
+        setExpandedTasks((prev) => ({ ...prev, [taskData.parent_task_id]: true }));
+      }
+    } catch (err) {
+      console.error(err);
       alert(`Failed to create task: ${err.message}`);
     }
-  }
-};
-
-  // Handle canceling the add child task form
-  const handleCancelAddTask = () => {
-    setAddingChildToTaskId(null);
   };
 
+  const handleCancelAddTask = () => setAddingChildToTaskId(null);
 
-  // Update the handleDeleteTask function in TaskList.js
-const handleDeleteTask = async (taskId) => {
-  // Find the task to check if it has children
-  const taskToDelete = tasks.find(t => t.id === taskId);
-  if (!taskToDelete) return;
-  
-  const hasChildren = tasks.some(t => t.parent_task_id === taskId);
-  
-  // Prepare confirmation message
-  let confirmMessage = 'Are you sure you want to delete this task?';
-  if (hasChildren) {
-    confirmMessage = 'This task has subtasks that will also be deleted. Are you sure you want to continue?';
-  }
-  confirmMessage += ' This action cannot be undone.';
-  
-  // Ask for confirmation
-  if (!window.confirm(confirmMessage)) {
-    return;
-  }
-  
-  try {
-    // Use the deleteTask function from the service
-    const result = await deleteTask(taskId, true); // true to delete children
-    
-    if (!result.success) throw new Error(result.error);
-    
-    // Update the local state to remove the deleted tasks
-    if (result.deletedIds && Array.isArray(result.deletedIds)) {
-      // Create the filtered array first, then update the state
-      const updatedTasks = tasks.filter(task => !result.deletedIds.includes(task.id));
-      setTasks(updatedTasks);
-      
-      // If the selected task was deleted, clear the selection
-      if (result.deletedIds.includes(selectedTaskId)) {
-        setSelectedTaskId(null);
-      }
-    } else {
-      // Fallback if deletedIds is not returned
-      const updatedTasks = tasks.filter(task => task.id !== taskId);
-      setTasks(updatedTasks);
-      
-      // If the selected task was deleted, clear the selection
-      if (selectedTaskId === taskId) {
-        setSelectedTaskId(null);
-      }
-    }
-    
-    // Show success message
-    const deletedCount = result.deletedIds ? result.deletedIds.length : 1;
-    const childCount = deletedCount - 1;
-    
-    alert(hasChildren 
-      ? `Task and ${childCount} subtask${childCount !== 1 ? 's' : ''} deleted successfully` 
-      : 'Task deleted successfully');
-      
-    // Refresh tasks after deletion
-    await fetchTasks(true);
-  } catch (err) {
-    console.error('Error deleting task:', err);
-    if (isMountedRef.current) {
+  const handleDeleteTask = async (taskId) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+    const hasChildrenToDelete = tasks.some((t) => t.parent_task_id === taskId);
+    let msg = hasChildrenToDelete
+      ? 'This task has subtasks that will also be deleted. Continue?'
+      : 'Are you sure you want to delete this task?';
+    msg += ' This action cannot be undone.';
+    if (!window.confirm(msg)) return;
+
+    try {
+      const res = await deleteTask(taskId, true);
+      if (!res.success) throw new Error(res.error);
+      const deletedIds = Array.isArray(res.deletedIds) ? res.deletedIds : [taskId];
+      setTasks((prev) => prev.filter((t) => !deletedIds.includes(t.id)));
+      if (deletedIds.includes(selectedTaskId)) setSelectedTaskId(null);
+      const count = deletedIds.length - 1;
+      alert(
+        hasChildrenToDelete ? `Task and ${count} subtask${count !== 1 ? 's' : ''} deleted.` : 'Task deleted successfully'
+      );
+      await fetchTasks(true);
+    } catch (err) {
+      console.error(err);
       alert(`Failed to delete task: ${err.message}`);
     }
-  }
-};
-// Handle editing a task
-const handleEditTask = async (taskId, updatedTaskData) => {
-  try {
-    // Find the task to update
-    const taskToUpdate = tasks.find(t => t.id === taskId);
-    if (!taskToUpdate) {
-      throw new Error('Task not found');
+  };
+
+  const handleEditTask = async (taskId, updatedData) => {
+    try {
+      const res = await updateTaskComplete(taskId, updatedData);
+      if (!res.success) throw new Error(res.error || 'Update failed');
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...res.data } : t)));
+      alert('Task updated successfully');
+      await fetchTasks(true);
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to update task: ${err.message}`);
     }
-    
-    console.log('Updating task with data:', updatedTaskData);
-    
-    // Use the updateTaskComplete function from the service
-    const result = await updateTaskComplete(taskId, updatedTaskData);
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to update task');
-    }
-    
-    // Update the local state with the updated task
-    const updatedTasks = tasks.map(task => 
-      task.id === taskId ? { ...task, ...result.data } : task
-    );
-    
-    // Update local state
-    setTasks(updatedTasks);
-    
-    // Show success message
-    alert('Task updated successfully');
-    
-    // Optionally refresh tasks to ensure we have the latest data
-    await fetchTasks(true);
-    
-  } catch (err) {
-    console.error('Error updating task:', err);
-    alert(`Failed to update task: ${err.message}`);
-  }
-};
-  // Add a function to handle creating a project from template
+  };
+
   const handleCreateFromTemplate = () => {
-    console.log('handleCreateFromTemplate: START');
-    
-    // Reset all states to make sure we're in a clean state
     setIsCreatingProject(false);
     setAddingChildToTaskId(null);
     setSelectedTaskId(null);
-    
-    // Set creating from template state
-    console.log('handleCreateFromTemplate: Setting isCreatingFromTemplate to true');
     setIsCreatingFromTemplate(true);
-    console.log('handleCreateFromTemplate: END');
   };
 
-// Add a function to handle successful project creation from template
-const handleProjectFromTemplateCreated = async (projectData) => {
-  try {
-    console.log('Project created from template successfully:', projectData.id);
-    
-    // Refresh tasks to include the new project
-    await fetchTasks(true);
-    
-    // Select the new project
-    setSelectedTaskId(projectData.id);
-    
-    // Close the template creator
-    setIsCreatingFromTemplate(false);
-  } catch (err) {
-    console.error('Error handling project creation from template:', err);
-    if (isMountedRef.current) {
+  const handleProjectFromTemplateCreated = async (projectData) => {
+    try {
+      await fetchTasks(true);
+      setSelectedTaskId(projectData.id);
+      setIsCreatingFromTemplate(false);
+    } catch (err) {
+      console.error(err);
       alert(`Error refreshing data: ${err.message}`);
     }
-  }
-};
+  };
 
-// Add a function to handle cancelling project creation from template
-const handleCancelTemplateProjectCreation = () => {
-  setIsCreatingFromTemplate(false);
-};
+  const handleCancelTemplateProjectCreation = () => setIsCreatingFromTemplate(false);
 
-// Add a click outside handler for the dropdown
-// useEffect(() => {
-//   const handleClickOutside = (event) => {
-//     if (showProjectMenu) {
-//       setShowProjectMenu(false);
-//     }
-//   };
+  /* ---------------------- render helpers ------------------- */
   
-//   document.addEventListener('mousedown', handleClickOutside);
-//   return () => {
-//     document.removeEventListener('mousedown', handleClickOutside);
-//   };
-// }, [showProjectMenu]);
-  
-  // Render top-level tasks (projects) with spacing between them
-  const renderTopLevelTasks = () => {
-    const topLevelTasks = tasks
-      .filter(task => !task.parent_task_id)
-      .sort((a, b) => (a.position || 0) - (b.position || 0));
-    
-    if (topLevelTasks.length === 0) {
+  const renderTasksWithDropZones = () => {
+    if (getVisibleTasks.length === 0) {
       return (
-        <div style={{
-          textAlign: 'center',
-          padding: '32px',
-          color: '#6b7280'
-        }}>
+        <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
           No projects found. Create your first project to get started!
         </div>
       );
     }
-    
-    const taskElements = [];
-    
-    // Render each project with spacing between them
-    topLevelTasks.forEach((task, index) => {
-      // Add the task with selectedTaskId and selectTask props
-      taskElements.push(
-        <TaskItem 
-          key={task.id}
-          task={task}
-          tasks={tasks}
-          expandedTasks={expandedTasks}
-          toggleExpandTask={toggleExpandTask}
-          selectedTaskId={selectedTaskId}
-          selectTask={selectTask}
-          setTasks={setTasks}
-          dragAndDrop={dragAndDrop}
-          onAddChildTask={handleAddChildTask}
-        />
-      );
-      
-      // Add a spacing div after each project (except the last one)
-      if (index < topLevelTasks.length - 1) {
-        taskElements.push(
-          <div 
-            key={`project-spacer-${index}`}
-            style={{
-              height: '5px',
-              margin: '2px 0'
-            }}
-          />
-        );
-      }
-    });
-    
-    return taskElements;
+
+    return (
+      <DndContextProvider 
+        items={getVisibleTasks.map((t) => t.id)} 
+        onDragEnd={handleDragEnd}
+        onDragStart={handleDragStart}
+      >
+        {getVisibleTasks.map((task, index) => {
+          const isFirstChild = index > 0 && 
+            getVisibleTasks[index - 1].level < task.level;
+          const isLastChild = index < getVisibleTasks.length - 1 && 
+            getVisibleTasks[index + 1].level < task.level;
+          
+          return (
+            <React.Fragment key={task.id}>
+              {/* Drop zone above task (for "between" drops) */}
+              <DropZone
+                type="between"
+                parentId={task.parent_task_id}
+                position={index}
+                isActive={activeDropZone?.type === 'between' && 
+                         activeDropZone?.parentId === task.parent_task_id && 
+                         activeDropZone?.position === index}
+                onDrop={handleDropZoneInteraction}
+              />
+
+              {/* The task itself */}
+              <SortableTaskWrapper taskId={task.id}>
+                <TaskItem
+                  task={task}
+                  tasks={tasks}
+                  level={task.level}
+                  expandedTasks={expandedTasks}
+                  toggleExpandTask={toggleExpandTask}
+                  selectedTaskId={selectedTaskId}
+                  selectTask={selectTask}
+                  onAddChildTask={handleAddChildTask}
+                  hasChildren={hasChildren(task)}
+                  toggleTaskCompletion={toggleTaskCompletion}
+                />
+              </SortableTaskWrapper>
+
+              {/* Drop zone for "into" drops (if task is expanded and has or can have children) */}
+              {hasChildren(task) && expandedTasks[task.id] && (
+                <DropZone
+                  type="into"
+                  parentId={task.id}
+                  position={0}
+                  isActive={activeDropZone?.type === 'into' && 
+                           activeDropZone?.parentId === task.id}
+                  onDrop={handleDropZoneInteraction}
+                />
+              )}
+
+              {/* Final drop zone at the very end */}
+              {index === getVisibleTasks.length - 1 && (
+                <DropZone
+                  type="between"
+                  parentId={task.parent_task_id}
+                  position={index + 1}
+                  isActive={activeDropZone?.type === 'between' && 
+                           activeDropZone?.parentId === task.parent_task_id && 
+                           activeDropZone?.position === index + 1}
+                  onDrop={handleDropZoneInteraction}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </DndContextProvider>
+    );
   };
-  
-  // Render the right panel content (task details, task form, or project creation)
+
   const renderRightPanel = () => {
-    if (showInvitationTest) {
-      return <InvitationTest />;
-    }
-    // If creating a new project, show the project creation form
-    if (isCreatingProject) {
+    if (showInvitationTest) return <InvitationTest />;
+    if (isCreatingProject)
       return (
-        <NewProjectForm 
+        <NewProjectForm
           onSuccess={handleProjectCreated}
           onCancel={handleCancelProjectCreation}
           userHasProjects={userHasProjects}
         />
       );
-    }
-    if (isCreatingFromTemplate) {
+    if (isCreatingFromTemplate)
       return (
-        <TemplateProjectCreator 
+        <TemplateProjectCreator
           onSuccess={handleProjectFromTemplateCreated}
           onCancel={handleCancelTemplateProjectCreation}
           userHasProjects={userHasProjects}
         />
       );
-    }
-    
-    // If there's no selected task, show the empty state
-    if (!selectedTaskId) {
+    if (!selectedTaskId)
       return (
-        <div className="empty-details-panel" style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          color: '#6b7280',
-          backgroundColor: '#f9fafb',
-          borderRadius: '4px',
-          border: '1px dashed #d1d5db',
-          padding: '24px'
-        }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
+        <div
+          className="empty-details-panel"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            color: '#6b7280',
+            backgroundColor: '#f9fafb',
+            borderRadius: '4px',
+            border: '1px dashed #d1d5db',
+            padding: '24px',
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
           </svg>
-          <p style={{ marginTop: '16px', textAlign: 'center' }}>
-            Select a task to view its details
-          </p>
+          <p style={{ marginTop: '16px', textAlign: 'center' }}>Select a task to view its details</p>
         </div>
       );
-    }
-    
-    // Get the selected task object
-    const selectedTask = tasks.find(task => task.id === selectedTaskId);
-    if (!selectedTask) return null;
-    
-    // If we're adding a child task, show the form
+
+    const task = tasks.find((t) => t.id === selectedTaskId);
+    if (!task) return null;
+
     if (addingChildToTaskId === selectedTaskId) {
       return (
         <TaskForm
           parentTaskId={selectedTaskId}
           onSubmit={handleAddChildTaskSubmit}
           onCancel={handleCancelAddTask}
-          backgroundColor={getBackgroundColor(getTaskLevel(selectedTask, tasks))}
+          backgroundColor={getBackgroundColor(getTaskLevel(task, tasks))}
           originType="instance"
         />
       );
     }
-    // Update this in the renderRightPanel function where the TaskDetailsPanel is returned
+
     return (
       <TaskDetailsPanel
-        key={`${selectedTask.id}-${selectedTask.is_complete}`}
-        task={selectedTask}
+        key={`${task.id}-${task.is_complete}`}
+        task={task}
         tasks={tasks}
         toggleTaskCompletion={toggleTaskCompletion}
         onClose={() => setSelectedTaskId(null)}
@@ -547,55 +673,42 @@ const handleCancelTemplateProjectCreation = () => {
         onEditTask={handleEditTask}
       />
     );
-    
   };
 
-    // Handle task selection from search results
+  /* ---------------------- search helpers ------------------- */
   const handleTaskSelectFromSearch = (task) => {
     setSelectedTaskId(task.id);
     setShowSearchResults(false);
   };
+  const toggleSearchResults = () => setShowSearchResults((prev) => !prev);
 
-  const toggleSearchResults = () => {
-    setShowSearchResults(!showSearchResults);
-  };
-
+  /* ------------------------- render ------------------------ */
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 100px)' }}>
-      {/* Left panel - Task list */}
-      <div style={{ 
-        flex: '1 1 60%', 
-        marginRight: '24px',
-        overflow: 'auto'
-      }}>
-        {/* ADD SEARCH BAR HERE - Before the Projects header */}
+      {/* LEFT PANEL */}
+      <div style={{ flex: '1 1 60%', marginRight: '24px', overflow: 'auto' }}>
         <SearchBar onToggleResults={toggleSearchResults} />
 
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px'
-        }}>
+        {/* HEADER */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Projects</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => setShowInvitationTest(!showInvitationTest)}
+            <button
+              onClick={() => setShowInvitationTest((prev) => !prev)}
               style={{
                 backgroundColor: '#8b5cf6',
                 color: 'white',
                 padding: '8px 16px',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                border: 'none'
+                border: 'none',
               }}
             >
               🧪 Invitations
             </button>
             <div className="dropdown" style={{ position: 'relative' }}>
-              <button 
-                className="project-dropdown-button"
-                onClick={() => setShowProjectMenu(!showProjectMenu)}
+              <button
+                onClick={() => setShowProjectMenu((prev) => !prev)}
                 style={{
                   backgroundColor: '#10b981',
                   color: 'white',
@@ -605,49 +718,50 @@ const handleCancelTemplateProjectCreation = () => {
                   border: 'none',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px'
+                  gap: '4px',
                 }}
               >
                 New Project <span style={{ fontSize: '10px', marginTop: '2px' }}>▼</span>
               </button>
-              
               {showProjectMenu && (
-                <div 
+                <div
                   className="project-dropdown-menu"
                   style={{
                     position: 'absolute',
                     top: '100%',
-                    left: '0',
+                    left: 0,
                     zIndex: 10,
                     backgroundColor: 'white',
                     border: '1px solid #e5e7eb',
                     borderRadius: '4px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                     width: '200px',
-                    marginTop: '4px'
+                    marginTop: '4px',
                   }}
                 >
-                  <div style={{ padding: '8px 12px', cursor: 'pointer' }}
-                      onClick={() => {
-                        console.log('Blank Project clicked');
-                        handleCreateNewProject();
-                        setShowProjectMenu(false);
-                      }}>
+                  <div
+                    style={{ padding: '8px 12px', cursor: 'pointer' }}
+                    onClick={() => {
+                      handleCreateNewProject();
+                      setShowProjectMenu(false);
+                    }}
+                  >
                     Blank Project
                   </div>
-                  <div style={{ borderTop: '1px solid #e5e7eb' }}></div>
-                  <div style={{ padding: '8px 12px', cursor: 'pointer' }}
-                      onClick={() => {
-                        console.log('From Template clicked');
-                        handleCreateFromTemplate();
-                        setShowProjectMenu(false);
-                      }}>
+                  <div style={{ borderTop: '1px solid #e5e7eb' }} />
+                  <div
+                    style={{ padding: '8px 12px', cursor: 'pointer' }}
+                    onClick={() => {
+                      handleCreateFromTemplate();
+                      setShowProjectMenu(false);
+                    }}
+                  >
                     From Template
                   </div>
                 </div>
               )}
             </div>
-            <button 
+            <button
               onClick={handleRefresh}
               disabled={loading || isRefreshing}
               style={{
@@ -655,9 +769,9 @@ const handleCancelTemplateProjectCreation = () => {
                 color: 'white',
                 padding: '8px 16px',
                 borderRadius: '4px',
-                cursor: (loading || isRefreshing) ? 'not-allowed' : 'pointer',
+                cursor: loading || isRefreshing ? 'not-allowed' : 'pointer',
                 border: 'none',
-                opacity: (loading || isRefreshing) ? 0.7 : 1
+                opacity: loading || isRefreshing ? 0.7 : 1,
               }}
             >
               {loading || isRefreshing ? 'Refreshing...' : 'Refresh'}
@@ -665,20 +779,22 @@ const handleCancelTemplateProjectCreation = () => {
           </div>
         </div>
 
-        {/* ADD SEARCH NOTIFICATION BAR - When search is active but results aren't shown */}
+        {/* SEARCH BANNER */}
         {isSearchActive && !showSearchResults && (
-          <div style={{
-            padding: '12px 16px',
-            backgroundColor: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            borderRadius: '8px',
-            marginBottom: '16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
+          <div
+            style={{
+              padding: '12px 16px',
+              backgroundColor: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <span style={{ fontSize: '14px', color: '#1e40af' }}>
-              {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''} match your search
+              {filteredTasks.length} task{filteredTasks.length !== 1 && 's'} match your search
             </span>
             <button
               onClick={() => setShowSearchResults(true)}
@@ -688,7 +804,7 @@ const handleCancelTemplateProjectCreation = () => {
                 color: '#3b82f6',
                 cursor: 'pointer',
                 fontSize: '14px',
-                textDecoration: 'underline'
+                textDecoration: 'underline',
               }}
             >
               View Results
@@ -696,75 +812,63 @@ const handleCancelTemplateProjectCreation = () => {
           </div>
         )}
 
-        {/* EXISTING CONTENT - Keep your existing loading, error, and task rendering logic */}
+        {/* CONDITIONAL CONTENT */}
         {initialLoading ? (
           <div style={{ textAlign: 'center', padding: '32px' }}>
-            <div style={{ 
-              width: '40px', 
-              height: '40px', 
-              margin: '0 auto', 
-              border: '3px solid #e5e7eb', 
-              borderTopColor: '#3b82f6', 
-              borderRadius: '50%', 
-              animation: 'spin 1s linear infinite' 
-            }} />
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                margin: '0 auto',
+                border: '3px solid #e5e7eb',
+                borderTopColor: '#3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }}
+            />
             <p style={{ marginTop: '16px', color: '#6b7280' }}>Loading your projects...</p>
           </div>
         ) : error ? (
-          <div style={{
-            backgroundColor: '#fee2e2',
-            border: '1px solid #ef4444',
-            color: '#b91c1c',
-            padding: '16px',
-            borderRadius: '4px',
-            marginBottom: '16px'
-          }}>
+          <div
+            style={{
+              backgroundColor: '#fee2e2',
+              border: '1px solid #ef4444',
+              color: '#b91c1c',
+              padding: '16px',
+              borderRadius: '4px',
+              marginBottom: '16px',
+            }}
+          >
             {error}
           </div>
-        ) : tasks.filter(t => !t.parent_task_id).length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '32px',
-            color: '#6b7280'
-          }}>
-            <div>
-              <p>No projects found. Create your first project to get started!</p>
-              <button
-                onClick={handleCreateNewProject}
-                style={{
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  border: 'none',
-                  marginTop: '16px'
-                }}
-              >
-                Create First Project
-              </button>
-            </div>
+        ) : getVisibleTasks.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
+            <p>No projects found. Create your first project to get started!</p>
+            <button
+              onClick={handleCreateNewProject}
+              style={{
+                backgroundColor: '#10b981',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                border: 'none',
+                marginTop: '16px',
+              }}
+            >
+              Create First Project
+            </button>
           </div>
         ) : (
-          <div>{renderTopLevelTasks()}</div>
+          <div>{renderTasksWithDropZones()}</div>
         )}
       </div>
-      
-      {/* Right panel - Task details or task form or project creation */}
-      <div style={{ 
-        flex: '1 1 40%', 
-        minWidth: '300px',
-        maxWidth: '500px'
-      }}>
-        {renderRightPanel()}
-      </div>
 
-      {/* ADD SEARCH RESULTS MODAL - Shows when search results are toggled */}
+      {/* RIGHT PANEL */}
+      <div style={{ flex: '1 1 40%', minWidth: '300px', maxWidth: '500px' }}>{renderRightPanel()}</div>
+
       {showSearchResults && (
-        <SearchResults 
-          onTaskSelect={handleTaskSelectFromSearch}
-          onClose={() => setShowSearchResults(false)}
-        />
+        <SearchResults onTaskSelect={handleTaskSelectFromSearch} onClose={() => setShowSearchResults(false)} />
       )}
     </div>
   );

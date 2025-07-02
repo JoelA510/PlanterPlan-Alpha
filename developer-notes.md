@@ -71,6 +71,12 @@
             - Simplify TaskList, TemplateList
     - TaskContext is now a thin coordinator that provides integration, while all the complex logic lives in focused hooks.
 
+- ok let's get back to the date engine
+    - the best approach seems to be use to use dnd-kit I.E. an external React library that takes care of drag and drop
+    - overall, there are too many places where the drag and drop logic needs to be updated. This makes me think that I should refactor it to simplify it
+        - ideally if we change dnd logic, we'd update it once and it would propagate everywhere
+    - the issue might be that the old logic is still in the subtasks
+
 ### May 19 2025
 * issue: create new task needs to have the right start date based on duedate
 * we working on task reordering
