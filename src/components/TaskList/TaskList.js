@@ -101,7 +101,31 @@ const TaskList = () => {
     createTask,
     selectedLicenseId,
     userHasProjects,
+    updateTaskDates, // This might be for individual updates, not sequential
+    // Let's get the date calculation system directly
+    getTaskStartDate,
+    getTaskDueDate,
+    updateTaskDates: updateTaskDatesFunc,
+    // Try to get the date update function that handles sequences
+    ...restContext
   } = useTasks();
+
+  // Debug: Log all available context functions on mount
+  useEffect(() => {
+    console.log('=== AVAILABLE CONTEXT FUNCTIONS ===');
+    console.log('updateTaskDates type:', typeof updateTaskDates);
+    
+    // Look for date-related functions
+    const dateRelatedFunctions = Object.keys(restContext).filter(key => 
+      typeof restContext[key] === 'function' && 
+      (key.toLowerCase().includes('date') || key.toLowerCase().includes('calculate'))
+    );
+    console.log('Date-related functions:', dateRelatedFunctions);
+    
+    // Log all function names to see what's available
+    const allFunctions = Object.keys(restContext).filter(key => typeof restContext[key] === 'function');
+    console.log('All available functions:', allFunctions);
+  }, []);
 
   const { isSearchActive, filteredTasks } = useSearch();
 
@@ -166,6 +190,102 @@ const TaskList = () => {
     return tasks.some(t => t.parent_task_id === task.id);
   };
 
+  // Recalculate dates for tasks affected by drag and drop
+  const recalculateAffectedDates = async (movedTaskId, dropData) => {
+    try {
+      console.log('=== DATE RECALCULATION DEBUG ===');
+      console.log('Moved task ID:', movedTaskId);
+      console.log('Drop data type:', dropData?.type);
+      
+      // Find the moved task to understand the operation
+      const movedTask = tasks.find(t => t.id === movedTaskId);
+      console.log('Moved task:', movedTask ? { title: movedTask.title, parent: movedTask.parent_task_id } : 'NOT FOUND');
+      
+      // Determine if this is a cross-milestone or within-milestone move
+      let isCrossMilestone = false;
+      let oldParentId = movedTask?.parent_task_id;
+      let newParentId = oldParentId; // Default to same parent
+      
+      // Check the drag handler logs to see what type of move happened
+      // Look back at the console to see if we had "=== CROSS MILESTONE MOVE ===" or "=== SAME PARENT REORDER ==="
+      
+      // For now, let's detect based on the moved task's current vs expected parent
+      if (dropData?.type === 'task') {
+        console.log('Task-to-task drop detected');
+        console.log('Old parent ID:', oldParentId);
+        console.log('Checking if this was a cross-milestone move...');
+        
+        // We need to determine if the task actually moved between milestones
+        // This is tricky because by the time we get here, the task may have already moved
+        // Let's check the fresh task data after the move
+        setTimeout(() => {
+          const updatedTask = tasks.find(t => t.id === movedTaskId);
+          if (updatedTask && updatedTask.parent_task_id !== oldParentId) {
+            console.log('🔀 CONFIRMED: Cross-milestone move detected');
+            console.log(`Task moved from ${oldParentId} to ${updatedTask.parent_task_id}`);
+          } else {
+            console.log('🔄 CONFIRMED: Within-milestone reorder detected');
+          }
+        }, 100);
+      }
+      
+      // For now, let's assume it's within-milestone and let the date system handle it
+      console.log('🔄 Treating as within-milestone for date recalculation');
+      console.log('This might need specific sequential date recalculation');
+      
+      if (movedTask && movedTask.parent_task_id) {
+        console.log(`Recalculating dates for milestone: ${movedTask.parent_task_id}`);
+      }
+      
+      // Check if recalculateAllDates function is available
+      if (restContext.recalculateAllDates && typeof restContext.recalculateAllDates === 'function') {
+        console.log('Found recalculateAllDates function - calling it...');
+        try {
+          const result = await restContext.recalculateAllDates();
+          console.log('recalculateAllDates result:', result);
+          
+          if (result && result.success !== false) {
+            console.log('✅ Date recalculation successful!');
+            
+            // Always try updating the parent milestone dates specifically
+            if (movedTask?.parent_task_id && updateTaskDates) {
+              console.log('🔄 Updating parent milestone dates specifically...');
+              try {
+                const parentResult = await updateTaskDates(movedTask.parent_task_id, {});
+                console.log('Parent milestone date update result:', parentResult);
+              } catch (parentErr) {
+                console.error('Error updating parent milestone dates:', parentErr);
+              }
+            }
+            
+            // Force a final refresh to ensure UI updates
+            console.log('🔄 Forcing final UI refresh to show updated dates...');
+            setTimeout(async () => {
+              await fetchTasks(true);
+              console.log('📅 Final refresh completed - dates should now be visible');
+            }, 1000);
+            
+          } else {
+            console.warn('Date recalculation may have failed:', result);
+          }
+        } catch (err) {
+          console.error('Error calling recalculateAllDates:', err);
+        }
+      } else {
+        console.warn('recalculateAllDates function not found');
+        
+        // Fallback to simple refresh
+        console.log('Falling back to task refresh...');
+        setTimeout(async () => {
+          await fetchTasks(true);
+        }, 500);
+      }
+      
+    } catch (err) {
+      console.error('Error in date recalculation:', err);
+    }
+  };
+
   // Simple move operations
   const moveTaskBetween = async (taskId, parentId, position) => {
     try {
@@ -190,7 +310,7 @@ const TaskList = () => {
         // Insert between existing tasks
         const prevPosition = siblings[position - 1]?.position || 0;
         const nextPosition = siblings[position]?.position || (prevPosition + 2000);
-        newPosition = prevPosition + ((nextPosition - prevPosition) / 2);
+        newPosition = Math.round(prevPosition + ((nextPosition - prevPosition) / 2));
       }
       
       console.log('Calculated new position:', newPosition);
@@ -355,6 +475,10 @@ const TaskList = () => {
       if (result && result.success) {
         console.log('Move successful, refreshing tasks');
         await fetchTasks(true);
+        
+        // Recalculate dates for affected tasks after the move
+        console.log('Recalculating dates after move...');
+        await recalculateAffectedDates(active.id, dropData);
       } else {
         console.error('Move failed:', result);
         alert(`Failed to move task: ${result?.error || 'Unknown error'}`);

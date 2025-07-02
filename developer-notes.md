@@ -1,5 +1,14 @@
 # Developer Notes
 
+## July 2nd [Lorenzo]
+
+- ok let's focus on the drag and drop
+  - let's only give the relevant files to Claude
+
+- lets make a to-do list 
+
+
+
 ## June 30th [Lorenzo]
 
 - ok, the first Deep Work set is just orientation
