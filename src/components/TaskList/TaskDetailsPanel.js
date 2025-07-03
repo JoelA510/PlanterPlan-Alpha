@@ -236,11 +236,45 @@ const TaskDetailsPanel = ({
       />
     );
   }
+
+  // Helper function to parse actions/resources from string format
+  const parseArrayField = (field) => {
+    // If it's already an array, return it
+    if (Array.isArray(field)) {
+      return field;
+    }
+    
+    // If it's null or undefined, return empty array
+    if (!field) {
+      return [];
+    }
+    
+    // If it's a string, try to parse it as JSON
+    if (typeof field === 'string') {
+      // Handle empty string
+      if (field.trim() === '') {
+        return [];
+      }
+      
+      try {
+        const parsed = JSON.parse(field);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('Failed to parse array field:', field, e);
+        // If parsing fails, treat it as a single item
+        return [field];
+      }
+    }
+    // For any other type, return empty array
+    return [];
+  };
+
   
   // Ensure arrays are valid
-  const actions = Array.isArray(task.actions) ? task.actions : [];
+  // const actions = Array.isArray(task.actions) ? task.actions : [];
+  const actions = parseArrayField(task.actions);
   const resources = Array.isArray(task.resources) ? task.resources : [];
-  
+
   // Get original (stored) duration
   const storedDuration = task.duration_days || 1;
   
@@ -757,26 +791,38 @@ const TaskDetailsPanel = ({
         
         <div className="detail-row">
           <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Actions:</h4>
-          <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
+          <div style={{ paddingLeft: '16px', margin: '8px 0 0 0' }}>
             {actions.length > 0 ? 
               actions.map((action, index) => (
-                <li key={index}>{action}</li>
+                <div key={index} style={{ marginBottom: '4px', display: 'flex', alignItems: 'flex-start' }}>
+                  <span style={{ marginRight: '8px', color: '#6b7280' }}>•</span>
+                  <span>{action}</span>
+                </div>
               )) : 
-              <li>No actions specified</li>
+              <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                <span style={{ marginRight: '8px', color: '#6b7280' }}>•</span>
+                <span style={{ color: '#6b7280', fontStyle: 'italic' }}>No actions specified</span>
+              </div>
             }
-          </ul>
+          </div>
         </div>
         
         <div className="detail-row">
           <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Resources:</h4>
-          <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
+          <div style={{ paddingLeft: '16px', margin: '8px 0 0 0' }}>
             {resources.length > 0 ? 
               resources.map((resource, index) => (
-                <li key={index}>{resource}</li>
+                <div key={index} style={{ marginBottom: '4px', display: 'flex', alignItems: 'flex-start' }}>
+                  <span style={{ marginRight: '8px', color: '#6b7280' }}>•</span>
+                  <span>{resource}</span>
+                </div>
               )) : 
-              <li>No resources specified</li>
+              <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                <span style={{ marginRight: '8px', color: '#6b7280' }}>•</span>
+                <span style={{ color: '#6b7280', fontStyle: 'italic' }}>No resources specified</span>
+              </div>
             }
-          </ul>
+          </div>
         </div>
         
         {/* Action buttons */}
