@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import TaskDropZone from '../TaskList/TaskDropZone';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 
 const TemplateItem = ({ 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TemplateItem from './TemplateItem';
-import TaskDropZone from '../TaskList/TaskDropZone';
 import TemplateTaskForm from '../TaskForm/TemplateTaskForm';
 import CreateNewTemplateForm from '../TaskForm/CreateNewTemplateForm';
 import TemplateDetailsPanel from './TemplateDetailsPanel';

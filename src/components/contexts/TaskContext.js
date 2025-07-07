@@ -8,7 +8,7 @@ import { useTaskDeletion } from '../../hooks/useTaskDeletion';
 import { useTaskUpdate } from '../../hooks/useTaskUpdate';
 import { useLocation } from 'react-router-dom';
 import { useTaskDates } from '../../hooks/useTaskDates';
-import { fetchAllTasks, updateTaskCompletion } from '../../services/taskService';
+import { fetchAllTasks, updateTaskCompletion, updateTaskPosition } from '../../services/taskService';
 
 // Create a context for tasks
 const TaskContext = createContext();
@@ -92,7 +92,155 @@ export const TaskProvider = ({ children }) => {
   const updateHookResult = useTaskUpdate();
   const licenseHookResult = useLicenses();
 
-  // Integration callbacks for hooks (simplified - removed drag/drop callbacks)
+  // ✅ NEW: Optimistic update helpers for drag & drop
+  const optimisticUpdateHelpers = useMemo(() => ({
+    
+    // Update task positions immediately (optimistic)
+    updateTaskPositionsOptimistic: (taskUpdates) => {
+      setTasks(prevTasks => 
+        prevTasks.map(task => {
+          const update = taskUpdates.find(u => u.id === task.id);
+          return update ? { ...task, ...update } : task;
+        })
+      );
+    },
+
+    // Reorder tasks immediately (optimistic)
+    reorderTasksOptimistic: (draggedId, newParentId, newPosition) => {
+      setTasks(prevTasks => {
+        const newTasks = prevTasks.map(task => 
+          task.id === draggedId 
+            ? { ...task, parent_task_id: newParentId, position: newPosition }
+            : task
+        );
+        return newTasks;
+      });
+    },
+
+    // Recalculate dates immediately (synchronous)
+    recalculateDatesOptimistic: (taskList) => {
+      const rootTasks = taskList.filter(t => !t.parent_task_id).sort((a, b) => a.position - b.position);
+      let currentDate = new Date('2025-01-01');
+      
+      return taskList.map(task => {
+        if (!task.parent_task_id) {
+          // Root task: calculate based on children
+          const children = taskList.filter(t => t.parent_task_id === task.id).sort((a, b) => a.position - b.position);
+          const start = new Date(currentDate);
+          let totalDuration = 0;
+          
+          children.forEach(child => {
+            const childDuration = child.duration_days || 1;
+            totalDuration += childDuration;
+          });
+          
+          const end = new Date(start);
+          end.setDate(end.getDate() + totalDuration);
+          currentDate = new Date(end);
+          
+          return {
+            ...task,
+            start_date: start.toISOString().split('T')[0],
+            due_date: end.toISOString().split('T')[0],
+            duration_days: totalDuration || task.duration_days || 1
+          };
+        } else {
+          // Child task: calculate from parent and siblings
+          const parent = taskList.find(t => t.id === task.parent_task_id);
+          if (!parent) return task;
+          
+          const siblings = taskList.filter(t => t.parent_task_id === task.parent_task_id).sort((a, b) => a.position - b.position);
+          const taskIndex = siblings.findIndex(t => t.id === task.id);
+          
+          let taskStart = new Date(parent.start_date);
+          for (let i = 0; i < taskIndex; i++) {
+            const siblingDuration = siblings[i].duration_days || 1;
+            taskStart.setDate(taskStart.getDate() + siblingDuration);
+          }
+          
+          const taskDuration = task.duration_days || 1;
+          const taskEnd = new Date(taskStart);
+          taskEnd.setDate(taskEnd.getDate() + taskDuration);
+          
+          return {
+            ...task,
+            start_date: taskStart.toISOString().split('T')[0],
+            due_date: taskEnd.toISOString().split('T')[0]
+          };
+        }
+      });
+    },
+
+    // Background database sync (non-blocking)
+    syncTaskPositionToDatabase: async (taskId, parentId, position) => {
+      try {
+        console.log('🔄 Background sync:', { taskId, parentId, position });
+        const result = await updateTaskPosition(taskId, parentId, position);
+        
+        if (result.success) {
+          console.log('✅ Background sync successful');
+        } else {
+          console.warn('⚠️ Background sync failed:', result.error);
+          // Could show a toast notification here
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('❌ Background sync error:', error);
+        return { success: false, error: error.message };
+      }
+    },
+
+    // Batch sync multiple position changes
+    batchSyncPositions: async (updates) => {
+      try {
+        console.log('🔄 Batch syncing positions:', updates.length, 'updates');
+        
+        const promises = updates.map(({ taskId, parentId, position }) => 
+          updateTaskPosition(taskId, parentId, position)
+        );
+        
+        const results = await Promise.all(promises);
+        const failures = results.filter(r => !r.success);
+        
+        if (failures.length === 0) {
+          console.log('✅ Batch sync successful');
+          return { success: true };
+        } else {
+          console.warn('⚠️ Some syncs failed:', failures.length, 'failures');
+          return { success: false, failures };
+        }
+      } catch (error) {
+        console.error('❌ Batch sync error:', error);
+        return { success: false, error: error.message };
+      }
+    },
+
+    // Complete optimistic drag & drop update
+    handleOptimisticDragDrop: (draggedId, newParentId, newPosition, oldParentId) => {
+      setTasks(prevTasks => {
+        // 1. Update positions
+        const updatedTasks = prevTasks.map(task => 
+          task.id === draggedId 
+            ? { ...task, parent_task_id: newParentId, position: newPosition }
+            : task
+        );
+        
+        // 2. Recalculate dates immediately
+        const tasksWithDates = optimisticUpdateHelpers.recalculateDatesOptimistic(updatedTasks);
+        
+        // 3. Background sync (don't wait)
+        setTimeout(() => {
+          optimisticUpdateHelpers.syncTaskPositionToDatabase(draggedId, newParentId, newPosition);
+        }, 100);
+        
+        return tasksWithDates;
+      });
+    }
+
+  }), []);
+
+  // Integration callbacks for hooks (✅ SIMPLIFIED - removed complex drag/drop coordination)
   const integrationCallbacks = useMemo(() => ({
     // For task creation
     onTaskCreated: async (newTask) => {
@@ -104,13 +252,17 @@ export const TaskProvider = ({ children }) => {
           .filter(t => (t.position || 0) >= (newTask.position || 0));
         affectedTaskIds.push(...siblings.map(t => t.id));
       }
-      await dateHookResult.updateTaskDates(affectedTaskIds);
+      // ✅ SIMPLIFIED: Use simple date update instead of complex async chain
+      if (dateHookResult.updateTaskDates) {
+        dateHookResult.updateTaskDates(affectedTaskIds);
+      }
     },
 
     // For template conversion
     onProjectCreated: async (rootProject, createdTasks) => {
       setTasks(prev => [...prev, ...createdTasks]);
-      setTimeout(() => fetchTasks(true), 1000);
+      // ✅ SIMPLIFIED: Direct refresh instead of complex timing
+      setTimeout(() => fetchTasks(true), 500);
     },
 
     // For task deletion
@@ -130,7 +282,7 @@ export const TaskProvider = ({ children }) => {
     onRefreshNeeded: async () => {
       await fetchTasks(true);
     }
-  }), [tasks, fetchTasks, dateHookResult.updateTaskDates]);
+  }), [tasks, fetchTasks, dateHookResult]);
 
   // Create enhanced hook functions with integration
   const createTask = useCallback(async (taskData, licenseId = null) => {
@@ -174,6 +326,16 @@ export const TaskProvider = ({ children }) => {
     });
   }, [updateHookResult.updateTaskDates, tasks, integrationCallbacks]);
 
+  // ✅ NEW: Simplified drag & drop integration function
+  const updateTaskAfterDragDrop = useCallback(async (taskId, newParentId, newPosition, oldParentId) => {
+    console.log('🎯 TaskContext: Processing drag & drop update');
+    
+    // Use optimistic update helper
+    optimisticUpdateHelpers.handleOptimisticDragDrop(taskId, newParentId, newPosition, oldParentId);
+    
+    return { success: true };
+  }, [optimisticUpdateHelpers]);
+
   // Initial fetch
   useEffect(() => {
     if (!userLoading && !orgLoading && !initialFetchDoneRef.current && user?.id) {
@@ -181,7 +343,7 @@ export const TaskProvider = ({ children }) => {
     }
   }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks]);
 
-  // Create the context value - simplified without drag/drop complexity
+  // ✅ ENHANCED: Create the context value with optimistic update helpers
   const contextValue = useMemo(() => ({
     // Core task data
     tasks,
@@ -199,6 +361,15 @@ export const TaskProvider = ({ children }) => {
     deleteTask,
     updateTaskDates,
     createProjectFromTemplate,
+
+    // ✅ NEW: Optimistic update functions for drag & drop
+    updateTaskAfterDragDrop,
+    updateTasksOptimistic: optimisticUpdateHelpers.updateTaskPositionsOptimistic,
+    reorderTasksOptimistic: optimisticUpdateHelpers.reorderTasksOptimistic,
+    recalculateDatesOptimistic: optimisticUpdateHelpers.recalculateDatesOptimistic,
+    syncTaskPositionToDatabase: optimisticUpdateHelpers.syncTaskPositionToDatabase,
+    batchSyncPositions: optimisticUpdateHelpers.batchSyncPositions,
+    handleOptimisticDragDrop: optimisticUpdateHelpers.handleOptimisticDragDrop,
 
     // Direct access to all hook state and functions
     ...creationHookResult,
@@ -229,6 +400,10 @@ export const TaskProvider = ({ children }) => {
     deleteTask,
     updateTaskDates,
     createProjectFromTemplate,
+    updateTaskAfterDragDrop,
+
+    // Optimistic helpers
+    optimisticUpdateHelpers,
 
     // All hook results
     creationHookResult,

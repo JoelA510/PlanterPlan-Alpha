@@ -1,5 +1,68 @@
 # Developer Notes
 
+## July 7th 
+
+- still not clear why it's not working 
+- maybe I need to not update Supabase and just focus on the UI first
+- ok so I created a toy example with Claude, and it's able to implement the drag and drop with correctly updating dates 
+  - however, once we add milestones into the mix then it starts breaking
+    - this seems to suggest the issue arises with milestones
+- the issues appears to be that TaskList.js uses HTML5 DropZone but wraps everything in @dnd-kit DndContext. This creates incompatible event systems.
+- [x] TaskList.js
+  1. Remove all @dnd-kit imports (DndContextProvider, SortableTaskWrapper)
+  2. Replace custom HTML5 DropZone with proper HTML5 drop zones
+  3. Remove DndContextProvider wrapper entirely
+  4. Simplify handleDragEnd to direct state updates (like toy example)
+  5. Remove complex async chain (fetchTasks, recalculateAllDates calls)
+  6. Add direct date recalculation after reordering
+  7. Replace renderTasksWithDropZones() with HTML5 version
+  8. Remove useSimpleDragHandler integration
+- [x] TaskItem.js  
+  1. Add draggable={!isTopLevel} attribute to main div
+  2. Add onDragStart, onDragEnd, onDragOver, onDrop handlers
+  3. Add drag visual feedback (opacity, transform effects)
+  4. Remove any @dnd-kit related props or logic
+  5. Add drag handle visual indicator (⋮⋮ or ☰ icon)
+  6. Add hover states for drag operations
+- [x] remove useSimpleDragHandler.js bc we integrate logic directly into TaskList.js
+- [x] TaskContext.js
+  1. Remove any @dnd-kit related integration callbacks
+  2. Add optimistic update helper functions
+  3. Simplify drag-related context methods
+  4. Remove complex async coordination for drag operations
+  5. Add direct state update methods for immediate UI feedback
+- [x] src/components/TaskList/HTML5DragDropZone.js
+  1. Create based on our toy example DropZone component
+  2. Handle 'between' and 'into' drop types
+  3. Visual feedback during drag operations
+  4. Proper event handling (dragOver, drop, dragLeave)
+  5. Integration with TaskList positioning logic
+- [x] TaskList.css
+  1. Add drag states (.dragging, .drag-over, .drop-target)
+  2. Add insert line animations (@keyframes)
+  3. Add drop zone visual feedback
+  4. Add smooth transitions for reordering
+  5. Add touch-friendly drag handles
+- [x] src/utils/dragUtils.js
+  1. Extract reusable drag & drop logic
+  2. Position calculation helpers
+  3. Visual feedback utilities
+  4. Touch device detection and polyfills
+  5. Accessibility helpers for keyboard navigation
+- [x] src/utils/dragVisualFeedback.js
+  1. Insert line animations and positioning
+  2. Drag overlay styles and effects
+  3. Hover state management
+  4. Drop zone highlighting logic
+  5. Smooth transition utilities
+- [x] sparsePositioning.js
+  1. Keep all existing logic (it's good!)
+  2. Update any @dnd-kit specific event parsing
+  3. Ensure compatibility with HTML5 event structure
+  4. Add helper for HTML5 dataTransfer integration
+
+
+
 ## July 2nd [Lorenzo]
 
 - ok let's focus on the drag and drop
@@ -7,6 +70,17 @@
 
 - lets make a to-do list 
 
+- ok so let's stablize drag-n-drop
+  - Current flow
+    - Drag → Optimistic Update → Database Update → Maybe Date Calc → Maybe Refresh
+  - New Flow
+    - Drag → Database Update → Refresh Tasks → Recalculate All Dates → Done
+  - elements
+    - drag handler shoudl only do one thing
+    - a single post-move hook
+    - clean up Date Cache System
+    - simplify position management
+    - remove separate detection logic
 
 
 ## June 30th [Lorenzo]
