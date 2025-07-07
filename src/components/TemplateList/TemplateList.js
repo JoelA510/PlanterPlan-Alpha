@@ -1,9 +1,9 @@
+// src/components/TemplateList/TemplateList.js - FIXED VERSION
 import React, { useState, useEffect, useRef } from 'react';
 import TemplateItem from './TemplateItem';
 import TemplateTaskForm from '../TaskForm/TemplateTaskForm';
 import CreateNewTemplateForm from '../TaskForm/CreateNewTemplateForm';
 import TemplateDetailsPanel from './TemplateDetailsPanel';
-import useTaskDragAndDrop from '../../utils/useTaskDragAndDrop';
 import { useTasks } from '../contexts/TaskContext';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import '../TaskList/TaskList.css';
@@ -32,6 +32,11 @@ const TemplateList = () => {
   // Local state for template creation
   const [isCreatingNewTemplate, setIsCreatingNewTemplate] = useState(false);
   const [addingChildToTemplateId, setAddingChildToTemplateId] = useState(null);
+  
+  // ✅ FIXED: Simple drag state without complex drag and drop library
+  const [draggedTask, setDraggedTask] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
+  const [dropPosition, setDropPosition] = useState(null);
   
   useEffect(() => {
     return () => { isMountedRef.current = false; };
@@ -88,8 +93,97 @@ const TemplateList = () => {
   // Get the selected task object
   const selectedTask = tasks.find(task => task.id === selectedTaskId);
   
-  // Initialize drag and drop
-  const dragAndDrop = useTaskDragAndDrop(tasks, setTasks, fetchTasks);
+  // ✅ FIXED: Simple drag and drop handlers for templates
+  const simpleDragAndDrop = {
+    draggedTask,
+    dropTarget,
+    dropPosition,
+    
+    handleDragStart: (e, task) => {
+      if (!task.parent_task_id) {
+        e.preventDefault();
+        return;
+      }
+      
+      e.dataTransfer.setData('text/plain', task.id);
+      setDraggedTask(task);
+      console.log('Template drag started:', task.title);
+    },
+    
+    handleDragOver: (e, targetTask) => {
+      e.preventDefault();
+      
+      if (!draggedTask || draggedTask.id === targetTask.id) {
+        return;
+      }
+      
+      // Simple hover detection for templates
+      setDropTarget(targetTask);
+      setDropPosition('into'); // Templates typically nest into each other
+    },
+    
+    handleDragLeave: (e) => {
+      if (!e.currentTarget.contains(e.relatedTarget)) {
+        setDropTarget(null);
+        setDropPosition(null);
+      }
+    },
+    
+    handleDragEnd: (e) => {
+      setDraggedTask(null);
+      setDropTarget(null);
+      setDropPosition(null);
+      console.log('Template drag ended');
+    },
+    
+    handleDrop: async (e, targetTask) => {
+      e.preventDefault();
+      
+      if (!draggedTask || !targetTask) return;
+      
+      console.log('Template dropped:', draggedTask.title, 'onto:', targetTask.title);
+      
+      try {
+        // For templates, we'll implement a simple move operation
+        // This would update the parent_task_id of the dragged template
+        
+        // Calculate new position
+        const existingChildren = tasks.filter(t => t.parent_task_id === targetTask.id);
+        const newPosition = existingChildren.length;
+        
+        // Update the template's parent
+        const updatedTask = {
+          ...draggedTask,
+          parent_task_id: targetTask.id,
+          position: newPosition
+        };
+        
+        // Update local state optimistically
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === draggedTask.id ? updatedTask : task
+          )
+        );
+        
+        // Update in database
+        await updateTask(draggedTask.id, {
+          parent_task_id: targetTask.id,
+          position: newPosition
+        });
+        
+        console.log('Template moved successfully');
+        
+      } catch (error) {
+        console.error('Error moving template:', error);
+        // Refresh on error to revert optimistic update
+        await fetchTasks(true);
+      } finally {
+        setDraggedTask(null);
+        setDropTarget(null);
+        setDropPosition(null);
+      }
+    }
+  };
   
   // Handler for creating a new top-level template
   const handleNewTemplateSubmit = async (templateData) => {
@@ -183,8 +277,7 @@ const TemplateList = () => {
     }
     
     try {
-      // For templates, we can use a direct approach that's less likely to have date calculation issues
-      // First, clear the selection if this template is selected
+      // Clear the selection if this template is selected
       if (selectedTaskId === templateId) {
         setSelectedTaskId(null);
       }
@@ -285,9 +378,8 @@ const TemplateList = () => {
           selectedTaskId={selectedTaskId}
           selectTask={selectTask}
           setTasks={setTasks}
-          dragAndDrop={dragAndDrop}
+          dragAndDrop={simpleDragAndDrop}
           onAddTask={handleAddTemplateTask}
-          
         />
       );
       
@@ -297,7 +389,7 @@ const TemplateList = () => {
           <div 
             key={`template-spacer-${index}`}
             style={{
-              height: '5px',
+              height: '8px',
               margin: '2px 0'
             }}
           />
@@ -322,7 +414,6 @@ const TemplateList = () => {
     }
     
     // For when we're adding a child template task to an existing template
-    // For adding a child template to an existing template
     if (addingChildToTemplateId) {
       const parentTask = tasks.find(t => t.id === addingChildToTemplateId);
       if (!parentTask) return null;
@@ -333,7 +424,7 @@ const TemplateList = () => {
       return (
         <TemplateTaskForm
           parentTaskId={addingChildToTemplateId}
-          onSubmit={handleTemplateTaskSubmit}  // Use specific handler
+          onSubmit={handleTemplateTaskSubmit}
           onCancel={cancelTemplateCreation}
           backgroundColor={backgroundColor}
           tasks={tasks}
@@ -370,7 +461,7 @@ const TemplateList = () => {
       );
     }
     
-    // Use our new TemplateDetailsPanel component
+    // Use our TemplateDetailsPanel component
     return (
       <TemplateDetailsPanel
         task={selectedTask}

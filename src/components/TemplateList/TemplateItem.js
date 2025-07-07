@@ -1,3 +1,4 @@
+// src/components/TemplateList/TemplateItem.js - FIXED VERSION
 import React, { useState } from 'react';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 
@@ -15,20 +16,18 @@ const TemplateItem = ({
 }) => {
   const [isHovering, setIsHovering] = useState(false);
   
-  const { 
-    draggedTask, 
-    dropTarget, 
+  // ✅ FIXED: Extract drag and drop handlers (if provided)
+  const {
+    draggedTask,
+    dropTarget,
     dropPosition,
-    handleDragStart, 
-    handleDragOver, 
-    handleDragLeave, 
+    handleDragStart,
+    handleDragOver,
+    handleDragLeave,
     handleDragEnd,
     handleDrop,
-    handleDropZoneDragOver,
-    handleDropZoneDragLeave,
-    handleDropZoneDrop,
-    isDropZoneActive
-  } = dragAndDrop;
+    // Remove references to drop zone handlers that don't exist
+  } = dragAndDrop || {};
 
   const isExpanded = expandedTasks[task.id];
   const isSelected = selectedTaskId === task.id;
@@ -45,88 +44,30 @@ const TemplateItem = ({
   const isDropTarget = dropTarget && dropTarget.id === task.id;
   const isBeingDragged = draggedTask && draggedTask.id === task.id;
   
-  // Render children with drop zones
+  // ✅ FIXED: Simplified children rendering without drop zones
   let childrenContent = null;
   
   if (isExpanded && hasChildren) {
-    const childrenWithDropZones = [];
-    
-    // Add a drop zone at the beginning (position 0)
-    childrenWithDropZones.push(
-      <TaskDropZone 
-        key={`dropzone-${task.id}-0`}
-        parentId={task.id}
-        position={0}
-        prevTask={null}
-        nextTask={children[0]}
-        draggedTask={draggedTask}
-        onDragOver={handleDropZoneDragOver}
-        onDragLeave={handleDropZoneDragLeave}
-        onDrop={handleDropZoneDrop}
-        isActive={isDropZoneActive(task.id, 0)}
-      />
-    );
-    
-    // Add children with drop zones between them
-    children.forEach((child, index) => {
-      // Add the child with the selectTask prop
-      childrenWithDropZones.push(
-        <TemplateItem 
-          key={child.id}
-          task={child} 
-          tasks={tasks}
-          expandedTasks={expandedTasks}
-          toggleExpandTask={toggleExpandTask}
-          selectedTaskId={selectedTaskId}
-          selectTask={selectTask}
-          setTasks={setTasks}
-          dragAndDrop={dragAndDrop}
-          onAddTask={onAddTask}
-          parentTasks={[...parentTasks, task]}
-        />
-      );
-      
-      // Add a drop zone after the child (if not the last child)
-      if (index < children.length - 1) {
-        childrenWithDropZones.push(
-          <TaskDropZone 
-            key={`dropzone-${task.id}-${index + 1}`}
-            parentId={task.id}
-            position={index + 1}
-            prevTask={child}
-            nextTask={children[index + 1]}
-            draggedTask={draggedTask}
-            onDragOver={handleDropZoneDragOver}
-            onDragLeave={handleDropZoneDragLeave}
-            onDrop={handleDropZoneDrop}
-            isActive={isDropZoneActive(task.id, index + 1)}
-          />
-        );
-      }
-    });
-    
-    // Add a final drop zone at the end
-    childrenWithDropZones.push(
-      <TaskDropZone 
-        key={`dropzone-${task.id}-${children.length}`}
-        parentId={task.id}
-        position={children.length}
-        prevTask={children[children.length - 1]}
-        nextTask={null}
-        draggedTask={draggedTask}
-        onDragOver={handleDropZoneDragOver}
-        onDragLeave={handleDropZoneDragLeave}
-        onDrop={handleDropZoneDrop}
-        isActive={isDropZoneActive(task.id, children.length)}
-      />
-    );
-    
     childrenContent = (
       <div style={{ 
         paddingLeft: '24px',
         paddingTop: '0'
       }}>
-        {childrenWithDropZones}
+        {children.map((child) => (
+          <TemplateItem 
+            key={child.id}
+            task={child} 
+            tasks={tasks}
+            expandedTasks={expandedTasks}
+            toggleExpandTask={toggleExpandTask}
+            selectedTaskId={selectedTaskId}
+            selectTask={selectTask}
+            setTasks={setTasks}
+            dragAndDrop={dragAndDrop}
+            onAddTask={onAddTask}
+            parentTasks={[...parentTasks, task]}
+          />
+        ))}
       </div>
     );
   }
@@ -138,6 +79,7 @@ const TemplateItem = ({
       className={`task-container ${isBeingDragged ? 'being-dragged' : ''}`}
       style={{
         margin: isSelected ? '0 4px' : '0',
+        marginBottom: '4px', // Add spacing between templates
         transition: 'margin 0.2s ease'
       }}
     >
@@ -145,11 +87,11 @@ const TemplateItem = ({
       <div 
         className={`task-header ${isDropTarget && dropPosition === 'into' ? 'drop-target-into' : ''} ${isSelected ? 'selected-template' : ''}`}
         draggable={!isTopLevel}
-        onDragStart={(e) => handleDragStart(e, task)}
-        onDragOver={(e) => handleDragOver(e, task)}
-        onDragLeave={handleDragLeave}
-        onDragEnd={handleDragEnd}
-        onDrop={(e) => handleDrop(e, task)}
+        onDragStart={handleDragStart ? (e) => handleDragStart(e, task) : undefined}
+        onDragOver={handleDragOver ? (e) => handleDragOver(e, task) : undefined}
+        onDragLeave={handleDragLeave || undefined}
+        onDragEnd={handleDragEnd || undefined}
+        onDrop={handleDrop ? (e) => handleDrop(e, task) : undefined}
         onClick={(e) => selectTask(task.id, e)}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
@@ -166,12 +108,21 @@ const TemplateItem = ({
           borderRadius: '4px',
           transition: 'all 0.2s ease',
           boxShadow: isSelected ? '0 0 0 2px white, 0 0 0 4px ' + backgroundColor : 'none',
-          zIndex: isSelected ? 1 : 'auto'
+          zIndex: isSelected ? 1 : 'auto',
+          // ✅ FIXED: Add visual feedback for drag states
+          opacity: isBeingDragged ? 0.5 : 1,
+          transform: isDropTarget ? 'scale(1.02)' : 'scale(1)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
           {!isTopLevel && (
-            <span style={{ marginRight: '8px' }}>☰</span>
+            <span style={{ 
+              marginRight: '8px',
+              opacity: isHovering ? 0.9 : 0.6,
+              transition: 'opacity 0.2s ease'
+            }}>
+              ☰
+            </span>
           )}
           <span>
             {task.title}
@@ -206,6 +157,15 @@ const TemplateItem = ({
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
+          {/* Duration display */}
+          <div style={{ 
+            fontSize: '12px', 
+            marginRight: '8px',
+            opacity: 0.8
+          }}>
+            {task.duration_days || task.default_duration || 1} day{(task.duration_days || task.default_duration || 1) !== 1 ? 's' : ''}
+          </div>
+          
           {/* Info button to view details in the right panel */}
           <button 
             onClick={(e) => {
@@ -255,7 +215,22 @@ const TemplateItem = ({
         </div>
       </div>
       
-      {/* Children with drop zones */}
+      {/* ✅ FIXED: Visual feedback for drop states */}
+      {isDropTarget && dropPosition === 'into' && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: '24px',
+          right: '8px',
+          height: '2px',
+          backgroundColor: '#10b981',
+          borderRadius: '1px',
+          zIndex: 5,
+          boxShadow: '0 0 4px rgba(16, 185, 129, 0.6)'
+        }} />
+      )}
+      
+      {/* Children content */}
       {childrenContent}
     </div>
   );
