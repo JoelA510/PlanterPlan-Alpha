@@ -1,10 +1,10 @@
-// src/components/TaskList/TaskList.js - FINAL INTEGRATED VERSION
+// src/components/TaskList/TaskList.js - IMPROVED VERSION
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './TaskList.css';
 import TaskItem from './TaskItem';
 import TaskForm from '../TaskForm/TaskForm';
 import NewProjectForm from '../TaskForm/NewProjectForm';
-import HTML5DragDropZone from './HTML5DragDropZone'; // ✅ NEW: Use dedicated component
+import HTML5DragDropZone from './HTML5DragDropZone';
 import { useTasks } from '../contexts/TaskContext';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import {
@@ -18,6 +18,8 @@ import InvitationTest from '../InvitationTest';
 import SearchBar from '../Search/SearchBar';
 import SearchResults from '../Search/SearchResults';
 import { useSearch } from '../contexts/SearchContext';
+// ✅ ADD: Import sparse positioning utilities
+import { calculateHTML5DropPosition } from '../../utils/sparsePositioning';
 
 const TaskList = () => {
   /* ------------------------- refs ------------------------- */
@@ -38,7 +40,6 @@ const TaskList = () => {
     updateTaskDates,
     getTaskStartDate,
     getTaskDueDate,
-    // ✅ NEW: Get optimistic update helpers from context
     handleOptimisticDragDrop,
     updateTasksOptimistic,
     recalculateDatesOptimistic,
@@ -60,10 +61,10 @@ const TaskList = () => {
   const [showInvitationTest, setShowInvitationTest] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  // ✅ SIMPLIFIED: Drag state for HTML5 drag and drop
+  // ✅ IMPROVED: Simplified drag state
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragHoverTarget, setDragHoverTarget] = useState(null);
-  const [dragCount, setDragCount] = useState(0);
+  // ✅ REMOVED: dragCount - not needed in production
 
   /* -------------------- lifecycle hooks ------------------- */
   useEffect(() => {
@@ -114,10 +115,17 @@ const TaskList = () => {
     return tasks.some(t => t.parent_task_id === task.id);
   };
 
-  // ✅ SIMPLIFIED: HTML5 Drag Handlers (now use context helpers)
+  // ✅ IMPROVED: Better validation for drag start
   const handleDragStart = (task) => {
     // Prevent dragging top-level tasks
     if (!task.parent_task_id) {
+      console.log('🚫 Cannot drag top-level task:', task.title);
+      return false;
+    }
+    
+    // ✅ ADD: Check if task is locked or has other constraints
+    if (task.isLocked || task.isArchived) {
+      console.log('🚫 Cannot drag locked/archived task:', task.title);
       return false;
     }
     
@@ -154,7 +162,7 @@ const TaskList = () => {
     }
   };
 
-  // ✅ SIMPLIFIED: Handle dropping task onto another task (reordering)
+  // ✅ IMPROVED: Use sparse positioning calculation
   const handleDropOnTask = (draggedId, targetId) => {
     const draggedTaskObj = tasks.find(t => t.id === draggedId);
     const targetTask = tasks.find(t => t.id === targetId);
@@ -167,68 +175,91 @@ const TaskList = () => {
       sameParent: draggedTaskObj.parent_task_id === targetTask.parent_task_id
     });
 
-    // Determine new position based on drop type
-    let newParentId, newPosition;
+    // ✅ IMPROVED: Use sparse positioning utility
+    const dropInfo = {
+      type: 'onto',
+      targetTaskId: targetId,
+      draggedId: draggedId
+    };
     
-    if (targetTask.parent_task_id === draggedTaskObj.parent_task_id) {
-      // Same parent - reorder within same container
-      newParentId = targetTask.parent_task_id;
-      const siblings = tasks.filter(t => t.parent_task_id === newParentId && t.id !== draggedId)
-        .sort((a, b) => a.position - b.position);
-      const targetIndex = siblings.findIndex(t => t.id === targetId);
-      
-      const draggedCurrentIndex = tasks.filter(t => t.parent_task_id === newParentId)
-        .sort((a, b) => a.position - b.position)
-        .findIndex(t => t.id === draggedId);
-      const targetCurrentIndex = tasks.filter(t => t.parent_task_id === newParentId)
-        .sort((a, b) => a.position - b.position)
-        .findIndex(t => t.id === targetId);
-      
-      // Calculate insert position
-      const insertIndex = draggedCurrentIndex < targetCurrentIndex ? targetIndex + 1 : targetIndex;
-      newPosition = (insertIndex + 1) * 1000; // Sparse positioning
-    } else {
-      // Different parent - move to target's parent
-      newParentId = targetTask.parent_task_id;
-      newPosition = targetTask.position + 500; // Insert after target
+    const positionResult = calculateHTML5DropPosition(dropInfo, tasks);
+    
+    if (!positionResult.success) {
+      console.error('❌ Invalid drop operation:', positionResult.reason);
+      return;
     }
     
-    // ✅ USE CONTEXT HELPER: Single function call for optimistic update
-    handleOptimisticDragDrop(draggedId, newParentId, newPosition, draggedTaskObj.parent_task_id);
-    setDragCount(prev => prev + 1);
+    // Use the calculated position from the utility
+    handleOptimisticDragDrop(
+      draggedId, 
+      positionResult.newParentId, 
+      positionResult.newPosition, 
+      draggedTaskObj.parent_task_id
+    );
+    
     setDragHoverTarget(null);
   };
 
-  // ✅ SIMPLIFIED: Handle dropping between tasks
+  // ✅ IMPROVED: Use sparse positioning for between drops
   const handleDropBetween = (draggedId, parentId, position) => {
     console.log('🎯 Dropped between at position:', position);
     
     const draggedTaskObj = tasks.find(t => t.id === draggedId);
     if (!draggedTaskObj) return;
     
-    const newPosition = position * 1000; // Sparse positioning
+    // ✅ IMPROVED: Use sparse positioning utility
+    const dropInfo = {
+      type: 'between',
+      parentId: parentId,
+      position: position,
+      draggedId: draggedId
+    };
     
-    // ✅ USE CONTEXT HELPER: Single function call
-    handleOptimisticDragDrop(draggedId, parentId, newPosition, draggedTaskObj.parent_task_id);
-    setDragCount(prev => prev + 1);
+    const positionResult = calculateHTML5DropPosition(dropInfo, tasks);
+    
+    if (!positionResult.success) {
+      console.error('❌ Invalid drop operation:', positionResult.reason);
+      return;
+    }
+    
+    handleOptimisticDragDrop(
+      draggedId, 
+      positionResult.newParentId, 
+      positionResult.newPosition, 
+      draggedTaskObj.parent_task_id
+    );
+    
     setDragHoverTarget(null);
   };
 
-  // ✅ SIMPLIFIED: Handle dropping onto a task container (making it a child)
-  const handleDropOnto = (draggedId, parentId) => {
-    console.log('🎯 Dropped onto parent:', parentId);
+  // ✅ IMPROVED: Use sparse positioning for into drops
+  const handleDropInto = (draggedId, parentId) => {
+    console.log('🎯 Dropped into parent:', parentId);
     
     const draggedTaskObj = tasks.find(t => t.id === draggedId);
     if (!draggedTaskObj) return;
     
-    // Find new position (append to end)
-    const existingChildren = tasks.filter(t => t.parent_task_id === parentId);
-    const newPosition = existingChildren.length > 0 ? 
-      Math.max(...existingChildren.map(t => t.position || 0)) + 1000 : 1000;
+    // ✅ IMPROVED: Use sparse positioning utility
+    const dropInfo = {
+      type: 'into',
+      parentId: parentId,
+      draggedId: draggedId
+    };
     
-    // ✅ USE CONTEXT HELPER: Single function call
-    handleOptimisticDragDrop(draggedId, parentId, newPosition, draggedTaskObj.parent_task_id);
-    setDragCount(prev => prev + 1);
+    const positionResult = calculateHTML5DropPosition(dropInfo, tasks);
+    
+    if (!positionResult.success) {
+      console.error('❌ Invalid drop operation:', positionResult.reason);
+      return;
+    }
+    
+    handleOptimisticDragDrop(
+      draggedId, 
+      positionResult.newParentId, 
+      positionResult.newPosition, 
+      draggedTaskObj.parent_task_id
+    );
+    
     setDragHoverTarget(null);
   };
 
@@ -386,7 +417,6 @@ const TaskList = () => {
 
   /* ---------------------- render helpers ------------------- */
   
-  // ✅ ENHANCED: Use dedicated HTML5DragDropZone component
   const renderTasksWithHTML5DropZones = () => {
     if (getVisibleTasks.length === 0) {
       return (
@@ -442,7 +472,7 @@ const TaskList = () => {
                   parentId={task.id}
                   position={0}
                   level={task.level}
-                  onDropInto={handleDropOnto}
+                  onDropInto={handleDropInto}
                   isDragActive={!!draggedTask}
                   debugMode={process.env.NODE_ENV === 'development'}
                 />
@@ -525,9 +555,11 @@ const TaskList = () => {
     if (!task) return null;
 
     if (addingChildToTaskId === selectedTaskId) {
+      const parentStartDate = getTaskStartDate(selectedTaskId);
       return (
         <TaskForm
           parentTaskId={selectedTaskId}
+          parentStartDate={parentStartDate}
           onSubmit={handleAddChildTaskSubmit}
           onCancel={handleCancelAddTask}
           backgroundColor={getBackgroundColor(getTaskLevel(task, tasks))}
@@ -560,7 +592,7 @@ const TaskList = () => {
   /* ------------------------- render ------------------------ */
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Debug info for development */}
+      {/* ✅ IMPROVED: Better debug panel */}
       {draggedTask && process.env.NODE_ENV === 'development' && (
         <div style={{ 
           position: 'fixed', 
@@ -574,7 +606,11 @@ const TaskList = () => {
           zIndex: 1000,
           boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
         }}>
-          🚀 Dragging: {draggedTask.title} | Moves: {dragCount}
+          🚀 Dragging: {draggedTask.title}
+          <br />
+          📍 From: {draggedTask.parent_task_id || 'root'}
+          <br />
+          🎯 Target: {dragHoverTarget?.title || 'none'}
         </div>
       )}
       

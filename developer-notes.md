@@ -61,7 +61,7 @@
   3. Ensure compatibility with HTML5 event structure
   4. Add helper for HTML5 dataTransfer integration
 
-
+- ok let's see if we can further refactor drag-n-drop
 
 ## July 2nd [Lorenzo]
 

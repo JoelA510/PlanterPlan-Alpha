@@ -9,6 +9,7 @@ import { useTaskUpdate } from '../../hooks/useTaskUpdate';
 import { useLocation } from 'react-router-dom';
 import { useTaskDates } from '../../hooks/useTaskDates';
 import { fetchAllTasks, updateTaskCompletion, updateTaskPosition } from '../../services/taskService';
+import { DateCacheEngine } from '../../utils/DateCacheEngine';
 
 // Create a context for tasks
 const TaskContext = createContext();
@@ -117,58 +118,22 @@ export const TaskProvider = ({ children }) => {
       });
     },
 
-    // Recalculate dates immediately (synchronous)
     recalculateDatesOptimistic: (taskList) => {
-      const rootTasks = taskList.filter(t => !t.parent_task_id).sort((a, b) => a.position - b.position);
-      let currentDate = new Date('2025-01-01');
+      // Use the actual project start date
+      const rootTasks = taskList.filter(t => !t.parent_task_id);
+      const projectStartDate = rootTasks[0]?.start_date || new Date().toISOString();
       
-      return taskList.map(task => {
-        if (!task.parent_task_id) {
-          // Root task: calculate based on children
-          const children = taskList.filter(t => t.parent_task_id === task.id).sort((a, b) => a.position - b.position);
-          const start = new Date(currentDate);
-          let totalDuration = 0;
-          
-          children.forEach(child => {
-            const childDuration = child.duration_days || 1;
-            totalDuration += childDuration;
-          });
-          
-          const end = new Date(start);
-          end.setDate(end.getDate() + totalDuration);
-          currentDate = new Date(end);
-          
-          return {
-            ...task,
-            start_date: start.toISOString().split('T')[0],
-            due_date: end.toISOString().split('T')[0],
-            duration_days: totalDuration || task.duration_days || 1
-          };
-        } else {
-          // Child task: calculate from parent and siblings
-          const parent = taskList.find(t => t.id === task.parent_task_id);
-          if (!parent) return task;
-          
-          const siblings = taskList.filter(t => t.parent_task_id === task.parent_task_id).sort((a, b) => a.position - b.position);
-          const taskIndex = siblings.findIndex(t => t.id === task.id);
-          
-          let taskStart = new Date(parent.start_date);
-          for (let i = 0; i < taskIndex; i++) {
-            const siblingDuration = siblings[i].duration_days || 1;
-            taskStart.setDate(taskStart.getDate() + siblingDuration);
-          }
-          
-          const taskDuration = task.duration_days || 1;
-          const taskEnd = new Date(taskStart);
-          taskEnd.setDate(taskEnd.getDate() + taskDuration);
-          
-          return {
-            ...task,
-            start_date: taskStart.toISOString().split('T')[0],
-            due_date: taskEnd.toISOString().split('T')[0]
-          };
-        }
-      });
+      // Use your existing DateCacheEngine
+      const engine = new DateCacheEngine();
+      const dates = engine.calculateAllDates(taskList, projectStartDate);
+      
+      // Apply calculated dates to tasks
+      return taskList.map(task => ({
+        ...task,
+        start_date: dates.get(task.id)?.start_date || task.start_date,
+        due_date: dates.get(task.id)?.due_date || task.due_date,
+        duration_days: dates.get(task.id)?.duration_days || task.duration_days
+      }));
     },
 
     // Background database sync (non-blocking)
