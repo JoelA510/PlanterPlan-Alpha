@@ -1,4 +1,48 @@
 # Developer Notes
+## July 7th [Tim]
+# Show Joined Projects Feature - Implementation Roadmap
+
+## Phase 1: Database Layer (2 PRs)
+
+### **PR #1: Database Schema & Queries**
+- [ ] Create `getProjectMemberships()` function in `src/utils/teamManagement.js`
+- [ ] Create `getProjectsByIds()` function to fetch multiple projects efficiently in `src/utils/teamManagement.js`
+- [ ] Create `getUserProjectRole()` helper function in `src/utils/teamManagement.js`
+
+### **PR #2: Project Membership Service**
+- [ ] Create `ProjectMembershipService` class in `src/services/ProjectMembershipService.js`
+  - [ ] Add `getJoinedProjects(userId)` method to new service
+    - [ ] gets project ids and user roles
+- [ ] Add membership role constants to `src/utils/constants.js`
+- [ ] Add error handling and logging throughout service
+
+## Phase 2: UI Components (2 PRs)
+
+### **PR #3: Project Role Indicator Component**
+- [ ] Create `ProjectRoleIndicator` component in `src/components/ProjectRoleIndicator.jsx`
+  - [ ] Add role icons and tooltips to component
+  - [ ] Roles: Project Owner, Full User, 
+- [ ] Export new component in `src/components/index.js`
+
+### **PR #4: Enhanced Project Display**
+- [ ] Update `TaskItem` component to show role indicator
+- [ ] Update project list layout in `TaskList.js` to accommodate role indicators
+- [ ] Ensure consistent spacing and alignment in project list
+
+## Phase 3: State Management & Integration (1 PR)
+
+### **PR #5: Projects State & Filtering**
+- [ ] Update projects context in `TaskContext.js` to handle joined projects
+- [ ] Add `joinedProjects` state in context
+- [ ] Create `loadJoinedProjects()` action in projects context
+- [ ] Update loading states and error handling in `src/hooks/useProjects.js`
+- [ ] Update main projects page in `TaskList` to use new state
+
+
+Maybe later:
+- [ ] Implement caching for membership data in service
+---
+
 
 ## July 7th 
 
