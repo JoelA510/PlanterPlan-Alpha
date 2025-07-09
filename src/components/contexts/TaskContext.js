@@ -1,3 +1,4 @@
+// src/components/contexts/TaskContext.js - Enhanced version
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationProvider';
@@ -8,7 +9,8 @@ import { useTaskDeletion } from '../../hooks/useTaskDeletion';
 import { useTaskUpdate } from '../../hooks/useTaskUpdate';
 import { useLocation } from 'react-router-dom';
 import { useTaskDates } from '../../hooks/useTaskDates';
-import { fetchAllTasks, updateTaskCompletion, updateTaskPosition } from '../../services/taskService';
+import { fetchAllTasks, updateTaskCompletion, updateTaskPosition, fetchTasksForProjects } from '../../services/taskService';
+import { getUserProjects } from '../../services/teamManagementService';
 import { DateCacheEngine } from '../../utils/DateCacheEngine';
 
 // Create a context for tasks
@@ -35,6 +37,12 @@ export const TaskProvider = ({ children }) => {
   const [isFetching, setIsFetching] = useState(false);
   const initialFetchDoneRef = useRef(false);
 
+  // ✅ NEW: Member projects state
+  const [memberProjects, setMemberProjects] = useState([]);
+  const [memberProjectTasks, setMemberProjectTasks] = useState([]);
+  const [memberProjectsLoading, setMemberProjectsLoading] = useState(false);
+  const [memberProjectsError, setMemberProjectsError] = useState(null);
+
   // Helper function to get project start date
   const getProjectStartDate = useCallback(() => {
     const rootTasks = tasks.filter(t => !t.parent_task_id);
@@ -51,7 +59,59 @@ export const TaskProvider = ({ children }) => {
     tasks.filter(task => task.origin === "template"), [tasks]
   );
 
-  // Fetch all tasks
+  // ✅ NEW: Fetch member projects and their tasks
+  const fetchMemberProjects = useCallback(async () => {
+    if (!user?.id) {
+      setMemberProjects([]);
+      setMemberProjectTasks([]);
+      return;
+    }
+
+    try {
+      setMemberProjectsLoading(true);
+      setMemberProjectsError(null);
+
+      console.log('Fetching member projects for user:', user.id);
+      
+      // Get projects the user is a member of
+      const { data: memberProjectsData, error: memberError } = await getUserProjects(user.id);
+      
+      if (memberError) {
+        throw new Error(memberError);
+      }
+
+      console.log('Found member projects:', memberProjectsData);
+      setMemberProjects(memberProjectsData || []);
+
+      // Fetch tasks for each member project
+      if (memberProjectsData && memberProjectsData.length > 0) {
+        const projectIds = memberProjectsData.map(mp => mp.project.id);
+        console.log('Fetching tasks for project IDs:', projectIds);
+
+        // Use the batch fetch method instead of individual fetches
+        const { data: allMemberTasks, error: tasksError } = await fetchTasksForProjects(projectIds, organizationId);
+        
+        if (tasksError) {
+          throw new Error(tasksError);
+        }
+
+        console.log('Member project tasks fetched:', allMemberTasks?.length || 0);
+        setMemberProjectTasks(allMemberTasks || []);
+      } else {
+        setMemberProjectTasks([]);
+      }
+
+    } catch (err) {
+      console.error('Error fetching member projects:', err);
+      setMemberProjectsError(`Failed to load member projects: ${err.message}`);
+      setMemberProjects([]);
+      setMemberProjectTasks([]);
+    } finally {
+      setMemberProjectsLoading(false);
+    }
+  }, [user?.id, organizationId]);
+
+  // Fetch all tasks (owned projects)
   const fetchTasks = useCallback(async (forceRefresh = false) => {
     if (isFetching && !forceRefresh) return { instanceTasks, templateTasks };
     if (!user?.id) return { instanceTasks, templateTasks };
@@ -83,6 +143,18 @@ export const TaskProvider = ({ children }) => {
     }
   }, [organizationId, user?.id, instanceTasks, templateTasks, isFetching]);
 
+  // ✅ NEW: Combined fetch function for both owned and member projects
+  const fetchAllProjectsAndTasks = useCallback(async (forceRefresh = false) => {
+    console.log('Fetching all projects and tasks...');
+    
+    const [ownedResult] = await Promise.all([
+      fetchTasks(forceRefresh),
+      fetchMemberProjects()
+    ]);
+    
+    return ownedResult;
+  }, [fetchTasks, fetchMemberProjects]);
+
   // Initialize date management system
   const dateHookResult = useTaskDates(tasks, getProjectStartDate());
 
@@ -93,7 +165,7 @@ export const TaskProvider = ({ children }) => {
   const updateHookResult = useTaskUpdate();
   const licenseHookResult = useLicenses();
 
-  // ✅ NEW: Optimistic update helpers for drag & drop
+  // ✅ ENHANCED: Optimistic update helpers for drag & drop
   const optimisticUpdateHelpers = useMemo(() => ({
     
     // Update task positions immediately (optimistic)
@@ -104,18 +176,25 @@ export const TaskProvider = ({ children }) => {
           return update ? { ...task, ...update } : task;
         })
       );
+
+      // ✅ NEW: Also update member project tasks if needed
+      setMemberProjectTasks(prevTasks => 
+        prevTasks.map(task => {
+          const update = taskUpdates.find(u => u.id === task.id);
+          return update ? { ...task, ...update } : task;
+        })
+      );
     },
 
     // Reorder tasks immediately (optimistic)
     reorderTasksOptimistic: (draggedId, newParentId, newPosition) => {
-      setTasks(prevTasks => {
-        const newTasks = prevTasks.map(task => 
-          task.id === draggedId 
-            ? { ...task, parent_task_id: newParentId, position: newPosition }
-            : task
-        );
-        return newTasks;
-      });
+      const updateTask = (task) => 
+        task.id === draggedId 
+          ? { ...task, parent_task_id: newParentId, position: newPosition }
+          : task;
+
+      setTasks(prevTasks => prevTasks.map(updateTask));
+      setMemberProjectTasks(prevTasks => prevTasks.map(updateTask));
     },
 
     recalculateDatesOptimistic: (taskList) => {
@@ -146,7 +225,6 @@ export const TaskProvider = ({ children }) => {
           console.log('✅ Background sync successful');
         } else {
           console.warn('⚠️ Background sync failed:', result.error);
-          // Could show a toast notification here
         }
         
         return result;
@@ -181,9 +259,9 @@ export const TaskProvider = ({ children }) => {
       }
     },
 
-    // Complete optimistic drag & drop update
+    // ✅ ENHANCED: Handle both owned and member project tasks
     handleOptimisticDragDrop: (draggedId, newParentId, newPosition, oldParentId) => {
-      setTasks(prevTasks => {
+      const updateTasks = (prevTasks) => {
         // 1. Update positions
         const updatedTasks = prevTasks.map(task => 
           task.id === draggedId 
@@ -194,18 +272,21 @@ export const TaskProvider = ({ children }) => {
         // 2. Recalculate dates immediately
         const tasksWithDates = optimisticUpdateHelpers.recalculateDatesOptimistic(updatedTasks);
         
-        // 3. Background sync (don't wait)
-        setTimeout(() => {
-          optimisticUpdateHelpers.syncTaskPositionToDatabase(draggedId, newParentId, newPosition);
-        }, 100);
-        
         return tasksWithDates;
-      });
+      };
+
+      setTasks(updateTasks);
+      setMemberProjectTasks(updateTasks);
+      
+      // 3. Background sync (don't wait)
+      setTimeout(() => {
+        optimisticUpdateHelpers.syncTaskPositionToDatabase(draggedId, newParentId, newPosition);
+      }, 100);
     }
 
   }), []);
 
-  // Integration callbacks for hooks (✅ SIMPLIFIED - removed complex drag/drop coordination)
+  // Integration callbacks for hooks
   const integrationCallbacks = useMemo(() => ({
     // For task creation
     onTaskCreated: async (newTask) => {
@@ -217,7 +298,6 @@ export const TaskProvider = ({ children }) => {
           .filter(t => (t.position || 0) >= (newTask.position || 0));
         affectedTaskIds.push(...siblings.map(t => t.id));
       }
-      // ✅ SIMPLIFIED: Use simple date update instead of complex async chain
       if (dateHookResult.updateTaskDates) {
         dateHookResult.updateTaskDates(affectedTaskIds);
       }
@@ -226,8 +306,7 @@ export const TaskProvider = ({ children }) => {
     // For template conversion
     onProjectCreated: async (rootProject, createdTasks) => {
       setTasks(prev => [...prev, ...createdTasks]);
-      // ✅ SIMPLIFIED: Direct refresh instead of complex timing
-      setTimeout(() => fetchTasks(true), 500);
+      setTimeout(() => fetchAllProjectsAndTasks(true), 500);
     },
 
     // For task deletion
@@ -245,9 +324,9 @@ export const TaskProvider = ({ children }) => {
       ));
     },
     onRefreshNeeded: async () => {
-      await fetchTasks(true);
+      await fetchAllProjectsAndTasks(true);
     }
-  }), [tasks, fetchTasks, dateHookResult]);
+  }), [tasks, fetchAllProjectsAndTasks, dateHookResult]);
 
   // Create enhanced hook functions with integration
   const createTask = useCallback(async (taskData, licenseId = null) => {
@@ -301,14 +380,30 @@ export const TaskProvider = ({ children }) => {
     return { success: true };
   }, [optimisticUpdateHelpers]);
 
+  // ✅ NEW: Helper functions for member projects
+  const getUserRole = useCallback((projectId) => {
+    const membership = memberProjects.find(mp => mp.project.id === projectId);
+    return membership?.role || null;
+  }, [memberProjects]);
+
+  const canUserEdit = useCallback((projectId) => {
+    const role = getUserRole(projectId);
+    return ['owner', 'full_user'].includes(role);
+  }, [getUserRole]);
+
+  const canUserManageTeam = useCallback((projectId) => {
+    const role = getUserRole(projectId);
+    return role === 'owner';
+  }, [getUserRole]);
+
   // Initial fetch
   useEffect(() => {
     if (!userLoading && !orgLoading && !initialFetchDoneRef.current && user?.id) {
-      fetchTasks();
+      fetchAllProjectsAndTasks();
     }
-  }, [user?.id, organizationId, userLoading, orgLoading, fetchTasks]);
+  }, [user?.id, organizationId, userLoading, orgLoading, fetchAllProjectsAndTasks]);
 
-  // ✅ ENHANCED: Create the context value with optimistic update helpers
+  // ✅ ENHANCED: Create the context value with member project data
   const contextValue = useMemo(() => ({
     // Core task data
     tasks,
@@ -319,6 +414,19 @@ export const TaskProvider = ({ children }) => {
     isFetching,
     fetchTasks,
     setTasks, // Expose setTasks for direct manipulation in TaskList
+
+    // ✅ NEW: Member projects data
+    memberProjects,
+    memberProjectTasks,
+    memberProjectsLoading,
+    memberProjectsError,
+    fetchMemberProjects,
+    fetchAllProjectsAndTasks,
+
+    // ✅ NEW: User permission helpers
+    getUserRole,
+    canUserEdit,
+    canUserManageTeam,
 
     // Task operations (integrated with state management)
     createTask,
@@ -358,6 +466,19 @@ export const TaskProvider = ({ children }) => {
     error,
     isFetching,
     fetchTasks,
+
+    // ✅ NEW: Member projects state
+    memberProjects,
+    memberProjectTasks,
+    memberProjectsLoading,
+    memberProjectsError,
+    fetchMemberProjects,
+    fetchAllProjectsAndTasks,
+
+    // ✅ NEW: Permission helpers
+    getUserRole,
+    canUserEdit,
+    canUserManageTeam,
 
     // Integrated operations
     createTask,

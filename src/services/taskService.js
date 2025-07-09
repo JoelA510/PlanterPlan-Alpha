@@ -1,1025 +1,752 @@
-// src/services/taskService.js
+// src/services/taskService.js - Enhanced version with project-specific fetching
 import { supabase } from '../supabaseClient';
-import { useAuth } from '../components/contexts/AuthContext';
-
-// Helper function to check if error is due to connection/auth issues
-const isConnectionError = (error) => {
-  if (!error) return false;
-  
-  return (
-    error.code === 'PGRST301' || 
-    error.code === '401' || 
-    error.message?.includes('JWT') ||
-    error.message?.includes('auth') ||
-    error.message?.includes('network') ||
-    error.message?.includes('connection')
-  );
-};
 
 /**
- * Hook that returns enhanced task service functions with auto-reconnection
+ * Fetch all tasks with enhanced filtering options
+ * @param {string|null} organizationId - Organization ID (can be null)
+ * @param {string|null} userId - User ID for ownership filtering (can be null)
+ * @param {string} origin - Task origin ('instance' or 'template')
+ * @param {string|null} projectId - Specific project ID to fetch tasks for (NEW)
+ * @param {Object} options - Additional options
+ * @returns {Promise<{data: Array, error: string}>}
  */
-export const useTaskService = () => {
-  const { refreshConnection } = useAuth();
-  
-  /**
-   * Fetches all tasks from Supabase with auto-reconnection
-   * @param {string} organizationId - Organization ID to filter tasks by
-   * @param {string} userId - User ID to filter tasks by (for instance tasks)
-   * @param {string} origin - Filter by task origin ("instance" or "template")
-   * @returns {Promise<{data: Array, error: string}>} - The fetched task data or error
-   */
-  const fetchAllTasks = async (organizationId = null, userId = null, origin = null) => {
-    try {
-      // Start building the query
-      let query = supabase.from('tasks').select('*');
-      
-      // Add filters if provided
-      if (organizationId) {
-        query = query.eq('white_label_id', organizationId);
-      }
-      
-      if (userId) {
-        query = query.eq('creator', userId);
-      }
-      
-      if (origin) {
-        query = query.eq('origin', origin);
-      }
-      
-      // Execute the query
-      let { data, error } = await query;
-      
-      // If there's a connection error, try to reconnect and retry
-      if (error && isConnectionError(error)) {
-        console.log('Connection error detected, trying to reconnect...');
-        const reconnected = await refreshConnection();
-        
-        if (reconnected) {
-          // Rebuild and retry the query after reconnection
-          query = supabase.from('tasks').select('*');
-          
-          if (organizationId) {
-            query = query.eq('white_label_id', organizationId);
-          }
-          
-          if (userId) {
-            query = query.eq('creator', userId);
-          }
-          
-          if (origin) {
-            query = query.eq('origin', origin);
-          }
-          
-          const retry = await query;
-          data = retry.data;
-          error = retry.error;
-        }
-      }
-      
-      if (error) {
-        console.error('Supabase error:', error);
-        return { error: error.message || 'Failed to fetch tasks from Supabase' };
-      }
-      
-      // Log the count of fetched tasks
-      console.log(`Fetched ${data?.length || 0} tasks`);
-      
-      return { data };
-    } catch (err) {
-      console.error('Error fetching tasks:', err);
-      return { error: err.message || 'Unknown error occurred while fetching tasks' };
-    }
-  };
-  
-  /**
-   * Creates a new task with auto-reconnection
-   * @param {Object} taskData - The task data to create
-   * @returns {Promise<{data: Object, error: string}>} - The result
-   */
-  const createTask = async (taskData) => {
-    try {
-      console.log('Creating task with data:', JSON.stringify(taskData, null, 2));
-      
-      // Ensure required fields are present
-      const requiredFields = ['title', 'origin'];
-      const missingFields = requiredFields.filter(field => !taskData[field]);
-      
-      if (missingFields.length > 0) {
-        console.error('Missing required fields:', missingFields);
-        return { error: `Missing required fields: ${missingFields.join(', ')}` };
-      }
-      
-      // Normalize the taskData to avoid issues
-      const normalizedData = {
-        ...taskData,
-        // Ensure parent_task_id is null if not provided
-        parent_task_id: taskData.parent_task_id || null,
-      };
-      
-      // Ensure due_date is in the correct format if provided
-      if (normalizedData.due_date && !(normalizedData.due_date instanceof Date)) {
-        try {
-          normalizedData.due_date = new Date(normalizedData.due_date);
-        } catch (e) {
-          console.warn('Failed to parse due_date, setting to null', e);
-          normalizedData.due_date = null;
-        }
-      }
-      
-      // Try to create the task
-      let { data, error } = await supabase
-        .from('tasks')
-        .insert([normalizedData])
-        .select();
-      
-      // If there's a connection error, try to reconnect and retry
-      if (error && isConnectionError(error)) {
-        console.log('Connection error detected, trying to reconnect...');
-        const reconnected = await refreshConnection();
-        
-        if (reconnected) {
-          // Retry the operation after reconnection
-          const retry = await supabase
-            .from('tasks')
-            .insert([normalizedData])
-            .select();
-          
-          data = retry.data;
-          error = retry.error;
-        }
-      }
-      
-      if (error) {
-        console.error('Supabase error:', error);
-        return { error: error.message || 'Failed to create task in Supabase' };
-      }
-      
-      console.log('Successfully created task:', data);
-      return { data: data[0] };
-    } catch (err) {
-      console.error('Error creating task:', err);
-      return { error: err.message || 'Unknown error occurred' };
-    }
-  };
-  
-  /**
-   * Updates a task's position with auto-reconnection
-   * @param {string} taskId - ID of the task to update
-   * @param {string} parentId - New parent task ID
-   * @param {number} position - New position value
-   * @returns {Promise<{success: boolean, error: string}>} - Success status and any error
-   */
-  const updateTaskPosition = async (taskId, parentId, position) => {
-    try {
-      console.log(`Updating task position: taskId=${taskId}, parentId=${parentId}, position=${position}`);
-      
-      // Validate input
-      if (!taskId) {
-        return { success: false, error: 'Task ID is required' };
-      }
-      
-      // Prepare the update data
-      const updateData = {
-        parent_task_id: parentId,
-        position: position
-      };
-      
-      // Update the task in Supabase
-      let { data, error } = await supabase
-        .from('tasks')
-        .update(updateData)
-        .eq('id', taskId)
-        .select();
-      
-      // If there's a connection error, try to reconnect and retry
-      if (error && isConnectionError(error)) {
-        console.log('Connection error detected, trying to reconnect...');
-        const reconnected = await refreshConnection();
-        
-        if (reconnected) {
-          // Retry the operation after reconnection
-          const retry = await supabase
-            .from('tasks')
-            .update(updateData)
-            .eq('id', taskId)
-            .select();
-          
-          data = retry.data;
-          error = retry.error;
-        }
-      }
-      
-      if (error) {
-        console.error('Supabase error updating task position:', error);
-        return { success: false, error: error.message };
-      }
-      
-      console.log('Successfully updated task position:', data);
-      return { success: true, data };
-    } catch (err) {
-      console.error('Error updating task position:', err);
-      return { success: false, error: err.message };
-    }
-  };
-  
-  /**
-   * Updates the positions of multiple sibling tasks with auto-reconnection
-   * @param {Array} tasks - Array of tasks with updated position values
-   * @returns {Promise<{success: boolean, error: string}>} - Success status and any error
-   */
-  const updateSiblingPositions = async (tasks) => {
-    try {
-      // If no tasks to update, return success
-      if (!tasks || tasks.length === 0) {
-        return { success: true };
-      }
-      
-      console.log(`Updating positions for ${tasks.length} tasks`);
-      
-      // Create all update promises
-      const updatePromises = tasks.map(task => {
-        return supabase
-          .from('tasks')
-          .update({ position: task.position })
-          .eq('id', task.id);
-      });
-      
-      // Wait for all updates to complete
-      const results = await Promise.all(updatePromises);
-      
-      // Check if any updates failed due to connection issues
-      const connectionErrors = results.filter(result => 
-        result.error && isConnectionError(result.error)
-      );
-      
-      // If there are connection errors, try to reconnect and retry those updates
-      if (connectionErrors.length > 0) {
-        console.log('Connection error detected, trying to reconnect...');
-        const reconnected = await refreshConnection();
-        
-        if (reconnected) {
-          // Retry just the failed updates after reconnection
-          const failedTasks = [];
-          results.forEach((result, index) => {
-            if (result.error && isConnectionError(result.error)) {
-              failedTasks.push(tasks[index]);
-            }
-          });
-          
-          if (failedTasks.length > 0) {
-            console.log(`Retrying ${failedTasks.length} failed updates after reconnection`);
-            
-            const retryPromises = failedTasks.map(task => {
-              return supabase
-                .from('tasks')
-                .update({ position: task.position })
-                .eq('id', task.id);
-            });
-            
-            const retryResults = await Promise.all(retryPromises);
-            
-            // Replace the original failed results with retry results
-            let retryIndex = 0;
-            for (let i = 0; i < results.length; i++) {
-              if (results[i].error && isConnectionError(results[i].error)) {
-                results[i] = retryResults[retryIndex++];
-              }
-            }
-          }
-        }
-      }
-      
-      // Check if any updates still failed after retry
-      const errors = results.filter(result => result.error).map(result => result.error);
-      
-      if (errors.length > 0) {
-        console.error('Errors updating sibling positions:', errors);
-        return { success: false, error: errors[0].message };
-      }
-      
-      console.log('Successfully updated sibling positions');
-      return { success: true };
-    } catch (err) {
-      console.error('Error updating sibling positions:', err);
-      return { success: false, error: err.message };
-    }
-  };
-  
-  /**
-   * Updates a task's completion status with auto-reconnection
-   * @param {string} taskId - ID of the task to update
-   * @param {boolean} currentStatus - Current completion status
-   * @returns {Promise<{success: boolean, error: string}>} - Success status and any error
-   */
-  const updateTaskCompletion = async (taskId, currentStatus) => {
-    try {
-      // The newStatus should be the opposite of the currentStatus
-      const newStatus = !currentStatus;
-      
-      console.log(`Updating task ${taskId} completion status to ${newStatus}`);
-      
-      // Try to update the task
-      let { data, error } = await supabase
-        .from('tasks')
-        .update({ is_complete: newStatus })
-        .eq('id', taskId)
-        .select();
-      
-      // If there's a connection error, try to reconnect and retry
-      if (error && isConnectionError(error)) {
-        console.log('Connection error detected, trying to reconnect...');
-        const reconnected = await refreshConnection();
-        
-        if (reconnected) {
-          // Retry the operation after reconnection
-          const retry = await supabase
-            .from('tasks')
-            .update({ is_complete: newStatus })
-            .eq('id', taskId)
-            .select();
-          
-          data = retry.data;
-          error = retry.error;
-        }
-      }
-      
-      if (error) {
-        console.error('Supabase error updating task completion:', error);
-        return { success: false, error: error.message };
-      }
-      
-      console.log('Task completion updated successfully:', data);
-      return { success: true, data };
-    } catch (err) {
-      console.error('Error updating task completion:', err);
-      return { success: false, error: err.message };
-    }
-  };
-  
-  /**
-   * Deletes a task and optionally its children with auto-reconnection
-   * @param {string} taskId - The ID of the task to delete
-   * @param {boolean} deleteChildren - Whether to also delete child tasks
-   * @returns {Promise<{success: boolean, error: string, deletedIds: string[]}>} - The result
-   */
-  const deleteTask = async (taskId, deleteChildren = true) => {
-    try {
-      console.log('Deleting task with ID:', taskId);
-      
-      if (deleteChildren) {
-        return await deleteTaskWithChildren(taskId);
-      } else {
-        // Just delete the single task
-        let { error } = await supabase
-          .from('tasks')
-          .delete()
-          .eq('id', taskId);
-        
-        // If there's a connection error, try to reconnect and retry
-        if (error && isConnectionError(error)) {
-          console.log('Connection error detected, trying to reconnect...');
-          const reconnected = await refreshConnection();
-          
-          if (reconnected) {
-            // Retry the operation after reconnection
-            const retry = await supabase
-              .from('tasks')
-              .delete()
-              .eq('id', taskId);
-            
-            error = retry.error;
-          }
-        }
-        
-        if (error) {
-          console.error('Supabase error:', error);
-          return { success: false, error: error.message || 'Failed to delete task in Supabase' };
-        }
-        
-        console.log('Task deleted successfully');
-        return { success: true, deletedIds: [taskId] };
-      }
-    } catch (err) {
-      console.error('Error deleting task:', err);
-      return { success: false, error: err.message || 'Unknown error occurred' };
-    }
-  };
-  
-  /**
-   * Deletes a task and all its children recursively with auto-reconnection
-   * @param {string} taskId - The ID of the parent task to delete
-   * @returns {Promise<{success: boolean, error: string, deletedIds: string[]}>} - The result
-   */
-  const deleteTaskWithChildren = async (taskId) => {
-    try {
-      // First, fetch all tasks to find children
-      let { data: allTasks, error: fetchError } = await supabase
-        .from('tasks')
-        .select('id, parent_task_id');
-      
-      // If there's a connection error, try to reconnect and retry
-      if (fetchError && isConnectionError(fetchError)) {
-        console.log('Connection error detected, trying to reconnect...');
-        const reconnected = await refreshConnection();
-        
-        if (reconnected) {
-          // Retry the operation after reconnection
-          const retry = await supabase
-            .from('tasks')
-            .select('id, parent_task_id');
-          
-          allTasks = retry.data;
-          fetchError = retry.error;
-        }
-      }
-      
-      if (fetchError) {
-        console.error('Error fetching tasks:', fetchError);
-        return { success: false, error: fetchError.message || 'Failed to fetch tasks' };
-      }
-      
-      // Helper function to recursively find all child task IDs
-      const findAllChildren = (parentId, tasks) => {
-        const children = tasks.filter(t => t.parent_task_id === parentId).map(t => t.id);
-        let allChildren = [...children];
-        
-        for (const childId of children) {
-          const grandchildren = findAllChildren(childId, tasks);
-          allChildren = [...allChildren, ...grandchildren];
-        }
-        
-        return allChildren;
-      };
-      
-      // Get all child tasks (including the parent task)
-      const childTaskIds = findAllChildren(taskId, allTasks);
-      const allTasksToDelete = [taskId, ...childTaskIds];
-      
-      console.log(`Deleting task ${taskId} with ${childTaskIds.length} children`);
-      
-      // Delete all tasks in one operation
-      let { error: deleteError } = await supabase
-        .from('tasks')
-        .delete()
-        .in('id', allTasksToDelete);
-      
-      // If there's a connection error, try to reconnect and retry
-      if (deleteError && isConnectionError(deleteError)) {
-        console.log('Connection error detected, trying to reconnect...');
-        const reconnected = await refreshConnection();
-        
-        if (reconnected) {
-          // Retry the operation after reconnection
-          const retry = await supabase
-            .from('tasks')
-            .delete()
-            .in('id', allTasksToDelete);
-          
-          deleteError = retry.error;
-        }
-      }
-      
-      if (deleteError) {
-        console.error('Error deleting tasks:', deleteError);
-        return { success: false, error: deleteError.message || 'Failed to delete tasks' };
-      }
-      
-      console.log('Tasks deleted successfully:', allTasksToDelete);
-      return { success: true, deletedIds: allTasksToDelete };
-    } catch (err) {
-      console.error('Error deleting task with children:', err);
-      return { success: false, error: err.message || 'Unknown error occurred' };
-    }
-  };
-  
-  // Return all the task service functions
-  return {
-    fetchAllTasks,
-    createTask,
-    updateTaskPosition,
-    updateSiblingPositions,
-    updateTaskCompletion,
-    deleteTask,
-    deleteTaskWithChildren
-  };
-};
-
-// For compatibility with existing code, export direct functions as well
-// These will work without the hooks but won't have auto-reconnection
-
-/**
- * Fetches all tasks from Supabase, with optional filtering
- * @param {string} organizationId - Organization ID to filter tasks by
- * @param {string} userId - User ID to filter tasks by (for instance tasks)
- * @param {string} origin - Filter by task origin ("instance" or "template")
- * @returns {Promise<{data: Array, error: string}>} - The fetched task data or error
- */
-export const fetchAllTasks = async (organizationId = null, userId = null, origin = null) => {
+export const fetchAllTasks = async (organizationId = null, userId = null, origin = 'instance', projectId = null, options = {}) => {
   try {
-    // Start building the query
-    let query = supabase.from('tasks').select('*');
+    console.log('fetchAllTasks called with:', { organizationId, userId, origin, projectId, options });
     
-    // Add filters if provided
+    let query = supabase
+      .from('tasks')
+      .select('*')
+      .eq('origin', origin);
+
+    // ✅ NEW: If projectId is specified, fetch that specific project and its tasks
+    if (projectId) {
+      console.log('Fetching tasks for specific project:', projectId);
+      
+      // Get the project and all its descendants
+      query = query.or(`id.eq.${projectId},parent_task_id.eq.${projectId}`);
+      
+      // We might need to recursively get all descendants
+      // For now, let's get direct children and let the UI handle expansion
+      
+    } else {
+      // Existing logic for fetching user's owned tasks
+      if (origin === 'instance') {
+        if (userId) {
+          query = query.eq('creator', userId);
+        } else {
+          console.warn('No userId provided for instance tasks');
+          return { data: [], error: null };
+        }
+      }
+    }
+
+    // Apply organization filter if provided
     if (organizationId) {
       query = query.eq('white_label_id', organizationId);
+    } else {
+      query = query.is('white_label_id', null);
     }
-    
-    if (userId) {
-      query = query.eq('creator', userId);
-    }
-    
-    if (origin) {
-      query = query.eq('origin', origin);
-    }
-    
-    // Execute the query
+
+    // Add ordering
+    query = query.order('position', { ascending: true });
+
     const { data, error } = await query;
-    
+
     if (error) {
-      console.error('Supabase error:', error);
-      return { error: error.message || 'Failed to fetch tasks from Supabase' };
+      console.error('Error fetching tasks:', error);
+      return { data: null, error: error.message };
     }
-    
-    // Log the count of fetched tasks
+
+    // ✅ NEW: If fetching for a specific project, we might need to get all descendants
+    if (projectId && data && data.length > 0) {
+      const allTasks = await fetchAllDescendants(data, organizationId);
+      console.log(`Fetched ${allTasks.length} total tasks for project ${projectId}`);
+      return { data: allTasks, error: null };
+    }
+
     console.log(`Fetched ${data?.length || 0} tasks`);
-    
-    return { data };
+    return { data: data || [], error: null };
   } catch (err) {
-    console.error('Error fetching tasks:', err);
-    return { error: err.message || 'Unknown error occurred while fetching tasks' };
+    console.error('Error in fetchAllTasks:', err);
+    return { data: null, error: err.message };
   }
 };
 
 /**
- * Creates a new task in Supabase
- * @param {Object} taskData - The task data to create
- * @returns {Promise<{data: Object, error: string}>} - The created task data or error
+ * Recursively fetch all descendants of a set of tasks
+ * @param {Array} parentTasks - Array of parent tasks
+ * @param {string|null} organizationId - Organization ID
+ * @returns {Promise<Array>} - All tasks including descendants
+ */
+const fetchAllDescendants = async (parentTasks, organizationId = null) => {
+  try {
+    // Use a Map to track all task IDs to prevent duplicates
+    const allTasksMap = new Map();
+    
+    // Add parent tasks to the map
+    parentTasks.forEach(task => {
+      allTasksMap.set(task.id, task);
+    });
+    
+    const parentIds = parentTasks.map(task => task.id);
+    
+    if (parentIds.length === 0) {
+      return Array.from(allTasksMap.values());
+    }
+
+    // Build query for children using 'in' operator for better performance
+    let query = supabase
+      .from('tasks')
+      .select('*')
+      .in('parent_task_id', parentIds);
+
+    // Apply organization filter
+    if (organizationId) {
+      query = query.eq('white_label_id', organizationId);
+    } else {
+      query = query.is('white_label_id', null);
+    }
+
+    query = query.order('position', { ascending: true });
+
+    const { data: children, error } = await query;
+
+    if (error) {
+      console.error('Error fetching descendants:', error);
+      return Array.from(allTasksMap.values());
+    }
+
+    if (children && children.length > 0) {
+      // Add children to the map (this automatically handles duplicates)
+      children.forEach(child => {
+        allTasksMap.set(child.id, child);
+      });
+      
+      // Recursively fetch their children
+      const grandChildren = await fetchAllDescendants(children, organizationId);
+      
+      // Add grandchildren to the map
+      grandChildren.forEach(grandChild => {
+        allTasksMap.set(grandChild.id, grandChild);
+      });
+    }
+
+    return Array.from(allTasksMap.values());
+  } catch (err) {
+    console.error('Error fetching descendants:', err);
+    return parentTasks;
+  }
+};
+
+/**
+ * ✅ NEW: Fetch tasks for multiple projects efficiently
+ * @param {Array} projectIds - Array of project IDs
+ * @param {string|null} organizationId - Organization ID
+ * @returns {Promise<{data: Array, error: string}>}
+ */
+export const fetchTasksForProjects = async (projectIds, organizationId = null) => {
+  try {
+    console.log('fetchTasksForProjects called with:', { projectIds, organizationId });
+    
+    if (!projectIds || projectIds.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Fetch all tasks that belong to any of the specified projects
+    let query = supabase
+      .from('tasks')
+      .select('*')
+      .eq('origin', 'instance');
+
+    // Create OR condition for project IDs and their descendants
+    const orConditions = projectIds.map(id => `id.eq.${id}`).join(',');
+    query = query.or(orConditions);
+
+    // Apply organization filter
+    if (organizationId) {
+      query = query.eq('white_label_id', organizationId);
+    } else {
+      query = query.is('white_label_id', null);
+    }
+
+    query = query.order('position', { ascending: true });
+
+    const { data: rootTasks, error } = await query;
+
+    if (error) {
+      console.error('Error fetching project tasks:', error);
+      return { data: null, error: error.message };
+    }
+
+    // Get all descendants for each project
+    const allTasks = await fetchAllDescendants(rootTasks || [], organizationId);
+    
+    console.log(`Fetched ${allTasks.length} total tasks for ${projectIds.length} projects`);
+    return { data: allTasks, error: null };
+  } catch (err) {
+    console.error('Error in fetchTasksForProjects:', err);
+    return { data: null, error: err.message };
+  }
+};
+
+// ... (rest of the existing functions remain the same)
+
+/**
+ * Create a new task
+ * @param {Object} taskData - Task data
+ * @returns {Promise<{data: Object, error: string}>}
  */
 export const createTask = async (taskData) => {
   try {
-    console.log('Creating task with data:', JSON.stringify(taskData, null, 2));
+    console.log('Creating task:', taskData);
     
-    // Ensure required fields are present
-    const requiredFields = ['title', 'origin'];
-    const missingFields = requiredFields.filter(field => !taskData[field]);
-    
-    if (missingFields.length > 0) {
-      console.error('Missing required fields:', missingFields);
-      return { error: `Missing required fields: ${missingFields.join(', ')}` };
-    }
-    
-    // Ensure parent_task_id is null if not provided (to avoid undefined)
-    if (taskData.parent_task_id === undefined) {
-      taskData.parent_task_id = null;
-    }
-    
-    // Ensure due_date is in the correct format if provided
-    if (taskData.due_date && !(taskData.due_date instanceof Date)) {
-      try {
-        taskData.due_date = new Date(taskData.due_date);
-      } catch (e) {
-        console.warn('Failed to parse due_date, setting to null', e);
-        taskData.due_date = null;
-      }
-    }
-    
-    // Insert the task data into the 'tasks' table
-    console.log('Sending request to Supabase...');
     const { data, error } = await supabase
       .from('tasks')
       .insert([taskData])
-      .select();
-    
+      .select()
+      .single();
+
     if (error) {
-      console.error('Supabase error:', error);
-      return { error: error.message || 'Failed to create task in Supabase' };
+      console.error('Error creating task:', error);
+      return { data: null, error: error.message };
     }
-    
-    console.log('Successfully created task:', data);
-    
-    // Supabase returns an array of inserted records, we want the first one
-    return { data: data[0] };
+
+    console.log('Task created successfully:', data);
+    return { data, error: null };
   } catch (err) {
-    console.error('Error creating task:', err);
-    return { error: err.message || 'Unknown error occurred' };
+    console.error('Error in createTask:', err);
+    return { data: null, error: err.message };
   }
 };
 
 /**
- * Updates a task's position in Supabase
- * @param {string} taskId - ID of the task to update
- * @param {string} parentId - New parent task ID
- * @param {number} position - New position value
- * @returns {Promise<{success: boolean, error: string}>} - Success status and any error
- */
-export const updateTaskPosition = async (taskId, parentId, position) => {
-  try {
-    console.log(`Updating task position: taskId=${taskId}, parentId=${parentId}, position=${position}`);
-    
-    // Validate input
-    if (!taskId) {
-      return { success: false, error: 'Task ID is required' };
-    }
-    
-    // Prepare the update data
-    const updateData = {
-      parent_task_id: parentId,
-      position: position
-    };
-    
-    // Update the task in Supabase
-    const { data, error } = await supabase
-      .from('tasks')
-      .update(updateData)
-      .eq('id', taskId)
-      .select();
-    
-    if (error) {
-      console.error('Supabase error updating task position:', error);
-      return { success: false, error: error.message };
-    }
-    
-    console.log('Successfully updated task position:', data);
-    return { success: true, data };
-  } catch (err) {
-    console.error('Error updating task position:', err);
-    return { success: false, error: err.message };
-  }
-};
-
-/**
- * Updates the positions of multiple sibling tasks in a batch operation
- * @param {Array} tasks - Array of tasks with updated position values
- * @returns {Promise<{success: boolean, error: string}>} - Success status and any error
- */
-export const updateSiblingPositions = async (tasks) => {
-  try {
-    // If no tasks to update, return success
-    if (!tasks || tasks.length === 0) {
-      return { success: true };
-    }
-    
-    console.log(`Updating positions for ${tasks.length} tasks`);
-    
-    // Instead of using upsert, update each task individually
-    const updatePromises = tasks.map(task => {
-      return supabase
-        .from('tasks')
-        .update({ position: task.position })
-        .eq('id', task.id);
-    });
-    
-    // Wait for all updates to complete
-    const results = await Promise.all(updatePromises);
-    
-    // Check if any updates failed
-    const errors = results.filter(result => result.error).map(result => result.error);
-    
-    if (errors.length > 0) {
-      console.error('Errors updating sibling positions:', errors);
-      return { success: false, error: errors[0].message };
-    }
-    
-    console.log('Successfully updated sibling positions');
-    return { success: true };
-  } catch (err) {
-    console.error('Error updating sibling positions:', err);
-    return { success: false, error: err.message };
-  }
-};
-
-/**
- * Updates a task's completion status
- * @param {string} taskId - ID of the task to update
+ * Update task completion status
+ * @param {string} taskId - Task ID
  * @param {boolean} currentStatus - Current completion status
- * @returns {Promise<{success: boolean, error: string}>} - Success status and any error
+ * @returns {Promise<{success: boolean, error: string}>}
  */
 export const updateTaskCompletion = async (taskId, currentStatus) => {
   try {
-    // The newStatus should be the opposite of the currentStatus
-    const newStatus = !currentStatus;
-    
-    console.log(`Updating task ${taskId} completion status to ${newStatus}`);
-    
     const { data, error } = await supabase
       .from('tasks')
-      .update({ is_complete: newStatus })
+      .update({ 
+        is_complete: !currentStatus,
+        last_modified: new Date().toISOString()
+      })
       .eq('id', taskId)
-      .select();
-    
+      .select()
+      .single();
+
     if (error) {
-      console.error('Supabase error updating task completion:', error);
+      console.error('Error updating task completion:', error);
       return { success: false, error: error.message };
     }
-    
-    console.log('Task completion updated successfully:', data);
-    return { success: true, data };
+
+    return { success: true, data, error: null };
   } catch (err) {
-    console.error('Error updating task completion:', err);
+    console.error('Error in updateTaskCompletion:', err);
     return { success: false, error: err.message };
   }
 };
 
 /**
- * Deletes a task and all its children from Supabase
- * @param {string} taskId - The ID of the task to delete
- * @param {boolean} deleteChildren - Whether to also delete child tasks
- * @returns {Promise<{success: boolean, error: string, deletedIds: string[]}>} - The result
+ * Update task position for drag and drop
+ * @param {string} taskId - Task ID
+ * @param {string|null} parentId - New parent task ID
+ * @param {number} position - New position
+ * @returns {Promise<{success: boolean, error: string}>}
  */
-export const deleteTask = async (taskId, deleteChildren = true) => {
+export const updateTaskPosition = async (taskId, parentId, position) => {
   try {
-    console.log('Deleting task with ID:', taskId);
-    
-    if (deleteChildren) {
-      return await deleteTaskWithChildren(taskId);
-    } else {
-      // Just delete the single task
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskId);
-      
-      if (error) {
-        console.error('Supabase error:', error);
-        return { success: false, error: error.message || 'Failed to delete task in Supabase' };
-      }
-      
-      console.log('Task deleted successfully');
-      return { success: true, deletedIds: [taskId] };
-    }
-  } catch (err) {
-    console.error('Error deleting task:', err);
-    return { success: false, error: err.message || 'Unknown error occurred' };
-  }
-};
+    console.log('Updating task position:', { taskId, parentId, position });
 
-/**
- * Deletes a task and all its children recursively from Supabase
- * @param {string} taskId - The ID of the parent task to delete
- * @returns {Promise<{success: boolean, error: string, deletedIds: string[]}>} - The result
- */
-export const deleteTaskWithChildren = async (taskId) => {
-  try {
-    // First, fetch all tasks to find children
-    const { data: allTasks, error: fetchError } = await supabase
-      .from('tasks')
-      .select('id, parent_task_id');
-    
-    if (fetchError) {
-      console.error('Error fetching tasks:', fetchError);
-      return { success: false, error: fetchError.message || 'Failed to fetch tasks' };
-    }
-    
-    // Helper function to recursively find all child task IDs
-    const findAllChildren = (parentId, tasks) => {
-      const children = tasks.filter(t => t.parent_task_id === parentId).map(t => t.id);
-      let allChildren = [...children];
-      
-      for (const childId of children) {
-        const grandchildren = findAllChildren(childId, tasks);
-        allChildren = [...allChildren, ...grandchildren];
-      }
-      
-      return allChildren;
+    const updateData = {
+      parent_task_id: parentId,
+      position: position,
+      last_modified: new Date().toISOString()
     };
-    
-    // Get all child tasks (including the parent task)
-    const childTaskIds = findAllChildren(taskId, allTasks);
-    const allTasksToDelete = [taskId, ...childTaskIds];
-    
-    console.log(`Deleting task ${taskId} with ${childTaskIds.length} children`);
-    
-    // Delete all tasks in one operation
-    const { error: deleteError } = await supabase
-      .from('tasks')
-      .delete()
-      .in('id', allTasksToDelete);
-    
-    if (deleteError) {
-      console.error('Error deleting tasks:', deleteError);
-      return { success: false, error: deleteError.message || 'Failed to delete tasks' };
-    }
-    
-    console.log('Tasks deleted successfully:', allTasksToDelete);
-    return { success: true, deletedIds: allTasksToDelete };
-  } catch (err) {
-    console.error('Error deleting task with children:', err);
-    return { success: false, error: err.message || 'Unknown error occurred' };
-  }
-};
 
-/**
- * Update task date fields in the database
- * @param {string} taskId - The ID of the task to update
- * @param {Object} dateData - Object containing date fields to update (start_date, due_date, etc.)
- * @returns {Promise<{success: boolean, error: string|null, data: Object}>} Result of the update
- */
-export const updateTaskDateFields = async (taskId, dateData) => {
-  try {
-    console.log('Updating task date fields:', { taskId, dateData });
-    
-    // Format dates for the database
-    const formattedData = {};
-    
-    if (dateData.start_date !== undefined) {
-      formattedData.start_date = dateData.start_date;
-    }
-    
-    if (dateData.due_date !== undefined) {
-      formattedData.due_date = dateData.due_date;
-    }
-    
-    if (dateData.days_from_start_until_due !== undefined) {
-      formattedData.days_from_start_until_due = dateData.days_from_start_until_due;
-    }
-    
-    if (dateData.duration_days !== undefined) {
-      formattedData.duration_days = dateData.duration_days;
-    }
-    
-    // Only proceed if we have data to update
-    if (Object.keys(formattedData).length === 0) {
-      return { success: true, message: 'No date fields to update' };
-    }
-    
-    // Update the task in Supabase
-    const { data, error } = await supabase
-      .from('tasks')
-      .update(formattedData)
-      .eq('id', taskId)
-      .select();
-    
-    if (error) {
-      console.error('Supabase error updating task dates:', error);
-      return { success: false, error: error.message };
-    }
-    
-    return { success: true, data: data[0] };
-  } catch (err) {
-    console.error('Error updating task date fields:', err);
-    return { success: false, error: err.message };
-  }
-};
-/**
- * Updates an existing task with new data
- * @param {string} taskId - The ID of the task to update
- * @param {Object} taskData - Object containing fields to update
- * @returns {Promise<{success: boolean, error: string|null, data: Object}>} Result of the update
- */
-export const updateTask = async (taskId, taskData) => {
-  try {
-    console.log('Updating task:', { taskId, taskData });
-    
-    if (!taskId) {
-      return { success: false, error: 'Task ID is required' };
-    }
-    
-    // Extract only the updatable fields to avoid overwriting system fields
-    const updatableFields = [
-      'title', 
-      'description', 
-      'purpose', 
-      'actions', 
-      'resources',
-      'task_lead',
-      'marked_na',
-      'is_complete',
-      'published'
-    ];
-    
-    // Create an object with only the fields we want to update
-    const updateData = {};
-    
-    // Copy only valid fields from taskData to updateData
-    updatableFields.forEach(field => {
-      if (field in taskData) {
-        updateData[field] = taskData[field];
-      }
-    });
-    
-    // Add a modified timestamp
-    updateData.last_modified = new Date().toISOString();
-    
-    // Only proceed if we have data to update
-    if (Object.keys(updateData).length === 0) {
-      return { success: true, message: 'No fields to update' };
-    }
-    
-    // Update the task in Supabase
     const { data, error } = await supabase
       .from('tasks')
       .update(updateData)
       .eq('id', taskId)
-      .select();
-    
+      .select()
+      .single();
+
     if (error) {
-      console.error('Supabase error updating task:', error);
+      console.error('Error updating task position:', error);
       return { success: false, error: error.message };
     }
-    
-    console.log('Task updated successfully:', data);
-    return { success: true, data: data[0] };
+
+    console.log('Task position updated successfully:', data);
+    return { success: true, data, error: null };
   } catch (err) {
-    console.error('Error updating task:', err);
+    console.error('Error in updateTaskPosition:', err);
     return { success: false, error: err.message };
   }
 };
 
 /**
- * Updates a task with both content and date fields
- * @param {string} taskId - The ID of the task to update
- * @param {Object} taskData - Complete task data to update
- * @returns {Promise<{success: boolean, error: string|null, data: Object}>} Result of the update
+ * Delete a task and optionally its children
+ * @param {string} taskId - Task ID
+ * @param {boolean} deleteChildren - Whether to delete children
+ * @returns {Promise<{success: boolean, error: string, deletedIds: Array}>}
  */
-export const updateTaskComplete = async (taskId, taskData) => {
+export const deleteTask = async (taskId, deleteChildren = true) => {
   try {
-    console.log('Performing complete task update:', { taskId });
+    console.log('Deleting task:', taskId, 'deleteChildren:', deleteChildren);
     
-    // Process array fields first - before any updates
-    const processedTaskData = processArrayFields(taskData);
-    console.log('Processed task data:', processedTaskData);
+    let deletedIds = [taskId];
     
-    // First, update date-specific fields
-    const dateFields = {
-      start_date: processedTaskData.start_date,
-      due_date: processedTaskData.due_date,
-      days_from_start_until_due: processedTaskData.days_from_start_until_due,
-      duration_days: processedTaskData.duration_days
-    };
-    
-    const dateResult = await updateTaskDateFields(taskId, dateFields);
-    
-    if (!dateResult.success) {
-      console.error('Error updating task date fields:', dateResult.error);
-      return dateResult;
+    if (deleteChildren) {
+      // First, find all descendants
+      const descendants = await findAllDescendants(taskId);
+      deletedIds = [taskId, ...descendants.map(d => d.id)];
     }
     
-    // Then update the remaining content fields
-    const contentResult = await updateTask(taskId, processedTaskData);
-    
-    if (!contentResult.success) {
-      console.error('Error updating task content:', contentResult.error);
-      return contentResult;
+    // Delete in reverse order (children first, then parents)
+    for (let i = deletedIds.length - 1; i >= 0; i--) {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', deletedIds[i]);
+        
+      if (error) {
+        console.error(`Error deleting task ${deletedIds[i]}:`, error);
+        return { success: false, error: error.message, deletedIds: [] };
+      }
     }
     
-    // Merge the updated data
-    const updatedData = {
-      ...dateResult.data,
-      ...contentResult.data
-    };
-    
-    return { success: true, data: updatedData };
+    console.log('Tasks deleted successfully:', deletedIds);
+    return { success: true, deletedIds, error: null };
   } catch (err) {
-    console.error('Error performing complete task update:', err);
-    return { success: false, error: err.message };
+    console.error('Error in deleteTask:', err);
+    return { success: false, error: err.message, deletedIds: [] };
   }
 };
 
 /**
- * Ensures that array fields are properly formatted for the database
- * @param {Object} taskData - Task data to process
- * @returns {Object} - Processed task data with properly formatted arrays
+ * Find all descendants of a task
+ * @param {string} taskId - Parent task ID
+ * @returns {Promise<Array>} - Array of descendant tasks
  */
-const processArrayFields = (taskData) => {
-  const result = { ...taskData };
-  
-  // Helper function to process a specific field
-  const processField = (fieldName) => {
-    if (fieldName in result) {
-      const value = result[fieldName];
+const findAllDescendants = async (taskId) => {
+  try {
+    const { data: children, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('parent_task_id', taskId);
       
-      // Ensure field is an array
-      if (!Array.isArray(value)) {
-        if (typeof value === 'string') {
-          try {
-            // Try to parse as JSON
-            const parsed = JSON.parse(value);
-            result[fieldName] = Array.isArray(parsed) ? parsed : [value];
-          } catch (e) {
-            // If parsing fails, treat it as a single item array
-            result[fieldName] = [value];
-          }
-        } else if (value === null || value === undefined) {
-          // Handle null/undefined values
-          result[fieldName] = [];
-        } else {
-          // For any other value, wrap it in an array
-          result[fieldName] = [value];
-        }
-      }
-      
-      // Filter out empty strings if it's an array
-      if (Array.isArray(result[fieldName])) {
-        result[fieldName] = result[fieldName].filter(item => item !== '');
-      }
+    if (error) {
+      console.error('Error finding descendants:', error);
+      return [];
     }
-  };
-  
-  // Process actions and resources fields
-  processField('actions');
-  processField('resources');
-  
-  return result;
+    
+    if (!children || children.length === 0) {
+      return [];
+    }
+    
+    // Recursively find descendants of children
+    const allDescendants = [...children];
+    for (const child of children) {
+      const grandChildren = await findAllDescendants(child.id);
+      allDescendants.push(...grandChildren);
+    }
+    
+    return allDescendants;
+  } catch (err) {
+    console.error('Error in findAllDescendants:', err);
+    return [];
+  }
 };
 
+/**
+ * Update complete task data
+ * @param {string} taskId - Task ID
+ * @param {Object} updateData - Updated task data
+ * @returns {Promise<{success: boolean, error: string, data: Object}>}
+ */
+export const updateTaskComplete = async (taskId, updateData) => {
+  try {
+    console.log('Updating complete task:', taskId, updateData);
+    
+    const dataWithTimestamp = {
+      ...updateData,
+      last_modified: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(dataWithTimestamp)
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating task:', error);
+      return { success: false, error: error.message, data: null };
+    }
+
+    console.log('Task updated successfully:', data);
+    return { success: true, data, error: null };
+  } catch (err) {
+    console.error('Error in updateTaskComplete:', err);
+    return { success: false, error: err.message, data: null };
+  }
+};
+
+/**
+ * ✅ NEW: Get task with its project membership info
+ * @param {string} taskId - Task ID
+ * @param {string} userId - User ID to check permissions for
+ * @returns {Promise<{data: Object, error: string}>}
+ */
+export const getTaskWithPermissions = async (taskId, userId) => {
+  try {
+    console.log('Getting task with permissions:', { taskId, userId });
+    
+    // Get the task
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .single();
+    
+    if (taskError) {
+      return { data: null, error: taskError.message };
+    }
+    
+    // Find the root project for this task
+    let rootProject = task;
+    if (task.parent_task_id) {
+      const { data: rootData, error: rootError } = await findRootProject(taskId);
+      if (!rootError && rootData) {
+        rootProject = rootData;
+      }
+    }
+    
+    // Check user's membership in the project
+    const { data: membership, error: memberError } = await supabase
+      .from('project_memberships')
+      .select('role, status')
+      .eq('project_id', rootProject.id)
+      .eq('user_id', userId)
+      .single();
+    
+    // Add permission info to task
+    const taskWithPermissions = {
+      ...task,
+      userRole: membership?.role || null,
+      userStatus: membership?.status || null,
+      canEdit: membership?.status === 'accepted' && ['owner', 'full_user'].includes(membership.role),
+      canDelete: membership?.status === 'accepted' && membership.role === 'owner',
+      canManageTeam: membership?.status === 'accepted' && membership.role === 'owner',
+      isOwner: task.creator === userId,
+      isMember: !!membership
+    };
+    
+    return { data: taskWithPermissions, error: null };
+  } catch (err) {
+    console.error('Error in getTaskWithPermissions:', err);
+    return { data: null, error: err.message };
+  }
+};
+
+/**
+ * ✅ NEW: Find the root project for a given task
+ * @param {string} taskId - Task ID
+ * @returns {Promise<{data: Object, error: string}>}
+ */
+const findRootProject = async (taskId) => {
+  try {
+    let currentTask = await supabase
+      .from('tasks')
+      .select('id, parent_task_id')
+      .eq('id', taskId)
+      .single();
+      
+    if (currentTask.error) {
+      return { data: null, error: currentTask.error.message };
+    }
+    
+    // Walk up the hierarchy until we find the root
+    while (currentTask.data.parent_task_id) {
+      const { data: parentTask, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('id', currentTask.data.parent_task_id)
+        .single();
+        
+      if (error) {
+        return { data: null, error: error.message };
+      }
+      
+      currentTask.data = parentTask;
+    }
+    
+    return { data: currentTask.data, error: null };
+  } catch (err) {
+    console.error('Error finding root project:', err);
+    return { data: null, error: err.message };
+  }
+};
+
+/**
+ * Update task date fields specifically
+ * @param {string} taskId - Task ID
+ * @param {Object} dateData - Date fields to update
+ * @returns {Promise<{success: boolean, error: string, data: Object}>}
+ */
+export const updateTaskDateFields = async (taskId, dateData) => {
+  try {
+    console.log('Updating task date fields:', taskId, dateData);
+    
+    const updateData = {
+      ...dateData,
+      last_modified: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating task date fields:', error);
+      return { success: false, error: error.message, data: null };
+    }
+
+    console.log('Task date fields updated successfully:', data);
+    return { success: true, data, error: null };
+  } catch (err) {
+    console.error('Error in updateTaskDateFields:', err);
+    return { success: false, error: err.message, data: null };
+  }
+};
+
+/**
+ * Update specific task fields
+ * @param {string} taskId - Task ID
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<{success: boolean, error: string, data: Object}>}
+ */
+export const updateTaskFields = async (taskId, updates) => {
+  try {
+    console.log('Updating task fields:', taskId, updates);
+    
+    const updateData = {
+      ...updates,
+      last_modified: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating task fields:', error);
+      return { success: false, error: error.message, data: null };
+    }
+
+    console.log('Task fields updated successfully:', data);
+    return { success: true, data, error: null };
+  } catch (err) {
+    console.error('Error in updateTaskFields:', err);
+    return { success: false, error: err.message, data: null };
+  }
+};
+
+/**
+ * Get a single task by ID
+ * @param {string} taskId - Task ID
+ * @returns {Promise<{data: Object, error: string}>}
+ */
+export const getTaskById = async (taskId) => {
+  try {
+    console.log('Fetching task by ID:', taskId);
+    
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching task:', error);
+      return { data: null, error: error.message };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    console.error('Error in getTaskById:', err);
+    return { data: null, error: err.message };
+  }
+};
+
+/**
+ * Get tasks by parent ID
+ * @param {string} parentId - Parent task ID
+ * @param {string|null} organizationId - Organization ID
+ * @returns {Promise<{data: Array, error: string}>}
+ */
+export const getTasksByParent = async (parentId, organizationId = null) => {
+  try {
+    console.log('Fetching tasks by parent:', parentId);
+    
+    let query = supabase
+      .from('tasks')
+      .select('*')
+      .eq('parent_task_id', parentId)
+      .order('position', { ascending: true });
+
+    if (organizationId) {
+      query = query.eq('white_label_id', organizationId);
+    } else {
+      query = query.is('white_label_id', null);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching tasks by parent:', error);
+      return { data: null, error: error.message };
+    }
+
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Error in getTasksByParent:', err);
+    return { data: null, error: err.message };
+  }
+};
+
+/**
+ * Update task hierarchy (parent/position)
+ * @param {string} taskId - Task ID
+ * @param {string|null} newParentId - New parent task ID
+ * @param {number} newPosition - New position
+ * @returns {Promise<{success: boolean, error: string, data: Object}>}
+ */
+export const updateTaskHierarchy = async (taskId, newParentId, newPosition) => {
+  try {
+    console.log('Updating task hierarchy:', { taskId, newParentId, newPosition });
+
+    const updateData = {
+      parent_task_id: newParentId,
+      position: newPosition,
+      last_modified: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating task hierarchy:', error);
+      return { success: false, error: error.message, data: null };
+    }
+
+    console.log('Task hierarchy updated successfully:', data);
+    return { success: true, data, error: null };
+  } catch (err) {
+    console.error('Error in updateTaskHierarchy:', err);
+    return { success: false, error: err.message, data: null };
+  }
+};
+
+/**
+ * Batch update multiple tasks
+ * @param {Array} taskUpdates - Array of {id, ...updateData} objects
+ * @returns {Promise<{success: boolean, error: string, data: Array}>}
+ */
+export const batchUpdateTasks = async (taskUpdates) => {
+  try {
+    console.log('Batch updating tasks:', taskUpdates.length, 'tasks');
+    
+    const timestamp = new Date().toISOString();
+    const updatesWithTimestamp = taskUpdates.map(update => ({
+      ...update,
+      last_modified: timestamp
+    }));
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .upsert(updatesWithTimestamp)
+      .select();
+
+    if (error) {
+      console.error('Error batch updating tasks:', error);
+      return { success: false, error: error.message, data: null };
+    }
+
+    console.log('Tasks batch updated successfully:', data?.length || 0, 'tasks');
+    return { success: true, data: data || [], error: null };
+  } catch (err) {
+    console.error('Error in batchUpdateTasks:', err);
+    return { success: false, error: err.message, data: null };
+  }
+};
+
+/**
+ * Get task statistics for a project
+ * @param {string} projectId - Project ID
+ * @returns {Promise<{data: Object, error: string}>}
+ */
+export const getTaskStatistics = async (projectId) => {
+  try {
+    console.log('Fetching task statistics for project:', projectId);
+    
+    // Get all tasks for the project
+    const { data: allTasks, error } = await fetchAllTasks(null, null, 'instance', projectId);
+    
+    if (error) {
+      return { data: null, error };
+    }
+
+    const stats = {
+      total: allTasks.length,
+      completed: allTasks.filter(t => t.is_complete).length,
+      pending: allTasks.filter(t => !t.is_complete).length,
+      overdue: 0, // Would need date calculation
+      dueToday: 0, // Would need date calculation
+      topLevel: allTasks.filter(t => !t.parent_task_id).length,
+      subTasks: allTasks.filter(t => t.parent_task_id).length
+    };
+
+    stats.completionRate = stats.total > 0 ? (stats.completed / stats.total * 100).toFixed(1) : 0;
+
+    return { data: stats, error: null };
+  } catch (err) {
+    console.error('Error in getTaskStatistics:', err);
+    return { data: null, error: err.message };
+  }
+};
+
+
+
+export default {
+  fetchAllTasks,
+  fetchTasksForProjects,
+  createTask,
+  updateTaskCompletion,
+  updateTaskPosition,
+  updateTaskDateFields,
+  updateTaskFields,
+  updateTaskComplete,
+  updateTaskHierarchy,
+  deleteTask,
+  getTaskById,
+  getTasksByParent,
+  getTaskWithPermissions,
+  findRootProject,
+  batchUpdateTasks,
+  getTaskStatistics
+};

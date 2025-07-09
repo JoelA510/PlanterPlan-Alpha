@@ -1,4 +1,4 @@
-// src/components/TaskList/TaskList.js - IMPROVED VERSION
+// src/components/TaskList/TaskList.js - Enhanced version with member projects
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './TaskList.css';
 import TaskItem from './TaskItem';
@@ -18,7 +18,6 @@ import InvitationTest from '../InvitationTest';
 import SearchBar from '../Search/SearchBar';
 import SearchResults from '../Search/SearchResults';
 import { useSearch } from '../contexts/SearchContext';
-// ✅ ADD: Import sparse positioning utilities
 import { calculateHTML5DropPosition } from '../../utils/sparsePositioning';
 
 const TaskList = () => {
@@ -44,6 +43,15 @@ const TaskList = () => {
     updateTasksOptimistic,
     recalculateDatesOptimistic,
     syncTaskPositionToDatabase,
+    // ✅ NEW: Member project context
+    memberProjects,
+    memberProjectTasks,
+    memberProjectsLoading,
+    memberProjectsError,
+    fetchAllProjectsAndTasks,
+    getUserRole,
+    canUserEdit,
+    canUserManageTeam,
     ...restContext
   } = useTasks();
 
@@ -61,10 +69,18 @@ const TaskList = () => {
   const [showInvitationTest, setShowInvitationTest] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  // ✅ IMPROVED: Simplified drag state
+  // ✅ NEW: State for managing sections
+  const [expandedSections, setExpandedSections] = useState({
+    ownedProjects: true,
+    memberProjects: true
+  });
+
+  // ✅ NEW: State for selected project context
+  const [selectedProjectContext, setSelectedProjectContext] = useState(null); // 'owned' or 'member'
+
+  // Drag state
   const [draggedTask, setDraggedTask] = useState(null);
   const [dragHoverTarget, setDragHoverTarget] = useState(null);
-  // ✅ REMOVED: dragCount - not needed in production
 
   /* -------------------- lifecycle hooks ------------------- */
   useEffect(() => {
@@ -84,15 +100,21 @@ const TaskList = () => {
 
   /* ------------------- helper functions ------------------- */
   
-  // Get all visible tasks in a flattened array respecting expansion state
-  const getVisibleTasks = useMemo(() => {
+  // ✅ NEW: Get all tasks for a specific context (owned vs member)
+  const getTasksForContext = (context) => {
+    return context === 'member' ? memberProjectTasks : tasks;
+  };
+
+  // ✅ NEW: Get visible tasks for a specific context
+  const getVisibleTasksForContext = (context) => {
+    const contextTasks = getTasksForContext(context);
     const result = [];
     
     const addTaskAndChildren = (task, level = 0) => {
-      result.push({ ...task, level });
+      result.push({ ...task, level, context });
       
       if (expandedTasks[task.id]) {
-        const children = tasks
+        const children = contextTasks
           .filter(t => t.parent_task_id === task.id)
           .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         
@@ -101,43 +123,113 @@ const TaskList = () => {
     };
 
     // Start with top-level tasks
-    const topLevelTasks = tasks
+    const topLevelTasks = contextTasks
       .filter(t => !t.parent_task_id)
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     
     topLevelTasks.forEach(task => addTaskAndChildren(task));
     
     return result;
-  }, [tasks, expandedTasks]);
-
-  // Check if task has children
-  const hasChildren = (task) => {
-    return tasks.some(t => t.parent_task_id === task.id);
   };
 
-  // ✅ IMPROVED: Better validation for drag start
+  // Get all visible tasks in a flattened array respecting expansion state
+  const getVisibleTasks = useMemo(() => {
+    return getVisibleTasksForContext('owned');
+  }, [tasks, expandedTasks]);
+
+  // ✅ NEW: Get all visible member project tasks
+  const getVisibleMemberTasks = useMemo(() => {
+    return getVisibleTasksForContext('member');
+  }, [memberProjectTasks, expandedTasks]);
+
+  // Check if task has children
+  const hasChildren = (task, context = 'owned') => {
+    const contextTasks = getTasksForContext(context);
+    return contextTasks.some(t => t.parent_task_id === task.id);
+  };
+
+  // ✅ NEW: Check user permissions for a task
+  const getUserPermissions = (task) => {
+    // For owned projects, user has full permissions
+    if (tasks.some(t => t.id === task.id)) {
+      return {
+        canEdit: true,
+        canDelete: true,
+        canManageTeam: true,
+        role: 'owner'
+      };
+    }
+
+    // For member projects, check role
+    const rootProject = findRootProject(task, memberProjectTasks);
+    if (rootProject) {
+      const role = getUserRole(rootProject.id);
+      return {
+        canEdit: canUserEdit(rootProject.id),
+        canDelete: false, // Members typically can't delete
+        canManageTeam: canUserManageTeam(rootProject.id),
+        role: role
+      };
+    }
+
+    return {
+      canEdit: false,
+      canDelete: false,
+      canManageTeam: false,
+      role: null
+    };
+  };
+
+  // ✅ NEW: Find root project for a task
+  const findRootProject = (task, taskList) => {
+    let current = task;
+    while (current.parent_task_id) {
+      current = taskList.find(t => t.id === current.parent_task_id);
+      if (!current) break;
+    }
+    return current;
+  };
+
+  // ✅ ENHANCED: Determine context for a task
+  const getTaskContext = (taskId) => {
+    if (tasks.some(t => t.id === taskId)) return 'owned';
+    if (memberProjectTasks.some(t => t.id === taskId)) return 'member';
+    return null;
+  };
+
+  // ✅ ENHANCED: Drag handlers with context awareness
   const handleDragStart = (task) => {
+    const context = getTaskContext(task.id);
+    const permissions = getUserPermissions(task);
+    
+    // Prevent dragging if user doesn't have edit permissions
+    if (!permissions.canEdit) {
+      console.log('🚫 Cannot drag task - insufficient permissions:', task.title);
+      return false;
+    }
+    
     // Prevent dragging top-level tasks
     if (!task.parent_task_id) {
       console.log('🚫 Cannot drag top-level task:', task.title);
       return false;
     }
     
-    // ✅ ADD: Check if task is locked or has other constraints
     if (task.isLocked || task.isArchived) {
       console.log('🚫 Cannot drag locked/archived task:', task.title);
       return false;
     }
     
-    setDraggedTask(task);
+    setDraggedTask({ ...task, context });
     setDragHoverTarget(null);
-    console.log('🎯 Drag started:', task.title);
+    setSelectedProjectContext(context);
+    console.log('🎯 Drag started:', task.title, 'in context:', context);
     return true;
   };
 
   const handleDragEnd = () => {
     setDraggedTask(null);
     setDragHoverTarget(null);
+    setSelectedProjectContext(null);
     console.log('🎯 Drag ended');
   };
 
@@ -147,10 +239,18 @@ const TaskList = () => {
       return;
     }
 
+    // ✅ NEW: Ensure drag stays within the same context
+    const taskContext = getTaskContext(task.id);
+    if (taskContext !== draggedTask.context) {
+      setDragHoverTarget(null);
+      return;
+    }
+
     if (event === 'enter' || event === 'over') {
       if (task) {
-        const draggedIndex = tasks.findIndex(t => t.id === draggedTask.id);
-        const targetIndex = tasks.findIndex(t => t.id === task.id);
+        const contextTasks = getTasksForContext(draggedTask.context);
+        const draggedIndex = contextTasks.findIndex(t => t.id === draggedTask.id);
+        const targetIndex = contextTasks.findIndex(t => t.id === task.id);
         
         setDragHoverTarget({
           ...task,
@@ -162,34 +262,33 @@ const TaskList = () => {
     }
   };
 
-  // ✅ IMPROVED: Use sparse positioning calculation
+  // ✅ ENHANCED: Drop handlers with context awareness
   const handleDropOnTask = (draggedId, targetId) => {
-    const draggedTaskObj = tasks.find(t => t.id === draggedId);
-    const targetTask = tasks.find(t => t.id === targetId);
+    const contextTasks = getTasksForContext(draggedTask.context);
+    const draggedTaskObj = contextTasks.find(t => t.id === draggedId);
+    const targetTask = contextTasks.find(t => t.id === targetId);
     
     if (!draggedTaskObj || !targetTask) return;
     
     console.log('🎯 Task dropped onto task:', {
       draggedTask: draggedTaskObj.title,
       targetTask: targetTask.title,
-      sameParent: draggedTaskObj.parent_task_id === targetTask.parent_task_id
+      context: draggedTask.context
     });
 
-    // ✅ IMPROVED: Use sparse positioning utility
     const dropInfo = {
       type: 'onto',
       targetTaskId: targetId,
       draggedId: draggedId
     };
     
-    const positionResult = calculateHTML5DropPosition(dropInfo, tasks);
+    const positionResult = calculateHTML5DropPosition(dropInfo, contextTasks);
     
     if (!positionResult.success) {
       console.error('❌ Invalid drop operation:', positionResult.reason);
       return;
     }
     
-    // Use the calculated position from the utility
     handleOptimisticDragDrop(
       draggedId, 
       positionResult.newParentId, 
@@ -200,14 +299,13 @@ const TaskList = () => {
     setDragHoverTarget(null);
   };
 
-  // ✅ IMPROVED: Use sparse positioning for between drops
   const handleDropBetween = (draggedId, parentId, position) => {
     console.log('🎯 Dropped between at position:', position);
     
-    const draggedTaskObj = tasks.find(t => t.id === draggedId);
+    const contextTasks = getTasksForContext(draggedTask.context);
+    const draggedTaskObj = contextTasks.find(t => t.id === draggedId);
     if (!draggedTaskObj) return;
     
-    // ✅ IMPROVED: Use sparse positioning utility
     const dropInfo = {
       type: 'between',
       parentId: parentId,
@@ -215,7 +313,7 @@ const TaskList = () => {
       draggedId: draggedId
     };
     
-    const positionResult = calculateHTML5DropPosition(dropInfo, tasks);
+    const positionResult = calculateHTML5DropPosition(dropInfo, contextTasks);
     
     if (!positionResult.success) {
       console.error('❌ Invalid drop operation:', positionResult.reason);
@@ -232,21 +330,20 @@ const TaskList = () => {
     setDragHoverTarget(null);
   };
 
-  // ✅ IMPROVED: Use sparse positioning for into drops
   const handleDropInto = (draggedId, parentId) => {
     console.log('🎯 Dropped into parent:', parentId);
     
-    const draggedTaskObj = tasks.find(t => t.id === draggedId);
+    const contextTasks = getTasksForContext(draggedTask.context);
+    const draggedTaskObj = contextTasks.find(t => t.id === draggedId);
     if (!draggedTaskObj) return;
     
-    // ✅ IMPROVED: Use sparse positioning utility
     const dropInfo = {
       type: 'into',
       parentId: parentId,
       draggedId: draggedId
     };
     
-    const positionResult = calculateHTML5DropPosition(dropInfo, tasks);
+    const positionResult = calculateHTML5DropPosition(dropInfo, contextTasks);
     
     if (!positionResult.success) {
       console.error('❌ Invalid drop operation:', positionResult.reason);
@@ -267,7 +364,7 @@ const TaskList = () => {
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
-      await fetchTasks(true);
+      await fetchAllProjectsAndTasks(true);
     } catch (err) {
       console.error('Error refreshing tasks:', err);
     } finally {
@@ -282,6 +379,14 @@ const TaskList = () => {
     setExpandedTasks((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
   };
 
+  // ✅ NEW: Toggle section expansion
+  const toggleSection = (sectionKey) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
+
   const selectTask = (taskId, e) => {
     e?.preventDefault();
     e?.stopPropagation();
@@ -291,14 +396,32 @@ const TaskList = () => {
     setSelectedTaskId((prev) => (prev === taskId ? null : taskId));
   };
 
+  // ✅ ENHANCED: Toggle task completion with context awareness
   const toggleTaskCompletion = async (taskId, currentStatus, e) => {
     e?.preventDefault();
     e?.stopPropagation();
+    
+    const context = getTaskContext(taskId);
+    const permissions = getUserPermissions(
+      [...tasks, ...memberProjectTasks].find(t => t.id === taskId)
+    );
+    
+    if (!permissions.canEdit) {
+      alert('You do not have permission to modify this task.');
+      return;
+    }
+    
     try {
       const res = await updateTaskCompletion(taskId, currentStatus);
       if (!res.success) throw new Error(res.error);
+      
       if (isMountedRef.current) {
-        setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, is_complete: !currentStatus } : t)));
+        if (context === 'owned') {
+          setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, is_complete: !currentStatus } : t)));
+        } else {
+          // Update member project tasks state if you have it managed separately
+          // This might need integration with your member project state management
+        }
       }
     } catch (err) {
       console.error('Error updating completion:', err);
@@ -316,7 +439,7 @@ const TaskList = () => {
 
   const handleProjectCreated = async (projectData) => {
     try {
-      await fetchTasks(true);
+      await fetchAllProjectsAndTasks(true);
       setSelectedTaskId(projectData.id);
       setProjectLicenseId(null);
       setIsCreatingProject(false);
@@ -342,7 +465,7 @@ const TaskList = () => {
       const newTask = { ...taskData, origin: 'instance', is_complete: false, due_date: taskData.due_date || null };
       const res = await createTask(newTask);
       if (res.error) throw new Error(res.error);
-      await fetchTasks(true);
+      await fetchAllProjectsAndTasks(true);
       setAddingChildToTaskId(null);
       if (taskData.parent_task_id) {
         setExpandedTasks((prev) => ({ ...prev, [taskData.parent_task_id]: true }));
@@ -355,10 +478,19 @@ const TaskList = () => {
 
   const handleCancelAddTask = () => setAddingChildToTaskId(null);
 
+  // ✅ ENHANCED: Delete task with permission check
   const handleDeleteTask = async (taskId) => {
-    const target = tasks.find((t) => t.id === taskId);
-    if (!target) return;
-    const hasChildrenToDelete = tasks.some((t) => t.parent_task_id === taskId);
+    const task = [...tasks, ...memberProjectTasks].find((t) => t.id === taskId);
+    if (!task) return;
+    
+    const permissions = getUserPermissions(task);
+    if (!permissions.canDelete) {
+      alert('You do not have permission to delete this task.');
+      return;
+    }
+    
+    const contextTasks = getTasksForContext(getTaskContext(taskId));
+    const hasChildrenToDelete = contextTasks.some((t) => t.parent_task_id === taskId);
     let msg = hasChildrenToDelete
       ? 'This task has subtasks that will also be deleted. Continue?'
       : 'Are you sure you want to delete this task?';
@@ -368,27 +500,50 @@ const TaskList = () => {
     try {
       const res = await deleteTask(taskId, true);
       if (!res.success) throw new Error(res.error);
+      
       const deletedIds = Array.isArray(res.deletedIds) ? res.deletedIds : [taskId];
-      setTasks((prev) => prev.filter((t) => !deletedIds.includes(t.id)));
+      
+      // Update appropriate task list based on context
+      const context = getTaskContext(taskId);
+      if (context === 'owned') {
+        setTasks((prev) => prev.filter((t) => !deletedIds.includes(t.id)));
+      }
+      
       if (deletedIds.includes(selectedTaskId)) setSelectedTaskId(null);
       const count = deletedIds.length - 1;
       alert(
         hasChildrenToDelete ? `Task and ${count} subtask${count !== 1 ? 's' : ''} deleted.` : 'Task deleted successfully'
       );
-      await fetchTasks(true);
+      await fetchAllProjectsAndTasks(true);
     } catch (err) {
       console.error(err);
       alert(`Failed to delete task: ${err.message}`);
     }
   };
 
+  // ✅ ENHANCED: Edit task with permission check
   const handleEditTask = async (taskId, updatedData) => {
+    const task = [...tasks, ...memberProjectTasks].find((t) => t.id === taskId);
+    if (!task) return;
+    
+    const permissions = getUserPermissions(task);
+    if (!permissions.canEdit) {
+      alert('You do not have permission to edit this task.');
+      return;
+    }
+    
     try {
       const res = await updateTaskComplete(taskId, updatedData);
       if (!res.success) throw new Error(res.error || 'Update failed');
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...res.data } : t)));
+      
+      // Update appropriate task list based on context
+      const context = getTaskContext(taskId);
+      if (context === 'owned') {
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...res.data } : t)));
+      }
+      
       alert('Task updated successfully');
-      await fetchTasks(true);
+      await fetchAllProjectsAndTasks(true);
     } catch (err) {
       console.error(err);
       alert(`Failed to update task: ${err.message}`);
@@ -404,7 +559,7 @@ const TaskList = () => {
 
   const handleProjectFromTemplateCreated = async (projectData) => {
     try {
-      await fetchTasks(true);
+      await fetchAllProjectsAndTasks(true);
       setSelectedTaskId(projectData.id);
       setIsCreatingFromTemplate(false);
     } catch (err) {
@@ -417,17 +572,21 @@ const TaskList = () => {
 
   /* ---------------------- render helpers ------------------- */
   
-  const renderTasksWithHTML5DropZones = () => {
-    if (getVisibleTasks.length === 0) {
+  // ✅ NEW: Render tasks with drop zones for a specific context
+  const renderTasksWithHTML5DropZones = (visibleTasks, context = 'owned') => {
+    if (visibleTasks.length === 0) {
       return (
         <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
-          No projects found. Create your first project to get started!
+          {context === 'member' 
+            ? "You haven't joined any projects yet."
+            : "No projects found. Create your first project to get started!"
+          }
         </div>
       );
     }
 
     return (
-      <div style={{ minHeight: '400px' }}>
+      <div style={{ minHeight: '200px' }}>
         {/* Drop zone at the very top */}
         <HTML5DragDropZone 
           type="between"
@@ -435,26 +594,27 @@ const TaskList = () => {
           position={0}
           level={0}
           onDropBetween={handleDropBetween}
-          isDragActive={!!draggedTask}
+          isDragActive={!!draggedTask && draggedTask.context === context}
           debugMode={process.env.NODE_ENV === 'development'}
         />
         
-        {getVisibleTasks.map((task, index) => {
-          const showChildDropZone = hasChildren(task) && expandedTasks[task.id];
+        {visibleTasks.map((task, index) => {
+          const showChildDropZone = hasChildren(task, context) && expandedTasks[task.id];
+          const permissions = getUserPermissions(task);
           
           return (
             <React.Fragment key={task.id}>
               {/* The task itself */}
               <TaskItem
                 task={task}
-                tasks={tasks}
+                tasks={getTasksForContext(context)}
                 level={task.level}
                 expandedTasks={expandedTasks}
                 toggleExpandTask={toggleExpandTask}
                 selectedTaskId={selectedTaskId}
                 selectTask={selectTask}
-                onAddChildTask={handleAddChildTask}
-                hasChildren={hasChildren(task)}
+                onAddChildTask={permissions.canEdit ? handleAddChildTask : null}
+                hasChildren={hasChildren(task, context)}
                 toggleTaskCompletion={toggleTaskCompletion}
                 // HTML5 drag props
                 isDragging={draggedTask?.id === task.id}
@@ -463,6 +623,10 @@ const TaskList = () => {
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
                 onDrop={handleDropOnTask}
+                // ✅ NEW: Permission props
+                canEdit={permissions.canEdit}
+                canDelete={permissions.canDelete}
+                userRole={permissions.role}
               />
               
               {/* Drop zone for children (if task is expanded) */}
@@ -473,7 +637,7 @@ const TaskList = () => {
                   position={0}
                   level={task.level}
                   onDropInto={handleDropInto}
-                  isDragActive={!!draggedTask}
+                  isDragActive={!!draggedTask && draggedTask.context === context}
                   debugMode={process.env.NODE_ENV === 'development'}
                 />
               )}
@@ -485,12 +649,108 @@ const TaskList = () => {
                 position={index + 1}
                 level={task.level}
                 onDropBetween={handleDropBetween}
-                isDragActive={!!draggedTask}
+                isDragActive={!!draggedTask && draggedTask.context === context}
                 debugMode={process.env.NODE_ENV === 'development'}
               />
             </React.Fragment>
           );
         })}
+      </div>
+    );
+  };
+
+  // ✅ NEW: Render member projects section
+  const renderMemberProjectsSection = () => {
+    if (memberProjectsLoading) {
+      return (
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div style={{
+            width: '24px',
+            height: '24px',
+            margin: '0 auto',
+            border: '2px solid #e5e7eb',
+            borderTopColor: '#3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <p style={{ marginTop: '8px', color: '#6b7280', fontSize: '14px' }}>Loading member projects...</p>
+        </div>
+      );
+    }
+
+    if (memberProjectsError) {
+      return (
+        <div style={{
+          backgroundColor: '#fee2e2',
+          border: '1px solid #ef4444',
+          color: '#b91c1c',
+          padding: '12px',
+          borderRadius: '4px',
+          fontSize: '14px'
+        }}>
+          {memberProjectsError}
+        </div>
+      );
+    }
+
+    if (memberProjects.length === 0) {
+      return (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '20px', 
+          color: '#6b7280',
+          fontSize: '14px',
+          fontStyle: 'italic'
+        }}>
+          You haven't been invited to any projects yet.
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {/* Member projects summary */}
+        <div style={{ 
+          marginBottom: '16px', 
+          fontSize: '14px', 
+          color: '#6b7280',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span>
+            {memberProjects.length} project{memberProjects.length !== 1 ? 's' : ''} • {' '}
+            {memberProjectTasks.length} task{memberProjectTasks.length !== 1 ? 's' : ''}
+          </span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {memberProjects.map(mp => {
+              const roleColors = {
+                owner: '#dc2626',
+                full_user: '#059669', 
+                limited_user: '#d97706',
+                coach: '#7c3aed'
+              };
+              return (
+                <span 
+                  key={mp.id}
+                  style={{
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    backgroundColor: `${roleColors[mp.role]}20`,
+                    color: roleColors[mp.role],
+                    borderRadius: '8px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {mp.role.replace('_', ' ').toUpperCase()}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Member project tasks */}
+        {renderTasksWithHTML5DropZones(getVisibleMemberTasks, 'member')}
       </div>
     );
   };
@@ -551,7 +811,7 @@ const TaskList = () => {
         </div>
       );
 
-    const task = tasks.find((t) => t.id === selectedTaskId);
+    const task = [...tasks, ...memberProjectTasks].find((t) => t.id === selectedTaskId);
     if (!task) return null;
 
     if (addingChildToTaskId === selectedTaskId) {
@@ -562,7 +822,7 @@ const TaskList = () => {
           parentStartDate={parentStartDate}
           onSubmit={handleAddChildTaskSubmit}
           onCancel={handleCancelAddTask}
-          backgroundColor={getBackgroundColor(getTaskLevel(task, tasks))}
+          backgroundColor={getBackgroundColor(getTaskLevel(task, [...tasks, ...memberProjectTasks]))}
           originType="instance"
         />
       );
@@ -572,12 +832,14 @@ const TaskList = () => {
       <TaskDetailsPanel
         key={`${task.id}-${task.is_complete}`}
         task={task}
-        tasks={tasks}
+        tasks={[...tasks, ...memberProjectTasks]}
         toggleTaskCompletion={toggleTaskCompletion}
         onClose={() => setSelectedTaskId(null)}
         onAddChildTask={handleAddChildTask}
         onDeleteTask={handleDeleteTask}
         onEditTask={handleEditTask}
+        // ✅ NEW: Pass user permissions
+        userPermissions={getUserPermissions(task)}
       />
     );
   };
@@ -592,7 +854,7 @@ const TaskList = () => {
   /* ------------------------- render ------------------------ */
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* ✅ IMPROVED: Better debug panel */}
+      {/* Debug panel */}
       {draggedTask && process.env.NODE_ENV === 'development' && (
         <div style={{ 
           position: 'fixed', 
@@ -608,7 +870,7 @@ const TaskList = () => {
         }}>
           🚀 Dragging: {draggedTask.title}
           <br />
-          📍 From: {draggedTask.parent_task_id || 'root'}
+          📍 Context: {draggedTask.context}
           <br />
           🎯 Target: {dragHoverTarget?.title || 'none'}
         </div>
@@ -693,18 +955,18 @@ const TaskList = () => {
               </div>
               <button
                 onClick={handleRefresh}
-                disabled={loading || isRefreshing}
+                disabled={loading || isRefreshing || memberProjectsLoading}
                 style={{
                   backgroundColor: '#3b82f6',
                   color: 'white',
                   padding: '8px 16px',
                   borderRadius: '4px',
-                  cursor: loading || isRefreshing ? 'not-allowed' : 'pointer',
+                  cursor: loading || isRefreshing || memberProjectsLoading ? 'not-allowed' : 'pointer',
                   border: 'none',
-                  opacity: loading || isRefreshing ? 0.7 : 1,
+                  opacity: loading || isRefreshing || memberProjectsLoading ? 0.7 : 1,
                 }}
               >
-                {loading || isRefreshing ? 'Refreshing...' : 'Refresh'}
+                {loading || isRefreshing || memberProjectsLoading ? 'Refreshing...' : 'Refresh'}
               </button>
             </div>
           </div>
@@ -743,7 +1005,7 @@ const TaskList = () => {
           )}
 
           {/* CONDITIONAL CONTENT */}
-          {initialLoading ? (
+          {(loading && !tasks.length) ? (
             <div style={{ textAlign: 'center', padding: '32px' }}>
               <div
                 style={{
@@ -771,26 +1033,125 @@ const TaskList = () => {
             >
               {error}
             </div>
-          ) : getVisibleTasks.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
-              <p>No projects found. Create your first project to get started!</p>
-              <button
-                onClick={handleCreateNewProject}
-                style={{
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  border: 'none',
-                  marginTop: '16px',
-                }}
-              >
-                Create First Project
-              </button>
-            </div>
           ) : (
-            <div>{renderTasksWithHTML5DropZones()}</div>
+            <div>
+              {/* ✅ NEW: OWNED PROJECTS SECTION */}
+              <div style={{ marginBottom: '32px' }}>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    marginBottom: '16px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => toggleSection('ownedProjects')}
+                >
+                  <span style={{ 
+                    marginRight: '8px',
+                    fontSize: '18px',
+                    transition: 'transform 0.2s ease',
+                    transform: expandedSections.ownedProjects ? 'rotate(90deg)' : 'rotate(0deg)'
+                  }}>
+                    ▶
+                  </span>
+                  <h2 style={{ 
+                    fontSize: '1.25rem', 
+                    fontWeight: 'bold', 
+                    margin: 0,
+                    color: '#374151'
+                  }}>
+                    My Projects
+                  </h2>
+                  <span style={{ 
+                    marginLeft: '12px',
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    backgroundColor: '#f3f4f6',
+                    padding: '2px 8px',
+                    borderRadius: '12px'
+                  }}>
+                    {getVisibleTasks.length}
+                  </span>
+                </div>
+                
+                {expandedSections.ownedProjects && (
+                  getVisibleTasks.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
+                      <p>No projects found. Create your first project to get started!</p>
+                      <button
+                        onClick={handleCreateNewProject}
+                        style={{
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          padding: '8px 16px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          border: 'none',
+                          marginTop: '16px',
+                        }}
+                      >
+                        Create First Project
+                      </button>
+                    </div>
+                  ) : (
+                    renderTasksWithHTML5DropZones(getVisibleTasks, 'owned')
+                  )
+                )}
+              </div>
+
+              {/* ✅ NEW: MEMBER PROJECTS SECTION */}
+              <div>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    marginBottom: '16px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => toggleSection('memberProjects')}
+                >
+                  <span style={{ 
+                    marginRight: '8px',
+                    fontSize: '18px',
+                    transition: 'transform 0.2s ease',
+                    transform: expandedSections.memberProjects ? 'rotate(90deg)' : 'rotate(0deg)'
+                  }}>
+                    ▶
+                  </span>
+                  <h2 style={{ 
+                    fontSize: '1.25rem', 
+                    fontWeight: 'bold', 
+                    margin: 0,
+                    color: '#374151'
+                  }}>
+                    Shared Projects
+                  </h2>
+                  <span style={{ 
+                    marginLeft: '12px',
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    backgroundColor: '#f3f4f6',
+                    padding: '2px 8px',
+                    borderRadius: '12px'
+                  }}>
+                    {memberProjects.length}
+                  </span>
+                  {memberProjectsLoading && (
+                    <div style={{
+                      marginLeft: '8px',
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid #e5e7eb',
+                      borderTopColor: '#3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                  )}
+                </div>
+                
+                {expandedSections.memberProjects && renderMemberProjectsSection()}
+              </div>
+            </div>
           )}
         </div>
 

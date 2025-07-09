@@ -1,4 +1,17 @@
 # Developer Notes
+## July 8 [Tim]
+- reprompted Claude: I want to continue implementing team management. 
+right now a project owner can invite other users to join the project with a specific role in mind, and those users are able to accept those invitations and join the project. the project member ship table in supabase is update when the user accepts.  
+  - included these in the context: TaskList, TaskItem, TaskContext, the rest of the /TaskList directory, 
+      also the team_management service and task Service
+  - it gave me a ton of code
+  - updated TaskDetails, TaskList, TaskItem, TaskContext
+-    bugs:
+  - duplicate tasks
+    - Claude made changes to TaskContext, task service, bcc service
+
+
+the next step is for a user who is a member of another project to be able to view projects that they have joined. I want this to be viewed in the same projects page, as a separate section underneath the  projects the user owns. the project and all of its tasks should be viewable, and should utilize the task list and task item components.
 ## July 7th [Tim]
 # Show Joined Projects Feature - Implementation Roadmap
 

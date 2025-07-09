@@ -10,7 +10,14 @@ const TaskDetailsPanel = ({
   onClose,
   onAddTask,
   onDeleteTask,
-  onEditTask
+  onEditTask,
+  // ✅ NEW: User permissions prop
+  userPermissions = {
+    canEdit: true,
+    canDelete: true,
+    canManageTeam: true,
+    role: 'owner'
+  }
 }) => {
   // State for edit mode
   const [isEditing, setIsEditing] = useState(false);
@@ -175,6 +182,10 @@ const TaskDetailsPanel = ({
   
   // Button handlers
   const handleEditClick = () => {
+    if (!userPermissions.canEdit) {
+      alert('You do not have permission to edit this task.');
+      return;
+    }
     setIsEditing(true);
   };
 
@@ -185,6 +196,24 @@ const TaskDetailsPanel = ({
   const handleTaskUpdate = (updatedTaskData) => {
     onEditTask(task.id, updatedTaskData);
     setIsEditing(false);
+  };
+
+  // ✅ NEW: Handle delete with permission check
+  const handleDeleteClick = () => {
+    if (!userPermissions.canDelete) {
+      alert('You do not have permission to delete this task.');
+      return;
+    }
+    onDeleteTask(task.id);
+  };
+
+  // ✅ NEW: Handle add child with permission check
+  const handleAddChildClick = () => {
+    if (!userPermissions.canEdit) {
+      alert('You do not have permission to add tasks to this project.');
+      return;
+    }
+    onAddTask(task.id);
   };
   
   // Check if this is a top-level project
@@ -271,7 +300,6 @@ const TaskDetailsPanel = ({
 
   
   // Ensure arrays are valid
-  // const actions = Array.isArray(task.actions) ? task.actions : [];
   const actions = parseArrayField(task.actions);
   const resources = Array.isArray(task.resources) ? task.resources : [];
 
@@ -300,13 +328,30 @@ const TaskDetailsPanel = ({
           alignItems: 'center',
           width: '100%'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             <h3 style={{ 
               margin: 0, 
               fontWeight: 'bold',
+              flex: 1
             }}>
               {task.title}
             </h3>
+            
+            {/* ✅ NEW: User role badge */}
+            {userPermissions.role && userPermissions.role !== 'owner' && (
+              <div style={{
+                fontSize: '10px',
+                padding: '4px 8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                borderRadius: '12px',
+                fontWeight: 'bold',
+                marginLeft: '12px',
+                textTransform: 'uppercase'
+              }}>
+                {userPermissions.role.replace('_', ' ')}
+              </div>
+            )}
           </div>
           
           <button 
@@ -328,6 +373,20 @@ const TaskDetailsPanel = ({
             ✕
           </button>
         </div>
+
+        {/* ✅ NEW: Permission indicator */}
+        {userPermissions.role !== 'owner' && (
+          <div style={{
+            marginTop: '8px',
+            fontSize: '12px',
+            opacity: 0.8,
+            display: 'flex',
+            gap: '12px'
+          }}>
+            <span>{userPermissions.canEdit ? '✓ Can Edit' : '✗ Read Only'}</span>
+            {userPermissions.canManageTeam && <span>✓ Team Management</span>}
+          </div>
+        )}
       </div>
       
       <div className="details-content" style={{ padding: '16px' }}>
@@ -360,8 +419,8 @@ const TaskDetailsPanel = ({
           </div>
         )}
         
-        {/* Project Members Section - Only for top-level projects */}
-        {isTopLevelProject && (
+        {/* Project Members Section - Only for top-level projects and if user can view */}
+        {isTopLevelProject && (userPermissions.canManageTeam || projectMembers.length > 0) && (
           <div className="project-members-section" style={{ 
             backgroundColor: '#f8fafc', 
             borderRadius: '4px',
@@ -370,6 +429,16 @@ const TaskDetailsPanel = ({
           }}>
             <h4 style={{ fontWeight: 'bold', marginBottom: '12px', marginTop: '0' }}>
               Project Members
+              {!userPermissions.canManageTeam && (
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: 'normal',
+                  color: '#6b7280',
+                  marginLeft: '8px'
+                }}>
+                  (View Only)
+                </span>
+              )}
             </h4>
             
             {membersLoading ? (
@@ -536,11 +605,10 @@ const TaskDetailsPanel = ({
           <h4 style={{ fontWeight: 'bold', marginBottom: '8px', marginTop: '0' }}>Schedule Details</h4>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {/* Duration Display - Updated to show both durations with calculation indicator */}
+            {/* Duration Display */}
             <div>
               <span style={{ fontSize: '12px', color: '#4b5563' }}>Duration</span>
               
-              {/* If has children, show both calculated and stored durations clearly */}
               {hasChildren ? (
                 <div style={{ marginTop: '4px' }}>
                   {/* Calculated Duration */}
@@ -594,7 +662,6 @@ const TaskDetailsPanel = ({
                   </div>
                 </div>
               ) : (
-                // For tasks without children, show just the stored duration
                 <p style={{ 
                   fontSize: '16px', 
                   fontWeight: 'bold', 
@@ -653,7 +720,7 @@ const TaskDetailsPanel = ({
             </div>
           </div>
           
-          {/* Child Tasks Timeline - sequential flow */}
+          {/* Child Tasks Timeline */}
           {hasChildren && (
             <div style={{ marginTop: '16px' }}>
               <h5 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold' }}>
@@ -671,10 +738,9 @@ const TaskDetailsPanel = ({
                   padding: '0 0 0 16px'
                 }}>
                   {children.map((child, index) => {
-                    // Get properties for this child using our helper function with new date system
                     const childProps = getTaskProperties(child);
-                    const childStartDate = getCalculatedStartDate ? getTaskStartDate(child.id) : child.start_date;
-                    const childDueDate = getCalculatedDueDate ? getTaskDueDate(child.id) : child.due_date;
+                    const childStartDate = getTaskStartDate(child.id);
+                    const childDueDate = getTaskDueDate(child.id);
                     
                     return (
                       <li key={child.id} style={{ marginBottom: '6px' }}>
@@ -697,7 +763,6 @@ const TaskDetailsPanel = ({
                               {childProps.effectiveDuration} day{childProps.effectiveDuration !== 1 ? 's' : ''}
                             </span>
                             
-                            {/* Add a badge for calculated durations */}
                             {childProps.isCalculated && (
                               <span style={{
                                 fontSize: '9px',
@@ -714,7 +779,6 @@ const TaskDetailsPanel = ({
                           </div>
                         </div>
                         
-                        {/* Show an arrow connecting tasks if not the last one */}
                         {index < children.length - 1 && (
                           <div style={{ 
                             textAlign: 'center', 
@@ -825,7 +889,7 @@ const TaskDetailsPanel = ({
           </div>
         </div>
         
-        {/* Action buttons */}
+        {/* ✅ ENHANCED: Action buttons with permission checks */}
         <div className="detail-row" style={{ 
           marginTop: '24px', 
           display: 'flex', 
@@ -834,18 +898,21 @@ const TaskDetailsPanel = ({
           {/* Edit Button */}
           <button
             onClick={handleEditClick}
+            disabled={!userPermissions.canEdit}
             style={{
-              backgroundColor: '#3b82f6',
+              backgroundColor: userPermissions.canEdit ? '#3b82f6' : '#9ca3af',
               color: 'white',
               padding: '8px 16px',
               borderRadius: '4px',
-              cursor: 'pointer',
+              cursor: userPermissions.canEdit ? 'pointer' : 'not-allowed',
               border: 'none',
               flex: '1',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              opacity: userPermissions.canEdit ? 1 : 0.6
             }}
+            title={!userPermissions.canEdit ? 'You do not have permission to edit this task' : 'Edit task'}
           >
             <span style={{ marginRight: '8px' }}>Edit</span>
             <span>✎</span>
@@ -853,47 +920,70 @@ const TaskDetailsPanel = ({
           
           {/* Add Child button */}
           <button
-            onClick={() => onAddTask(task.id)}
+            onClick={handleAddChildClick}
+            disabled={!userPermissions.canEdit}
             style={{
-              backgroundColor: '#10b981',
+              backgroundColor: userPermissions.canEdit ? '#10b981' : '#9ca3af',
               color: 'white',
               padding: '8px 16px',
               borderRadius: '4px',
-              cursor: 'pointer',
+              cursor: userPermissions.canEdit ? 'pointer' : 'not-allowed',
               border: 'none',
               flex: '1',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              opacity: userPermissions.canEdit ? 1 : 0.6
             }}
+            title={!userPermissions.canEdit ? 'You do not have permission to add tasks' : 'Add child task'}
           >
             <span style={{ marginRight: '8px' }}>Add Child</span>
             <span>+</span>
           </button>
         </div>
         
-        {/* Delete button - separate row */}
-        <div className="detail-row" style={{ 
-          marginTop: '12px'
-        }}>
-          <button
-            onClick={() => onDeleteTask(task.id)}
-            style={{
-              backgroundColor: '#ef4444',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              border: 'none',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            Delete
-          </button>
-        </div>
+        {/* Delete button - separate row, only show if user can delete */}
+        {userPermissions.canDelete && (
+          <div className="detail-row" style={{ 
+            marginTop: '12px'
+          }}>
+            <button
+              onClick={handleDeleteClick}
+              style={{
+                backgroundColor: '#ef4444',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                border: 'none',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        )}
+
+        {/* ✅ NEW: Show permission info for non-owners */}
+        {userPermissions.role !== 'owner' && (
+          <div style={{
+            marginTop: '16px',
+            padding: '12px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#6b7280'
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Your Access Level:</div>
+            <div>Role: {userPermissions.role?.replace('_', ' ') || 'Member'}</div>
+            <div>Permissions: {userPermissions.canEdit ? 'Edit tasks' : 'View only'}</div>
+            {userPermissions.canManageTeam && <div>• Manage team members</div>}
+          </div>
+        )}
       </div>
     </div>
   );

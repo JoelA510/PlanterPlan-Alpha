@@ -1,4 +1,4 @@
-// src/components/TaskList/TaskItem.js - MIGRATED TO HTML5 DRAG & DROP
+// src/components/TaskList/TaskItem.js - Enhanced with permission handling
 import React, { useState } from 'react';
 import {
   formatDisplayDate,
@@ -9,21 +9,25 @@ import { useTasks } from '../contexts/TaskContext';
 const TaskItem = ({
   task,
   tasks,
-  level = 0, // Now passed from parent instead of calculated
+  level = 0,
   expandedTasks,
   toggleExpandTask,
   selectedTaskId,
   selectTask,
   onAddChildTask,
-  hasChildren = false, // Now passed from parent
+  hasChildren = false,
   toggleTaskCompletion,
-  // ✅ NEW: HTML5 drag & drop props
+  // HTML5 drag & drop props
   isDragging = false,
   dragHoverTarget = null,
   onDragStart,
   onDragEnd,
   onDragOver,
   onDrop,
+  // ✅ NEW: Permission props
+  canEdit = true,
+  canDelete = true,
+  userRole = 'owner'
 }) => {
   const {
     getTaskStartDate,
@@ -40,10 +44,10 @@ const TaskItem = ({
   const isSelected = selectedTaskId === task.id;
   const isTopLevel = level === 0;
 
-  // ✅ NEW: Drag state calculations
+  // ✅ ENHANCED: Drag state calculations with permission check
   const isDropTarget = dragHoverTarget?.id === task.id && !isDragging;
   const shouldShowInsertLine = isDropTarget && dragHoverTarget?.position;
-  const isDragHandle = !isTopLevel; // Only non-top-level tasks can be dragged
+  const isDragHandle = !isTopLevel && canEdit; // Only allow dragging if user can edit
 
   // Date helpers
   const calculatedDuration = getTaskDuration(task.id);
@@ -51,9 +55,9 @@ const TaskItem = ({
   const taskIsOverdue = isTaskOverdue(task.id);
   const taskIsDueToday = isTaskDueToday(task.id);
 
-  // ✅ NEW: HTML5 Drag Event Handlers
+  // ✅ ENHANCED: HTML5 Drag Event Handlers with permission check
   const handleDragStart = (e) => {
-    if (isTopLevel) {
+    if (isTopLevel || !canEdit) {
       e.preventDefault();
       return;
     }
@@ -111,13 +115,19 @@ const TaskItem = ({
     }
   };
 
-  // Toggle completion handler
+  // ✅ ENHANCED: Toggle completion handler with permission check
   const handleToggleCompletion = async (e) => {
     e.stopPropagation();
+    
+    if (!canEdit) {
+      alert('You do not have permission to modify this task.');
+      return;
+    }
+    
     await toggleTaskCompletion(task.id, task.is_complete, e);
   };
 
-  // ✅ ENHANCED: Generate style with drag feedback
+  // ✅ ENHANCED: Generate style with drag feedback and permission indicators
   const getTaskStyle = () => {
     let baseStyle = {
       backgroundColor,
@@ -137,19 +147,25 @@ const TaskItem = ({
       margin: isSelected ? '0 4px' : 0,
       position: 'relative',
       marginBottom: '2px',
-      // ✅ NEW: Drag visual feedback
+      // Drag visual feedback
       opacity: isDragging ? 0.4 : 1,
       transform: isDragging ? 'scale(1.02) rotate(1deg)' : isDropTarget ? 'scale(1.01)' : 'scale(1)',
       zIndex: isDragging ? 1000 : isDropTarget ? 5 : 1,
     };
 
-    // ✅ NEW: Drop target highlighting
+    // ✅ NEW: Visual indicator for read-only tasks
+    if (!canEdit) {
+      baseStyle.opacity = 0.8;
+      baseStyle.borderLeft = '4px solid rgba(255, 255, 255, 0.3)';
+    }
+
+    // Drop target highlighting
     if (isDropTarget) {
-      baseStyle.backgroundColor = level === 0 ? '#4caf50' : '#9c27b0'; // Green for containers, purple for reordering
+      baseStyle.backgroundColor = level === 0 ? '#4caf50' : '#9c27b0';
       baseStyle.boxShadow = `0 4px 12px rgba(156, 39, 176, 0.3)`;
     }
 
-    // ✅ NEW: Enhanced dragging effects
+    // Enhanced dragging effects
     if (isDragging) {
       baseStyle.boxShadow = '0 8px 16px rgba(0,0,0,0.3)';
       baseStyle.backgroundColor = '#2196f3';
@@ -167,8 +183,15 @@ const TaskItem = ({
     toggleExpandTask(task.id, e);
   };
 
+  // ✅ ENHANCED: Add child click with permission check
   const handleAddChildClick = (e) => {
     e.stopPropagation();
+    
+    if (!canEdit) {
+      alert('You do not have permission to add tasks to this project.');
+      return;
+    }
+    
     onAddChildTask?.(task.id);
   };
 
@@ -178,7 +201,7 @@ const TaskItem = ({
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      {/* ✅ NEW: Insert line above for drop targeting */}
+      {/* Insert line above for drop targeting */}
       {shouldShowInsertLine === 'above' && (
         <div style={{
           position: 'absolute',
@@ -196,7 +219,7 @@ const TaskItem = ({
 
       {/* Task Header */}
       <div
-        // ✅ NEW: HTML5 drag attributes
+        // HTML5 drag attributes
         draggable={isDragHandle}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -206,86 +229,126 @@ const TaskItem = ({
         onDrop={handleDrop}
         onClick={handleTaskClick}
         style={getTaskStyle()}
-        className="task-item" // For CSS styling if needed
-        data-task-id={task.id} // For debugging
+        className="task-item"
+        data-task-id={task.id}
         data-is-dragging={isDragging}
         data-is-drop-target={isDropTarget}
+        data-can-edit={canEdit}
+        data-user-role={userRole}
       >
         {/* Left side */}
         <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-          {/* ✅ ENHANCED: Drag handle for non-top-level tasks */}
+          {/* ✅ ENHANCED: Drag handle with permission check */}
           {!isTopLevel && (
             <span 
               style={{ 
                 marginRight: 8, 
-                cursor: isDragging ? 'grabbing' : 'grab',
-                opacity: isDragging ? 1 : (isHovering ? 0.9 : 0.6),
+                cursor: isDragHandle ? (isDragging ? 'grabbing' : 'grab') : 'not-allowed',
+                opacity: isDragHandle ? (isDragging ? 1 : (isHovering ? 0.9 : 0.6)) : 0.3,
                 fontSize: '14px',
                 transition: 'opacity 0.2s ease',
                 color: isDragging ? '#fff' : isDropTarget ? '#fff' : 'rgba(255,255,255,0.8)',
                 textShadow: isDragging ? '0 1px 2px rgba(0,0,0,0.3)' : 'none'
               }}
-              title={isDragging ? "Dragging..." : "Drag to reorder"}
+              title={
+                !canEdit 
+                  ? "Read-only: Cannot reorder" 
+                  : isDragging 
+                    ? "Dragging..." 
+                    : "Drag to reorder"
+              }
             >
-              ⋮⋮
+              {canEdit ? '⋮⋮' : '○○'}
             </span>
           )}
           
-          {/* Completion checkbox */}
+          {/* ✅ ENHANCED: Completion checkbox with permission check */}
           <input
             type="checkbox"
             checked={!!task.is_complete}
             onChange={handleToggleCompletion}
             onClick={(e) => e.stopPropagation()}
+            disabled={!canEdit}
             style={{ 
               marginRight: 12,
-              cursor: 'pointer'
+              cursor: canEdit ? 'pointer' : 'not-allowed',
+              opacity: canEdit ? 1 : 0.5
             }}
+            title={!canEdit ? "Read-only: Cannot modify completion status" : "Toggle task completion"}
           />
           
-          {/* Task title */}
+          {/* Task title with permission indicators */}
           <span
             style={{
               textDecoration: task.is_complete ? 'line-through' : 'none',
               opacity: task.is_complete ? 0.7 : 1,
               flex: 1,
               marginRight: 12,
-              // ✅ NEW: Enhanced text during drag
               fontWeight: isDragging ? 'bold' : 'normal',
-              textShadow: isDragging ? '0 1px 2px rgba(0,0,0,0.3)' : 'none'
+              textShadow: isDragging ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
           >
             {task.title}
-            {/* ✅ NEW: Drag state indicators */}
+            {/* ✅ NEW: Permission indicator */}
+            {!canEdit && (
+              <span style={{
+                fontSize: '10px',
+                padding: '2px 6px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                fontWeight: 'normal'
+              }}>
+                READ-ONLY
+              </span>
+            )}
+            {/* ✅ NEW: User role indicator for non-owners */}
+            {userRole && userRole !== 'owner' && canEdit && (
+              <span style={{
+                fontSize: '10px',
+                padding: '2px 6px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                fontWeight: 'normal',
+                textTransform: 'uppercase'
+              }}>
+                {userRole.replace('_', ' ')}
+              </span>
+            )}
+            {/* Drag state indicators */}
             {isDragging && ' (moving...)'}
             {isDropTarget && ' ⬅️'}
           </span>
           
-          {/* Quick add-child button */}
-          <button
-            onClick={handleAddChildClick}
-            title="Add sub-task"
-            style={{
-              marginLeft: 8,
-              marginRight: 8,
-              opacity: (isHovering && !isDragging) ? 1 : 0,
-              transition: 'opacity .2s',
-              background: 'rgba(255,255,255,.25)',
-              border: 'none',
-              borderRadius: '50%',
-              width: 24,
-              height: 24,
-              color: '#fff',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            +
-          </button>
+          {/* ✅ ENHANCED: Quick add-child button with permission check */}
+          {canEdit && onAddChildTask && (
+            <button
+              onClick={handleAddChildClick}
+              title="Add sub-task"
+              style={{
+                marginLeft: 8,
+                marginRight: 8,
+                opacity: (isHovering && !isDragging) ? 1 : 0,
+                transition: 'opacity .2s',
+                background: 'rgba(255,255,255,.25)',
+                border: 'none',
+                borderRadius: '50%',
+                width: 24,
+                height: 24,
+                color: '#fff',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              +
+            </button>
+          )}
         </div>
 
         {/* Right side */}
@@ -352,10 +415,24 @@ const TaskItem = ({
               {isExpanded ? '▼' : '►'}
             </button>
           )}
+
+          {/* ✅ NEW: Permission level indicator (subtle) */}
+          {userRole && userRole !== 'owner' && (
+            <div
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: canEdit ? 'rgba(76, 175, 80, 0.8)' : 'rgba(255, 193, 7, 0.8)',
+                marginLeft: '4px'
+              }}
+              title={canEdit ? `${userRole.replace('_', ' ')} - Can edit` : `${userRole.replace('_', ' ')} - Read only`}
+            />
+          )}
         </div>
       </div>
 
-      {/* ✅ NEW: Insert line below for drop targeting */}
+      {/* Insert line below for drop targeting */}
       {shouldShowInsertLine === 'below' && (
         <div style={{
           position: 'absolute',
@@ -369,6 +446,35 @@ const TaskItem = ({
           boxShadow: '0 0 8px rgba(33, 150, 243, 0.6)',
           animation: 'pulse 1s ease-in-out infinite alternate'
         }} />
+      )}
+
+      {/* ✅ NEW: Hover tooltip for permission info */}
+      {!canEdit && isHovering && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: `${12 + (level * 24)}px`,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          padding: '6px 10px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          zIndex: 1000,
+          whiteSpace: 'nowrap',
+          marginTop: '4px'
+        }}>
+          Read-only access as {userRole?.replace('_', ' ') || 'member'}
+          <div style={{
+            position: 'absolute',
+            top: '-4px',
+            left: '20px',
+            width: '0',
+            height: '0',
+            borderLeft: '4px solid transparent',
+            borderRight: '4px solid transparent',
+            borderBottom: '4px solid rgba(0, 0, 0, 0.8)'
+          }} />
+        </div>
       )}
     </div>
   );
