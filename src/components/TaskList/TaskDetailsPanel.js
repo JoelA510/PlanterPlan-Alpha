@@ -3,6 +3,7 @@ import { getBackgroundColor, getTaskLevel, formatDisplayDate } from '../../utils
 import TaskForm from '../TaskForm/TaskForm';
 import { useTasks } from '../contexts/TaskContext';
 import { getProjectMembers } from '../../services/teamManagementService';
+import URLTextComponent from '../URLTextComponent'; // Import the new component
 
 const TaskDetailsPanel = ({
   task,
@@ -214,6 +215,24 @@ const TaskDetailsPanel = ({
       return;
     }
     onAddTask(task.id);
+  };
+
+  // ✅ NEW: Handle resource update
+  const handleResourceUpdate = (index, newValue) => {
+    if (!userPermissions.canEdit) {
+      alert('You do not have permission to edit this task.');
+      return;
+    }
+    
+    // Update the resources array
+    const updatedResources = [...resources];
+    updatedResources[index] = newValue;
+    
+    // Call the edit task function with updated resources
+    onEditTask(task.id, {
+      ...task,
+      resources: updatedResources
+    });
   };
   
   // Check if this is a top-level project
@@ -871,14 +890,21 @@ const TaskDetailsPanel = ({
           </div>
         </div>
         
+        {/* ✅ UPDATED: Resources section with URL detection */}
         <div className="detail-row">
           <h4 style={{ fontWeight: 'bold', marginBottom: '4px', marginTop: '16px' }}>Resources:</h4>
           <div style={{ paddingLeft: '16px', margin: '8px 0 0 0' }}>
             {resources.length > 0 ? 
               resources.map((resource, index) => (
-                <div key={index} style={{ marginBottom: '4px', display: 'flex', alignItems: 'flex-start' }}>
-                  <span style={{ marginRight: '8px', color: '#6b7280' }}>•</span>
-                  <span>{resource}</span>
+                <div key={index} style={{ marginBottom: '8px', display: 'flex', alignItems: 'flex-start' }}>
+                  <span style={{ marginRight: '8px', color: '#6b7280', marginTop: '8px' }}>•</span>
+                  <URLTextComponent
+                    value={resource || ''}
+                    onChange={(newValue) => handleResourceUpdate(index, newValue)}
+                    placeholder="Enter a resource..."
+                    disabled={!userPermissions.canEdit}
+                    style={{ flex: 1 }}
+                  />
                 </div>
               )) : 
               <div style={{ display: 'flex', alignItems: 'flex-start' }}>

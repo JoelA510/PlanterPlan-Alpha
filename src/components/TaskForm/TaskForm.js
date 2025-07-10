@@ -1,9 +1,10 @@
-// This is the updated TaskForm component with date mode selection
+// This is the updated TaskForm component with URL detection for resources
 // src/components/TaskForm/TaskForm.js
 
 import React from 'react';
 import { useTaskForm } from './useTaskForm';
 import { formatDisplayDate } from '../../utils/taskUtils';
+import URLTextComponent from '../URLTextComponent'; // Import the URL component
 
 const TaskForm = ({ 
   parentTaskId,
@@ -137,60 +138,60 @@ const TaskForm = ({
         </div>
         
         {/* Simplified schedule section - only duration for instance tasks */}
-<div style={{ 
-  marginBottom: '16px',
-  padding: '12px',
-  backgroundColor: '#f3f4f6',
-  borderRadius: '4px',
-}}>
-  
-  {/* Only show duration field */}
-  <div style={{ marginBottom: '12px' }}>
-    <label 
-      htmlFor="duration_days"
-      style={{ 
-        display: 'block', 
-        fontWeight: 'bold', 
-        marginBottom: '4px'
-      }}
-    >
-      Duration (days)
-    </label>
-    <input
-      id="duration_days"
-      name="duration_days"
-      type="number"
-      min="1"
-      value={formData.duration_days || 1}
-      onChange={handleChange}
-      style={{
-        width: '80px',
-        padding: '8px',
-        borderRadius: '4px',
-        border: '1px solid #d1d5db',
-        outline: 'none'
-      }}
-    />
-    
-    {/* Display the current date range (read-only) */}
-    {formData.start_date && formData.due_date && (
-      <div style={{ 
-        marginTop: '12px', 
-        fontSize: '14px', 
-        color: '#4b5563',
-        backgroundColor: '#f9fafb',
-        padding: '8px',
-        borderRadius: '4px' 
-      }}>
-        <div><strong>Start Date:</strong> {formatDisplayDate(formData.start_date)}</div>
-        <div><strong>End Date:</strong> {formatDisplayDate(formData.due_date)}</div>
-        <div style={{ marginTop: '4px', fontSize: '12px', fontStyle: 'italic' }}>
-          Note: Changing duration will update the end date accordingly.
+        <div style={{ 
+          marginBottom: '16px',
+          padding: '12px',
+          backgroundColor: '#f3f4f6',
+          borderRadius: '4px',
+        }}>
+          
+          {/* Only show duration field */}
+          <div style={{ marginBottom: '12px' }}>
+            <label 
+              htmlFor="duration_days"
+              style={{ 
+                display: 'block', 
+                fontWeight: 'bold', 
+                marginBottom: '4px'
+              }}
+            >
+              Duration (days)
+            </label>
+            <input
+              id="duration_days"
+              name="duration_days"
+              type="number"
+              min="1"
+              value={formData.duration_days || 1}
+              onChange={handleChange}
+              style={{
+                width: '80px',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                outline: 'none'
+              }}
+            />
+            
+            {/* Display the current date range (read-only) */}
+            {formData.start_date && formData.due_date && (
+              <div style={{ 
+                marginTop: '12px', 
+                fontSize: '14px', 
+                color: '#4b5563',
+                backgroundColor: '#f9fafb',
+                padding: '8px',
+                borderRadius: '4px' 
+              }}>
+                <div><strong>Start Date:</strong> {formatDisplayDate(formData.start_date)}</div>
+                <div><strong>End Date:</strong> {formatDisplayDate(formData.due_date)}</div>
+                <div style={{ marginTop: '4px', fontSize: '12px', fontStyle: 'italic' }}>
+                  Note: Changing duration will update the end date accordingly.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    )}
-  </div>
-</div>
         
         <div style={{ marginBottom: '16px' }}>
           <label 
@@ -312,6 +313,7 @@ const TaskForm = ({
           </button>
         </div>
         
+        {/* ✅ UPDATED: Resources section with URL detection */}
         <div style={{ marginBottom: '24px' }}>
           <label 
             style={{ 
@@ -326,26 +328,22 @@ const TaskForm = ({
             <div key={`resource-${index}`} style={{ 
               display: 'flex', 
               marginBottom: '8px',
-              alignItems: 'center' 
+              alignItems: 'flex-start' 
             }}>
-              <input
-                type="text"
+              <URLTextComponent
                 value={resource || ''}
-                onChange={(e) => handleArrayChange('resources', index, e.target.value)}
+                onChange={(newValue) => handleArrayChange('resources', index, newValue)}
+                placeholder="Enter a resource (URLs will be automatically detected)"
                 style={{
                   flex: 1,
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid #d1d5db',
-                  outline: 'none'
+                  marginRight: '8px'
                 }}
-                placeholder="Enter a resource"
               />
               <button
                 type="button"
                 onClick={() => removeArrayItem('resources', index)}
                 style={{
-                  marginLeft: '8px',
+                  marginTop: '8px',
                   padding: '8px',
                   borderRadius: '4px',
                   border: 'none',
