@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import TemplateTaskForm from '../TaskForm/TemplateTaskForm';
+import { useMasterLibrary } from '../../hooks/useMasterLibrary';
 
 const TemplateDetailsPanel = ({
   task,
@@ -14,6 +15,14 @@ const TemplateDetailsPanel = ({
   const [isEditing, setIsEditing] = useState(false);
   const [hasChildren, setHasChildren] = useState(false);
   
+  // ✅ NEW: Master Library Integration
+  const masterLibrary = useMasterLibrary();
+  
+  // Get library status with optimistic updates
+  const isInLibrary = masterLibrary.isTaskInLibrary(task.id) || false;
+  const isLibraryLoading = masterLibrary.isTaskLoading(task.id);
+  const libraryError = masterLibrary.getTaskError(task.id);
+  
   // Check if this task has children
   useEffect(() => {
     if (task && task.id && Array.isArray(tasks)) {
@@ -23,6 +32,45 @@ const TemplateDetailsPanel = ({
       setHasChildren(childExists);
     }
   }, [task, tasks]);
+  
+  // ✅ NEW: Handle Master Library Toggle with Optimistic Updates
+  const handleToggleMasterLibrary = async () => {
+    try {
+      console.log('🎯 Toggling master library for task:', task.id, 'Current status:', isInLibrary);
+      
+      const result = await masterLibrary.toggleLibraryMembership(task.id, task, {
+        onOptimisticUpdate: (taskId, newStatus) => {
+          console.log('⚡ Optimistic update: Task', taskId, newStatus ? 'added to' : 'removed from', 'library');
+          // The hook handles the state update automatically
+        },
+        onSuccess: (taskId, data) => {
+          console.log('✅ Successfully', isInLibrary ? 'removed from' : 'added to', 'master library:', taskId);
+          // Could show a success toast here if you have a toast system
+        },
+        onError: (taskId, error) => {
+          console.error('❌ Failed to toggle master library:', error);
+          // Show error to user
+          alert(`Failed to ${isInLibrary ? 'remove from' : 'add to'} master library: ${error}`);
+        }
+      });
+      
+      if (!result.success) {
+        console.warn('Master library operation returned error:', result.error);
+      }
+    } catch (err) {
+      console.error('Error in handleToggleMasterLibrary:', err);
+      alert(`An error occurred: ${err.message}`);
+    }
+  };
+
+  // Clear library error when component unmounts or task changes
+  useEffect(() => {
+    return () => {
+      if (libraryError) {
+        masterLibrary.clearTaskError(task.id);
+      }
+    };
+  }, [task.id, libraryError, masterLibrary]);
   
   // Button handlers
   const handleEditClick = () => {
@@ -119,6 +167,20 @@ const TemplateDetailsPanel = ({
             }}>
               {task.title}
             </h3>
+            
+            {/* ✅ NEW: Master Library Status Indicator */}
+            {isInLibrary && (
+              <span style={{
+                marginLeft: '12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                📚 In Library
+              </span>
+            )}
           </div>
           
           <button 
@@ -155,6 +217,126 @@ const TemplateDetailsPanel = ({
           marginBottom: '16px'
         }}>
           Template
+        </div>
+
+        {/* ✅ NEW: Master Library Section */}
+        <div className="master-library-section" style={{
+          backgroundColor: '#f0f9ff',
+          border: '1px solid #e0f2fe',
+          borderRadius: '8px',
+          padding: '16px',
+          marginBottom: '16px'
+        }}>
+          <h4 style={{ 
+            margin: '0 0 12px 0', 
+            fontSize: '16px', 
+            fontWeight: 'bold',
+            color: '#0369a1'
+          }}>
+            Master Library
+          </h4>
+          
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            marginBottom: libraryError ? '12px' : '0'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ 
+                fontSize: '14px',
+                color: '#374151',
+                marginRight: '8px'
+              }}>
+                {isInLibrary ? '✅ Available in Master Library' : '➕ Add to Master Library'}
+              </span>
+              
+              {isLibraryLoading && (
+                <span style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  fontStyle: 'italic'
+                }}>
+                  (Processing...)
+                </span>
+              )}
+            </div>
+            
+            <button
+              onClick={handleToggleMasterLibrary}
+              disabled={isLibraryLoading}
+              style={{
+                backgroundColor: isInLibrary ? '#ef4444' : '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: isLibraryLoading ? 'not-allowed' : 'pointer',
+                opacity: isLibraryLoading ? 0.7 : 1,
+                transition: 'all 0.2s ease',
+                minWidth: '140px'
+              }}
+              title={isInLibrary ? 'Remove this template from the master library' : 'Add this template to the master library for reuse'}
+            >
+              {isLibraryLoading ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ 
+                    marginRight: '6px',
+                    animation: 'spin 1s linear infinite',
+                    display: 'inline-block'
+                  }}>⟳</span>
+                  Processing...
+                </span>
+              ) : (
+                isInLibrary ? 'Remove from Library' : 'Add to Library'
+              )}
+            </button>
+          </div>
+          
+          {/* ✅ NEW: Error Display */}
+          {libraryError && (
+            <div style={{
+              backgroundColor: '#fee2e2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
+              padding: '8px 12px',
+              borderRadius: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <span>❌ {libraryError}</span>
+              <button
+                onClick={() => masterLibrary.clearTaskError(task.id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#991b1b',
+                  cursor: 'pointer',
+                  padding: '0 4px',
+                  fontSize: '16px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
+          
+          {/* ✅ NEW: Helper Text */}
+          <p style={{
+            fontSize: '12px',
+            color: '#6b7280',
+            margin: '8px 0 0 0',
+            fontStyle: 'italic'
+          }}>
+            {isInLibrary 
+              ? 'This template can be reused across projects from the master library.'
+              : 'Add this template to make it available for reuse in future projects.'
+            }
+          </p>
         </div>
         
         {/* Enhanced schedule information section */}
@@ -466,6 +648,14 @@ const TemplateDetailsPanel = ({
           </button>
         </div>
       </div>
+      
+      {/* ✅ NEW: Add CSS for spinner animation */}
+      <style jsx>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

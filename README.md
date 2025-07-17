@@ -6,7 +6,7 @@
     - Dashboard
       - [ ] overview of projects
     - project task list
-      - [ ] edit a project’s settings
+      - [ ] edit a project's settings
       - [ ] view and edit Project Team
         - [ ]  add user to project team : Invite team member (email)
           - [ ]  set the role     
@@ -51,8 +51,8 @@
   - [ ]  white label management
     - [ ] manage the organization's custom url, logo, css, tasks, resources, and pricing structure
   - [ ]  template management       
-  - [ ]  New task type “Strategy Template” 
-  - [ ]  New task type “Coaching” allows tasks to automatically be assigned to user with Coach level access
+  - [ ]  New task type "Strategy Template" 
+  - [ ]  New task type "Coaching" allows tasks to automatically be assigned to user with Coach level access
   - [ ] automatically send email notifications for tasks being due soon
 
 
@@ -170,6 +170,14 @@ RESOURCES {
     text[] tags
 }
 
+MASTER_LIBRARY_TASKS {
+    uuid id PK
+    uuid task_id FK
+    uuid added_by FK
+    timestamp_with_timezone added_at
+    uuid white_label_id FK
+}
+
 USERS ||--o{ LICENSES : "has"
 WHITE_LABEL_ORGS ||--o{ LICENSES : "has"
 WHITE_LABEL_ORGS ||--o{ USERS : "contains"
@@ -187,6 +195,9 @@ TASKS ||--o{ PROJECT_INVITATIONS : "receives"
 USERS ||--o{ PROJECT_MEMBERSHIPS : "member_of"
 USERS ||--o{ PROJECT_MEMBERSHIPS : "invites_to"
 TASKS ||--o{ PROJECT_MEMBERSHIPS : "has_members"
+TASKS ||--o{ MASTER_LIBRARY_TASKS : "included_in"
+USERS ||--o{ MASTER_LIBRARY_TASKS : "adds"
+WHITE_LABEL_ORGS ||--o{ MASTER_LIBRARY_TASKS : "contains"
 
 ```
 

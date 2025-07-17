@@ -730,6 +730,193 @@ export const getTaskStatistics = async (projectId) => {
   }
 };
 
+/**
+ * Add a task to the master library
+ * @param {string} taskId - Task ID to add to master library
+ * @param {string} userId - User ID who is adding the task
+ * @param {string|null} organizationId - Organization ID (can be null)
+ * @returns {Promise<{success: boolean, error: string, data: Object}>}
+ */
+export const addToMasterLibrary = async (taskId, userId, organizationId = null) => {
+  try {
+    console.log('Adding task to master library:', { taskId, userId, organizationId });
+    
+    // First, verify the task exists and is a template
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .eq('origin', 'template')
+      .single();
+    
+    if (taskError) {
+      console.error('Error fetching task:', taskError);
+      return { success: false, error: 'Task not found or not a template', data: null };
+    }
+    
+    if (!task) {
+      return { success: false, error: 'Task not found or not a template', data: null };
+    }
+    
+    // Check if already in master library
+    const { data: existing, error: existingError } = await supabase
+      .from('master_library_tasks')
+      .select('id')
+      .eq('task_id', taskId)
+      .eq('white_label_id', organizationId)
+      .single();
+    
+    if (existing) {
+      return { success: false, error: 'Task already exists in master library', data: null };
+    }
+    
+    // Add to master library
+    const libraryData = {
+      task_id: taskId,
+      added_by: userId,
+      white_label_id: organizationId,
+      added_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('master_library_tasks')
+      .insert([libraryData])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error adding to master library:', error);
+      return { success: false, error: error.message, data: null };
+    }
+    
+    console.log('Task added to master library successfully:', data);
+    return { success: true, data, error: null };
+  } catch (err) {
+    console.error('Error in addToMasterLibrary:', err);
+    return { success: false, error: err.message, data: null };
+  }
+};
+
+/**
+ * Remove a task from the master library
+ * @param {string} taskId - Task ID to remove from master library
+ * @param {string} userId - User ID who is removing the task
+ * @param {string|null} organizationId - Organization ID (can be null)
+ * @returns {Promise<{success: boolean, error: string, data: Object}>}
+ */
+export const removeFromMasterLibrary = async (taskId, userId, organizationId = null) => {
+  try {
+    console.log('Removing task from master library:', { taskId, userId, organizationId });
+    
+    // Check if the entry exists
+    const { data: existing, error: existingError } = await supabase
+      .from('master_library_tasks')
+      .select('*')
+      .eq('task_id', taskId)
+      .eq('white_label_id', organizationId)
+      .single();
+    
+    if (existingError && existingError.code !== 'PGRST116') {
+      console.error('Error checking existing entry:', existingError);
+      return { success: false, error: existingError.message, data: null };
+    }
+    
+    if (!existing) {
+      return { success: false, error: 'Task not found in master library', data: null };
+    }
+    
+    // Remove from master library
+    const { data, error } = await supabase
+      .from('master_library_library tasks')
+      .delete()
+      .eq('task_id', taskId)
+      .eq('white_label_id', organizationId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error removing from master library:', error);
+      return { success: false, error: error.message, data: null };
+    }
+    
+    console.log('Task removed from master library successfully:', data);
+    return { success: true, data, error: null };
+  } catch (err) {
+    console.error('Error in removeFromMasterLibrary:', err);
+    return { success: false, error: err.message, data: null };
+  }
+};
+
+/**
+ * Check if a task is in the master library
+ * @param {string} taskId - Task ID to check
+ * @param {string|null} organizationId - Organization ID (can be null)
+ * @returns {Promise<{isInLibrary: boolean, error: string, data: Object}>}
+ */
+export const checkIfInMasterLibrary = async (taskId, organizationId = null) => {
+  try {
+    console.log('Checking if task is in master library:', { taskId, organizationId });
+    
+    const { data, error } = await supabase
+      .from('master_library_tasks')
+      .select('*')
+      .eq('task_id', taskId)
+      .eq('whitelabel_id', organizationId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error checking master library:', error);
+      return { isInLibrary: false, error: error.message, data: null };
+    }
+    
+    const isInLibrary = !!data;
+    console.log('Task in master library:', isInLibrary);
+    return { isInLibrary, data, error: null };
+  } catch (err) {
+    console.error('Error in checkIfInMasterLibrary:', err);
+    return { isInLibrary: false, error: err.message, data: null };
+  }
+};
+
+/**
+ * Get all tasks from the master library
+ * @param {string|null} organizationId - Organization ID (can be null)
+ * @param {Object} options - Additional options
+ * @param {boolean} options.includeTaskDetails - Whether to include full task details
+ * @returns {Promise<{data: Array, error: string}>}
+ */
+export const getMasterLibraryTasks = async (organizationId = null, options = {}) => {
+  try {
+    console.log('Fetching master library tasks:', { organizationId, options });
+    
+    const { includeTaskDetails = true } = options;
+    
+    let query = supabase
+      .from('master_library_tasks')
+      .select(includeTaskDetails ? 
+        `
+          *,
+          task:tasks(*)
+        ` : 
+        '*'
+      )
+      .eq('white_label_id', organizationId)
+      .order('added_at', { ascending: false });
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching master library tasks:', error);
+      return { data: null, error: error.message };
+    }
+    
+    console.log(`Fetched ${data?.length || 0} master library tasks`);
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Error in getMasterLibraryTasks:', err);
+    return { data: null, error: err.message };
+  }
+};
 
 
 export default {
@@ -748,5 +935,10 @@ export default {
   getTaskWithPermissions,
   findRootProject,
   batchUpdateTasks,
-  getTaskStatistics
+  getTaskStatistics,
+  // Master Library functions
+  addToMasterLibrary,
+  removeFromMasterLibrary,
+  checkIfInMasterLibrary,
+  getMasterLibraryTasks,
 };
