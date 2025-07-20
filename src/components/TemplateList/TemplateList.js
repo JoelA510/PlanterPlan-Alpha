@@ -1,9 +1,11 @@
-// src/components/TemplateList/TemplateList.js - FIXED VERSION
+// Enhanced integration for TemplateList.js to support master library for both top-level and child tasks
+
 import React, { useState, useEffect, useRef } from 'react';
 import TemplateItem from './TemplateItem';
 import TemplateTaskForm from '../TaskForm/TemplateTaskForm';
 import CreateNewTemplateForm from '../TaskForm/CreateNewTemplateForm';
 import TemplateDetailsPanel from './TemplateDetailsPanel';
+import MasterLibrarySearchBar from '../MasterLibrary/MasterLibrarySearchBar'; // ✅ IMPORT
 import { useTasks } from '../contexts/TaskContext';
 import { getBackgroundColor, getTaskLevel } from '../../utils/taskUtils';
 import '../TaskList/TaskList.css';
@@ -33,7 +35,11 @@ const TemplateList = () => {
   const [isCreatingNewTemplate, setIsCreatingNewTemplate] = useState(false);
   const [addingChildToTemplateId, setAddingChildToTemplateId] = useState(null);
   
-  // ✅ FIXED: Simple drag state without complex drag and drop library
+  // ✅ NEW: State for handling template creation from master library
+  const [creatingFromMasterLibrary, setCreatingFromMasterLibrary] = useState(null);
+  const [creatingChildFromMasterLibrary, setCreatingChildFromMasterLibrary] = useState(null);
+  
+  // ✅ ENHANCED: Drag and drop state
   const [draggedTask, setDraggedTask] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
   const [dropPosition, setDropPosition] = useState(null);
@@ -54,20 +60,75 @@ const TemplateList = () => {
     }
   };
 
-  // Template helper functions
+  // ✅ ENHANCED: Template helper functions
   const handleCreateNewTemplate = () => {
     setAddingChildToTemplateId(null);
+    setCreatingFromMasterLibrary(null);
+    setCreatingChildFromMasterLibrary(null);
     setIsCreatingNewTemplate(true);
   };
 
   const handleAddTemplateTask = (parentId) => {
     setIsCreatingNewTemplate(false);
+    setCreatingFromMasterLibrary(null);
+    setCreatingChildFromMasterLibrary(null);
     setAddingChildToTemplateId(parentId);
   };
 
   const cancelTemplateCreation = () => {
     setIsCreatingNewTemplate(false);
     setAddingChildToTemplateId(null);
+    setCreatingFromMasterLibrary(null);
+    setCreatingChildFromMasterLibrary(null);
+  };
+
+  // ✅ NEW: Handle creating a top-level template from master library
+  const handleCreateFromMasterLibrary = (masterTemplate) => {
+    console.log('Creating top-level template from master library:', masterTemplate);
+    
+    // Pre-populate the form with master library template data
+    const templateData = {
+      title: `${masterTemplate.title} (Copy)`, // Add "(Copy)" to distinguish
+      description: masterTemplate.description || '',
+      purpose: masterTemplate.purpose || '',
+      actions: Array.isArray(masterTemplate.actions) ? [...masterTemplate.actions] : [],
+      resources: Array.isArray(masterTemplate.resources) ? [...masterTemplate.resources] : [],
+      default_duration: masterTemplate.default_duration || masterTemplate.duration_days || 1,
+    };
+    
+    setCreatingFromMasterLibrary(templateData);
+    setIsCreatingNewTemplate(false);
+    setAddingChildToTemplateId(null);
+    setCreatingChildFromMasterLibrary(null);
+  };
+
+  // ✅ NEW: Handle creating a child task from master library
+  const handleCreateChildFromMasterLibrary = (masterTemplate, parentId) => {
+    console.log('Creating child task from master library:', masterTemplate, 'for parent:', parentId);
+    
+    // Pre-populate the form with master library template data
+    const templateData = {
+      title: masterTemplate.title, // Don't add "(Copy)" for child tasks
+      description: masterTemplate.description || '',
+      purpose: masterTemplate.purpose || '',
+      actions: Array.isArray(masterTemplate.actions) ? [...masterTemplate.actions] : [],
+      resources: Array.isArray(masterTemplate.resources) ? [...masterTemplate.resources] : [],
+      default_duration: masterTemplate.default_duration || masterTemplate.duration_days || 1,
+    };
+    
+    setCreatingChildFromMasterLibrary({
+      templateData,
+      parentId
+    });
+    setIsCreatingNewTemplate(false);
+    setAddingChildToTemplateId(null);
+    setCreatingFromMasterLibrary(null);
+  };
+
+  // ✅ NEW: Handle master library search result selection (view details)
+  const handleMasterLibraryResultSelect = (template) => {
+    console.log('Selected master library template for viewing:', template);
+    // Could show details in a modal or panel here
   };
 
   // Toggle task expansion
@@ -93,7 +154,7 @@ const TemplateList = () => {
   // Get the selected task object
   const selectedTask = tasks.find(task => task.id === selectedTaskId);
   
-  // ✅ FIXED: Simple drag and drop handlers for templates
+  // ✅ ENHANCED: Simple drag and drop handlers for templates
   const simpleDragAndDrop = {
     draggedTask,
     dropTarget,
@@ -117,9 +178,8 @@ const TemplateList = () => {
         return;
       }
       
-      // Simple hover detection for templates
       setDropTarget(targetTask);
-      setDropPosition('into'); // Templates typically nest into each other
+      setDropPosition('into');
     },
     
     handleDragLeave: (e) => {
@@ -144,28 +204,21 @@ const TemplateList = () => {
       console.log('Template dropped:', draggedTask.title, 'onto:', targetTask.title);
       
       try {
-        // For templates, we'll implement a simple move operation
-        // This would update the parent_task_id of the dragged template
-        
-        // Calculate new position
         const existingChildren = tasks.filter(t => t.parent_task_id === targetTask.id);
         const newPosition = existingChildren.length;
         
-        // Update the template's parent
         const updatedTask = {
           ...draggedTask,
           parent_task_id: targetTask.id,
           position: newPosition
         };
         
-        // Update local state optimistically
         setTasks(prevTasks => 
           prevTasks.map(task => 
             task.id === draggedTask.id ? updatedTask : task
           )
         );
         
-        // Update in database
         await updateTask(draggedTask.id, {
           parent_task_id: targetTask.id,
           position: newPosition
@@ -175,7 +228,6 @@ const TemplateList = () => {
         
       } catch (error) {
         console.error('Error moving template:', error);
-        // Refresh on error to revert optimistic update
         await fetchTasks(true);
       } finally {
         setDraggedTask(null);
@@ -185,7 +237,7 @@ const TemplateList = () => {
     }
   };
   
-  // Handler for creating a new top-level template
+  // ✅ ENHANCED: Handler for creating a new top-level template
   const handleNewTemplateSubmit = async (templateData) => {
     try {
       const result = await createTask({
@@ -198,9 +250,7 @@ const TemplateList = () => {
         throw new Error(result.error);
       }
       
-      // Reset state
       setIsCreatingNewTemplate(false);
-      
       return result;
     } catch (err) {
       console.error('Error creating new template:', err);
@@ -209,22 +259,45 @@ const TemplateList = () => {
     }
   };
 
-  // Handler for adding a template task (child) to an existing template
-  const handleTemplateTaskSubmit = async (templateData) => {
+  // ✅ NEW: Handler for creating template from master library
+  const handleMasterLibraryTemplateSubmit = async (templateData) => {
     try {
       const result = await createTask({
         ...templateData,
         origin: 'template',
-        parent_task_id: addingChildToTemplateId
+        parent_task_id: null
       });
       
       if (result.error) {
         throw new Error(result.error);
       }
       
-      // Reset state
-      setAddingChildToTemplateId(null);
+      setCreatingFromMasterLibrary(null);
+      return result;
+    } catch (err) {
+      console.error('Error creating template from master library:', err);
+      alert(`Failed to create template: ${err.message}`);
+      return { error: err.message };
+    }
+  };
+
+  // ✅ ENHANCED: Handler for adding a template task (child) to an existing template
+  const handleTemplateTaskSubmit = async (templateData) => {
+    try {
+      const parentId = addingChildToTemplateId || creatingChildFromMasterLibrary?.parentId;
       
+      const result = await createTask({
+        ...templateData,
+        origin: 'template',
+        parent_task_id: parentId
+      });
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      setAddingChildToTemplateId(null);
+      setCreatingChildFromMasterLibrary(null);
       return result;
     } catch (err) {
       console.error('Error adding template task:', err);
@@ -244,10 +317,7 @@ const TemplateList = () => {
         throw new Error(result.error || 'Failed to update template');
       }
       
-      // Show success message
       alert('Template updated successfully');
-      
-      // Refresh tasks to ensure we have the latest data
       await fetchTasks(true);
       
     } catch (err) {
@@ -258,40 +328,32 @@ const TemplateList = () => {
   
   // Handle delete template
   const handleDeleteTemplate = async (templateId) => {
-    // Find the template to check if it has children
     const templateToDelete = tasks.find(t => t.id === templateId);
     if (!templateToDelete) return;
     
     const hasChildren = tasks.some(t => t.parent_task_id === templateId);
     
-    // Prepare confirmation message
     let confirmMessage = 'Are you sure you want to delete this template?';
     if (hasChildren) {
       confirmMessage = 'This template has child templates that will also be deleted. Are you sure you want to continue?';
     }
     confirmMessage += ' This action cannot be undone.';
     
-    // Ask for confirmation
     if (!window.confirm(confirmMessage)) {
       return;
     }
     
     try {
-      // Clear the selection if this template is selected
       if (selectedTaskId === templateId) {
         setSelectedTaskId(null);
       }
       
-      // Use the deleteTask function from the task context with error handling
-      const result = await deleteTask(templateId, true); // true to delete children
+      const result = await deleteTask(templateId, true);
       
       if (!result.success) {
-        // Handle specific known error cases
         if (result.error && result.error.includes("Invalid time value")) {
           console.warn("Date calculation issue detected during deletion, continuing with UI update");
           
-          // Even if we had date calculation issues, we can still update the UI optimistically
-          // Get all child templates to be removed from UI
           const childTemplateIds = [];
           const findAllChildren = (parentId) => {
             const children = tasks.filter(t => t.parent_task_id === parentId).map(t => t.id);
@@ -301,16 +363,13 @@ const TemplateList = () => {
           
           findAllChildren(templateId);
           
-          // Update tasks state to remove deleted templates
           const allIdsToRemove = [templateId, ...childTemplateIds];
           setTasks(prevTasks => prevTasks.filter(t => !allIdsToRemove.includes(t.id)));
           
-          // Show success message
           alert(hasChildren 
             ? `Template and ${childTemplateIds.length} child template${childTemplateIds.length !== 1 ? 's' : ''} deleted successfully` 
             : 'Template deleted successfully');
             
-          // Refresh tasks after deletion
           await fetchTasks(true);
           return;
         }
@@ -318,7 +377,6 @@ const TemplateList = () => {
         throw new Error(result.error);
       }
       
-      // Show success message
       const deletedCount = result.deletedIds ? result.deletedIds.length : 1;
       const childCount = deletedCount - 1;
       
@@ -326,18 +384,15 @@ const TemplateList = () => {
         ? `Template and ${childCount} child template${childCount !== 1 ? 's' : ''} deleted successfully` 
         : 'Template deleted successfully');
         
-      // Refresh tasks after deletion
       await fetchTasks(true);
     } catch (err) {
       console.error('Error deleting template:', err);
       
-      // Special handling for known error types
       if (err.message && (
         err.message.includes("Invalid time value") || 
         err.message.includes("Invalid date")
       )) {
         alert("There was an issue with template dates during deletion, but the template has been removed.");
-        // Force refresh to ensure UI is consistent
         await fetchTasks(true);
       } else {
         alert(`Failed to delete template: ${err.message}`);
@@ -365,9 +420,7 @@ const TemplateList = () => {
     
     const taskElements = [];
     
-    // Render each template with spacing between them
     topLevelTasks.forEach((task, index) => {
-      // Add the template using TemplateItem component
       taskElements.push(
         <TemplateItem 
           key={task.id}
@@ -383,7 +436,6 @@ const TemplateList = () => {
         />
       );
       
-      // Add a spacing div after each template (except the last one)
       if (index < topLevelTasks.length - 1) {
         taskElements.push(
           <div 
@@ -400,8 +452,41 @@ const TemplateList = () => {
     return taskElements;
   };
   
-  // Render the right panel content (task details or task form)
+  // ✅ ENHANCED: Render the right panel content with all master library scenarios
   const renderRightPanel = () => {
+    // ✅ NEW: Check if we're creating top-level template from master library
+    if (creatingFromMasterLibrary) {
+      return (
+        <CreateNewTemplateForm
+          onSubmit={handleMasterLibraryTemplateSubmit}
+          onCancel={cancelTemplateCreation}
+          backgroundColor="#3b82f6"
+          initialData={creatingFromMasterLibrary}
+          title="Create Template from Master Library"
+        />
+      );
+    }
+
+    // ✅ NEW: Check if we're creating child task from master library
+    if (creatingChildFromMasterLibrary) {
+      const parentTask = tasks.find(t => t.id === creatingChildFromMasterLibrary.parentId);
+      if (!parentTask) return null;
+      
+      const level = getTaskLevel(parentTask, tasks);
+      const backgroundColor = getBackgroundColor(level);
+      
+      return (
+        <TemplateTaskForm
+          parentTaskId={creatingChildFromMasterLibrary.parentId}
+          onSubmit={handleTemplateTaskSubmit}
+          onCancel={cancelTemplateCreation}
+          backgroundColor={backgroundColor}
+          tasks={tasks}
+          initialData={creatingChildFromMasterLibrary.templateData}
+        />
+      );
+    }
+
     // For when we're adding a top-level template
     if (isCreatingNewTemplate) {
       return (
@@ -519,6 +604,30 @@ const TemplateList = () => {
               {loading || isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
+        </div>
+
+        {/* ✅ NEW: Master Library Search Bar for Top-Level Templates */}
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={{ 
+            fontSize: '14px', 
+            fontWeight: '600', 
+            color: '#374151', 
+            marginBottom: '8px' 
+          }}>
+            Search Master Library
+          </h3>
+          <MasterLibrarySearchBar
+            onResultSelect={handleMasterLibraryResultSelect}
+            onCreateFromTemplate={handleCreateFromMasterLibrary}
+          />
+          <p style={{
+            fontSize: '12px',
+            color: '#6b7280',
+            margin: '8px 0 0 0',
+            fontStyle: 'italic'
+          }}>
+            Search for templates in the master library
+          </p>
         </div>
 
         {initialLoading ? (

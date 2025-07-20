@@ -15,13 +15,53 @@ const TemplateDetailsPanel = ({
   const [isEditing, setIsEditing] = useState(false);
   const [hasChildren, setHasChildren] = useState(false);
   
-  // ✅ NEW: Master Library Integration
+  // ✅ ENHANCED: Master Library Integration with real-time status
   const masterLibrary = useMasterLibrary();
   
-  // Get library status with optimistic updates
-  const isInLibrary = masterLibrary.isTaskInLibrary(task.id) || false;
+  // Get library status with optimistic updates and real-time checking
+  const [isInLibrary, setIsInLibrary] = useState(false);
+  const [isCheckingLibraryStatus, setIsCheckingLibraryStatus] = useState(true);
   const isLibraryLoading = masterLibrary.isTaskLoading(task.id);
   const libraryError = masterLibrary.getTaskError(task.id);
+
+  // ✅ NEW: Check library status when task changes
+  useEffect(() => {
+    const checkLibraryStatus = async () => {
+      if (!task?.id) return;
+      
+      setIsCheckingLibraryStatus(true);
+      
+      try {
+        // First check cache
+        const cachedStatus = masterLibrary.isTaskInLibrary(task.id);
+        if (cachedStatus !== null) {
+          setIsInLibrary(cachedStatus);
+          setIsCheckingLibraryStatus(false);
+          return;
+        }
+        
+        // If not in cache, do API check
+        const result = await masterLibrary.checkTaskLibraryStatus(task.id);
+        if (!result.error) {
+          setIsInLibrary(result.isInLibrary);
+        }
+      } catch (error) {
+        console.error('Error checking library status:', error);
+      } finally {
+        setIsCheckingLibraryStatus(false);
+      }
+    };
+    
+    checkLibraryStatus();
+  }, [task?.id, masterLibrary]);
+
+  // ✅ NEW: Update status when master library state changes
+  useEffect(() => {
+    const currentStatus = masterLibrary.isTaskInLibrary(task.id);
+    if (currentStatus !== null && currentStatus !== isInLibrary) {
+      setIsInLibrary(currentStatus);
+    }
+  }, [masterLibrary.libraryTasks, task.id, isInLibrary, masterLibrary]);
   
   // Check if this task has children
   useEffect(() => {
@@ -167,20 +207,6 @@ const TemplateDetailsPanel = ({
             }}>
               {task.title}
             </h3>
-            
-            {/* ✅ NEW: Master Library Status Indicator */}
-            {isInLibrary && (
-              <span style={{
-                marginLeft: '12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}>
-                📚 In Library
-              </span>
-            )}
           </div>
           
           <button 
@@ -219,96 +245,87 @@ const TemplateDetailsPanel = ({
           Template
         </div>
 
-        {/* ✅ NEW: Master Library Section */}
+        {/* ✅ SIMPLIFIED: Clean Master Library Section */}
         <div className="master-library-section" style={{
-          backgroundColor: '#f0f9ff',
-          border: '1px solid #e0f2fe',
-          borderRadius: '8px',
+          backgroundColor: '#fafafa',
+          border: '1px solid #e5e7eb',
+          borderRadius: '6px',
           padding: '16px',
           marginBottom: '16px'
         }}>
-          <h4 style={{ 
-            margin: '0 0 12px 0', 
-            fontSize: '16px', 
-            fontWeight: 'bold',
-            color: '#0369a1'
-          }}>
-            Master Library
-          </h4>
-          
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            justifyContent: 'space-between',
-            marginBottom: libraryError ? '12px' : '0'
+            justifyContent: 'space-between'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ 
-                fontSize: '14px',
-                color: '#374151',
-                marginRight: '8px'
-              }}>
-                {isInLibrary ? '✅ Available in Master Library' : '➕ Add to Master Library'}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: isCheckingLibraryStatus ? '#94a3b8' : isInLibrary ? '#10b981' : '#cbd5e1'
+              }} />
               
-              {isLibraryLoading && (
-                <span style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  fontStyle: 'italic'
+              <div>
+                <div style={{ 
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '2px'
                 }}>
-                  (Processing...)
-                </span>
-              )}
+                  Master Library
+                </div>
+                <div style={{ 
+                  fontSize: '12px',
+                  color: '#6b7280'
+                }}>
+                  {isCheckingLibraryStatus 
+                    ? 'Checking status...'
+                    : isInLibrary 
+                      ? 'Available for reuse'
+                      : 'Not shared'
+                  }
+                </div>
+              </div>
             </div>
             
-            <button
-              onClick={handleToggleMasterLibrary}
-              disabled={isLibraryLoading}
-              style={{
-                backgroundColor: isInLibrary ? '#ef4444' : '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '8px 16px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                cursor: isLibraryLoading ? 'not-allowed' : 'pointer',
-                opacity: isLibraryLoading ? 0.7 : 1,
-                transition: 'all 0.2s ease',
-                minWidth: '140px'
-              }}
-              title={isInLibrary ? 'Remove this template from the master library' : 'Add this template to the master library for reuse'}
-            >
-              {isLibraryLoading ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ 
-                    marginRight: '6px',
-                    animation: 'spin 1s linear infinite',
-                    display: 'inline-block'
-                  }}>⟳</span>
-                  Processing...
-                </span>
-              ) : (
-                isInLibrary ? 'Remove from Library' : 'Add to Library'
-              )}
-            </button>
+            {!isCheckingLibraryStatus && (
+              <button
+                onClick={handleToggleMasterLibrary}
+                disabled={isLibraryLoading}
+                style={{
+                  backgroundColor: isInLibrary ? '#f3f4f6' : '#374151',
+                  color: isInLibrary ? '#374151' : 'white',
+                  border: isInLibrary ? '1px solid #d1d5db' : 'none',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  cursor: isLibraryLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLibraryLoading ? 0.6 : 1,
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {isLibraryLoading ? 'Processing...' : isInLibrary ? 'Remove' : 'Add to Library'}
+              </button>
+            )}
           </div>
           
-          {/* ✅ NEW: Error Display */}
+          {/* ✅ ERROR: Show errors if any */}
           {libraryError && (
             <div style={{
-              backgroundColor: '#fee2e2',
-              border: '1px solid #fecaca',
-              color: '#991b1b',
+              marginTop: '12px',
               padding: '8px 12px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
               borderRadius: '4px',
-              fontSize: '14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <span>❌ {libraryError}</span>
+              <span style={{ fontSize: '12px', color: '#991b1b' }}>
+                {libraryError}
+              </span>
               <button
                 onClick={() => masterLibrary.clearTaskError(task.id)}
                 style={{
@@ -317,26 +334,13 @@ const TemplateDetailsPanel = ({
                   color: '#991b1b',
                   cursor: 'pointer',
                   padding: '0 4px',
-                  fontSize: '16px'
+                  fontSize: '14px'
                 }}
               >
                 ×
               </button>
             </div>
           )}
-          
-          {/* ✅ NEW: Helper Text */}
-          <p style={{
-            fontSize: '12px',
-            color: '#6b7280',
-            margin: '8px 0 0 0',
-            fontStyle: 'italic'
-          }}>
-            {isInLibrary 
-              ? 'This template can be reused across projects from the master library.'
-              : 'Add this template to make it available for reuse in future projects.'
-            }
-          </p>
         </div>
         
         {/* Enhanced schedule information section */}

@@ -808,9 +808,9 @@ export const removeFromMasterLibrary = async (taskId, userId, organizationId = n
   try {
     console.log('Removing task from master library:', { taskId, userId, organizationId });
     
-    // Check if the entry exists
+    // Check if the entry exists first
     const { data: existing, error: existingError } = await supabase
-      .from('master_library_tasks')
+      .from('master_library_tasks')  // ✅ FIXED: Ensure correct table name
       .select('*')
       .eq('task_id', taskId)
       .eq('white_label_id', organizationId)
@@ -822,15 +822,17 @@ export const removeFromMasterLibrary = async (taskId, userId, organizationId = n
     }
     
     if (!existing) {
+      console.warn('Task not found in master library:', taskId);
       return { success: false, error: 'Task not found in master library', data: null };
     }
     
-    // Remove from master library
+    console.log('Found existing entry:', existing);
+    
+    // Remove from master library using the ID of the master_library_tasks entry
     const { data, error } = await supabase
-      .from('master_library_library tasks')
+      .from('master_library_tasks')  // ✅ FIXED: Ensure correct table name
       .delete()
-      .eq('task_id', taskId)
-      .eq('white_label_id', organizationId)
+      .eq('id', existing.id)  // ✅ FIXED: Use the master library entry ID, not task_id
       .select()
       .single();
     
@@ -918,6 +920,144 @@ export const getMasterLibraryTasks = async (organizationId = null, options = {})
   }
 };
 
+/**
+ * Search master library tasks by title and other fields
+ * @param {string} searchTerm - Search term for task titles, descriptions, etc.
+ * @param {string|null} organizationId - Organization ID (can be null)
+ * @param {Object} options - Search options
+ * @param {number} options.limit - Maximum number of results (default: 50)
+ * @param {number} options.offset - Offset for pagination (default: 0)
+ * @param {boolean} options.includeTaskDetails - Whether to include full task details (default: true)
+ * @returns {Promise<{data: Array, error: string, totalCount: number}>}
+ */
+export const searchMasterLibraryTasks = async (searchTerm, organizationId = null, options = {}) => {
+  try {
+    console.log('Searching master library tasks:', { searchTerm, organizationId, options });
+    
+    const { 
+      limit = 50, 
+      offset = 0, 
+      includeTaskDetails = true 
+    } = options;
+    
+    // If no search term, return empty results
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      return { data: [], error: null, totalCount: 0 };
+    }
+    
+    const trimmedSearch = searchTerm.trim();
+    
+    // Try to use the master_library_view first, fall back to manual join
+    let query;
+    let useView = true;
+    
+    try {
+      // First attempt: Use the view if it exists
+      query = supabase
+        .from('master_library_view')
+        .select('*', { count: 'exact' });
+    } catch (viewError) {
+      console.log('View not available, using manual join');
+      useView = false;
+      
+      // Fallback: Manual join of master_library_tasks with tasks
+      query = supabase
+        .from('master_library_tasks')
+        .select(includeTaskDetails ? 
+          `
+            *,
+            task:tasks(*)
+          ` : 
+          '*',
+          { count: 'exact' }
+        );
+    }
+    
+    // Apply organization filter
+    if (organizationId) {
+      query = query.eq('white_label_id', organizationId);
+    } else {
+      query = query.is('white_label_id', null);
+    }
+    
+    // Apply search filters based on whether we're using view or manual join
+    if (useView) {
+      // If using view, search directly on title and description columns
+      query = query.or(`title.ilike.%${trimmedSearch}%,description.ilike.%${trimmedSearch}%,purpose.ilike.%${trimmedSearch}%`);
+    } else {
+      // If using manual join, we need to filter on the related task
+      // Note: This is more complex and may require adjusting based on your exact schema
+      query = query.or(`task.title.ilike.%${trimmedSearch}%,task.description.ilike.%${trimmedSearch}%,task.purpose.ilike.%${trimmedSearch}%`);
+    }
+    
+    // Apply pagination
+    query = query
+      .range(offset, offset + limit - 1)
+      .order('added_at', { ascending: false });
+    
+    const { data, error, count } = await query;
+    
+    if (error) {
+      // If view query failed, try the fallback approach
+      if (useView && error.message?.includes('master_library_view')) {
+        console.log('View query failed, retrying with manual join...');
+        
+        let fallbackQuery = supabase
+          .from('master_library_tasks')
+          .select(includeTaskDetails ? 
+            `
+              *,
+              task:tasks!inner(*)
+            ` : 
+            '*',
+            { count: 'exact' }
+          );
+        
+        // Apply organization filter
+        if (organizationId) {
+          fallbackQuery = fallbackQuery.eq('white_label_id', organizationId);
+        } else {
+          fallbackQuery = fallbackQuery.is('white_label_id', null);
+        }
+        
+        // Search in the joined task fields
+        fallbackQuery = fallbackQuery.or(`task.title.ilike.%${trimmedSearch}%,task.description.ilike.%${trimmedSearch}%,task.purpose.ilike.%${trimmedSearch}%`);
+        
+        // Apply pagination
+        fallbackQuery = fallbackQuery
+          .range(offset, offset + limit - 1)
+          .order('added_at', { ascending: false });
+        
+        const fallbackResult = await fallbackQuery;
+        
+        if (fallbackResult.error) {
+          console.error('Error in fallback search query:', fallbackResult.error);
+          return { data: null, error: fallbackResult.error.message, totalCount: 0 };
+        }
+        
+        console.log(`✅ Fallback search completed: ${fallbackResult.data?.length || 0} results found`);
+        return { 
+          data: fallbackResult.data || [], 
+          error: null, 
+          totalCount: fallbackResult.count || 0 
+        };
+      }
+      
+      console.error('Error searching master library tasks:', error);
+      return { data: null, error: error.message, totalCount: 0 };
+    }
+    
+    console.log(`✅ Search completed: ${data?.length || 0} results found (total: ${count || 0})`);
+    return { 
+      data: data || [], 
+      error: null, 
+      totalCount: count || 0 
+    };
+  } catch (err) {
+    console.error('Error in searchMasterLibraryTasks:', err);
+    return { data: null, error: err.message, totalCount: 0 };
+  }
+};
 
 export default {
   fetchAllTasks,
@@ -941,4 +1081,5 @@ export default {
   removeFromMasterLibrary,
   checkIfInMasterLibrary,
   getMasterLibraryTasks,
+  searchMasterLibraryTasks,
 };
