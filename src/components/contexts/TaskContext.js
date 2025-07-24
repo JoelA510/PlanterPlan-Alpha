@@ -1,4 +1,4 @@
-// src/components/contexts/TaskContext.js - Enhanced version
+// src/components/contexts/TaskContext.js - FIXED VERSION
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationProvider';
@@ -30,6 +30,26 @@ export const TaskProvider = ({ children }) => {
   const { user, loading: userLoading } = useAuth();
   const { organizationId, loading: orgLoading } = useOrganization();
   
+  // 🔧 FIX: Add render tracking to detect loops
+  const renderCount = useRef(0);
+  const lastRenderTime = useRef(Date.now());
+  
+  useEffect(() => {
+    renderCount.current++;
+    const now = Date.now();
+    const timeSinceLastRender = now - lastRenderTime.current;
+    
+    if (renderCount.current > 50 && timeSinceLastRender < 5000) {
+      console.error('🚨 INFINITE LOOP DETECTED in TaskContext', {
+        renderCount: renderCount.current,
+        timeDelta: timeSinceLastRender
+      });
+      debugger;
+    }
+    
+    lastRenderTime.current = now;
+  });
+  
   // Core state - just the tasks array and fetching state
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,21 +63,21 @@ export const TaskProvider = ({ children }) => {
   const [memberProjectsLoading, setMemberProjectsLoading] = useState(false);
   const [memberProjectsError, setMemberProjectsError] = useState(null);
 
-  // Helper function to get project start date
+  // 🔧 FIX: Stabilize project start date calculation
   const getProjectStartDate = useCallback(() => {
     const rootTasks = tasks.filter(t => !t.parent_task_id);
     const projectWithStartDate = rootTasks.find(t => t.start_date);
     return projectWithStartDate?.start_date || new Date().toISOString().split('T')[0];
-  }, [tasks]);
+  }, [tasks.length]); // 🔧 Use tasks.length instead of tasks
 
-  // Derived task arrays
+  // 🔧 FIX: Stabilize derived task arrays
   const instanceTasks = useMemo(() => 
-    tasks.filter(task => task.origin === "instance"), [tasks]
-  );
+    tasks.filter(task => task.origin === "instance"), [tasks.length]
+  ); // 🔧 Use tasks.length instead of tasks
   
   const templateTasks = useMemo(() => 
-    tasks.filter(task => task.origin === "template"), [tasks]
-  );
+    tasks.filter(task => task.origin === "template"), [tasks.length]
+  ); // 🔧 Use tasks.length instead of tasks
 
   // ✅ NEW: Fetch member projects and their tasks
   const fetchMemberProjects = useCallback(async () => {
@@ -111,7 +131,7 @@ export const TaskProvider = ({ children }) => {
     }
   }, [user?.id, organizationId]);
 
-  // Fetch all tasks (owned projects)
+  // 🔧 FIX: Stabilize fetch tasks function
   const fetchTasks = useCallback(async (forceRefresh = false) => {
     if (isFetching && !forceRefresh) return { instanceTasks, templateTasks };
     if (!user?.id) return { instanceTasks, templateTasks };
@@ -136,12 +156,12 @@ export const TaskProvider = ({ children }) => {
       };
     } catch (err) {
       setError(`Failed to load tasks: ${err.message}`);
-      return { error: err.message, instanceTasks, templateTasks };
+      return { error: err.message, instanceTasks: [], templateTasks: [] };
     } finally {
       setLoading(false);
       setIsFetching(false);
     }
-  }, [organizationId, user?.id, instanceTasks, templateTasks, isFetching]);
+  }, [organizationId, user?.id, isFetching]); // 🔧 Remove instanceTasks/templateTasks from deps
 
   // ✅ NEW: Combined fetch function for both owned and member projects
   const fetchAllProjectsAndTasks = useCallback(async (forceRefresh = false) => {
@@ -155,8 +175,9 @@ export const TaskProvider = ({ children }) => {
     return ownedResult;
   }, [fetchTasks, fetchMemberProjects]);
 
-  // Initialize date management system
-  const dateHookResult = useTaskDates(tasks, getProjectStartDate());
+  // 🔧 FIX: Initialize date management system with stable dependencies
+  const projectStartDate = useMemo(() => getProjectStartDate(), [tasks.length]);
+  const dateHookResult = useTaskDates(tasks, projectStartDate);
 
   // Initialize all operation hooks with integration callbacks
   const creationHookResult = useTaskCreation();
@@ -284,58 +305,91 @@ export const TaskProvider = ({ children }) => {
       }, 100);
     }
 
-  }), []);
+  }), []); // 🔧 FIX: Empty dependencies to prevent recreation
 
-  // Integration callbacks for hooks
+  // 🔧 FIX: Stabilize integration callbacks - this is likely causing the loop
   const integrationCallbacks = useMemo(() => ({
     // For task creation
     onTaskCreated: async (newTask) => {
-      setTasks(prev => [...prev, newTask]);
+      console.log('onTaskCreated called with:', newTask.id);
+      setTasks(prev => {
+        // Prevent duplicate additions
+        if (prev.some(t => t.id === newTask.id)) {
+          console.warn('Task already exists, skipping addition:', newTask.id);
+          return prev;
+        }
+        return [...prev, newTask];
+      });
+      
+      // 🔧 FIX: Debounce date updates to prevent cascading effects
       const affectedTaskIds = [newTask.id];
       if (newTask.parent_task_id) {
-        const siblings = tasks
-          .filter(t => t.parent_task_id === newTask.parent_task_id)
-          .filter(t => (t.position || 0) >= (newTask.position || 0));
-        affectedTaskIds.push(...siblings.map(t => t.id));
-      }
-      if (dateHookResult.updateTaskDates) {
-        dateHookResult.updateTaskDates(affectedTaskIds);
+        // Calculate siblings without using current tasks state
+        setTimeout(() => {
+          setTasks(currentTasks => {
+            const siblings = currentTasks
+              .filter(t => t.parent_task_id === newTask.parent_task_id)
+              .filter(t => (t.position || 0) >= (newTask.position || 0));
+            const allAffectedIds = [newTask.id, ...siblings.map(t => t.id)];
+            
+            if (dateHookResult.updateTaskDates) {
+              dateHookResult.updateTaskDates(allAffectedIds);
+            }
+            return currentTasks; // Don't modify tasks here
+          });
+        }, 300); // Debounce
       }
     },
 
     // For template conversion
     onProjectCreated: async (rootProject, createdTasks) => {
-      setTasks(prev => [...prev, ...createdTasks]);
+      console.log('onProjectCreated called with:', rootProject.id, createdTasks.length);
+      setTasks(prev => {
+        // Prevent duplicate additions
+        const existingIds = new Set(prev.map(t => t.id));
+        const newTasks = createdTasks.filter(t => !existingIds.has(t.id));
+        return [...prev, ...newTasks];
+      });
+      
+      // 🔧 FIX: Debounce refresh to prevent rapid calls
       setTimeout(() => fetchAllProjectsAndTasks(true), 500);
     },
 
     // For task deletion
     onTasksDeleted: async (deletedIds) => {
-      console.log(`Tasks deleted successfully: ${deletedIds.length} tasks`);
+      console.log(`onTasksDeleted called with: ${deletedIds.length} tasks`);
+      // Tasks should already be removed from state by the delete operation
     },
+    
     onTasksUpdated: async (updatedTasks) => {
+      console.log('onTasksUpdated called with:', updatedTasks.length, 'tasks');
       setTasks(updatedTasks);
     },
 
     // For task updates
     onTaskUpdated: async (updatedTask) => {
+      console.log('onTaskUpdated called with:', updatedTask.id);
       setTasks(prev => prev.map(task => 
         task.id === updatedTask.id ? updatedTask : task
       ));
     },
+    
     onRefreshNeeded: async () => {
-      await fetchAllProjectsAndTasks(true);
+      console.log('onRefreshNeeded called');
+      // 🔧 FIX: Debounce refresh calls
+      setTimeout(() => fetchAllProjectsAndTasks(true), 200);
     }
-  }), [tasks, fetchAllProjectsAndTasks, dateHookResult]);
+  }), [dateHookResult.updateTaskDates, fetchAllProjectsAndTasks]); // 🔧 FIX: Minimal stable dependencies
 
   // Create enhanced hook functions with integration
   const createTask = useCallback(async (taskData, licenseId = null) => {
+    console.log('createTask called for:', taskData.title);
     return await creationHookResult.createTask(taskData, {
       licenseId,
       existingTasks: tasks,
       onTaskCreated: integrationCallbacks.onTaskCreated
     });
-  }, [creationHookResult.createTask, tasks, integrationCallbacks.onTaskCreated]);
+  }, [creationHookResult.createTask, tasks.length, integrationCallbacks.onTaskCreated]); // 🔧 Use tasks.length
 
   const createProjectFromTemplate = useCallback(async (templateId, projectData, licenseId = null) => {
     return await templateHookResult.createProjectFromTemplate(templateId, projectData, {
@@ -343,7 +397,7 @@ export const TaskProvider = ({ children }) => {
       templateTasks,
       onProjectCreated: integrationCallbacks.onProjectCreated
     });
-  }, [templateHookResult.createProjectFromTemplate, templateTasks, integrationCallbacks.onProjectCreated]);
+  }, [templateHookResult.createProjectFromTemplate, templateTasks.length, integrationCallbacks.onProjectCreated]); // 🔧 Use templateTasks.length
 
   const deleteTask = useCallback(async (taskId, deleteChildren = true) => {
     return await deletionHookResult.deleteTask(taskId, {
@@ -352,7 +406,7 @@ export const TaskProvider = ({ children }) => {
       onTasksDeleted: integrationCallbacks.onTasksDeleted,
       onTasksUpdated: integrationCallbacks.onTasksUpdated
     });
-  }, [deletionHookResult.deleteTask, tasks, integrationCallbacks.onTasksDeleted, integrationCallbacks.onTasksUpdated]);
+  }, [deletionHookResult.deleteTask, tasks.length, integrationCallbacks.onTasksDeleted, integrationCallbacks.onTasksUpdated]); // 🔧 Use tasks.length
 
   const updateTask = useCallback(async (taskId, updatedTaskData) => {
     return await updateHookResult.updateTask(taskId, updatedTaskData, {
@@ -361,14 +415,14 @@ export const TaskProvider = ({ children }) => {
       onTasksUpdated: integrationCallbacks.onTasksUpdated,
       onRefreshNeeded: integrationCallbacks.onRefreshNeeded
     });
-  }, [updateHookResult.updateTask, tasks, integrationCallbacks]);
+  }, [updateHookResult.updateTask, tasks.length, integrationCallbacks]); // 🔧 Use tasks.length
 
   const updateTaskDates = useCallback(async (taskId, dateData) => {
     return await updateHookResult.updateTaskDates(taskId, dateData, {
       existingTasks: tasks,
       onTaskUpdated: integrationCallbacks.onTaskUpdated
     });
-  }, [updateHookResult.updateTaskDates, tasks, integrationCallbacks]);
+  }, [updateHookResult.updateTaskDates, tasks.length, integrationCallbacks]); // 🔧 Use tasks.length
 
   // ✅ NEW: Simplified drag & drop integration function
   const updateTaskAfterDragDrop = useCallback(async (taskId, newParentId, newPosition, oldParentId) => {
@@ -384,7 +438,7 @@ export const TaskProvider = ({ children }) => {
   const getUserRole = useCallback((projectId) => {
     const membership = memberProjects.find(mp => mp.project.id === projectId);
     return membership?.role || null;
-  }, [memberProjects]);
+  }, [memberProjects.length]); // 🔧 Use memberProjects.length
 
   const canUserEdit = useCallback((projectId) => {
     const role = getUserRole(projectId);
@@ -396,10 +450,13 @@ export const TaskProvider = ({ children }) => {
     return role === 'owner';
   }, [getUserRole]);
 
-  // Initial fetch
+  // 🔧 FIX: Debounce initial fetch to prevent rapid calls
   useEffect(() => {
     if (!userLoading && !orgLoading && !initialFetchDoneRef.current && user?.id) {
-      fetchAllProjectsAndTasks();
+      const timer = setTimeout(() => {
+        fetchAllProjectsAndTasks();
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [user?.id, organizationId, userLoading, orgLoading, fetchAllProjectsAndTasks]);
 
@@ -458,18 +515,18 @@ export const TaskProvider = ({ children }) => {
     // Utility
     determineTaskStartDate: (task) => dateHookResult.getTaskStartDate(task.id)
   }), [
-    // Core state
-    tasks,
-    instanceTasks,
-    templateTasks,
+    // 🔧 FIX: Use stable references and lengths instead of full arrays
+    tasks.length,
+    instanceTasks.length,
+    templateTasks.length,
     loading,
     error,
     isFetching,
     fetchTasks,
 
     // ✅ NEW: Member projects state
-    memberProjects,
-    memberProjectTasks,
+    memberProjects.length,
+    memberProjectTasks.length,
     memberProjectsLoading,
     memberProjectsError,
     fetchMemberProjects,
@@ -491,7 +548,7 @@ export const TaskProvider = ({ children }) => {
     // Optimistic helpers
     optimisticUpdateHelpers,
 
-    // All hook results
+    // All hook results - these are already stable
     creationHookResult,
     templateHookResult,
     deletionHookResult,
