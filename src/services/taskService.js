@@ -849,36 +849,7 @@ export const removeFromMasterLibrary = async (taskId, userId, organizationId = n
   }
 };
 
-/**
- * Check if a task is in the master library
- * @param {string} taskId - Task ID to check
- * @param {string|null} organizationId - Organization ID (can be null)
- * @returns {Promise<{isInLibrary: boolean, error: string, data: Object}>}
- */
-export const checkIfInMasterLibrary = async (taskId, organizationId = null) => {
-  try {
-    console.log('Checking if task is in master library:', { taskId, organizationId });
-    
-    const { data, error } = await supabase
-      .from('master_library_tasks')
-      .select('*')
-      .eq('task_id', taskId)
-      .eq('whitelabel_id', organizationId)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error checking master library:', error);
-      return { isInLibrary: false, error: error.message, data: null };
-    }
-    
-    const isInLibrary = !!data;
-    console.log('Task in master library:', isInLibrary);
-    return { isInLibrary, data, error: null };
-  } catch (err) {
-    console.error('Error in checkIfInMasterLibrary:', err);
-    return { isInLibrary: false, error: err.message, data: null };
-  }
-};
+
 
 /**
  * Get all tasks from the master library
@@ -921,23 +892,21 @@ export const getMasterLibraryTasks = async (organizationId = null, options = {})
 };
 
 /**
- * Search master library tasks by title and other fields
+ * Search master library tasks using the optimized view
  * @param {string} searchTerm - Search term for task titles, descriptions, etc.
  * @param {string|null} organizationId - Organization ID (can be null)
  * @param {Object} options - Search options
  * @param {number} options.limit - Maximum number of results (default: 50)
  * @param {number} options.offset - Offset for pagination (default: 0)
- * @param {boolean} options.includeTaskDetails - Whether to include full task details (default: true)
  * @returns {Promise<{data: Array, error: string, totalCount: number}>}
  */
 export const searchMasterLibraryTasks = async (searchTerm, organizationId = null, options = {}) => {
   try {
-    console.log('Searching master library tasks:', { searchTerm, organizationId, options });
+    console.log('🔍 Searching master library with view:', { searchTerm, organizationId, options });
     
     const { 
       limit = 50, 
-      offset = 0, 
-      includeTaskDetails = true 
+      offset = 0
     } = options;
     
     // If no search term, return empty results
@@ -947,31 +916,10 @@ export const searchMasterLibraryTasks = async (searchTerm, organizationId = null
     
     const trimmedSearch = searchTerm.trim();
     
-    // Try to use the master_library_view first, fall back to manual join
-    let query;
-    let useView = true;
-    
-    try {
-      // First attempt: Use the view if it exists
-      query = supabase
-        .from('master_library_view')
-        .select('*', { count: 'exact' });
-    } catch (viewError) {
-      console.log('View not available, using manual join');
-      useView = false;
-      
-      // Fallback: Manual join of master_library_tasks with tasks
-      query = supabase
-        .from('master_library_tasks')
-        .select(includeTaskDetails ? 
-          `
-            *,
-            task:tasks(*)
-          ` : 
-          '*',
-          { count: 'exact' }
-        );
-    }
+    // ✅ Use the master_library_view directly
+    let query = supabase
+      .from('master_library_view')
+      .select('*', { count: 'exact' });
     
     // Apply organization filter
     if (organizationId) {
@@ -980,17 +928,10 @@ export const searchMasterLibraryTasks = async (searchTerm, organizationId = null
       query = query.is('white_label_id', null);
     }
     
-    // Apply search filters based on whether we're using view or manual join
-    if (useView) {
-      // If using view, search directly on title and description columns
-      query = query.or(`title.ilike.%${trimmedSearch}%,description.ilike.%${trimmedSearch}%,purpose.ilike.%${trimmedSearch}%`);
-    } else {
-      // If using manual join, we need to filter on the related task
-      // Note: This is more complex and may require adjusting based on your exact schema
-      query = query.or(`task.title.ilike.%${trimmedSearch}%,task.description.ilike.%${trimmedSearch}%,task.purpose.ilike.%${trimmedSearch}%`);
-    }
+    // Apply search filters - search across title, description, and purpose
+    query = query.or(`title.ilike.%${trimmedSearch}%,description.ilike.%${trimmedSearch}%,purpose.ilike.%${trimmedSearch}%`);
     
-    // Apply pagination
+    // Apply pagination and ordering
     query = query
       .range(offset, offset + limit - 1)
       .order('added_at', { ascending: false });
@@ -998,64 +939,47 @@ export const searchMasterLibraryTasks = async (searchTerm, organizationId = null
     const { data, error, count } = await query;
     
     if (error) {
-      // If view query failed, try the fallback approach
-      if (useView && error.message?.includes('master_library_view')) {
-        console.log('View query failed, retrying with manual join...');
-        
-        let fallbackQuery = supabase
-          .from('master_library_tasks')
-          .select(includeTaskDetails ? 
-            `
-              *,
-              task:tasks!inner(*)
-            ` : 
-            '*',
-            { count: 'exact' }
-          );
-        
-        // Apply organization filter
-        if (organizationId) {
-          fallbackQuery = fallbackQuery.eq('white_label_id', organizationId);
-        } else {
-          fallbackQuery = fallbackQuery.is('white_label_id', null);
-        }
-        
-        // Search in the joined task fields
-        fallbackQuery = fallbackQuery.or(`task.title.ilike.%${trimmedSearch}%,task.description.ilike.%${trimmedSearch}%,task.purpose.ilike.%${trimmedSearch}%`);
-        
-        // Apply pagination
-        fallbackQuery = fallbackQuery
-          .range(offset, offset + limit - 1)
-          .order('added_at', { ascending: false });
-        
-        const fallbackResult = await fallbackQuery;
-        
-        if (fallbackResult.error) {
-          console.error('Error in fallback search query:', fallbackResult.error);
-          return { data: null, error: fallbackResult.error.message, totalCount: 0 };
-        }
-        
-        console.log(`✅ Fallback search completed: ${fallbackResult.data?.length || 0} results found`);
-        return { 
-          data: fallbackResult.data || [], 
-          error: null, 
-          totalCount: fallbackResult.count || 0 
-        };
-      }
-      
-      console.error('Error searching master library tasks:', error);
+      console.error('❌ Error searching master library view:', error);
       return { data: null, error: error.message, totalCount: 0 };
     }
     
-    console.log(`✅ Search completed: ${data?.length || 0} results found (total: ${count || 0})`);
+    console.log(`✅ View search completed: ${data?.length || 0} results found (total: ${count || 0})`);
     return { 
       data: data || [], 
       error: null, 
       totalCount: count || 0 
     };
   } catch (err) {
-    console.error('Error in searchMasterLibraryTasks:', err);
+    console.error('❌ Error in searchMasterLibraryTasks:', err);
     return { data: null, error: err.message, totalCount: 0 };
+  }
+};
+
+/**
+ * Also update the checkIfInMasterLibrary function to fix the column name issue
+ */
+export const checkIfInMasterLibrary = async (taskId, organizationId = null) => {
+  try {
+    console.log('Checking if task is in master library:', { taskId, organizationId });
+    
+    const { data, error } = await supabase
+      .from('master_library_tasks')
+      .select('*')
+      .eq('task_id', taskId)
+      .eq('white_label_id', organizationId) // ✅ Fixed column name
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error checking master library:', error);
+      return { isInLibrary: false, error: error.message, data: null };
+    }
+    
+    const isInLibrary = !!data;
+    console.log('Task in master library:', isInLibrary);
+    return { isInLibrary, data, error: null };
+  } catch (err) {
+    console.error('Error in checkIfInMasterLibrary:', err);
+    return { isInLibrary: false, error: err.message, data: null };
   }
 };
 

@@ -56,6 +56,7 @@ export const useMasterLibrarySearch = () => {
    * Perform the actual search API call
    */
   const performSearchQuery = useCallback(async (term, page = 0, useCache = true) => {
+    console.log("Int performe Search query");
     const trimmedTerm = term.trim();
     
     if (!trimmedTerm) {
@@ -119,12 +120,10 @@ export const useMasterLibrarySearch = () => {
     
     // Debounce the actual search
     debounceTimeoutRef.current = setTimeout(async () => {
-      if (!isMountedRef.current) return;
-      
       try {
         const result = await performSearchQuery(trimmedTerm, page);
-        
-        if (!isMountedRef.current) return;
+        console.log(result);
+        // if (!isMountedRef.current) return;
         
         if (result.error) {
           setSearchError(result.error);
@@ -158,15 +157,11 @@ export const useMasterLibrarySearch = () => {
         setHasSearched(true);
       } catch (error) {
         console.error('Search error:', error);
-        if (isMountedRef.current) {
-          setSearchError(error.message || 'Search failed');
-          setSearchResults([]);
-          setTotalResults(0);
-        }
+        setSearchError(error.message || 'Search failed');
+        setSearchResults([]);
+        setTotalResults(0);
       } finally {
-        if (isMountedRef.current) {
-          setIsSearching(false);
-        }
+        setIsSearching(false);
       }
     }, 300); // 300ms debounce
   }, [performSearchQuery]);

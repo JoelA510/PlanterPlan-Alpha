@@ -1,5 +1,5 @@
-// src/components/TaskForm/useTaskForm.js
-import { useState, useEffect } from 'react';
+// src/components/TaskForm/useTaskForm.js - FIXED VERSION
+import { useState, useEffect, useRef } from 'react';
 import { calculateDueDate, isValidDateRange } from '../../utils/dateUtils';
 
 /**
@@ -63,6 +63,10 @@ export const useTaskForm = (initialData = {}, parentStartDate = null) => {
     ...processedInitialData
   });
   
+  // 🔧 FIX: Add ref to prevent calculation loops
+  const isCalculatingRef = useRef(false);
+  const lastCalculationRef = useRef(0);
+  
   // Add state to track when fields are manually changed to avoid calculation loops
   const [isManualUpdate, setIsManualUpdate] = useState(false);
   
@@ -89,108 +93,127 @@ export const useTaskForm = (initialData = {}, parentStartDate = null) => {
     if (needsUpdate) {
       setFormData(updatedData);
     }
-  }, []);
+  }, []); // 🔧 FIX: Remove formData from dependencies to prevent loop
   
-  // DEBUG - Log form data changes
+  // 🔧 FIX: Separate effect to reset manual update flag
   useEffect(() => {
-    console.log('Form data changed:', {
-      start_date: formData.start_date,
-      duration_days: formData.duration_days,
-      due_date: formData.due_date,
-      dateMode,
-      isManualUpdate
-    });
-  }, [formData.start_date, formData.duration_days, formData.due_date, dateMode, isManualUpdate]);
-  
-  // Date calculation logic based on selected mode
-  useEffect(() => {
-    // Skip calculations during manual updates to prevent loops
     if (isManualUpdate) {
-      // Reset the manual update flag after the effect runs
-      setIsManualUpdate(false);
+      const timer = setTimeout(() => {
+        setIsManualUpdate(false);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isManualUpdate]);
+  
+  // 🔧 FIX: Debounced date calculation logic
+  useEffect(() => {
+    // Prevent rapid successive calculations
+    const now = Date.now();
+    if (now - lastCalculationRef.current < 100) {
+      return;
+    }
+    
+    // Prevent cascading calculations
+    if (isCalculatingRef.current || isManualUpdate) {
       return;
     }
 
-    console.log('Running date calculations in mode:', dateMode);
+    const performCalculation = () => {
+      isCalculatingRef.current = true;
+      lastCalculationRef.current = Date.now();
+      
+      try {
+        if (dateMode === 'calculateEndDate') {
+          // Calculate end date from start date and duration
+          if (formData.start_date && formData.duration_days) {
+            console.log('Calculating due date from start_date and duration_days:', {
+              start_date: formData.start_date,
+              duration_days: formData.duration_days
+            });
+            
+            const dueDate = calculateDueDate(
+              formData.start_date,
+              parseInt(formData.duration_days, 10)
+            );
+            
+            if (dueDate) {
+              console.log('Calculated due date:', dueDate.toISOString());
+              
+              // In this mode, update the due date
+              setFormData(prev => ({
+                ...prev,
+                due_date: dueDate.toISOString().split('T')[0]
+              }));
+              
+              // Clear any date range errors
+              setErrors(prev => {
+                if (prev.date_range) {
+                  const newErrors = {...prev};
+                  delete newErrors.date_range;
+                  return newErrors;
+                }
+                return prev;
+              });
+            }
+          }
+        } else if (dateMode === 'calculateDuration') {
+          // Calculate duration from start date and end date
+          if (formData.start_date && formData.due_date) {
+            console.log('Calculating duration from start_date and due_date:', {
+              start_date: formData.start_date,
+              due_date: formData.due_date
+            });
+            
+            const startDate = new Date(formData.start_date);
+            const dueDate = new Date(formData.due_date);
+            const differenceInTime = dueDate.getTime() - startDate.getTime();
+            const differenceInDays = Math.ceil(differenceInTime / (1000 * 60 * 60 * 24));
+            
+            console.log('Calculated differenceInDays:', differenceInDays);
+            
+            // Only update if the dates are in the correct order
+            if (differenceInDays >= 0) {
+              setFormData(prev => ({
+                ...prev,
+                duration_days: differenceInDays
+              }));
+              
+              // Clear any date range errors
+              setErrors(prev => {
+                if (prev.date_range) {
+                  const newErrors = {...prev};
+                  delete newErrors.date_range;
+                  return newErrors;
+                }
+                return prev;
+              });
+            } else {
+              console.warn('Invalid date range: start date is after due date');
+              
+              // Set the error for invalid date range
+              setErrors(prev => ({
+                ...prev,
+                date_range: 'Start date must be before due date'
+              }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in date calculation:', error);
+      } finally {
+        // Reset calculation flag after a delay
+        setTimeout(() => {
+          isCalculatingRef.current = false;
+        }, 50);
+      }
+    };
+
+    // Debounce the calculation
+    const timer = setTimeout(performCalculation, 100);
+    return () => clearTimeout(timer);
     
-    if (dateMode === 'calculateEndDate') {
-      // Calculate end date from start date and duration
-      if (formData.start_date && formData.duration_days) {
-        console.log('Calculating due date from start_date and duration_days:', {
-          start_date: formData.start_date,
-          duration_days: formData.duration_days
-        });
-        
-        const dueDate = calculateDueDate(
-          formData.start_date,
-          parseInt(formData.duration_days, 10)
-        );
-        
-        if (dueDate) {
-          console.log('Calculated due date:', dueDate.toISOString());
-          
-          // In this mode, update the due date
-          setFormData(prev => ({
-            ...prev,
-            due_date: dueDate.toISOString().split('T')[0]
-          }));
-          
-          // Clear any date range errors
-          setErrors(prev => {
-            if (prev.date_range) {
-              const newErrors = {...prev};
-              delete newErrors.date_range;
-              return newErrors;
-            }
-            return prev;
-          });
-        } else {
-          console.warn('Failed to calculate due date');
-        }
-      }
-    } else if (dateMode === 'calculateDuration') {
-      // Calculate duration from start date and end date
-      if (formData.start_date && formData.due_date) {
-        console.log('Calculating duration from start_date and due_date:', {
-          start_date: formData.start_date,
-          due_date: formData.due_date
-        });
-        
-        const startDate = new Date(formData.start_date);
-        const dueDate = new Date(formData.due_date);
-        const differenceInTime = dueDate.getTime() - startDate.getTime();
-        const differenceInDays = Math.ceil(differenceInTime / (1000 * 60 * 60 * 24));
-        
-        console.log('Calculated differenceInDays:', differenceInDays);
-        
-        // Only update if the dates are in the correct order
-        if (differenceInDays >= 0) {
-          setFormData(prev => ({
-            ...prev,
-            duration_days: differenceInDays
-          }));
-          
-          // Clear any date range errors
-          setErrors(prev => {
-            if (prev.date_range) {
-              const newErrors = {...prev};
-              delete newErrors.date_range;
-              return newErrors;
-            }
-            return prev;
-          });
-        } else {
-          console.warn('Invalid date range: start date is after due date');
-          
-          // Set the error for invalid date range
-          setErrors(prev => ({
-            ...prev,
-            date_range: 'Start date must be before due date'
-          }));
-        }
-      }
-    }
-  }, [formData.start_date, formData.due_date, formData.duration_days, dateMode, isManualUpdate]);
+  }, [formData.start_date, formData.due_date, formData.duration_days, dateMode]); 
+  // 🔧 FIX: Removed isManualUpdate from dependencies
   
   // When parent start date and days_from_start_until change, calculate the start date
   useEffect(() => {
