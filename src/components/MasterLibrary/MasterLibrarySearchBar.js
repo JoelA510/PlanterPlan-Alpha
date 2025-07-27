@@ -1,8 +1,17 @@
 // src/components/MasterLibrary/MasterLibrarySearchBar.js
 import React, { useState, useRef, useEffect } from 'react';
 import { useMasterLibrarySearch } from '../../hooks/useMasterLibrarySearch';
+import { useTasks } from '../contexts/TaskContext';
 
-const MasterLibrarySearchBar = ({ onResultSelect, onCreateFromTemplate }) => {
+const MasterLibrarySearchBar = ({ 
+  onResultSelect, 
+  mode = 'view', // 'view' | 'copy'
+  onViewTask, // callback for viewing task details
+  onCopyTask // callback for copying task
+}) => {
+  // Access template tasks from context
+  const { templateTasks } = useTasks();
+  
   const {
     searchTerm,
     searchResults,
@@ -14,9 +23,6 @@ const MasterLibrarySearchBar = ({ onResultSelect, onCreateFromTemplate }) => {
     updateSearchTerm,
     clearSearch,
     loadMoreResults,
-    addToLibraryFromSearch,
-    isTaskInLibrary,
-    isTaskLoading,
     searchStats
   } = useMasterLibrarySearch();
 
@@ -83,20 +89,61 @@ const MasterLibrarySearchBar = ({ onResultSelect, onCreateFromTemplate }) => {
     inputRef.current?.focus();
   };
 
+  // Helper function to find actual task data from search results
+  const findActualTaskData = (searchResult) => {
+    // Extract task ID from search result - handle different possible structures
+    const taskId = searchResult.task?.id || searchResult.task_id || searchResult.id;
+    
+    if (!taskId) {
+      console.warn('No task ID found in search result:', searchResult);
+      return searchResult.task || searchResult; // Fallback to search result data
+    }
+    
+    // Ensure we have template tasks loaded
+    if (!templateTasks || templateTasks.length === 0) {
+      console.warn('Template tasks not loaded in context, using search result data');
+      return searchResult.task || searchResult;
+    }
+    
+    // Find the actual task data from template tasks in context
+    const actualTask = templateTasks.find(task => task.id === taskId);
+    
+    if (actualTask) {
+      console.log('✅ Found actual task data from context:', {
+        id: actualTask.id,
+        title: actualTask.title,
+        hasActions: actualTask.actions?.length > 0,
+        hasResources: actualTask.resources?.length > 0
+      });
+      return actualTask;
+    } else {
+      console.warn('⚠️ Task not found in template tasks context:', {
+        taskId,
+        availableTaskIds: templateTasks.map(t => t.id).slice(0, 5), // Show first 5 for debugging
+        totalTemplateTasks: templateTasks.length
+      });
+      // Fallback to search result task data if not found in context
+      return searchResult.task || searchResult;
+    }
+  };
+
   const handleResultClick = (result) => {
-    const task = result.task || result;
-    onResultSelect?.(task);
+    const actualTask = findActualTaskData(result);
+    onResultSelect?.(actualTask);
     setShowResults(false);
   };
 
-  const handleAddToLibrary = async (result) => {
-    const task = result.task || result;
-    await addToLibraryFromSearch(task);
+  // Handle view task action
+  const handleViewTask = (result) => {
+    const actualTask = findActualTaskData(result);
+    onViewTask?.(actualTask);
+    setShowResults(false);
   };
 
-  const handleCreateFromTemplate = (result) => {
-    const task = result.task || result;
-    onCreateFromTemplate?.(task);
+  // Handle copy task action
+  const handleCopyTask = (result) => {
+    const actualTask = findActualTaskData(result);
+    onCopyTask?.(actualTask);
     setShowResults(false);
   };
 
@@ -288,10 +335,10 @@ const MasterLibrarySearchBar = ({ onResultSelect, onCreateFromTemplate }) => {
           ) : (
             <>
               {searchResults.map((result, index) => {
-                const task = result.task || result;
-                const isInLibrary = isTaskInLibrary(task.id);
-                const isLoading = isTaskLoading(task.id);
-                const statusInfo = getTaskStatusInfo(task);
+                // Get both search result task data and actual task data from context
+                const searchTask = result.task || result;
+                const actualTask = findActualTaskData(result);
+                const statusInfo = getTaskStatusInfo(actualTask);
                 
                 return (
                   <div
@@ -333,10 +380,10 @@ const MasterLibrarySearchBar = ({ onResultSelect, onCreateFromTemplate }) => {
                             color: '#1f2937',
                             lineHeight: '1.3'
                           }}>
-                            {task.title || 'Untitled Template'}
+                            {actualTask.title || 'Untitled Template'}
                           </h4>
                           
-                          {task.description && (
+                          {actualTask.description && (
                             <p style={{
                               margin: '0 0 8px 0',
                               fontSize: '14px',
@@ -348,7 +395,7 @@ const MasterLibrarySearchBar = ({ onResultSelect, onCreateFromTemplate }) => {
                               WebkitLineClamp: 2,
                               WebkitBoxOrient: 'vertical'
                             }}>
-                              {task.description}
+                              {actualTask.description}
                             </p>
                           )}
                           
@@ -363,115 +410,74 @@ const MasterLibrarySearchBar = ({ onResultSelect, onCreateFromTemplate }) => {
                             <span>{statusInfo.duration}</span>
                             <span>•</span>
                             <span>{statusInfo.complexity}</span>
-                            {task.actions?.length > 0 && (
+                            {actualTask.actions?.length > 0 && (
                               <>
                                 <span>•</span>
-                                <span>{task.actions.length} action{task.actions.length !== 1 ? 's' : ''}</span>
-                              </>
-                            )}
-                            {isInLibrary && (
-                              <>
-                                <span>•</span>
-                                <span style={{ 
-                                  color: '#059669',
-                                  fontWeight: '500'
-                                }}>
-                                  ✅ In Your Library
-                                </span>
+                                <span>{actualTask.actions.length} action{actualTask.actions.length !== 1 ? 's' : ''}</span>
                               </>
                             )}
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
+                        {/* Conditional Action Buttons based on mode */}
                         <div style={{
                           display: 'flex',
                           gap: '8px',
                           flexWrap: 'wrap'
                         }}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCreateFromTemplate(result);
-                            }}
-                            style={{
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '6px 12px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                            title="Create a new template based on this one"
-                          >
-                            <span>📄</span>
-                            Create Template
-                          </button>
-
-                          {!isInLibrary && (
+                          {mode === 'view' && (
+                            // View mode: Show only View Task button
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleAddToLibrary(result);
+                                handleViewTask(result);
                               }}
-                              disabled={isLoading}
                               style={{
-                                backgroundColor: isLoading ? '#d1d5db' : '#10b981',
+                                backgroundColor: '#3b82f6',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '6px',
                                 padding: '6px 12px',
                                 fontSize: '12px',
                                 fontWeight: '500',
-                                cursor: isLoading ? 'not-allowed' : 'pointer',
+                                cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px'
                               }}
-                              title="Add this template to your library"
+                              title="View task details"
                             >
-                              {isLoading ? (
-                                <>
-                                  <span style={{ animation: 'spin 1s linear infinite' }}>⟳</span>
-                                  Adding...
-                                </>
-                              ) : (
-                                <>
-                                  <span>📚</span>
-                                  Add to Library
-                                </>
-                              )}
+                              <span>👁️</span>
+                              View Task
                             </button>
                           )}
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleResultClick(result);
-                            }}
-                            style={{
-                              backgroundColor: 'transparent',
-                              color: '#6b7280',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              padding: '6px 12px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                            title="View template details"
-                          >
-                            <span>👁️</span>
-                            View Details
-                          </button>
+                          
+                          {mode === 'copy' && (
+                            // Copy mode: Show only Copy to New Task button
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyTask(result);
+                              }}
+                              style={{
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                fontSize: '12px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="Copy this template to create a new task"
+                            >
+                              <span>📄</span>
+                              Copy to New Task
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

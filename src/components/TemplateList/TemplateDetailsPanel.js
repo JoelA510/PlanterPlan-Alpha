@@ -18,13 +18,13 @@ const TemplateDetailsPanel = ({
   // ✅ ENHANCED: Master Library Integration with real-time status
   const masterLibrary = useMasterLibrary();
   
-  // Get library status with optimistic updates and real-time checking
+  // ✅ FIXED: Get library status with proper handling for master library tasks
   const [isInLibrary, setIsInLibrary] = useState(false);
   const [isCheckingLibraryStatus, setIsCheckingLibraryStatus] = useState(true);
   const isLibraryLoading = masterLibrary.isTaskLoading(task.id);
   const libraryError = masterLibrary.getTaskError(task.id);
 
-  // ✅ NEW: Check library status when task changes
+  // ✅ FIXED: Check library status when task changes
   useEffect(() => {
     const checkLibraryStatus = async () => {
       if (!task?.id) return;
@@ -32,36 +32,38 @@ const TemplateDetailsPanel = ({
       setIsCheckingLibraryStatus(true);
       
       try {
-        // First check cache
-        const cachedStatus = masterLibrary.isTaskInLibrary(task.id);
-        if (cachedStatus !== null) {
-          setIsInLibrary(cachedStatus);
-          setIsCheckingLibraryStatus(false);
-          return;
-        }
-        
-        // If not in cache, do API check
+        // ✅ FORCE: Always do fresh API check for accurate status
+        console.log('🔍 Checking master library status for task:', task.id);
         const result = await masterLibrary.checkTaskLibraryStatus(task.id);
+        
         if (!result.error) {
+          console.log('✅ Master library status result:', result.isInLibrary);
           setIsInLibrary(result.isInLibrary);
+        } else {
+          console.error('❌ Error checking master library status:', result.error);
+          // Fallback to cache check
+          const cachedStatus = masterLibrary.isTaskInLibrary(task.id);
+          if (cachedStatus !== null) {
+            setIsInLibrary(cachedStatus);
+          }
         }
       } catch (error) {
         console.error('Error checking library status:', error);
+        // Fallback to cache check
+        const cachedStatus = masterLibrary.isTaskInLibrary(task.id);
+        if (cachedStatus !== null) {
+          setIsInLibrary(cachedStatus);
+        }
       } finally {
         setIsCheckingLibraryStatus(false);
       }
     };
     
     checkLibraryStatus();
-  }, [task?.id, masterLibrary]);
+  }, [task?.id]); // ✅ FIXED: Only depend on task.id, not the entire masterLibrary object
 
-  // ✅ NEW: Update status when master library state changes
-  useEffect(() => {
-    const currentStatus = masterLibrary.isTaskInLibrary(task.id);
-    if (currentStatus !== null && currentStatus !== isInLibrary) {
-      setIsInLibrary(currentStatus);
-    }
-  }, [masterLibrary.libraryTasks, task.id, isInLibrary, masterLibrary]);
+  // ✅ REMOVED: Don't override status based on master library state changes
+  // The fresh API check above should be the source of truth
   
   // Check if this task has children
   useEffect(() => {
@@ -73,7 +75,7 @@ const TemplateDetailsPanel = ({
     }
   }, [task, tasks]);
   
-  // ✅ NEW: Handle Master Library Toggle with Optimistic Updates
+  // ✅ FIXED: Handle Master Library Toggle - always do fresh check
   const handleToggleMasterLibrary = async () => {
     try {
       console.log('🎯 Toggling master library for task:', task.id, 'Current status:', isInLibrary);
@@ -81,16 +83,20 @@ const TemplateDetailsPanel = ({
       const result = await masterLibrary.toggleLibraryMembership(task.id, task, {
         onOptimisticUpdate: (taskId, newStatus) => {
           console.log('⚡ Optimistic update: Task', taskId, newStatus ? 'added to' : 'removed from', 'library');
-          // The hook handles the state update automatically
+          setIsInLibrary(newStatus); // Update local state immediately
         },
         onSuccess: (taskId, data) => {
           console.log('✅ Successfully', isInLibrary ? 'removed from' : 'added to', 'master library:', taskId);
-          // Could show a success toast here if you have a toast system
         },
         onError: (taskId, error) => {
           console.error('❌ Failed to toggle master library:', error);
-          // Show error to user
           alert(`Failed to ${isInLibrary ? 'remove from' : 'add to'} master library: ${error}`);
+          // Revert optimistic update by doing fresh check
+          masterLibrary.checkTaskLibraryStatus(task.id).then(result => {
+            if (!result.error) {
+              setIsInLibrary(result.isInLibrary);
+            }
+          });
         }
       });
       
@@ -245,7 +251,7 @@ const TemplateDetailsPanel = ({
           Template
         </div>
 
-        {/* ✅ SIMPLIFIED: Clean Master Library Section */}
+        {/* ✅ ENHANCED: Master Library Section with proper status */}
         <div className="master-library-section" style={{
           backgroundColor: '#fafafa',
           border: '1px solid #e5e7eb',
@@ -343,6 +349,7 @@ const TemplateDetailsPanel = ({
           )}
         </div>
         
+        {/* Rest of the component remains the same... */}
         {/* Enhanced schedule information section */}
         <div className="schedule-info-section" style={{ 
           backgroundColor: '#f0f9ff', 
@@ -629,7 +636,7 @@ const TemplateDetailsPanel = ({
           </button>
         </div>
         
-        {/* Delete Template button - separate row */}
+        {/* Delete Template button */}
         <div className="detail-row" style={{ 
           marginTop: '12px'
         }}>
@@ -653,7 +660,7 @@ const TemplateDetailsPanel = ({
         </div>
       </div>
       
-      {/* ✅ NEW: Add CSS for spinner animation */}
+      {/* ✅ CSS for spinner animation */}
       <style jsx>{`
         @keyframes spin {
           from { transform: rotate(0deg); }

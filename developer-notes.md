@@ -1,4 +1,75 @@
 # Developer Notes
+## July 23
+- master library search bar: the searching capability is done. 
+- next step: prompt:
+I would like to redo the buttons that appear for the search results for master library search.
+There are two user flows:
+* User wants to view a task from the master libary:
+   * User uses search bar to search for a master library task. When results popoulate, each result will have a "view task" button to view the template. 
+   * if user clicks the button, it will show the task details in the panel
+      * this should use the task context's template tasks to get the infromation, not the view and without querying supabase. 
+* user wants to copy a master library task and add it to a template
+   * user wants to add a child task and the template task form is on the side panel.
+   * user searches for task in master libary and results show.
+   * on each task result, there is a button that says "Copy to new task". the "view task" button doesn't show at this point. 
+   * if user clicks that button, the new template task form populates with the same info from the master library task. Again, this infor should be gathered from the task context without using the view or making a query to supabase 
+give me a step by step plan divided into PRs and commits for each PR. dont give me any code yet
+
+- context:
+src/components/MasterLibrary/MasterLibrarySearchBar.js
+src/components/TaskForm/CreateNewTemplateForm.js
+src/components/TaskForm/NewProjectForm.js
+src/components/TaskForm/TaskForm.js
+src/components/TaskForm/TemplateTaskForm.js
+src/components/TaskForm/useTaskForm.js
+src/components/TaskForm/useTemplateTaskForm.js
+src/components/TemplateList/TemplateDetailsPanel.js
+src/components/TemplateList/TemplateItem.js
+src/components/TemplateList/TemplateList.js
+src/components/contexts/TaskContext.js
+src/hooks/useTaskCreation.js
+src/services/taskService.js
+src/utils/taskUtils.js
+
+- roadmap for the buttons for search results (after asking Claude to make it simpler):
+PR 1: Add Flow Detection to MasterLibrarySearchBar
+Commit 1: Add mode prop and conditional buttons
+
+- Add mode prop ('view' | 'copy') to MasterLibrarySearchBar
+- Replace current buttons with conditional rendering:
+
+- View mode: Show "View Task" button only
+- Copy mode: Show "Copy to New Task" button only
+
+
+- Add onViewTask and onCopyTask callback props
+
+Commit 2: Implement task data lookup from context
+
+- Use useTasks hook to access templateTasks
+- Create helper to find actual task data from search results
+- Pass real task data to callbacks instead of search result data
+
+PR 2: Update TemplateList for View Flow
+Commit 1: Configure search bar for view mode
+
+- Set mode="view" on the search bar in TemplateList
+- Add onViewTask handler that calls selectTask
+- Remove old onCreateFromTemplate integration
+
+PR 3: Update TemplateList for Copy Flow
+Commit 1: Detect copy mode and populate form
+
+- When TemplateTaskForm is showing, render search bar with mode="copy"
+- Add onCopyTask handler that populates the form with task data
+- Update form state management to handle pre-populated data
+
+Commit 2: Clean up and test
+
+- Remove unused master library state and handlers
+- Test both view and copy flows
+- Add error handling for missing task data
+
 ## July 10 [Tim]
 - add the hyper linking capability to resources
 - able to do it for project task list

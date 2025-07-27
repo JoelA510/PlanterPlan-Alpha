@@ -281,6 +281,33 @@ const TemplateList = () => {
     }
   };
 
+  // NEW: Handle viewing task from master library
+  const handleViewTaskFromMasterLibrary = (task) => {
+    console.log('Viewing task from master library:', task.id);
+    selectTask(task.id);
+  };
+
+  // NEW: Handle copying task from master library (replaces handleCreateFromMasterLibrary)
+  const handleCopyTaskFromMasterLibrary = (masterTemplate) => {
+    console.log('Copying task from master library:', masterTemplate);
+    
+    // Pre-populate the form with master library template data
+    const templateData = {
+      title: `${masterTemplate.title} (Copy)`, // Add "(Copy)" to distinguish
+      description: masterTemplate.description || '',
+      purpose: masterTemplate.purpose || '',
+      actions: Array.isArray(masterTemplate.actions) ? [...masterTemplate.actions] : [],
+      resources: Array.isArray(masterTemplate.resources) ? [...masterTemplate.resources] : [],
+      default_duration: masterTemplate.default_duration || masterTemplate.duration_days || 1,
+    };
+    
+    setCreatingFromMasterLibrary(templateData);
+    setIsCreatingNewTemplate(false);
+    setAddingChildToTemplateId(null);
+    setCreatingChildFromMasterLibrary(null);
+  };
+
+
   // ✅ ENHANCED: Handler for adding a template task (child) to an existing template
   const handleTemplateTaskSubmit = async (templateData) => {
     try {
@@ -606,7 +633,7 @@ const TemplateList = () => {
           </div>
         </div>
 
-        {/* ✅ NEW: Master Library Search Bar for Top-Level Templates */}
+        {/* UPDATED: Master Library Search Bar configured for view mode */}
         <div style={{ marginBottom: '20px' }}>
           <h3 style={{ 
             fontSize: '14px', 
@@ -617,8 +644,9 @@ const TemplateList = () => {
             Search Master Library
           </h3>
           <MasterLibrarySearchBar
-            onResultSelect={handleMasterLibraryResultSelect}
-            onCreateFromTemplate={handleCreateFromMasterLibrary}
+            mode="view" // ✅ Set to view mode for browsing templates
+            onViewTask={handleViewTaskFromMasterLibrary} // ✅ Integrates with selectTask
+            onResultSelect={handleMasterLibraryResultSelect} // Optional: for clicking on result item
           />
           <p style={{
             fontSize: '12px',
@@ -626,7 +654,7 @@ const TemplateList = () => {
             margin: '8px 0 0 0',
             fontStyle: 'italic'
           }}>
-            Search for templates in the master library
+            Search for templates in the master library to view their details
           </p>
         </div>
 
