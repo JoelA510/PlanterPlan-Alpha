@@ -9,7 +9,12 @@ const TemplateDetailsPanel = ({
   onClose,
   onAddTask,
   onDeleteTask,
-  onEditTask
+  onEditTask,
+  // ✅ NEW: Copy handlers
+  onCopyTask,
+  onCopyTaskAsChild,
+  // ✅ NEW: Mode to determine button display
+  mode = 'view' // 'view' | 'copy'
 }) => {
   // State for edit mode
   const [isEditing, setIsEditing] = useState(false);
@@ -130,6 +135,21 @@ const TemplateDetailsPanel = ({
   const handleTemplateUpdate = (updatedTaskData) => {
     onEditTask(task.id, updatedTaskData);
     setIsEditing(false);
+  };
+
+  // ✅ NEW: Copy handlers
+  const handleCopyAsNewTemplate = () => {
+    if (onCopyTask) {
+      onCopyTask(task);
+    }
+  };
+
+  const handleCopyAsChildTemplate = () => {
+    if (onCopyTaskAsChild) {
+      // This would typically be called with a specific parent ID
+      // For now, we'll just trigger the copy flow
+      onCopyTaskAsChild(task, null);
+    }
   };
   
   if (!task) return null;
@@ -349,7 +369,6 @@ const TemplateDetailsPanel = ({
           )}
         </div>
         
-        {/* Rest of the component remains the same... */}
         {/* Enhanced schedule information section */}
         <div className="schedule-info-section" style={{ 
           backgroundColor: '#f0f9ff', 
@@ -589,74 +608,140 @@ const TemplateDetailsPanel = ({
           </ul>
         </div>
         
-        {/* Action buttons */}
+        {/* ✅ ENHANCED: Action buttons - conditional based on mode */}
         <div className="detail-row" style={{ 
           marginTop: '24px', 
           display: 'flex', 
-          gap: '12px'
+          gap: '12px',
+          flexDirection: 'column'
         }}>
-          {/* Edit Template Button */}
-          <button
-            onClick={handleEditClick}
-            style={{
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              border: 'none',
-              flex: '1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <span style={{ marginRight: '8px' }}>Edit Template</span>
-            <span>✎</span>
-          </button>
+          {/* ✅ NEW: Show different buttons based on mode */}
+          {mode === 'copy' ? (
+            // Copy mode: Show copy buttons
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={handleCopyAsNewTemplate}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  flex: '1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span style={{ marginRight: '8px' }}>Copy as New Template</span>
+                <span>📄</span>
+              </button>
+              
+              <button
+                onClick={handleCopyAsChildTemplate}
+                style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  flex: '1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span style={{ marginRight: '8px' }}>Copy as Child</span>
+                <span>📄</span>
+              </button>
+            </div>
+          ) : (
+            // View mode: Show edit and add child buttons
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={handleEditClick}
+                style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  flex: '1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span style={{ marginRight: '8px' }}>Edit Template</span>
+                <span>✎</span>
+              </button>
+              
+              <button
+                onClick={() => onAddTask(task.id)}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  flex: '1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span style={{ marginRight: '8px' }}>Add Child Template</span>
+                <span>+</span>
+              </button>
+            </div>
+          )}
           
-          {/* Add Child Template button */}
-          <button
-            onClick={() => onAddTask(task.id)}
-            style={{
-              backgroundColor: '#10b981',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              border: 'none',
-              flex: '1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <span style={{ marginRight: '8px' }}>Add Child Template</span>
-            <span>+</span>
-          </button>
-        </div>
-        
-        {/* Delete Template button */}
-        <div className="detail-row" style={{ 
-          marginTop: '12px'
-        }}>
-          <button
-            onClick={() => onDeleteTask(task.id)}
-            style={{
-              backgroundColor: '#ef4444',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              border: 'none',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            Delete Template
-          </button>
+          {/* ✅ ENHANCED: Copy Template button (always show in view mode) */}
+          {mode === 'view' && onCopyTask && (
+            <button
+              onClick={handleCopyAsNewTemplate}
+              style={{
+                backgroundColor: '#8b5cf6',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                border: 'none',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <span style={{ marginRight: '8px' }}>Copy Template</span>
+              <span>📄</span>
+            </button>
+          )}
+          
+          {/* Delete Template button (only in view mode) */}
+          {mode === 'view' && (
+            <button
+              onClick={() => onDeleteTask(task.id)}
+              style={{
+                backgroundColor: '#ef4444',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                border: 'none',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              Delete Template
+            </button>
+          )}
         </div>
       </div>
       

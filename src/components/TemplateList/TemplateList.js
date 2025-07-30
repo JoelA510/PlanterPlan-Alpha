@@ -1,4 +1,5 @@
 // Enhanced integration for TemplateList.js to support master library for both top-level and child tasks
+// ✅ UPDATED: Added copy flow support
 
 import React, { useState, useEffect, useRef } from 'react';
 import TemplateItem from './TemplateItem';
@@ -35,9 +36,13 @@ const TemplateList = () => {
   const [isCreatingNewTemplate, setIsCreatingNewTemplate] = useState(false);
   const [addingChildToTemplateId, setAddingChildToTemplateId] = useState(null);
   
-  // ✅ NEW: State for handling template creation from master library
+  // ✅ EXISTING: State for handling template creation from master library
   const [creatingFromMasterLibrary, setCreatingFromMasterLibrary] = useState(null);
   const [creatingChildFromMasterLibrary, setCreatingChildFromMasterLibrary] = useState(null);
+  
+  // ✅ NEW: State for copy flow - separate from master library flow
+  const [copyingTemplate, setCopyingTemplate] = useState(null);
+  const [copyingChildTemplate, setCopyingChildTemplate] = useState(null);
   
   // ✅ ENHANCED: Drag and drop state
   const [draggedTask, setDraggedTask] = useState(null);
@@ -65,6 +70,8 @@ const TemplateList = () => {
     setAddingChildToTemplateId(null);
     setCreatingFromMasterLibrary(null);
     setCreatingChildFromMasterLibrary(null);
+    setCopyingTemplate(null);
+    setCopyingChildTemplate(null);
     setIsCreatingNewTemplate(true);
   };
 
@@ -72,6 +79,8 @@ const TemplateList = () => {
     setIsCreatingNewTemplate(false);
     setCreatingFromMasterLibrary(null);
     setCreatingChildFromMasterLibrary(null);
+    setCopyingTemplate(null);
+    setCopyingChildTemplate(null);
     setAddingChildToTemplateId(parentId);
   };
 
@@ -80,9 +89,11 @@ const TemplateList = () => {
     setAddingChildToTemplateId(null);
     setCreatingFromMasterLibrary(null);
     setCreatingChildFromMasterLibrary(null);
+    setCopyingTemplate(null);
+    setCopyingChildTemplate(null);
   };
 
-  // ✅ NEW: Handle creating a top-level template from master library
+  // ✅ EXISTING: Handle creating a top-level template from master library
   const handleCreateFromMasterLibrary = (masterTemplate) => {
     console.log('Creating top-level template from master library:', masterTemplate);
     
@@ -100,9 +111,11 @@ const TemplateList = () => {
     setIsCreatingNewTemplate(false);
     setAddingChildToTemplateId(null);
     setCreatingChildFromMasterLibrary(null);
+    setCopyingTemplate(null);
+    setCopyingChildTemplate(null);
   };
 
-  // ✅ NEW: Handle creating a child task from master library
+  // ✅ EXISTING: Handle creating a child task from master library
   const handleCreateChildFromMasterLibrary = (masterTemplate, parentId) => {
     console.log('Creating child task from master library:', masterTemplate, 'for parent:', parentId);
     
@@ -123,9 +136,58 @@ const TemplateList = () => {
     setIsCreatingNewTemplate(false);
     setAddingChildToTemplateId(null);
     setCreatingFromMasterLibrary(null);
+    setCopyingTemplate(null);
+    setCopyingChildTemplate(null);
   };
 
-  // ✅ NEW: Handle master library search result selection (view details)
+  // ✅ NEW: Handle copying a template to create a new top-level template
+  const handleCopyTemplate = (templateToCopy) => {
+    console.log('Copying template to create new top-level template:', templateToCopy);
+    
+    // Pre-populate the form with copied template data
+    const templateData = {
+      title: `${templateToCopy.title} (Copy)`, // Add "(Copy)" to distinguish
+      description: templateToCopy.description || '',
+      purpose: templateToCopy.purpose || '',
+      actions: Array.isArray(templateToCopy.actions) ? [...templateToCopy.actions] : [],
+      resources: Array.isArray(templateToCopy.resources) ? [...templateToCopy.resources] : [],
+      default_duration: templateToCopy.default_duration || templateToCopy.duration_days || 1,
+    };
+    
+    setCopyingTemplate(templateData);
+    setIsCreatingNewTemplate(false);
+    setAddingChildToTemplateId(null);
+    setCreatingFromMasterLibrary(null);
+    setCreatingChildFromMasterLibrary(null);
+    setCopyingChildTemplate(null);
+  };
+
+  // ✅ NEW: Handle copying a template to create a child task
+  const handleCopyTemplateAsChild = (templateToCopy, parentId) => {
+    console.log('Copying template as child task:', templateToCopy, 'for parent:', parentId);
+    
+    // Pre-populate the form with copied template data
+    const templateData = {
+      title: templateToCopy.title, // Don't add "(Copy)" for child tasks
+      description: templateToCopy.description || '',
+      purpose: templateToCopy.purpose || '',
+      actions: Array.isArray(templateToCopy.actions) ? [...templateToCopy.actions] : [],
+      resources: Array.isArray(templateToCopy.resources) ? [...templateToCopy.resources] : [],
+      default_duration: templateToCopy.default_duration || templateToCopy.duration_days || 1,
+    };
+    
+    setCopyingChildTemplate({
+      templateData,
+      parentId
+    });
+    setIsCreatingNewTemplate(false);
+    setAddingChildToTemplateId(null);
+    setCreatingFromMasterLibrary(null);
+    setCreatingChildFromMasterLibrary(null);
+    setCopyingTemplate(null);
+  };
+
+  // ✅ EXISTING: Handle master library search result selection (view details)
   const handleMasterLibraryResultSelect = (template) => {
     console.log('Selected master library template for viewing:', template);
     // Could show details in a modal or panel here
@@ -259,7 +321,7 @@ const TemplateList = () => {
     }
   };
 
-  // ✅ NEW: Handler for creating template from master library
+  // ✅ EXISTING: Handler for creating template from master library
   const handleMasterLibraryTemplateSubmit = async (templateData) => {
     try {
       const result = await createTask({
@@ -281,13 +343,35 @@ const TemplateList = () => {
     }
   };
 
-  // NEW: Handle viewing task from master library
+  // ✅ NEW: Handler for creating template from copy
+  const handleCopyTemplateSubmit = async (templateData) => {
+    try {
+      const result = await createTask({
+        ...templateData,
+        origin: 'template',
+        parent_task_id: null
+      });
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      setCopyingTemplate(null);
+      return result;
+    } catch (err) {
+      console.error('Error creating template from copy:', err);
+      alert(`Failed to create template copy: ${err.message}`);
+      return { error: err.message };
+    }
+  };
+
+  // ✅ EXISTING: Handle viewing task from master library
   const handleViewTaskFromMasterLibrary = (task) => {
     console.log('Viewing task from master library:', task.id);
     selectTask(task.id);
   };
 
-  // NEW: Handle copying task from master library (replaces handleCreateFromMasterLibrary)
+  // ✅ EXISTING: Handle copying task from master library (replaces handleCreateFromMasterLibrary)
   const handleCopyTaskFromMasterLibrary = (masterTemplate) => {
     console.log('Copying task from master library:', masterTemplate);
     
@@ -305,13 +389,16 @@ const TemplateList = () => {
     setIsCreatingNewTemplate(false);
     setAddingChildToTemplateId(null);
     setCreatingChildFromMasterLibrary(null);
+    setCopyingTemplate(null);
+    setCopyingChildTemplate(null);
   };
-
 
   // ✅ ENHANCED: Handler for adding a template task (child) to an existing template
   const handleTemplateTaskSubmit = async (templateData) => {
     try {
-      const parentId = addingChildToTemplateId || creatingChildFromMasterLibrary?.parentId;
+      const parentId = addingChildToTemplateId || 
+                      creatingChildFromMasterLibrary?.parentId ||
+                      copyingChildTemplate?.parentId;
       
       const result = await createTask({
         ...templateData,
@@ -325,6 +412,7 @@ const TemplateList = () => {
       
       setAddingChildToTemplateId(null);
       setCreatingChildFromMasterLibrary(null);
+      setCopyingChildTemplate(null);
       return result;
     } catch (err) {
       console.error('Error adding template task:', err);
@@ -479,9 +567,42 @@ const TemplateList = () => {
     return taskElements;
   };
   
-  // ✅ ENHANCED: Render the right panel content with all master library scenarios
+  // ✅ ENHANCED: Render the right panel content with all scenarios including copy flow
   const renderRightPanel = () => {
-    // ✅ NEW: Check if we're creating top-level template from master library
+    // ✅ NEW: Check if we're creating top-level template from copy
+    if (copyingTemplate) {
+      return (
+        <CreateNewTemplateForm
+          onSubmit={handleCopyTemplateSubmit}
+          onCancel={cancelTemplateCreation}
+          backgroundColor="#3b82f6"
+          initialData={copyingTemplate}
+          title="Copy Template"
+        />
+      );
+    }
+
+    // ✅ NEW: Check if we're creating child task from copy
+    if (copyingChildTemplate) {
+      const parentTask = tasks.find(t => t.id === copyingChildTemplate.parentId);
+      if (!parentTask) return null;
+      
+      const level = getTaskLevel(parentTask, tasks);
+      const backgroundColor = getBackgroundColor(level);
+      
+      return (
+        <TemplateTaskForm
+          parentTaskId={copyingChildTemplate.parentId}
+          onSubmit={handleTemplateTaskSubmit}
+          onCancel={cancelTemplateCreation}
+          backgroundColor={backgroundColor}
+          tasks={tasks}
+          initialData={copyingChildTemplate.templateData}
+        />
+      );
+    }
+
+    // ✅ EXISTING: Check if we're creating top-level template from master library
     if (creatingFromMasterLibrary) {
       return (
         <CreateNewTemplateForm
@@ -494,7 +615,7 @@ const TemplateList = () => {
       );
     }
 
-    // ✅ NEW: Check if we're creating child task from master library
+    // ✅ EXISTING: Check if we're creating child task from master library
     if (creatingChildFromMasterLibrary) {
       const parentTask = tasks.find(t => t.id === creatingChildFromMasterLibrary.parentId);
       if (!parentTask) return null;
@@ -573,7 +694,12 @@ const TemplateList = () => {
       );
     }
     
-    // Use our TemplateDetailsPanel component
+    // ✅ ENHANCED: Determine if we should show copy mode based on current state
+    const isInCopyMode = addingChildToTemplateId !== null || 
+                        creatingChildFromMasterLibrary !== null ||
+                        copyingChildTemplate !== null;
+    
+    // Use our TemplateDetailsPanel component with copy handlers
     return (
       <TemplateDetailsPanel
         task={selectedTask}
@@ -582,6 +708,11 @@ const TemplateList = () => {
         onAddTask={handleAddTemplateTask}
         onDeleteTask={handleDeleteTemplate}
         onEditTask={handleEditTemplate}
+        // ✅ NEW: Pass copy handlers
+        onCopyTask={handleCopyTemplate}
+        onCopyTaskAsChild={handleCopyTemplateAsChild}
+        // ✅ NEW: Pass mode to help determine button display
+        mode={isInCopyMode ? 'copy' : 'view'}
       />
     );
   };
@@ -633,7 +764,7 @@ const TemplateList = () => {
           </div>
         </div>
 
-        {/* UPDATED: Master Library Search Bar configured for view mode */}
+        {/* ✅ ENHANCED: Master Library Search Bar - conditionally show copy mode */}
         <div style={{ marginBottom: '20px' }}>
           <h3 style={{ 
             fontSize: '14px', 
@@ -644,9 +775,13 @@ const TemplateList = () => {
             Search Master Library
           </h3>
           <MasterLibrarySearchBar
-            mode="view" // ✅ Set to view mode for browsing templates
-            onViewTask={handleViewTaskFromMasterLibrary} // ✅ Integrates with selectTask
-            onResultSelect={handleMasterLibraryResultSelect} // Optional: for clicking on result item
+            mode={addingChildToTemplateId ? 'copy' : 'view'} // ✅ Dynamic mode based on state
+            onViewTask={handleViewTaskFromMasterLibrary}
+            onCopyTask={addingChildToTemplateId ? 
+              (template) => handleCopyTemplateAsChild(template, addingChildToTemplateId) :
+              handleCopyTemplate
+            }
+            onResultSelect={handleMasterLibraryResultSelect}
           />
           <p style={{
             fontSize: '12px',
@@ -654,7 +789,10 @@ const TemplateList = () => {
             margin: '8px 0 0 0',
             fontStyle: 'italic'
           }}>
-            Search for templates in the master library to view their details
+            {addingChildToTemplateId ? 
+              'Search for templates to copy as child tasks' :
+              'Search for templates in the master library to view their details'
+            }
           </p>
         </div>
 

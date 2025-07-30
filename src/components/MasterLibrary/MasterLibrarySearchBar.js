@@ -1,4 +1,5 @@
 // src/components/MasterLibrary/MasterLibrarySearchBar.js
+// ✅ ENHANCED: Added copy mode support
 import React, { useState, useRef, useEffect } from 'react';
 import { useMasterLibrarySearch } from '../../hooks/useMasterLibrarySearch';
 import { useTasks } from '../contexts/TaskContext';
@@ -179,7 +180,7 @@ const MasterLibrarySearchBar = ({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search master library templates..."
+            placeholder={mode === 'copy' ? "Search templates to copy..." : "Search master library templates..."}
             value={searchTerm}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
@@ -225,10 +226,10 @@ const MasterLibrarySearchBar = ({
         {showResults && hasSearched && (
           <div style={{
             padding: '8px 16px',
-            backgroundColor: '#f0f9ff',
+            backgroundColor: mode === 'copy' ? '#f0fdf4' : '#f0f9ff',
             borderTop: '1px solid #e0f2fe',
             fontSize: '12px',
-            color: '#1e40af',
+            color: mode === 'copy' ? '#166534' : '#1e40af',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center'
@@ -238,6 +239,7 @@ const MasterLibrarySearchBar = ({
               {searchStats.totalResults > searchStats.currentResults && 
                 ` (showing ${searchStats.currentResults})`
               }
+              {mode === 'copy' && ' • Ready to copy'}
             </span>
             {searchError && (
               <span style={{ color: '#dc2626' }}>Search error occurred</span>
@@ -357,14 +359,14 @@ const MasterLibrarySearchBar = ({
                         flexShrink: 0,
                         width: '40px',
                         height: '40px',
-                        backgroundColor: '#e0f2fe',
+                        backgroundColor: mode === 'copy' ? '#dcfce7' : '#e0f2fe',
                         borderRadius: '8px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '18px'
                       }}>
-                        📋
+                        {mode === 'copy' ? '📄' : '📋'}
                       </div>
 
                       {/* Template Details */}
@@ -419,7 +421,7 @@ const MasterLibrarySearchBar = ({
                           </div>
                         </div>
 
-                        {/* Conditional Action Buttons based on mode */}
+                        {/* ✅ ENHANCED: Conditional Action Buttons based on mode */}
                         <div style={{
                           display: 'flex',
                           gap: '8px',
