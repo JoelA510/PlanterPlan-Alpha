@@ -10,8 +10,7 @@ const TemplateDetailsPanel = ({
   onAddTask,
   onDeleteTask,
   onEditTask,
-  // ✅ NEW: Copy handlers
-  onCopyTask,
+  // ✅ SIMPLIFIED: Only child copy handler (removed standalone copy)
   onCopyTaskAsChild,
   // ✅ NEW: Mode to determine button display
   mode = 'view' // 'view' | 'copy'
@@ -65,11 +64,8 @@ const TemplateDetailsPanel = ({
     };
     
     checkLibraryStatus();
-  }, [task?.id]); // ✅ FIXED: Only depend on task.id, not the entire masterLibrary object
+  }, [task?.id]);
 
-  // ✅ REMOVED: Don't override status based on master library state changes
-  // The fresh API check above should be the source of truth
-  
   // Check if this task has children
   useEffect(() => {
     if (task && task.id && Array.isArray(tasks)) {
@@ -137,13 +133,7 @@ const TemplateDetailsPanel = ({
     setIsEditing(false);
   };
 
-  // ✅ NEW: Copy handlers
-  const handleCopyAsNewTemplate = () => {
-    if (onCopyTask) {
-      onCopyTask(task);
-    }
-  };
-
+  // ✅ SIMPLIFIED: Only child copy handler (removed standalone copy)
   const handleCopyAsChildTemplate = () => {
     if (onCopyTaskAsChild) {
       // This would typically be called with a specific parent ID
@@ -608,55 +598,34 @@ const TemplateDetailsPanel = ({
           </ul>
         </div>
         
-        {/* ✅ ENHANCED: Action buttons - conditional based on mode */}
+        {/* ✅ SIMPLIFIED: Action buttons - only show copy as child in copy mode */}
         <div className="detail-row" style={{ 
           marginTop: '24px', 
           display: 'flex', 
           gap: '12px',
           flexDirection: 'column'
         }}>
-          {/* ✅ NEW: Show different buttons based on mode */}
+          {/* ✅ SIMPLIFIED: Show different buttons based on mode */}
           {mode === 'copy' ? (
-            // Copy mode: Show copy buttons
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={handleCopyAsNewTemplate}
-                style={{
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  border: 'none',
-                  flex: '1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <span style={{ marginRight: '8px' }}>Copy as New Template</span>
-                <span>📄</span>
-              </button>
-              
-              <button
-                onClick={handleCopyAsChildTemplate}
-                style={{
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  border: 'none',
-                  flex: '1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <span style={{ marginRight: '8px' }}>Copy as Child</span>
-                <span>📄</span>
-              </button>
-            </div>
+            // Copy mode: Show only copy as child button
+            <button
+              onClick={handleCopyAsChildTemplate}
+              style={{
+                backgroundColor: '#10b981',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                border: 'none',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <span style={{ marginRight: '8px' }}>Copy as Child Task</span>
+              <span>📄</span>
+            </button>
           ) : (
             // View mode: Show edit and add child buttons
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -698,28 +667,6 @@ const TemplateDetailsPanel = ({
                 <span>+</span>
               </button>
             </div>
-          )}
-          
-          {/* ✅ ENHANCED: Copy Template button (always show in view mode) */}
-          {mode === 'view' && onCopyTask && (
-            <button
-              onClick={handleCopyAsNewTemplate}
-              style={{
-                backgroundColor: '#8b5cf6',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                border: 'none',
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <span style={{ marginRight: '8px' }}>Copy Template</span>
-              <span>📄</span>
-            </button>
           )}
           
           {/* Delete Template button (only in view mode) */}

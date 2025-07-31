@@ -11,7 +11,23 @@ const TemplateTaskForm = ({
   isEditing = false,
   tasks = []
 }) => {
-  // Simple state management without the complex hook
+  // ✅ FIXED: Process initialData to map fields correctly
+  const processInitialData = (data) => {
+    if (!data) return {};
+    
+    return {
+      title: data.title || '',
+      purpose: data.purpose || '',
+      description: data.description || '',
+      actions: Array.isArray(data.actions) ? data.actions : [''],
+      resources: Array.isArray(data.resources) ? data.resources : [''],
+      // ✅ Map default_duration to duration_days for the form
+      duration_days: data.default_duration || data.duration_days || 1,
+      days_from_start_until_due: data.days_from_start_until_due || 0,
+    };
+  };
+
+  // ✅ FIXED: Use processed initial data
   const [formData, setFormData] = useState({
     title: '',
     purpose: '',
@@ -20,8 +36,22 @@ const TemplateTaskForm = ({
     resources: [''],
     duration_days: 1,
     days_from_start_until_due: 0,
-    ...initialData  // Safe since we're not passing null anymore
+    ...processInitialData(initialData)  // ✅ Use processed data
   });
+  
+  // ✅ ADD: Debug log to see what's being populated
+  useEffect(() => {
+    if (initialData) {
+      console.log('🐛 TemplateTaskForm received initialData:', initialData);
+      console.log('🐛 Processed form data:', processInitialData(initialData));
+      
+      // ✅ Update form data when initialData changes
+      setFormData(prev => ({
+        ...prev,
+        ...processInitialData(initialData)
+      }));
+    }
+  }, [initialData]);
   
   const [errors, setErrors] = useState({});
   const [hasChildren, setHasChildren] = useState(false);

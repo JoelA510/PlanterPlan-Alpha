@@ -144,6 +144,7 @@ const MasterLibrarySearchBar = ({
   // Handle copy task action
   const handleCopyTask = (result) => {
     const actualTask = findActualTaskData(result);
+    console.log("HandleCopyTask: ", actualTask);
     onCopyTask?.(actualTask);
     setShowResults(false);
   };
