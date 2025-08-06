@@ -13,8 +13,8 @@ import {
 import { 
   validateResourceData,
   DEFAULT_RESOURCE 
-} from '../../types/resourceTypes';
-import ResourceItem from './ResourceItem';
+} from './resourceTypes.js';
+import ResourceItem from './ResourceItemComponent';
 import ResourceForm from './ResourceForm';
 import ResourceDetailsPanel from './ResourceDetailsPanel';
 import { 

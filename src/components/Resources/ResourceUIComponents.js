@@ -6,7 +6,7 @@ import {
   getResourceFormatLabel,
   RESOURCE_FORMATS,
   RESOURCE_FORMAT_LABELS 
-} from '../../types/resourceTypes';
+} from './resourceTypes';
 
 /**
  * EmptyResourcePanel - Displays an empty state for resources

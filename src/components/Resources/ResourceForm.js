@@ -7,7 +7,7 @@ import {
   validateResourceData,
   isUrlRequiredForFormat,
   COMMON_RESOURCE_TAGS
-} from '../../types/resourceTypes';
+} from './resourceTypes';
 
 const ResourceForm = ({ 
   initialData = null,

@@ -1,10 +1,10 @@
-// src/components/Resources/ResourceItem.js
+// src/components/Resources/ResourceItemComponent.js
 import React, { useState } from 'react';
 import { 
   getResourceFormatIcon, 
   getResourceFormatColors, 
   getResourceFormatLabel 
-} from '../../types/resourceTypes';
+} from './resourceTypes';
 import { formatDisplayDate } from '../../utils/taskUtils';
 
 const ResourceItem = ({ 

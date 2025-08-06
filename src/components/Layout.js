@@ -59,6 +59,11 @@ const Layout = ({ userType }) => {
         icon: '📋'
       },
       {
+        path: `${basePath}/resources`,
+        label: 'Resources',
+        icon: '📚'
+      },
+      {
         path: `${basePath}/settings`,
         label: 'Settings',
         icon: '⚙️'
@@ -77,7 +82,7 @@ const Layout = ({ userType }) => {
     // Determine which items to show based on user type
     const navItems = [...commonItems];
     
-    // Add template management for admin users only
+    // Add template management for admin users only (insert after Projects, before Resources)
     if (userType === 'planter_admin' || userType === 'org_admin') {
       navItems.splice(1, 0, ...adminItems);
     }

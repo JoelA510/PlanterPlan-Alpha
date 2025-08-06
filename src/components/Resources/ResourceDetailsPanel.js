@@ -3,9 +3,8 @@ import React from 'react';
 import { 
   getResourceFormatLabel, 
   getResourceFormatIcon, 
-  getResourceFormatColors,
-  formatResourceForDisplay 
-} from '../../types/resourceTypes';
+  getResourceFormatColors
+} from './resourceTypes';
 import { formatDisplayDate } from '../../utils/taskUtils';
 
 const ResourceDetailsPanel = ({
@@ -16,8 +15,7 @@ const ResourceDetailsPanel = ({
 }) => {
   if (!resource) return null;
 
-  // Format resource data for display
-  const displayResource = formatResourceForDisplay(resource);
+  // Get format display properties directly
   const formatColors = getResourceFormatColors(resource.format);
   const formatIcon = getResourceFormatIcon(resource.format);
   const formatLabel = getResourceFormatLabel(resource.format);

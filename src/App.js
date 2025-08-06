@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'r
 import Layout from './components/Layout';
 import TaskList from './components/TaskList/TaskList';
 import TemplateList from './components/TemplateList/TemplateList';
+import ResourcesPage from './components/Resources/ResourcesPage';
 import UserSettings from './components/Settings/UserSettings';
 import AdminSettings from './components/Settings/AdminSettings';
 import NotFound from './components/NotFound';
@@ -117,6 +118,7 @@ const ProtectedRoutes = () => {
       >
         <Route index element={<TaskList />} />
         <Route path="templates" element={<TemplateList />} />
+        <Route path="resources" element={<ResourcesPage />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="white-label-orgs" element={<WhiteLabelOrgList />} />
         <Route path="*" element={<NotFound />} />
@@ -128,6 +130,7 @@ const ProtectedRoutes = () => {
         element={<LayoutWithOrganization userType="planter_user" requiredRole="planter_user" />}
       >
         <Route index element={<TaskList />} />
+        <Route path="resources" element={<ResourcesPage />} />
         <Route path="settings" element={<UserSettings />} />
         <Route path="*" element={<NotFound />} />
       </Route>
@@ -139,6 +142,7 @@ const ProtectedRoutes = () => {
       >
         <Route index element={<TaskList />} />
         <Route path="templates" element={<TemplateList />} />
+        <Route path="resources" element={<ResourcesPage />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="*" element={<NotFound />} />
       </Route>
@@ -149,6 +153,7 @@ const ProtectedRoutes = () => {
         element={<LayoutWithOrganization userType="org_user" requiredRole="org_user" />}
       >
         <Route index element={<TaskList />} />
+        <Route path="resources" element={<ResourcesPage />} />
         <Route path="settings" element={<UserSettings />} />
         <Route path="*" element={<NotFound />} />
       </Route>
