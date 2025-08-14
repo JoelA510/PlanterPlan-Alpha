@@ -1,63 +1,5 @@
 # PlanterPlan
-## Roadmap
-- User front-end
-    - [ ] Account creation and log in
-        - [ ]  authentication
-    - Dashboard
-      - [ ] overview of projects
-    - project task list
-      - [ ] edit a project's settings
-      - [ ] view and edit Project Team
-        - [ ]  add user to project team : Invite team member (email)
-          - [ ]  set the role     
-            
-      - [ ]  progress bar for tasks
-      - [ ]  note taking feature for each task
-      - [ ]  edit task details
-        - [ ]  edit due date and start date
-          - [ ]  cascading effect on the following tasks
-          - [ ]  toggle N/A and not N/A
-
-      - [ ]  search for tasks
-            - [ ]  result ordering/sorting
-            - [ ]  Filter by (within or under the search)
-              - [ ]  overdue, current, due soon, not due yet, in/complete
-                - [ ]  Priority tasks (includes due soon, over due, current)
-
-      - [ ]  add task from list of master library of tasks
-      - [ ]  count of tasks (# of tasks overdue, due soon, etc)
-            - [ ]  chart (Gant?)
-      - [ ]  assign lead user for task
-      - [ ]  Email task
-      - [ ] Google Calendar integration
-        
-
-    - Resources
-        - [ ]  search for resources in resource library
-        - [ ]  display resources
-        - [ ] resource store
-            
-    - Project Status Report
-        - [ ]  Shows basic info for selected month
-        - [ ]  shows num tasks completed, overdue, and due next month
-            - [ ]  donut chart breakdown
-            - [ ]  table list
-        - [ ]  printable
-    - [ ]  Foreign language User interface 
-
-- Admin
-  - [ ]  Manage Users
-  - [ ]  licence management
-  - [ ]  white label management
-    - [ ] manage the organization's custom url, logo, css, tasks, resources, and pricing structure
-  - [ ]  template management       
-  - [ ]  New task type "Strategy Template" 
-  - [ ]  New task type "Coaching" allows tasks to automatically be assigned to user with Coach level access
-  - [ ] automatically send email notifications for tasks being due soon
-
-
 Technical Implementation Notes
-
 
 ## Documentation
 Database Schema (Mermaid code):
@@ -217,7 +159,8 @@ Core Components
 | `TemplateItem` | Represents a single template | Displays template, handles drag events |
 | `TaskForm` | Task/template creation/editing form | Handles form data for tasks/templates |
 | `TaskDropZone` | Drop target between tasks | Handles drop positioning for drag and drop |
-| `TaskDetailsPanel` | Displays detailed task information | Shows task properties, completion status, actions |
+| `TaskDetailsPanel` | Displays detailed project task information | Shows task properties, completion status, actions |
+| `TemplateDetailsPanel` | Displays detailed template task information | Shows task properties, completion status, actions |
 | `TaskUIComponents` | Reusable UI components for tasks | EmptyPanel, DeleteConfirmation, ProjectForm, TemplateSelector |
 | `Layout` | Main application layout | Manages routing, navigation, user context |
 | `OrganizationProvider` | Manages organization context | Provides organization data and branding |
@@ -250,3 +193,4 @@ App
 │                       │   └── AppearanceSettings
 │                       └── WhiteLabelOrgList
 ```
+
