@@ -11,7 +11,10 @@ const TemplateTaskForm = ({
   isEditing = false,
   tasks = []
 }) => {
-  // ✅ FIXED: Process initialData to map fields correctly
+  // ============================================================================
+  // UTILITY FUNCTIONS
+  // ============================================================================
+  
   const processInitialData = (data) => {
     if (!data) return {};
     
@@ -21,13 +24,22 @@ const TemplateTaskForm = ({
       description: data.description || '',
       actions: Array.isArray(data.actions) ? data.actions : [''],
       resources: Array.isArray(data.resources) ? data.resources : [''],
-      // ✅ Map default_duration to duration_days for the form
       duration_days: data.default_duration || data.duration_days || 1,
       days_from_start_until_due: data.days_from_start_until_due || 0,
     };
   };
 
-  // ✅ FIXED: Use processed initial data
+  const getHeaderText = () => {
+    if (isEditing) {
+      return 'Edit Template Task';
+    }
+    return 'Add Child Template Task';
+  };
+
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
+  
   const [formData, setFormData] = useState({
     title: '',
     purpose: '',
@@ -36,16 +48,25 @@ const TemplateTaskForm = ({
     resources: [''],
     duration_days: 1,
     days_from_start_until_due: 0,
-    ...processInitialData(initialData)  // ✅ Use processed data
+    ...processInitialData(initialData)
   });
   
-  // ✅ ADD: Debug log to see what's being populated
+  const [errors, setErrors] = useState({});
+  const [hasChildren, setHasChildren] = useState(false);
+  const [minRequiredDuration, setMinRequiredDuration] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+
+  // ============================================================================
+  // EFFECTS
+  // ============================================================================
+  
+  // Handle initial data changes (for copy mode)
   useEffect(() => {
     if (initialData) {
       console.log('🐛 TemplateTaskForm received initialData:', initialData);
       console.log('🐛 Processed form data:', processInitialData(initialData));
       
-      // ✅ Update form data when initialData changes
       setFormData(prev => ({
         ...prev,
         ...processInitialData(initialData)
@@ -53,11 +74,7 @@ const TemplateTaskForm = ({
     }
   }, [initialData]);
   
-  const [errors, setErrors] = useState({});
-  const [hasChildren, setHasChildren] = useState(false);
-  const [minRequiredDuration, setMinRequiredDuration] = useState(1);
-  
-  // Check if this is a task with children (for editing mode)
+  // Check for children and calculate minimum duration (for editing mode)
   useEffect(() => {
     if (isEditing && initialData && initialData.id && Array.isArray(tasks)) {
       const childExists = tasks.some(task => task.parent_task_id === initialData.id);
@@ -70,7 +87,10 @@ const TemplateTaskForm = ({
     }
   }, [isEditing, initialData, tasks]);
 
-  // Handle basic input changes
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -78,7 +98,7 @@ const TemplateTaskForm = ({
       [name]: value
     }));
     
-    // Clear error for this field if it exists
+    // Clear field error and submit error when user makes changes
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = {...prev};
@@ -86,9 +106,12 @@ const TemplateTaskForm = ({
         return newErrors;
       });
     }
+    
+    if (submitError) {
+      setSubmitError(null);
+    }
   };
 
-  // Handle array field changes
   const handleArrayChange = (type, index, value) => {
     setFormData(prev => {
       const currentArray = Array.isArray(prev[type]) ? prev[type] : [''];
@@ -99,9 +122,12 @@ const TemplateTaskForm = ({
         [type]: newArray
       };
     });
+    
+    if (submitError) {
+      setSubmitError(null);
+    }
   };
 
-  // Add new array item
   const addArrayItem = (type) => {
     setFormData(prev => {
       const currentArray = Array.isArray(prev[type]) ? prev[type] : [''];
@@ -112,7 +138,6 @@ const TemplateTaskForm = ({
     });
   };
 
-  // Remove array item
   const removeArrayItem = (type, index) => {
     setFormData(prev => {
       const currentArray = Array.isArray(prev[type]) ? prev[type] : [''];
@@ -125,7 +150,10 @@ const TemplateTaskForm = ({
     });
   };
 
-  // Form validation
+  // ============================================================================
+  // FORM LOGIC
+  // ============================================================================
+  
   const validateForm = () => {
     const newErrors = {};
     
@@ -141,7 +169,6 @@ const TemplateTaskForm = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Prepare data for submission
   const prepareFormData = () => {
     return {
       ...formData,
@@ -159,380 +186,280 @@ const TemplateTaskForm = ({
     };
   };
 
-  // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      const cleanedData = prepareFormData();
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setSubmitError(null);
+    
+    const cleanedData = prepareFormData();
+    
+    // Warn about duration calculation if needed
+    if (hasChildren && cleanedData.duration_days < minRequiredDuration) {
+      alert(`This template has child tasks that require at least ${minRequiredDuration} days. The duration value you've set will be stored, but the template will display with the calculated duration based on its children.`);
+    }
+    
+    try {
+      const result = await onSubmit(cleanedData);
       
-      // If this task has children, inform the user about duration calculation
-      if (hasChildren && cleanedData.duration_days < minRequiredDuration) {
-        alert(`This template has child tasks that require at least ${minRequiredDuration} days. The duration value you've set will be stored, but the template will display with the calculated duration based on its children.`);
+      if (result?.error) {
+        setSubmitError(result.error);
+        return; // Keep form open on error
       }
       
-      onSubmit(cleanedData);
+      // Success - parent will handle closing the form
+      
+    } catch (error) {
+      console.error('Form submission error:', error);
+      setSubmitError(error.message || 'An unexpected error occurred');
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  // ============================================================================
+  // COMPUTED VALUES
+  // ============================================================================
   
-  // Simplified header text - always for child templates
-  const getHeaderText = () => {
-    if (isEditing) {
-      return 'Edit Template';
-    }
-    return 'Add Child Template';  // Simplified since parentTaskId is always present
-  };
-  
-  // Safe arrays
   const safeActions = Array.isArray(formData.actions) ? formData.actions : [''];
   const safeResources = Array.isArray(formData.resources) ? formData.resources : [''];
+
+  // ============================================================================
+  // RENDER COMPONENTS
+  // ============================================================================
+  
+  const renderErrorMessage = () => {
+    if (!submitError) return null;
+    
+    return (
+      <div className="bg-red-50 border border-red-400 text-red-700 px-3 py-2 rounded text-sm">
+        {submitError}
+      </div>
+    );
+  };
+
+  const renderTitleField = () => (
+    <div>
+      <label htmlFor="title" className="block font-bold mb-1 text-gray-900">
+        Template Title *
+      </label>
+      <input
+        id="title"
+        name="title"
+        type="text"
+        value={formData.title || ''}
+        onChange={handleChange}
+        disabled={isSubmitting}
+        className={`
+          w-full px-2 py-2 rounded border outline-none transition-all
+          ${errors.title 
+            ? 'border-red-500 focus:border-red-600 focus:ring-1 focus:ring-red-200' 
+            : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200'
+          }
+          ${isSubmitting ? 'opacity-60 bg-gray-100' : 'bg-white'}
+        `}
+        placeholder="Enter template title"
+      />
+      {errors.title && (
+        <p className="text-red-500 text-xs mt-1">{errors.title}</p>
+      )}
+    </div>
+  );
+
+  const renderDurationField = () => (
+    <div>
+      <label htmlFor="duration_days" className="block font-bold mb-1 text-gray-900">
+        Duration (days)
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          id="duration_days"
+          name="duration_days"
+          type="number"
+          min="1"
+          value={formData.duration_days || 1}
+          onChange={handleChange}
+          disabled={isSubmitting}
+          className={`
+            w-20 px-2 py-2 rounded border outline-none transition-all
+            ${errors.duration_days 
+              ? 'border-red-500 focus:border-red-600 focus:ring-1 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200'
+            }
+            ${isSubmitting ? 'opacity-60 bg-gray-100' : 'bg-white'}
+          `}
+        />
+        <span className="text-sm text-gray-500">days</span>
+      </div>
+      
+      {hasChildren && (
+        <p className="text-xs text-gray-500 mt-1 italic">
+          Note: This template has children that require at least {minRequiredDuration} days. 
+          The displayed duration will be auto-calculated.
+        </p>
+      )}
+      
+      {errors.duration_days && (
+        <p className="text-red-500 text-xs mt-1">{errors.duration_days}</p>
+      )}
+    </div>
+  );
+
+  const renderTextAreaField = (name, label, rows = 2, placeholder = '') => (
+    <div>
+      <label htmlFor={name} className="block font-bold mb-1 text-gray-900">
+        {label}
+      </label>
+      <textarea
+        id={name}
+        name={name}
+        value={formData[name] || ''}
+        onChange={handleChange}
+        disabled={isSubmitting}
+        rows={rows}
+        className={`
+          w-full px-2 py-2 rounded border border-gray-300 outline-none resize-y transition-all
+          focus:border-blue-500 focus:ring-1 focus:ring-blue-200
+          ${isSubmitting ? 'opacity-60 bg-gray-100' : 'bg-white'}
+        `}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+
+  const renderArrayField = (type, label, placeholder) => (
+    <div>
+      <label className="block font-bold mb-1 text-gray-900">{label}</label>
+      <div className="space-y-2">
+        {(type === 'actions' ? safeActions : safeResources).map((item, index) => (
+          <div key={`${type}-${index}`} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={item || ''}
+              onChange={(e) => handleArrayChange(type, index, e.target.value)}
+              disabled={isSubmitting}
+              className={`
+                flex-1 px-2 py-2 rounded border border-gray-300 outline-none transition-all
+                focus:border-blue-500 focus:ring-1 focus:ring-blue-200
+                ${isSubmitting ? 'opacity-60 bg-gray-100' : 'bg-white'}
+              `}
+              placeholder={placeholder}
+            />
+            <button
+              type="button"
+              onClick={() => removeArrayItem(type, index)}
+              disabled={isSubmitting}
+              className={`
+                px-2 py-2 rounded border-none bg-gray-100 text-gray-600 transition-all
+                ${isSubmitting 
+                  ? 'cursor-not-allowed opacity-60' 
+                  : 'cursor-pointer hover:bg-gray-200'
+                }
+              `}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => addArrayItem(type)}
+          disabled={isSubmitting}
+          className={`
+            px-2 py-1 rounded border border-gray-300 bg-white flex items-center text-xs gap-1 transition-all
+            ${isSubmitting 
+              ? 'cursor-not-allowed opacity-60' 
+              : 'cursor-pointer hover:bg-gray-50 hover:border-gray-400'
+            }
+          `}
+        >
+          <span>Add {label.slice(0, -1)}</span>
+          <span>+</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderFormButtons = () => (
+    <div className="flex justify-end gap-3 pt-2">
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={isSubmitting}
+        className={`
+          px-4 py-2 rounded border border-gray-300 bg-white text-gray-700 transition-all
+          ${isSubmitting 
+            ? 'cursor-not-allowed opacity-60' 
+            : 'cursor-pointer hover:bg-gray-50 hover:border-gray-400'
+          }
+        `}
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className={`
+          px-4 py-2 rounded border-none text-white flex items-center gap-2 transition-all
+          ${isSubmitting 
+            ? 'bg-gray-500 cursor-not-allowed' 
+            : 'bg-green-600 cursor-pointer hover:bg-green-700'
+          }
+        `}
+      >
+        {isSubmitting && (
+          <div className="w-4 h-4 border-2 border-white border-opacity-30 border-t-white rounded-full animate-spin" />
+        )}
+        {isSubmitting 
+          ? (isEditing ? 'Updating...' : 'Adding...') 
+          : (isEditing ? 'Update Template' : 'Add Child Template Task')
+        }
+      </button>
+    </div>
+  );
+
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
   
   return (
-    <div style={{
-      backgroundColor: '#f9fafb',
-      borderRadius: '4px',
-      border: '1px solid #e5e7eb',
-      height: '100%',
-      overflow: 'auto'
-    }}>
+    <div className="bg-gray-50 rounded border border-gray-200 h-full overflow-auto">
       {/* Header */}
-      <div style={{
-        backgroundColor: backgroundColor,
-        color: 'white',
-        padding: '16px',
-        borderTopLeftRadius: '4px',
-        borderTopRightRadius: '4px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h3 style={{ margin: 0, fontWeight: 'bold' }}>
-          {getHeaderText()}
-        </h3>
+      <div 
+        className="text-white p-4 rounded-t flex justify-between items-center"
+        style={{ backgroundColor: backgroundColor }}
+      >
+        <h3 className="m-0 font-bold">{getHeaderText()}</h3>
         <button 
           onClick={onCancel}
-          style={{
-            background: 'rgba(255, 255, 255, 0.2)',
-            border: 'none',
-            borderRadius: '50%',
-            color: 'white',
-            cursor: 'pointer',
-            width: '24px',
-            height: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px'
-          }}
+          disabled={isSubmitting}
+          className={`
+            bg-white bg-opacity-20 border-none rounded-full text-white w-6 h-6 
+            flex items-center justify-center text-xs transition-opacity
+            ${isSubmitting 
+              ? 'cursor-not-allowed opacity-60' 
+              : 'cursor-pointer hover:bg-opacity-30'
+            }
+          `}
         >
           ✕
         </button>
       </div>
       
       {/* Form */}
-      <form onSubmit={handleSubmit} style={{ padding: '16px' }}>
-        {/* Title Field */}
-        <div style={{ marginBottom: '16px' }}>
-          <label 
-            htmlFor="title"
-            style={{ 
-              display: 'block', 
-              fontWeight: 'bold', 
-              marginBottom: '4px' 
-            }}
-          >
-            Template Title *
-          </label>
-          <input
-            id="title"
-            name="title"
-            type="text"
-            value={formData.title || ''}
-            onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: '8px',
-              borderRadius: '4px',
-              border: `1px solid ${errors.title ? '#ef4444' : '#d1d5db'}`,
-              outline: 'none'
-            }}
-          />
-          {errors.title && (
-            <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-              {errors.title}
-            </p>
-          )}
-        </div>
-        
-        {/* Duration Field */}
-        <div style={{ marginBottom: '16px' }}>
-          <label 
-            htmlFor="duration_days"
-            style={{ 
-              display: 'block', 
-              fontWeight: 'bold', 
-              marginBottom: '4px' 
-            }}
-          >
-            Duration (days)
-          </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              id="duration_days"
-              name="duration_days"
-              type="number"
-              min="1"
-              value={formData.duration_days || 1}
-              onChange={handleChange}
-              style={{
-                width: '80px',
-                padding: '8px',
-                borderRadius: '4px',
-                border: `1px solid ${errors.duration_days ? '#ef4444' : '#d1d5db'}`,
-                outline: 'none'
-              }}
-            />
-            <span style={{ fontSize: '14px', color: '#6b7280' }}>days</span>
-          </div>
-          
-          {/* Show helper text if this is a parent template with children */}
-          {hasChildren && (
-            <p style={{ 
-              fontSize: '12px', 
-              color: '#6b7280', 
-              margin: '4px 0 0 0',
-              fontStyle: 'italic'
-            }}>
-              Note: This template has children that require at least {minRequiredDuration} days. The displayed duration will be auto-calculated.
-            </p>
-          )}
-          
-          {errors.duration_days && (
-            <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-              {errors.duration_days}
-            </p>
-          )}
-        </div>
-        
-        
-        
-        {/* Purpose Field */}
-        <div style={{ marginBottom: '16px' }}>
-          <label 
-            htmlFor="purpose"
-            style={{ 
-              display: 'block', 
-              fontWeight: 'bold', 
-              marginBottom: '4px' 
-            }}
-          >
-            Purpose
-          </label>
-          <textarea
-            id="purpose"
-            name="purpose"
-            value={formData.purpose || ''}
-            onChange={handleChange}
-            rows={2}
-            style={{
-              width: '100%',
-              padding: '8px',
-              borderRadius: '4px',
-              border: '1px solid #d1d5db',
-              outline: 'none',
-              resize: 'vertical'
-            }}
-          />
-        </div>
-        
-        {/* Description Field */}
-        <div style={{ marginBottom: '16px' }}>
-          <label 
-            htmlFor="description"
-            style={{ 
-              display: 'block', 
-              fontWeight: 'bold', 
-              marginBottom: '4px' 
-            }}
-          >
-            Description
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description || ''}
-            onChange={handleChange}
-            rows={3}
-            style={{
-              width: '100%',
-              padding: '8px',
-              borderRadius: '4px',
-              border: '1px solid #d1d5db',
-              outline: 'none',
-              resize: 'vertical'
-            }}
-          />
-        </div>
-        
-        {/* Actions Array */}
-        <div style={{ marginBottom: '16px' }}>
-          <label 
-            style={{ 
-              display: 'block', 
-              fontWeight: 'bold', 
-              marginBottom: '4px' 
-            }}
-          >
-            Actions
-          </label>
-          {safeActions.map((action, index) => (
-            <div key={`action-${index}`} style={{ 
-              display: 'flex', 
-              marginBottom: '8px',
-              alignItems: 'center' 
-            }}>
-              <input
-                type="text"
-                value={action || ''}
-                onChange={(e) => handleArrayChange('actions', index, e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid #d1d5db',
-                  outline: 'none'
-                }}
-                placeholder="Enter an action step"
-              />
-              <button
-                type="button"
-                onClick={() => removeArrayItem('actions', index)}
-                style={{
-                  marginLeft: '8px',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  background: '#f3f4f6',
-                  cursor: 'pointer'
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => addArrayItem('actions')}
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              border: '1px solid #d1d5db',
-              background: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              fontSize: '12px'
-            }}
-          >
-            <span style={{ marginRight: '4px' }}>Add Action</span>
-            <span>+</span>
-          </button>
-        </div>
-        
-        {/* Resources Array */}
-        <div style={{ marginBottom: '24px' }}>
-          <label 
-            style={{ 
-              display: 'block', 
-              fontWeight: 'bold', 
-              marginBottom: '4px' 
-            }}
-          >
-            Resources
-          </label>
-          {safeResources.map((resource, index) => (
-            <div key={`resource-${index}`} style={{ 
-              display: 'flex', 
-              marginBottom: '8px',
-              alignItems: 'center' 
-            }}>
-              <input
-                type="text"
-                value={resource || ''}
-                onChange={(e) => handleArrayChange('resources', index, e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid #d1d5db',
-                  outline: 'none'
-                }}
-                placeholder="Enter a resource"
-              />
-              <button
-                type="button"
-                onClick={() => removeArrayItem('resources', index)}
-                style={{
-                  marginLeft: '8px',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  background: '#f3f4f6',
-                  cursor: 'pointer'
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => addArrayItem('resources')}
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              border: '1px solid #d1d5db',
-              background: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              fontSize: '12px'
-            }}
-          >
-            <span style={{ marginRight: '4px' }}>Add Resource</span>
-            <span>+</span>
-          </button>
-        </div>
-        
-        {/* Form Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-          <button
-            type="button"
-            onClick={onCancel}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '4px',
-              border: '1px solid #d1d5db',
-              background: 'white',
-              cursor: 'pointer'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            style={{
-              padding: '8px 16px',
-              borderRadius: '4px',
-              border: 'none',
-              background: '#10b981',
-              color: 'white',
-              cursor: 'pointer'
-            }}
-          >
-            {isEditing ? 'Update Template' : 'Add Child Template'}
-          </button>
-        </div>
+      <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        {renderErrorMessage()}
+        {renderTitleField()}
+        {renderDurationField()}
+        {renderTextAreaField('purpose', 'Purpose', 2, 'What is this template for?')}
+        {renderTextAreaField('description', 'Description', 3, 'Describe this template')}
+        {renderArrayField('actions', 'Actions', 'Enter an action step')}
+        {renderArrayField('resources', 'Resources', 'Enter a resource')}
+        {renderFormButtons()}
       </form>
     </div>
   );

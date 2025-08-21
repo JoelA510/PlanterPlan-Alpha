@@ -227,20 +227,19 @@ const TemplateList = () => {
       });
       
       if (result.error) {
-        throw new Error(result.error);
+        return result; // Return the error for form to handle
       }
       
       setIsCreatingNewTemplate(false);
       return result;
     } catch (err) {
       console.error('Error creating new template:', err);
-      alert(`Failed to create new template: ${err.message}`);
       return { error: err.message };
     }
   };
 
   // ✅ Handler for adding a template task (child) to an existing template
-  const handleTemplateTaskSubmit = async (templateData) => {
+  const handleAddTemplateTaskSubmit = async (templateData) => {
     try {
       const parentId = addingChildToTemplateId || copyingChildTemplate?.parentId;
       
@@ -251,7 +250,7 @@ const TemplateList = () => {
       });
       
       if (result.error) {
-        throw new Error(result.error);
+        return result;
       }
       
       setAddingChildToTemplateId(null);
@@ -259,7 +258,6 @@ const TemplateList = () => {
       return result;
     } catch (err) {
       console.error('Error adding template task:', err);
-      alert(`Failed to add template task: ${err.message}`);
       return { error: err.message };
     }
   };
@@ -429,7 +427,7 @@ const TemplateList = () => {
       return (
         <TemplateTaskForm
           parentTaskId={copyingChildTemplate.parentId}
-          onSubmit={handleTemplateTaskSubmit}
+          onSubmit={handleAddTemplateTaskSubmit}
           onCancel={cancelTemplateCreation}
           backgroundColor={backgroundColor}
           tasks={tasks}
@@ -460,7 +458,7 @@ const TemplateList = () => {
       return (
         <TemplateTaskForm
           parentTaskId={addingChildToTemplateId}
-          onSubmit={handleTemplateTaskSubmit}
+          onSubmit={handleAddTemplateTaskSubmit}
           onCancel={cancelTemplateCreation}
           backgroundColor={backgroundColor}
           tasks={tasks}
