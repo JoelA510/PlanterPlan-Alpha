@@ -14,7 +14,7 @@ import {
 } from '../../services/taskService';
 import TaskDetailsPanel from './TaskDetailsPanel';
 import TemplateProjectCreator from '../TemplateProject/TemplateProjectCreator';
-import InvitationTest from '../InvitationTest';
+import Invitations from '../Invitations';
 import SearchBar from '../Search/SearchBar';
 import SearchResults from '../Search/SearchResults';
 import { useSearch } from '../contexts/SearchContext';
@@ -756,7 +756,7 @@ const TaskList = () => {
   };
 
   const renderRightPanel = () => {
-    if (showInvitationTest) return <InvitationTest />;
+    if (showInvitationTest) return <Invitations />;
     if (isCreatingProject)
       return (
         <NewProjectForm

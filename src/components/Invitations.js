@@ -6,7 +6,7 @@ import { useInvitations } from '../hooks/useInvitations'; // Import the new hook
 import { getInvitationsSentByUser } from '../services/invitationService';
 import { supabase } from '../supabaseClient';
 
-const InvitationTest = () => {
+const Invitations = () => {
   const { user } = useAuth();
   const { instanceTasks, fetchTasks } = useTasks(); // Only get what we need from TaskContext
   
@@ -564,4 +564,4 @@ const InvitationTest = () => {
   );
 };
 
-export default InvitationTest;
+export default Invitations;
