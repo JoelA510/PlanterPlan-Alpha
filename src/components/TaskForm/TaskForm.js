@@ -1,11 +1,9 @@
-// This is the updated TaskForm component with URL detection for resources and Master Library search
-// src/components/TaskForm/TaskForm.js
-
+// src/components/TaskForm/TaskForm.js - Updated with Tailwind CSS styling
 import React, { useState, useRef } from 'react';
 import { useTaskForm } from './useTaskForm';
 import { formatDisplayDate } from '../../utils/taskUtils';
-import URLTextComponent from '../URLTextComponent'; // Import the URL component
-import MasterLibraryPopup from './MasterLibraryPopup'; // Import the popup component
+import URLTextComponent from '../URLTextComponent';
+import MasterLibraryPopup from './MasterLibraryPopup';
 
 const TaskForm = ({ 
   parentTaskId,
@@ -13,11 +11,14 @@ const TaskForm = ({
   onSubmit, 
   onCancel, 
   backgroundColor,
-  originType = 'instance', // Default to template, but can be overridden
-  initialData = null, // For editing existing tasks
-  isEditing = false  // Flag to indicate we're editing
+  originType = 'instance',
+  initialData = null,
+  isEditing = false  
 }) => {
-  // Master Library popup state
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
+  
   const [showMasterLibraryPopup, setShowMasterLibraryPopup] = useState(false);
   const formRef = useRef(null);
 
@@ -33,14 +34,43 @@ const TaskForm = ({
     removeArrayItem,
     validateForm,
     prepareFormData,
-    setFormData // We need this to update form data from copied template
+    setFormData
   } = useTaskForm(initialData, parentStartDate);
 
-  // Handle copying a master library task to the form
+  // ============================================================================
+  // UTILITY FUNCTIONS
+  // ============================================================================
+  
+  const getHeaderText = () => {
+    if (isEditing) {
+      return 'Edit Task';
+    } else if (initialData) {
+      return 'Edit Task';
+    } else if (!parentTaskId) {
+      return originType === 'template' ? 'Add Template' : 'Add Project';
+    } else {
+      return originType === 'template' ? 'Add Template Task' : 'Add Subtask';
+    }
+  };
+
+  const getFormPosition = () => {
+    if (formRef.current) {
+      const rect = formRef.current.getBoundingClientRect();
+      return {
+        top: rect.top,
+        left: rect.left
+      };
+    }
+    return { top: 100, left: 500 };
+  };
+
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
+  
   const handleCopyMasterLibraryTask = (templateTask) => {
     console.log('Copying master library task to form:', templateTask);
     
-    // Parse array fields safely
     const parseArrayField = (field) => {
       if (Array.isArray(field)) return field.length > 0 ? field : [''];
       if (!field) return [''];
@@ -55,18 +85,14 @@ const TaskForm = ({
       return [''];
     };
 
-    // Update form data with template data, preserving existing dates and parent info
     setFormData(prev => ({
       ...prev,
-      // Copy template content
       title: templateTask.title || prev.title,
       purpose: templateTask.purpose || prev.purpose,
       description: templateTask.description || prev.description,
       actions: parseArrayField(templateTask.actions),
       resources: parseArrayField(templateTask.resources),
-      // Use template duration but preserve form's date calculations
       duration_days: templateTask.default_duration || templateTask.duration_days || prev.duration_days,
-      // Keep existing parent relationship and dates
       parent_task_id: prev.parent_task_id,
       start_date: prev.start_date,
       due_date: prev.due_date,
@@ -74,23 +100,9 @@ const TaskForm = ({
     }));
 
     setShowMasterLibraryPopup(false);
-    
-    // Show success message
     console.log('✅ Master library task copied successfully');
   };
 
-  // Get form position for popup positioning
-  const getFormPosition = () => {
-    if (formRef.current) {
-      const rect = formRef.current.getBoundingClientRect();
-      return {
-        top: rect.top,
-        left: rect.left
-      };
-    }
-    return { top: 100, left: 500 };
-  };
-  
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -105,399 +117,204 @@ const TaskForm = ({
       });
     }
   };
+
+  // ============================================================================
+  // COMPUTED VALUES
+  // ============================================================================
   
-  // Determine the header text based on origin type and whether we're editing
-  const getHeaderText = () => {
-    if (isEditing) {
-      return 'Edit Task';
-    } else if (initialData) {
-      return 'Edit Task';
-    } else if (!parentTaskId) {
-      return originType === 'template' ? 'Add Template' : 'Add Project';
-    } else {
-      return originType === 'template' ? 'Add Template Task' : 'Add Subtask';
-    }
-  };
+  const safeActions = Array.isArray(formData.actions) ? formData.actions : [''];
+  const safeResources = Array.isArray(formData.resources) ? formData.resources : [''];
+
+  // ============================================================================
+  // RENDER COMPONENTS
+  // ============================================================================
   
-  // IMPORTANT: Safeguard arrays to prevent mapping errors
-  // These are fallbacks in case formData has issues
-  const safeActions = Array.isArray(formData.actions) ? formData.actions : [];
-  const safeResources = Array.isArray(formData.resources) ? formData.resources : [];
+  const renderHeader = () => (
+    <div 
+      className="text-white p-4 rounded-t flex justify-between items-center"
+      style={{ backgroundColor: backgroundColor }}
+    >
+      <h3 className="m-0 font-bold text-lg">
+        {getHeaderText()}
+      </h3>
+      
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowMasterLibraryPopup(true)}
+          className="bg-white bg-opacity-20 border border-white border-opacity-30 rounded text-white px-3 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors hover:bg-white hover:bg-opacity-30"
+          title="Search Master Library templates to copy"
+        >
+          <span>🔍</span>
+          <span>Copy from Library</span>
+        </button>
+        
+        <button 
+          onClick={onCancel}
+          className="bg-white bg-opacity-20 border-none rounded-full text-white w-6 h-6 flex items-center justify-center text-xs cursor-pointer hover:bg-white hover:bg-opacity-30 transition-colors"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderTitleField = () => (
+    <div className="mb-4">
+      <label htmlFor="title" className="block font-bold mb-1 text-gray-900">
+        Title *
+      </label>
+      <input
+        id="title"
+        name="title"
+        type="text"
+        value={formData.title || ''}
+        onChange={handleChange}
+        className={`
+          w-full px-2 py-2 rounded border outline-none transition-colors
+          ${errors.title 
+            ? 'border-red-500 focus:border-red-600' 
+            : 'border-gray-300 focus:border-blue-500'
+          }
+        `}
+        placeholder="Enter task title"
+      />
+      {errors.title && (
+        <p className="text-red-500 text-xs mt-1">{errors.title}</p>
+      )}
+    </div>
+  );
+
+  const renderScheduleSection = () => (
+    <div className="mb-4 p-3 bg-gray-100 rounded">
+      <div className="mb-3">
+        <label htmlFor="duration_days" className="block font-bold mb-1 text-gray-900">
+          Duration (days)
+        </label>
+        <input
+          id="duration_days"
+          name="duration_days"
+          type="number"
+          min="1"
+          value={formData.duration_days || 1}
+          onChange={handleChange}
+          className="w-20 px-2 py-2 rounded border border-gray-300 outline-none focus:border-blue-500"
+        />
+        
+        {formData.start_date && formData.due_date && (
+          <div className="mt-3 text-sm text-gray-600 bg-gray-50 p-2 rounded">
+            <div><strong>Start Date:</strong> {formatDisplayDate(formData.start_date)}</div>
+            <div><strong>End Date:</strong> {formatDisplayDate(formData.due_date)}</div>
+            <div className="mt-1 text-xs italic">
+              Note: Changing duration will update the end date accordingly.
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderTextAreaField = (name, label, rows = 2, placeholder = '') => (
+    <div className="mb-4">
+      <label htmlFor={name} className="block font-bold mb-1 text-gray-900">
+        {label}
+      </label>
+      <textarea
+        id={name}
+        name={name}
+        value={formData[name] || ''}
+        onChange={handleChange}
+        rows={rows}
+        className="w-full px-2 py-2 rounded border border-gray-300 outline-none resize-y focus:border-blue-500"
+        placeholder={placeholder}
+      />
+    </div>
+  );
+
+  const renderArrayField = (type, label, placeholder, isResourceField = false) => (
+    <div className="mb-4">
+      <label className="block font-bold mb-1 text-gray-900">{label}</label>
+      <div className="space-y-2">
+        {(type === 'actions' ? safeActions : safeResources).map((item, index) => (
+          <div key={`${type}-${index}`} className="flex items-start gap-2">
+            {isResourceField ? (
+              <URLTextComponent
+                value={item || ''}
+                onChange={(newValue) => handleArrayChange(type, index, newValue)}
+                placeholder={placeholder}
+                style={{ flex: 1 }}
+              />
+            ) : (
+              <input
+                type="text"
+                value={item || ''}
+                onChange={(e) => handleArrayChange(type, index, e.target.value)}
+                className="flex-1 px-2 py-2 rounded border border-gray-300 outline-none focus:border-blue-500"
+                placeholder={placeholder}
+              />
+            )}
+            <button
+              type="button"
+              onClick={() => removeArrayItem(type, index)}
+              className={`px-2 py-2 rounded border-none bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors ${isResourceField ? 'mt-2' : ''}`}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => addArrayItem(type)}
+          className="px-2 py-1 rounded border border-gray-300 bg-white cursor-pointer flex items-center text-xs gap-1 hover:bg-gray-50 transition-colors"
+        >
+          <span>Add {label.slice(0, -1)}</span>
+          <span>+</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderFormButtons = () => (
+    <div className="flex justify-end gap-3">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="px-4 py-2 rounded border border-gray-300 bg-white cursor-pointer hover:bg-gray-50 transition-colors"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        className="px-4 py-2 rounded border-none bg-green-600 text-white cursor-pointer hover:bg-green-700 transition-colors"
+      >
+        {isEditing || initialData ? 'Update Task' : 'Add Task'}
+      </button>
+    </div>
+  );
+
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
   
   return (
     <>
       <div 
         ref={formRef}
-        style={{
-          backgroundColor: '#f9fafb',
-          borderRadius: '4px',
-          border: '1px solid #e5e7eb',
-          height: '100%',
-          overflow: 'auto'
-        }}
+        className="bg-gray-50 rounded border border-gray-200 h-full overflow-auto"
       >
-        <div style={{
-          backgroundColor: backgroundColor,
-          color: 'white',
-          padding: '16px',
-          borderTopLeftRadius: '4px',
-          borderTopRightRadius: '4px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h3 style={{ margin: 0, fontWeight: 'bold' }}>
-            {getHeaderText()}
-          </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Master Library Search Button */}
-            <button
-              type="button"
-              onClick={() => setShowMasterLibraryPopup(true)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '4px',
-                color: 'white',
-                cursor: 'pointer',
-                padding: '6px 12px',
-                fontSize: '12px',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'background-color 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-              title="Search Master Library templates to copy"
-            >
-              <span>🔍</span>
-              <span>Copy from Library</span>
-            </button>
-            <button 
-              onClick={onCancel}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                borderRadius: '50%',
-                color: 'white',
-                cursor: 'pointer',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px'
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+        {renderHeader()}
         
-        <form onSubmit={handleSubmit} style={{ padding: '16px' }}>
-          <div style={{ marginBottom: '16px' }}>
-            <label 
-              htmlFor="title"
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px' 
-              }}
-            >
-              Title *
-            </label>
-            <input
-              id="title"
-              name="title"
-              type="text"
-              value={formData.title || ''}
-              onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: `1px solid ${errors.title ? '#ef4444' : '#d1d5db'}`,
-                outline: 'none'
-              }}
-            />
-            {errors.title && (
-              <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                {errors.title}
-              </p>
-            )}
-          </div>
-          
-          {/* Simplified schedule section - only duration for instance tasks */}
-          <div style={{ 
-            marginBottom: '16px',
-            padding: '12px',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '4px',
-          }}>
-            
-            {/* Only show duration field */}
-            <div style={{ marginBottom: '12px' }}>
-              <label 
-                htmlFor="duration_days"
-                style={{ 
-                  display: 'block', 
-                  fontWeight: 'bold', 
-                  marginBottom: '4px'
-                }}
-              >
-                Duration (days)
-              </label>
-              <input
-                id="duration_days"
-                name="duration_days"
-                type="number"
-                min="1"
-                value={formData.duration_days || 1}
-                onChange={handleChange}
-                style={{
-                  width: '80px',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid #d1d5db',
-                  outline: 'none'
-                }}
-              />
-              
-              {/* Display the current date range (read-only) */}
-              {formData.start_date && formData.due_date && (
-                <div style={{ 
-                  marginTop: '12px', 
-                  fontSize: '14px', 
-                  color: '#4b5563',
-                  backgroundColor: '#f9fafb',
-                  padding: '8px',
-                  borderRadius: '4px' 
-                }}>
-                  <div><strong>Start Date:</strong> {formatDisplayDate(formData.start_date)}</div>
-                  <div><strong>End Date:</strong> {formatDisplayDate(formData.due_date)}</div>
-                  <div style={{ marginTop: '4px', fontSize: '12px', fontStyle: 'italic' }}>
-                    Note: Changing duration will update the end date accordingly.
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <label 
-              htmlFor="purpose"
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px' 
-              }}
-            >
-              Purpose
-            </label>
-            <textarea
-              id="purpose"
-              name="purpose"
-              value={formData.purpose || ''}
-              onChange={handleChange}
-              rows={2}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                outline: 'none',
-                resize: 'vertical'
-              }}
-            />
-          </div>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <label 
-              htmlFor="description"
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px' 
-              }}
-            >
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description || ''}
-              onChange={handleChange}
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                outline: 'none',
-                resize: 'vertical'
-              }}
-            />
-          </div>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <label 
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px' 
-              }}
-            >
-              Actions
-            </label>
-            {safeActions.map((action, index) => (
-              <div key={`action-${index}`} style={{ 
-                display: 'flex', 
-                marginBottom: '8px',
-                alignItems: 'center' 
-              }}>
-                <input
-                  type="text"
-                  value={action || ''}
-                  onChange={(e) => handleArrayChange('actions', index, e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    borderRadius: '4px',
-                    border: '1px solid #d1d5db',
-                    outline: 'none'
-                  }}
-                  placeholder="Enter an action step"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeArrayItem('actions', index)}
-                  style={{
-                    marginLeft: '8px',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    border: 'none',
-                    background: '#f3f4f6',
-                    cursor: 'pointer'
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => addArrayItem('actions')}
-              style={{
-                padding: '4px 8px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                background: 'white',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                fontSize: '12px'
-              }}
-            >
-              <span style={{ marginRight: '4px' }}>Add Action</span>
-              <span>+</span>
-            </button>
-          </div>
-          
-          {/* ✅ UPDATED: Resources section with URL detection */}
-          <div style={{ marginBottom: '24px' }}>
-            <label 
-              style={{ 
-                display: 'block', 
-                fontWeight: 'bold', 
-                marginBottom: '4px' 
-              }}
-            >
-              Resources
-            </label>
-            {safeResources.map((resource, index) => (
-              <div key={`resource-${index}`} style={{ 
-                display: 'flex', 
-                marginBottom: '8px',
-                alignItems: 'flex-start' 
-              }}>
-                <URLTextComponent
-                  value={resource || ''}
-                  onChange={(newValue) => handleArrayChange('resources', index, newValue)}
-                  placeholder="Enter a resource (URLs will be automatically detected)"
-                  style={{
-                    flex: 1,
-                    marginRight: '8px'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeArrayItem('resources', index)}
-                  style={{
-                    marginTop: '8px',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    border: 'none',
-                    background: '#f3f4f6',
-                    cursor: 'pointer'
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => addArrayItem('resources')}
-              style={{
-                padding: '4px 8px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                background: 'white',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                fontSize: '12px'
-              }}
-            >
-              <span style={{ marginRight: '4px' }}>Add Resource</span>
-              <span>+</span>
-            </button>
-          </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <button
-              type="button"
-              onClick={onCancel}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                background: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{
-                padding: '8px 16px',
-                borderRadius: '4px',
-                border: 'none',
-                background: '#10b981',
-                color: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              {isEditing || initialData ? 'Update Task' : 'Add Task'}
-            </button>
-          </div>
+        <form onSubmit={handleSubmit} className="p-4">
+          {renderTitleField()}
+          {renderScheduleSection()}
+          {renderTextAreaField('purpose', 'Purpose', 2, 'What is the purpose of this task?')}
+          {renderTextAreaField('description', 'Description', 3, 'Describe this task')}
+          {renderArrayField('actions', 'Actions', 'Enter an action step')}
+          {renderArrayField('resources', 'Resources', 'Enter a resource (URLs will be automatically detected)', true)}
+          {renderFormButtons()}
         </form>
       </div>
 
-      {/* Master Library Popup */}
       <MasterLibraryPopup
         isOpen={showMasterLibraryPopup}
         onClose={() => setShowMasterLibraryPopup(false)}
