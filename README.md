@@ -2,7 +2,98 @@
 
 ## Executive Summary
 
-A comprehensive React-based task and project management application with Supabase backend integration. The application supports hierarchical task management, template systems, team collaboration, white-label customization, and license-based project creation limits.
+PlanterPlan is a specialized project management web application designed specifically for church planters to manage the complex process of launching a new church. The app provides structured task templates, collaborative features, and comprehensive resources to guide planters through the 9-month church planting journey. This document outlines requirements for a complete system rewrite that maintains existing functionality while fixing partial implementations and adding new features.
+
+## Core Concept
+
+The application addresses the challenge that church planters face: managing hundreds of tasks within a 9-month timeframe without prior experience. PlanterPlan provides:
+- Pre-built task templates organized hierarchically
+- Detailed instructions and resources for each task
+- Collaborative team management
+- Timeline management with automated due date calculations
+- White-label capabilities for partner organizations
+
+## System Architecture
+
+### Hierarchy Structure
+1. **Phases** - Major stages of the church planting process
+2. **Milestones** - Key accomplishments within each phase
+3. **Tasks** - Specific action items within milestones
+4. **Subtasks** - Granular child tasks under main tasks
+
+### User Roles & Permissions
+- **Project Owner**: Full edit access, settings management, user invitation
+- **Full User**: View and edit all tasks
+- **Limited User**: View all, edit only assigned tasks
+- **Coach**: View all, edit only coaching-specific tasks
+
+## Current Features (Fully Functional)
+
+### User Experience Features
+- Account creation and management
+- Project creation from templates
+- Store functionality with Stripe integration
+- Due date engine with automatic date calculations
+- Project customization (add/delete/modify tasks)
+- Team collaboration and user invitation system
+- Progress visualization (donut charts)
+- Task detail management with rich content
+- Resource library (searchable/filterable)
+- Multiple task list views (Priority, Overdue, Due Soon, Current, etc.)
+- Alternative checkpoint-based project architecture
+- Monthly status reports
+
+### Administrator Features
+- Analytics dashboard
+- Content management for master library
+- Template creation and management
+- User and license management
+- White-label organization administration
+
+### White-Label Features
+- Custom branding and URLs
+- Organization-specific administration
+- View-only access for organizational oversight
+
+## Features Requiring Fixes (Partially Functional)
+
+### Critical Fixes Needed
+1. CORS error during new user registration
+2. Case-sensitive email field issue
+3. Search functionality in both user and admin interfaces
+4. Print formatting for status reports
+5. Master library display when adding custom tasks
+6. New project notification emails to administrators
+7. Priority view filtering logic (orphaned tasks/empty milestones)
+8. Project menu dropdown filtering for archived projects
+
+## Features to Complete (Partially Coded)
+
+### Priority Completions
+1. **Automated Reporting**: Monthly status reports sent automatically to supervisors on the 2nd of each month
+2. **Smart Task Filtering**: 
+   - Hide already-included tasks when adding from library
+   - Show topically related tasks with "show more" option
+   - Bulk task selection capability
+3. **Strategy Templates**: New task type that prompts library additions upon completion
+4. **Coaching Tasks**: Auto-assignment to users with Coach permissions
+5. **Advanced User Management**: Filters for user activity, task completion, login history
+
+## Additional Development Requests
+
+### Enhanced User Experience
+1. Drag-and-drop reordering with automatic renumbering
+2. Push notifications for:
+   - Weekly priority task summaries
+   - Overdue task alerts
+   - Task comments
+3. Multi-language interface support
+4. API integrations (Zoho CRM, Zoho Analytics)
+5. File upload system (AWS or similar)
+6. Calendar integration via ICS feed
+7. Due dates for checkpoint-based phases
+8. Multiple sorting options (chronological, alphabetical, numerical)
+9. Gantt chart reporting for phases and milestones
 
 ## Table of Contents
 
