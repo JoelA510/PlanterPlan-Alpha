@@ -1,0 +1,429 @@
+# repo-context.yaml
+# PlanterPlan Task Management System
+# Generated from pseudo-code analysis
+
+# ==========================================
+# 1. SEMANTIC DEPENDENCY GRAPH
+# ==========================================
+modules:
+  # CORE STATE MANAGEMENT
+  TaskContext:
+    purpose: "Central orchestrator for all task operations and state"
+    capabilities:
+      - "Parallel fetch of instance/template tasks"
+      - "Optimistic drag-drop with background sync"
+      - "Cascading date recalculation with caching"
+      - "License-based project creation limits"
+      - "Multi-hook integration for CRUD operations"
+    dependencies:
+      strong: [AuthContext, OrganizationProvider, taskService, DateCacheEngine]
+      weak: [useLicenses, useTaskCreation, useTaskDeletion, useTaskUpdate, useTaskDates]
+    exports:
+      state:
+        - tasks: "Task[] - All tasks (instance + template)"
+        - loading: "boolean - Fetch/operation status"
+        - isFetching: "boolean - Active fetch flag"
+      actions:
+        - fetchTasks: "(forceRefresh?) -> Promise<{instanceTasks, templateTasks}>"
+        - createTask: "(taskData, licenseId?) -> Promise<Task>"
+        - handleOptimisticDragDrop: "(draggedId, newParentId, newPosition, oldParentId) -> void"
+        - recalculateDatesOptimistic: "(taskList) -> Task[]"
+    health:
+      change_frequency: high
+      complexity: "Coordinates 6+ hooks, manages optimistic updates"
+      known_issues:
+        - "Optimistic updates can desync on network failure"
+        - "Date recalculation triggered too frequently"
+        - "Member projects not fully integrated"
+
+  AuthContext:
+    purpose: "Authentication state and user session management"
+    capabilities:
+      - "Supabase auth integration"
+      - "User profile fetching from users table"
+      - "Role-based permission checking"
+    dependencies:
+      strong: [supabaseClient, authService]
+    exports:
+      state:
+        - user: "User | null - Current authenticated user"
+        - userInfo: "UserProfile | null - Extended profile from DB"
+        - userRole: "string | null - User's role"
+      actions:
+        - hasRole: "(role: string) -> boolean"
+        - fetchUserInfo: "(authUser) -> Promise<void>"
+
+  OrganizationProvider:
+    purpose: "White-label organization context and theming"
+    capabilities:
+      - "Organization data by slug/path detection"
+      - "CSS variable injection for theming"
+      - "Fallback to default Planter Plan org"
+      - "Auto-refresh on visibility change (5min stale)"
+    dependencies:
+      strong: [organizationService, AuthContext]
+    exports:
+      state:
+        - organization: "Org | null - Current org with branding"
+        - organizationId: "string | null"
+      actions:
+        - fetchOrganizationData: "() -> Promise<void>"
+    health:
+      features: "Applies primary/secondary/tertiary colors via CSS vars"
+
+  SearchContext:
+    purpose: "Task filtering and search functionality"
+    capabilities:
+      - "Multi-field text search (title, desc, purpose, actions, resources)"
+      - "Status filtering (complete, overdue, due today/week)"
+      - "Task type filtering (my tasks, created by me, assigned)"
+      - "Quick filter presets"
+    dependencies:
+      strong: [TaskContext, AuthContext]
+    exports:
+      state:
+        - searchFilters: "{text, status, taskType, timeframe, projectFilter, includeTemplates}"
+        - isSearchActive: "boolean"
+        - filteredTasks: "Task[] - Filtered results"
+      actions:
+        - updateFilter: "(filterType, value) -> void"
+        - applyQuickFilter: "(preset) -> void"
+        - clearAllFilters: "() -> void"
+
+  # BUSINESS LOGIC HOOKS
+  TaskOperations:
+    purpose: "Modular task CRUD operations"
+    modules:
+      useTaskCreation:
+        capabilities: ["License validation", "Position calculation", "Date enhancement"]
+        provides: "createTask() with business rules"
+      useTaskDeletion:
+        capabilities: ["Recursive deletion", "Hierarchy reordering", "Duration updates"]
+        provides: "deleteTask() with cascade options"
+      useTaskUpdate:
+        capabilities: ["Impact analysis", "Template ancestor updates", "Date cascading"]
+        provides: "updateTask() with change detection"
+      useTaskDates:
+        capabilities: ["Date caching", "Incremental updates", "Duration calculations"]
+        provides: "Cached date operations"
+      useTemplateToProject:
+        capabilities: ["Deep hierarchy cloning", "Sequential date calculation", "License marking"]
+        provides: "createProjectFromTemplate()"
+
+  # UI COMPONENTS
+  TaskManagementUI:
+    purpose: "Task display and interaction layer"
+    components:
+      TaskList:
+        capabilities: ["Hierarchical display", "Drag-drop zones", "Search integration", "Project creation"]
+        dependencies: [TaskContext, SearchContext, HTML5DragDropZone]
+      TaskItem:
+        capabilities: ["Recursive rendering", "Drag handles", "Completion toggle", "Visual feedback"]
+        dependencies: [TaskList, dragUtils]
+      TaskDetailsPanel:
+        capabilities: ["View/edit modes", "Field validation", "Member display", "Date calculations"]
+        dependencies: [TaskForm, TaskContext]
+
+  DragDropSystem:
+    purpose: "Drag and drop infrastructure"
+    components:
+      HTML5DragDropZone:
+        capabilities: ["Between/into drop zones", "Visual feedback", "Hover detection"]
+      dragUtils:
+        capabilities: ["Position calculation", "Touch support", "Keyboard support", "Cycle detection"]
+      sparsePositioning:
+        capabilities: ["1000-increment positioning", "Renormalization detection", "Insert calculation"]
+
+  # SERVICE LAYER
+  APIServices:
+    purpose: "Supabase database operations"
+    modules:
+      taskService:
+        capabilities: ["CRUD with RLS", "Batch updates", "Master library", "Statistics"]
+        tables: ['tasks', 'master_library_tasks', 'master_library_view']
+      licenseService:
+        capabilities: ["Key generation (XXXX-XXXX-XXXX)", "Usage tracking", "Project limits"]
+        tables: ['licenses']
+      organizationService:
+        capabilities: ["Org CRUD", "Theme management", "Logo storage"]
+        tables: ['white_label_orgs']
+      resourceService:
+        capabilities: ["Resource CRUD", "Format validation", "Tag management"]
+        tables: ['resources']
+
+# ==========================================
+# 2. BEHAVIOR SPECIFICATIONS
+# ==========================================
+behaviors:
+  ProjectCreation:
+    trigger: "User clicks New Project"
+    variants:
+      blank_project:
+        when: "!userHasProjects OR hasValidLicense"
+        flow:
+          1: "Show NewProjectForm"
+          2: "Validate license key if needed"
+          3: "Apply license via licenseService"
+          4: "Create task with position 0"
+          5: "Mark license as used"
+        fails_when: ["No license for 2nd+ project", "Invalid license key"]
+        
+      from_template:
+        when: "templateSelected AND licenseValid"
+        flow:
+          1: "Select template from list"
+          2: "Set project name and start date"
+          3: "getAllTemplateTasksInHierarchy()"
+          4: "Create root project"
+          5: "Recursively create children by level"
+          6: "calculateSequentialStartDates()"
+        maintains: ["Hierarchy preserved", "Dates cascade from start"]
+
+  TaskDragDrop:
+    trigger: "User drags task"
+    
+    drag_start:
+      validates: 
+        - "!isTopLevel (can't drag root)"
+        - "user.canEdit"
+      shows: "Drop zones (between/into)"
+      stores: "draggedTask in context"
+      
+    drop_zones:
+      between:
+        purpose: "Reorder within parent"
+        visual: "Blue line, height 2px → 12px on hover"
+        position: "calculateInsertPosition(siblings, index)"
+        
+      into:
+        purpose: "Nest as child"
+        visual: "Green dashed border"
+        validates: "!wouldCreateCircularDependency"
+        
+    on_drop:
+      immediate:
+        - "handleOptimisticDragDrop() updates UI"
+        - "Position set via sparse positioning"
+        - "Visual feedback removed"
+      async_100ms:
+        - "syncTaskPositionToDatabase()"
+        - "recalculateDatesOptimistic()"
+        - "updateAncestorDurations() if template"
+
+  TaskCompletion:
+    trigger: "Checkbox clicked"
+    validates: "user.canEdit"
+    updates:
+      - "task.is_complete toggled"
+      - "Visual: line-through, opacity 0.7"
+      - "Excluded from overdue calculations"
+
+  DateCalculations:
+    modes:
+      calculate_end_date:
+        input: [start_date, duration_days]
+        output: "due_date = start + duration"
+        
+      calculate_duration:
+        input: [start_date, due_date]
+        output: "duration_days = due - start"
+        
+    cascading_rules:
+      - "Parent duration >= sum(children durations)"
+      - "Children start sequentially after siblings"
+      - "Template changes update all ancestors"
+      - "Uses DateCacheEngine for performance"
+
+  ResourceManagement:
+    formats: [pdf, hyperlink, powerpoint, microsoft_doc]
+    validations:
+      - "URL required for hyperlinks"
+      - "Title max 200 chars"
+      - "Tags max 10, each max 50 chars"
+    filtering: "By format, text search, my resources only"
+
+# ==========================================
+# 3. CONTRACTS & INTERFACES
+# ==========================================
+contracts:
+  TaskContext:
+    createTask:
+      input:
+        required: {title: string}
+        optional: {parent_task_id: string, licenseId: string, duration_days: number}
+      output: "Promise<Task>"
+      errors: 
+        - NO_LICENSE: "User needs license for 2nd+ project"
+        - INVALID_PARENT: "Parent task doesn't exist"
+        - POSITION_CONFLICT: "Position calculation failed"
+      side_effects:
+        - "Appends to tasks array"
+        - "Triggers updateTaskDates()"
+        - "Updates parent duration if child"
+        - "Invalidates DateCacheEngine"
+        
+    handleOptimisticDragDrop:
+      input: {draggedId: string, newParentId: string, newPosition: number, oldParentId: string}
+      guarantees:
+        - "UI updates immediately (no await)"
+        - "recalculateDatesOptimistic() runs sync"
+        - "DB sync within 100ms timeout"
+        - "Rollback on sync failure (TODO)"
+      
+  TaskService:
+    fetchAllTasks:
+      input: {organizationId: string, userId: string, origin: 'instance'|'template'}
+      output: "Promise<{data: Task[], error: Error}>"
+      behavior:
+        - "Fetches by origin + creator/org filter"
+        - "Includes recursive descendants if projectId"
+        - "Orders by position"
+        
+    updateTaskPosition:
+      input: {taskId: string, newPosition: number, newParentId: string}
+      behavior:
+        - "Updates position/parent atomically"
+        - "Reorders siblings if needed"
+        - "Returns success/error"
+
+  LicenseService:
+    validateLicense:
+      input: {licenseKey: string, userId: string}
+      validates:
+        - "Format: XXXX-XXXX-XXXX"
+        - "Not already used"
+        - "User matches or null"
+      output: "{success: boolean, data?: License}"
+      
+    markLicenseAsUsed:
+      input: {licenseId: string}
+      side_effects: ["Sets is_used=true", "Prevents reuse"]
+
+  DateCacheEngine:
+    calculateAllDates:
+      input: {tasks: Task[], projectStartDate: Date}
+      algorithm:
+        - "Builds dependency map (affects/affectedBy)"
+        - "Processes in dependency order"
+        - "Caches with version hash"
+        - "Returns full date map"
+      performance: "O(n) with memoization"
+
+# ==========================================
+# 4. EVENT FLOWS & STATE MACHINES
+# ==========================================
+events:
+  TaskCreated:
+    source: ["NewProjectForm", "TaskForm", "Template instantiation"]
+    payload: {id, title, parent_task_id, position, origin, duration_days}
+    triggers:
+      sync:
+        - UpdateState: "tasks.push(newTask)"
+        - ExpandParent: "expandedTasks[parentId] = true"
+      async:
+        - UpdateDates: "dateHook.updateTaskDates([newId])"
+        - RecalcAncestors: "if template: updateAncestorDurations()"
+        - InvalidateCache: "DateCacheEngine.clearCache()"
+        
+  DragOperation:
+    states: [idle, dragging, hovering, dropped]
+    flow:
+      1_start: 
+        event: "mousedown on drag handle"
+        validates: "!isTopLevel"
+        transition: "idle → dragging"
+        shows: "All valid drop zones"
+        
+      2_hover:
+        event: "dragover on zone"
+        transition: "dragging → hovering"
+        visual: "Zone expands, color intensifies"
+        
+      3_drop:
+        event: "mouseup on zone"
+        transition: "hovering → dropped"
+        calculates: "New position via sparsePositioning"
+        updates: "Optimistic → Sync to DB"
+        
+      4_complete:
+        transition: "dropped → idle"
+        cleanup: "Remove zones, clear draggedTask"
+
+  TemplateInstantiation:
+    trigger: "User submits TemplateProjectCreator"
+    flow:
+      validate_license:
+        check: "userHasProjects requires license"
+        apply: "licenseService.validateLicense()"
+        
+      clone_hierarchy:
+        get: "getAllTemplateTasksInHierarchy(templateId)"
+        build: "templateTasksByLevel map"
+        
+      create_root:
+        data: "{title: projectName, start_date: startDate}"
+        action: "createTask(data, licenseId)"
+        
+      create_children:
+        iterate: "By level for proper parent refs"
+        maintain: "Template → Project ID mapping"
+        preserve: "Relative positions"
+        
+      finalize:
+        calculate: "Sequential dates from root"
+        mark: "License as used"
+        notify: "onProjectCreated callback"
+
+state_machines:
+  TaskLifecycle:
+    states: [draft, active, complete, archived]
+    transitions:
+      - from: draft, to: active, when: "start_date reached"
+      - from: active, to: complete, when: "is_complete = true"
+      - from: complete, to: active, when: "is_complete = false"
+      - from: any, to: archived, when: "archived flag set"
+      
+  LicenseValidation:
+    states: [checking, valid, invalid, applied]
+    transitions:
+      - from: checking, to: valid, when: "key format valid & unused"
+      - from: valid, to: applied, when: "project created"
+      - from: checking, to: invalid, when: "bad format or used"
+      
+  DateCalculationMode:
+    states: [calculateEndDate, calculateDuration]
+    behavior:
+      calculateEndDate: "User sets duration → system calculates due"
+      calculateDuration: "User sets both dates → system calculates duration"
+
+# ==========================================
+# SYSTEM HEALTH INDICATORS
+# ==========================================
+health_metrics:
+  technical_debt:
+    high:
+      - "No rollback for failed optimistic updates"
+      - "DateCacheEngine invalidates too aggressively"
+      - "Member projects partially implemented"
+    medium:
+      - "Renormalization not fully tested"
+      - "Search doesn't handle large datasets"
+      - "No conflict resolution for concurrent edits"
+    low:
+      - "Some CSS in JS instead of classes"
+      - "Console.logs still in production code"
+      
+  performance:
+    bottlenecks:
+      - "Date recalculation on every drag operation"
+      - "Full task list re-render on single update"
+      - "No pagination for large projects"
+    optimizations:
+      - "DateCacheEngine memoization"
+      - "Sparse positioning reduces updates"
+      - "Optimistic updates for perceived speed"
+      
+  test_coverage:
+    good: [Authentication, LicenseService]
+    moderate: [TaskContext, DragDrop]
+    poor: [DateCalculations, Templates]
