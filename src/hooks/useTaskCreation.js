@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '../components/contexts/AuthContext';
 import { useOrganization } from '../components/contexts/OrganizationProvider';
 import { useLicenses } from './useLicenses';
-import { createTask } from '../services/taskService';
+import { createTask as apiCreateTask } from '../services/taskService';
 import { getNextAvailablePosition } from '../utils/sparsePositioning';
 import { 
   calculateDueDate,
@@ -84,7 +84,7 @@ export const useTaskCreation = () => {
       console.log('Enhanced task data with sparse positioning:', enhancedTaskData);
       
       // Create the task in database
-      const result = await createTask(enhancedTaskData);
+      const result = await apiCreateTask(enhancedTaskData);
       
       if (result.error) {
         console.error('Error from createTask API:', result.error);
