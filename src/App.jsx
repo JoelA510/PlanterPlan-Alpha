@@ -1,37 +1,47 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginForm from './components/auth/LoginForm';
-
-// Import TaskList component
 import TaskList from './components/tasks/TaskList';
-
-// Dashboard component with logout functionality  
+// Dashboard component with modern styling
 const Dashboard = () => {
   const { user, signOut } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">PlanterPlan Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">
-              Welcome, {user?.email}
-            </span>
-            <button
-              onClick={signOut}
-              className="text-sm text-indigo-600 hover:text-indigo-500"
-            >
-              Sign Out
-            </button>
+    <div className="min-h-screen bg-slate-50">
+      {/* Modern header with gradient */}
+      <header className="bg-white shadow-sm border-b border-gray-100">
+        <div className="max-w-6xl mx-auto py-6 px-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">PlanterPlan</h1>
+              <p className="text-slate-600 text-sm mt-1">Church Planting Project Management</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <div className="text-sm font-medium text-slate-900">{user?.email}</div>
+                <div className="text-xs text-slate-500">Project Manager</div>
+              </div>
+              <button
+                onClick={signOut}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <TaskList />
+
+      {/* Modern main content area */}
+      <main className="max-w-6xl mx-auto py-8 px-6">
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-slate-900 mb-2">Your Projects</h2>
+          <p className="text-slate-600">Manage your church planting projects and track progress.</p>
         </div>
+        
+        <TaskList />
       </main>
     </div>
   );
