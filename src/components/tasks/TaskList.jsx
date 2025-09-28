@@ -62,11 +62,22 @@ const TaskList = () => {
     return rootTasks.sort((a, b) => (a.position || 0) - (b.position || 0));
   };
 
+  // Separate tasks by origin
+  const separateTasksByOrigin = (tasks) => {
+    const instanceTasks = tasks.filter(task => task.origin === 'instance');
+    const templateTasks = tasks.filter(task => task.origin === 'template');
+    
+    return {
+      instanceTasks: buildTaskHierarchy(instanceTasks),
+      templateTasks: buildTaskHierarchy(templateTasks)
+    };
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
           <span className="text-slate-600 font-medium">Loading your projects...</span>
         </div>
       </div>
@@ -75,7 +86,7 @@ const TaskList = () => {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <div className="flex items-center">
           <div className="text-red-600 font-semibold">Error loading projects</div>
         </div>
@@ -84,9 +95,9 @@ const TaskList = () => {
     );
   }
 
-  const hierarchicalTasks = buildTaskHierarchy(tasks);
+  const { instanceTasks, templateTasks } = separateTasksByOrigin(tasks);
 
-  if (hierarchicalTasks.length === 0) {
+  if (instanceTasks.length === 0 && templateTasks.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="max-w-md mx-auto">
@@ -103,57 +114,49 @@ const TaskList = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {hierarchicalTasks.map(project => (
-        <div key={project.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
-          {/* Modern project header */}
-          <div className="px-8 py-6 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-indigo-600 rounded-full"></div>
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    {project.title}
-                  </h2>
-                  {project.origin === 'template' && (
-                    <span className="inline-block mt-1 px-3 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
-                      Template Project
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              {/* Task count badge */}
-              <div className="text-right">
-                <div className="text-2xl font-bold text-slate-900">
-                  {project.children ? project.children.length : 0}
-                </div>
-                <div className="text-xs text-slate-500 font-medium">
-                  {project.children?.length === 1 ? 'Task' : 'Tasks'}
-                </div>
-              </div>
-            </div>
+    <div className="dashboard-container">
+      {/* Dashboard Header */}
+      <div className="dashboard-header">
+        <h1 className="dashboard-title">Dashboard</h1>
+      </div>
+
+      {/* Instance Tasks (Projects) Section */}
+      {instanceTasks.length > 0 && (
+        <div className="task-section">
+          <div className="section-header">
+            <h2 className="section-title">Projects</h2>
+            <span className="section-count">{instanceTasks.length}</span>
           </div>
-          
-          {/* Tasks list */}
-          <div className="min-h-[120px]">
-            {project.children && project.children.length > 0 ? (
-              project.children.map(task => (
-                <TaskItem 
-                  key={task.id} 
-                  task={task} 
-                  level={0}
-                />
-              ))
-            ) : (
-              <div className="px-8 py-8 text-center">
-                <div className="text-slate-400 text-sm">No tasks in this project</div>
-                <div className="text-slate-300 text-xs mt-1">Add tasks to get started</div>
-              </div>
-            )}
+          <div className="task-cards-container">
+            {instanceTasks.map(project => (
+              <TaskItem 
+                key={project.id} 
+                task={project} 
+                level={0}
+              />
+            ))}
           </div>
         </div>
-      ))}
+      )}
+
+      {/* Template Tasks Section */}
+      {templateTasks.length > 0 && (
+        <div className="task-section">
+          <div className="section-header">
+            <h2 className="section-title">Templates</h2>
+            <span className="section-count">{templateTasks.length}</span>
+          </div>
+          <div className="task-cards-container">
+            {templateTasks.map(template => (
+              <TaskItem 
+                key={template.id} 
+                task={template} 
+                level={0}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

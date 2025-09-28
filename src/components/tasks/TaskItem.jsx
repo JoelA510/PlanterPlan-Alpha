@@ -4,69 +4,96 @@ const TaskItem = ({ task, level = 0 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const hasChildren = task.children && task.children.length > 0;
-  const indentWidth = level * 24; // 24px per level for better spacing
+  const indentWidth = level * 24; // 24px per level for indentation
 
-  // Different styling for different hierarchy levels
-  const getTaskStyles = () => {
-    const baseClasses = "py-3 px-8 hover:bg-slate-50 transition-colors duration-150 group";
-    
+  // Get background color based on level (matching the first screenshot colors)
+  const getBackgroundColor = () => {
     if (level === 0) {
-      return `${baseClasses} border-l-4 border-l-indigo-500 bg-indigo-50/30`;
+      return 'bg-gray-600'; // Gray for top level projects
     } else if (level === 1) {
-      return `${baseClasses} border-l-2 border-l-slate-300`;
+      return 'bg-blue-600'; // Blue for first level tasks
+    } else if (level === 2) {
+      return 'bg-blue-500'; // Lighter blue for second level
+    } else if (level === 3) {
+      return 'bg-blue-400'; // Even lighter blue for third level
     } else {
-      return `${baseClasses}`;
-    }
-  };
-
-  const getTextStyles = () => {
-    if (level === 0) {
-      return "text-base font-semibold text-slate-900";
-    } else if (level === 1) {
-      return "text-sm font-medium text-slate-800";
-    } else {
-      return "text-sm text-slate-700";
+      return 'bg-blue-300'; // Lightest blue for deeper levels
     }
   };
 
   return (
-    <div className="border-b border-gray-50 last:border-b-0">
-      {/* Task row */}
+    <>
+      {/* Task card/bar */}
       <div 
-        className={getTaskStyles()}
-        style={{ paddingLeft: `${32 + indentWidth}px` }}
+        className={`task-card ${getBackgroundColor()}`}
+        style={{ marginLeft: `${indentWidth}px` }}
       >
-        <div className="flex items-center">
-          {/* Elegant expand/collapse button */}
-          {hasChildren ? (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="mr-4 w-5 h-5 flex items-center justify-center rounded-full hover:bg-slate-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
-            >
-              <svg 
-                className={`w-3 h-3 text-slate-500 transition-transform duration-300 ease-out ${isExpanded ? 'rotate-90' : ''}`}
-                fill="currentColor" 
-                viewBox="0 0 20 20"
-              >
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+        <div className="task-card-content">
+          {/* Left side - drag handle and expand/collapse */}
+          <div className="task-card-left">
+            <div className="drag-handle">
+              <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+                <circle cx="2" cy="2" r="1" fill="currentColor"/>
+                <circle cx="6" cy="2" r="1" fill="currentColor"/>
+                <circle cx="2" cy="7" r="1" fill="currentColor"/>
+                <circle cx="6" cy="7" r="1" fill="currentColor"/>
+                <circle cx="2" cy="12" r="1" fill="currentColor"/>
+                <circle cx="6" cy="12" r="1" fill="currentColor"/>
               </svg>
-            </button>
-          ) : (
-            <div className="mr-4 w-5 h-5 flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-slate-300 rounded-full"></div>
             </div>
-          )}
-          
-          {/* Clean task title without badges */}
-          <span className={getTextStyles()}>
+            
+            {hasChildren ? (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="expand-button"
+              >
+                <svg 
+                  className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
+                  width="12" 
+                  height="12" 
+                  viewBox="0 0 12 12"
+                  fill="currentColor"
+                >
+                  <path d="M4.5 3L7.5 6L4.5 9V3Z"/>
+                </svg>
+              </button>
+            ) : (
+              <div className="expand-spacer"></div>
+            )}
+
+            {/* Status icon/checkbox */}
+            {task.is_complete ? (
+              <div className="status-icon completed">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <path d="M10 3L4.5 8.5L2 6"/>
+                </svg>
+              </div>
+            ) : (
+              <div className="status-icon incomplete"></div>
+            )}
+          </div>
+
+          {/* Task title */}
+          <div className="task-card-title">
             {task.title}
-          </span>
+          </div>
+
+          {/* Right side - dropdown button for projects only */}
+          <div className="task-card-right">
+            {level === 0 && (
+              <button className="dropdown-button">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <path d="M6 8L3 5h6l-3 3z"/>
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Children with smooth reveal animation */}
-      {hasChildren && isExpanded && (
-        <div className="animate-fade-in">
+      {/* Render children if expanded - this will hide ALL descendants when collapsed */}
+      {isExpanded && hasChildren && task.children && (
+        <div className="task-children">
           {task.children.map(child => (
             <TaskItem 
               key={child.id} 
@@ -76,7 +103,7 @@ const TaskItem = ({ task, level = 0 }) => {
           ))}
         </div>
       )}
-    </div>
+    </>
   );
 };
 
