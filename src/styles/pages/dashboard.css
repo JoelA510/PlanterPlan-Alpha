@@ -1,0 +1,61 @@
+/* Dashboard Page Styles */
+
+/* Task Section */
+.task-section {
+    margin-bottom: 32px;
+  }
+  
+  .task-section:last-child {
+    margin-bottom: 32px;
+  }
+  
+  /* Section Header */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+  
+  .section-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+  }
+  
+  .section-count {
+    background: #e5e7eb;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 12px;
+    min-width: 24px;
+    text-align: center;
+  }
+  
+  /* Task Cards Container */
+  .task-cards-container {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    padding: 8px;
+  }
+  
+  @media (max-width: 768px) {
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 0 2px;
+    }
+  }
