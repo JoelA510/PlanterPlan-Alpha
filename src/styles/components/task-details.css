@@ -1,0 +1,150 @@
+/* Task Details View Styles */
+
+.task-details {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  /* Detail Sections */
+  .detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .detail-section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+  
+  .detail-section-content {
+    font-size: 0.875rem;
+    color: #1f2937;
+    line-height: 1.5;
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  
+  /* Task Type Badge */
+  .task-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .task-type-badge.instance {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  
+  .task-type-badge.template {
+    background: #fae8ff;
+    color: #86198f;
+  }
+  
+  /* Status Badge */
+  .status-badge-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  
+  .status-badge.complete {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  
+  .status-badge.incomplete {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  
+  /* Date Information Grid */
+  .date-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .date-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+  }
+  
+  .date-label {
+    font-size: 0.813rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .date-value {
+    font-size: 0.813rem;
+    color: #1f2937;
+    font-weight: 500;
+  }
+  
+  /* Metadata Section */
+  .detail-metadata {
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .metadata-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 0.75rem;
+  }
+  
+  .metadata-label {
+    color: #9ca3af;
+    font-weight: 500;
+  }
+  
+  .metadata-value {
+    color: #6b7280;
+  }
+  
+  /* Selected Task Card Highlight */
+  .task-card.selected {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  .task-card {
+    cursor: pointer;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .task-details {
+      gap: 20px;
+    }
+  
+    .date-info-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+  }

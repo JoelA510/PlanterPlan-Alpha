@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 
-const TaskItem = ({ task, level = 0 }) => {
+const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const hasChildren = task.children && task.children.length > 0;
   const indentWidth = level * 24; // 24px per level for indentation
+  const isSelected = selectedTaskId === task.id;
 
   // Get background color based on level (matching the first screenshot colors)
   const getBackgroundColor = () => {
@@ -21,12 +22,23 @@ const TaskItem = ({ task, level = 0 }) => {
     }
   };
 
+  const handleCardClick = (e) => {
+    // Don't trigger if clicking on expand button or other interactive elements
+    if (e.target.closest('.expand-button') || e.target.closest('.status-icon')) {
+      return;
+    }
+    if (onTaskClick) {
+      onTaskClick(task);
+    }
+  };
+
   return (
     <>
       {/* Task card/bar */}
       <div 
-        className={`task-card ${getBackgroundColor()}`}
+        className={`task-card ${getBackgroundColor()} ${isSelected ? 'selected' : ''}`}
         style={{ marginLeft: `${indentWidth}px` }}
+        onClick={handleCardClick}
       >
         <div className="task-card-content">
           {/* Left side - drag handle and expand/collapse */}
@@ -99,6 +111,8 @@ const TaskItem = ({ task, level = 0 }) => {
               key={child.id} 
               task={child} 
               level={level + 1}
+              onTaskClick={onTaskClick}
+              selectedTaskId={selectedTaskId}
             />
           ))}
         </div>

@@ -32,16 +32,12 @@ The application addresses the challenge that church planters face: managing hund
 ### User Experience Features
 - Account creation and management
 - Project creation from templates
-- Store functionality with Stripe integration
-- Due date engine with automatic date calculations
 - Project customization (add/delete/modify tasks)
 - Team collaboration and user invitation system
-- Progress visualization (donut charts)
 - Task detail management with rich content
 - Resource library (searchable/filterable)
 - Multiple task list views (Priority, Overdue, Due Soon, Current, etc.)
 - Alternative checkpoint-based project architecture
-- Monthly status reports
 
 ### Administrator Features
 - Analytics dashboard
@@ -58,14 +54,16 @@ The application addresses the challenge that church planters face: managing hund
 ## Features Requiring Fixes (Partially Functional)
 
 ### Critical Fixes Needed
-1. CORS error during new user registration
-2. Case-sensitive email field issue
-3. Search functionality in both user and admin interfaces
-4. Print formatting for status reports
-5. Master library display when adding custom tasks
-6. New project notification emails to administrators
-7. Priority view filtering logic (orphaned tasks/empty milestones)
-8. Project menu dropdown filtering for archived projects
+1. Due date engine with automatic date calculations
+2. CORS error during new user registration
+3. Case-sensitive email field issue
+4. Search functionality in both user and admin interfaces
+5. Monthly status reports (print formatting for status reports)
+6. Master library display when adding custom tasks
+7. New project notification emails to administrators
+8. Priority view filtering logic (orphaned tasks/empty milestones)
+9. Project menu dropdown filtering for archived projects
+
 
 ## Features to Complete (Partially Coded)
 
@@ -78,7 +76,12 @@ The application addresses the challenge that church planters face: managing hund
 3. **Strategy Templates**: New task type that prompts library additions upon completion
 4. **Coaching Tasks**: Auto-assignment to users with Coach permissions
 5. **Advanced User Management**: Filters for user activity, task completion, login history
+- Progress visualization (donut charts)
 
+### Lower Priority Completions:
+6. **Store functionality**: Stripe integration, Admin management
+    - items purchasable: resources, licenses, etc
+7. Analytics
 ## Additional Development Requests
 
 ### Enhanced User Experience

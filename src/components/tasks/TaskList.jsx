@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import TaskItem from './TaskItem';
 import NewProjectForm from './NewProjectForm';
+import TaskDetailsView from './TaskDetailsView';
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
     fetchTasks();
@@ -15,7 +17,6 @@ const TaskList = () => {
 
   const fetchTasks = async () => {
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -23,7 +24,6 @@ const TaskList = () => {
         return;
       }
 
-      // Fetch tasks for current user
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
@@ -42,17 +42,14 @@ const TaskList = () => {
     }
   };
 
-  // Build hierarchy: find root tasks (no parent) and their children
   const buildTaskHierarchy = (tasks) => {
     const taskMap = {};
     const rootTasks = [];
 
-    // Create a map of all tasks
     tasks.forEach(task => {
       taskMap[task.id] = { ...task, children: [] };
     });
 
-    // Build hierarchy
     tasks.forEach(task => {
       if (task.parent_task_id && taskMap[task.parent_task_id]) {
         taskMap[task.parent_task_id].children.push(taskMap[task.id]);
@@ -64,7 +61,6 @@ const TaskList = () => {
     return rootTasks.sort((a, b) => (a.position || 0) - (b.position || 0));
   };
 
-  // Separate tasks by origin
   const separateTasksByOrigin = (tasks) => {
     const instanceTasks = tasks.filter(task => task.origin === 'instance');
     const templateTasks = tasks.filter(task => task.origin === 'template');
@@ -75,23 +71,24 @@ const TaskList = () => {
     };
   };
 
-  // Handle project creation
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+    setShowForm(false);
+  };
+
   const handleCreateProject = async (formData) => {
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      // Calculate position for new project (max position + 1000)
       const instanceTasks = tasks.filter(t => t.origin === 'instance' && !t.parent_task_id);
       const maxPosition = instanceTasks.length > 0 
         ? Math.max(...instanceTasks.map(t => t.position || 0))
         : 0;
 
-      // Create the project
       const { data, error } = await supabase
         .from('tasks')
         .insert([{
@@ -111,11 +108,9 @@ const TaskList = () => {
 
       if (error) throw error;
 
-      // Add the new project to local state
       setTasks(prev => [...prev, data]);
-      
-      // Hide the form after successful creation
       setShowForm(false);
+      setSelectedTask(null);
       
     } catch (error) {
       console.error('Error creating project:', error);
@@ -150,7 +145,6 @@ const TaskList = () => {
   if (instanceTasks.length === 0 && templateTasks.length === 0) {
     return (
       <div className="split-layout">
-        {/* Left side - Empty state */}
         <div className="task-list-area">
           <div className="text-center py-12">
             <div className="max-w-md mx-auto">
@@ -165,7 +159,6 @@ const TaskList = () => {
           </div>
         </div>
 
-        {/* Right side - Permanent form panel */}
         <div className="permanent-side-panel">
           <div className="panel-header">
             <h2 className="panel-title">New Project</h2>
@@ -183,13 +176,11 @@ const TaskList = () => {
 
   return (
     <div className="split-layout">
-      {/* Left side - Scrollable task list */}
       <div className="task-list-area">
         <div className="dashboard-header">
           <h1 className="dashboard-title">Dashboard</h1>
         </div>
 
-        {/* Instance Tasks (Projects) Section */}
         {instanceTasks.length > 0 && (
           <div className="task-section">
             <div className="section-header">
@@ -198,7 +189,10 @@ const TaskList = () => {
                 <span className="section-count">{instanceTasks.length}</span>
               </div>
               <button
-                onClick={() => setShowForm(true)}
+                onClick={() => {
+                  setShowForm(true);
+                  setSelectedTask(null);
+                }}
                 className="btn-new-item"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -213,13 +207,14 @@ const TaskList = () => {
                   key={project.id} 
                   task={project} 
                   level={0}
+                  onTaskClick={handleTaskClick}
+                  selectedTaskId={selectedTask?.id}
                 />
               ))}
             </div>
           </div>
         )}
 
-        {/* Template Tasks Section */}
         {templateTasks.length > 0 && (
           <div className="task-section">
             <div className="section-header">
@@ -234,6 +229,8 @@ const TaskList = () => {
                   key={template.id} 
                   task={template} 
                   level={0}
+                  onTaskClick={handleTaskClick}
+                  selectedTaskId={selectedTask?.id}
                 />
               ))}
             </div>
@@ -241,11 +238,10 @@ const TaskList = () => {
         )}
       </div>
 
-      {/* Right side - Permanent form panel */}
       <div className="permanent-side-panel">
         <div className="panel-header">
           <h2 className="panel-title">
-            {showForm ? 'New Project' : 'Details'}
+            {showForm ? 'New Project' : selectedTask ? 'Task Details' : 'Details'}
           </h2>
           {showForm && (
             <button
@@ -255,6 +251,14 @@ const TaskList = () => {
               Hide Form
             </button>
           )}
+          {selectedTask && !showForm && (
+            <button
+              onClick={() => setSelectedTask(null)}
+              className="panel-header-btn"
+            >
+              Close
+            </button>
+          )}
         </div>
         <div className="panel-content">
           {showForm ? (
@@ -262,6 +266,8 @@ const TaskList = () => {
               onSubmit={handleCreateProject}
               onCancel={() => setShowForm(false)}
             />
+          ) : selectedTask ? (
+            <TaskDetailsView task={selectedTask} />
           ) : (
             <div className="empty-panel-state">
               <div className="empty-panel-icon">
