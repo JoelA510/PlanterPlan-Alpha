@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import TaskItem from './TaskItem';
 import NewProjectForm from './NewProjectForm';
+import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from './TaskDetailsView';
 
 const TaskList = () => {
@@ -10,6 +11,8 @@ const TaskList = () => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [parentTaskForNewChild, setParentTaskForNewChild] = useState(null);
 
   useEffect(() => {
     fetchTasks();
@@ -74,6 +77,14 @@ const TaskList = () => {
   const handleTaskClick = (task) => {
     setSelectedTask(task);
     setShowForm(false);
+    setShowTaskForm(false);
+  };
+
+  const handleAddChildTask = (parentTask) => {
+    setParentTaskForNewChild(parentTask);
+    setShowTaskForm(true);
+    setShowForm(false);
+    setSelectedTask(null);
   };
 
   const handleCreateProject = async (formData) => {
@@ -114,6 +125,49 @@ const TaskList = () => {
       
     } catch (error) {
       console.error('Error creating project:', error);
+      throw error;
+    }
+  };
+
+  const handleCreateChildTask = async (formData) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Calculate position among siblings
+      const siblings = tasks.filter(t => t.parent_task_id === parentTaskForNewChild.id);
+      const maxPosition = siblings.length > 0 
+        ? Math.max(...siblings.map(t => t.position || 0))
+        : 0;
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([{
+          title: formData.title,
+          description: formData.description || null,
+          purpose: formData.purpose || null,
+          actions: formData.actions || null,
+          resources: formData.resources || null,
+          origin: 'instance',
+          creator: user.id,
+          parent_task_id: parentTaskForNewChild.id,
+          position: maxPosition + 1000,
+          is_complete: false
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTasks(prev => [...prev, data]);
+      setShowTaskForm(false);
+      setParentTaskForNewChild(null);
+      
+    } catch (error) {
+      console.error('Error creating child task:', error);
       throw error;
     }
   };
@@ -209,6 +263,7 @@ const TaskList = () => {
                   level={0}
                   onTaskClick={handleTaskClick}
                   selectedTaskId={selectedTask?.id}
+                  onAddChildTask={handleAddChildTask}
                 />
               ))}
             </div>
@@ -231,6 +286,7 @@ const TaskList = () => {
                   level={0}
                   onTaskClick={handleTaskClick}
                   selectedTaskId={selectedTask?.id}
+                  onAddChildTask={handleAddChildTask}
                 />
               ))}
             </div>
@@ -241,7 +297,13 @@ const TaskList = () => {
       <div className="permanent-side-panel">
         <div className="panel-header">
           <h2 className="panel-title">
-            {showForm ? 'New Project' : selectedTask ? 'Task Details' : 'Details'}
+            {showForm 
+              ? 'New Project' 
+              : showTaskForm 
+                ? `New Task in ${parentTaskForNewChild?.title}` 
+                : selectedTask 
+                  ? selectedTask.title 
+                  : 'Details'}
           </h2>
           {showForm && (
             <button
@@ -251,7 +313,18 @@ const TaskList = () => {
               Hide Form
             </button>
           )}
-          {selectedTask && !showForm && (
+          {showTaskForm && (
+            <button
+              onClick={() => {
+                setShowTaskForm(false);
+                setParentTaskForNewChild(null);
+              }}
+              className="panel-header-btn"
+            >
+              Cancel
+            </button>
+          )}
+          {selectedTask && !showForm && !showTaskForm && (
             <button
               onClick={() => setSelectedTask(null)}
               className="panel-header-btn"
@@ -266,8 +339,20 @@ const TaskList = () => {
               onSubmit={handleCreateProject}
               onCancel={() => setShowForm(false)}
             />
+          ) : showTaskForm ? (
+            <NewTaskForm
+              parentTask={parentTaskForNewChild}
+              onSubmit={handleCreateChildTask}
+              onCancel={() => {
+                setShowTaskForm(false);
+                setParentTaskForNewChild(null);
+              }}
+            />
           ) : selectedTask ? (
-            <TaskDetailsView task={selectedTask} />
+            <TaskDetailsView 
+              task={selectedTask}
+              onAddChildTask={handleAddChildTask}
+            />
           ) : (
             <div className="empty-panel-state">
               <div className="empty-panel-icon">

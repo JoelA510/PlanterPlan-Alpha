@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TaskDetailsView = ({ task }) => {
+const TaskDetailsView = ({ task, onAddChildTask }) => {
   // Format date for display
   const formatDate = (date) => {
     if (!date) return 'Not set';
@@ -12,13 +12,20 @@ const TaskDetailsView = ({ task }) => {
     });
   };
 
+  // Determine hierarchy level and if can have children
+  // Projects(0) > Phases(1) > Milestones(2) > Tasks(3) > Subtasks(4)
+  const getTaskLevel = () => {
+    if (!task.parent_task_id) return 0; // Project
+    // We'd need to traverse up to determine exact level
+    // For now, assume based on having children
+    return 1; // Simplified
+  };
+
+  const level = getTaskLevel();
+  const canHaveChildren = level < 3;
+
   return (
     <div className="task-details">
-      {/* Task Title */}
-      <div className="detail-section">
-        <h2 className="task-details-title">{task.title}</h2>
-      </div>
-
       {/* Task Type Badge */}
       <div className="detail-section">
         <h3 className="detail-section-title">Type</h3>

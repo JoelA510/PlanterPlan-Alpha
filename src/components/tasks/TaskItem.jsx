@@ -1,30 +1,34 @@
 import React, { useState } from 'react';
 
-const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId }) => {
+const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId, onAddChildTask }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const hasChildren = task.children && task.children.length > 0;
-  const indentWidth = level * 24; // 24px per level for indentation
+  const indentWidth = level * 24;
   const isSelected = selectedTaskId === task.id;
+  
+  // Hierarchy: Project(0) > Phase(1) > Milestone(2) > Task(3) > Subtask(4)
+  // Subtasks (level 4) cannot have children
+  const canHaveChildren = level < 4;
 
-  // Get background color based on level (matching the first screenshot colors)
   const getBackgroundColor = () => {
     if (level === 0) {
-      return 'bg-gray-600'; // Gray for top level projects
+      return 'bg-gray-600';
     } else if (level === 1) {
-      return 'bg-blue-600'; // Blue for first level tasks
+      return 'bg-blue-600';
     } else if (level === 2) {
-      return 'bg-blue-500'; // Lighter blue for second level
+      return 'bg-blue-500';
     } else if (level === 3) {
-      return 'bg-blue-400'; // Even lighter blue for third level
+      return 'bg-blue-400';
     } else {
-      return 'bg-blue-300'; // Lightest blue for deeper levels
+      return 'bg-blue-300';
     }
   };
 
   const handleCardClick = (e) => {
-    // Don't trigger if clicking on expand button or other interactive elements
-    if (e.target.closest('.expand-button') || e.target.closest('.status-icon')) {
+    if (e.target.closest('.expand-button') || 
+        e.target.closest('.status-icon') ||
+        e.target.closest('.add-child-btn')) {
       return;
     }
     if (onTaskClick) {
@@ -32,16 +36,21 @@ const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId }) => {
     }
   };
 
+  const handleAddChild = (e) => {
+    e.stopPropagation();
+    if (onAddChildTask) {
+      onAddChildTask(task);
+    }
+  };
+
   return (
     <>
-      {/* Task card/bar */}
       <div 
         className={`task-card ${getBackgroundColor()} ${isSelected ? 'selected' : ''}`}
         style={{ marginLeft: `${indentWidth}px` }}
         onClick={handleCardClick}
       >
         <div className="task-card-content">
-          {/* Left side - drag handle and expand/collapse */}
           <div className="task-card-left">
             <div className="drag-handle">
               <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
@@ -73,7 +82,6 @@ const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId }) => {
               <div className="expand-spacer"></div>
             )}
 
-            {/* Status icon/checkbox */}
             {task.is_complete ? (
               <div className="status-icon completed">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
@@ -85,13 +93,22 @@ const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId }) => {
             )}
           </div>
 
-          {/* Task title */}
           <div className="task-card-title">
             {task.title}
           </div>
 
-          {/* Right side - dropdown button for projects only */}
           <div className="task-card-right">
+            {canHaveChildren && onAddChildTask && (
+              <button
+                className="add-child-btn"
+                onClick={handleAddChild}
+                title="Add child task"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z"/>
+                </svg>
+              </button>
+            )}
             {level === 0 && (
               <button className="dropdown-button">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
@@ -103,7 +120,6 @@ const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId }) => {
         </div>
       </div>
 
-      {/* Render children if expanded - this will hide ALL descendants when collapsed */}
       {isExpanded && hasChildren && task.children && (
         <div className="task-children">
           {task.children.map(child => (
@@ -113,6 +129,7 @@ const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId }) => {
               level={level + 1}
               onTaskClick={onTaskClick}
               selectedTaskId={selectedTaskId}
+              onAddChildTask={onAddChildTask}
             />
           ))}
         </div>

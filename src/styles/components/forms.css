@@ -2,86 +2,111 @@
 
 /* Form Container */
 .project-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  /* Form Group */
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  
-  /* Form Label */
-  .form-label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
-  }
-  
-  .form-label .required {
-    color: #dc2626;
-    margin-left: 2px;
-  }
-  
-  /* Form Input */
-  .form-input,
-  .form-textarea {
-    width: 100%;
-    padding: 10px 12px;
-    font-size: 0.875rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    transition: all 0.15s ease;
-    font-family: inherit;
-  }
-  
-  .form-input:focus,
-  .form-textarea:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-  
-  .form-input.error {
-    border-color: #dc2626;
-  }
-  
-  .form-input.error:focus {
-    border-color: #dc2626;
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-  }
-  
-  /* Form Textarea */
-  .form-textarea {
-    resize: vertical;
-    min-height: 80px;
-  }
-  
-  /* Form Error */
-  .form-error {
-    font-size: 0.75rem;
-    color: #dc2626;
-    margin-top: 4px;
-  }
-  
-  .form-error-banner {
-    padding: 12px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 6px;
-    color: #991b1b;
-    font-size: 0.875rem;
-  }
-  
-  /* Form Actions */
-  .form-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    padding-top: 8px;
-    margin-top: 8px;
-    border-top: 1px solid #e5e7eb;
-  } 
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Parent Task Info (for NewTaskForm) */
+.parent-task-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.parent-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.parent-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Form Label */
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-label .required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+/* Form Input */
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input.error {
+  border-color: #dc2626;
+}
+
+.form-input.error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+/* Form Textarea */
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Form Error */
+.form-error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 4px;
+}
+
+.form-error-banner {
+  padding: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #991b1b;
+  font-size: 0.875rem;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid #e5e7eb;
+}
