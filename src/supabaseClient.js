@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { error as logError } from './utils/logger';
+import { logError } from './utils/logger';
 
 const url = process.env.REACT_APP_SUPABASE_URL;
 const anon = process.env.REACT_APP_SUPABASE_ANON_KEY;
