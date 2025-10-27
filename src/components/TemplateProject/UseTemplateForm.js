@@ -32,10 +32,10 @@ const UseTemplateForm = ({ template = null, onSuccess, onCancel }) => {
     createProjectFromTemplate,
     applyLicenseKey,
     templateTasks = [],
-    userHasProjects: hasProjects
+    userHasProjects: hasProjectsFromContext
   } = useTasks();
 
-  const userHasProjects = Boolean(hasProjects);
+  const userHasProjects = Boolean(hasProjectsFromContext);
 
   const [projectName, setProjectName] = useState(template ? template.title : '');
   const [startDate, setStartDate] = useState('');
