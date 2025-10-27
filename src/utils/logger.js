@@ -12,6 +12,6 @@ export const warn = (...args) => {
   }
 };
 
-export const error = (...args) => {
+export const logError = (...args) => {
   console.error(...args);
 };
