@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTasks } from '../contexts/TaskContext';
-import { log, error as logError } from '../../utils/logger';
+import { log, logError } from '../../utils/logger';
 
 const TemplatePreview = ({ template, childTemplates = [] }) => (
   <div
