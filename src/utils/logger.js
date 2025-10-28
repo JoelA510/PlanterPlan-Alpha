@@ -4,8 +4,7 @@ function createLogger(namespace) {
   const logAt = (level) => (...messages) => {
     const parts = [`[${level.toUpperCase()}]`];
     if (namespace) parts.push(`[${namespace}]`);
-    const fn =
-      level === 'warn' ? console.warn : level === 'error' ? console.error : console.log;
+    const fn = level === 'warn' ? console.warn : level === 'error' ? console.error : console.log;
     if (level === 'error' || isDev) fn(...parts, ...messages);
   };
 
@@ -13,7 +12,7 @@ function createLogger(namespace) {
     info: logAt('info'),
     warn: logAt('warn'),
     error: logAt('error'),
-    withNamespace: (ns) => createLogger(namespace ? `${namespace}:${ns}` : ns)
+    withNamespace: (ns) => createLogger(ns),
   };
 }
 

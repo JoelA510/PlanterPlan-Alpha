@@ -1,29 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
-import logger from './utils/logger';
+import { logError } from './utils/logger';
 
-const supabaseLogger = logger.withNamespace('Supabase');
-
-const requiredEnvs = {
-  REACT_APP_SUPABASE_URL: process.env.REACT_APP_SUPABASE_URL,
-  REACT_APP_SUPABASE_ANON_KEY: process.env.REACT_APP_SUPABASE_ANON_KEY
+const requiredEnvKeys = {
+  url: 'REACT_APP_SUPABASE_URL',
+  anonKey: 'REACT_APP_SUPABASE_ANON_KEY',
 };
 
-const missingEnvKeys = Object.entries(requiredEnvs)
-  .filter(([, value]) => !value)
-  .map(([key]) => key);
+const missingKeys = Object.values(requiredEnvKeys).filter((k) => !process.env[k]);
 
-if (missingEnvKeys.length > 0) {
-  const missingList = missingEnvKeys.join(', ');
-  supabaseLogger.error(
-    `Missing Supabase environment ${missingEnvKeys.length > 1 ? 'variables' : 'variable'}:`,
-    missingList
+if (missingKeys.length) {
+  const envName = process.env.NODE_ENV || 'unknown';
+  logError(`[Supabase] Missing required env in ${envName}: ${missingKeys.join(', ')}`);
+  throw new Error(
+    `Supabase environment variables are not configured. Missing: ${missingKeys.join(', ')}`
   );
-  throw new Error(`Supabase environment misconfigured: ${missingList}`);
 }
 
-supabaseLogger.info('Initializing Supabase client');
+const url = process.env[requiredEnvKeys.url];
+const anon = process.env[requiredEnvKeys.anonKey];
 
-export const supabase = createClient(
-  requiredEnvs.REACT_APP_SUPABASE_URL,
-  requiredEnvs.REACT_APP_SUPABASE_ANON_KEY
-);
+export const supabase = createClient(url, anon);
