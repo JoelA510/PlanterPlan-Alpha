@@ -1,31 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 import logger from './utils/logger';
 
-const log = logger.withNamespace('Supabase');
+const supabaseLogger = logger.withNamespace('Supabase');
 
-const requiredEnvKeys = {
-  url: 'REACT_APP_SUPABASE_URL',
-  anonKey: 'REACT_APP_SUPABASE_ANON_KEY'
+const requiredEnvs = {
+  REACT_APP_SUPABASE_URL: process.env.REACT_APP_SUPABASE_URL,
+  REACT_APP_SUPABASE_ANON_KEY: process.env.REACT_APP_SUPABASE_ANON_KEY
 };
 
-const supabaseUrl = process.env[requiredEnvKeys.url];
-const supabaseAnonKey = process.env[requiredEnvKeys.anonKey];
-
-const missingKeys = Object.entries({
-  [requiredEnvKeys.url]: supabaseUrl,
-  [requiredEnvKeys.anonKey]: supabaseAnonKey
-})
+const missingEnvKeys = Object.entries(requiredEnvs)
   .filter(([, value]) => !value)
   .map(([key]) => key);
 
-if (missingKeys.length > 0) {
-  log.error(
-    `Missing required Supabase environment variable${missingKeys.length > 1 ? 's' : ''}:`,
-    missingKeys.join(', ')
+if (missingEnvKeys.length > 0) {
+  const missingList = missingEnvKeys.join(', ');
+  supabaseLogger.error(
+    `Missing Supabase environment ${missingEnvKeys.length > 1 ? 'variables' : 'variable'}:`,
+    missingList
   );
-  throw new Error('Supabase environment variables are not configured.');
+  throw new Error(`Supabase environment misconfigured: ${missingList}`);
 }
 
-log.info('Initializing Supabase client');
+supabaseLogger.info('Initializing Supabase client');
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+  requiredEnvs.REACT_APP_SUPABASE_URL,
+  requiredEnvs.REACT_APP_SUPABASE_ANON_KEY
+);
