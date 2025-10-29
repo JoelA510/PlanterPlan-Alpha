@@ -1,18 +1,31 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useSearch } from '../contexts/SearchContext';
 
 const SearchBar = ({ onToggleResults }) => {
   const {
-    searchFilters,
-    updateTextSearch,
-    clearAllFilters,
+    filters,
+    setFilters,
+    isLoading,
+    count,
     isSearchActive,
-    isSearching,
+    reset,
   } = useSearch();
 
-  const handleChange = (event) => {
-    updateTextSearch(event.target.value);
-  };
+  const handleChange = useCallback(
+    (event) => {
+      const { value } = event.target;
+      setFilters((prev) => ({
+        ...prev,
+        text: value,
+        from: 0,
+      }));
+    },
+    [setFilters]
+  );
+
+  const handleClear = useCallback(() => {
+    reset();
+  }, [reset]);
 
   return (
     <div className="search-container" style={{ marginBottom: '20px' }}>
@@ -31,8 +44,8 @@ const SearchBar = ({ onToggleResults }) => {
         <span style={{ color: '#6b7280', fontSize: '16px' }}>🔍</span>
         <input
           type="text"
-          placeholder="Search tasks..."
-          value={searchFilters.text}
+          placeholder="Search tasks…"
+          value={filters.text}
           onChange={handleChange}
           style={{
             border: 'none',
@@ -41,14 +54,15 @@ const SearchBar = ({ onToggleResults }) => {
             fontSize: '16px',
             backgroundColor: 'transparent',
           }}
+          aria-label="Search tasks"
         />
-        {isSearching && (
+        {isLoading && (
           <span style={{ fontSize: '12px', color: '#6b7280' }}>Searching…</span>
         )}
         {isSearchActive && (
           <button
             type="button"
-            onClick={clearAllFilters}
+            onClick={handleClear}
             style={{
               background: 'none',
               border: 'none',
@@ -77,7 +91,7 @@ const SearchBar = ({ onToggleResults }) => {
               transition: 'background-color 0.15s ease',
             }}
           >
-            Results
+            Results ({isSearchActive ? count : 0})
           </button>
         )}
       </div>
