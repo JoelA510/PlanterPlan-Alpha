@@ -8,117 +8,94 @@ export default function MasterLibraryList({ limit = 50 }) {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    let isCancelled = false;
+    const controller = new AbortController();
 
-    async function loadTasks() {
+    const loadTasks = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await fetchMasterLibraryTasks({ from: offset, limit });
-        if (!isCancelled) {
-          setTasks(data ?? []);
-        }
+        const data = await fetchMasterLibraryTasks({
+          from: offset,
+          limit,
+          signal: controller.signal,
+        });
+        setTasks(data ?? []);
       } catch (err) {
-        if (!isCancelled) {
-          console.error('Failed to load master library tasks', err);
-          setError(err.message || 'Failed to load tasks');
-          setTasks([]);
-        }
+        if (err?.name === 'AbortError') return;
+        console.error('Failed to load master library tasks', err);
+        setTasks([]);
+        setError(err?.message || 'Failed to load tasks');
       } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
+        if (!controller.signal.aborted) setIsLoading(false);
       }
-    }
+    };
 
     loadTasks();
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => controller.abort();
   }, [offset, limit]);
 
-  const handleNext = () => {
-    setOffset((prev) => prev + limit);
-  };
+  const handleNext = () => setOffset((prev) => prev + limit);
+  const handlePrev = () => setOffset((prev) => Math.max(0, prev - limit));
 
-  const handlePrev = () => {
-    setOffset((prev) => Math.max(0, prev - limit));
-  };
+  const disablePrev = offset === 0 || isLoading;
+  const disableNext = isLoading || tasks.length < limit;
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ margin: 0 }}>Master Library</h2>
-        <div style={{ fontSize: '14px', color: '#6b7280' }}>
-          Showing {tasks.length} tasks
-        </div>
+    <div className="mx-auto max-w-3xl p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-gray-900">Master Library</h2>
+        <span className="text-sm text-gray-500">
+          {isLoading ? 'Loading…' : `Showing ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`}
+        </span>
       </div>
 
       {error && (
-        <div style={{ background: '#fee2e2', border: '1px solid #fecaca', color: '#b91c1c', padding: '12px 16px', borderRadius: '6px', marginBottom: '16px' }}>
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <ul className="divide-y divide-gray-200">
           {isLoading ? (
-            <li style={{ padding: '16px', textAlign: 'center', color: '#6b7280' }}>Loading...</li>
+            <li className="px-4 py-6 text-center text-sm text-gray-500">Loading…</li>
           ) : tasks.length === 0 ? (
-            <li style={{ padding: '16px', textAlign: 'center', color: '#6b7280' }}>No master library tasks found.</li>
+            <li className="px-4 py-6 text-center text-sm text-gray-500">
+              No master library tasks found.
+            </li>
           ) : (
-            tasks.map((t) => (
-              <li
-                key={t.id}
-                style={{
-                  padding: '16px',
-                  borderBottom: '1px solid #e5e7eb',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                }}
-              >
-                <strong style={{ fontSize: '16px' }}>{t.title}</strong>
-                {t.organization_name ? (
-                  <span style={{ color: '#4b5563', fontSize: '14px' }}>{t.organization_name}</span>
-                ) : (
-                  <span style={{ color: '#4b5563', fontSize: '14px' }}>Global</span>
-                )}
+            tasks.map((task) => (
+              <li key={task.id} className="px-4 py-4">
+                <p className="text-base font-medium text-gray-900">{task.title}</p>
+                <p className="text-sm text-gray-500">{task.organization_name || 'Global'}</p>
               </li>
             ))
           )}
         </ul>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
+      <div className="mt-4 flex justify-between">
         <button
           type="button"
           onClick={handlePrev}
-          disabled={offset === 0 || isLoading}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '4px',
-            border: '1px solid #d1d5db',
-            backgroundColor: offset === 0 || isLoading ? '#f3f4f6' : '#fff',
-            color: '#111827',
-            cursor: offset === 0 || isLoading ? 'not-allowed' : 'pointer'
-          }}
+          disabled={disablePrev}
+          className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+            disablePrev
+              ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
+              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+          }`}
         >
           Prev
         </button>
         <button
           type="button"
           onClick={handleNext}
-          disabled={isLoading || tasks.length < limit}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '4px',
-            border: '1px solid #2563eb',
-            backgroundColor: isLoading || tasks.length < limit ? '#93c5fd' : '#3b82f6',
-            color: '#fff',
-            cursor: isLoading || tasks.length < limit ? 'not-allowed' : 'pointer'
-          }}
+          disabled={disableNext}
+          className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+            disableNext
+              ? 'cursor-not-allowed border-blue-200 bg-blue-100 text-blue-400'
+              : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700'
+          }`}
         >
           Next
         </button>

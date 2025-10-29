@@ -4,45 +4,55 @@ import { useSearch } from '../contexts/SearchContext';
 import { formatDisplayDate } from '../../utils/taskUtils';
 
 const SearchResults = ({ onTaskSelect, onClose }) => {
-  const { 
-    filteredTasks, 
-    searchFilters, 
-    isSearchActive,
-    activeFilterCount 
+  const {
+    results,
+    searchTerm,
+    hasQuery,
+    isSearching,
+    error,
   } = useSearch();
 
+  const trimmedTerm = searchTerm?.trim() ?? '';
+  const resultCount = results.length;
+
   // Highlight matching text in search results
-  const highlightText = (text, searchTerm) => {
-    if (!searchTerm || !text) return text;
-    
-    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const highlightText = (text) => {
+    const term = searchTerm?.trim();
+    if (!term || !text) return text;
+
+    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     const parts = text.split(regex);
-    
-    return parts.map((part, index) => 
-      regex.test(part) ? (
-        <mark key={index} style={{ 
-          backgroundColor: '#fef3c7', 
-          padding: '1px 2px', 
-          borderRadius: '2px',
-          fontWeight: '500'
-        }}>
+
+    return parts.map((part, index) =>
+      index % 2 === 1 ? (
+        <mark
+          key={index}
+          style={{
+            backgroundColor: '#fef3c7',
+            padding: '1px 2px',
+            borderRadius: '2px',
+            fontWeight: '500',
+          }}
+        >
           {part}
         </mark>
-      ) : part
+      ) : (
+        part
+      )
     );
   };
 
   // Group tasks by project for better organization
   const tasksByProject = useMemo(() => {
     const grouped = {};
-    
-    filteredTasks.forEach(task => {
+
+    results.forEach((task) => {
       // Find the root project for this task
       let rootTask = task;
       const taskMap = {};
-      
+
       // Build a map of all tasks for traversal
-      filteredTasks.forEach(t => {
+      results.forEach((t) => {
         taskMap[t.id] = t;
       });
       
@@ -64,9 +74,9 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
       
       grouped[projectKey].tasks.push(task);
     });
-    
+
     return Object.values(grouped);
-  }, [filteredTasks]);
+  }, [results]);
 
   const getTaskStatusIcon = (task) => {
     if (task.is_complete) return '✅';
@@ -102,7 +112,7 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
     return metadata.join(' • ');
   };
 
-  if (!isSearchActive) {
+  if (!hasQuery) {
     return null;
   }
 
@@ -143,13 +153,15 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
               Search Results
             </h2>
-            <p style={{ 
-              margin: '4px 0 0 0', 
-              fontSize: '14px', 
-              color: '#6b7280' 
+            <p style={{
+              margin: '4px 0 0 0',
+              fontSize: '14px',
+              color: '#6b7280'
             }}>
-              Found {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
-              {activeFilterCount > 0 && ` with ${activeFilterCount} active filter${activeFilterCount !== 1 ? 's' : ''}`}
+              {isSearching
+                ? 'Searching…'
+                : `Found ${resultCount} task${resultCount !== 1 ? 's' : ''}`}
+              {trimmedTerm && !isSearching && ` matching “${trimmedTerm}”`}
             </p>
           </div>
           <button
@@ -174,7 +186,20 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
           overflow: 'auto',
           padding: '0'
         }}>
-          {filteredTasks.length === 0 ? (
+          {error ? (
+            <div style={{
+              padding: '40px',
+              textAlign: 'center',
+              color: '#b91c1c',
+            }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                Something went wrong
+              </h3>
+              <p style={{ margin: 0, fontSize: '14px' }}>
+                {error.message || 'Unable to fetch search results.'}
+              </p>
+            </div>
+          ) : resultCount === 0 ? (
             <div style={{
               padding: '40px',
               textAlign: 'center',
@@ -185,7 +210,7 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
                 No tasks found
               </h3>
               <p style={{ margin: 0, fontSize: '14px' }}>
-                Try adjusting your search terms or filters
+                Try adjusting your search terms
               </p>
             </div>
           ) : (
@@ -204,11 +229,11 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>
-                      {highlightText(project.projectName, searchFilters.text)}
-                      <span style={{ 
-                        marginLeft: '8px', 
+                      {highlightText(project.projectName)}
+                      <span style={{
+                        marginLeft: '8px',
                         color: '#9ca3af',
-                        fontWeight: 'normal' 
+                        fontWeight: 'normal'
                       }}>
                         ({project.tasks.length})
                       </span>
@@ -264,12 +289,12 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
                             lineHeight: '1.4',
                             marginBottom: '4px'
                           }}>
-                            {highlightText(task.title || 'Untitled Task', searchFilters.text)}
+                            {highlightText(task.title || 'Untitled Task')}
                           </div>
 
                           {/* Task Description (if exists and matches search) */}
-                          {task.description && searchFilters.text && 
-                           task.description.toLowerCase().includes(searchFilters.text.toLowerCase()) && (
+                          {task.description && trimmedTerm &&
+                           task.description.toLowerCase().includes(trimmedTerm.toLowerCase()) && (
                             <div style={{
                               fontSize: '13px',
                               color: '#6b7280',
@@ -281,13 +306,13 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
                               WebkitLineClamp: 2,
                               WebkitBoxOrient: 'vertical'
                             }}>
-                              {highlightText(task.description, searchFilters.text)}
+                              {highlightText(task.description)}
                             </div>
                           )}
 
                           {/* Task Actions (if they match search) */}
-                          {Array.isArray(task.actions) && task.actions.length > 0 && searchFilters.text && 
-                           task.actions.some(action => action.toLowerCase().includes(searchFilters.text.toLowerCase())) && (
+                          {Array.isArray(task.actions) && task.actions.length > 0 && trimmedTerm &&
+                           task.actions.some(action => action.toLowerCase().includes(trimmedTerm.toLowerCase())) && (
                             <div style={{
                               fontSize: '12px',
                               color: '#059669',
@@ -295,11 +320,11 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
                             }}>
                               <strong>Actions: </strong>
                               {task.actions
-                                .filter(action => action.toLowerCase().includes(searchFilters.text.toLowerCase()))
+                                .filter(action => action.toLowerCase().includes(trimmedTerm.toLowerCase()))
                                 .map((action, index) => (
                                   <span key={index}>
                                     {index > 0 && ', '}
-                                    {highlightText(action, searchFilters.text)}
+                                    {highlightText(action)}
                                   </span>
                                 ))
                               }
@@ -367,7 +392,7 @@ const SearchResults = ({ onTaskSelect, onClose }) => {
         </div>
 
         {/* Footer with Actions */}
-        {filteredTasks.length > 0 && (
+        {resultCount > 0 && (
           <div style={{
             padding: '16px 20px',
             borderTop: '1px solid #e5e7eb',

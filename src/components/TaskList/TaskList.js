@@ -55,7 +55,7 @@ const TaskList = () => {
     ...restContext
   } = useTasks();
 
-  const { isSearchActive, filteredTasks } = useSearch();
+  const { hasQuery: isSearchActive, results: searchResults } = useSearch();
 
   /* ---------------------- local state --------------------- */
   const [expandedTasks, setExpandedTasks] = useState({});
@@ -986,7 +986,7 @@ const TaskList = () => {
               }}
             >
               <span style={{ fontSize: '14px', color: '#1e40af' }}>
-                {filteredTasks.length} task{filteredTasks.length !== 1 && 's'} match your search
+                {searchResults.length} task{searchResults.length !== 1 && 's'} match your search
               </span>
               <button
                 onClick={() => setShowSearchResults(true)}

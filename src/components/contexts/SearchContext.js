@@ -1,6 +1,5 @@
 import React, {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -8,23 +7,8 @@ import React, {
   useState,
 } from 'react';
 import { fetchFilteredTasks } from '../../services/taskService';
-import { rootLogger } from '../../utils/logger';
 
-const log = rootLogger.withNamespace('SearchContext');
-
-const DEFAULT_FILTERS = {
-  text: '',
-  status: null,
-  taskType: null,
-  assigneeId: null,
-  projectId: null,
-  limit: 50,
-  from: 0,
-};
-
-const createDefaultFilters = () => ({ ...DEFAULT_FILTERS });
-
-export const SearchContext = createContext(null);
+const SearchContext = createContext(null);
 
 export const useSearch = () => {
   const context = useContext(SearchContext);
@@ -34,123 +18,105 @@ export const useSearch = () => {
   return context;
 };
 
-export function SearchProvider({ children }) {
-  const [filters, setFilters] = useState(() => createDefaultFilters());
+export function SearchProvider({ children, limit = 100 }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [projectId, setProjectId] = useState(null);
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [results, setResults] = useState([]);
-  const [count, setCount] = useState(0);
-  const [isLoading, setLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(null);
 
-  const timerRef = useRef(null);
+  const controllerRef = useRef(null);
+  const debounceRef = useRef(null);
 
-  const updateFilter = useCallback((key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+  const clearTimer = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+  };
+
+  const abortActiveRequest = () => {
+    if (controllerRef.current) {
+      controllerRef.current.abort();
+      controllerRef.current = null;
+    }
+  };
+
+  useEffect(() => () => {
+    clearTimer();
+    abortActiveRequest();
   }, []);
-
-  const updateTextSearch = useCallback((text) => {
-    setFilters((prev) => ({
-      ...prev,
-      text,
-      from: 0,
-    }));
-  }, []);
-
-  const reset = useCallback(() => {
-    setFilters(createDefaultFilters());
-  }, []);
-
-  const runSearch = useCallback(
-    async (activeFilters) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data, count: total } = await fetchFilteredTasks(activeFilters);
-        setResults(data);
-        setCount(total);
-      } catch (err) {
-        log.error('fetchFilteredTasks failed', err);
-        setResults([]);
-        setCount(0);
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
 
   useEffect(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
+    const term = searchTerm.trim();
+
+    if (!term) {
+      clearTimer();
+      abortActiveRequest();
+      setResults([]);
+      setIsSearching(false);
+      setError(null);
+      return;
     }
 
-    timerRef.current = setTimeout(() => {
-      runSearch(filters);
-    }, 300);
+    abortActiveRequest();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
+    clearTimer();
+    setIsSearching(true);
+    setError(null);
+
+    const timerId = setTimeout(async () => {
+      try {
+        const { data } = await fetchFilteredTasks({
+          q: term,
+          projectId,
+          includeArchived,
+          from: 0,
+          limit,
+          signal: controller.signal,
+        });
+
+        setResults(data ?? []);
+        setError(null);
+      } catch (err) {
+        if (err?.name === 'AbortError') {
+          return;
+        }
+        setResults([]);
+        setError(err);
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsSearching(false);
+        }
+      }
+    }, DEBOUNCE_DELAY_MS);
+
+    debounceRef.current = timerId;
 
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      clearTimeout(timerId);
+      controller.abort();
     };
-  }, [filters, runSearch]);
-
-  const activeFilterCount = useMemo(() => {
-    let total = 0;
-
-    if (filters.text && filters.text.trim()) total += 1;
-
-    const countValue = (value) => {
-      if (Array.isArray(value)) {
-        return value.length > 0;
-      }
-      return Boolean(value);
-    };
-
-    if (countValue(filters.status)) total += 1;
-    if (countValue(filters.taskType)) total += 1;
-    if (filters.assigneeId) total += 1;
-    if (filters.projectId) total += 1;
-
-    return total;
-  }, [filters]);
-
-  const isSearchActive = useMemo(() => activeFilterCount > 0, [activeFilterCount]);
+  }, [searchTerm, projectId, includeArchived, limit]);
 
   const value = useMemo(
     () => ({
-      filters,
-      searchFilters: filters,
-      setFilters,
-      setSearchFilters: setFilters,
+      searchTerm,
+      setSearchTerm,
+      projectId,
+      setProjectId,
+      includeArchived,
+      setIncludeArchived,
       results,
-      filteredTasks: results,
-      count,
-      isLoading,
-      isSearching: isLoading,
+      isSearching,
       error,
-      isSearchActive,
-      activeFilterCount,
-      reset,
-      clearAllFilters: reset,
-      updateFilter,
-      updateTextSearch,
+      hasQuery: Boolean(searchTerm.trim()),
+      clearSearch: () => setSearchTerm(''),
     }),
-    [
-      filters,
-      results,
-      count,
-      isLoading,
-      error,
-      isSearchActive,
-      activeFilterCount,
-      reset,
-      updateFilter,
-      updateTextSearch,
-    ]
+    [searchTerm, projectId, includeArchived, results, isSearching, error]
   );
 
   return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>;

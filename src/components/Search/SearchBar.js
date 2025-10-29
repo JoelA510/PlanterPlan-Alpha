@@ -3,29 +3,26 @@ import { useSearch } from '../contexts/SearchContext';
 
 const SearchBar = ({ onToggleResults }) => {
   const {
-    filters,
-    setFilters,
-    isLoading,
-    count,
-    isSearchActive,
-    reset,
+    searchTerm,
+    setSearchTerm,
+    isSearching,
+    results,
+    hasQuery,
+    clearSearch,
   } = useSearch();
 
   const handleChange = useCallback(
     (event) => {
-      const { value } = event.target;
-      setFilters((prev) => ({
-        ...prev,
-        text: value,
-        from: 0,
-      }));
+      setSearchTerm(event.target.value);
     },
-    [setFilters]
+    [setSearchTerm]
   );
 
   const handleClear = useCallback(() => {
-    reset();
-  }, [reset]);
+    clearSearch();
+  }, [clearSearch]);
+
+  const resultCount = hasQuery ? results.length : 0;
 
   return (
     <div className="search-container" style={{ marginBottom: '20px' }}>
@@ -45,7 +42,7 @@ const SearchBar = ({ onToggleResults }) => {
         <input
           type="text"
           placeholder="Search tasks…"
-          value={filters.text}
+          value={searchTerm}
           onChange={handleChange}
           style={{
             border: 'none',
@@ -56,10 +53,10 @@ const SearchBar = ({ onToggleResults }) => {
           }}
           aria-label="Search tasks"
         />
-        {isLoading && (
+        {isSearching && (
           <span style={{ fontSize: '12px', color: '#6b7280' }}>Searching…</span>
         )}
-        {isSearchActive && (
+        {hasQuery && (
           <button
             type="button"
             onClick={handleClear}
@@ -80,18 +77,18 @@ const SearchBar = ({ onToggleResults }) => {
           <button
             type="button"
             onClick={onToggleResults}
-            disabled={!isSearchActive}
+            disabled={!hasQuery}
             style={{
-              backgroundColor: isSearchActive ? '#3b82f6' : '#e5e7eb',
-              color: isSearchActive ? 'white' : '#6b7280',
+              backgroundColor: hasQuery ? '#3b82f6' : '#e5e7eb',
+              color: hasQuery ? 'white' : '#6b7280',
               border: 'none',
               borderRadius: '6px',
               padding: '6px 10px',
-              cursor: isSearchActive ? 'pointer' : 'not-allowed',
+              cursor: hasQuery ? 'pointer' : 'not-allowed',
               transition: 'background-color 0.15s ease',
             }}
           >
-            Results ({isSearchActive ? count : 0})
+            Results ({resultCount})
           </button>
         )}
       </div>

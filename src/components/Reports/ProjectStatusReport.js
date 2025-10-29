@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationProvider';
 import { useTasks } from '../contexts/TaskContext';
@@ -24,14 +24,16 @@ const ProjectStatusReport = () => {
   const [selectedProject, setSelectedProject] = useState('all'); // 'all' or specific project ID
 
   // Get available projects for filtering
-  const availableProjects = useMemo(() => {
-    const topLevelProjects = instanceTasks.filter(task => !task.parent_task_id);
-    const activeProjects = topLevelProjects.filter(project => !project.is_archived);
-    return activeProjects.map(project => ({
-      id: project.id,
-      title: project.title || 'Untitled Project'
-    }));
-  }, [instanceTasks]);
+  const availableProjects = useMemo(
+    () =>
+      instanceTasks
+        .filter((task) => !task.parent_task_id && !task.is_archived)
+        .map((project) => ({
+          id: project.id,
+          title: project.title || 'Untitled Project',
+        })),
+    [instanceTasks]
+  );
 
   // Helper function to check if a date falls within a specific month
   const isDateInMonth = (dateString, month, year) => {
