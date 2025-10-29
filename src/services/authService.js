@@ -1,6 +1,8 @@
 // src/services/authService.js
 import { supabase } from '../supabaseClient';
 
+const normalizeEmail = (value) => (value ?? '').trim().toLowerCase();
+
 /**
  * Sign up a new user with email and password
  * @param {string} email - User's email
@@ -11,9 +13,14 @@ import { supabase } from '../supabaseClient';
  */
 export const signUp = async (email, password, userData, role = 'planterplan_user', whitelabelOrgId = null) => {
   try {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      throw new Error('Email is required for sign up');
+    }
+
     // 1. Create the auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         data: {
@@ -34,7 +41,7 @@ export const signUp = async (email, password, userData, role = 'planterplan_user
         .from('users')
         .upsert({
           id: authData.user.id,
-          email: email,
+          email: normalizedEmail,
           first_name: userData.firstName,
           last_name: userData.lastName,
           role: role,
@@ -60,8 +67,13 @@ export const signUp = async (email, password, userData, role = 'planterplan_user
  */
 export const signIn = async (email, password) => {
   try {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      throw new Error('Email is required for sign in');
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password
     });
 
@@ -165,7 +177,12 @@ export const getCurrentUser = async () => {
  */
 export const requestPasswordReset = async (email) => {
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      throw new Error('Email is required to request password reset');
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     
