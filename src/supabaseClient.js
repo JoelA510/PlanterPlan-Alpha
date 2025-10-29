@@ -1,45 +1,23 @@
-import { logError } from './utils/logger';
 import { createClient } from '@supabase/supabase-js';
+import { logError } from './utils/logger';
 
-const requiredEnvKeys = {
-  url: 'REACT_APP_SUPABASE_URL',
-  anonKey: 'REACT_APP_SUPABASE_ANON_KEY',
-};
+const isTest = process.env.NODE_ENV === 'test';
 
-const supabaseUrl = process.env[requiredEnvKeys.url];
-const supabaseAnonKey = process.env[requiredEnvKeys.anonKey];
-const missingKeys = Object.values(requiredEnvKeys).filter((k) => !process.env[k]);
+const url = process.env.REACT_APP_SUPABASE_URL;
+const anon = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
-function makeTestMock() {
-  const noop = async () => ({ data: null, error: null });
-  const sub = { unsubscribe: () => {} };
-  return {
-    auth: {
-      getUser: async () => ({ data: { user: null }, error: null }),
-      getSession: async () => ({ data: { session: null }, error: null }),
-      signInWithPassword: noop,
-      signUp: noop,
-      signOut: noop,
-      onAuthStateChange: () => ({ data: { subscription: sub } }),
-    },
-    from: () => ({ select: async () => ({ data: [], error: null }) }),
-  };
-}
-
-let supabase;
-if (missingKeys.length) {
-  const envName = process.env.NODE_ENV || 'unknown';
-  if (envName === 'test') {
-    // In tests, don't throw—return a harmless mock so CRA/Jest can mount components.
-    supabase = makeTestMock();
-  } else {
-    logError(`[Supabase] Missing required env in ${envName}:`, missingKeys.join(', '));
-    throw new Error(
-      `Supabase environment variables are not configured. Missing: ${missingKeys.join(', ')}`
-    );
+if (!isTest) {
+  const missing = [];
+  if (!url) missing.push('REACT_APP_SUPABASE_URL');
+  if (!anon) missing.push('REACT_APP_SUPABASE_ANON_KEY');
+  if (missing.length) {
+    const envName = process.env.NODE_ENV || 'unknown';
+    logError(`[Supabase] Missing required env in ${envName}: ${missing.join(', ')}`);
+    throw new Error(`Supabase environment variables are not configured. Missing: ${missing.join(', ')}`);
   }
-} else {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
 }
+
+// Use harmless defaults under test so imports do not fail before env is injected.
+const supabase = createClient(url || 'http://localhost', anon || 'test');
 
 export { supabase };
