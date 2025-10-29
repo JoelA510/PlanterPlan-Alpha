@@ -75,6 +75,22 @@ export const formatDate = (input) => {
 
 // ───────────────── colours & nesting helpers ─────────────────
 
+export const filterOutLeafTasks = (tasks = []) => {
+  if (!Array.isArray(tasks) || tasks.length === 0) {
+    return [];
+  }
+
+  const parentsWithChildren = new Set();
+
+  tasks.forEach((task) => {
+    if (task?.parent_task_id) {
+      parentsWithChildren.add(task.parent_task_id);
+    }
+  });
+
+  return tasks.filter((task) => !task?.parent_task_id || parentsWithChildren.has(task.id));
+};
+
 export const getBackgroundColor = (level) => {
   const colours = [
     '#6b7280', // top level

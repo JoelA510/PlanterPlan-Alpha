@@ -1,6 +1,23 @@
 // src/services/taskService.js - Enhanced version with project-specific fetching
 import { supabase } from '../supabaseClient';
-import rootLogger from '../utils/logger';
+
+export async function fetchMasterLibraryTasks({ from = 0, limit = 50, signal } = {}) {
+  const safeFrom = Number.isFinite(from) && from >= 0 ? Math.floor(from) : 0;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 50;
+
+  let query = supabase
+    .from('view_master_library')
+    .select('*')
+    .range(safeFrom, safeFrom + safeLimit - 1);
+
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
 
 /**
  * Fetch all tasks with enhanced filtering options
@@ -985,62 +1002,79 @@ export const checkIfInMasterLibrary = async (taskId, organizationId = null) => {
 };
 
 // --- Search API ---
-const searchLogger = rootLogger.withNamespace('Search');
-const escapeLikePattern = (value = '') => value.replace(/[%_]/g, (match) => `\\${match}`);
-
 export async function fetchFilteredTasks({
-  text = '',
-  status = null,
-  taskType = null,
-  assigneeId = null,
-  projectId = null,
-  limit = 50,
+  q = '',
+  projectId,
+  includeArchived = false,
   from = 0,
+  limit = 100,
+  signal,
 } = {}) {
-  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 50;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 100;
   const safeFrom = Number.isFinite(from) && from >= 0 ? Math.floor(from) : 0;
+  const trimmedQuery = typeof q === 'string' ? q.trim() : '';
 
-  let query = supabase.from('tasks').select('*', { count: 'exact' });
+  const buildQuery = (applyArchiveFilter = true) => {
+    let query = supabase
+      .from('tasks')
+      .select('*', { count: 'exact' })
+      .order('title', { ascending: true })
+      .range(safeFrom, safeFrom + safeLimit - 1);
 
-  if (projectId) {
-    query = query.eq('project_id', projectId);
-  }
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
 
-  if (Array.isArray(status) && status.length) {
-    query = query.in('status', status);
-  } else if (typeof status === 'string' && status.trim()) {
-    query = query.eq('status', status.trim());
-  }
+    if (trimmedQuery) {
+      const escaped = trimmedQuery.replace(/[%_]/g, (match) => `\\${match}`);
+      query = query.ilike('title', `%${escaped}%`);
+    }
 
-  if (Array.isArray(taskType) && taskType.length) {
-    query = query.in('task_type', taskType);
-  } else if (typeof taskType === 'string' && taskType.trim()) {
-    query = query.eq('task_type', taskType.trim());
-  }
+    if (projectId) {
+      query = query.eq('project_id', projectId);
+    }
 
-  if (assigneeId) {
-    query = query.eq('assignee_id', assigneeId);
-  }
+    if (!includeArchived && applyArchiveFilter) {
+      query = query.or('is_archived.is.null,is_archived.eq.false');
+    }
 
-  if (text && text.trim()) {
-    const trimmed = text.trim();
-    const pattern = `%${escapeLikePattern(trimmed)}%`;
-    query = query.or(`title.ilike.${pattern},description.ilike.${pattern}`);
-  }
+    return query;
+  };
 
-  query = query.range(safeFrom, safeFrom + safeLimit - 1);
+  try {
+    const { data, error, count } = await buildQuery(true);
 
-  const { data, error, count } = await query;
+    if (error) {
+      throw error;
+    }
 
-  if (error) {
-    searchLogger.error('fetchFilteredTasks error', error);
+    return {
+      data: data ?? [],
+      count: count ?? 0,
+    };
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw error;
+    }
+
+    const isArchiveColumnMissing =
+      !includeArchived && typeof error?.message === 'string' && error.message.includes('is_archived');
+
+    if (isArchiveColumnMissing) {
+      const { data, error: fallbackError, count } = await buildQuery(false);
+
+      if (fallbackError) {
+        throw fallbackError;
+      }
+
+      return {
+        data: data ?? [],
+        count: count ?? 0,
+      };
+    }
+
     throw error;
   }
-
-  return {
-    data: data ?? [],
-    count: count ?? 0,
-  };
 }
 
 export default {
@@ -1062,6 +1096,7 @@ export default {
   batchUpdateTasks,
   getTaskStatistics,
   // Master Library functions
+  fetchMasterLibraryTasks,
   addToMasterLibrary,
   removeFromMasterLibrary,
   checkIfInMasterLibrary,

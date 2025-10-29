@@ -4,15 +4,18 @@ const { fetchFilteredTasks } = require('../taskService');
 const createBuilder = (state) => {
   const builder = {};
   builder.select = jest.fn(() => builder);
+  builder.order = jest.fn(() => builder);
+  builder.abortSignal = jest.fn(() => builder);
+  builder.range = jest.fn(() => builder);
+  builder.ilike = jest.fn(() => builder);
   builder.eq = jest.fn(() => builder);
-  builder.in = jest.fn(() => builder);
   builder.or = jest.fn(() => builder);
-  builder.range = jest.fn(() => {
+  builder.then = jest.fn((onFulfilled, onRejected) => {
     const next =
       state.resultQueue.length > 0
         ? state.resultQueue.shift()
         : { data: [], error: null, count: 0 };
-    return Promise.resolve(next);
+    return Promise.resolve(next).then(onFulfilled, onRejected);
   });
   return builder;
 };
@@ -31,52 +34,62 @@ describe('fetchFilteredTasks', () => {
     supabase.from = originalFrom;
   });
 
-  it('applies filters and returns data with count', async () => {
+  it('builds a filtered query with pagination and returns results', async () => {
     const sample = [{ id: 'a', title: 'Foo task' }];
     state.resultQueue.push({ data: sample, error: null, count: 1 });
 
+    const controller = new AbortController();
+
     const result = await fetchFilteredTasks({
-      text: 'foo',
-      status: ['open', 'done'],
-      taskType: 'template',
-      assigneeId: 'user-123',
+      q: 'foo',
       projectId: 'project-456',
+      includeArchived: false,
       limit: 10,
       from: 5,
+      signal: controller.signal,
     });
 
     const query = state.builder;
 
     expect(supabase.from).toHaveBeenCalledWith('tasks');
     expect(query.select).toHaveBeenCalledWith('*', { count: 'exact' });
-    expect(query.in).toHaveBeenCalledWith('status', ['open', 'done']);
+    expect(query.order).toHaveBeenCalledWith('title', { ascending: true });
+    expect(query.abortSignal).toHaveBeenCalledWith(controller.signal);
+    expect(query.ilike).toHaveBeenCalledWith('title', '%foo%');
     expect(query.eq).toHaveBeenCalledWith('project_id', 'project-456');
-    expect(query.eq).toHaveBeenCalledWith('task_type', 'template');
-    expect(query.eq).toHaveBeenCalledWith('assignee_id', 'user-123');
-    expect(query.or).toHaveBeenCalledWith('title.ilike.%foo%,description.ilike.%foo%');
+    expect(query.or).toHaveBeenCalledWith('is_archived.is.null,is_archived.eq.false');
     expect(query.range).toHaveBeenCalledWith(5, 14);
     expect(result).toEqual({ data: sample, count: 1 });
   });
 
-  it('supports scalar status filters and escapes text patterns', async () => {
+  it('skips archived filter when includeArchived is true and trims query', async () => {
     state.resultQueue.push({ data: [], error: null, count: 0 });
 
-    await fetchFilteredTasks({
-      text: '100%_match',
-      status: 'open',
-      taskType: ['instance', 'template'],
-    });
+    await fetchFilteredTasks({ q: '  plants  ', includeArchived: true });
 
     const query = state.builder;
 
-    expect(query.eq).toHaveBeenCalledWith('status', 'open');
-    expect(query.in).toHaveBeenCalledWith('task_type', ['instance', 'template']);
-    expect(query.or).toHaveBeenCalledWith(
-      'title.ilike.%100\\%\\_match%,description.ilike.%100\\%\\_match%'
-    );
+    expect(query.abortSignal).not.toHaveBeenCalled();
+    expect(query.ilike).toHaveBeenCalledWith('title', '%plants%');
+    expect(query.or).not.toHaveBeenCalled();
   });
 
-  it('throws when Supabase returns an error', async () => {
+  it('retries without archive filter when the column is missing', async () => {
+    state.resultQueue.push({
+      data: null,
+      error: { message: 'column "is_archived" does not exist' },
+      count: null,
+    });
+    state.resultQueue.push({ data: [{ id: 'fallback' }], error: null, count: 1 });
+
+    const result = await fetchFilteredTasks({ q: 'foo' });
+
+    expect(state.builder.or).toHaveBeenCalledTimes(1);
+    expect(state.builder.range).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ data: [{ id: 'fallback' }], count: 1 });
+  });
+
+  it('throws other Supabase errors', async () => {
     const error = { message: 'Boom' };
     state.resultQueue.push({ data: null, error, count: null });
 

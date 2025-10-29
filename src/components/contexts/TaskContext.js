@@ -7,11 +7,11 @@ import { useTaskCreation } from '../../hooks/useTaskCreation';
 import { useTemplateToProject } from '../../hooks/useTemplateToProject';
 import { useTaskDeletion } from '../../hooks/useTaskDeletion';
 import { useTaskUpdate } from '../../hooks/useTaskUpdate';
-import { useLocation } from 'react-router-dom';
 import { useTaskDates } from '../../hooks/useTaskDates';
 import { fetchAllTasks, updateTaskCompletion, updateTaskPosition, fetchTasksForProjects } from '../../services/taskService';
 import { getUserProjects } from '../../services/teamManagementService';
 import { DateCacheEngine } from '../../utils/DateCacheEngine';
+import { filterOutLeafTasks } from '../../utils/taskUtils';
 
 // Create a context for tasks
 const TaskContext = createContext();
@@ -71,13 +71,18 @@ export const TaskProvider = ({ children }) => {
   }, [tasks.length]); // 🔧 Use tasks.length instead of tasks
 
   // 🔧 FIX: Stabilize derived task arrays
-  const instanceTasks = useMemo(() => 
+  const instanceTasks = useMemo(() =>
     tasks.filter(task => task.origin === "instance"), [tasks.length]
   ); // 🔧 Use tasks.length instead of tasks
-  
-  const templateTasks = useMemo(() => 
+
+  const templateTasks = useMemo(() =>
     tasks.filter(task => task.origin === "template"), [tasks.length]
   ); // 🔧 Use tasks.length instead of tasks
+
+  const priorityViewTasks = useMemo(
+    () => filterOutLeafTasks(tasks.filter((task) => task.origin === 'instance')),
+    [tasks.length]
+  );
 
   // ✅ NEW: Fetch member projects and their tasks
   const fetchMemberProjects = useCallback(async () => {
@@ -466,6 +471,7 @@ export const TaskProvider = ({ children }) => {
     tasks,
     instanceTasks,
     templateTasks,
+    priorityViewTasks,
     loading,
     error,
     isFetching,
@@ -519,6 +525,7 @@ export const TaskProvider = ({ children }) => {
     tasks.length,
     instanceTasks.length,
     templateTasks.length,
+    priorityViewTasks.length,
     loading,
     error,
     isFetching,
