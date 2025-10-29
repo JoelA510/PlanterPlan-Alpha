@@ -92,7 +92,7 @@ export function SearchProvider({ children, limit = 100 }) {
           setIsSearching(false);
         }
       }
-    }, 275);
+    }, DEBOUNCE_DELAY_MS);
 
     debounceRef.current = timerId;
 
