@@ -27,8 +27,7 @@ const ProjectStatusReport = () => {
   const availableProjects = useMemo(
     () =>
       instanceTasks
-        .filter((task) => !task.parent_task_id)
-        .filter((project) => !project.is_archived)
+        .filter((task) => !task.parent_task_id && !task.is_archived)
         .map((project) => ({
           id: project.id,
           title: project.title || 'Untitled Project',
