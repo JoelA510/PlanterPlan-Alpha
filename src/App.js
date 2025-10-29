@@ -16,6 +16,7 @@ import RegisterPage from './components/Login/RegisterPage';
 import ForgotPasswordPage from './components/Login/ForgotPasswordPage';
 import ResetPasswordPage from './components/Login/ResetPasswordPage';
 import { SearchProvider } from './components/contexts/SearchContext';
+import MasterLibraryList from './components/MasterLibrary/MasterLibraryList';
 
 // Define LayoutWithOrganization outside of ProtectedRoutes for better stability
 // Use React.memo to prevent unnecessary re-renders
@@ -118,6 +119,7 @@ const ProtectedRoutes = () => {
       >
         <Route index element={<TaskList />} />
         <Route path="templates" element={<TemplateList />} />
+        <Route path="master-library" element={<MasterLibraryList />} />
         <Route path="resources" element={<ResourcesPage />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="white-label-orgs" element={<WhiteLabelOrgList />} />
@@ -130,6 +132,7 @@ const ProtectedRoutes = () => {
         element={<LayoutWithOrganization userType="planter_user" requiredRole="planter_user" />}
       >
         <Route index element={<TaskList />} />
+        <Route path="master-library" element={<MasterLibraryList />} />
         <Route path="resources" element={<ResourcesPage />} />
         <Route path="settings" element={<UserSettings />} />
         <Route path="*" element={<NotFound />} />
@@ -142,6 +145,7 @@ const ProtectedRoutes = () => {
       >
         <Route index element={<TaskList />} />
         <Route path="templates" element={<TemplateList />} />
+        <Route path="master-library" element={<MasterLibraryList />} />
         <Route path="resources" element={<ResourcesPage />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="*" element={<NotFound />} />
@@ -153,6 +157,7 @@ const ProtectedRoutes = () => {
         element={<LayoutWithOrganization userType="org_user" requiredRole="org_user" />}
       >
         <Route index element={<TaskList />} />
+        <Route path="master-library" element={<MasterLibraryList />} />
         <Route path="resources" element={<ResourcesPage />} />
         <Route path="settings" element={<UserSettings />} />
         <Route path="*" element={<NotFound />} />
