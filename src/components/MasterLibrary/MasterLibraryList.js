@@ -21,33 +21,21 @@ export default function MasterLibraryList({ limit = 50 }) {
         });
         setTasks(data ?? []);
       } catch (err) {
-        if (err?.name === 'AbortError') {
-          return;
-        }
+        if (err?.name === 'AbortError') return;
         console.error('Failed to load master library tasks', err);
         setTasks([]);
         setError(err?.message || 'Failed to load tasks');
       } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
     loadTasks();
-
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [offset, limit]);
 
-  const handleNext = () => {
-    setOffset((prev) => prev + limit);
-  };
-
-  const handlePrev = () => {
-    setOffset((prev) => Math.max(0, prev - limit));
-  };
+  const handleNext = () => setOffset((prev) => prev + limit);
+  const handlePrev = () => setOffset((prev) => Math.max(0, prev - limit));
 
   const disablePrev = offset === 0 || isLoading;
   const disableNext = isLoading || tasks.length < limit;

@@ -37,8 +37,7 @@ const Invitations = () => {
   const [loadingAcceptedInvitations, setLoadingAcceptedInvitations] = useState(false);
 
   // Get top-level projects for the dropdown and exclude archived ones
-  const topLevelProjects = instanceTasks.filter(task => !task.parent_task_id);
-  const activeProjects = topLevelProjects.filter(project => !project.is_archived);
+  const activeProjects = instanceTasks.filter(task => !task.parent_task_id && !task.is_archived);
 
   useEffect(() => {
     if (selectedProjectId) {

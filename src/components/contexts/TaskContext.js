@@ -16,6 +16,16 @@ import { filterOutLeafTasks } from '../../utils/taskUtils';
 // Create a context for tasks
 const TaskContext = createContext();
 
+function filterOutLeafTasks(tasks) {
+  const hasChildren = new Set();
+  tasks.forEach((t) => {
+    if (t.parent_task_id) {
+      hasChildren.add(t.parent_task_id);
+    }
+  });
+  return tasks.filter((t) => hasChildren.has(t.id) || !t.parent_task_id);
+}
+
 // Custom hook to use the task context
 export const useTasks = () => {
   const context = useContext(TaskContext);
@@ -79,8 +89,8 @@ export const TaskProvider = ({ children }) => {
     tasks.filter(task => task.origin === "template"), [tasks.length]
   ); // 🔧 Use tasks.length instead of tasks
 
-  const priorityViewTasks = useMemo(
-    () => filterOutLeafTasks(tasks.filter((task) => task.origin === 'instance')),
+  const priorityViewTasks = useMemo(() =>
+    filterOutOrphans(tasks.filter(task => task.origin === 'instance')),
     [tasks.length]
   );
 
