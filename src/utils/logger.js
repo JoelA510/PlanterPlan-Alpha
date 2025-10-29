@@ -12,7 +12,7 @@ function createLogger(namespace) {
     info: logAt('info'),
     warn: logAt('warn'),
     error: logAt('error'),
-    withNamespace: (ns) => createLogger(ns),
+    withNamespace: (ns) => createLogger(namespace ? `${namespace}:${ns}` : ns),
   };
 }
 
