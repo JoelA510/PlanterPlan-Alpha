@@ -16,7 +16,7 @@ import { DateCacheEngine } from '../../utils/DateCacheEngine';
 // Create a context for tasks
 const TaskContext = createContext();
 
-function filterOutOrphans(tasks) {
+function filterOutLeafTasks(tasks) {
   const hasChildren = new Set();
   tasks.forEach((t) => {
     if (t.parent_task_id) {
