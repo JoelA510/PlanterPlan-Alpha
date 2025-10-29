@@ -36,8 +36,8 @@ const Invitations = () => {
   const [acceptedInvitations, setAcceptedInvitations] = useState([]);
   const [loadingAcceptedInvitations, setLoadingAcceptedInvitations] = useState(false);
 
-  // Get top-level projects for the dropdown
-  const projects = instanceTasks.filter(task => !task.parent_task_id);
+  // Get top-level projects for the dropdown and exclude archived ones
+  const activeProjects = instanceTasks.filter(task => !task.parent_task_id && !task.is_archived);
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -224,7 +224,7 @@ const Invitations = () => {
             style={{ marginLeft: '10px', padding: '5px', width: '200px' }}
           >
             <option value="">Choose a project...</option>
-            {projects.map(project => (
+            {activeProjects.map(project => (
               <option key={project.id} value={project.id}>
                 {project.title}
               </option>

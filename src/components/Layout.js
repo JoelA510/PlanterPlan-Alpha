@@ -59,6 +59,11 @@ const Layout = ({ userType }) => {
         icon: '📋'
       },
       {
+        path: `${basePath}/master-library`,
+        label: 'Master Library',
+        icon: '🏛️'
+      },
+      {
         path: `${basePath}/resources`,
         label: 'Resources',
         icon: '📚'

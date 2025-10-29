@@ -16,6 +16,16 @@ import { DateCacheEngine } from '../../utils/DateCacheEngine';
 // Create a context for tasks
 const TaskContext = createContext();
 
+function filterOutLeafTasks(tasks) {
+  const hasChildren = new Set();
+  tasks.forEach((t) => {
+    if (t.parent_task_id) {
+      hasChildren.add(t.parent_task_id);
+    }
+  });
+  return tasks.filter((t) => hasChildren.has(t.id) || !t.parent_task_id);
+}
+
 // Custom hook to use the task context
 export const useTasks = () => {
   const context = useContext(TaskContext);
@@ -71,13 +81,18 @@ export const TaskProvider = ({ children }) => {
   }, [tasks.length]); // 🔧 Use tasks.length instead of tasks
 
   // 🔧 FIX: Stabilize derived task arrays
-  const instanceTasks = useMemo(() => 
+  const instanceTasks = useMemo(() =>
     tasks.filter(task => task.origin === "instance"), [tasks.length]
   ); // 🔧 Use tasks.length instead of tasks
-  
-  const templateTasks = useMemo(() => 
+
+  const templateTasks = useMemo(() =>
     tasks.filter(task => task.origin === "template"), [tasks.length]
   ); // 🔧 Use tasks.length instead of tasks
+
+  const priorityViewTasks = useMemo(() =>
+    filterOutOrphans(tasks.filter(task => task.origin === 'instance')),
+    [tasks.length]
+  );
 
   // ✅ NEW: Fetch member projects and their tasks
   const fetchMemberProjects = useCallback(async () => {
@@ -466,6 +481,7 @@ export const TaskProvider = ({ children }) => {
     tasks,
     instanceTasks,
     templateTasks,
+    priorityViewTasks,
     loading,
     error,
     isFetching,
@@ -519,6 +535,7 @@ export const TaskProvider = ({ children }) => {
     tasks.length,
     instanceTasks.length,
     templateTasks.length,
+    priorityViewTasks.length,
     loading,
     error,
     isFetching,

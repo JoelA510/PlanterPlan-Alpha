@@ -2,6 +2,15 @@
 import { supabase } from '../supabaseClient';
 import rootLogger from '../utils/logger';
 
+export async function fetchMasterLibraryTasks({ from = 0, limit = 50 } = {}) {
+  const { data, error } = await supabase
+    .from('view_master_library')
+    .select('*')
+    .range(from, from + limit - 1);
+  if (error) throw error;
+  return data;
+}
+
 /**
  * Fetch all tasks with enhanced filtering options
  * @param {string|null} organizationId - Organization ID (can be null)
@@ -1062,6 +1071,7 @@ export default {
   batchUpdateTasks,
   getTaskStatistics,
   // Master Library functions
+  fetchMasterLibraryTasks,
   addToMasterLibrary,
   removeFromMasterLibrary,
   checkIfInMasterLibrary,

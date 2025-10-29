@@ -26,7 +26,8 @@ const ProjectStatusReport = () => {
   // Get available projects for filtering
   const availableProjects = useMemo(() => {
     const topLevelProjects = instanceTasks.filter(task => !task.parent_task_id);
-    return topLevelProjects.map(project => ({
+    const activeProjects = topLevelProjects.filter(project => !project.is_archived);
+    return activeProjects.map(project => ({
       id: project.id,
       title: project.title || 'Untitled Project'
     }));
