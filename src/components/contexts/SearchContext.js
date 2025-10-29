@@ -8,6 +8,8 @@ import React, {
 } from 'react';
 import { fetchFilteredTasks } from '../../services/taskService';
 
+const DEBOUNCE_DELAY_MS = 250;
+
 const SearchContext = createContext(null);
 
 export const useSearch = () => {
