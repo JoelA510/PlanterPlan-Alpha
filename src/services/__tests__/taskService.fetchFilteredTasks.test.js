@@ -63,6 +63,25 @@ describe('fetchFilteredTasks', () => {
     expect(result).toEqual({ data: sample, count: 1 });
   });
 
+  it('matches when term exists only in description', async () => {
+    const sample = [
+      {
+        id: 'desc-only',
+        title: 'Compost setup',
+        description: 'Look for the needle among the mulch',
+      },
+    ];
+
+    state.resultQueue.push({ data: sample, error: null, count: 1 });
+
+    const result = await fetchFilteredTasks({ q: 'needle' });
+
+    expect(state.builder.or).toHaveBeenCalledWith(
+      'title.ilike.%needle%,description.ilike.%needle%'
+    );
+    expect(result).toEqual({ data: sample, count: 1 });
+  });
+
   it('skips archived filter when includeArchived is true and trims query', async () => {
     state.resultQueue.push({ data: [], error: null, count: 0 });
 

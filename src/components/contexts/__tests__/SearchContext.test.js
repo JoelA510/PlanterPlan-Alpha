@@ -18,6 +18,7 @@ const TestConsumer = () => {
         onChange={(event) => setSearchTerm(event.target.value)}
       />
       <span data-testid="results-count">{results.length}</span>
+      <span data-testid="results-ids">{results.map((task) => task.id).join(',')}</span>
       {isSearching ? <span data-testid="loading">loading</span> : null}
       <button type="button" data-testid="clear-button" onClick={clearSearch}>
         clear
@@ -105,5 +106,72 @@ describe('SearchContext', () => {
 
     expect(fetchFilteredTasks).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+  });
+
+  it('ignores stale search responses and keeps the latest results', async () => {
+    let resolveFirst;
+    let resolveSecond;
+
+    fetchFilteredTasks
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    render(
+      <SearchProvider>
+        <TestConsumer />
+      </SearchProvider>
+    );
+
+    const input = screen.getByTestId('search-input');
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'first' } });
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(275);
+      await Promise.resolve();
+    });
+
+    expect(fetchFilteredTasks).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'second' } });
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(275);
+      await Promise.resolve();
+    });
+
+    expect(fetchFilteredTasks).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      resolveSecond({ data: [{ id: 'second-result' }], count: 1 });
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('results-ids').textContent).toBe('second-result')
+    );
+
+    await act(async () => {
+      resolveFirst({ data: [{ id: 'first-result' }], count: 1 });
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('results-ids').textContent).toBe('second-result')
+    );
   });
 });

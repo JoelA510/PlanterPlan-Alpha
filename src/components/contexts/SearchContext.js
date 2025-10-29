@@ -30,6 +30,7 @@ export function SearchProvider({ children, limit = 100 }) {
 
   const controllerRef = useRef(null);
   const debounceRef = useRef(null);
+  const requestIdRef = useRef(0);
 
   const clearTimer = () => {
     if (debounceRef.current) {
@@ -56,6 +57,7 @@ export function SearchProvider({ children, limit = 100 }) {
     if (!term) {
       clearTimer();
       abortActiveRequest();
+      requestIdRef.current += 1;
       setResults([]);
       setIsSearching(false);
       setError(null);
@@ -70,6 +72,9 @@ export function SearchProvider({ children, limit = 100 }) {
     setIsSearching(true);
     setError(null);
 
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
     const timerId = setTimeout(async () => {
       try {
         const { data } = await fetchFilteredTasks({
@@ -81,15 +86,28 @@ export function SearchProvider({ children, limit = 100 }) {
           signal: controller.signal,
         });
 
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
         setResults(data ?? []);
         setError(null);
       } catch (err) {
         if (err?.name === 'AbortError') {
           return;
         }
+
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
         setResults([]);
         setError(err);
       } finally {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
         if (!controller.signal.aborted) {
           setIsSearching(false);
         }
