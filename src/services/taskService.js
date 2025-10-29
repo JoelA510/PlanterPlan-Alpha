@@ -1036,7 +1036,7 @@ export async function fetchFilteredTasks({
 
     if (trimmedQuery) {
       const escaped = trimmedQuery.replace(/[%_]/g, (match) => `\\${match}`);
-      query = query.ilike('title', `%${escaped}%`);
+      query = query.or(`title.ilike.%${escaped}%,description.ilike.%${escaped}%`);
     }
 
     if (projectId) {
