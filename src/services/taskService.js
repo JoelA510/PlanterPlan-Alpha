@@ -1,5 +1,6 @@
 // src/services/taskService.js - Enhanced version with project-specific fetching
 import { supabase } from '../supabaseClient';
+import rootLogger from '../utils/logger';
 
 /**
  * Fetch all tasks with enhanced filtering options
@@ -983,9 +984,47 @@ export const checkIfInMasterLibrary = async (taskId, organizationId = null) => {
   }
 };
 
+// --- Search API ---
+const searchLogger = rootLogger.withNamespace('Search');
+const escapeLikePattern = (value = '') => value.replace(/[%_]/g, (match) => `\\${match}`);
+
+export async function fetchFilteredTasks(filters = {}) {
+  const {
+    text = '',
+    status = [],
+    type = [],
+    assigneeId = null,
+    projectId = null,
+    includeArchived = false,
+    limit = 100,
+  } = filters;
+
+  let query = supabase.from('tasks').select('*').order('updated_at', { ascending: false });
+
+  if (projectId) query = query.eq('project_id', projectId);
+  if (!includeArchived) query = query.eq('is_archived', false);
+  if (Array.isArray(status) && status.length) query = query.in('status', status);
+  if (Array.isArray(type) && type.length) query = query.in('task_type', type);
+  if (assigneeId) query = query.eq('assignee_id', assigneeId);
+
+  const trimmedText = text.trim();
+  if (trimmedText) {
+    const pattern = `%${escapeLikePattern(trimmedText)}%`;
+    query = query.or(`title.ilike.${pattern},description.ilike.${pattern}`);
+  }
+
+  const { data, error } = await query.limit(limit);
+  if (error) {
+    searchLogger.error('fetchFilteredTasks error', error);
+    return { data: [], error };
+  }
+  return { data: data || [], error: null };
+}
+
 export default {
   fetchAllTasks,
   fetchTasksForProjects,
+  fetchFilteredTasks,
   createTask,
   updateTaskCompletion,
   updateTaskPosition,
