@@ -1,26 +1,30 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { fetchFilteredTasks } from '../../services/taskService';
-import rootLogger from '../../utils/logger';
-
-export const SearchContext = createContext(null);
+import { rootLogger } from '../../utils/logger';
 
 const log = rootLogger.withNamespace('SearchContext');
-const DEBOUNCE_MS = 300;
-const DEFAULT_FILTERS = Object.freeze({
+
+const DEFAULT_FILTERS = {
   text: '',
-  status: [],
-  type: [],
+  status: null,
+  taskType: null,
   assigneeId: null,
   projectId: null,
-  includeArchived: false,
-  limit: 100,
-});
+  limit: 50,
+  from: 0,
+};
+
+const createDefaultFilters = () => ({ ...DEFAULT_FILTERS });
+
+export const SearchContext = createContext(null);
 
 export const useSearch = () => {
   const context = useContext(SearchContext);
@@ -30,207 +34,124 @@ export const useSearch = () => {
   return context;
 };
 
-export const SearchProvider = ({ children }) => {
-  const [searchFilters, setSearchFilters] = useState({ ...DEFAULT_FILTERS });
-  const [filteredTasks, setFilteredTasks] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+export function SearchProvider({ children }) {
+  const [filters, setFilters] = useState(() => createDefaultFilters());
+  const [results, setResults] = useState([]);
+  const [count, setCount] = useState(0);
+  const [isLoading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const serviceFilters = useMemo(() => {
-    const {
-      text,
-      status,
-      type,
-      assigneeId,
-      projectId,
-      includeArchived,
-      limit,
-    } = searchFilters;
+  const timerRef = useRef(null);
 
-    return {
-      text: text || '',
-      status: Array.isArray(status) ? status : [],
-      type: Array.isArray(type) ? type : [],
-      assigneeId: assigneeId || null,
-      projectId: projectId || null,
-      includeArchived: Boolean(includeArchived),
-      limit: typeof limit === 'number' ? limit : DEFAULT_FILTERS.limit,
-    };
-  }, [searchFilters]);
-
-  const isSearchActive = useMemo(() => {
-    return Boolean(
-      serviceFilters.text.trim() ||
-        serviceFilters.status.length ||
-        serviceFilters.type.length ||
-        serviceFilters.assigneeId ||
-        serviceFilters.projectId ||
-        serviceFilters.includeArchived
-    );
-  }, [serviceFilters]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!isSearchActive) {
-      setFilteredTasks([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-    const debounceId = setTimeout(async () => {
-      try {
-        const { data, error } = await fetchFilteredTasks(serviceFilters);
-        if (cancelled) {
-          return;
-        }
-
-        if (error) {
-          log.error('fetchFilteredTasks failed', error);
-          setFilteredTasks([]);
-        } else {
-          setFilteredTasks(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          log.error('Unexpected search failure', err);
-          setFilteredTasks([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsSearching(false);
-        }
-      }
-    }, DEBOUNCE_MS);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(debounceId);
-    };
-  }, [serviceFilters, isSearchActive]);
-
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (serviceFilters.text.trim()) count += 1;
-    if (serviceFilters.status.length) count += 1;
-    if (serviceFilters.type.length) count += 1;
-    if (serviceFilters.assigneeId) count += 1;
-    if (serviceFilters.projectId) count += 1;
-    if (serviceFilters.includeArchived) count += 1;
-    return count;
-  }, [serviceFilters]);
-
-  const activeFilters = useMemo(() => {
-    const filters = [];
-
-    if (serviceFilters.text.trim()) {
-      filters.push({
-        type: 'text',
-        label: `Text: "${serviceFilters.text.trim()}"`,
-        value: serviceFilters.text,
-      });
-    }
-
-    if (serviceFilters.status.length) {
-      filters.push({
-        type: 'status',
-        label: `Status: ${serviceFilters.status.join(', ')}`,
-        value: [...serviceFilters.status],
-      });
-    }
-
-    if (serviceFilters.type.length) {
-      filters.push({
-        type: 'type',
-        label: `Type: ${serviceFilters.type.join(', ')}`,
-        value: [...serviceFilters.type],
-      });
-    }
-
-    if (serviceFilters.assigneeId) {
-      filters.push({
-        type: 'assigneeId',
-        label: `Assignee: ${serviceFilters.assigneeId}`,
-        value: serviceFilters.assigneeId,
-      });
-    }
-
-    if (serviceFilters.projectId) {
-      filters.push({
-        type: 'projectId',
-        label: `Project: ${serviceFilters.projectId}`,
-        value: serviceFilters.projectId,
-      });
-    }
-
-    if (serviceFilters.includeArchived) {
-      filters.push({
-        type: 'includeArchived',
-        label: 'Including archived',
-        value: true,
-      });
-    }
-
-    return filters;
-  }, [serviceFilters]);
-
-  const updateFilter = (key, value) => {
-    setSearchFilters((prev) => ({
+  const updateFilter = useCallback((key, value) => {
+    setFilters((prev) => ({
       ...prev,
       [key]: value,
     }));
-  };
+  }, []);
 
-  const updateTextSearch = (text) => {
-    updateFilter('text', text);
-  };
+  const updateTextSearch = useCallback((text) => {
+    setFilters((prev) => ({
+      ...prev,
+      text,
+      from: 0,
+    }));
+  }, []);
 
-  const removeFilter = (filterType) => {
-    const resetMap = {
-      text: '',
-      status: [],
-      type: [],
-      assigneeId: null,
-      projectId: null,
-      includeArchived: false,
+  const reset = useCallback(() => {
+    setFilters(createDefaultFilters());
+  }, []);
+
+  const runSearch = useCallback(
+    async (activeFilters) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, count: total } = await fetchFilteredTasks(activeFilters);
+        setResults(data);
+        setCount(total);
+      } catch (err) {
+        log.error('fetchFilteredTasks failed', err);
+        setResults([]);
+        setCount(0);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = setTimeout(() => {
+      runSearch(filters);
+    }, 300);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [filters, runSearch]);
+
+  const activeFilterCount = useMemo(() => {
+    let total = 0;
+
+    if (filters.text && filters.text.trim()) total += 1;
+
+    const countValue = (value) => {
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      return Boolean(value);
     };
 
-    if (filterType in resetMap) {
-      updateFilter(filterType, resetMap[filterType]);
-    }
-  };
+    if (countValue(filters.status)) total += 1;
+    if (countValue(filters.taskType)) total += 1;
+    if (filters.assigneeId) total += 1;
+    if (filters.projectId) total += 1;
 
-  const clearAllFilters = () => {
-    setSearchFilters({ ...DEFAULT_FILTERS });
-  };
+    return total;
+  }, [filters]);
 
-  const contextValue = useMemo(
+  const isSearchActive = useMemo(() => activeFilterCount > 0, [activeFilterCount]);
+
+  const value = useMemo(
     () => ({
-      searchFilters,
-      setSearchFilters,
-      filteredTasks,
-      isSearching,
+      filters,
+      searchFilters: filters,
+      setFilters,
+      setSearchFilters: setFilters,
+      results,
+      filteredTasks: results,
+      count,
+      isLoading,
+      isSearching: isLoading,
+      error,
       isSearchActive,
       activeFilterCount,
-      activeFilters,
+      reset,
+      clearAllFilters: reset,
       updateFilter,
       updateTextSearch,
-      removeFilter,
-      clearAllFilters,
     }),
     [
-      searchFilters,
-      filteredTasks,
-      isSearching,
+      filters,
+      results,
+      count,
+      isLoading,
+      error,
       isSearchActive,
       activeFilterCount,
-      activeFilters,
+      reset,
+      updateFilter,
+      updateTextSearch,
     ]
   );
 
-  return (
-    <SearchContext.Provider value={contextValue}>
-      {children}
-    </SearchContext.Provider>
-  );
-};
+  return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>;
+}

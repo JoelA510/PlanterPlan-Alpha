@@ -988,37 +988,59 @@ export const checkIfInMasterLibrary = async (taskId, organizationId = null) => {
 const searchLogger = rootLogger.withNamespace('Search');
 const escapeLikePattern = (value = '') => value.replace(/[%_]/g, (match) => `\\${match}`);
 
-export async function fetchFilteredTasks(filters = {}) {
-  const {
-    text = '',
-    status = [],
-    type = [],
-    assigneeId = null,
-    projectId = null,
-    includeArchived = false,
-    limit = 100,
-  } = filters;
+export async function fetchFilteredTasks({
+  text = '',
+  status = null,
+  taskType = null,
+  assigneeId = null,
+  projectId = null,
+  limit = 50,
+  from = 0,
+} = {}) {
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 50;
+  const safeFrom = Number.isFinite(from) && from >= 0 ? Math.floor(from) : 0;
 
-  let query = supabase.from('tasks').select('*').order('updated_at', { ascending: false });
+  let query = supabase.from('tasks').select('*', { count: 'exact' });
 
-  if (projectId) query = query.eq('project_id', projectId);
-  if (!includeArchived) query = query.eq('is_archived', false);
-  if (Array.isArray(status) && status.length) query = query.in('status', status);
-  if (Array.isArray(type) && type.length) query = query.in('task_type', type);
-  if (assigneeId) query = query.eq('assignee_id', assigneeId);
+  if (projectId) {
+    query = query.eq('project_id', projectId);
+  }
 
-  const trimmedText = text.trim();
-  if (trimmedText) {
-    const pattern = `%${escapeLikePattern(trimmedText)}%`;
+  if (Array.isArray(status) && status.length) {
+    query = query.in('status', status);
+  } else if (typeof status === 'string' && status.trim()) {
+    query = query.eq('status', status.trim());
+  }
+
+  if (Array.isArray(taskType) && taskType.length) {
+    query = query.in('task_type', taskType);
+  } else if (typeof taskType === 'string' && taskType.trim()) {
+    query = query.eq('task_type', taskType.trim());
+  }
+
+  if (assigneeId) {
+    query = query.eq('assignee_id', assigneeId);
+  }
+
+  if (text && text.trim()) {
+    const trimmed = text.trim();
+    const pattern = `%${escapeLikePattern(trimmed)}%`;
     query = query.or(`title.ilike.${pattern},description.ilike.${pattern}`);
   }
 
-  const { data, error } = await query.limit(limit);
+  query = query.range(safeFrom, safeFrom + safeLimit - 1);
+
+  const { data, error, count } = await query;
+
   if (error) {
     searchLogger.error('fetchFilteredTasks error', error);
-    return { data: [], error };
+    throw error;
   }
-  return { data: data || [], error: null };
+
+  return {
+    data: data ?? [],
+    count: count ?? 0,
+  };
 }
 
 export default {
