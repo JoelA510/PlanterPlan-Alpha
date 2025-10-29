@@ -473,7 +473,7 @@ export const revokeInvitation = async (invitationId, revokedBy) => {
 // - getInvitationByToken
 // - resendInvitation (since it was token-focused)
 
-export default {
+const invitationService = {
   createInvitation,
   getProjectInvitations,
   getPendingInvitationsForUser,
@@ -482,3 +482,5 @@ export default {
   revokeInvitation,
   getInvitationsSentByUser,
 };
+
+export default invitationService;

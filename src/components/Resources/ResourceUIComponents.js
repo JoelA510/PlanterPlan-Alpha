@@ -1,11 +1,10 @@
 // src/components/Resources/ResourceUIComponents.js
 import React from 'react';
-import { 
-  getResourceFormatIcon, 
-  getResourceFormatColors, 
+import {
+  getResourceFormatIcon,
+  getResourceFormatColors,
   getResourceFormatLabel,
-  RESOURCE_FORMATS,
-  RESOURCE_FORMAT_LABELS 
+  RESOURCE_FORMAT_LABELS
 } from './resourceTypes';
 
 /**

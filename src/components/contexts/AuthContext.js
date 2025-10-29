@@ -32,9 +32,6 @@ export const AuthProvider = ({ children }) => {
       setUserRole(data.role);
       setUserOrgId(data.white_label_org_id);
       setUserInfo(data);
-      console.log("fetchng user info");
-      console.log(user);
-      console.log(data);
     } catch (error) {
       console.error('Error fetching user info:', error);
     }
@@ -46,9 +43,8 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        console.log(user);
         setUser(user);
-        
+
         if (user) {
           await fetchUserInfo(user);
         }
@@ -67,7 +63,13 @@ export const AuthProvider = ({ children }) => {
     return () => {
       listener.subscription.unsubscribe()
     }
-  }, [])
+  }, [fetchUserInfo])
+
+  useEffect(() => {
+    if (user) {
+      fetchUserInfo(user);
+    }
+  }, [user, fetchUserInfo]);
 
   // const hasRole = useCallback((role) => {
   //   if (!user) return false;

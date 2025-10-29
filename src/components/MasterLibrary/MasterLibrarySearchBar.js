@@ -339,7 +339,6 @@ const MasterLibrarySearchBar = ({
             <>
               {searchResults.map((result, index) => {
                 // Get both search result task data and actual task data from context
-                const searchTask = result.task || result;
                 const actualTask = findActualTaskData(result);
                 const statusInfo = getTaskStatusInfo(actualTask);
                 

@@ -1,9 +1,8 @@
 // src/components/Resources/ResourceForm.js
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   RESOURCE_FORMATS,
   RESOURCE_FORMAT_LABELS,
-  validateResourceField,
   validateResourceData,
   isUrlRequiredForFormat,
   COMMON_RESOURCE_TAGS

@@ -62,14 +62,6 @@ const ReportFilters = ({
     { value: 'overdue', label: 'Overdue Only' }
   ];
 
-  // Priority options (if your tasks have priority)
-  const priorityOptions = [
-    { value: 'all', label: 'All Priorities' },
-    { value: 'high', label: 'High Priority' },
-    { value: 'medium', label: 'Medium Priority' },
-    { value: 'low', label: 'Low Priority' }
-  ];
-
   // Handle filter changes
   const handleFilterChange = (filterKey, value) => {
     const newFilters = {

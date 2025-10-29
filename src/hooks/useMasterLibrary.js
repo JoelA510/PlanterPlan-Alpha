@@ -33,6 +33,8 @@ export const useMasterLibrary = () => {
   // Refs for cleanup
   const isMountedRef = useRef(true);
   const fetchTimeoutRef = useRef(null);
+  const libraryTasksRef = useRef(libraryTasks);
+  const libraryStatusCacheRef = useRef(libraryStatusCache);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -43,6 +45,14 @@ export const useMasterLibrary = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    libraryTasksRef.current = libraryTasks;
+  }, [libraryTasks]);
+
+  useEffect(() => {
+    libraryStatusCacheRef.current = libraryStatusCache;
+  }, [libraryStatusCache]);
 
   // ═══════════════════════════════════════════════════════════════
   // 📁 STATE MANAGEMENT FUNCTIONS
@@ -57,7 +67,7 @@ export const useMasterLibrary = () => {
     // Don't fetch if we just fetched recently (unless forced)
     if (!forceRefresh && lastFetched && Date.now() - lastFetched < 30000) {
       console.log('🚀 Using cached master library data');
-      return { data: libraryTasks, error: null };
+      return { data: libraryTasksRef.current, error: null };
     }
 
     try {
@@ -85,7 +95,7 @@ export const useMasterLibrary = () => {
       setLastFetched(Date.now());
       
       // Update cache with fetched status
-      const newCache = new Map(libraryStatusCache);
+      const newCache = new Map(libraryStatusCacheRef.current);
       tasks.forEach(item => {
         if (item.task?.id) {
           newCache.set(item.task.id, true);
@@ -108,7 +118,7 @@ export const useMasterLibrary = () => {
         setLoading(false);
       }
     }
-  }, [organizationId, lastFetched, libraryTasks, libraryStatusCache]);
+  }, [organizationId, lastFetched]);
 
   /**
    * Check if a task is in the master library (with caching)
@@ -506,7 +516,7 @@ export const useMasterLibrary = () => {
     if (organizationId !== undefined) { // Allow null
       fetchLibraryTasks();
     }
-  }, [organizationId]); // Only depend on organizationId
+  }, [organizationId, fetchLibraryTasks]);
 
   // ═══════════════════════════════════════════════════════════════
   // 📤 RETURN API

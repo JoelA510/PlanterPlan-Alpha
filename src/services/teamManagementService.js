@@ -80,7 +80,7 @@ export const addProjectMember = async (projectId, userId, role, invitedBy) => {
     }
     
     // Check if user exists
-    const { data: userExists, error: userError } = await supabase
+    const { error: userError } = await supabase
       .from('users')
       .select('id, email, first_name, last_name')
       .eq('id', userId)
@@ -541,7 +541,7 @@ export const getProjectMembershipStats = async (projectId) => {
   }
 };
 
-export default {
+const teamManagementService = {
   getProjectMembers,
   addProjectMember,
   updateMemberRole,
@@ -551,3 +551,5 @@ export default {
   checkUserRole,
   getProjectMembershipStats
 };
+
+export default teamManagementService;

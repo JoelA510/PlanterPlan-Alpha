@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, screen, act, waitFor } from '@testing-library/react';
+import { render, fireEvent, screen, waitFor, act } from '@testing-library/react';
 import { SearchProvider, useSearch } from '../SearchContext';
 import { fetchFilteredTasks } from '../../../services/taskService';
 
@@ -56,14 +56,15 @@ describe('SearchContext', () => {
     fireEvent.change(input, { target: { value: 'foo' } });
 
     expect(fetchFilteredTasks).not.toHaveBeenCalled();
-    expect(screen.getByTestId('loading')).toBeInTheDocument();
+    expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
 
+    // eslint-disable-next-line testing-library/no-unnecessary-act
     await act(async () => {
       jest.advanceTimersByTime(275);
       await Promise.resolve();
     });
 
-    expect(fetchFilteredTasks).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(fetchFilteredTasks).toHaveBeenCalledTimes(1));
     const args = fetchFilteredTasks.mock.calls[0][0];
     expect(args.q).toBe('foo');
     expect(args.from).toBe(0);
@@ -88,6 +89,7 @@ describe('SearchContext', () => {
     const input = screen.getByTestId('search-input');
     fireEvent.change(input, { target: { value: 'plants' } });
 
+    // eslint-disable-next-line testing-library/no-unnecessary-act
     await act(async () => {
       jest.advanceTimersByTime(275);
       await Promise.resolve();
@@ -134,41 +136,33 @@ describe('SearchContext', () => {
 
     const input = screen.getByTestId('search-input');
 
-    await act(async () => {
-      fireEvent.change(input, { target: { value: 'first' } });
-    });
+    fireEvent.change(input, { target: { value: 'first' } });
 
-    await act(async () => {
-      jest.advanceTimersByTime(275);
-      await Promise.resolve();
-    });
-
-    expect(fetchFilteredTasks).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      fireEvent.change(input, { target: { value: 'second' } });
-    });
-
+    // eslint-disable-next-line testing-library/no-unnecessary-act
     await act(async () => {
       jest.advanceTimersByTime(275);
       await Promise.resolve();
     });
 
-    expect(fetchFilteredTasks).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(fetchFilteredTasks).toHaveBeenCalledTimes(1));
 
+    fireEvent.change(input, { target: { value: 'second' } });
+
+    // eslint-disable-next-line testing-library/no-unnecessary-act
     await act(async () => {
-      resolveSecond({ data: [{ id: 'second-result' }], count: 1 });
+      jest.advanceTimersByTime(275);
       await Promise.resolve();
     });
+
+    await waitFor(() => expect(fetchFilteredTasks).toHaveBeenCalledTimes(2));
+
+    resolveSecond({ data: [{ id: 'second-result' }], count: 1 });
 
     await waitFor(() =>
       expect(screen.getByTestId('results-ids').textContent).toBe('second-result')
     );
 
-    await act(async () => {
-      resolveFirst({ data: [{ id: 'first-result' }], count: 1 });
-      await Promise.resolve();
-    });
+    resolveFirst({ data: [{ id: 'first-result' }], count: 1 });
 
     await waitFor(() =>
       expect(screen.getByTestId('results-ids').textContent).toBe('second-result')

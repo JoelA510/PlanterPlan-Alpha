@@ -76,6 +76,8 @@ const MonthSelector = ({ selectedMonth, onMonthChange, disabled = false }) => {
           setIsOpen(true);
         }
         break;
+      default:
+        break;
     }
   };
 
