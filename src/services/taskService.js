@@ -11,6 +11,19 @@ export async function fetchMasterLibraryTasks({ from = 0, limit = 50 } = {}) {
   return data;
 }
 
+export async function fetchMasterLibraryTasks({ from = 0, limit = 50, signal } = {}) {
+  let query = supabase
+    .from('view_master_library')
+    .select('*')
+    .range(from, from + limit - 1);
+
+  if (signal) query = query.abortSignal(signal);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
 /**
  * Fetch all tasks with enhanced filtering options
  * @param {string|null} organizationId - Organization ID (can be null)
