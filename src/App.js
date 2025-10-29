@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import TaskList from './components/TaskList/TaskList';
 import TemplateList from './components/TemplateList/TemplateList';
@@ -173,19 +173,16 @@ const App = () => {
 
   return (
     <AuthProvider>
-      {/* Add stable key to Router to prevent remounting */}
-      <Router key="app-router">
-        <Routes>
-          {/* Auth routes - accessible to everyone */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          
-          {/* Protected routes */}
-          <Route path="/*" element={<ProtectedRoutes />} />
-        </Routes>
-      </Router>
+      <Routes>
+        {/* Auth routes - accessible to everyone */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* Protected routes */}
+        <Route path="/*" element={<ProtectedRoutes />} />
+      </Routes>
     </AuthProvider>
   );
 };
