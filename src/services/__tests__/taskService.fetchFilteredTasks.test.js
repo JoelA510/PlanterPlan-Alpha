@@ -55,9 +55,10 @@ describe('fetchFilteredTasks', () => {
     expect(query.select).toHaveBeenCalledWith('*', { count: 'exact' });
     expect(query.order).toHaveBeenCalledWith('title', { ascending: true });
     expect(query.abortSignal).toHaveBeenCalledWith(controller.signal);
-    expect(query.ilike).toHaveBeenCalledWith('title', '%foo%');
+    expect(query.ilike).not.toHaveBeenCalled();
     expect(query.eq).toHaveBeenCalledWith('project_id', 'project-456');
-    expect(query.or).toHaveBeenCalledWith('is_archived.is.null,is_archived.eq.false');
+    expect(query.or).toHaveBeenNthCalledWith(1, 'title.ilike.%foo%,description.ilike.%foo%');
+    expect(query.or).toHaveBeenNthCalledWith(2, 'is_archived.is.null,is_archived.eq.false');
     expect(query.range).toHaveBeenCalledWith(5, 14);
     expect(result).toEqual({ data: sample, count: 1 });
   });
@@ -70,8 +71,9 @@ describe('fetchFilteredTasks', () => {
     const query = state.builder;
 
     expect(query.abortSignal).not.toHaveBeenCalled();
-    expect(query.ilike).toHaveBeenCalledWith('title', '%plants%');
-    expect(query.or).not.toHaveBeenCalled();
+    expect(query.ilike).not.toHaveBeenCalled();
+    expect(query.or).toHaveBeenCalledTimes(1);
+    expect(query.or).toHaveBeenCalledWith('title.ilike.%plants%,description.ilike.%plants%');
   });
 
   it('retries without archive filter when the column is missing', async () => {
@@ -84,7 +86,7 @@ describe('fetchFilteredTasks', () => {
 
     const result = await fetchFilteredTasks({ q: 'foo' });
 
-    expect(state.builder.or).toHaveBeenCalledTimes(1);
+    expect(state.builder.or).toHaveBeenCalledTimes(3);
     expect(state.builder.range).toHaveBeenCalledTimes(2);
     expect(result).toEqual({ data: [{ id: 'fallback' }], count: 1 });
   });
