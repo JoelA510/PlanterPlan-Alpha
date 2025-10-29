@@ -1,8 +1,8 @@
-alter table profiles
+alter table users
   add column if not exists lower_email text
   generated always as (lower(email)) stored;
 
-create unique index if not exists profiles_lower_email_uq
-  on profiles(lower_email);
+create unique index if not exists users_lower_email_uq
+  on users(lower_email);
 
-update profiles set email = email where email is not null;
+update users set email = email where email is not null;
