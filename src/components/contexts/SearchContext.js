@@ -69,13 +69,13 @@ export function SearchProvider({ children, limit = 100 }) {
     controllerRef.current = controller;
 
     clearTimer();
-    setIsSearching(true);
-    setError(null);
-
-    requestIdRef.current += 1;
-    const requestId = requestIdRef.current;
 
     const timerId = setTimeout(async () => {
+      requestIdRef.current += 1;
+      const requestId = requestIdRef.current;
+      setIsSearching(true);
+      setError(null);
+
       try {
         const { data } = await fetchFilteredTasks({
           q: term,

@@ -1,11 +1,9 @@
 // src/components/Admin/LicenseManager.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { generateLicense } from '../../services/licenseService';
-import { useAuth } from '../contexts/AuthContext';
 
 const LicenseManager = () => {
-  const { user } = useAuth();
   const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,15 +15,10 @@ const LicenseManager = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedLicense, setCopiedLicense] = useState(null);
 
-  useEffect(() => {
-    fetchLicenses();
-    fetchOrganizations();
-  }, []);
-
-  const fetchLicenses = async () => {
+  const fetchLicenses = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       let query = supabase
         .from('licenses')
         .select(`
@@ -57,9 +50,9 @@ const LicenseManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus, filterOrgId]);
 
-  const fetchOrganizations = async () => {
+  const fetchOrganizations = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('white_label_orgs')
@@ -72,7 +65,12 @@ const LicenseManager = () => {
     } catch (err) {
       console.error('Error fetching organizations:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchLicenses();
+    fetchOrganizations();
+  }, [fetchLicenses, fetchOrganizations]);
 
   const handleGenerateLicense = async () => {
     try {

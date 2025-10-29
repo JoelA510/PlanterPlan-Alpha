@@ -159,7 +159,7 @@ const AppearanceSettings = () => {
       };
 
       // Call the API to update
-      const { data, error } = await updateOrganization(updateData);
+      const { error } = await updateOrganization(updateData);
       
       if (error) throw new Error(error);
       

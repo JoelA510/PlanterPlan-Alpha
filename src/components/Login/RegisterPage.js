@@ -275,9 +275,13 @@ const RegisterPage = () => {
             <div className="text-center text-sm">
               <p className="text-gray-600">
                 Need help?{' '}
-                <a href="#" className="font-medium text-blue-600">
+                <button
+                  type="button"
+                  onClick={handleResendEmail}
+                  className="font-medium text-blue-600 underline"
+                >
                   Contact Support
-                </a>
+                </button>
               </p>
             </div>
           )}

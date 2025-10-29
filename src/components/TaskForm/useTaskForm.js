@@ -2,6 +2,27 @@
 import { useState, useEffect, useRef } from 'react';
 import { calculateDueDate, isValidDateRange } from '../../utils/dateUtils';
 
+const ensureArray = (value) => {
+  if (Array.isArray(value)) {
+    return value.length > 0 ? value : [''];
+  }
+
+  if (value === undefined || value === null) {
+    return [''];
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? (parsed.length > 0 ? parsed : ['']) : [value];
+    } catch (e) {
+      return [value];
+    }
+  }
+
+  return [value];
+};
+
 /**
  * Custom hook for handling task/project form state and logic
  * @param {Object} initialData - Initial form data values
@@ -10,29 +31,6 @@ import { calculateDueDate, isValidDateRange } from '../../utils/dateUtils';
  */
 export const useTaskForm = (initialData = {}, parentStartDate = null) => {
   // Helper function to ensure array fields are properly formatted
-  const ensureArray = (value) => {
-    if (Array.isArray(value)) {
-      return value.length > 0 ? value : [''];
-    }
-    
-    if (value === undefined || value === null) {
-      return [''];
-    }
-    
-    // If it's a string, try to parse it as JSON (it might be a serialized array)
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? (parsed.length > 0 ? parsed : ['']) : [value];
-      } catch (e) {
-        // If parsing fails, treat it as a single item array
-        return [value];
-      }
-    }
-    
-    // For any other value, wrap it in an array
-    return [value];
-  };
   
   // Process initialData to ensure arrays are properly formatted
   const processedInitialData = { ...initialData };
@@ -77,23 +75,23 @@ export const useTaskForm = (initialData = {}, parentStartDate = null) => {
   
   // Force actions and resources to be arrays in case they weren't properly converted
   useEffect(() => {
-    const updatedData = { ...formData };
-    let needsUpdate = false;
-    
-    if (!Array.isArray(updatedData.actions)) {
-      updatedData.actions = ensureArray(updatedData.actions);
-      needsUpdate = true;
-    }
-    
-    if (!Array.isArray(updatedData.resources)) {
-      updatedData.resources = ensureArray(updatedData.resources);
-      needsUpdate = true;
-    }
-    
-    if (needsUpdate) {
-      setFormData(updatedData);
-    }
-  }, []); // 🔧 FIX: Remove formData from dependencies to prevent loop
+    setFormData(prev => {
+      let needsUpdate = false;
+      const next = { ...prev };
+
+      if (!Array.isArray(prev.actions)) {
+        next.actions = ensureArray(prev.actions);
+        needsUpdate = true;
+      }
+
+      if (!Array.isArray(prev.resources)) {
+        next.resources = ensureArray(prev.resources);
+        needsUpdate = true;
+      }
+
+      return needsUpdate ? next : prev;
+    });
+  }, [formData.actions, formData.resources]);
   
   // 🔧 FIX: Separate effect to reset manual update flag
   useEffect(() => {
@@ -212,8 +210,7 @@ export const useTaskForm = (initialData = {}, parentStartDate = null) => {
     const timer = setTimeout(performCalculation, 100);
     return () => clearTimeout(timer);
     
-  }, [formData.start_date, formData.due_date, formData.duration_days, dateMode]); 
-  // 🔧 FIX: Removed isManualUpdate from dependencies
+  }, [formData.start_date, formData.due_date, formData.duration_days, dateMode, isManualUpdate]);
   
   // When parent start date and days_from_start_until change, calculate the start date
   useEffect(() => {

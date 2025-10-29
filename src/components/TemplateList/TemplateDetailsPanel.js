@@ -32,9 +32,9 @@ const TemplateDetailsPanel = ({
   useEffect(() => {
     const checkLibraryStatus = async () => {
       if (!task?.id) return;
-      
+
       setIsCheckingLibraryStatus(true);
-      
+
       try {
         // ✅ FORCE: Always do fresh API check for accurate status
         console.log('🔍 Checking master library status for task:', task.id);
@@ -64,7 +64,7 @@ const TemplateDetailsPanel = ({
     };
     
     checkLibraryStatus();
-  }, [task?.id]);
+  }, [task?.id, masterLibrary]);
 
   // Check if this task has children
   useEffect(() => {
@@ -113,11 +113,11 @@ const TemplateDetailsPanel = ({
   // Clear library error when component unmounts or task changes
   useEffect(() => {
     return () => {
-      if (libraryError) {
+      if (libraryError && task?.id) {
         masterLibrary.clearTaskError(task.id);
       }
     };
-  }, [task.id, libraryError, masterLibrary]);
+  }, [task?.id, libraryError, masterLibrary]);
   
   // Button handlers
   const handleEditClick = () => {

@@ -53,8 +53,6 @@ const ProgressDonutChart = ({
   // SVG dimensions
   const radius = (size - strokeWidth) / 2;
   const center = size / 2;
-  const circumference = 2 * Math.PI * radius;
-
   // Create SVG path for each segment
   const createPath = (startAngle, endAngle, radius, center) => {
     const start = polarToCartesian(center, center, radius, endAngle);

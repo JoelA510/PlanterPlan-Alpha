@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTasks } from '../contexts/TaskContext';
 import { formatDisplayDate } from '../../utils/taskUtils';
 
@@ -14,32 +14,36 @@ const MilestonesList = ({
   const [sortBy, setSortBy] = useState('date'); // 'date', 'title', 'project'
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc', 'desc'
 
+  const tasksById = useMemo(() => {
+    return new Map(instanceTasks.map(task => [task.id, task]));
+  }, [instanceTasks]);
+
   // Helper function to find the root project for a task
-  const findRootProject = (taskId) => {
+  const findRootProject = useCallback((taskId) => {
     if (!taskId) return null;
-    
-    let currentTask = instanceTasks.find(t => t.id === taskId);
+
+    let currentTask = tasksById.get(taskId);
     while (currentTask && currentTask.parent_task_id) {
-      currentTask = instanceTasks.find(t => t.id === currentTask.parent_task_id);
+      currentTask = tasksById.get(currentTask.parent_task_id);
     }
     return currentTask;
-  };
+  }, [tasksById]);
 
   // Helper function to get task hierarchy path
-  const getTaskPath = (taskId) => {
+  const getTaskPath = useCallback((taskId) => {
     const path = [];
-    let currentTask = instanceTasks.find(t => t.id === taskId);
-    
+    let currentTask = tasksById.get(taskId);
+
     while (currentTask) {
       path.unshift(currentTask);
       if (currentTask.parent_task_id) {
-        currentTask = instanceTasks.find(t => t.id === currentTask.parent_task_id);
+        currentTask = tasksById.get(currentTask.parent_task_id);
       } else {
         break;
       }
     }
     return path;
-  };
+  }, [tasksById]);
 
   // Sort tasks based on selected criteria
   const sortedTasks = useMemo(() => {
@@ -78,7 +82,7 @@ const MilestonesList = ({
       
       return sortDirection === 'desc' ? -comparison : comparison;
     });
-  }, [tasks, instanceTasks, sortBy, sortDirection, type]);
+  }, [tasks, findRootProject, getTaskPath, sortBy, sortDirection, type]);
 
   // Toggle task expansion
   const toggleTaskExpansion = (taskId) => {

@@ -9,7 +9,7 @@ const Layout = ({ userType }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { slug } = useParams(); // Get the org slug from URL if present
-  const { organization, organizationId, loading: orgLoading } = useOrganization();
+  const { organization } = useOrganization();
   const { user, userInfo } = useAuth();
   const isInOrgContext = !!organization;
   

@@ -1,8 +1,15 @@
 // src/hooks/useReportData.js
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTasks } from '../contexts/TaskContext';
-import { useAuth } from '../contexts/AuthContext';
-import { formatDisplayDate } from '../utils/taskUtils';
+
+const findTaskById = (taskList, id) => {
+  for (const task of taskList) {
+    if (task.id === id) {
+      return task;
+    }
+  }
+  return undefined;
+};
 
 /**
  * Custom hook for processing and filtering report data
@@ -10,7 +17,6 @@ import { formatDisplayDate } from '../utils/taskUtils';
  */
 export const useReportData = (selectedMonth, filters = {}) => {
   const { instanceTasks, memberProjectTasks, loading: tasksLoading } = useTasks();
-  const { user } = useAuth();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessedKey, setLastProcessedKey] = useState('');
@@ -57,25 +63,26 @@ export const useReportData = (selectedMonth, filters = {}) => {
   // Helper function to get all tasks belonging to a project (including children)
   const getProjectTasks = useCallback((projectId, taskList) => {
     const projectTaskIds = new Set([projectId]);
-    
-    const addChildren = (parentId) => {
-      taskList.forEach(task => {
+    const stack = [projectId];
+
+    while (stack.length > 0) {
+      const parentId = stack.pop();
+      for (const task of taskList) {
         if (task.parent_task_id === parentId && !projectTaskIds.has(task.id)) {
           projectTaskIds.add(task.id);
-          addChildren(task.id);
+          stack.push(task.id);
         }
-      });
-    };
-    
-    addChildren(projectId);
+      }
+    }
+
     return taskList.filter(task => projectTaskIds.has(task.id));
   }, []);
 
   // Helper function to find root project for a task
   const findRootProject = useCallback((taskId, taskList) => {
-    let currentTask = taskList.find(t => t.id === taskId);
+    let currentTask = findTaskById(taskList, taskId);
     while (currentTask && currentTask.parent_task_id) {
-      currentTask = taskList.find(t => t.id === currentTask.parent_task_id);
+      currentTask = findTaskById(taskList, currentTask.parent_task_id);
     }
     return currentTask;
   }, []);
@@ -114,6 +121,8 @@ export const useReportData = (selectedMonth, filters = {}) => {
             if (!task.due_date) return false;
             return new Date(task.due_date) < new Date();
           });
+          break;
+        default:
           break;
       }
     }
@@ -172,6 +181,8 @@ export const useReportData = (selectedMonth, filters = {}) => {
           if (filters.customEndDate) {
             endDate = new Date(filters.customEndDate);
           }
+          break;
+        default:
           break;
       }
 

@@ -285,6 +285,8 @@ export const addKeyboardDragSupport = (element, handlers) => {
           handlers.onKeyMove(e.key, { target: selectedElement });
         }
         break;
+      default:
+        break;
     }
   };
   

@@ -1,14 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationProvider';
 import { useTasks } from '../contexts/TaskContext';
 import ProgressDonutChart from './ProgressDonutChart';
 import MonthSelector from './MonthSelector';
 import MilestonesList from './MilestonesList';
-import { formatDisplayDate } from '../../utils/taskUtils';
 
 const ProjectStatusReport = () => {
-  const { user } = useAuth();
   const { organization } = useOrganization();
   const { instanceTasks, loading, error } = useTasks();
   
@@ -40,14 +37,6 @@ const ProjectStatusReport = () => {
     if (!dateString) return false;
     const date = new Date(dateString);
     return date.getMonth() === month && date.getFullYear() === year;
-  };
-
-  // Helper function to check if a date is before the end of a specific month
-  const isDateBeforeEndOfMonth = (dateString, month, year) => {
-    if (!dateString) return false;
-    const date = new Date(dateString);
-    const endOfMonth = new Date(year, month + 1, 0); // Last day of the month
-    return date <= endOfMonth;
   };
 
   // Helper function to check if a date is in the month after the selected month

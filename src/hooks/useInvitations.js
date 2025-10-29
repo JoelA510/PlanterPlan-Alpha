@@ -23,41 +23,6 @@ export const useInvitations = () => {
   const [invitationLoading, setInvitationLoading] = useState(false);
 
   /**
-   * Send an invitation to join a project
-   * @param {string} projectId - ID of the project
-   * @param {string} email - Email address to invite
-   * @param {string} role - Role to assign
-   * @returns {Promise<{success: boolean, data: Object, error: string}>}
-   */
-  const sendProjectInvitation = useCallback(async (projectId, email, role) => {
-    try {
-      setInvitationLoading(true);
-      
-      if (!user?.id) {
-        return { success: false, error: 'User not authenticated' };
-      }
-      
-      console.log('Sending project invitation:', { projectId, email, role });
-      
-      const result = await createInvitation(projectId, email, role, user.id);
-      
-      if (result.error) {
-        return { success: false, error: result.error };
-      }
-      
-      // Refresh project invitations
-      await fetchProjectInvitations(projectId);
-      
-      return { success: true, data: result.data };
-    } catch (err) {
-      console.error('Error sending invitation:', err);
-      return { success: false, error: err.message };
-    } finally {
-      setInvitationLoading(false);
-    }
-  }, [user?.id]);
-
-  /**
    * Fetch all invitations for a specific project
    * @param {string} projectId - ID of the project
    * @returns {Promise<{success: boolean, data: Array, error: string}>}
@@ -111,6 +76,41 @@ export const useInvitations = () => {
       return { success: false, error: err.message };
     }
   }, [user?.email]);
+
+  /**
+   * Send an invitation to join a project
+   * @param {string} projectId - ID of the project
+   * @param {string} email - Email address to invite
+   * @param {string} role - Role to assign
+   * @returns {Promise<{success: boolean, data: Object, error: string}>}
+   */
+  const sendProjectInvitation = useCallback(async (projectId, email, role) => {
+    try {
+      setInvitationLoading(true);
+
+      if (!user?.id) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      console.log('Sending project invitation:', { projectId, email, role });
+
+      const result = await createInvitation(projectId, email, role, user.id);
+
+      if (result.error) {
+        return { success: false, error: result.error };
+      }
+
+      // Refresh project invitations
+      await fetchProjectInvitations(projectId);
+
+      return { success: true, data: result.data };
+    } catch (err) {
+      console.error('Error sending invitation:', err);
+      return { success: false, error: err.message };
+    } finally {
+      setInvitationLoading(false);
+    }
+  }, [user?.id, fetchProjectInvitations]);
 
   /**
    * Accept a project invitation (simplified - using invitation ID)

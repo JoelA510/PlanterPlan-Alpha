@@ -445,7 +445,7 @@ export const getTaskWithPermissions = async (taskId, userId) => {
     }
     
     // Check user's membership in the project
-    const { data: membership, error: memberError } = await supabase
+    const { data: membership } = await supabase
       .from('project_memberships')
       .select('role, status')
       .eq('project_id', rootProject.id)
@@ -777,7 +777,7 @@ export const addToMasterLibrary = async (taskId, userId, organizationId = null) 
     }
     
     // Check if already in master library
-    const { data: existing, error: existingError } = await supabase
+    const { data: existing } = await supabase
       .from('master_library_tasks')
       .select('id')
       .eq('task_id', taskId)
@@ -1077,7 +1077,7 @@ export async function fetchFilteredTasks({
   }
 }
 
-export default {
+const taskService = {
   fetchAllTasks,
   fetchTasksForProjects,
   fetchFilteredTasks,
@@ -1103,3 +1103,5 @@ export default {
   getMasterLibraryTasks,
   searchMasterLibraryTasks,
 };
+
+export default taskService;

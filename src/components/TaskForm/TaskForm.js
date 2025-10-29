@@ -25,10 +25,7 @@ const TaskForm = ({
   const {
     formData,
     errors,
-    dateMode,
-    handleDateModeChange,
     handleChange,
-    handleDateChange,
     handleArrayChange,
     addArrayItem,
     removeArrayItem,

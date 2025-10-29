@@ -190,9 +190,6 @@ export const fetchTaskStatistics = async ({
   try {
     console.log('Fetching task statistics:', { organizationId, userId, startDate, endDate });
 
-    // We'll use multiple queries to get different statistics
-    const queries = [];
-
     // Base query builder
     const buildBaseQuery = () => {
       let query = supabase

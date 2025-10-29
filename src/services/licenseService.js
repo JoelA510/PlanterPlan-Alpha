@@ -194,7 +194,6 @@ export const checkUserExistingProjects = async (userId) => {
  */
 const generateRandomLicenseKey = () => {
   const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed similar looking characters
-  const keyLength = 16;
   let result = '';
   
   // Generate 4 groups of 4 characters
@@ -298,9 +297,11 @@ export const markLicenseAsUsed = async (licenseId) => {
   }
 };
 
-export default {
+const licenseService = {
   generateLicense,
   canUserCreateProject,
   validateLicense,
   markLicenseAsUsed,
 };
+
+export default licenseService;
