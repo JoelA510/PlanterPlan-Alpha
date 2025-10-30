@@ -84,12 +84,6 @@ const RegisterPage = () => {
       setFormLoading(false);
     }
   };
-  
-  // Function to handle resending verification email
-  const handleResendEmail = () => {
-    alert('Verification email has been resent!');
-    // You would implement actual resend functionality here
-  };
 
   // If auth context is still loading, show a loading indicator
   if (loading) {
@@ -275,7 +269,7 @@ const RegisterPage = () => {
             <div className="text-center text-sm">
               <p className="text-gray-600">
                 Need help?{' '}
-                <a href="#" className="font-medium text-blue-600">
+                <a href="mailto:support@planterplan.com" className="font-medium text-blue-600">
                   Contact Support
                 </a>
               </p>

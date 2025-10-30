@@ -77,7 +77,6 @@ const LayoutWithOrganization = React.memo(({ userType, children, requiredRole })
 // Component to handle all protected routes
 const ProtectedRoutes = () => {
   const { user, loading, hasRole } = useAuth();
-  const navigate = useNavigate();
   
   // Calculate default path based on user role - moved above the conditional returns
   const defaultPath = useMemo(() => {

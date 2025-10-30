@@ -134,9 +134,7 @@ describe('SearchContext', () => {
 
     const input = screen.getByTestId('search-input');
 
-    await act(async () => {
-      fireEvent.change(input, { target: { value: 'first' } });
-    });
+    fireEvent.change(input, { target: { value: 'first' } });
 
     await act(async () => {
       jest.advanceTimersByTime(275);
@@ -145,9 +143,7 @@ describe('SearchContext', () => {
 
     expect(fetchFilteredTasks).toHaveBeenCalledTimes(1);
 
-    await act(async () => {
-      fireEvent.change(input, { target: { value: 'second' } });
-    });
+    fireEvent.change(input, { target: { value: 'second' } });
 
     await act(async () => {
       jest.advanceTimersByTime(275);

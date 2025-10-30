@@ -1,6 +1,39 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTasks } from '../contexts/TaskContext';
 import { formatDisplayDate } from '../../utils/taskUtils';
+
+// Helper function to find the root project for a task
+const findRootProject = (taskId, instanceTasks) => {
+  const taskMap = new Map(instanceTasks.map(t => [t.id, t]));
+
+  const findRoot = (currentTaskId) => {
+    const task = taskMap.get(currentTaskId);
+    if (!task || !task.parent_task_id) {
+      return task;
+    }
+    return findRoot(task.parent_task_id);
+  };
+
+  return findRoot(taskId);
+};
+
+// Helper function to get task hierarchy path
+const getTaskPath = (taskId, instanceTasks) => {
+  const taskMap = new Map(instanceTasks.map(t => [t.id, t]));
+
+  const findPath = (currentTaskId) => {
+    const task = taskMap.get(currentTaskId);
+    if (!task) {
+      return [];
+    }
+    if (!task.parent_task_id) {
+      return [task];
+    }
+    return [...findPath(task.parent_task_id), task];
+  };
+
+  return findPath(taskId);
+};
 
 const MilestonesList = ({ 
   tasks = [], 
@@ -14,38 +47,14 @@ const MilestonesList = ({
   const [sortBy, setSortBy] = useState('date'); // 'date', 'title', 'project'
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc', 'desc'
 
-  // Helper function to find the root project for a task
-  const findRootProject = (taskId) => {
-    if (!taskId) return null;
-    
-    let currentTask = instanceTasks.find(t => t.id === taskId);
-    while (currentTask && currentTask.parent_task_id) {
-      currentTask = instanceTasks.find(t => t.id === currentTask.parent_task_id);
-    }
-    return currentTask;
-  };
-
-  // Helper function to get task hierarchy path
-  const getTaskPath = (taskId) => {
-    const path = [];
-    let currentTask = instanceTasks.find(t => t.id === taskId);
-    
-    while (currentTask) {
-      path.unshift(currentTask);
-      if (currentTask.parent_task_id) {
-        currentTask = instanceTasks.find(t => t.id === currentTask.parent_task_id);
-      } else {
-        break;
-      }
-    }
-    return path;
-  };
+  const memoizedFindRootProject = useCallback((taskId) => findRootProject(taskId, instanceTasks), [instanceTasks]);
+  const memoizedGetTaskPath = useCallback((taskId) => getTaskPath(taskId, instanceTasks), [instanceTasks]);
 
   // Sort tasks based on selected criteria
   const sortedTasks = useMemo(() => {
     const tasksWithMetadata = tasks.map(task => {
-      const rootProject = findRootProject(task.id);
-      const taskPath = getTaskPath(task.id);
+      const rootProject = memoizedFindRootProject(task.id);
+      const taskPath = memoizedGetTaskPath(task.id);
       
       return {
         ...task,
@@ -78,7 +87,7 @@ const MilestonesList = ({
       
       return sortDirection === 'desc' ? -comparison : comparison;
     });
-  }, [tasks, instanceTasks, sortBy, sortDirection, type]);
+  }, [tasks, sortBy, sortDirection, type, memoizedFindRootProject, memoizedGetTaskPath]);
 
   // Toggle task expansion
   const toggleTaskExpansion = (taskId) => {
