@@ -4,7 +4,12 @@
    1. RESETS & BASE STYLES
    ===================================================== */
 
-   * {
+:root {
+  --accent-blue: #3b82f6;
+  --accent-blue-dark: #2563eb;
+}
+
+* {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -110,8 +115,8 @@
   .bg-slate-50 { background-color: #f8fafc; }
   .bg-slate-900 { background-color: #0f172a; }
   .bg-blue-50 { background-color: #eff6ff; }
-  .bg-blue-500 { background-color: #3b82f6; }
-  .bg-blue-600 { background-color: #2563eb; }
+  .bg-blue-500 { background-color: var(--accent-blue); }
+  .bg-blue-600 { background-color: var(--accent-blue-dark); }
   .bg-indigo-50 { background-color: #eef2ff; }
   .bg-indigo-600 { background-color: #4f46e5; }
   .bg-indigo-700 { background-color: #4338ca; }
@@ -131,7 +136,8 @@
   .text-slate-400 { color: #94a3b8; }
   .text-slate-600 { color: #475569; }
   .text-slate-900 { color: #0f172a; }
-  .text-blue-600 { color: #2563eb; }
+  .text-blue-500 { color: var(--accent-blue); }
+  .text-blue-600 { color: var(--accent-blue-dark); }
   .text-indigo-600 { color: #4f46e5; }
   .text-indigo-500 { color: #6366f1; }
   .text-purple-800 { color: #6b21a8; }

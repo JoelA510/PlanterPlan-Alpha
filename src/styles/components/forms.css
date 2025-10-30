@@ -21,7 +21,7 @@
 .parent-label {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--accent-blue-dark);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -29,7 +29,7 @@
 .parent-name {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--accent-blue);
 }
 
 /* Form Group */
@@ -43,7 +43,7 @@
 .form-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--accent-blue-dark);
 }
 
 .form-label .required {

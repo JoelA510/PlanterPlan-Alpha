@@ -16,7 +16,7 @@
   .detail-section-title {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--accent-blue-dark);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0;
@@ -24,7 +24,7 @@
   
   .detail-section-content {
     font-size: 0.875rem;
-    color: #1f2937;
+    color: rgba(59, 130, 246, 0.95);
     line-height: 1.5;
     margin: 0;
     white-space: pre-wrap;
@@ -94,13 +94,13 @@
   
   .date-label {
     font-size: 0.813rem;
-    color: #6b7280;
+    color: var(--accent-blue-dark);
     font-weight: 500;
   }
   
   .date-value {
     font-size: 0.813rem;
-    color: #1f2937;
+    color: var(--accent-blue);
     font-weight: 500;
   }
   
@@ -118,12 +118,12 @@
   }
   
   .metadata-label {
-    color: #9ca3af;
+    color: rgba(59, 130, 246, 0.75);
     font-weight: 500;
   }
   
   .metadata-value {
-    color: #6b7280;
+    color: var(--accent-blue);
   }
   
   /* Selected Task Card Highlight */
