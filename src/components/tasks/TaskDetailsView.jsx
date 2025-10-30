@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TaskDetailsView = ({ task, onAddChildTask }) => {
+const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask }) => {
   // Format date for display
   const formatDate = (date) => {
     if (!date) return 'Not set';
@@ -26,6 +26,30 @@ const TaskDetailsView = ({ task, onAddChildTask }) => {
 
   return (
     <div className="task-details">
+      {/* Actions */}
+      <div className="detail-section">
+        <div className="flex flex-wrap gap-2">
+          {onEditTask && (
+            <button
+              type="button"
+              onClick={() => onEditTask(task)}
+              className="inline-flex items-center rounded-md border border-blue-200 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+            >
+              Edit Task
+            </button>
+          )}
+          {onDeleteTask && (
+            <button
+              type="button"
+              onClick={() => onDeleteTask(task)}
+              className="inline-flex items-center rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              Delete Task
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Task Type Badge */}
       <div className="detail-section">
         <h3 className="detail-section-title">Type</h3>
@@ -69,6 +93,14 @@ const TaskDetailsView = ({ task, onAddChildTask }) => {
         <div className="detail-section">
           <h3 className="detail-section-title">Purpose</h3>
           <p className="detail-section-content">{task.purpose}</p>
+        </div>
+      )}
+
+      {/* Notes */}
+      {task.notes && (
+        <div className="detail-section">
+          <h3 className="detail-section-title">Notes</h3>
+          <p className="detail-section-content">{task.notes}</p>
         </div>
       )}
 
@@ -129,6 +161,12 @@ const TaskDetailsView = ({ task, onAddChildTask }) => {
           <span className="metadata-label">Position:</span>
           <span className="metadata-value">{task.position || 0}</span>
         </div>
+        {task.days_from_start !== null && task.days_from_start !== undefined && (
+          <div className="metadata-item">
+            <span className="metadata-label">Days from start:</span>
+            <span className="metadata-value">{Number(task.days_from_start)}</span>
+          </div>
+        )}
         <div className="metadata-item">
           <span className="metadata-label">Created:</span>
           <span className="metadata-value">{formatDate(task.created_at)}</span>

@@ -7,7 +7,9 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
     description: '',
     purpose: '',
     actions: '',
-    resources: ''
+    resources: '',
+    notes: '',
+    start_date: ''
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +36,10 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
     
     if (!formData.title.trim()) {
       newErrors.title = 'Project title is required';
+    }
+
+    if (!formData.start_date) {
+      newErrors.start_date = 'Start date is required';
     }
 
     setErrors(newErrors);
@@ -73,7 +79,9 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         description: '',
         purpose: '',
         actions: '',
-        resources: ''
+        resources: '',
+        notes: '',
+        start_date: ''
       });
       setLastAppliedTaskTitle('');
       setShowResourceCreator(false);
@@ -193,6 +201,24 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         />
       </div>
 
+      {/* Start Date Field */}
+      <div className="form-group">
+        <label htmlFor="start_date" className="form-label">
+          Project Start Date <span className="required">*</span>
+        </label>
+        <input
+          type="date"
+          id="start_date"
+          name="start_date"
+          value={formData.start_date}
+          onChange={handleChange}
+          className={`form-input ${errors.start_date ? 'error' : ''}`}
+        />
+        {errors.start_date && (
+          <span className="form-error">{errors.start_date}</span>
+        )}
+      </div>
+
       {/* Resources Field */}
       <div className="form-group">
         <label htmlFor="resources" className="form-label">
@@ -205,6 +231,22 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
           onChange={handleChange}
           className="form-textarea"
           placeholder="What resources are needed?"
+          rows="3"
+        />
+      </div>
+
+      {/* Notes Field */}
+      <div className="form-group">
+        <label htmlFor="notes" className="form-label">
+          Notes
+        </label>
+        <textarea
+          id="notes"
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          className="form-textarea"
+          placeholder="Internal notes for this project"
           rows="3"
         />
       </div>

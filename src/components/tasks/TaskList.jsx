@@ -5,6 +5,7 @@ import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from './TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
+import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
 
 const buildTaskHierarchy = (tasks) => {
   const taskMap = {};
@@ -41,13 +42,19 @@ const TaskList = () => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [showTaskForm, setShowTaskForm] = useState(false);
-  const [parentTaskForNewChild, setParentTaskForNewChild] = useState(null);
+  const [taskFormState, setTaskFormState] = useState(null);
   const isMountedRef = useRef(false);
+
+  const getTaskById = useCallback((taskId) => {
+    if (taskId === null || taskId === undefined) {
+      return null;
+    }
+    return tasks.find(task => task.id === taskId) || null;
+  }, [tasks]);
 
   const fetchTasks = useCallback(async () => {
     if (!isMountedRef.current) {
-      return;
+      return [];
     }
 
     setLoading(true);
@@ -57,13 +64,13 @@ const TaskList = () => {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!isMountedRef.current) {
-        return;
+        return [];
       }
       
       if (!user) {
         setError('User not authenticated');
         setTasks([]);
-        return;
+        return [];
       }
 
       const { data, error: fetchError } = await supabase
@@ -73,21 +80,24 @@ const TaskList = () => {
         .order('position', { ascending: true });
 
       if (!isMountedRef.current) {
-        return;
+        return [];
       }
 
       if (fetchError) {
         setError(fetchError.message);
         setTasks([]);
-        return;
+        return [];
       }
 
-      setTasks(data || []);
+      const nextTasks = data || [];
+      setTasks(nextTasks);
+      return nextTasks;
     } catch (err) {
       if (!isMountedRef.current) {
-        return;
+        return [];
       }
       setError('Failed to fetch tasks');
+      return [];
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
@@ -104,17 +114,88 @@ const TaskList = () => {
     };
   }, [fetchTasks]);
 
+  useEffect(() => {
+    if (!selectedTask) {
+      return;
+    }
+
+    const latest = tasks.find(task => task.id === selectedTask.id);
+
+    if (latest && latest !== selectedTask) {
+      setSelectedTask(latest);
+    }
+  }, [tasks, selectedTask]);
+
   const handleTaskClick = (task) => {
     setSelectedTask(task);
     setShowForm(false);
-    setShowTaskForm(false);
+    setTaskFormState(null);
   };
 
   const handleAddChildTask = (parentTask) => {
-    setParentTaskForNewChild(parentTask);
-    setShowTaskForm(true);
+    setTaskFormState({
+      mode: 'create',
+      origin: parentTask.origin,
+      parentId: parentTask.id
+    });
     setShowForm(false);
     setSelectedTask(null);
+  };
+
+  const handleCreateTemplateRoot = () => {
+    setTaskFormState({
+      mode: 'create',
+      origin: 'template',
+      parentId: null
+    });
+    setShowForm(false);
+    setSelectedTask(null);
+  };
+
+  const handleEditTask = (task) => {
+    setTaskFormState({
+      mode: 'edit',
+      origin: task.origin,
+      parentId: task.parent_task_id || null,
+      taskId: task.id
+    });
+    setShowForm(false);
+    setSelectedTask(task);
+  };
+
+  const handleDeleteTask = async (task) => {
+    const confirmed = window.confirm(`Delete "${task.title}" and its subtasks? This action cannot be undone.`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', task.id);
+
+      if (deleteError) throw deleteError;
+
+      let latestTasks = await fetchTasks();
+
+      if (task.origin === 'instance' && task.parent_task_id) {
+        await recalculateAncestorDates(task.parent_task_id, latestTasks);
+        await fetchTasks();
+      }
+
+      if (selectedTask?.id === task.id) {
+        setSelectedTask(null);
+      }
+
+      if (taskFormState?.taskId === task.id) {
+        setTaskFormState(null);
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+    }
   };
 
   const handleCreateProject = async (formData) => {
@@ -130,7 +211,13 @@ const TaskList = () => {
         ? Math.max(...instanceTasks.map(t => t.position || 0))
         : 0;
 
-      const { data, error } = await supabase
+      const projectStartDate = toIsoDate(formData.start_date);
+
+      if (!projectStartDate) {
+        throw new Error('A valid project start date is required');
+      }
+
+      const { error: insertError } = await supabase
         .from('tasks')
         .insert([{
           title: formData.title,
@@ -138,20 +225,23 @@ const TaskList = () => {
           purpose: formData.purpose || null,
           actions: formData.actions || null,
           resources: formData.resources || null,
+          notes: formData.notes || null,
+          days_from_start: null,
           origin: 'instance',
           creator: user.id,
           parent_task_id: null,
           position: maxPosition + 1000,
-          is_complete: false
-        }])
-        .select()
-        .single();
+          is_complete: false,
+          start_date: projectStartDate,
+          due_date: projectStartDate
+        }]);
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
-      setTasks(prev => [...prev, data]);
+      await fetchTasks();
       setShowForm(false);
       setSelectedTask(null);
+      setTaskFormState(null);
       
     } catch (error) {
       console.error('Error creating project:', error);
@@ -159,45 +249,137 @@ const TaskList = () => {
     }
   };
 
-  const handleCreateChildTask = async (formData) => {
+  const handleSubmitTask = async (formData) => {
+    if (!taskFormState) {
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      // Calculate position among siblings
-      const siblings = tasks.filter(t => t.parent_task_id === parentTaskForNewChild.id);
-      const maxPosition = siblings.length > 0 
-        ? Math.max(...siblings.map(t => t.position || 0))
-        : 0;
+      const origin = taskFormState.origin || 'instance';
+      const parentId = taskFormState.parentId ?? null;
+      const parsedDays = formData.days_from_start === '' || formData.days_from_start === null || formData.days_from_start === undefined
+        ? null
+        : Number(formData.days_from_start);
 
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert([{
+      if (parsedDays !== null && Number.isNaN(parsedDays)) {
+        throw new Error('Invalid days_from_start');
+      }
+
+      const manualStartDate = toIsoDate(formData.start_date);
+      const manualDueDate = toIsoDate(formData.due_date);
+      const hasManualDates = Boolean(manualStartDate || manualDueDate);
+
+      if (taskFormState.mode === 'edit' && taskFormState.taskId) {
+        let scheduleUpdates = {};
+
+        if (origin === 'instance') {
+          if (parsedDays !== null) {
+            scheduleUpdates = calculateScheduleFromOffset(tasks, taskFormState.parentId, parsedDays);
+          }
+
+          if (hasManualDates) {
+            scheduleUpdates = {
+              start_date: manualStartDate,
+              due_date: manualDueDate || manualStartDate || scheduleUpdates.due_date || null
+            };
+          }
+
+          if (!hasManualDates && parsedDays === null) {
+            scheduleUpdates = {};
+          }
+        }
+
+        const updates = {
           title: formData.title,
           description: formData.description || null,
-          purpose: formData.purpose || null,
-          actions: formData.actions || null,
-          resources: formData.resources || null,
-          origin: 'instance',
-          creator: user.id,
-          parent_task_id: parentTaskForNewChild.id,
-          position: maxPosition + 1000,
-          is_complete: false
-        }])
-        .select()
-        .single();
+          notes: formData.notes || null,
+          days_from_start: parsedDays,
+          updated_at: new Date().toISOString(),
+          ...scheduleUpdates
+        };
 
-      if (error) throw error;
+        const { error: updateError } = await supabase
+          .from('tasks')
+          .update(updates)
+          .eq('id', taskFormState.taskId);
 
-      setTasks(prev => [...prev, data]);
-      setShowTaskForm(false);
-      setParentTaskForNewChild(null);
-      
+        if (updateError) throw updateError;
+
+        let latestTasks = await fetchTasks();
+
+        if (origin === 'instance' && taskFormState.parentId) {
+          await recalculateAncestorDates(taskFormState.parentId, latestTasks);
+          latestTasks = await fetchTasks();
+        }
+
+        const nextSelected = latestTasks.find(task => task.id === taskFormState.taskId) || null;
+        setSelectedTask(nextSelected);
+        setTaskFormState(null);
+        return;
+      }
+
+      const siblings = tasks.filter(task => {
+        const sameOrigin = task.origin === origin;
+        const sameParent = (task.parent_task_id || null) === parentId;
+        return sameOrigin && sameParent;
+      });
+
+      const maxPosition = siblings.length > 0
+        ? Math.max(...siblings.map(task => task.position || 0))
+        : 0;
+
+      const insertPayload = {
+        title: formData.title,
+        description: formData.description || null,
+        notes: formData.notes || null,
+        days_from_start: parsedDays,
+        origin,
+        creator: user.id,
+        parent_task_id: parentId,
+        position: maxPosition + 1000,
+        is_complete: false
+      };
+
+      if (origin === 'instance') {
+        if (parsedDays !== null) {
+          const schedule = calculateScheduleFromOffset(tasks, parentId, parsedDays);
+          Object.assign(insertPayload, schedule);
+        }
+
+        if (hasManualDates) {
+          insertPayload.start_date = manualStartDate;
+          insertPayload.due_date = manualDueDate || manualStartDate || insertPayload.due_date || null;
+        }
+      }
+
+      if (origin === 'instance') {
+        const schedule = calculateScheduleFromOffset(tasks, parentId, parsedDays);
+        Object.assign(insertPayload, schedule);
+      }
+
+      const { error: insertError } = await supabase
+        .from('tasks')
+        .insert([insertPayload]);
+
+      if (insertError) throw insertError;
+
+      let latestTasks = await fetchTasks();
+
+      if (origin === 'instance' && parentId) {
+        await recalculateAncestorDates(parentId, latestTasks);
+        latestTasks = await fetchTasks();
+      }
+
+      setTaskFormState(null);
+      setSelectedTask(null);
     } catch (error) {
-      console.error('Error creating child task:', error);
+      console.error('Error saving task:', error);
       throw error;
     }
   };
@@ -206,6 +388,101 @@ const TaskList = () => {
     () => separateTasksByOrigin(tasks),
     [tasks]
   );
+
+  const parentTaskForForm = taskFormState?.parentId ? getTaskById(taskFormState.parentId) : null;
+  const taskBeingEdited = taskFormState?.mode === 'edit' && taskFormState.taskId
+    ? getTaskById(taskFormState.taskId)
+    : null;
+  const isTaskFormOpen = Boolean(taskFormState);
+
+  const panelTitle = useMemo(() => {
+    if (showForm) {
+      return 'New Project';
+    }
+
+    if (taskFormState) {
+      if (taskFormState.mode === 'edit') {
+        return taskBeingEdited ? `Edit ${taskBeingEdited.title}` : 'Edit Task';
+      }
+
+      if (taskFormState.origin === 'template') {
+        return parentTaskForForm
+          ? `New Template Task in ${parentTaskForForm.title}`
+          : 'New Template Task';
+      }
+
+      return parentTaskForForm
+        ? `New Task in ${parentTaskForForm.title}`
+        : 'New Task';
+    }
+
+    if (selectedTask) {
+      return selectedTask.title;
+    }
+
+    return 'Details';
+  }, [showForm, taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
+
+  const recalculateAncestorDates = async (taskId, currentTasks) => {
+    if (!taskId) {
+      return;
+    }
+
+    const source = currentTasks ?? tasks;
+    const parent = source.find(task => task.id === taskId);
+
+    if (!parent || parent.origin !== 'instance') {
+      return;
+    }
+
+    const children = source.filter(task => task.parent_task_id === parent.id && task.origin === parent.origin);
+
+    if (children.length === 0) {
+      return;
+    }
+
+    const parseDates = (values) => values
+      .filter(Boolean)
+      .map(value => new Date(value))
+      .filter(date => !Number.isNaN(date.getTime()));
+
+    const childStartDates = parseDates(children.map(child => child.start_date));
+    const childDueDates = parseDates(children.map(child => child.due_date));
+
+    const updates = {};
+
+    if (childStartDates.length > 0) {
+      const minTime = Math.min(...childStartDates.map(date => date.getTime()));
+      updates.start_date = new Date(minTime).toISOString();
+    }
+
+    if (childDueDates.length > 0) {
+      const maxTime = Math.max(...childDueDates.map(date => date.getTime()));
+      updates.due_date = new Date(maxTime).toISOString();
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await supabase
+        .from('tasks')
+        .update(updates)
+        .eq('id', parent.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      if (updates.start_date) {
+        parent.start_date = updates.start_date;
+      }
+      if (updates.due_date) {
+        parent.due_date = updates.due_date;
+      }
+    }
+
+    if (parent.parent_task_id) {
+      await recalculateAncestorDates(parent.parent_task_id, source);
+    }
+  };
 
   if (loading) {
     return (
@@ -229,40 +506,6 @@ const TaskList = () => {
     );
   }
 
-  if (instanceTasks.length === 0 && templateTasks.length === 0) {
-    return (
-      <div className="split-layout">
-        <div className="task-list-area">
-          <div className="text-center py-12">
-            <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">No projects yet</h3>
-              <p className="text-slate-600 mb-4">Create your first church planting project using the form on the right.</p>
-            </div>
-          </div>
-
-          <MasterLibraryList />
-        </div>
-
-        <div className="permanent-side-panel">
-          <div className="panel-header">
-            <h2 className="panel-title">New Project</h2>
-          </div>
-          <div className="panel-content">
-            <NewProjectForm
-              onSubmit={handleCreateProject}
-              onCancel={() => {}}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="split-layout">
       <div className="task-list-area">
@@ -270,26 +513,27 @@ const TaskList = () => {
           <h1 className="dashboard-title">Dashboard</h1>
         </div>
 
-        {instanceTasks.length > 0 && (
-          <div className="task-section">
-            <div className="section-header">
-              <div className="section-header-left">
-                <h2 className="section-title">Projects</h2>
-                <span className="section-count">{instanceTasks.length}</span>
-              </div>
-              <button
-                onClick={() => {
-                  setShowForm(true);
-                  setSelectedTask(null);
-                }}
-                className="btn-new-item"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z"/>
-                </svg>
-                New Project
-              </button>
+        <div className="task-section">
+          <div className="section-header">
+            <div className="section-header-left">
+              <h2 className="section-title">Projects</h2>
+              <span className="section-count">{instanceTasks.length}</span>
             </div>
+            <button
+              onClick={() => {
+                setShowForm(true);
+                setSelectedTask(null);
+                setTaskFormState(null);
+              }}
+              className="btn-new-item"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z"/>
+              </svg>
+              New Project
+            </button>
+          </div>
+          {instanceTasks.length > 0 ? (
             <div className="task-cards-container">
               {instanceTasks.map(project => (
                 <TaskItem 
@@ -302,17 +546,30 @@ const TaskList = () => {
                 />
               ))}
             </div>
-          </div>
-        )}
-
-        {templateTasks.length > 0 && (
-          <div className="task-section">
-            <div className="section-header">
-              <div className="section-header-left">
-                <h2 className="section-title">Templates</h2>
-                <span className="section-count">{templateTasks.length}</span>
-              </div>
+          ) : (
+            <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
+              No active projects yet. Use "New Project" to get started.
             </div>
+          )}
+        </div>
+
+        <div className="task-section">
+          <div className="section-header">
+            <div className="section-header-left">
+              <h2 className="section-title">Templates</h2>
+              <span className="section-count">{templateTasks.length}</span>
+            </div>
+            <button
+              onClick={handleCreateTemplateRoot}
+              className="btn-new-item"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z"/>
+              </svg>
+              New Template
+            </button>
+          </div>
+          {templateTasks.length > 0 ? (
             <div className="task-cards-container">
               {templateTasks.map(template => (
                 <TaskItem 
@@ -325,23 +582,19 @@ const TaskList = () => {
                 />
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
+              No templates yet. Use "New Template" to start building your reusable library.
+            </div>
+          )}
+        </div>
 
         <MasterLibraryList />
       </div>
 
       <div className="permanent-side-panel">
         <div className="panel-header">
-          <h2 className="panel-title">
-            {showForm 
-              ? 'New Project' 
-              : showTaskForm 
-                ? `New Task in ${parentTaskForNewChild?.title}` 
-                : selectedTask 
-                  ? selectedTask.title 
-                  : 'Details'}
-          </h2>
+          <h2 className="panel-title">{panelTitle}</h2>
           {showForm && (
             <button
               onClick={() => setShowForm(false)}
@@ -350,18 +603,15 @@ const TaskList = () => {
               Hide Form
             </button>
           )}
-          {showTaskForm && (
+          {isTaskFormOpen && (
             <button
-              onClick={() => {
-                setShowTaskForm(false);
-                setParentTaskForNewChild(null);
-              }}
+              onClick={() => setTaskFormState(null)}
               className="panel-header-btn"
             >
               Cancel
             </button>
           )}
-          {selectedTask && !showForm && !showTaskForm && (
+          {selectedTask && !showForm && !isTaskFormOpen && (
             <button
               onClick={() => setSelectedTask(null)}
               className="panel-header-btn"
@@ -376,19 +626,22 @@ const TaskList = () => {
               onSubmit={handleCreateProject}
               onCancel={() => setShowForm(false)}
             />
-          ) : showTaskForm ? (
+          ) : isTaskFormOpen ? (
             <NewTaskForm
-              parentTask={parentTaskForNewChild}
-              onSubmit={handleCreateChildTask}
-              onCancel={() => {
-                setShowTaskForm(false);
-                setParentTaskForNewChild(null);
-              }}
+              parentTask={parentTaskForForm}
+              initialTask={taskBeingEdited}
+              origin={taskFormState?.origin}
+              enableLibrarySearch={taskFormState?.mode !== 'edit'}
+              submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
+              onSubmit={handleSubmitTask}
+              onCancel={() => setTaskFormState(null)}
             />
           ) : selectedTask ? (
             <TaskDetailsView 
               task={selectedTask}
               onAddChildTask={handleAddChildTask}
+              onEditTask={handleEditTask}
+              onDeleteTask={handleDeleteTask}
             />
           ) : (
             <div className="empty-panel-state">
