@@ -109,6 +109,20 @@ const TaskDetailsView = ({ task, onAddChildTask }) => {
         </div>
       </div>
 
+      {/* Actions */}
+      {onAddChildTask && canHaveChildren && (
+        <div className="detail-section">
+          <button
+            type="button"
+            onClick={() => onAddChildTask(task)}
+            className="btn-primary w-full"
+            aria-label={`Add child task to ${task.title}`}
+          >
+            Add Child Task
+          </button>
+        </div>
+      )}
+
       {/* Metadata */}
       <div className="detail-section detail-metadata">
         <div className="metadata-item">

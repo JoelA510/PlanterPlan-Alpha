@@ -1,9 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import TaskItem from './TaskItem';
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from './TaskDetailsView';
+
+const buildTaskHierarchy = (tasks) => {
+  const taskMap = {};
+  const rootTasks = [];
+
+  tasks.forEach(task => {
+    taskMap[task.id] = { ...task, children: [] };
+  });
+
+  tasks.forEach(task => {
+    if (task.parent_task_id && taskMap[task.parent_task_id]) {
+      taskMap[task.parent_task_id].children.push(taskMap[task.id]);
+    } else {
+      rootTasks.push(taskMap[task.id]);
+    }
+  });
+
+  return rootTasks.sort((a, b) => (a.position || 0) - (b.position || 0));
+};
+
+const separateTasksByOrigin = (tasks) => {
+  const instanceTasks = tasks.filter(task => task.origin === 'instance');
+  const templateTasks = tasks.filter(task => task.origin === 'template');
+
+  return {
+    instanceTasks: buildTaskHierarchy(instanceTasks),
+    templateTasks: buildTaskHierarchy(templateTasks)
+  };
+};
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
@@ -13,66 +42,66 @@ const TaskList = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [parentTaskForNewChild, setParentTaskForNewChild] = useState(null);
+  const isMountedRef = useRef(false);
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
+  const fetchTasks = useCallback(async () => {
+    if (!isMountedRef.current) {
+      return;
+    }
 
-  const fetchTasks = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
+
+      if (!isMountedRef.current) {
+        return;
+      }
       
       if (!user) {
         setError('User not authenticated');
+        setTasks([]);
         return;
       }
 
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('tasks')
         .select('*')
         .eq('creator', user.id)
         .order('position', { ascending: true });
 
-      if (error) {
-        setError(error.message);
-      } else {
-        setTasks(data || []);
+      if (!isMountedRef.current) {
+        return;
       }
+
+      if (fetchError) {
+        setError(fetchError.message);
+        setTasks([]);
+        return;
+      }
+
+      setTasks(data || []);
     } catch (err) {
+      if (!isMountedRef.current) {
+        return;
+      }
       setError('Failed to fetch tasks');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const buildTaskHierarchy = (tasks) => {
-    const taskMap = {};
-    const rootTasks = [];
-
-    tasks.forEach(task => {
-      taskMap[task.id] = { ...task, children: [] };
-    });
-
-    tasks.forEach(task => {
-      if (task.parent_task_id && taskMap[task.parent_task_id]) {
-        taskMap[task.parent_task_id].children.push(taskMap[task.id]);
-      } else {
-        rootTasks.push(taskMap[task.id]);
+      if (isMountedRef.current) {
+        setLoading(false);
       }
-    });
+    }
+  }, []);
 
-    return rootTasks.sort((a, b) => (a.position || 0) - (b.position || 0));
-  };
+  useEffect(() => {
+    isMountedRef.current = true;
+    fetchTasks();
 
-  const separateTasksByOrigin = (tasks) => {
-    const instanceTasks = tasks.filter(task => task.origin === 'instance');
-    const templateTasks = tasks.filter(task => task.origin === 'template');
-    
-    return {
-      instanceTasks: buildTaskHierarchy(instanceTasks),
-      templateTasks: buildTaskHierarchy(templateTasks)
+    return () => {
+      isMountedRef.current = false;
     };
-  };
+  }, [fetchTasks]);
 
   const handleTaskClick = (task) => {
     setSelectedTask(task);
@@ -172,6 +201,11 @@ const TaskList = () => {
     }
   };
 
+  const { instanceTasks, templateTasks } = useMemo(
+    () => separateTasksByOrigin(tasks),
+    [tasks]
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -193,8 +227,6 @@ const TaskList = () => {
       </div>
     );
   }
-
-  const { instanceTasks, templateTasks } = separateTasksByOrigin(tasks);
 
   if (instanceTasks.length === 0 && templateTasks.length === 0) {
     return (
