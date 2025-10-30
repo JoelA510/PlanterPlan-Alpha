@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import MasterLibrarySearch from './MasterLibrarySearch';
 
 const NewProjectForm = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +11,8 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showResourceCreator, setShowResourceCreator] = useState(false);
+  const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -37,6 +40,22 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleApplyFromLibrary = (task) => {
+    setFormData(prev => ({
+      ...prev,
+      title: task.title ?? prev.title,
+      description: task.description ?? prev.description,
+      purpose: task.purpose ?? prev.purpose,
+      actions: task.actions ?? prev.actions,
+      resources: task.resources ?? prev.resources
+    }));
+    setLastAppliedTaskTitle(task.title || '');
+  };
+
+  const handleCreateResource = () => {
+    setShowResourceCreator(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -56,6 +75,8 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         actions: '',
         resources: ''
       });
+      setLastAppliedTaskTitle('');
+      setShowResourceCreator(false);
     } catch (error) {
       setErrors({ submit: error.message || 'Failed to create project' });
     } finally {
@@ -65,6 +86,38 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} className="project-form">
+      <div className="form-group">
+        <MasterLibrarySearch
+          mode="copy"
+          onSelect={handleApplyFromLibrary}
+          onCreateResource={handleCreateResource}
+          label="Search master library"
+          placeholder="Search tasks to prefill this project"
+        />
+      </div>
+
+      {lastAppliedTaskTitle && (
+        <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          Copied details from <span className="font-semibold">{lastAppliedTaskTitle}</span>.
+        </div>
+      )}
+
+      {showResourceCreator && (
+        <div className="mb-4 rounded-md border border-dashed border-blue-300 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          <div className="flex items-start justify-between gap-4">
+            <p>
+              Capture new resource details in the form fields below. Once saved, you can promote it to the master library later.
+            </p>
+            <button
+              type="button"
+              className="text-xs font-medium text-blue-700 hover:underline"
+              onClick={() => setShowResourceCreator(false)}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
       {/* General error message */}
       {errors.submit && (
         <div className="form-error-banner">

@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 const MASTER_LIBRARY_VIEW = 'view_master_library';
 const DEFAULT_PAGE_SIZE = 25;
 const REQUIRED_FIELDS = ['id', 'title', 'origin'];
+const DEFAULT_SEARCH_LIMIT = 20;
 
 const coercePositiveInt = (value, fallback) => {
   if (!Number.isFinite(value)) {
@@ -71,6 +72,63 @@ export const fetchMasterLibraryTasks = async ({ from = 0, limit = DEFAULT_PAGE_S
     }
 
     console.error('[taskService.fetchMasterLibraryTasks] Fatal error fetching master library tasks:', error);
+    throw error;
+  }
+};
+
+const escapeIlike = (value) => value.replace(/[\\%_]/g, (char) => `\\${char}`);
+
+export const searchMasterLibraryTasks = async ({ query, limit = DEFAULT_SEARCH_LIMIT, signal } = {}) => {
+  const normalizedQuery = typeof query === 'string' ? query.trim() : '';
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const size = Math.max(1, Math.min(50, coercePositiveInt(limit, DEFAULT_SEARCH_LIMIT)));
+  const escapedTerm = escapeIlike(normalizedQuery);
+  const likePattern = `%${escapedTerm}%`;
+
+  let queryBuilder = supabase
+    .from(MASTER_LIBRARY_VIEW)
+    .select('*')
+    .or(`title.ilike.${likePattern},description.ilike.${likePattern}`)
+    .order('updated_at', { ascending: false })
+    .limit(size);
+
+  if (signal) {
+    queryBuilder = queryBuilder.abortSignal(signal);
+  }
+
+  try {
+    const { data, error } = await queryBuilder;
+
+    if (signal?.aborted) {
+      throw new DOMException('Request aborted', 'AbortError');
+    }
+
+    if (error) {
+      throw error;
+    }
+
+    if (!Array.isArray(data)) {
+      console.warn('[taskService.searchMasterLibraryTasks] Unexpected payload shape:', data);
+      return [];
+    }
+
+    return data.filter((task) => {
+      const isValid = validateTaskShape(task);
+      if (!isValid) {
+        console.warn('[taskService.searchMasterLibraryTasks] Dropping malformed task record:', task);
+      }
+      return isValid;
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw error;
+    }
+
+    console.error('[taskService.searchMasterLibraryTasks] Fatal error performing search:', error);
     throw error;
   }
 };
