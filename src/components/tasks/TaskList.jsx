@@ -4,6 +4,7 @@ import TaskItem from './TaskItem';
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from './TaskDetailsView';
+import MasterLibraryList from './MasterLibraryList';
 
 const buildTaskHierarchy = (tasks) => {
   const taskMap = {};
@@ -243,6 +244,8 @@ const TaskList = () => {
               <p className="text-slate-600 mb-4">Create your first church planting project using the form on the right.</p>
             </div>
           </div>
+
+          <MasterLibraryList />
         </div>
 
         <div className="permanent-side-panel">
@@ -324,6 +327,8 @@ const TaskList = () => {
             </div>
           </div>
         )}
+
+        <MasterLibraryList />
       </div>
 
       <div className="permanent-side-panel">
