@@ -1,5 +1,6 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import useMasterLibrarySearch from '../../hooks/useMasterLibrarySearch';
+import { getHighlightSegments } from '../../utils/highlightMatches';
 
 const SEARCH_MIN_LENGTH = 2;
 const DEBOUNCE_MS = 300;
@@ -87,6 +88,31 @@ const MasterLibrarySearch = ({
     return 'Copy to form';
   }, [mode]);
 
+  const renderHighlightedText = (text) => {
+    if (text === null || text === undefined) {
+      return null;
+    }
+
+    if (!hasMinimumQuery) {
+      return text;
+    }
+
+    const segments = getHighlightSegments(text, query);
+
+    return segments.map((segment, index) => (
+      segment.isMatch ? (
+        <mark
+          key={`${segment.text}-${index}`}
+          className="rounded bg-yellow-200 px-0.5 text-slate-900"
+        >
+          {segment.text}
+        </mark>
+      ) : (
+        <Fragment key={`${segment.text}-${index}`}>{segment.text}</Fragment>
+      )
+    ));
+  };
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-slate-600" htmlFor={`master-library-search-${listboxId}`}>
@@ -159,9 +185,13 @@ const MasterLibrarySearch = ({
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">{task.title}</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {renderHighlightedText(task.title)}
+                  </p>
                   {task.description ? (
-                    <p className="mt-1 text-sm text-slate-600">{task.description}</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {renderHighlightedText(task.description)}
+                    </p>
                   ) : (
                     <p className="mt-1 text-sm text-slate-400 italic">No description provided.</p>
                   )}

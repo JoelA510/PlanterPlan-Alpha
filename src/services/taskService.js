@@ -26,12 +26,15 @@ const validateTaskShape = (task) => {
   });
 };
 
-export const fetchMasterLibraryTasks = async ({ from = 0, limit = DEFAULT_PAGE_SIZE, signal } = {}) => {
+export const fetchMasterLibraryTasks = async (
+  { from = 0, limit = DEFAULT_PAGE_SIZE, signal } = {},
+  client = supabase
+) => {
   const start = coercePositiveInt(from, 0);
   const size = Math.max(1, coercePositiveInt(limit, DEFAULT_PAGE_SIZE));
   const end = Math.max(start, start + size - 1);
 
-  let query = supabase
+  let query = client
     .from(MASTER_LIBRARY_VIEW)
     .select('*')
     .order('created_at', { ascending: false })
@@ -78,7 +81,10 @@ export const fetchMasterLibraryTasks = async ({ from = 0, limit = DEFAULT_PAGE_S
 
 const escapeIlike = (value) => value.replace(/[\\%_]/g, (char) => `\\${char}`);
 
-export const searchMasterLibraryTasks = async ({ query, limit = DEFAULT_SEARCH_LIMIT, signal } = {}) => {
+export const searchMasterLibraryTasks = async (
+  { query, limit = DEFAULT_SEARCH_LIMIT, signal } = {},
+  client = supabase
+) => {
   const normalizedQuery = typeof query === 'string' ? query.trim() : '';
 
   if (!normalizedQuery) {
@@ -89,7 +95,7 @@ export const searchMasterLibraryTasks = async ({ query, limit = DEFAULT_SEARCH_L
   const escapedTerm = escapeIlike(normalizedQuery);
   const likePattern = `%${escapedTerm}%`;
 
-  let queryBuilder = supabase
+  let queryBuilder = client
     .from(MASTER_LIBRARY_VIEW)
     .select('*')
     .or(`title.ilike.${likePattern},description.ilike.${likePattern}`)
