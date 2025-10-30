@@ -14,12 +14,16 @@ const MasterLibraryList = () => {
   } = useMasterLibraryTasks({ page, limit: PAGE_SIZE });
 
   const pageDescription = useMemo(() => {
+    if (isLoading) {
+      return 'Loading master library tasks…';
+    }
+
     const start = page * PAGE_SIZE + 1;
     const end = start + tasks.length - 1;
     return tasks.length > 0
       ? `Showing tasks ${start} to ${end}`
       : `No tasks found on page ${page + 1}`;
-  }, [page, tasks.length]);
+  }, [isLoading, page, tasks.length]);
 
   const handlePrev = () => {
     if (page === 0 || isLoading) return;
@@ -36,7 +40,7 @@ const MasterLibraryList = () => {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Master Library</h2>
-          <p className="text-sm text-slate-600">{pageDescription}</p>
+          <p className="text-sm text-slate-600" role="status" aria-live="polite">{pageDescription}</p>
         </div>
         <button
           type="button"
