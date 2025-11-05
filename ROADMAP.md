@@ -6,7 +6,7 @@
 * **[Partial]** — some work merged, more to do
 * **[Planned]** — not started / still to ship
 
-**Recent refs**: PRs **#8–#12** (search debounce + abort + trigram indexes; Master Library list + active project filtering; title+description search fix; search tests); chores/tests (supabase client test‑safe; logger namespace; CRA hygiene).
+**Recent refs**: (search debounce + abort + trigram indexes; Master Library list + active project filtering; title+description search fix; search tests); chores/tests (supabase client test‑safe; logger namespace; CRA hygiene).
 
 ---
 
