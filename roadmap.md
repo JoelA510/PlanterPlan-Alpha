@@ -547,6 +547,3 @@ Goal: Add remaining partially coded features as isolated "mini-apps".
 - **Phase 3**: Parallel clean-up work by directory (components, hooks, utils) to reduce noise.
 - **Phase 4**: Intentional bottleneck; sequential refactor of `TaskContext` with safeguards (flags, utilities, hooks).
 - **Phase 5**: New features treated as mini-apps, with separate contexts, services, and UIs coordinated only through shared domain types.
-
-This structure should safely support 3–5 active PRs per phase with minimal file overlap and clear dependency chains.
-
