@@ -1,6 +1,6 @@
-# PlanterPlan Refactored Roadmap
+# PlanterPlan Roadmap
 
-Refactored roadmap for PlanterPlan, optimized for high parallelism via **component isolation**, **layer separation**, and **interface-first design**.
+Project roadmap for PlanterPlan, optimized for high parallelism via **component isolation**, **layer separation**, and **interface-first design**.
 
 ---
 
