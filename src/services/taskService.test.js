@@ -13,7 +13,7 @@ const createMockClient = (response) => {
     },
     catch() {
       return this;
-    }
+    },
   };
 
   const from = jest.fn().mockReturnValue(builder);
@@ -28,8 +28,8 @@ describe('searchMasterLibraryTasks', () => {
         id: '1',
         title: 'Launch Plan',
         description: 'Complete soil preparation checklist',
-        origin: 'library'
-      }
+        origin: 'library',
+      },
     ];
 
     const { client, builder } = createMockClient({ data: sampleTasks, error: null });
@@ -63,9 +63,7 @@ describe('searchMasterLibraryTasks', () => {
 
 describe('fetchMasterLibraryTasks', () => {
   it('paginates and validates results', async () => {
-    const sampleTasks = [
-      { id: '1', title: 'Task', origin: 'library', position: 1 }
-    ];
+    const sampleTasks = [{ id: '1', title: 'Task', origin: 'library', position: 1 }];
 
     const { client, builder } = createMockClient({ data: sampleTasks, error: null });
 

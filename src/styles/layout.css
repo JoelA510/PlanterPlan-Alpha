@@ -2,92 +2,92 @@
 
 /* Split Layout Container */
 .split-layout {
-    display: flex;
-    height: calc(100vh - 80px);
-    gap: 0;
-    max-width: 100%;
-    margin: 0 auto;
-  }
-  
-  /* Left side - Scrollable task list */
-  .task-list-area {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 0 20px;
-    background: #f8fafc;
-  }
-  
-  /* Right side - Permanent panel */
-  .permanent-side-panel {
-    width: 450px;
-    background: white;
-    border-left: 1px solid #e5e7eb;
-    display: flex;
+  display: flex;
+  height: calc(100vh - 80px);
+  gap: 0;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Left side - Scrollable task list */
+.task-list-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 20px;
+  background: #f8fafc;
+}
+
+/* Right side - Permanent panel */
+.permanent-side-panel {
+  width: 450px;
+  background: white;
+  border-left: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* Dashboard Container */
+.dashboard-container {
+  max-width: none;
+  padding: 0;
+}
+
+/* Dashboard Header */
+.dashboard-header {
+  padding: 20px 0;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 20px;
+  background: #f8fafc;
+}
+
+.dashboard-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  margin: 0;
+}
+
+/* Custom Scrollbar */
+.panel-content::-webkit-scrollbar,
+.task-list-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.panel-content::-webkit-scrollbar-track,
+.task-list-area::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.panel-content::-webkit-scrollbar-thumb,
+.task-list-area::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover,
+.task-list-area::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Responsive - Stack on mobile */
+@media (max-width: 1024px) {
+  .split-layout {
     flex-direction: column;
-    flex-shrink: 0;
+    height: auto;
   }
-  
-  /* Dashboard Container */
-  .dashboard-container {
-    max-width: none;
-    padding: 0;
+
+  .permanent-side-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #e5e7eb;
+    max-height: 500px;
   }
-  
-  /* Dashboard Header */
-  .dashboard-header {
-    padding: 20px 0;
-    border-bottom: 1px solid #e5e7eb;
-    margin-bottom: 20px;
-    background: #f8fafc;
+
+  .task-list-area {
+    padding: 0 16px;
+    height: auto;
+    overflow-y: visible;
   }
-  
-  .dashboard-title {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--accent-blue);
-    margin: 0;
-  }
-  
-  /* Custom Scrollbar */
-  .panel-content::-webkit-scrollbar,
-  .task-list-area::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  .panel-content::-webkit-scrollbar-track,
-  .task-list-area::-webkit-scrollbar-track {
-    background: #f3f4f6;
-  }
-  
-  .panel-content::-webkit-scrollbar-thumb,
-  .task-list-area::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 4px;
-  }
-  
-  .panel-content::-webkit-scrollbar-thumb:hover,
-  .task-list-area::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
-  }
-  
-  /* Responsive - Stack on mobile */
-  @media (max-width: 1024px) {
-    .split-layout {
-      flex-direction: column;
-      height: auto;
-    }
-  
-    .permanent-side-panel {
-      width: 100%;
-      border-left: none;
-      border-top: 1px solid #e5e7eb;
-      max-height: 500px;
-    }
-  
-    .task-list-area {
-      padding: 0 16px;
-      height: auto;
-      overflow-y: visible;
-    }
-  }
+}
