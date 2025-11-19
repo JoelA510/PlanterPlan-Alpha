@@ -5,13 +5,10 @@ const PAGE_SIZE = 10;
 
 const MasterLibraryList = () => {
   const [page, setPage] = useState(0);
-  const {
-    tasks,
-    isLoading,
-    error,
-    hasMore,
-    refresh
-  } = useMasterLibraryTasks({ page, limit: PAGE_SIZE });
+  const { tasks, isLoading, error, hasMore, refresh } = useMasterLibraryTasks({
+    page,
+    limit: PAGE_SIZE,
+  });
 
   const pageDescription = useMemo(() => {
     if (isLoading) {
@@ -27,12 +24,12 @@ const MasterLibraryList = () => {
 
   const handlePrev = () => {
     if (page === 0 || isLoading) return;
-    setPage(prev => Math.max(0, prev - 1));
+    setPage((prev) => Math.max(0, prev - 1));
   };
 
   const handleNext = () => {
     if (!hasMore || isLoading) return;
-    setPage(prev => prev + 1);
+    setPage((prev) => prev + 1);
   };
 
   return (
@@ -40,7 +37,9 @@ const MasterLibraryList = () => {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Master Library</h2>
-          <p className="text-sm text-slate-600" role="status" aria-live="polite">{pageDescription}</p>
+          <p className="text-sm text-slate-600" role="status" aria-live="polite">
+            {pageDescription}
+          </p>
         </div>
         <button
           type="button"
@@ -67,7 +66,9 @@ const MasterLibraryList = () => {
           <div className="px-6 py-8 text-center">
             <div className="max-w-md mx-auto">
               <h3 className="text-base font-semibold text-red-600">Failed to load tasks</h3>
-              <p className="mt-2 text-sm text-red-500">{error.message || 'An unexpected error occurred.'}</p>
+              <p className="mt-2 text-sm text-red-500">
+                {error.message || 'An unexpected error occurred.'}
+              </p>
               <button
                 type="button"
                 onClick={() => refresh()}
@@ -84,14 +85,16 @@ const MasterLibraryList = () => {
           <div className="px-6 py-10 text-center text-slate-600">
             <div className="max-w-sm mx-auto">
               <h3 className="text-base font-semibold text-slate-800">No tasks yet</h3>
-              <p className="mt-2 text-sm">Master library tasks will appear here once they’re added.</p>
+              <p className="mt-2 text-sm">
+                Master library tasks will appear here once they’re added.
+              </p>
             </div>
           </div>
         ) : null}
 
         {tasks.length > 0 ? (
           <ul className="divide-y divide-slate-200">
-            {tasks.map(task => (
+            {tasks.map((task) => (
               <li key={task.id} className="px-6 py-4">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
@@ -121,9 +124,7 @@ const MasterLibraryList = () => {
           >
             Previous
           </button>
-          <span className="text-sm text-slate-600">
-            Page {page + 1}
-          </span>
+          <span className="text-sm text-slate-600">Page {page + 1}</span>
           <button
             type="button"
             onClick={handleNext}

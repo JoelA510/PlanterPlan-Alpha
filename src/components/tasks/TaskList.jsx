@@ -11,11 +11,11 @@ const buildTaskHierarchy = (tasks) => {
   const taskMap = {};
   const rootTasks = [];
 
-  tasks.forEach(task => {
+  tasks.forEach((task) => {
     taskMap[task.id] = { ...task, children: [] };
   });
 
-  tasks.forEach(task => {
+  tasks.forEach((task) => {
     if (task.parent_task_id && taskMap[task.parent_task_id]) {
       taskMap[task.parent_task_id].children.push(taskMap[task.id]);
     } else {
@@ -27,12 +27,12 @@ const buildTaskHierarchy = (tasks) => {
 };
 
 const separateTasksByOrigin = (tasks) => {
-  const instanceTasks = tasks.filter(task => task.origin === 'instance');
-  const templateTasks = tasks.filter(task => task.origin === 'template');
+  const instanceTasks = tasks.filter((task) => task.origin === 'instance');
+  const templateTasks = tasks.filter((task) => task.origin === 'template');
 
   return {
     instanceTasks: buildTaskHierarchy(instanceTasks),
-    templateTasks: buildTaskHierarchy(templateTasks)
+    templateTasks: buildTaskHierarchy(templateTasks),
   };
 };
 
@@ -45,12 +45,15 @@ const TaskList = () => {
   const [taskFormState, setTaskFormState] = useState(null);
   const isMountedRef = useRef(false);
 
-  const getTaskById = useCallback((taskId) => {
-    if (taskId === null || taskId === undefined) {
-      return null;
-    }
-    return tasks.find(task => task.id === taskId) || null;
-  }, [tasks]);
+  const getTaskById = useCallback(
+    (taskId) => {
+      if (taskId === null || taskId === undefined) {
+        return null;
+      }
+      return tasks.find((task) => task.id === taskId) || null;
+    },
+    [tasks]
+  );
 
   const fetchTasks = useCallback(async () => {
     if (!isMountedRef.current) {
@@ -61,12 +64,14 @@ const TaskList = () => {
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!isMountedRef.current) {
         return [];
       }
-      
+
       if (!user) {
         setError('User not authenticated');
         setTasks([]);
@@ -119,7 +124,7 @@ const TaskList = () => {
       return;
     }
 
-    const latest = tasks.find(task => task.id === selectedTask.id);
+    const latest = tasks.find((task) => task.id === selectedTask.id);
 
     if (latest && latest !== selectedTask) {
       setSelectedTask(latest);
@@ -136,7 +141,7 @@ const TaskList = () => {
     setTaskFormState({
       mode: 'create',
       origin: parentTask.origin,
-      parentId: parentTask.id
+      parentId: parentTask.id,
     });
     setShowForm(false);
     setSelectedTask(null);
@@ -146,7 +151,7 @@ const TaskList = () => {
     setTaskFormState({
       mode: 'create',
       origin: 'template',
-      parentId: null
+      parentId: null,
     });
     setShowForm(false);
     setSelectedTask(null);
@@ -157,24 +162,23 @@ const TaskList = () => {
       mode: 'edit',
       origin: task.origin,
       parentId: task.parent_task_id || null,
-      taskId: task.id
+      taskId: task.id,
     });
     setShowForm(false);
     setSelectedTask(task);
   };
 
   const handleDeleteTask = async (task) => {
-    const confirmed = window.confirm(`Delete "${task.title}" and its subtasks? This action cannot be undone.`);
+    const confirmed = window.confirm(
+      `Delete "${task.title}" and its subtasks? This action cannot be undone.`
+    );
 
     if (!confirmed) {
       return;
     }
 
     try {
-      const { error: deleteError } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', task.id);
+      const { error: deleteError } = await supabase.from('tasks').delete().eq('id', task.id);
 
       if (deleteError) throw deleteError;
 
@@ -200,16 +204,17 @@ const TaskList = () => {
 
   const handleCreateProject = async (formData) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const instanceTasks = tasks.filter(t => t.origin === 'instance' && !t.parent_task_id);
-      const maxPosition = instanceTasks.length > 0 
-        ? Math.max(...instanceTasks.map(t => t.position || 0))
-        : 0;
+      const instanceTasks = tasks.filter((t) => t.origin === 'instance' && !t.parent_task_id);
+      const maxPosition =
+        instanceTasks.length > 0 ? Math.max(...instanceTasks.map((t) => t.position || 0)) : 0;
 
       const projectStartDate = toIsoDate(formData.start_date);
 
@@ -217,9 +222,8 @@ const TaskList = () => {
         throw new Error('A valid project start date is required');
       }
 
-      const { error: insertError } = await supabase
-        .from('tasks')
-        .insert([{
+      const { error: insertError } = await supabase.from('tasks').insert([
+        {
           title: formData.title,
           description: formData.description || null,
           purpose: formData.purpose || null,
@@ -233,8 +237,9 @@ const TaskList = () => {
           position: maxPosition + 1000,
           is_complete: false,
           start_date: projectStartDate,
-          due_date: projectStartDate
-        }]);
+          due_date: projectStartDate,
+        },
+      ]);
 
       if (insertError) throw insertError;
 
@@ -242,7 +247,6 @@ const TaskList = () => {
       setShowForm(false);
       setSelectedTask(null);
       setTaskFormState(null);
-      
     } catch (error) {
       console.error('Error creating project:', error);
       throw error;
@@ -255,7 +259,9 @@ const TaskList = () => {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
         throw new Error('User not authenticated');
@@ -263,9 +269,12 @@ const TaskList = () => {
 
       const origin = taskFormState.origin || 'instance';
       const parentId = taskFormState.parentId ?? null;
-      const parsedDays = formData.days_from_start === '' || formData.days_from_start === null || formData.days_from_start === undefined
-        ? null
-        : Number(formData.days_from_start);
+      const parsedDays =
+        formData.days_from_start === '' ||
+        formData.days_from_start === null ||
+        formData.days_from_start === undefined
+          ? null
+          : Number(formData.days_from_start);
 
       if (parsedDays !== null && Number.isNaN(parsedDays)) {
         throw new Error('Invalid days_from_start');
@@ -280,13 +289,17 @@ const TaskList = () => {
 
         if (origin === 'instance') {
           if (parsedDays !== null) {
-            scheduleUpdates = calculateScheduleFromOffset(tasks, taskFormState.parentId, parsedDays);
+            scheduleUpdates = calculateScheduleFromOffset(
+              tasks,
+              taskFormState.parentId,
+              parsedDays
+            );
           }
 
           if (hasManualDates) {
             scheduleUpdates = {
               start_date: manualStartDate,
-              due_date: manualDueDate || manualStartDate || scheduleUpdates.due_date || null
+              due_date: manualDueDate || manualStartDate || scheduleUpdates.due_date || null,
             };
           }
 
@@ -301,7 +314,7 @@ const TaskList = () => {
           notes: formData.notes || null,
           days_from_start: parsedDays,
           updated_at: new Date().toISOString(),
-          ...scheduleUpdates
+          ...scheduleUpdates,
         };
 
         const { error: updateError } = await supabase
@@ -318,21 +331,20 @@ const TaskList = () => {
           latestTasks = await fetchTasks();
         }
 
-        const nextSelected = latestTasks.find(task => task.id === taskFormState.taskId) || null;
+        const nextSelected = latestTasks.find((task) => task.id === taskFormState.taskId) || null;
         setSelectedTask(nextSelected);
         setTaskFormState(null);
         return;
       }
 
-      const siblings = tasks.filter(task => {
+      const siblings = tasks.filter((task) => {
         const sameOrigin = task.origin === origin;
         const sameParent = (task.parent_task_id || null) === parentId;
         return sameOrigin && sameParent;
       });
 
-      const maxPosition = siblings.length > 0
-        ? Math.max(...siblings.map(task => task.position || 0))
-        : 0;
+      const maxPosition =
+        siblings.length > 0 ? Math.max(...siblings.map((task) => task.position || 0)) : 0;
 
       const insertPayload = {
         title: formData.title,
@@ -343,7 +355,7 @@ const TaskList = () => {
         creator: user.id,
         parent_task_id: parentId,
         position: maxPosition + 1000,
-        is_complete: false
+        is_complete: false,
       };
 
       if (origin === 'instance') {
@@ -354,7 +366,8 @@ const TaskList = () => {
 
         if (hasManualDates) {
           insertPayload.start_date = manualStartDate;
-          insertPayload.due_date = manualDueDate || manualStartDate || insertPayload.due_date || null;
+          insertPayload.due_date =
+            manualDueDate || manualStartDate || insertPayload.due_date || null;
         }
       }
 
@@ -363,9 +376,7 @@ const TaskList = () => {
         Object.assign(insertPayload, schedule);
       }
 
-      const { error: insertError } = await supabase
-        .from('tasks')
-        .insert([insertPayload]);
+      const { error: insertError } = await supabase.from('tasks').insert([insertPayload]);
 
       if (insertError) throw insertError;
 
@@ -384,15 +395,13 @@ const TaskList = () => {
     }
   };
 
-  const { instanceTasks, templateTasks } = useMemo(
-    () => separateTasksByOrigin(tasks),
-    [tasks]
-  );
+  const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
   const parentTaskForForm = taskFormState?.parentId ? getTaskById(taskFormState.parentId) : null;
-  const taskBeingEdited = taskFormState?.mode === 'edit' && taskFormState.taskId
-    ? getTaskById(taskFormState.taskId)
-    : null;
+  const taskBeingEdited =
+    taskFormState?.mode === 'edit' && taskFormState.taskId
+      ? getTaskById(taskFormState.taskId)
+      : null;
   const isTaskFormOpen = Boolean(taskFormState);
 
   const panelTitle = useMemo(() => {
@@ -411,9 +420,7 @@ const TaskList = () => {
           : 'New Template Task';
       }
 
-      return parentTaskForForm
-        ? `New Task in ${parentTaskForForm.title}`
-        : 'New Task';
+      return parentTaskForForm ? `New Task in ${parentTaskForForm.title}` : 'New Task';
     }
 
     if (selectedTask) {
@@ -429,35 +436,38 @@ const TaskList = () => {
     }
 
     const source = currentTasks ?? tasks;
-    const parent = source.find(task => task.id === taskId);
+    const parent = source.find((task) => task.id === taskId);
 
     if (!parent || parent.origin !== 'instance') {
       return;
     }
 
-    const children = source.filter(task => task.parent_task_id === parent.id && task.origin === parent.origin);
+    const children = source.filter(
+      (task) => task.parent_task_id === parent.id && task.origin === parent.origin
+    );
 
     if (children.length === 0) {
       return;
     }
 
-    const parseDates = (values) => values
-      .filter(Boolean)
-      .map(value => new Date(value))
-      .filter(date => !Number.isNaN(date.getTime()));
+    const parseDates = (values) =>
+      values
+        .filter(Boolean)
+        .map((value) => new Date(value))
+        .filter((date) => !Number.isNaN(date.getTime()));
 
-    const childStartDates = parseDates(children.map(child => child.start_date));
-    const childDueDates = parseDates(children.map(child => child.due_date));
+    const childStartDates = parseDates(children.map((child) => child.start_date));
+    const childDueDates = parseDates(children.map((child) => child.due_date));
 
     const updates = {};
 
     if (childStartDates.length > 0) {
-      const minTime = Math.min(...childStartDates.map(date => date.getTime()));
+      const minTime = Math.min(...childStartDates.map((date) => date.getTime()));
       updates.start_date = new Date(minTime).toISOString();
     }
 
     if (childDueDates.length > 0) {
-      const maxTime = Math.max(...childDueDates.map(date => date.getTime()));
+      const maxTime = Math.max(...childDueDates.map((date) => date.getTime()));
       updates.due_date = new Date(maxTime).toISOString();
     }
 
@@ -528,17 +538,17 @@ const TaskList = () => {
               className="btn-new-item"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z"/>
+                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
               </svg>
               New Project
             </button>
           </div>
           {instanceTasks.length > 0 ? (
             <div className="task-cards-container">
-              {instanceTasks.map(project => (
-                <TaskItem 
-                  key={project.id} 
-                  task={project} 
+              {instanceTasks.map((project) => (
+                <TaskItem
+                  key={project.id}
+                  task={project}
                   level={0}
                   onTaskClick={handleTaskClick}
                   selectedTaskId={selectedTask?.id}
@@ -559,22 +569,19 @@ const TaskList = () => {
               <h2 className="section-title">Templates</h2>
               <span className="section-count">{templateTasks.length}</span>
             </div>
-            <button
-              onClick={handleCreateTemplateRoot}
-              className="btn-new-item"
-            >
+            <button onClick={handleCreateTemplateRoot} className="btn-new-item">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z"/>
+                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
               </svg>
               New Template
             </button>
           </div>
           {templateTasks.length > 0 ? (
             <div className="task-cards-container">
-              {templateTasks.map(template => (
-                <TaskItem 
-                  key={template.id} 
-                  task={template} 
+              {templateTasks.map((template) => (
+                <TaskItem
+                  key={template.id}
+                  task={template}
                   level={0}
                   onTaskClick={handleTaskClick}
                   selectedTaskId={selectedTask?.id}
@@ -596,36 +603,24 @@ const TaskList = () => {
         <div className="panel-header">
           <h2 className="panel-title">{panelTitle}</h2>
           {showForm && (
-            <button
-              onClick={() => setShowForm(false)}
-              className="panel-header-btn"
-            >
+            <button onClick={() => setShowForm(false)} className="panel-header-btn">
               Hide Form
             </button>
           )}
           {isTaskFormOpen && (
-            <button
-              onClick={() => setTaskFormState(null)}
-              className="panel-header-btn"
-            >
+            <button onClick={() => setTaskFormState(null)} className="panel-header-btn">
               Cancel
             </button>
           )}
           {selectedTask && !showForm && !isTaskFormOpen && (
-            <button
-              onClick={() => setSelectedTask(null)}
-              className="panel-header-btn"
-            >
+            <button onClick={() => setSelectedTask(null)} className="panel-header-btn">
               Close
             </button>
           )}
         </div>
         <div className="panel-content">
           {showForm ? (
-            <NewProjectForm
-              onSubmit={handleCreateProject}
-              onCancel={() => setShowForm(false)}
-            />
+            <NewProjectForm onSubmit={handleCreateProject} onCancel={() => setShowForm(false)} />
           ) : isTaskFormOpen ? (
             <NewTaskForm
               parentTask={parentTaskForForm}
@@ -637,7 +632,7 @@ const TaskList = () => {
               onCancel={() => setTaskFormState(null)}
             />
           ) : selectedTask ? (
-            <TaskDetailsView 
+            <TaskDetailsView
               task={selectedTask}
               onAddChildTask={handleAddChildTask}
               onEditTask={handleEditTask}
@@ -647,7 +642,12 @@ const TaskList = () => {
             <div className="empty-panel-state">
               <div className="empty-panel-icon">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
               </div>
               <h3 className="empty-panel-title">No Selection</h3>

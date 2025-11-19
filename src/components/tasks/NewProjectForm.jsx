@@ -9,7 +9,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
     actions: '',
     resources: '',
     notes: '',
-    start_date: ''
+    start_date: '',
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,22 +18,22 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error for this field when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
 
   const validate = () => {
     const newErrors = {};
-    
+
     if (!formData.title.trim()) {
       newErrors.title = 'Project title is required';
     }
@@ -47,13 +47,13 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
   };
 
   const handleApplyFromLibrary = (task) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       title: task.title ?? prev.title,
       description: task.description ?? prev.description,
       purpose: task.purpose ?? prev.purpose,
       actions: task.actions ?? prev.actions,
-      resources: task.resources ?? prev.resources
+      resources: task.resources ?? prev.resources,
     }));
     setLastAppliedTaskTitle(task.title || '');
   };
@@ -64,13 +64,13 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) {
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       await onSubmit(formData);
       // Reset form on success
@@ -81,7 +81,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         actions: '',
         resources: '',
         notes: '',
-        start_date: ''
+        start_date: '',
       });
       setLastAppliedTaskTitle('');
       setShowResourceCreator(false);
@@ -114,7 +114,8 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         <div className="mb-4 rounded-md border border-dashed border-blue-300 bg-blue-50 px-4 py-3 text-sm text-blue-700">
           <div className="flex items-start justify-between gap-4">
             <p>
-              Capture new resource details in the form fields below. Once saved, you can promote it to the master library later.
+              Capture new resource details in the form fields below. Once saved, you can promote it
+              to the master library later.
             </p>
             <button
               type="button"
@@ -127,11 +128,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         </div>
       )}
       {/* General error message */}
-      {errors.submit && (
-        <div className="form-error-banner">
-          {errors.submit}
-        </div>
-      )}
+      {errors.submit && <div className="form-error-banner">{errors.submit}</div>}
 
       {/* Title Field */}
       <div className="form-group">
@@ -148,9 +145,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
           placeholder="Enter project title"
           autoFocus
         />
-        {errors.title && (
-          <span className="form-error">{errors.title}</span>
-        )}
+        {errors.title && <span className="form-error">{errors.title}</span>}
       </div>
 
       {/* Description Field */}
@@ -214,9 +209,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
           onChange={handleChange}
           className={`form-input ${errors.start_date ? 'error' : ''}`}
         />
-        {errors.start_date && (
-          <span className="form-error">{errors.start_date}</span>
-        )}
+        {errors.start_date && <span className="form-error">{errors.start_date}</span>}
       </div>
 
       {/* Resources Field */}
@@ -253,19 +246,10 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
 
       {/* Form Actions */}
       <div className="form-actions">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="btn-secondary"
-          disabled={isSubmitting}
-        >
+        <button type="button" onClick={onCancel} className="btn-secondary" disabled={isSubmitting}>
           Cancel
         </button>
-        <button
-          type="submit"
-          className="btn-primary"
-          disabled={isSubmitting}
-        >
+        <button type="submit" className="btn-primary" disabled={isSubmitting}>
           {isSubmitting ? 'Creating...' : 'Create Project'}
         </button>
       </div>

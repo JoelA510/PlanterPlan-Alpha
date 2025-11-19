@@ -7,7 +7,7 @@ const initialState = {
   tasks: [],
   isLoading: false,
   error: null,
-  hasMore: false
+  hasMore: false,
 };
 
 const useMasterLibraryTasks = ({ page = 0, limit = DEFAULT_LIMIT, enabled = true } = {}) => {
@@ -15,67 +15,70 @@ const useMasterLibraryTasks = ({ page = 0, limit = DEFAULT_LIMIT, enabled = true
   const latestRequestRef = useRef(0);
   const controllerRef = useRef(null);
 
-  const loadTasks = useCallback(async ({ controller } = {}) => {
-    const abortController = controller ?? new AbortController();
+  const loadTasks = useCallback(
+    async ({ controller } = {}) => {
+      const abortController = controller ?? new AbortController();
 
-    if (controllerRef.current && controllerRef.current !== abortController) {
-      controllerRef.current.abort();
-    }
-
-    controllerRef.current = abortController;
-
-    const requestId = Date.now();
-    latestRequestRef.current = requestId;
-
-    setState(previous => ({
-      ...previous,
-      isLoading: true,
-      error: null
-    }));
-
-    const from = Math.max(0, page * limit);
-
-    try {
-      const tasks = await fetchMasterLibraryTasks({
-        from,
-        limit,
-        signal: abortController.signal
-      });
-
-      if (latestRequestRef.current !== requestId) {
-        return;
+      if (controllerRef.current && controllerRef.current !== abortController) {
+        controllerRef.current.abort();
       }
 
-      setState({
-        tasks,
-        isLoading: false,
-        error: null,
-        hasMore: tasks.length === limit
-      });
+      controllerRef.current = abortController;
 
-      if (controllerRef.current === abortController) {
-        controllerRef.current = null;
-      }
-    } catch (error) {
-      if (error?.name === 'AbortError') {
-        return;
-      }
+      const requestId = Date.now();
+      latestRequestRef.current = requestId;
 
-      if (latestRequestRef.current !== requestId) {
-        return;
-      }
-
-      setState(previous => ({
+      setState((previous) => ({
         ...previous,
-        isLoading: false,
-        error
+        isLoading: true,
+        error: null,
       }));
 
-      if (controllerRef.current === abortController) {
-        controllerRef.current = null;
+      const from = Math.max(0, page * limit);
+
+      try {
+        const tasks = await fetchMasterLibraryTasks({
+          from,
+          limit,
+          signal: abortController.signal,
+        });
+
+        if (latestRequestRef.current !== requestId) {
+          return;
+        }
+
+        setState({
+          tasks,
+          isLoading: false,
+          error: null,
+          hasMore: tasks.length === limit,
+        });
+
+        if (controllerRef.current === abortController) {
+          controllerRef.current = null;
+        }
+      } catch (error) {
+        if (error?.name === 'AbortError') {
+          return;
+        }
+
+        if (latestRequestRef.current !== requestId) {
+          return;
+        }
+
+        setState((previous) => ({
+          ...previous,
+          isLoading: false,
+          error,
+        }));
+
+        if (controllerRef.current === abortController) {
+          controllerRef.current = null;
+        }
       }
-    }
-  }, [limit, page]);
+    },
+    [limit, page]
+  );
 
   const refresh = useCallback(() => {
     const controller = new AbortController();
@@ -108,7 +111,7 @@ const useMasterLibraryTasks = ({ page = 0, limit = DEFAULT_LIMIT, enabled = true
 
   return {
     ...state,
-    refresh
+    refresh,
   };
 };
 

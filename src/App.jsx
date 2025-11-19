@@ -40,7 +40,7 @@ const Dashboard = () => {
           <h2 className="text-2xl font-semibold text-slate-900 mb-2">Your Projects</h2>
           <p className="text-slate-600">Manage your church planting projects and track progress.</p>
         </div>
-        
+
         <TaskList />
       </main>
     </div>
@@ -76,22 +76,16 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route 
-        path="/login" 
-        element={user ? <Navigate to="/dashboard" /> : <LoginForm />} 
-      />
-      <Route 
-        path="/dashboard" 
+      <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginForm />} />
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/" 
-        element={<Navigate to={user ? "/dashboard" : "/login"} />} 
-      />
+      <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} />} />
     </Routes>
   );
 };

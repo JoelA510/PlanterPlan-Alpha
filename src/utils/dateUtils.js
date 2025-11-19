@@ -3,7 +3,7 @@ const findTaskById = (tasks, id) => {
     return null;
   }
 
-  return tasks.find(task => task.id === id) || null;
+  return tasks.find((task) => task.id === id) || null;
 };
 
 export const calculateScheduleFromOffset = (tasks, parentId, daysOffset) => {
@@ -56,7 +56,7 @@ export const calculateScheduleFromOffset = (tasks, parentId, daysOffset) => {
 
   return {
     start_date: iso,
-    due_date: iso
+    due_date: iso,
   };
 };
 

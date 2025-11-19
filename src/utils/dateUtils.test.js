@@ -7,7 +7,7 @@ describe('calculateScheduleFromOffset', () => {
     origin: 'instance',
     parent_task_id: null,
     start_date: baseDate,
-    due_date: baseDate
+    due_date: baseDate,
   };
 
   it('returns start and due dates offset from project start', () => {
@@ -17,7 +17,7 @@ describe('calculateScheduleFromOffset', () => {
 
     expect(schedule).toEqual({
       start_date: '2025-01-06T00:00:00.000Z',
-      due_date: '2025-01-06T00:00:00.000Z'
+      due_date: '2025-01-06T00:00:00.000Z',
     });
   });
 
@@ -34,15 +34,15 @@ describe('calculateScheduleFromOffset', () => {
         origin: 'instance',
         parent_task_id: 'project-1',
         start_date: null,
-        due_date: null
-      }
+        due_date: null,
+      },
     ];
 
     const schedule = calculateScheduleFromOffset(tasks, 'phase-1', 2);
 
     expect(schedule).toEqual({
       start_date: '2025-01-03T00:00:00.000Z',
-      due_date: '2025-01-03T00:00:00.000Z'
+      due_date: '2025-01-03T00:00:00.000Z',
     });
   });
 

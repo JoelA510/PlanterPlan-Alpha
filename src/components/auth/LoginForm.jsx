@@ -41,14 +41,12 @@ const LoginForm = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-blue-600">
-            PlanterPlan
-          </h2>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-blue-600">PlanterPlan</h2>
           <p className="mt-2 text-center text-sm text-blue-500">
             {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </p>
         </div>
-        
+
         <form className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit}>
           <div className="space-y-6">
             {error && (
@@ -56,7 +54,7 @@ const LoginForm = () => {
                 {error}
               </div>
             )}
-            
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-blue-500">
                 Email address
@@ -72,7 +70,7 @@ const LoginForm = () => {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-blue-500">
                 Password
@@ -95,7 +93,7 @@ const LoginForm = () => {
                 disabled={loading}
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {loading ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+                {loading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Sign In'}
               </button>
             </div>
 

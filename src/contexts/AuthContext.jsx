@@ -18,7 +18,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
       setLoading(false);
     };
@@ -26,12 +28,12 @@ export const AuthProvider = ({ children }) => {
     getSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -42,10 +44,10 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
         options: {
-          data: userData
-        }
+          data: userData,
+        },
       });
-      
+
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
@@ -57,9 +59,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
-      
+
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
@@ -81,12 +83,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     signUp,
     signIn,
-    signOut
+    signOut,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
