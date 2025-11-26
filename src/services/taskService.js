@@ -74,7 +74,10 @@ export const fetchMasterLibraryTasks = async (
       throw error;
     }
 
-    console.error('[taskService.fetchMasterLibraryTasks] Fatal error fetching master library tasks:', error);
+    console.error(
+      '[taskService.fetchMasterLibraryTasks] Fatal error fetching master library tasks:',
+      error
+    );
     throw error;
   }
 };
@@ -125,7 +128,10 @@ export const searchMasterLibraryTasks = async (
     return data.filter((task) => {
       const isValid = validateTaskShape(task);
       if (!isValid) {
-        console.warn('[taskService.searchMasterLibraryTasks] Dropping malformed task record:', task);
+        console.warn(
+          '[taskService.searchMasterLibraryTasks] Dropping malformed task record:',
+          task
+        );
       }
       return isValid;
     });

@@ -10,7 +10,7 @@ const MasterLibrarySearch = ({
   onCreateResource,
   mode = 'copy',
   label = 'Search & pick from Master Library',
-  placeholder = 'Search by title or description…'
+  placeholder = 'Search by title or description…',
 }) => {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -22,7 +22,7 @@ const MasterLibrarySearch = ({
     query,
     limit: 15,
     debounceMs: DEBOUNCE_MS,
-    enabled: hasMinimumQuery
+    enabled: hasMinimumQuery,
   });
 
   useEffect(() => {
@@ -99,7 +99,7 @@ const MasterLibrarySearch = ({
 
     const segments = getHighlightSegments(text, query);
 
-    return segments.map((segment, index) => (
+    return segments.map((segment, index) =>
       segment.isMatch ? (
         <mark
           key={`${segment.text}-${index}`}
@@ -110,12 +110,15 @@ const MasterLibrarySearch = ({
       ) : (
         <Fragment key={`${segment.text}-${index}`}>{segment.text}</Fragment>
       )
-    ));
+    );
   };
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-slate-600" htmlFor={`master-library-search-${listboxId}`}>
+      <label
+        className="block text-sm font-medium text-slate-600"
+        htmlFor={`master-library-search-${listboxId}`}
+      >
         {label}
       </label>
       <div className="relative">
