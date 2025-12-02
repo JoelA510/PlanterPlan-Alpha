@@ -8,7 +8,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask }) => 
       weekday: 'short',
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -65,14 +65,14 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask }) => 
           {task.is_complete ? (
             <span className="status-badge complete">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M13.485 3.485a1 1 0 011.414 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L6 10.586l7.485-7.101z"/>
+                <path d="M13.485 3.485a1 1 0 011.414 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L6 10.586l7.485-7.101z" />
               </svg>
               Complete
             </span>
           ) : (
             <span className="status-badge incomplete">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <circle cx="8" cy="8" r="3"/>
+                <circle cx="8" cy="8" r="3" />
               </svg>
               Incomplete
             </span>
