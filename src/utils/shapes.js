@@ -22,4 +22,6 @@ export const TaskShape = PropTypes.shape({
   due_date: PropTypes.string,
   assignee_id: PropTypes.string,
   assignee: UserShape,
+  is_complete: PropTypes.bool,
+  children: PropTypes.arrayOf(PropTypes.object),
 });

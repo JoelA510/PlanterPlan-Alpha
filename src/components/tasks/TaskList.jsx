@@ -66,7 +66,7 @@ const TaskList = () => {
       if (!isMountedRef.current) {
         return [];
       }
-      
+
       if (!user) {
         setError('User not authenticated');
         setTasks([]);
@@ -201,13 +201,13 @@ const TaskList = () => {
   const handleCreateProject = async (formData) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
       const instanceTasks = tasks.filter(t => t.origin === 'instance' && !t.parent_task_id);
-      const maxPosition = instanceTasks.length > 0 
+      const maxPosition = instanceTasks.length > 0
         ? Math.max(...instanceTasks.map(t => t.position || 0))
         : 0;
 
@@ -242,7 +242,7 @@ const TaskList = () => {
       setShowForm(false);
       setSelectedTask(null);
       setTaskFormState(null);
-      
+
     } catch (error) {
       console.error('Error creating project:', error);
       throw error;
@@ -528,7 +528,7 @@ const TaskList = () => {
               className="btn-new-item"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z"/>
+                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
               </svg>
               New Project
             </button>
@@ -536,13 +536,15 @@ const TaskList = () => {
           {instanceTasks.length > 0 ? (
             <div className="task-cards-container">
               {instanceTasks.map(project => (
-                <TaskItem 
-                  key={project.id} 
-                  task={project} 
+                <TaskItem
+                  key={project.id}
+                  task={project}
                   level={0}
                   onTaskClick={handleTaskClick}
                   selectedTaskId={selectedTask?.id}
                   onAddChildTask={handleAddChildTask}
+                  canEdit={true}
+                  canDelete={true}
                 />
               ))}
             </div>
@@ -564,7 +566,7 @@ const TaskList = () => {
               className="btn-new-item"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z"/>
+                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
               </svg>
               New Template
             </button>
@@ -572,13 +574,15 @@ const TaskList = () => {
           {templateTasks.length > 0 ? (
             <div className="task-cards-container">
               {templateTasks.map(template => (
-                <TaskItem 
-                  key={template.id} 
-                  task={template} 
+                <TaskItem
+                  key={template.id}
+                  task={template}
                   level={0}
                   onTaskClick={handleTaskClick}
                   selectedTaskId={selectedTask?.id}
                   onAddChildTask={handleAddChildTask}
+                  canEdit={true}
+                  canDelete={true}
                 />
               ))}
             </div>
@@ -637,7 +641,7 @@ const TaskList = () => {
               onCancel={() => setTaskFormState(null)}
             />
           ) : selectedTask ? (
-            <TaskDetailsView 
+            <TaskDetailsView
               task={selectedTask}
               onAddChildTask={handleAddChildTask}
               onEditTask={handleEditTask}
