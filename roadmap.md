@@ -7,22 +7,25 @@ Project roadmap for PlanterPlan, optimized for high parallelism via **component 
 ---
 
 ## Phase 0: Foundation & Standards (High Priority)
-*Goal: Establish standards to prevent "ugly" merges later. No functionality changes.*
+
+_Goal: Establish standards to prevent "ugly" merges later. No functionality changes._
 
 ### 0.1 Lint & Format Baseline
+
 **ID:** `P0-LINT-BASE`
-**Status:** Done
+
 - **Description**: Lock in eslint/prettier config and apply a one-time formatting pass.
 - **Depends on**: None
 - **Touches**: `package.json`, `.eslintrc.json`, `src/**/*.js`
-- **DoD**: 
+- **DoD**:
   - `npm run lint` passes without warnings.
   - Codebase formatted via Prettier.
 
-### 0.2 Shared Data Shapes
+### 0.2 Shared Data Shapes (JS/React Compatible)
+
 **ID:** `P0-DATA-SHAPES`
-**Status:** Done
-- **Description**: Create central PropTypes definitions (Task, Project, User).
+
+- **Description**: Create central PropTypes definitions instead of using TypeScript (avoids build config changes).
 - **Depends on**: `P0-LINT-BASE`
 - **Touches**: `src/utils/shapes.js` (New File)
 - **DoD**:
@@ -32,232 +35,206 @@ Project roadmap for PlanterPlan, optimized for high parallelism via **component 
 ---
 
 ## Phase 1: Master Library & Deep Copy (High Parallelism)
-*Goal: Complete the "View" vs "Copy" flows. The "Deep Clone" logic is critical here.*
+
+_Goal: Complete the "View" vs "Copy" flows. The "Deep Clone" logic is critical here._
 
 ### 1.1 Search Component Logic
+
 **ID:** `P1-SEARCH-LOGIC`
-**Status:** Done
-- **Description**: Add `mode` prop to Search to handle 'view' vs 'copy' actions.
+
+- **Description**: Add `mode` prop to Search to handle 'view' vs 'copy' actions differently.
 - **Depends on**: `P0-DATA-SHAPES`
 - **Touches**: `src/components/tasks/MasterLibrarySearch.jsx`
-- **DoD**: 
-  - Renders "View" vs "Copy" button based on `mode` prop.
+- **DoD**:
+  - Component accepts `mode="view" | "copy"`.
+  - Renders "View" button vs "Copy" button based on mode.
 
 ### 1.2 Template Data Lookup
+
 **ID:** `P1-HELPER-LOOKUP`
-- **Description**: Utility to fetch full task details from context/service.
+
+- **Description**: Utility to fetch full task details from context/service for the copy operation.
 - **Depends on**: None
 - **Touches**: `src/services/taskService.js`
-- **DoD**: 
+- **DoD**:
   - `fetchTaskById(id)` implemented and verified.
 
-### 1.3 Template Deep Copy Engine
-*Broken down for reviewability.*
+### 1.3 Template Deep Copy Engine (Logic Layer)
 
-#### 1.3a Tree Fetcher
-**ID:** `P1-TEMPLATE-FETCH`
-- **Description**: Service method to fetch a Task + all descendants (Subtasks, Milestones).
+**ID:** `P1-TEMPLATE-DEEP-CLONE`
+
+- **Description**: Service method to recursively fetch a template Task + all valid descendants (Subtasks, Milestones) and prepare them for insertion.
 - **Depends on**: `P1-HELPER-LOOKUP`
-- **Touches**: `src/services/taskService.js`
+- **Parallel with**: `P2-SVC-MEMBERSHIPS`
+- **Touches**: `src/services/taskService.js`, `src/utils/treeHelpers.js` (New)
 - **DoD**:
-  - Returns nested object tree.
-
-#### 1.3b Tree Cloner (Pure Logic)
-**ID:** `P1-TEMPLATE-CLONE`
-- **Description**: Pure utility function to deep clone the tree and generate new UUIDs.
-- **Depends on**: None
-- **Touches**: `src/utils/treeHelpers.js` (New)
-- **DoD**:
-  - Returns new tree with new IDs.
-  - Unit test: Input tree -> Output tree with different IDs but same structure.
-
-#### 1.3c Tree Persistence
-**ID:** `P1-TEMPLATE-SAVE`
-- **Description**: Service method to save the cloned tree to the DB.
-- **Depends on**: `P1-TEMPLATE-CLONE`
-- **Touches**: `src/services/taskService.js`
-- **DoD**:
-  - Saves all nodes in the tree to Supabase.
+  - `deepCloneTaskTree(rootId)` returns a nested object tree with new UUIDs.
+  - Preserves relative dates and dependencies within the tree.
+  - **Tests**: Unit test verifying a Phase copy includes its Milestones.
 
 ### 1.4 Copy Mode Integration (UI Layer)
-*Broken down for reviewability.*
 
-#### 1.4a UI Event Handling
-**ID:** `P1-UI-EVENTS`
-- **Description**: Wire up the "Copy" button click in `NewTaskForm` to trigger the fetch/clone process (mocked).
-- **Depends on**: `P1-SEARCH-LOGIC`
+**ID:** `P1-UI-COPY-WIRING`
+
+- **Description**: Connect the Search component in the Task Form to the Deep Clone engine.
+- **Depends on**: `P1-TEMPLATE-DEEP-CLONE`, `P1-SEARCH-LOGIC`
 - **Touches**: `src/components/tasks/NewTaskForm.jsx`
 - **DoD**:
-  - Clicking "Copy" logs the correct template ID and target parent ID.
-
-#### 1.4b Service Integration
-**ID:** `P1-UI-INTEGRATION`
-- **Description**: Connect the real `deepCloneTaskTree` service to the UI.
-- **Depends on**: `P1-UI-EVENTS`, `P1-TEMPLATE-SAVE`
-- **Touches**: `src/components/tasks/NewTaskForm.jsx`
-- **DoD**:
-  - Successful copy shows success notification.
-  - Error handling displays error message.
+  - Clicking "Copy" on a search result populates the form (or auto-creates the tree).
+  - Success notification upon completion.
 
 ---
 
 ## Phase 2: Team Management & Joined Projects (Max Parallelism)
-*Goal: Securely allow users to view projects they are invited to.*
+
+_Goal: Securely allow users to view projects they are invited to._
 
 ### 2.1 Database RLS Policies
+
 **ID:** `P2-DB-RLS-POLICIES`
-- **Description**: Implement `select_joined_projects` policy.
-- **Depends on**: None
-- **Touches**: `docs/db/policies.sql`
-- **DoD**: 
-  - SQL file contains correct policy definition.
+
+- **Description**: Implement Row Level Security to allow reads on `tasks` if user is in `project_members`.
+- **Depends on**: None (SQL only)
+- **Touches**: Supabase Dashboard / `docs/db/policies.sql`
+- **DoD**:
+  - Policy `select_joined_projects`: Users can SELECT projects where their UID is in `project_members`.
+  - Verified via Supabase SQL Editor (simulating a non-owner user).
 
 ### 2.2 Membership Service
+
 **ID:** `P2-SVC-MEMBERSHIPS`
+
 - **Description**: Fetch logic for joined projects.
 - **Depends on**: `P2-DB-RLS-POLICIES`
 - **Touches**: `src/services/projectService.js`
-- **DoD**: 
-  - `getJoinedProjects(userId)` implemented.
+- **DoD**:
+  - `getJoinedProjects(userId)` returns array of projects.
+  - Handles empty states and errors gracefully.
 
 ### 2.3 Role Indicator UI
+
 **ID:** `P2-UI-ROLE-INDICATOR`
+
 - **Description**: Visual badge showing 'Owner' vs 'Editor'.
 - **Depends on**: `P0-LINT-BASE`
-- **Touches**: `src/components/common/RoleIndicator.jsx`, `src/styles/components/role-indicator.css`
-- **DoD**: 
-  - Renders correct badge based on prop.
+- **Touches**:
+  - `src/components/common/RoleIndicator.jsx`
+  - `src/styles/components/role-indicator.css` (New)
+- **DoD**:
+  - Renders correct color/text based on prop.
 
 ### 2.4 Dashboard "Joined" Section
-*Broken down for reviewability.*
 
-#### 2.4a List Component Update
-**ID:** `P2-UI-LIST-UPDATE`
-- **Description**: Update `TaskList` to accept a `projects` prop or similar to render a specific list.
-- **Depends on**: None
-- **Touches**: `src/components/tasks/TaskList.jsx`
-- **DoD**:
-  - Component can render a provided list of projects (decoupling from internal fetch if needed, or adding "type" prop).
+**ID:** `P2-UI-JOINED-SECTION`
 
-#### 2.4b Dashboard Integration
-**ID:** `P2-UI-DASHBOARD`
-- **Description**: Add the "Joined Projects" section to the Dashboard page using the updated list component.
-- **Depends on**: `P2-SVC-MEMBERSHIPS`, `P2-UI-LIST-UPDATE`
-- **Touches**: `src/pages/Dashboard.jsx` (or equivalent), `src/styles/pages/dashboard.css`
+- **Description**: Add "Joined Projects" section to Dashboard.
+- **Depends on**: `P2-SVC-MEMBERSHIPS`
+- **Touches**:
+  - `src/components/tasks/TaskList.jsx`
+  - `src/styles/pages/dashboard.css`
 - **DoD**:
-  - Displays "Joined Projects" section.
+  - Displays joined projects separately from owned projects.
+  - Clicking a joined project navigates to the View.
 
 ---
 
 ## Phase 3: Code Hygiene (Isolated Refactors)
-*Goal: Clean up debt.*
+
+_Goal: Clean up debt before the heavy Phase 4 logic._
 
 ### 3.1 Directory Cleanup
+
 **ID:** `P3-CLEAN-DIRS`
-- **Description**: Remove unused CSS and consolidate imports.
-- **Touches**: `src/styles/**`
-- **DoD**: 
-  - Unused files removed.
+
+- **Description**: Remove unused files and consolidate CSS imports.
+- **Touches**: `src/styles/**`, `src/components/**`
+- **DoD**:
+  - No unused CSS files in `src/styles/`.
+  - All components import their specific CSS files explicitly.
 
 ### 3.2 Test Coverage Spike
+
 **ID:** `P3-TEST-UTILS`
-- **Description**: Add unit tests for Date and Search utils.
+
+- **Description**: Add unit tests for existing Date and Search utils.
 - **Touches**: `src/utils/dateUtils.test.js`, `src/utils/highlightMatches.test.js`
-- **DoD**: 
-  - Tests pass.
+- **DoD**:
+  - 80%+ coverage on utility functions.
 
 ---
 
 ## Phase 4: The Date Engine & Drag-n-Drop (Sequential Core)
-*Goal: Stable, conflict-free drag and drop with rollbacks.*
 
-### 4.1 Data Fixtures
+_Goal: Stable, conflict-free drag and drop with rollbacks._
+
+### 4.1 Data Fixtures (Safety Net)
+
 **ID:** `P4-DATA-FIXTURES`
-- **Description**: Create complex project JSON snapshot for testing.
+
+- **Description**: Capture "Snapshot" JSONs of complex projects (nested phases, dependencies) to use as test cases.
 - **Depends on**: None
 - **Touches**: `src/tests/fixtures/complexProject.json`
-- **DoD**: 
-  - JSON file exists and is valid.
+- **DoD**:
+  - JSON file containing a real project state exists.
+  - Test runner can load this JSON.
 
 ### 4.2 Logic Extraction (Refactor)
-*Broken down for reviewability.*
 
-#### 4.2a Drag Hook Creation
-**ID:** `P4-DRAG-HOOK`
-- **Description**: Create `useTaskDragDrop` hook and move logic there (copy-paste refactor first).
+**ID:** `P4-EXTRACT-LOGIC`
+
+- **Description**: Move drag logic out of `TaskContext` into a custom hook.
 - **Depends on**: `P4-DATA-FIXTURES`
+- **Touches**: `src/hooks/useTaskDragDrop.js` (New)
+- **DoD**:
+  - `TaskContext` is smaller.
+  - Drag logic works exactly as before (no regression).
+
+### 4.3 Sparse Positioning & Rollback (The Fix)
+
+**ID:** `P4-SPARSE-ROLLBACK`
+
+- **Description**:
+  1. Implement "Sparse" updates (calculate mathematical mid-point for position) to avoid re-indexing the whole list.
+  2. Implement **Optimistic Rollback**: If DB sync fails, revert state immediately.
+- **Depends on**: `P4-EXTRACT-LOGIC`
 - **Touches**: `src/hooks/useTaskDragDrop.js`
 - **DoD**:
-  - Hook exists and contains the logic.
-
-#### 4.2b Context Cleanup
-**ID:** `P4-CONTEXT-CLEAN`
-- **Description**: Replace logic in `TaskContext` with the new hook.
-- **Depends on**: `P4-DRAG-HOOK`
-- **Touches**: `src/contexts/TaskContext.jsx`
-- **DoD**:
-  - Drag and drop still works (regression test).
-
-### 4.3 Sparse Positioning & Rollback
-*Broken down for reviewability.*
-
-#### 4.3a Sparse Math Logic
-**ID:** `P4-SPARSE-CALC`
-- **Description**: Pure function to calculate mid-point positions.
-- **Depends on**: None
-- **Touches**: `src/utils/positionUtils.js` (New)
-- **DoD**:
-  - Unit tests: `calcMidPoint(100, 200) -> 150`.
-
-#### 4.3b Optimistic UI Updates
-**ID:** `P4-OPTIMISTIC-UI`
-- **Description**: Update hook to apply local state change immediately.
-- **Depends on**: `P4-SPARSE-CALC`, `P4-CONTEXT-CLEAN`
-- **Touches**: `src/hooks/useTaskDragDrop.js`
-- **DoD**:
-  - UI updates instantly on drop.
-
-#### 4.3c Rollback Mechanism
-**ID:** `P4-ROLLBACK`
-- **Description**: Handle API failure by reverting local state.
-- **Depends on**: `P4-OPTIMISTIC-UI`
-- **Touches**: `src/hooks/useTaskDragDrop.js`
-- **DoD**:
-  - Mocked failure causes item to snap back.
+  - Dragging updates only 1 row in DB (verified via Network tab).
+  - **Rollback Test**: Manually fail a request; UI must snap back to original position.
 
 ### 4.4 Date Recalculation Fix
-*Broken down for reviewability.*
 
-#### 4.4a Date Logic Isolation
-**ID:** `P4-DATE-LOGIC`
-- **Description**: Pure function to recalculate dependent dates.
-- **Depends on**: None
-- **Touches**: `src/utils/dateRecalc.js` (New)
-- **DoD**:
-  - Unit tests for dependency chains.
+**ID:** `P4-DATE-RECALC`
 
-#### 4.4b Hook Integration
-**ID:** `P4-DATE-TRIGGER`
-- **Description**: Trigger recalculation only after move confirmation.
-- **Depends on**: `P4-DATE-LOGIC`, `P4-OPTIMISTIC-UI`
-- **Touches**: `src/hooks/useTaskDates.js`
+- **Description**: Ensure date recalculation happens _after_ the move is confirmed, or is debounced.
+- **Depends on**: `P4-SPARSE-ROLLBACK`
+- **Touches**: `src/hooks/useTaskDates.js` (New)
 - **DoD**:
-  - Moving parent updates children dates.
+  - Moving a Parent task recalculates Children dates correctly.
+  - No "infinite loops" of updates.
 
 ---
 
 ## Phase 5: Reports & Resources (Feature Expansion)
 
+_Goal: Add value-add features. Can run parallel to Phase 4 if resources allow._
+
 ### 5.1 Resource Filters
+
 **ID:** `P5-RESOURCE-FILTERS`
+
 - **Description**: Filter library by PDF vs URL vs Text.
-- **Touches**: `src/components/resources/ResourceList.jsx`
-- **DoD**: 
-  - Filter buttons work.
+- **Touches**:
+  - `src/components/resources/ResourceList.jsx`
+  - `src/styles/components/resource-filters.css`
+- **DoD**: Filter buttons update the list view.
 
 ### 5.2 Monthly Report View
+
 **ID:** `P5-REPORT-UI`
+
 - **Description**: Read-only view for project status.
 - **Touches**: `src/components/reports/MonthlyReport.jsx`
-- **DoD**: 
-  - Renders filtered tasks.
+- **DoD**:
+  - Renders project tasks filtered by selected month.
+  - CSS `@media print` hides sidebars for PDF generation.

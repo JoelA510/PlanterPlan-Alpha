@@ -36,9 +36,11 @@ const TaskItem = ({
   };
 
   const handleCardClick = (e) => {
-    if (e.target.closest('.expand-button') ||
+    if (
+      e.target.closest('.expand-button') ||
       e.target.closest('.status-icon') ||
-      e.target.closest('.add-child-btn')) {
+      e.target.closest('.add-child-btn')
+    ) {
       return;
     }
     if (onTaskClick) {
@@ -76,10 +78,7 @@ const TaskItem = ({
             )}
 
             {hasChildren ? (
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="expand-button"
-              >
+              <button onClick={() => setIsExpanded(!isExpanded)} className="expand-button">
                 <svg
                   className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
                   width="12"
@@ -105,17 +104,11 @@ const TaskItem = ({
             )}
           </div>
 
-          <div className="task-card-title">
-            {task.title}
-          </div>
+          <div className="task-card-title">{task.title}</div>
 
           <div className="task-card-right">
             {canHaveChildren && onAddChildTask && (
-              <button
-                className="add-child-btn"
-                onClick={handleAddChild}
-                title="Add child task"
-              >
+              <button className="add-child-btn" onClick={handleAddChild} title="Add child task">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
                 </svg>
@@ -134,7 +127,7 @@ const TaskItem = ({
 
       {isExpanded && hasChildren && task.children && (
         <div className="task-children">
-          {task.children.map(child => (
+          {task.children.map((child) => (
             <TaskItem
               key={child.id}
               task={child}

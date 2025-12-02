@@ -1,5 +1,4 @@
-const escapeRegExp = (value) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const getHighlightSegments = (text, query) => {
   const safeText = typeof text === 'string' ? text : '';
@@ -20,13 +19,13 @@ export const getHighlightSegments = (text, query) => {
     if (matchIndex > lastIndex) {
       segments.push({
         text: safeText.slice(lastIndex, matchIndex),
-        isMatch: false
+        isMatch: false,
       });
     }
 
     segments.push({
       text: match[0],
-      isMatch: true
+      isMatch: true,
     });
 
     lastIndex = matchIndex + match[0].length;
@@ -39,7 +38,7 @@ export const getHighlightSegments = (text, query) => {
   if (lastIndex < safeText.length) {
     segments.push({
       text: safeText.slice(lastIndex),
-      isMatch: false
+      isMatch: false,
     });
   }
 
