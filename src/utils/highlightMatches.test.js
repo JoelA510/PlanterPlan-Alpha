@@ -11,7 +11,7 @@ describe('getHighlightSegments', () => {
     expect(segments).toEqual([
       { text: 'Master ', isMatch: false },
       { text: 'Task', isMatch: true },
-      { text: ' Alpha', isMatch: false }
+      { text: ' Alpha', isMatch: false },
     ]);
   });
 
@@ -22,7 +22,7 @@ describe('getHighlightSegments', () => {
       { text: 'task', isMatch: true },
       { text: ', ', isMatch: false },
       { text: 'task', isMatch: true },
-      { text: ' again', isMatch: false }
+      { text: ' again', isMatch: false },
     ]);
   });
 

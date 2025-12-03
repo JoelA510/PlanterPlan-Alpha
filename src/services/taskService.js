@@ -74,7 +74,10 @@ export const fetchMasterLibraryTasks = async (
       throw error;
     }
 
-    console.error('[taskService.fetchMasterLibraryTasks] Fatal error fetching master library tasks:', error);
+    console.error(
+      '[taskService.fetchMasterLibraryTasks] Fatal error fetching master library tasks:',
+      error
+    );
     throw error;
   }
 };
@@ -125,7 +128,10 @@ export const searchMasterLibraryTasks = async (
     return data.filter((task) => {
       const isValid = validateTaskShape(task);
       if (!isValid) {
-        console.warn('[taskService.searchMasterLibraryTasks] Dropping malformed task record:', task);
+        console.warn(
+          '[taskService.searchMasterLibraryTasks] Dropping malformed task record:',
+          task
+        );
       }
       return isValid;
     });
@@ -135,6 +141,38 @@ export const searchMasterLibraryTasks = async (
     }
 
     console.error('[taskService.searchMasterLibraryTasks] Fatal error performing search:', error);
+    throw error;
+  }
+};
+
+export const fetchTaskById = async (id, client = supabase) => {
+  if (!id) {
+    return null;
+  }
+
+  try {
+    const { data, error } = await client
+      .from(MASTER_LIBRARY_VIEW)
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      // Supabase returns code 'PGRST116' for no rows found with .single()
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw error;
+    }
+
+    if (!validateTaskShape(data)) {
+      console.warn('[taskService.fetchTaskById] Dropping malformed task record:', data);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('[taskService.fetchTaskById] Error fetching task:', error);
     throw error;
   }
 };

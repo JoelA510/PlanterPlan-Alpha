@@ -15,7 +15,7 @@ const createInitialState = (task) => ({
       ? String(task.days_from_start)
       : '',
   start_date: extractDateInput(task?.start_date),
-  due_date: extractDateInput(task?.due_date)
+  due_date: extractDateInput(task?.due_date),
 });
 
 const NewTaskForm = ({
@@ -25,7 +25,7 @@ const NewTaskForm = ({
   initialTask = null,
   origin = 'instance',
   submitLabel = 'Add New Task',
-  enableLibrarySearch = true
+  enableLibrarySearch = true,
 }) => {
   const [formData, setFormData] = useState(() => createInitialState(initialTask));
   const [errors, setErrors] = useState({});
@@ -43,27 +43,31 @@ const NewTaskForm = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error for this field when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
 
   const validate = () => {
     const newErrors = {};
-    
+
     if (!formData.title.trim()) {
       newErrors.title = 'Task title is required';
     }
 
-    if (formData.days_from_start !== '' && formData.days_from_start !== undefined && formData.days_from_start !== null) {
+    if (
+      formData.days_from_start !== '' &&
+      formData.days_from_start !== undefined &&
+      formData.days_from_start !== null
+    ) {
       const value = Number(formData.days_from_start);
       if (Number.isNaN(value) || value < 0) {
         newErrors.days_from_start = 'Days from start must be zero or greater';
@@ -90,16 +94,17 @@ const NewTaskForm = ({
   };
 
   const handleApplyFromLibrary = (task) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       title: task.title ?? prev.title,
       description: task.description ?? prev.description,
       notes: task.notes ?? prev.notes,
-      days_from_start: task.days_from_start !== null && task.days_from_start !== undefined
-        ? String(task.days_from_start)
-        : prev.days_from_start,
+      days_from_start:
+        task.days_from_start !== null && task.days_from_start !== undefined
+          ? String(task.days_from_start)
+          : prev.days_from_start,
       start_date: extractDateInput(task.start_date) || prev.start_date,
-      due_date: extractDateInput(task.due_date) || prev.due_date
+      due_date: extractDateInput(task.due_date) || prev.due_date,
     }));
     setLastAppliedTaskTitle(task.title || '');
   };
@@ -110,13 +115,13 @@ const NewTaskForm = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) {
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       await onSubmit(formData);
       if (!isEditMode) {
@@ -159,7 +164,8 @@ const NewTaskForm = ({
             <div className="mb-4 rounded-md border border-dashed border-blue-300 bg-blue-50 px-4 py-3 text-sm text-blue-700">
               <div className="flex items-start justify-between gap-4">
                 <p>
-                  Creating a new resource? Add its details directly to this task, then share the finalized task with your team.
+                  Creating a new resource? Add its details directly to this task, then share the
+                  finalized task with your team.
                 </p>
                 <button
                   type="button"
@@ -182,11 +188,7 @@ const NewTaskForm = ({
       )}
 
       {/* General error message */}
-      {errors.submit && (
-        <div className="form-error-banner">
-          {errors.submit}
-        </div>
-      )}
+      {errors.submit && <div className="form-error-banner">{errors.submit}</div>}
 
       {/* Title Field */}
       <div className="form-group">
@@ -203,9 +205,7 @@ const NewTaskForm = ({
           placeholder="Enter task title"
           autoFocus
         />
-        {errors.title && (
-          <span className="form-error">{errors.title}</span>
-        )}
+        {errors.title && <span className="form-error">{errors.title}</span>}
       </div>
 
       {/* Description Field */}
@@ -255,10 +255,10 @@ const NewTaskForm = ({
           placeholder="Optional offset in days"
           min="0"
         />
-        {errors.days_from_start && (
-          <span className="form-error">{errors.days_from_start}</span>
-        )}
-        <span className="text-xs text-slate-500">Use this to schedule the task relative to the project start date.</span>
+        {errors.days_from_start && <span className="form-error">{errors.days_from_start}</span>}
+        <span className="text-xs text-slate-500">
+          Use this to schedule the task relative to the project start date.
+        </span>
       </div>
 
       {origin === 'instance' && (
@@ -288,32 +288,22 @@ const NewTaskForm = ({
                 onChange={handleChange}
                 className={`form-input ${errors.due_date ? 'error' : ''}`}
               />
-              {errors.due_date && (
-                <span className="form-error">{errors.due_date}</span>
-              )}
+              {errors.due_date && <span className="form-error">{errors.due_date}</span>}
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-2">
-            Provide dates when the offset isn’t known. Leaving all three fields blank keeps the current schedule.
+            Provide dates when the offset isn’t known. Leaving all three fields blank keeps the
+            current schedule.
           </p>
         </div>
       )}
 
       {/* Form Actions */}
       <div className="form-actions">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="btn-secondary"
-          disabled={isSubmitting}
-        >
+        <button type="button" onClick={onCancel} className="btn-secondary" disabled={isSubmitting}>
           Cancel
         </button>
-        <button
-          type="submit"
-          className="btn-primary"
-          disabled={isSubmitting}
-        >
+        <button type="submit" className="btn-primary" disabled={isSubmitting}>
           {isSubmitting ? 'Saving...' : submitLabel}
         </button>
       </div>
