@@ -4,6 +4,7 @@
 ## 0. Overview (TL;DR, 2–4 bullets)
 
 - Updated `taskService.js` to query the `tasks` table directly (filtering by `origin="template"`) instead of using `view_master_library`.
+- Enforced strict `origin="template"` constraint in `fetchTaskById` to prevent access to non-template tasks.
 - Added flexbox and gap utility classes to `globals.css` to support UI layout needs.
 - **Security Update**: Bumped `node-forge` to version 1.3.2 to address a security vulnerability.
 
@@ -25,20 +26,21 @@
 ### 2.x P1-HELPER-LOOKUP - Template Data Lookup
 
 **A. TL;DR (1–2 sentences)**  
-- Switched data fetching from `view_master_library` to the `tasks` table with `origin="template"` filter, and added CSS utilities.
+- Switched data fetching from `view_master_library` to the `tasks` table with strict `origin="template"` filter, and added CSS utilities.
 
 **B. 5W + H**
 
 - **What changed:**  
-  - `taskService.js`: Changed `MASTER_LIBRARY_VIEW` to `MASTER_LIBRARY_TABLE` ("tasks") and added `.eq("origin", "template")` to queries.
+  - `taskService.js`: Changed `MASTER_LIBRARY_TABLE` to "tasks" and added `.eq("origin", "template")` to all master library queries, including `fetchTaskById`.
   - `globals.css`: Added `.flex-row`, `.flex-col`, `.flex-wrap`, and `.gap-*` utility classes.
 
 - **Why it changed:**  
-  - **Data Access**: Querying the `tasks` table directly provides more control and consistency than relying on the view, ensuring we only fetch template tasks where appropriate.
+  - **Data Access**: Querying the `tasks` table directly provides more control. Strictly enforcing `origin="template"` ensures that master library helpers cannot leak user tasks.
   - **Styles**: Missing utility classes were needed for component layout adjustments.
 
 - **How it changed:**  
   - Updated `fetchMasterLibraryTasks`, `searchMasterLibraryTasks`, and `fetchTaskById` to target the `tasks` table.
+  - Added `.eq("origin", "template")` to the query chain in `fetchTaskById`.
   - Added CSS rules for flex direction and gap spacing in `globals.css`.
 
 - **Where it changed:**  
@@ -89,7 +91,8 @@
 
 ## 4. Implementation notes for reviewers (optional)
 
-- The switch to the `tasks` table is a strategic decision to simplify data access and avoid potential view synchronization issues.
+- The switch to the `tasks` table is a strategic decision to simplify data access.
+- `fetchTaskById` now strictly enforces `origin="template"`. If a task exists but has a different origin, it will return `null` (or throw not found error depending on RLS/query result), effectively hiding non-template tasks from this helper.
 
 ---
 

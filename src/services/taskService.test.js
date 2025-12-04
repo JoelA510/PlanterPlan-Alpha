@@ -97,13 +97,14 @@ describe('fetchMasterLibraryTasks', () => {
 
 describe('fetchTaskById', () => {
   it('returns task when ID exists', async () => {
-    const sampleTask = { id: '123', title: 'My Task', origin: 'library' };
+    const sampleTask = { id: '123', title: 'My Task', origin: 'template' };
     const { client, builder } = createMockClient({ data: sampleTask, error: null });
 
     const result = await fetchTaskById('123', client);
 
     expect(client.from).toHaveBeenCalledWith('tasks');
     expect(builder.select).toHaveBeenCalledWith('*');
+    expect(builder.eq).toHaveBeenCalledWith('origin', 'template');
     expect(builder.eq).toHaveBeenCalledWith('id', '123');
     expect(builder.single).toHaveBeenCalled();
     expect(result).toEqual(sampleTask);

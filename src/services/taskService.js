@@ -156,6 +156,7 @@ export const fetchTaskById = async (id, client = supabase) => {
     const { data, error } = await client
       .from(MASTER_LIBRARY_TABLE)
       .select('*')
+      .eq('origin', 'template')
       .eq('id', id)
       .single();
 
