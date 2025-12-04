@@ -6,6 +6,7 @@
 - Implemented `fetchTaskById` in `taskService.js` to support fetching single tasks by ID from `view_master_library`.
 - Added unit tests for `fetchTaskById`, covering success, not-found, error, and invalid data scenarios.
 - Mocked `supabaseClient` in tests to remove environment variable dependencies in the test runner.
+- **Security Update**: Bumped `node-forge` to version 1.3.2 to address a security vulnerability.
 
 ---
 
@@ -77,7 +78,11 @@
 
 ## 3. Cross-cutting changes (if any)
 
-- None.
+- **Type**: Security Update
+- **Scope**: `package-lock.json`
+- **Rationale**: Bumped `node-forge` from 1.3.1 to 1.3.2 to address a security vulnerability (cherry-picked from dependabot).
+- **Touch points**:
+  - `package-lock.json`: Updated `node-forge` version.
 
 ---
 
