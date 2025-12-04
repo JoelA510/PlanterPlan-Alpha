@@ -3,9 +3,8 @@
 
 ## 0. Overview (TL;DR, 2–4 bullets)
 
-- Implemented `fetchTaskById` in `taskService.js` to support fetching single tasks by ID from `view_master_library`.
-- Added unit tests for `fetchTaskById`, covering success, not-found, error, and invalid data scenarios.
-- Mocked `supabaseClient` in tests to remove environment variable dependencies in the test runner.
+- Updated `taskService.js` to query the `tasks` table directly (filtering by `origin="template"`) instead of using `view_master_library`.
+- Added flexbox and gap utility classes to `globals.css` to support UI layout needs.
 - **Security Update**: Bumped `node-forge` to version 1.3.2 to address a security vulnerability.
 
 ---
@@ -15,9 +14,9 @@
 ### 1.x Roadmap item: P1-HELPER-LOOKUP - Template Data Lookup
 
 - **Phase/milestone:** Phase 1: Master Library & Deep Copy
-- **Scope in this PR:** Implemented the utility function to fetch full task details from the master library, a prerequisite for the deep copy operation.
-- **Status impact:** Not started -> Complete
-- **Linked tickets:** None (not tracked in external issue system)
+- **Scope in this PR:** Refined the data access strategy for master library tasks and added necessary CSS utilities.
+- **Status impact:** In progress -> Complete
+- **Linked tickets:** None
 
 ---
 
@@ -26,41 +25,43 @@
 ### 2.x P1-HELPER-LOOKUP - Template Data Lookup
 
 **A. TL;DR (1–2 sentences)**  
-- Added `fetchTaskById` to retrieve a single task from `view_master_library` and validated the response shape, with tests and supabase mocking to support reliable usage.
+- Switched data fetching from `view_master_library` to the `tasks` table with `origin="template"` filter, and added CSS utilities.
 
 **B. 5W + H**
 
 - **What changed:**  
-  Added a new export `fetchTaskById` in `taskService.js` that queries Supabase for a specific task ID and returns a validated task object.
+  - `taskService.js`: Changed `MASTER_LIBRARY_VIEW` to `MASTER_LIBRARY_TABLE` ("tasks") and added `.eq("origin", "template")` to queries.
+  - `globals.css`: Added `.flex-row`, `.flex-col`, `.flex-wrap`, and `.gap-*` utility classes.
 
 - **Why it changed:**  
-  The "Deep Copy" feature (P1-TEMPLATE-DEEP-CLONE) needs to fetch the source template task details before cloning, which requires a reliable single-task lookup.
+  - **Data Access**: Querying the `tasks` table directly provides more control and consistency than relying on the view, ensuring we only fetch template tasks where appropriate.
+  - **Styles**: Missing utility classes were needed for component layout adjustments.
 
 - **How it changed:**  
-  Used Supabase `.eq("id", taskId).single()` query method, added error handling for `PGRST116` (not found), and validated responses using `validateTaskShape`. Updated tests to mock `supabaseClient` and cover success, not-found, error, and invalid shape scenarios.
+  - Updated `fetchMasterLibraryTasks`, `searchMasterLibraryTasks`, and `fetchTaskById` to target the `tasks` table.
+  - Added CSS rules for flex direction and gap spacing in `globals.css`.
 
 - **Where it changed:**  
-  `src/services/taskService.js` and `src/services/taskService.test.js`.
+  - `src/services/taskService.js`
+  - `src/services/taskService.test.js` (updated expectations)
+  - `src/styles/globals.css`
 
 - **When (roadmap):**  
-  Phase 1: Master Library & Deep Copy (P1-HELPER-LOOKUP considered complete for helper lookup).
+  - Phase 1: Master Library & Deep Copy.
 
 **C. Touch points & citations**
 
-- `src/services/taskService.js`: L147–178 -> Added `fetchTaskById` function.
-- `src/services/taskService.test.js`: L1–5 -> Updated imports and mocked `supabaseClient`.
-- `src/services/taskService.test.js`: L14–16 -> Added `eq` and `single` mocks to `createMockClient`.
-- `src/services/taskService.test.js`: L94–142 -> Added test suite for `fetchTaskById`.
+- `src/services/taskService.js`: L3, L38, L103, L157 -> Changed table target and added filter.
+- `src/styles/globals.css`: L98–L119 -> Added flex and gap utilities.
 
 **D. Tests & verification**
 
 - **Automated tests:**  
-  - Updated `src/services/taskService.test.js`.  
-  - Added tests for: ID exists, ID missing (returns null or not-found), network/error cases, and invalid data shape.  
-  - Command: `npm test src/services/taskService.test.js`.
+  - Updated `src/services/taskService.test.js` to verify queries target `tasks` table and include `origin="template"` filter.
+  - Ran `npm test`.
 
 - **Manual verification:**  
-  - None (backend utility only, covered by unit tests).
+  - Verified tests pass.
 
 - **Known gaps / follow-ups:**  
   - None.
@@ -69,7 +70,7 @@
 
 - **Risk level:** Low
 - **Potential impact if broken:**  
-  - `fetchTaskById` is a new function; existing functionality is unaffected. Future features that depend on this helper (e.g. deep copy) would fail or misbehave if this is broken.
+  - Master library fetching might fail or return incorrect data if the `tasks` table schema doesn"t match expectations (unlikely).
 
 - **Rollback plan:**  
   - Revert this PR.
@@ -88,8 +89,7 @@
 
 ## 4. Implementation notes for reviewers (optional)
 
-- `fetchTaskById` intentionally queries `view_master_library` because the initial use case is fetching template tasks, not arbitrary user tasks.
-- The `supabaseClient` mock is necessary because `createClient` throws immediately when required env vars are missing in the test environment. The mock ensures tests are deterministic and do not depend on env configuration.
+- The switch to the `tasks` table is a strategic decision to simplify data access and avoid potential view synchronization issues.
 
 ---
 
