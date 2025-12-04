@@ -42,8 +42,9 @@ describe('searchMasterLibraryTasks', () => {
 
     const results = await searchMasterLibraryTasks({ query: 'soil' }, client);
 
-    expect(client.from).toHaveBeenCalledWith('view_master_library');
+    expect(client.from).toHaveBeenCalledWith('tasks');
     expect(builder.select).toHaveBeenCalledWith('*');
+    expect(builder.eq).toHaveBeenCalledWith('origin', 'template');
     expect(builder.or).toHaveBeenCalledWith(expect.stringContaining('title.ilike'));
     expect(builder.or).toHaveBeenCalledWith(expect.stringContaining('description.ilike'));
     expect(results).toEqual(sampleTasks);
@@ -75,7 +76,9 @@ describe('fetchMasterLibraryTasks', () => {
 
     const results = await fetchMasterLibraryTasks({ from: 10, limit: 5 }, client);
 
-    expect(client.from).toHaveBeenCalledWith('view_master_library');
+    expect(client.from).toHaveBeenCalledWith('tasks');
+    expect(builder.select).toHaveBeenCalledWith('*');
+    expect(builder.eq).toHaveBeenCalledWith('origin', 'template');
     expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false });
     expect(builder.range).toHaveBeenCalledWith(10, 14);
     expect(results).toEqual(sampleTasks);
@@ -99,7 +102,7 @@ describe('fetchTaskById', () => {
 
     const result = await fetchTaskById('123', client);
 
-    expect(client.from).toHaveBeenCalledWith('view_master_library');
+    expect(client.from).toHaveBeenCalledWith('tasks');
     expect(builder.select).toHaveBeenCalledWith('*');
     expect(builder.eq).toHaveBeenCalledWith('id', '123');
     expect(builder.single).toHaveBeenCalled();
