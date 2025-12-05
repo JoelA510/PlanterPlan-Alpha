@@ -212,11 +212,10 @@ export const deepCloneTask = async (taskId, client = supabase) => {
   const fetchChildren = (pid) => fetchTaskChildren(pid, client);
   const idGenerator = () => {
     // Support both browser (window.crypto) and Node/Jest (global.crypto)
-    const c = typeof crypto !== 'undefined' ? crypto : (typeof globalThis !== 'undefined' ? globalThis.crypto : undefined);
-    if (c && typeof c.randomUUID === 'function') {
-      return c.randomUUID();
+    if (globalThis.crypto?.randomUUID) {
+      return globalThis.crypto.randomUUID();
     }
-    // Fallback for older environments or if mock fails (though we want mock in test)
+    // Fallback for older environments or if mock fails.
     throw new Error('crypto.randomUUID is not available');
   };
 
