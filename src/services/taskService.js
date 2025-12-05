@@ -197,7 +197,7 @@ export const fetchTaskChildren = async (parentId, client = supabase) => {
     return data || [];
   } catch (error) {
     console.error('[taskService.fetchTaskChildren] Error fetching children:', error);
-    return [];
+    throw error;
   }
 };
 
