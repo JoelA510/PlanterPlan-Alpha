@@ -10,6 +10,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
     resources: '',
     notes: '',
     start_date: '',
+    templateId: null,
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +55,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
       purpose: task.purpose ?? prev.purpose,
       actions: task.actions ?? prev.actions,
       resources: task.resources ?? prev.resources,
+      templateId: task.id,
     }));
     setLastAppliedTaskTitle(task.title || '');
   };
@@ -81,7 +83,9 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         actions: '',
         resources: '',
         notes: '',
+        notes: '',
         start_date: '',
+        templateId: null,
       });
       setLastAppliedTaskTitle('');
       setShowResourceCreator(false);

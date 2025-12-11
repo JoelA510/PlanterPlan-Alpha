@@ -16,6 +16,7 @@ const createInitialState = (task) => ({
       : '',
   start_date: extractDateInput(task?.start_date),
   due_date: extractDateInput(task?.due_date),
+  templateId: null,
 });
 
 const NewTaskForm = ({
@@ -105,6 +106,7 @@ const NewTaskForm = ({
           : prev.days_from_start,
       start_date: extractDateInput(task.start_date) || prev.start_date,
       due_date: extractDateInput(task.due_date) || prev.due_date,
+      templateId: task.id,
     }));
     setLastAppliedTaskTitle(task.title || '');
   };

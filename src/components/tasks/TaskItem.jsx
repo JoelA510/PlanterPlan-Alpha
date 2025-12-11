@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import RoleIndicator from '../common/RoleIndicator';
 
 const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId, onAddChildTask }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -92,7 +93,10 @@ const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId, onAddChildTask
             )}
           </div>
 
-          <div className="task-card-title">{task.title}</div>
+          <div className="task-card-title">
+            {task.title}
+            {task.membership_role && <RoleIndicator role={task.membership_role} />}
+          </div>
 
           <div className="task-card-right">
             {canHaveChildren && onAddChildTask && (

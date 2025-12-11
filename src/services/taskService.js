@@ -144,3 +144,102 @@ export const searchMasterLibraryTasks = async (
     throw error;
   }
 };
+
+export const fetchTaskChildren = async (taskId, client = supabase) => {
+  try {
+    // Recursive query would be ideal, but for now we'll fetch all tasks and filter in memory 
+    // or use a stored procedure if available. 
+    // Given the constraints, let's assume we can fetch by origin/project or just fetch all for now 
+    // if the dataset is small, OR we can implement a recursive fetch.
+    // BETTER APPROACH: Fetch all tasks that belong to the same tree. 
+    // Since we don't have a 'root_id' column on all tasks, we might have to rely on 
+    // fetching all tasks for the user/origin and filtering.
+    // HOWEVER, for templates, they are public/shared.
+
+    // Let's try to find a way to get descendants. 
+    // If we assume a max depth or just fetch all 'template' tasks if origin is template.
+
+    // First, get the task to know its origin.
+    const { data: root, error: rootError } = await client
+      .from('tasks')
+      .select('origin')
+      .eq('id', taskId)
+      .single();
+
+    if (rootError) throw rootError;
+
+    // If it's a template, we can fetch all templates and filter.
+    // If it's an instance, we fetch all instance tasks for that user.
+    // This is not efficient for huge DBs but fine for this scale.
+
+    let query = client.from('tasks').select('*');
+
+    if (root.origin === 'template') {
+      query = query.eq('origin', 'template');
+    } else {
+      // For instances, we might need to be more careful, but usually we clone FROM templates.
+      query = query.eq('origin', 'instance');
+    }
+
+    const { data: allTasks, error: fetchError } = await query;
+    if (fetchError) throw fetchError;
+
+    // Now filter for descendants
+    const descendants = [];
+    const queue = [taskId];
+    const visited = new Set([taskId]);
+
+    // Add root to result? Usually we want the whole tree including root.
+    const rootTask = allTasks.find(t => t.id === taskId);
+    if (rootTask) descendants.push(rootTask);
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      const children = allTasks.filter(t => t.parent_task_id === currentId);
+
+      children.forEach(child => {
+        if (!visited.has(child.id)) {
+          visited.add(child.id);
+          descendants.push(child);
+          queue.push(child.id);
+        }
+      });
+    }
+
+    return descendants;
+  } catch (error) {
+    console.error('[taskService.fetchTaskChildren] Error:', error);
+    throw error;
+  }
+};
+
+export const deepCloneTask = async (
+  templateId,
+  newParentId,
+  newOrigin,
+  userId,
+  client = supabase
+) => {
+  try {
+    // 1. Fetch the full tree
+    const tree = await fetchTaskChildren(templateId, client);
+
+    if (!tree || tree.length === 0) {
+      throw new Error('Template not found or empty');
+    }
+
+    // 2. Prepare new objects
+    const { prepareDeepClone } = await import('../utils/treeHelpers');
+    const newTasks = prepareDeepClone(tree, templateId, newParentId, newOrigin, userId);
+
+    // 3. Insert
+    const { data, error } = await client.from('tasks').insert(newTasks).select();
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    console.error('[taskService.deepCloneTask] Error:', error);
+    throw error;
+  }
+};

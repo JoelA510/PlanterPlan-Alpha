@@ -6,6 +6,8 @@ import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from './TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
 import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
+import { deepCloneTask } from '../../services/taskService';
+import { getJoinedProjects } from '../../services/projectService';
 
 const buildTaskHierarchy = (tasks) => {
   const taskMap = {};
@@ -38,6 +40,7 @@ const separateTasksByOrigin = (tasks) => {
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
+  const [joinedProjects, setJoinedProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -96,6 +99,13 @@ const TaskList = () => {
 
       const nextTasks = data || [];
       setTasks(nextTasks);
+
+      // Fetch joined projects
+      const joined = await getJoinedProjects(user.id);
+      if (isMountedRef.current) {
+        setJoinedProjects(joined);
+      }
+
       return nextTasks;
     } catch (err) {
       if (!isMountedRef.current) {
@@ -222,26 +232,62 @@ const TaskList = () => {
         throw new Error('A valid project start date is required');
       }
 
-      const { error: insertError } = await supabase.from('tasks').insert([
-        {
-          title: formData.title,
-          description: formData.description || null,
-          purpose: formData.purpose || null,
-          actions: formData.actions || null,
-          resources: formData.resources || null,
-          notes: formData.notes || null,
-          days_from_start: null,
-          origin: 'instance',
-          creator: user.id,
-          parent_task_id: null,
-          position: maxPosition + 1000,
-          is_complete: false,
-          start_date: projectStartDate,
-          due_date: projectStartDate,
-        },
-      ]);
+      // If a template was selected, perform a deep clone
+      if (formData.templateId) {
+        const newTasks = await deepCloneTask(
+          formData.templateId,
+          null, // newParentId (null for root)
+          'instance', // newOrigin
+          user.id
+        );
 
-      if (insertError) throw insertError;
+        // Find the new root task (the one with no parent)
+        const newRoot = newTasks.find((t) => !t.parent_task_id);
+
+        if (newRoot) {
+          // Update the root task with the form's title and start date
+          const { error: updateError } = await supabase
+            .from('tasks')
+            .update({
+              title: formData.title,
+              description: formData.description || newRoot.description,
+              purpose: formData.purpose || newRoot.purpose,
+              actions: formData.actions || newRoot.actions,
+              resources: formData.resources || newRoot.resources,
+              notes: formData.notes || newRoot.notes,
+              start_date: projectStartDate,
+              due_date: projectStartDate, // Default due date to start date for now
+            })
+            .eq('id', newRoot.id);
+
+          if (updateError) {
+            console.error('Error updating cloned root task:', updateError);
+            // We don't throw here to avoid failing the whole flow if the clone worked,
+            // but ideally we should alert the user.
+          }
+        }
+      } else {
+        const { error: insertError } = await supabase.from('tasks').insert([
+          {
+            title: formData.title,
+            description: formData.description || null,
+            purpose: formData.purpose || null,
+            actions: formData.actions || null,
+            resources: formData.resources || null,
+            notes: formData.notes || null,
+            days_from_start: null,
+            origin: 'instance',
+            creator: user.id,
+            parent_task_id: null,
+            position: maxPosition + 1000,
+            is_complete: false,
+            start_date: projectStartDate,
+            due_date: projectStartDate,
+          },
+        ]);
+
+        if (insertError) throw insertError;
+      }
 
       await fetchTasks();
       setShowForm(false);
@@ -271,8 +317,8 @@ const TaskList = () => {
       const parentId = taskFormState.parentId ?? null;
       const parsedDays =
         formData.days_from_start === '' ||
-        formData.days_from_start === null ||
-        formData.days_from_start === undefined
+          formData.days_from_start === null ||
+          formData.days_from_start === undefined
           ? null
           : Number(formData.days_from_start);
 
@@ -371,14 +417,52 @@ const TaskList = () => {
         }
       }
 
-      if (origin === 'instance') {
-        const schedule = calculateScheduleFromOffset(tasks, parentId, parsedDays);
-        Object.assign(insertPayload, schedule);
+      if (formData.templateId) {
+        // Deep clone the template
+        const newTasks = await deepCloneTask(
+          formData.templateId,
+          parentId,
+          origin,
+          user.id
+        );
+
+        // Find the new root task
+        const newRoot = newTasks.find((t) => t.parent_task_id === parentId);
+
+        if (newRoot) {
+          // Update the root task with form details
+          const updates = {
+            title: formData.title,
+            description: formData.description || newRoot.description,
+            notes: formData.notes || newRoot.notes,
+            days_from_start: parsedDays,
+            updated_at: new Date().toISOString(),
+          };
+
+          if (origin === 'instance') {
+            // Apply schedule logic to the cloned root
+            if (parsedDays !== null) {
+              const schedule = calculateScheduleFromOffset(tasks, parentId, parsedDays);
+              Object.assign(updates, schedule);
+            }
+            if (hasManualDates) {
+              updates.start_date = manualStartDate;
+              updates.due_date = manualDueDate || manualStartDate || updates.due_date || null;
+            }
+          }
+
+          const { error: updateError } = await supabase
+            .from('tasks')
+            .update(updates)
+            .eq('id', newRoot.id);
+
+          if (updateError) console.error('Error updating cloned subtask root:', updateError);
+        }
+      } else {
+        // Normal single task insert
+        const { error: insertError } = await supabase.from('tasks').insert([insertPayload]);
+        if (insertError) throw insertError;
       }
-
-      const { error: insertError } = await supabase.from('tasks').insert([insertPayload]);
-
-      if (insertError) throw insertError;
 
       let latestTasks = await fetchTasks();
 
@@ -521,6 +605,34 @@ const TaskList = () => {
       <div className="task-list-area">
         <div className="dashboard-header">
           <h1 className="dashboard-title">Dashboard</h1>
+        </div>
+
+        {/* Joined Projects Section */}
+        <div className="task-section">
+          <div className="section-header">
+            <div className="section-header-left">
+              <h2 className="section-title">Joined Projects</h2>
+              <span className="section-count">{joinedProjects.length}</span>
+            </div>
+          </div>
+          {joinedProjects.length > 0 ? (
+            <div className="task-cards-container">
+              {joinedProjects.map((project) => (
+                <TaskItem
+                  key={project.id}
+                  task={project}
+                  level={0}
+                  onTaskClick={handleTaskClick}
+                  selectedTaskId={selectedTask?.id}
+                  onAddChildTask={handleAddChildTask}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
+              You haven't joined any projects yet.
+            </div>
+          )}
         </div>
 
         <div className="task-section">
