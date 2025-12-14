@@ -26,7 +26,7 @@ const MasterLibrarySearch = ({
   });
 
   useEffect(() => {
-    setActiveIndex(results.length > 0 ? 0 : -1);
+    setActiveIndex(results?.length > 0 ? 0 : -1);
   }, [results]);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ const MasterLibrarySearch = ({
       event.preventDefault();
       setActiveIndex((prev) => {
         const nextIndex = prev + 1;
-        if (nextIndex >= results.length) {
+        if (nextIndex >= (results?.length || 0)) {
           return 0;
         }
         return nextIndex;
@@ -169,46 +169,47 @@ const MasterLibrarySearch = ({
           </div>
         ) : null}
 
-        {results.map((task, index) => {
-          const isActive = index === activeIndex;
-          return (
-            <button
-              key={task.id}
-              type="button"
-              id={`${listboxId}-item-${task.id}`}
-              role="option"
-              aria-selected={isActive}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => handleSelect(task)}
-              className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 focus:outline-none ${
-                isActive || (hasResults && activeResultId === `${listboxId}-item-${task.id}`)
-                  ? 'bg-blue-50'
-                  : 'bg-white'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {renderHighlightedText(task.title)}
-                  </p>
-                  {task.description ? (
-                    <p className="mt-1 text-sm text-slate-600">
-                      {renderHighlightedText(task.description)}
+        {Array.isArray(results) &&
+          results.map((task, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <button
+                key={task.id}
+                type="button"
+                id={`${listboxId}-item-${task.id}`}
+                role="option"
+                aria-selected={isActive}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => handleSelect(task)}
+                className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 focus:outline-none ${
+                  isActive || (hasResults && activeResultId === `${listboxId}-item-${task.id}`)
+                    ? 'bg-blue-50'
+                    : 'bg-white'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {renderHighlightedText(task.title)}
                     </p>
-                  ) : (
-                    <p className="mt-1 text-sm text-slate-400 italic">No description provided.</p>
-                  )}
+                    {task.description ? (
+                      <p className="mt-1 text-sm text-slate-600">
+                        {renderHighlightedText(task.description)}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-sm text-slate-400 italic">No description provided.</p>
+                    )}
+                  </div>
+                  <span className="ml-3 shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-slate-600">
+                    {task.origin || 'library'}
+                  </span>
                 </div>
-                <span className="ml-3 shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-slate-600">
-                  {task.origin || 'library'}
-                </span>
-              </div>
-              <div className="mt-2 text-right">
-                <span className="text-xs font-medium text-blue-600">{renderActionLabel}</span>
-              </div>
-            </button>
-          );
-        })}
+                <div className="mt-2 text-right">
+                  <span className="text-xs font-medium text-blue-600">{renderActionLabel}</span>
+                </div>
+              </button>
+            );
+          })}
       </div>
 
       {onCreateResource ? (

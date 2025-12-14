@@ -88,7 +88,7 @@ export const searchMasterLibraryTasks = async (
   { query, limit = DEFAULT_SEARCH_LIMIT, signal } = {},
   client = supabase
 ) => {
-  const normalizedQuery = typeof query === 'string' ? query.trim() : '';
+  const normalizedQuery = typeof query === 'string' ? query.trim().slice(0, 100) : '';
 
   if (!normalizedQuery) {
     return [];
@@ -147,16 +147,16 @@ export const searchMasterLibraryTasks = async (
 
 export const fetchTaskChildren = async (taskId, client = supabase) => {
   try {
-    // Recursive query would be ideal, but for now we'll fetch all tasks and filter in memory 
-    // or use a stored procedure if available. 
-    // Given the constraints, let's assume we can fetch by origin/project or just fetch all for now 
+    // Recursive query would be ideal, but for now we'll fetch all tasks and filter in memory
+    // or use a stored procedure if available.
+    // Given the constraints, let's assume we can fetch by origin/project or just fetch all for now
     // if the dataset is small, OR we can implement a recursive fetch.
-    // BETTER APPROACH: Fetch all tasks that belong to the same tree. 
-    // Since we don't have a 'root_id' column on all tasks, we might have to rely on 
+    // BETTER APPROACH: Fetch all tasks that belong to the same tree.
+    // Since we don't have a 'root_id' column on all tasks, we might have to rely on
     // fetching all tasks for the user/origin and filtering.
     // HOWEVER, for templates, they are public/shared.
 
-    // Let's try to find a way to get descendants. 
+    // Let's try to find a way to get descendants.
     // If we assume a max depth or just fetch all 'template' tasks if origin is template.
 
     // First, get the task to know its origin.
@@ -190,14 +190,14 @@ export const fetchTaskChildren = async (taskId, client = supabase) => {
     const visited = new Set([taskId]);
 
     // Add root to result? Usually we want the whole tree including root.
-    const rootTask = allTasks.find(t => t.id === taskId);
+    const rootTask = allTasks.find((t) => t.id === taskId);
     if (rootTask) descendants.push(rootTask);
 
     while (queue.length > 0) {
       const currentId = queue.shift();
-      const children = allTasks.filter(t => t.parent_task_id === currentId);
+      const children = allTasks.filter((t) => t.parent_task_id === currentId);
 
-      children.forEach(child => {
+      children.forEach((child) => {
         if (!visited.has(child.id)) {
           visited.add(child.id);
           descendants.push(child);

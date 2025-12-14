@@ -83,7 +83,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         actions: '',
         resources: '',
         notes: '',
-        notes: '',
+
         start_date: '',
         templateId: null,
       });

@@ -1,67 +1,169 @@
 -- P2-DB-RLS-POLICIES
--- Enable RLS on tasks table if not already enabled
+-- Enable RLS
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_members ENABLE ROW LEVEL SECURITY;
 
--- Policy: select_joined_projects
--- Users can SELECT tasks where their UID is in project_members for the associated project
--- Note: This assumes tasks have a project_id column OR we are selecting the root project task itself.
--- If 'tasks' table is self-referencing and doesn't have project_id on every row, this policy might be tricky for subtasks.
--- However, for the "Joined Projects" list, we are selecting root tasks (where id is in project_members).
--- For subtasks of joined projects, we need a policy that allows access if the root ancestor is in project_members.
--- That is expensive to check recursively in RLS. 
--- A common pattern is to denormalize project_id or root_id to all tasks.
--- Assuming for now we just want to see the PROJECTS in the list.
+-- Helper Function: Get Root ID of a task (Recursive)
+CREATE OR REPLACE FUNCTION get_task_root_id(t_id UUID) RETURNS UUID AS $$
+DECLARE
+  parent UUID;
+  current_id UUID := t_id;
+  found_root UUID;
+BEGIN
+  -- Optimization: Check if the task itself is a root (parent_task_id is NULL)
+  SELECT parent_task_id INTO parent FROM tasks WHERE id = t_id;
+  IF parent IS NULL THEN
+    RETURN t_id;
+  END IF;
 
--- REVISED Policy: select_joined_projects
--- Allows selecting tasks if the user is a member of the project (defined by the task itself being the project, or the task belonging to a project).
--- If we don't have a reliable root_id/project_id on all tasks, we might limit this to just the root tasks for now.
--- But the requirement says "Joined projects + membership should actually work".
--- Let's assume for this step we enable seeing the Project Root.
-CREATE POLICY "select_joined_projects" ON tasks
+  -- Recursive CTE to find root
+  WITH RECURSIVE task_tree AS (
+    SELECT id, parent_task_id
+    FROM tasks
+    WHERE id = t_id
+    UNION ALL
+    SELECT t.id, t.parent_task_id
+    FROM tasks t
+    INNER JOIN task_tree tt ON t.id = tt.parent_task_id
+  )
+  SELECT id INTO found_root
+  FROM task_tree
+  WHERE parent_task_id IS NULL;
+
+  RETURN found_root;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper Function: Check Member Role
+-- Returns true if user has one of the allowed roles for the project (root of task_id)
+CREATE OR REPLACE FUNCTION has_project_role(task_id UUID, user_id UUID, allowed_roles text[]) RETURNS boolean AS $$
+DECLARE
+  root_id UUID;
+  user_role text;
+BEGIN
+  root_id := get_task_root_id(task_id);
+  
+  -- Check if user is the CREATOR of the root task (Owner override)
+  -- Note: tasks table 'creator' column used as owner
+  PERFORM 1 FROM tasks WHERE id = root_id AND creator = user_id;
+  IF FOUND THEN
+    RETURN true;
+  END IF;
+
+  -- Check project_members
+  SELECT role INTO user_role FROM project_members WHERE project_id = root_id AND project_members.user_id = has_project_role.user_id;
+  
+  IF user_role IS NOT NULL AND user_role = ANY(allowed_roles) THEN
+    RETURN true;
+  END IF;
+
+  RETURN false;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- POLICIES: tasks
+
+-- SELECT: Creator OR Member (viewer, editor, owner)
+CREATE POLICY "tasks_select_policy" ON tasks
 FOR SELECT
 USING (
-  id IN (
+  creator = auth.uid() 
+  OR 
+  has_project_role(id, auth.uid(), ARRAY['owner', 'editor', 'viewer'])
+);
+
+-- INSERT: Creator OR Member (editor, owner)
+-- New root tasks (projects) can be created by anyone (creator = auth.uid check handles ownership).
+-- Subtasks: must be Editor/Owner of the root.
+CREATE POLICY "tasks_insert_policy" ON tasks
+FOR INSERT
+WITH CHECK (
+  creator = auth.uid()
+  OR
+  (
+    -- For subtasks, parent_task_id is distinct. 
+    -- We need to check if we have write access to the *parent's* project.
+    parent_task_id IS NOT NULL 
+    AND 
+    has_project_role(parent_task_id, auth.uid(), ARRAY['owner', 'editor'])
+  )
+);
+
+-- UPDATE: Creator OR Member (editor, owner)
+CREATE POLICY "tasks_update_policy" ON tasks
+FOR UPDATE
+USING (
+  creator = auth.uid()
+  OR
+  has_project_role(id, auth.uid(), ARRAY['owner', 'editor'])
+);
+
+-- DELETE: Creator OR Member (owner only)
+CREATE POLICY "tasks_delete_policy" ON tasks
+FOR DELETE
+USING (
+  creator = auth.uid()
+  OR
+  has_project_role(id, auth.uid(), ARRAY['owner'])
+);
+
+
+-- POLICIES: project_members
+
+-- SELECT: Members can see members of the same project
+CREATE POLICY "members_select_policy" ON project_members
+FOR SELECT
+USING (
+  user_id = auth.uid() -- Can see own membership
+  OR
+  project_id IN ( -- Can see members of projects I am a member of
     SELECT project_id FROM project_members WHERE user_id = auth.uid()
   )
   OR
-  -- Also allow seeing subtasks if we can link them. 
-  -- If we can't easily, maybe we skip subtask RLS for now or rely on the fact that 
-  -- if you can see the parent, you can see the child? No, RLS is row-by-row.
-  -- Ideally: root_id column.
-  -- For now, let's just enable the root project visibility so the list works.
-  -- If the user clicks a project, they need to see children.
-  -- We'll assume for now that `project_members` grants access to the whole tree.
-  -- But without `root_id` on tasks, we can't write a performant policy.
-  -- Let's stick to the root task visibility for the Dashboard list.
-  (
-    -- Placeholder for subtask visibility if needed later
-    false
+  project_id IN ( -- Can see members of projects I own (created)
+    SELECT id FROM tasks WHERE creator = auth.uid()
   )
 );
 
--- Policy: insert_project_members
--- Only owners can add members? Or maybe editors?
--- For now, let's say only owners (creators of the project) can add members.
--- But wait, we need a policy on `project_members` table too!
--- The user didn't ask me to create `project_members` table policies, but I should if I want it to work.
--- But the task is "Extend RLS policies for joined projects" in `tasks` table context usually.
--- Let's stick to `tasks` table policies as requested.
+-- INSERT: Owners (Creators of the project) can insert members
+CREATE POLICY "members_insert_policy" ON project_members
+FOR INSERT
+WITH CHECK (
+  project_id IN (
+    SELECT id FROM tasks WHERE creator = auth.uid()
+  )
+  OR
+  -- Also allow 'owner' role in project_members to invite others?
+  project_id IN (
+    SELECT project_id FROM project_members WHERE user_id = auth.uid() AND role = 'owner'
+  )
+);
 
--- Update/Delete policies for tasks based on membership
-CREATE POLICY "update_joined_projects" ON tasks
+-- UPDATE: Owners can update members
+CREATE POLICY "members_update_policy" ON project_members
 FOR UPDATE
 USING (
-  id IN (
-    SELECT project_id FROM project_members 
-    WHERE user_id = auth.uid() AND role IN ('owner', 'editor')
+  project_id IN (
+    SELECT id FROM tasks WHERE creator = auth.uid()
+  )
+  OR
+  project_id IN (
+    SELECT project_id FROM project_members WHERE user_id = auth.uid() AND role = 'owner'
   )
 );
 
-CREATE POLICY "delete_joined_projects" ON tasks
+-- DELETE: Owners can remove members; Members can leave (delete themselves)
+CREATE POLICY "members_delete_policy" ON project_members
 FOR DELETE
 USING (
-  id IN (
-    SELECT project_id FROM project_members 
-    WHERE user_id = auth.uid() AND role = 'owner'
+  user_id = auth.uid() -- Leave project
+  OR
+  project_id IN ( -- Remove others if owner
+    SELECT id FROM tasks WHERE creator = auth.uid()
+  )
+  OR
+  project_id IN (
+    SELECT project_id FROM project_members WHERE user_id = auth.uid() AND role = 'owner'
   )
 );

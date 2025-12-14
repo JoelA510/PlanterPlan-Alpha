@@ -5,6 +5,7 @@ import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from './TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
+import InviteMemberModal from './InviteMemberModal';
 import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
 import { deepCloneTask } from '../../services/taskService';
 import { getJoinedProjects } from '../../services/projectService';
@@ -41,11 +42,13 @@ const separateTasksByOrigin = (tasks) => {
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const [joinedProjects, setJoinedProjects] = useState([]);
+  const [joinedError, setJoinedError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskFormState, setTaskFormState] = useState(null);
+  const [inviteModalProject, setInviteModalProject] = useState(null);
   const isMountedRef = useRef(false);
 
   const getTaskById = useCallback(
@@ -101,9 +104,12 @@ const TaskList = () => {
       setTasks(nextTasks);
 
       // Fetch joined projects
-      const joined = await getJoinedProjects(user.id);
+      const { data: joinedData, error: joinedProjectError } = await getJoinedProjects(user.id);
       if (isMountedRef.current) {
-        setJoinedProjects(joined);
+        if (joinedProjectError) {
+          setJoinedError('Failed to load joined projects');
+        }
+        setJoinedProjects(joinedData || []);
       }
 
       return nextTasks;
@@ -212,6 +218,10 @@ const TaskList = () => {
     }
   };
 
+  const handleOpenInvite = (project) => {
+    setInviteModalProject(project);
+  };
+
   const handleCreateProject = async (formData) => {
     try {
       const {
@@ -317,8 +327,8 @@ const TaskList = () => {
       const parentId = taskFormState.parentId ?? null;
       const parsedDays =
         formData.days_from_start === '' ||
-          formData.days_from_start === null ||
-          formData.days_from_start === undefined
+        formData.days_from_start === null ||
+        formData.days_from_start === undefined
           ? null
           : Number(formData.days_from_start);
 
@@ -419,12 +429,7 @@ const TaskList = () => {
 
       if (formData.templateId) {
         // Deep clone the template
-        const newTasks = await deepCloneTask(
-          formData.templateId,
-          parentId,
-          origin,
-          user.id
-        );
+        const newTasks = await deepCloneTask(formData.templateId, parentId, origin, user.id);
 
         // Find the new root task
         const newRoot = newTasks.find((t) => t.parent_task_id === parentId);
@@ -615,7 +620,11 @@ const TaskList = () => {
               <span className="section-count">{joinedProjects.length}</span>
             </div>
           </div>
-          {joinedProjects.length > 0 ? (
+          {joinedError ? (
+            <div className="text-sm text-red-600 px-4 py-8 border border-red-200 bg-red-50 rounded-lg">
+              {joinedError}
+            </div>
+          ) : joinedProjects.length > 0 ? (
             <div className="task-cards-container">
               {joinedProjects.map((project) => (
                 <TaskItem
@@ -625,6 +634,9 @@ const TaskList = () => {
                   onTaskClick={handleTaskClick}
                   selectedTaskId={selectedTask?.id}
                   onAddChildTask={handleAddChildTask}
+                  onInviteMember={
+                    project.membership_role === 'owner' ? handleOpenInvite : undefined
+                  }
                 />
               ))}
             </div>
@@ -665,6 +677,7 @@ const TaskList = () => {
                   onTaskClick={handleTaskClick}
                   selectedTaskId={selectedTask?.id}
                   onAddChildTask={handleAddChildTask}
+                  onInviteMember={handleOpenInvite}
                 />
               ))}
             </div>
@@ -770,6 +783,17 @@ const TaskList = () => {
           )}
         </div>
       </div>
+      {inviteModalProject && (
+        <InviteMemberModal
+          project={inviteModalProject}
+          onClose={() => setInviteModalProject(null)}
+          onInviteSuccess={() => {
+            // Maybe show a toast?
+            alert('Invitation sent!');
+            setInviteModalProject(null);
+          }}
+        />
+      )}
     </div>
   );
 };

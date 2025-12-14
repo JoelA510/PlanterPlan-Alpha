@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import RoleIndicator from '../common/RoleIndicator';
 
-const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId, onAddChildTask }) => {
+const TaskItem = ({
+  task,
+  level = 0,
+  onTaskClick,
+  selectedTaskId,
+  onAddChildTask,
+  onInviteMember,
+}) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const hasChildren = task.children && task.children.length > 0;
@@ -103,6 +110,21 @@ const TaskItem = ({ task, level = 0, onTaskClick, selectedTaskId, onAddChildTask
               <button className="add-child-btn" onClick={handleAddChild} title="Add child task">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
+                </svg>
+              </button>
+            )}
+            {level === 0 && onInviteMember && (
+              <button
+                className="add-child-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInviteMember(task);
+                }}
+                title="Invite Member"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M14 7h-2v2h2v-2zm0-4h-2v2h2v-2zm0 8h-2v2h2v-2zM4 15h8v-2H4v2zM7 6v2h2V6H7zM5 6v2h2V6H5z" />
+                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 1c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4z" />
                 </svg>
               </button>
             )}
