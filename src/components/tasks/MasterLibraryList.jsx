@@ -93,21 +93,52 @@ const MasterLibraryList = () => {
         ) : null}
 
         {tasks.length > 0 ? (
-          <ul className="divide-y divide-slate-200">
+          <ul className="divide-y divide-slate-100">
             {tasks.map((task) => (
-              <li key={task.id} className="px-6 py-4">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-slate-900">{task.title}</h3>
-                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      {task.origin || 'library'}
-                    </span>
+              <li
+                key={task.id}
+                className="group hover:bg-slate-50 transition-colors duration-150 ease-in-out"
+              >
+                <div className="px-6 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center mb-2" style={{ gap: '0.75rem' }}>
+                        <h3
+                          className="text-base font-semibold text-slate-900 truncate"
+                          title={task.title}
+                        >
+                          {task.title}
+                        </h3>
+                        <span
+                          className="inline-flex items-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-700"
+                          style={{
+                            padding: '2px 10px',
+                            textTransform: 'capitalize',
+                            border: '1px solid rgba(79, 70, 229, 0.1)', // Subtle indigo border
+                          }}
+                        >
+                          {task.origin || 'Template'}
+                        </span>
+                      </div>
+                      {task.description ? (
+                        <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
+                          {task.description}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-400 italic">No description provided.</p>
+                      )}
+
+                      {/* Optional: Add metadata footer if available in future (e.g. usage count, date) */}
+                      {/* <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                        <span>Last updated {new Date(task.updated_at).toLocaleDateString()}</span>
+                      </div> */}
+                    </div>
+
+                    {/* Placeholder for actions (e.g. "Use Template") */}
+                    {/* <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="text-sm text-blue-600 font-medium hover:text-blue-700">Use</button>
+                    </div> */}
                   </div>
-                  {task.description ? (
-                    <p className="text-sm text-slate-600">{task.description}</p>
-                  ) : (
-                    <p className="text-sm text-slate-400 italic">No description provided.</p>
-                  )}
                 </div>
               </li>
             ))}

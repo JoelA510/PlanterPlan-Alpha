@@ -48,10 +48,12 @@ This document outlines the technical changes implemented to bring the `refactor`
 ## Verification Steps
 
 ### Automated Verification
+
 1. **Linting**: Run `npm run lint`. Success = No errors.
 2. **Unit Tests**: Run `npm test`. Success = All tests pass (Service logic, Regex safety).
 
 ### Manual Verification
+
 1. **Joined Projects**:
    - Login as User A. Create "Project A".
    - Click "Invite" on Project A card. Enter User B's UUID (from Supabase Auth).
@@ -68,5 +70,6 @@ This document outlines the technical changes implemented to bring the `refactor`
 
 > [!NOTE]
 > **Authorization**: Ensure your Vercel project is correctly authorized to access your Supabase instance.
+>
 > - Verify `SUPABASE_URL` and `SUPABASE_ANON_KEY` environment variables in Vercel.
 > - If using Vercel Integrations, ensure the token has not expired.
