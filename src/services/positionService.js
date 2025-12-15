@@ -85,7 +85,6 @@ export const updateTaskPosition = async (taskId, newPosition, parentId) => {
   const updates = {
     position: newPosition,
     parent_task_id: parentId,
-    updated_at: new Date().toISOString(),
   };
 
   const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);

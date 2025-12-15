@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import TaskItem from './TaskItem';
+
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from './TaskDetailsView';
@@ -22,7 +22,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import SortableTaskItem from './SortableTaskItem';
+import TaskItem, { SortableTaskItem } from './TaskItem';
 import {
   calculateNewPosition,
   updateTaskPosition,
@@ -159,106 +159,95 @@ const TaskList = () => {
     }
   }, []);
 
-  const handleDragStart = (event) => {
-    const { active } = event;
-  };
+  const handleDragEnd = useCallback(
+    async (event) => {
+      const { active, over } = event;
 
-  const handleDragEnd = async (event) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) {
-      return;
-    }
-
-    const activeTask = tasks.find((t) => t.id === active.id);
-    const overTask = tasks.find((t) => t.id === over.id);
-
-    if (!activeTask) return;
-
-    // Safety: Origin Check
-    // over.data.current might be populated by SortableTaskItem or Droppable
-    const overOrigin = over.data?.current?.origin || overTask?.origin;
-
-    if (activeTask.origin !== overOrigin) {
-      return;
-    }
-
-    const newParentId = overTask ? overTask.parent_task_id || null : null;
-
-    // We need the siblings in the target container to determine neighbors.
-    // NOTE: This assumes we are reordering within the same parent or reparenting to the dropped item's parent.
-    const siblings = tasks
-      .filter((t) => (t.parent_task_id || null) === newParentId && t.origin === activeTask.origin)
-      .sort((a, b) => (a.position || 0) - (b.position || 0));
-
-    const activeIndex = siblings.findIndex((t) => t.id === active.id);
-    const overIndex = siblings.findIndex((t) => t.id === over.id);
-
-    let newPos = 0;
-
-    if (activeIndex !== -1) {
-      // Reordering in same list
-      if (active.id === over.id) return;
-
-      let prevTask, nextTask;
-
-      if (activeIndex < overIndex) {
-        // Dragging down. Active goes AFTER Over.
-        prevTask = siblings[overIndex];
-        nextTask = siblings[overIndex + 1];
-      } else {
-        // Dragging up. Active goes BEFORE Over.
-        prevTask = siblings[overIndex - 1];
-        nextTask = siblings[overIndex];
-      }
-
-      const prevPos = prevTask ? prevTask.position || 0 : 0;
-      const nextPos = nextTask ? nextTask.position || 0 : null; // null means "end" or far future
-
-      const calculated = calculateNewPosition(prevPos, nextPos);
-
-      if (calculated === null) {
-        await renormalizePositions(newParentId, activeTask.origin);
-        await fetchTasks();
+      if (!over || active.id === over.id) {
         return;
       }
-      newPos = calculated;
-    } else {
-      // Reparenting to new list
-      // Insert after 'over' item safely
-      const prevTask = siblings[overIndex];
-      const nextTask = siblings[overIndex + 1];
 
-      const prevPos = prevTask ? prevTask.position || 0 : 0;
-      const nextPos = nextTask ? nextTask.position || 0 : null;
+      const activeTask = tasks.find((t) => t.id === active.id);
+      const overTask = tasks.find((t) => t.id === over.id);
 
-      const calculated = calculateNewPosition(prevPos, nextPos);
-      if (calculated === null) {
-        await renormalizePositions(newParentId, activeTask.origin);
-        await fetchTasks();
+      if (!activeTask) return;
+
+      // Safety: Origin Check
+      // over.data.current might be populated by SortableTaskItem or Droppable
+      const overOrigin = over.data?.current?.origin || overTask?.origin;
+
+      if (activeTask.origin !== overOrigin) {
         return;
       }
-      newPos = calculated;
-    }
 
-    // Optimistic Update
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === active.id) {
-          return { ...t, position: newPos, parent_task_id: newParentId };
+      const newParentId = overTask ? overTask.parent_task_id || null : null;
+
+      // We need the siblings in the target container to determine neighbors.
+      // NOTE: This assumes we are reordering within the same parent or reparenting to the dropped item's parent.
+      const siblings = tasks
+        .filter((t) => (t.parent_task_id || null) === newParentId && t.origin === activeTask.origin)
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+      const activeIndex = siblings.findIndex((t) => t.id === active.id);
+      const overIndex = siblings.findIndex((t) => t.id === over.id);
+
+      let newPos = 0;
+
+      if (activeIndex !== -1) {
+        // Reordering in same list
+        if (active.id === over.id) return;
+
+        let prevTask, nextTask;
+
+        if (activeIndex < overIndex) {
+          // Dragging down. Active goes AFTER Over.
+          prevTask = siblings[overIndex];
+          nextTask = siblings[overIndex + 1];
+        } else {
+          // Dragging up. Active goes BEFORE Over.
+          prevTask = siblings[overIndex - 1];
+          nextTask = siblings[overIndex];
         }
-        return t;
-      })
-    );
 
-    // Server Update
-    try {
-      await updateTaskPosition(active.id, newPos, newParentId);
-    } catch (e) {
-      console.error('Failed to persist move', e);
-      fetchTasks();
-    }
-  };
+        const prevPos = prevTask ? prevTask.position || 0 : 0;
+        const nextPos = nextTask ? nextTask.position || 0 : null; // null means "end" or far future
+
+        const calculated = calculateNewPosition(prevPos, nextPos);
+        newPos = calculated;
+
+        if (calculated === null) {
+          await renormalizePositions(newParentId, activeTask.origin);
+          await fetchTasks();
+          return;
+        }
+      } else {
+        // Reparenting
+        const prevTask = siblings[overIndex];
+        const nextTask = siblings[overIndex + 1];
+        const prevPos = prevTask ? prevTask.position || 0 : 0;
+        const nextPos = nextTask ? nextTask.position || 0 : null;
+        newPos = calculateNewPosition(prevPos, nextPos);
+      }
+
+      // Optimistic Update
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.id === active.id) {
+            return { ...t, position: newPos, parent_task_id: newParentId };
+          }
+          return t;
+        })
+      );
+
+      try {
+        await updateTaskPosition(active.id, newPos, newParentId);
+      } catch (e) {
+        console.error('Failed to persist move', e);
+        fetchTasks();
+      }
+    },
+    [tasks, fetchTasks]
+  );
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -457,12 +446,9 @@ const TaskList = () => {
 
       const origin = taskFormState.origin || 'instance';
       const parentId = taskFormState.parentId ?? null;
+      const daysVal = formData.days_from_start;
       const parsedDays =
-        formData.days_from_start === '' ||
-        formData.days_from_start === null ||
-        formData.days_from_start === undefined
-          ? null
-          : Number(formData.days_from_start);
+        daysVal === '' || daysVal === null || daysVal === undefined ? null : Number(daysVal);
 
       if (parsedDays !== null && Number.isNaN(parsedDays)) {
         throw new Error('Invalid days_from_start');
