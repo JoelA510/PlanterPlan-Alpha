@@ -46,16 +46,18 @@ export const inviteMember = async (projectId, userId, role = 'viewer', client = 
     // Check if membership already exists?
     // Depending on RLS and constraints, we might just upsert or insert.
     // Let's assume insert.
+    // Fix SEC-05: Use upsert to handle duplicates idempotently
+    // Fix SEC-04: Remove client-side 'joined_at' (let DB default handle it)
     const { data, error } = await client
       .from('project_members')
-      .insert([
+      .upsert(
         {
           project_id: projectId,
           user_id: userId,
           role,
-          joined_at: new Date().toISOString(),
         },
-      ])
+        { onConflict: 'project_id, user_id' }
+      )
       .select()
       .single();
 
