@@ -81,7 +81,7 @@ export const renormalizePositions = async (parentId, origin) => {
  * @param {string} parentId - New parent ID
  * @param {string} origin - Task origin
  */
-export const updateTaskPosition = async (taskId, newPosition, parentId, origin) => {
+export const updateTaskPosition = async (taskId, newPosition, parentId) => {
   const updates = {
     position: newPosition,
     parent_task_id: parentId,

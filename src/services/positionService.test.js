@@ -7,8 +7,6 @@ jest.mock('../supabaseClient', () => ({
   },
 }));
 
-const STEP = 10000;
-
 describe('positionService', () => {
   describe('calculateNewPosition', () => {
     it('calculates midpoint correctly for standard gap', () => {

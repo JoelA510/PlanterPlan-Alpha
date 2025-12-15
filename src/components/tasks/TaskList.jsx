@@ -253,7 +253,7 @@ const TaskList = () => {
 
     // Server Update
     try {
-      await updateTaskPosition(active.id, newPos, newParentId, activeTask.origin);
+      await updateTaskPosition(active.id, newPos, newParentId);
     } catch (e) {
       console.error('Failed to persist move', e);
       fetchTasks();
@@ -459,8 +459,8 @@ const TaskList = () => {
       const parentId = taskFormState.parentId ?? null;
       const parsedDays =
         formData.days_from_start === '' ||
-          formData.days_from_start === null ||
-          formData.days_from_start === undefined
+        formData.days_from_start === null ||
+        formData.days_from_start === undefined
           ? null
           : Number(formData.days_from_start);
 
@@ -738,11 +738,7 @@ const TaskList = () => {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragEnd={handleDragEnd}
-    >
+    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
       <div className="split-layout">
         <div className="task-list-area">
           <div className="dashboard-header">
