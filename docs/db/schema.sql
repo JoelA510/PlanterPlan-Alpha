@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 CREATE OR REPLACE FUNCTION public.maintain_task_root_id() RETURNS TRIGGER AS $$
 BEGIN
   -- Optimization: If root_id is already provided (e.g. deep clone batch insert), trust it.
-  IF NEW.root_id IS NOT NULL THEN
+  -- CRITICAL: Only trust this on INSERT. On UPDATE, the old root_id persists in NEW, so we must recalculate.
+  IF TG_OP = 'INSERT' AND NEW.root_id IS NOT NULL THEN
      RETURN NEW;
   END IF;
 
