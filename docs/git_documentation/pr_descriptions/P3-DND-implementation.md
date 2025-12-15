@@ -73,7 +73,7 @@
   - **Fixes Applied**: Adjusted `PointerSensor` activation constraint to 5px to prevent accidental/flaky drags.
 
 - **Known gaps / follow-ups:**
-  - **Reparenting**: Dragging a task *into* another task (changing parent) is partially supported logic-wise but not fully exposed in the UI drag zones yet.
+  - **Reparenting**: Dragging a task _into_ another task (changing parent) is partially supported logic-wise but not fully exposed in the UI drag zones yet.
   - **Master Library Search**: Known issue with search functionality (separate branch/scope).
 
 **E. Risk & rollback**

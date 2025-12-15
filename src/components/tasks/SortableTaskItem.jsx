@@ -4,7 +4,15 @@ import { CSS } from '@dnd-kit/utilities';
 import TaskItem from './TaskItem';
 
 export function SortableTaskItem({ task, level, ...props }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: task.id,
     data: {
       type: 'Task',
@@ -27,7 +35,7 @@ export function SortableTaskItem({ task, level, ...props }) {
       <TaskItem
         task={task}
         level={level}
-        dragHandleProps={{ ...attributes, ...listeners }} // Pass drag listeners only to handle
+        dragHandleProps={{ ...attributes, ...listeners, ref: setActivatorNodeRef }} // Pass activator ref
         {...props}
       />
     </div>

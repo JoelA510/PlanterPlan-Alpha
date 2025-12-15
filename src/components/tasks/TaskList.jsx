@@ -27,6 +27,7 @@ import {
   calculateNewPosition,
   updateTaskPosition,
   renormalizePositions,
+  POSITION_STEP,
 } from '../../services/positionService';
 
 const buildTaskHierarchy = (tasks) => {
@@ -157,6 +158,10 @@ const TaskList = () => {
       }
     }
   }, []);
+
+  const handleDragStart = (event) => {
+    const { active } = event;
+  };
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
@@ -537,7 +542,7 @@ const TaskList = () => {
         origin,
         creator: user.id,
         parent_task_id: parentId,
-        position: maxPosition + 1000,
+        position: maxPosition + POSITION_STEP,
         is_complete: false,
       };
 
@@ -733,7 +738,11 @@ const TaskList = () => {
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragEnd={handleDragEnd}
+    >
       <div className="split-layout">
         <div className="task-list-area">
           <div className="dashboard-header">

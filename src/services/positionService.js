@@ -1,6 +1,6 @@
 import { supabase } from '../supabaseClient';
 
-const POSITION_STEP = 10000;
+export const POSITION_STEP = 10000;
 const MIN_GAP = 2; // Minimum gap before triggering renormalization
 
 /**
@@ -32,13 +32,6 @@ export const calculateNewPosition = (prevPos, nextPos) => {
 export const renormalizePositions = async (parentId, origin) => {
   console.log('Triggering renormalization for parent:', parentId);
 
-  // 1. Fetch current siblings in current visual order
-  // Note: We use existing position for sorting, but we assume the caller
-  // might have just failed an optimistic update or we rely on the client's updated list.
-  // Actually, simplest strategy: fetch all, sort by position, re-write all.
-  // Ideally, the client passes the desired order of IDs to avoid race conditions.
-  // But for now, we'll fetch and simply respace them to be safe.
-
   let query = supabase
     .from('tasks')
     .select('id, position')
@@ -58,26 +51,26 @@ export const renormalizePositions = async (parentId, origin) => {
     return;
   }
 
-  // 2. Prepare batch updates
-  // Supabase/PostgREST doesn't support massive bulk updates easily in one query without RPC.
-  // We'll use a loop or Promise.all for now, or a better "upsert" approach if we had a constraint key.
-  // Ideally, we'd have an RPC `renormalize_tasks(task_ids[])`.
-  // For implementation speed and "Constraint: keep DB changes minimal", we do client-side loop.
-  // 400 tasks max usually per list, so parallel requests usually fine in batches.
+  // 2. Perform updates
+  // We use sequential updates to avoid "upsert" issues with missing NOT NULL columns.
+  // Performance note: For typical list sizes (buckets), this is acceptable.
 
   const updates = tasks.map((task, index) => ({
     id: task.id,
     position: (index + 1) * POSITION_STEP,
   }));
 
-  const { error: upsertError } = await supabase
-    .from('tasks')
-    .upsert(updates, { onConflict: 'id' }) // requires 'id' primary key which we have
-    .select('id, position');
+  for (const update of updates) {
+    const { error: updateError } = await supabase
+      .from('tasks')
+      .update({ position: update.position })
+      .eq('id', update.id);
 
-  if (upsertError) {
-    console.error('Renormalization failed:', upsertError);
-    throw upsertError;
+    if (updateError) {
+      console.error('Renormalization update failed for task', update.id, updateError);
+      // Continue trying others? Or throw? Throwing is safer to alert.
+      throw updateError;
+    }
   }
 };
 
