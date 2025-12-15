@@ -1,75 +1,54 @@
-# PR #14 Fixes Summary
+# PR #15 Review Fixes Summary
 
-This document outlines the technical changes implemented to bring the `refactor` branch up to the requirements of PR #14, satisfying all reviewer feedback.
+This document outlines the technical changes implemented to address the code review and security audit of PR #15.
 
-## 1. Local Development Unblocked
+## 1. Database & Security Hardening (Critical)
 
-**Goal**: Ensure a reproducible local setup passing all checks.
+**Goal**: Fix recursion, privilege escalation, and visibility bugs.
 
-- **Linting**: Resolved `eslint-plugin-prettier` configuration conflicts. Codebase is now fully Prettier-compliant.
-- **Commands**:
-  - `npm run lint`: Fully passing.
-  - `npm run format`: Formats all files.
+- **Schema Optimization (`root_id`)**:
+  - **Change**: Added `root_id` column to `tasks` table and a `maintain_task_root_id` trigger.
+  - **Why**: Replaced recursive RLS policies (which caused infinite loop errors) with O(1) indexed lookups.
+- **RLS Policy Rewrite (`docs/db/policies.sql`)**:
+  - **SEC-01 (Templates)**: Added explicit `SELECT` policy for `origin = 'template'`.
+  - **SEC-02 (Escalation)**: Split `INSERT` policies. Child task creation now restricts `creator` rights and tightly checks project membership.
+  - **BUG-01 (Visibility)**: Fixed "Your Projects" visibility by ensuring creators can always see their root tasks.
+  - **ADM-01 (Admin)**: Added `is_admin()` placeholder to allow administrative override.
 
-## 2. Membership & Joined Projects (P2)
+## 2. Membership & Backend Integrity
 
-**Goal**: Allow users to see and access projects they have been invited to, and invite others.
+**Goal**: ensure reliability of invites and timestamps.
 
-- **Service Layer (`src/services/projectService.js`)**:
-  - Updated `getJoinedProjects` to robustly handle errors and return `{ data, error }`.
-  - Added `inviteMember(projectId, userId, role)` to handle invitations.
-- **UI (`TaskList.jsx`, `InviteMemberModal.jsx`)**:
-  - Added "Joined Projects" section with specific error/empty states.
-  - Added "Invite Member" button to project cards (Owner only).
-  - Implemented `InviteMemberModal` for adding members by User ID.
-- **Role Indicator**: Added UI badge for Owner/Editor/Viewer roles.
+- **Idempotency (SEC-05)**:
+  - Updated `inviteMember` to use `upsert` instead of `insert`. Prevents duplicate key errors on re-invites.
+- **Timestamp Trust (SEC-04)**:
+  - Removed client-side `joined_at` generation. `project_members` now defaults to `NOW()` in the database.
 
-## 3. Master Library Search Fixes
+## 3. UI/UX Improvements
 
-**Goal**: Ensure search is reliable, safe, and handles errors gracefully.
+**Goal**: Reduce friction and provide better feedback.
 
-- **Sanitization**: Added input length limits and type safety to `taskService.js`.
-- **Defensive Rendering**: Updated `MasterLibrarySearch.jsx` to safely handle `undefined` results and prevent crashes.
-- **Regex Safety**: Validated `highlightMatches` utility against regex injection.
-- **Testing**: Added unit tests in `taskService.test.js` covering edge cases.
+- **Validation (UX-01)**:
+  - Added strict UUID regex validation to `InviteMemberModal` to prevent bad inputs.
+- **Feedback (UX-04)**:
+  - Added a 1.5s delay on success to allow the "Invitation sent!" message to be read before the modal closes.
+- **Visibility (UX-03)**:
+  - Updated `TaskList` to ensure "Invite" button appears for Project Creators even if they don't have a specific row in `project_members`.
 
-## 4. RLS Security Gaps (Database)
-
-**Goal**: Enforce strict role-based access control at the database level.
-
-- **Policies (`docs/db/policies.sql`)**:
-  - Implemented `get_task_root_id` and `has_project_role` helper functions to handle hierarchical security without schema changes.
-  - **SELECT**: Restricted to Creator OR Project Members (Viewer+).
-  - **INSERT**: Restricted to Creator OR Project Members (Editor+).
-  - **UPDATE**: Restricted to Creator OR Project Members (Editor+).
-  - **DELETE**: Restricted to Creator OR Project Owners.
-  - **Project Members**: Strict policies for viewing and managing members.
-
-## Verification Steps
+## Verification
 
 ### Automated Verification
 
-1. **Linting**: Run `npm run lint`. Success = No errors.
-2. **Unit Tests**: Run `npm test`. Success = All tests pass (Service logic, Regex safety).
+1. **Schema**: Run `docs/db/verify_fixes.sql` in Supabase SQL Editor.
+   - Verifies template visibility.
+   - Verifies recursion checks (deep inserts).
+   - Verifies RLS blocks (unauthorized inserts).
 
 ### Manual Verification
 
-1. **Joined Projects**:
-   - Login as User A. Create "Project A".
-   - Click "Invite" on Project A card. Enter User B's UUID (from Supabase Auth).
-   - Login as User B. "Project A" should appear in "Joined Projects".
-2. **Master Library**:
-   - Open "New Project" form.
-   - Type in Master Library search.
-   - Verify results render correctly. Enter invalid regex characters (`(`, `*`) to verify no crash.
-3. **RLS Policy Check**:
-   - Execute `docs/db/policies.sql` in Supabase SQL Editor.
-   - Verify that a "Viewer" cannot update tasks via SQL/API console.
-
-## Deployment Note (Vercel)
-
-> [!NOTE]
-> **Authorization**: Ensure your Vercel project is correctly authorized to access your Supabase instance.
->
-> - Verify `SUPABASE_URL` and `SUPABASE_ANON_KEY` environment variables in Vercel.
-> - If using Vercel Integrations, ensure the token has not expired.
+1. **Invites**:
+   - Invite a user -> Success message shows -> Modal closes after delay.
+   - Re-invite same user -> No error (Upsert works).
+2. **Dashboard**:
+   - Create new project -> Immediately visible.
+   - Admin user -> Can access templates.
