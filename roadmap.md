@@ -22,7 +22,7 @@ _Goal: Establish standards to prevent "ugly" merges later. No functionality chan
 
 ### 0.2 Shared Data Shapes (JS/React Compatible)
 
-**ID:** `P0-DATA-SHAPES`
+- **ID:** `P0-DATA-SHAPES` [COMPLETE]
 
 - **Description**: Create central PropTypes definitions instead of using TypeScript (avoids build config changes).
 - **Depends on**: `P0-LINT-BASE`
@@ -58,7 +58,7 @@ _Goal: Complete the "View" vs "Copy" flows. The "Deep Clone" logic is critical h
 - **DoD**:
   - `fetchTaskById(id)` implemented and verified.
 
-### 1.3 Template Deep Copy Engine (Logic Layer)
+### 1.3 Template Deep Copy Engine (Logic Layer) [COMPLETE]
 
 **ID:** `P1-TEMPLATE-DEEP-CLONE`
 
@@ -88,7 +88,7 @@ _Goal: Complete the "View" vs "Copy" flows. The "Deep Clone" logic is critical h
 
 _Goal: Securely allow users to view projects they are invited to._
 
-### 2.1 Database RLS Policies
+### 2.1 Database RLS Policies [COMPLETE]
 
 **ID:** `P2-DB-RLS-POLICIES`
 
@@ -99,7 +99,7 @@ _Goal: Securely allow users to view projects they are invited to._
   - Policy `select_joined_projects`: Users can SELECT projects where their UID is in `project_members`.
   - Verified via Supabase SQL Editor (simulating a non-owner user).
 
-### 2.2 Membership Service
+### 2.2 Membership Service [COMPLETE]
 
 **ID:** `P2-SVC-MEMBERSHIPS`
 
