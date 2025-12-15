@@ -18,9 +18,39 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     start_date TIMESTAMPTZ,
     due_date TIMESTAMPTZ,
     
+    -- Optimization: Denormalized root_id to avoid recursive RLS
+    root_id UUID REFERENCES public.tasks(id), 
+    
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Trigger Function: Maintain root_id
+-- Automatically sets root_id to itself (if root) or copies parent's root_id (if child)
+CREATE OR REPLACE FUNCTION public.maintain_task_root_id() RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.parent_task_id IS NULL THEN
+    NEW.root_id := NEW.id;
+  ELSE
+    -- Performance: This query is simple and indexed, avoiding deep recursion
+    -- Note regarding BEFORE INSERT: We need the parent's root_id.
+    SELECT root_id INTO NEW.root_id
+    FROM public.tasks
+    WHERE id = NEW.parent_task_id;
+    
+    -- Fallback safety (orphan guard)
+    IF NEW.root_id IS NULL THEN
+        RAISE EXCEPTION 'Parent task % does not exist or has no root_id', NEW.parent_task_id;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_maintain_task_root_id
+BEFORE INSERT OR UPDATE OF parent_task_id ON public.tasks
+FOR EACH ROW
+EXECUTE FUNCTION public.maintain_task_root_id();
 
 -- 2. Project Members Table
 -- Handles shared access to projects (which are root tasks)
@@ -44,6 +74,7 @@ WHERE origin = 'template'
   AND parent_task_id IS NULL; -- Only show root templates? Or all? Code implies search returns "tasks", usually roots.
 
 -- 4. Indexes (Recommended)
+CREATE INDEX IF NOT EXISTS idx_tasks_root ON public.tasks(root_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_parent ON public.tasks(parent_task_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_owner ON public.tasks(creator);
 CREATE INDEX IF NOT EXISTS idx_members_user ON public.project_members(user_id);
