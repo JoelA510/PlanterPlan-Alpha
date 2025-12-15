@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import RoleIndicator from '../common/RoleIndicator';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+// eslint-disable-next-line import/no-cycle
+import SortableTaskItem from './SortableTaskItem';
 
 const TaskItem = ({
   task,
@@ -8,6 +11,7 @@ const TaskItem = ({
   selectedTaskId,
   onAddChildTask,
   onInviteMember,
+  dragHandleProps, // New prop for dnd-kit
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -62,7 +66,12 @@ const TaskItem = ({
       >
         <div className="task-card-content">
           <div className="task-card-left">
-            <div className="drag-handle">
+            <button
+              className="drag-handle-btn"
+              type="button"
+              aria-label="Reorder task"
+              {...dragHandleProps}
+            >
               <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
                 <circle cx="2" cy="2" r="1" fill="currentColor" />
                 <circle cx="6" cy="2" r="1" fill="currentColor" />
@@ -71,7 +80,7 @@ const TaskItem = ({
                 <circle cx="2" cy="12" r="1" fill="currentColor" />
                 <circle cx="6" cy="12" r="1" fill="currentColor" />
               </svg>
-            </div>
+            </button>
 
             {hasChildren ? (
               <button onClick={() => setIsExpanded(!isExpanded)} className="expand-button">
@@ -141,16 +150,22 @@ const TaskItem = ({
 
       {isExpanded && hasChildren && task.children && (
         <div className="task-children">
-          {task.children.map((child) => (
-            <TaskItem
-              key={child.id}
-              task={child}
-              level={level + 1}
-              onTaskClick={onTaskClick}
-              selectedTaskId={selectedTaskId}
-              onAddChildTask={onAddChildTask}
-            />
-          ))}
+          <SortableContext
+            items={task.children.map((c) => c.id)}
+            strategy={verticalListSortingStrategy}
+            id={`children-${task.id}`} // Unique ID for this context
+          >
+            {task.children.map((child) => (
+              <SortableTaskItem
+                key={child.id}
+                task={child}
+                level={level + 1}
+                onTaskClick={onTaskClick}
+                selectedTaskId={selectedTaskId}
+                onAddChildTask={onAddChildTask}
+              />
+            ))}
+          </SortableContext>
         </div>
       )}
     </>

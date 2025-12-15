@@ -251,7 +251,14 @@ export const deepCloneTask = async (
 
     // 3. Prepare new objects
     const { prepareDeepClone } = await import('../utils/treeHelpers');
-    const newTasks = prepareDeepClone(tree, templateId, newParentId, newOrigin, userId, existingRootId);
+    const newTasks = prepareDeepClone(
+      tree,
+      templateId,
+      newParentId,
+      newOrigin,
+      userId,
+      existingRootId
+    );
 
     // 4. Insert
     const { data, error } = await client.from('tasks').insert(newTasks).select();
