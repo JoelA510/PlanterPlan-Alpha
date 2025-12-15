@@ -7,9 +7,19 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  const [success, setSuccess] = useState(false);
+
+  // Fix UX-01: Client-side UUID Regex
+  const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!userId.trim()) return;
+
+    if (!UUID_REGEX.test(userId)) {
+      setError('Invalid UUID format. Please check the ID.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -21,8 +31,13 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
       setIsSubmitting(false);
     } else {
       setIsSubmitting(false);
-      onInviteSuccess();
-      onClose();
+      setSuccess(true);
+      if (onInviteSuccess) onInviteSuccess();
+
+      // Fix UX-04: Delay closure to show success state
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     }
   };
 
@@ -35,6 +50,11 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
         </p>
 
         {error && <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+        {success && (
+          <div className="mt-4 rounded-md bg-green-50 p-3 text-sm text-green-600">
+            Invitation sent successfully!
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>

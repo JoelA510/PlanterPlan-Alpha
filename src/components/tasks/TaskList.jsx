@@ -49,6 +49,7 @@ const TaskList = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskFormState, setTaskFormState] = useState(null);
   const [inviteModalProject, setInviteModalProject] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const isMountedRef = useRef(false);
 
   const getTaskById = useCallback(
@@ -83,6 +84,7 @@ const TaskList = () => {
         setTasks([]);
         return [];
       }
+      setCurrentUserId(user.id);
 
       const { data, error: fetchError } = await supabase
         .from('tasks')
@@ -327,8 +329,8 @@ const TaskList = () => {
       const parentId = taskFormState.parentId ?? null;
       const parsedDays =
         formData.days_from_start === '' ||
-        formData.days_from_start === null ||
-        formData.days_from_start === undefined
+          formData.days_from_start === null ||
+          formData.days_from_start === undefined
           ? null
           : Number(formData.days_from_start);
 
@@ -635,7 +637,9 @@ const TaskList = () => {
                   selectedTaskId={selectedTask?.id}
                   onAddChildTask={handleAddChildTask}
                   onInviteMember={
-                    project.membership_role === 'owner' ? handleOpenInvite : undefined
+                    project.membership_role === 'owner' || project.creator === currentUserId
+                      ? handleOpenInvite
+                      : undefined
                   }
                 />
               ))}
