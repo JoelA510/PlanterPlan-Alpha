@@ -221,12 +221,21 @@ const TaskList = () => {
           return;
         }
       } else {
-        // Reparenting
-        const prevTask = siblings[overIndex];
-        const nextTask = siblings[overIndex + 1];
+        // Reparenting - Insert BEFORE the target (Standard Sortable Behavior)
+        const prevTask = siblings[overIndex - 1];
+        const nextTask = siblings[overIndex];
+
         const prevPos = prevTask ? prevTask.position || 0 : 0;
         const nextPos = nextTask ? nextTask.position || 0 : null;
-        newPos = calculateNewPosition(prevPos, nextPos);
+
+        const calculated = calculateNewPosition(prevPos, nextPos);
+
+        if (calculated === null) {
+          await renormalizePositions(newParentId, activeTask.origin);
+          await fetchTasks();
+          return;
+        }
+        newPos = calculated;
       }
 
       // Optimistic Update
