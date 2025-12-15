@@ -18,15 +18,27 @@ export const generateIdMap = (tasks) => {
  * @param {string} newParentId - The ID of the parent for the new root (or null).
  * @param {string} newOrigin - The origin for the new tasks ('instance' or 'template').
  * @param {string} creatorId - The user ID of the creator.
+ * @param {string} existingRootId - Optional. If cloning into an existing project, this is the project root ID.
  * @returns {Array} - List of new task objects ready for insertion.
  */
-export const prepareDeepClone = (tasks, rootId, newParentId, newOrigin, creatorId) => {
+export const prepareDeepClone = (
+  tasks,
+  rootId,
+  newParentId,
+  newOrigin,
+  creatorId,
+  existingRootId = null
+) => {
   const idMap = generateIdMap(tasks);
   const newRootId = idMap[rootId];
 
   if (!newRootId) {
     throw new Error('Root task not found in provided task list');
   }
+
+  // If we are given an existing root ID (e.g. adding a subtask to a project), use it.
+  // Otherwise, the new root task IS the new root ID.
+  const resolvedRootId = existingRootId || newRootId;
 
   return tasks.map((task) => {
     const isRoot = task.id === rootId;
@@ -48,6 +60,8 @@ export const prepareDeepClone = (tasks, rootId, newParentId, newOrigin, creatorI
       origin: newOrigin,
       creator: creatorId,
       parent_task_id: parentTaskId,
+      // Fix: Pre-calculate root_id so batch insert works with triggers
+      root_id: resolvedRootId,
       position: task.position,
       is_complete: false,
       // Dates will be recalculated by the caller or DB triggers usually,

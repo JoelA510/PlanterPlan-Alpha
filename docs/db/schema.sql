@@ -5,7 +5,7 @@
 -- "Projects" are just root-level tasks in this model.
 CREATE TABLE IF NOT EXISTS public.tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    parent_task_id UUID REFERENCES public.tasks(id), -- Hierarchical structure
+    parent_task_id UUID REFERENCES public.tasks(id) ON DELETE CASCADE, -- Hierarchical structure
     title TEXT NOT NULL,
     description TEXT,
     status TEXT DEFAULT 'todo', -- e.g., 'todo', 'in_progress', 'completed'
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     due_date TIMESTAMPTZ,
     
     -- Optimization: Denormalized root_id to avoid recursive RLS
-    root_id UUID REFERENCES public.tasks(id), 
+    root_id UUID REFERENCES public.tasks(id) ON DELETE CASCADE, 
     
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -29,6 +29,11 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 -- Automatically sets root_id to itself (if root) or copies parent's root_id (if child)
 CREATE OR REPLACE FUNCTION public.maintain_task_root_id() RETURNS TRIGGER AS $$
 BEGIN
+  -- Optimization: If root_id is already provided (e.g. deep clone batch insert), trust it.
+  IF NEW.root_id IS NOT NULL THEN
+     RETURN NEW;
+  END IF;
+
   IF NEW.parent_task_id IS NULL THEN
     NEW.root_id := NEW.id;
   ELSE
@@ -51,6 +56,27 @@ CREATE TRIGGER trigger_maintain_task_root_id
 BEFORE INSERT OR UPDATE OF parent_task_id ON public.tasks
 FOR EACH ROW
 EXECUTE FUNCTION public.maintain_task_root_id();
+
+-- Backfill root_id for existing data (Idempotent-ish)
+-- 1. Roots
+UPDATE public.tasks SET root_id = id WHERE parent_task_id IS NULL AND root_id IS NULL;
+-- 2. Children (One level only? For deep trees, run repeatedly or assume fresh DB)
+-- Ideally this is a migration, but putting here for 'schema' correctness.
+DO $$
+BEGIN
+  -- Simple loop to fill depth
+  FOR i IN 1..10 LOOP
+    UPDATE public.tasks t
+    SET root_id = p.root_id
+    FROM public.tasks p
+    WHERE t.parent_task_id = p.id 
+      AND t.root_id IS NULL 
+      AND p.root_id IS NOT NULL;
+      
+    IF NOT FOUND THEN EXIT; END IF;
+  END LOOP;
+END $$;
+
 
 -- 2. Project Members Table
 -- Handles shared access to projects (which are root tasks)

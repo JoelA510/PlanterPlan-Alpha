@@ -228,11 +228,32 @@ export const deepCloneTask = async (
       throw new Error('Template not found or empty');
     }
 
-    // 2. Prepare new objects
-    const { prepareDeepClone } = await import('../utils/treeHelpers');
-    const newTasks = prepareDeepClone(tree, templateId, newParentId, newOrigin, userId);
+    // 2. Resolve root_id for the deep clone
+    // If we have a newParentId, we are inserting into an existing tree, so we need its root_id.
+    // If newParentId is null, we are creating a whole new tree (new root).
+    let existingRootId = null;
 
-    // 3. Insert
+    if (newParentId) {
+      // Fetch the root_id of the parent we are attaching to
+      // (This assumes the parent already has a root_id set correctly)
+      const { data: parentTask, error: parentError } = await client
+        .from('tasks')
+        .select('root_id')
+        .eq('id', newParentId)
+        .single();
+
+      if (parentError) {
+        // Fallback: If parent not found or error, we abort to preserve integrity
+        throw new Error(`Parent task ${newParentId} not found or error fetching root_id`);
+      }
+      existingRootId = parentTask?.root_id;
+    }
+
+    // 3. Prepare new objects
+    const { prepareDeepClone } = await import('../utils/treeHelpers');
+    const newTasks = prepareDeepClone(tree, templateId, newParentId, newOrigin, userId, existingRootId);
+
+    // 4. Insert
     const { data, error } = await client.from('tasks').insert(newTasks).select();
 
     if (error) throw error;
