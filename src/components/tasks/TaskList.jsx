@@ -177,38 +177,44 @@ const TaskList = () => {
 
       if (!activeTask) return;
 
-      // Safety: Origin Check
-      // over.data.current might be populated by SortableTaskItem or Droppable (container)
-      const overOrigin = over.data?.current?.origin || overTask?.origin;
+      // Determine new parent and origin based on drop target ID
+      let newParentId = null;
+      let targetOrigin = null;
 
-      if (activeTask.origin !== overOrigin) {
-        return;
+      const overId = String(over.id);
+
+      if (overId.startsWith('child-context-')) {
+        // Dropping into a child context (e.g. empty subtask list or between items)
+        const parentId = overId.replace('child-context-', '');
+        const parentTask = tasks.find((t) => t.id === parentId);
+
+        if (parentTask) {
+          newParentId = parentId;
+          targetOrigin = parentTask.origin;
+        } else {
+          console.warn(`Drop target parent ${parentId} not found`);
+          return;
+        }
+      } else if (overId === 'root-instance') {
+        newParentId = null;
+        targetOrigin = 'instance';
+      } else if (overId === 'root-template') {
+        newParentId = null;
+        targetOrigin = 'template';
+      } else {
+        // Dropping onto another task item directly
+        if (overTask) {
+          newParentId = overTask.parent_task_id ?? null;
+          targetOrigin = overTask.origin;
+        } else {
+          // Unknown drop target
+          return;
+        }
       }
 
-      // Determine new parent
-      let newParentId;
-      if (over.data.current?.type === 'container') {
-        // Dropping into an explicitly defined container (e.g. empty list)
-        // The container's ID should match the parentTaskId it represents (or null for root)
-        // Adjust this if your container data structure is different (e.g. over.data.current.parentId)
-        newParentId = over.data.current.parentId ?? over.id;
-        // NOTE: If using over.id as parentId scheme, verify it matches. 
-        // The directive said: "use over.id (or over.data.current.parentId...)"
-        // We'll use the data property if available for clarity, fallback to over.data.current.parentId (if we store it there) -> fallback to over.id check?
-        // Let's stick to the directive: "use over.id (or over.data.current.parentId)"
-        // If the container IS the parent task (or a placeholder for it), over.id works if it's the task ID.
-        // But usually containers have IDs like "container:taskId". 
-        // We'll trust over.data.current.parentId if present, as it's explicit.
-        if (over.data.current.parentId !== undefined) {
-          newParentId = over.data.current.parentId;
-        } else {
-          // Fallback/Default: assume the container ID itself is the parent ID (unlikely if prefixed)
-          // safe fallback: null if we can't determine
-          newParentId = null;
-        }
-      } else {
-        // Dropping onto another task item
-        newParentId = overTask ? overTask.parent_task_id ?? null : null;
+      // Safety: Origin Check
+      if (activeTask.origin !== targetOrigin) {
+        return;
       }
 
       // We need the siblings in the target container to determine neighbors.
@@ -221,12 +227,9 @@ const TaskList = () => {
 
       let prevTask, nextTask;
 
-      if (over.data.current?.type === 'container') {
-        // Dropped into container -> Append to end (or start?). Standard DnD often appends to end of empty/non-empty list if dropped on container.
-        // If empty, prev=undefined, next=undefined.
-        // If not empty, we might want to support inserting at specific index if we knew coordinate, 
-        // but for now, "drop on container" usually implies "move to this list". 
-        // Let's put it at the END by default for container drops.
+      if (over.id.toString().startsWith('child-context-') || over.id === 'root-instance' || over.id === 'root-template') {
+        // Dropped into container -> Append to end logic
+        // If we wanted to be smarter, we could look at collision coordinates, but appending is safe for now.
         if (siblings.length > 0) {
           prevTask = siblings[siblings.length - 1];
           nextTask = null;
@@ -276,7 +279,7 @@ const TaskList = () => {
 
         let freshPrev, freshNext;
 
-        if (over.data.current?.type === 'container') {
+        if (over.id.toString().startsWith('child-context-') || over.id === 'root-instance' || over.id === 'root-template') {
           if (freshSiblings.length > 0) {
             freshPrev = freshSiblings[freshSiblings.length - 1];
             freshNext = null;

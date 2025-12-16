@@ -82,7 +82,7 @@ const TaskItem = ({
               </svg>
             </button>
 
-            {hasChildren ? (
+            {canHaveChildren ? (
               <button onClick={() => setIsExpanded(!isExpanded)} className="expand-button">
                 <svg
                   className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
@@ -90,6 +90,7 @@ const TaskItem = ({
                   height="12"
                   viewBox="0 0 12 12"
                   fill="currentColor"
+                  style={{ opacity: hasChildren ? 1 : 0.3 }}
                 >
                   <path d="M4.5 3L7.5 6L4.5 9V3Z" />
                 </svg>
@@ -150,24 +151,25 @@ const TaskItem = ({
         </div>
       </div>
 
-      {hasChildren && isExpanded && (
-        <div className="task-children">
+      {canHaveChildren && isExpanded && (
+        <div className="task-children" style={{ minHeight: '10px' }}>
           <SortableContext
-            items={task.children.map((c) => c.id)}
+            items={task.children ? task.children.map((c) => c.id) : []}
             strategy={verticalListSortingStrategy}
             id={`child-context-${task.id}`}
           >
-            {task.children.map((child) => (
-              <SortableTaskItem
-                key={child.id}
-                task={child}
-                level={level + 1}
-                onTaskClick={onTaskClick}
-                selectedTaskId={selectedTaskId}
-                onAddChildTask={onAddChildTask}
-                onInviteMember={onInviteMember}
-              />
-            ))}
+            {task.children &&
+              task.children.map((child) => (
+                <SortableTaskItem
+                  key={child.id}
+                  task={child}
+                  level={level + 1}
+                  onTaskClick={onTaskClick}
+                  selectedTaskId={selectedTaskId}
+                  onAddChildTask={onAddChildTask}
+                  onInviteMember={onInviteMember}
+                />
+              ))}
           </SortableContext>
         </div>
       )}
