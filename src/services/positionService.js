@@ -10,7 +10,7 @@ const MIN_GAP = 2; // Minimum gap before triggering renormalization
  * @returns {number|null} The calculated position, or null if renormalization is needed.
  */
 export const calculateNewPosition = (prevPos, nextPos) => {
-  const previous = prevPos ?? 0;
+  const previous = Number(prevPos ?? 0);
   // If no next item, give plenty of space
   const next =
     nextPos !== undefined && nextPos !== null ? Number(nextPos) : previous + POSITION_STEP * 2;

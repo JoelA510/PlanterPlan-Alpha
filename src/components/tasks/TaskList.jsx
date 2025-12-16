@@ -836,11 +836,7 @@ const TaskList = () => {
                     level={0}
                     onTaskClick={handleTaskClick}
                     selectedTaskId={selectedTask?.id}
-                    onAddChildTask={
-                      project.membership_role === 'owner' || project.creator === currentUserId
-                        ? handleOpenInvite
-                        : undefined
-                    }
+                    onAddChildTask={undefined}
                     onInviteMember={
                       project.membership_role === 'owner' || project.creator === currentUserId
                         ? handleOpenInvite

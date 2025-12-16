@@ -47,6 +47,9 @@ This PR implements a robust, persistent, and accessible Drag-and-Drop (DnD) syst
     - **Stability**: Wrapped drag handler in robust try/catch blocks for graceful failure recovery.
     - **Clean Code**: Removed redundant imports and UI elements (Joined Projects buttons).
     - **Build Fix**: Resolved duplicate import errors in `TaskList.jsx`.
+    - **Data Integrity**: Enforced Number coercion for position calculations to prevent BigInt string concatenation bugs.
+    - **DB Performance**: Optimized composite index to support multi-column filtering used in renormalization.
+    - **UX**: Explicitly disabled "Add Subtask" for Joined Projects to remove ambiguity.
 
 
 ### **Verification**

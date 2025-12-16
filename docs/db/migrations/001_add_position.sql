@@ -6,8 +6,9 @@ ALTER TABLE public.tasks
 ADD COLUMN IF NOT EXISTS position BIGINT DEFAULT 0;
 
 -- 2. Create index for sorting performance
-CREATE INDEX IF NOT EXISTS idx_tasks_position 
-ON public.tasks(parent_task_id, position);
+-- 2. Create index for sorting performance
+CREATE INDEX IF NOT EXISTS idx_tasks_creator_origin_parent_position 
+ON public.tasks(creator, origin, parent_task_id, position);
 
 -- 3. Backfill existing tasks
 -- Strategy: Partition by parent and order by created_at. 
