@@ -64,6 +64,88 @@ const separateTasksByOrigin = (tasks) => {
   };
 };
 
+const calculateDropTarget = (allTasks, activeId, overId, activeOrigin) => {
+  const activeTask = allTasks.find((t) => t.id === activeId);
+  if (!activeTask) return { isValid: false };
+
+  // 1. Determine new parent and origin based on drop target ID
+  let newParentId = null;
+  let targetOrigin = null;
+  const overIdStr = String(overId);
+
+  if (overIdStr.startsWith('child-context-')) {
+    const parentId = overIdStr.replace('child-context-', '');
+    const parentTask = allTasks.find((t) => t.id === parentId);
+    if (parentTask) {
+      newParentId = parentId;
+      targetOrigin = parentTask.origin;
+    } else {
+      console.warn(`Drop target parent ${parentId} not found`);
+      return { isValid: false };
+    }
+  } else if (overIdStr === 'root-instance') {
+    newParentId = null;
+    targetOrigin = 'instance';
+  } else if (overIdStr === 'root-template') {
+    newParentId = null;
+    targetOrigin = 'template';
+  } else {
+    // Dropping onto another task item directly
+    const overTask = allTasks.find((t) => t.id === overId);
+    if (overTask) {
+      newParentId = overTask.parent_task_id ?? null;
+      targetOrigin = overTask.origin;
+    } else {
+      return { isValid: false };
+    }
+  }
+
+  // 2. Validate Origin
+  if (activeOrigin !== targetOrigin) {
+    return { isValid: false };
+  }
+
+  // 3. Filter & Sort Siblings
+  const siblings = allTasks
+    .filter((t) => (t.parent_task_id ?? null) === newParentId && t.origin === activeOrigin)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
+  const activeIndex = siblings.findIndex((t) => t.id === activeId);
+  const overIndex = siblings.findIndex((t) => t.id === overId);
+
+  // 4. Determine prev/next neighbors
+  let prevTask, nextTask;
+
+  const isContainerDrop = overIdStr.startsWith('child-context-') || overIdStr === 'root-instance' || overIdStr === 'root-template';
+
+  if (isContainerDrop) {
+    // Dropped into container -> Append to end logic
+    if (siblings.length > 0) {
+      prevTask = siblings[siblings.length - 1];
+      nextTask = null;
+    } else {
+      prevTask = null;
+      nextTask = null;
+    }
+  } else if (activeIndex !== -1 && activeIndex < overIndex) {
+    // Reordering in same list: Dragging DOWN
+    prevTask = siblings[overIndex];
+    nextTask = siblings[overIndex + 1];
+  } else {
+    // Dragging UP or Reparenting onto a task
+    prevTask = siblings[overIndex - 1];
+    nextTask = siblings[overIndex];
+  }
+
+  const prevPos = prevTask ? prevTask.position ?? 0 : 0;
+  const nextPos = nextTask ? nextTask.position ?? 0 : null;
+
+  // 5. Calculate New Position
+  const newPos = calculateNewPosition(prevPos, nextPos);
+
+  return { isValid: true, newPos, newParentId };
+};
+
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const [joinedProjects, setJoinedProjects] = useState([]);
@@ -173,137 +255,34 @@ const TaskList = () => {
       }
 
       const activeTask = tasks.find((t) => t.id === active.id);
-      const overTask = tasks.find((t) => t.id === over.id);
-
       if (!activeTask) return;
 
-      // Determine new parent and origin based on drop target ID
-      let newParentId = null;
-      let targetOrigin = null;
+      // Attempt 1: Calculate Position
+      let result = calculateDropTarget(tasks, active.id, over.id, activeTask.origin);
 
-      const overId = String(over.id);
-
-      if (overId.startsWith('child-context-')) {
-        // Dropping into a child context (e.g. empty subtask list or between items)
-        const parentId = overId.replace('child-context-', '');
-        const parentTask = tasks.find((t) => t.id === parentId);
-
-        if (parentTask) {
-          newParentId = parentId;
-          targetOrigin = parentTask.origin;
-        } else {
-          console.warn(`Drop target parent ${parentId} not found`);
-          return;
-        }
-      } else if (overId === 'root-instance') {
-        newParentId = null;
-        targetOrigin = 'instance';
-      } else if (overId === 'root-template') {
-        newParentId = null;
-        targetOrigin = 'template';
-      } else {
-        // Dropping onto another task item directly
-        if (overTask) {
-          newParentId = overTask.parent_task_id ?? null;
-          targetOrigin = overTask.origin;
-        } else {
-          // Unknown drop target
-          return;
-        }
-      }
-
-      // Safety: Origin Check
-      if (activeTask.origin !== targetOrigin) {
+      if (!result.isValid) {
         return;
       }
 
-      // We need the siblings in the target container to determine neighbors.
-      const siblings = tasks
-        .filter((t) => (t.parent_task_id ?? null) === newParentId && t.origin === activeTask.origin)
-        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      let { newPos, newParentId } = result;
 
-      const activeIndex = siblings.findIndex((t) => t.id === active.id);
-      const overIndex = siblings.findIndex((t) => t.id === over.id);
-
-      let prevTask, nextTask;
-
-      if (over.id.toString().startsWith('child-context-') || over.id === 'root-instance' || over.id === 'root-template') {
-        // Dropped into container -> Append to end logic
-        // If we wanted to be smarter, we could look at collision coordinates, but appending is safe for now.
-        if (siblings.length > 0) {
-          prevTask = siblings[siblings.length - 1];
-          nextTask = null;
-        } else {
-          prevTask = null;
-          nextTask = null;
-        }
-      } else if (activeIndex !== -1 && activeIndex < overIndex) {
-        // Reordering in same list: Dragging DOWN. Active goes AFTER Over.
-        prevTask = siblings[overIndex];
-        nextTask = siblings[overIndex + 1];
-      } else {
-        // Dragging UP or Reparenting onto a task: Insert BEFORE the target (Standard Sortable Behavior)
-        // note: if activeIndex > overIndex (dragging up), we put it before Over.
-        // if reparenting (activeIndex === -1), we put it before Over.
-        prevTask = siblings[overIndex - 1];
-        nextTask = siblings[overIndex];
-      }
-
-      const prevPos = prevTask ? prevTask.position ?? 0 : 0;
-      const nextPos = nextTask ? nextTask.position ?? 0 : null;
-
-      let newPos = calculateNewPosition(prevPos, nextPos);
-
+      // Retry Logic: Renormalization
       if (newPos === null) {
-        // Collision detected. Renormalize and Retry.
+        console.log("Collision detected. Renormalizing...");
         await renormalizePositions(newParentId, activeTask.origin);
 
-        // Fetch fresh data to get new positions
         const freshTasks = await fetchTasks();
 
-        // Re-calculate based on fresh data
-        const freshSiblings = freshTasks
-          .filter((t) => (t.parent_task_id ?? null) === newParentId && t.origin === activeTask.origin)
-          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        // Attempt 2: Re-calculate with fresh data
+        result = calculateDropTarget(freshTasks, active.id, over.id, activeTask.origin);
 
-        // Re-find neighbors in fresh list
-        // Note: active task ID is still the same. Over ID is same.
-        // We need to re-apply the logic to find prev/next in fresh list.
-        // This is tricky because indices might have changed (unlikely if just renormalized, but safer to re-find).
-
-        // Simplified Retry: Just take the gap at the end? No, we want to maintain the specific user intent.
-        // We must re-find the 'over' task in the fresh list and apply the same logic.
-
-        const freshOverIndex = freshSiblings.findIndex((t) => t.id === over.id);
-        const freshActiveIndex = freshSiblings.findIndex((t) => t.id === active.id); // might be -1 if reparenting
-
-        let freshPrev, freshNext;
-
-        if (over.id.toString().startsWith('child-context-') || over.id === 'root-instance' || over.id === 'root-template') {
-          if (freshSiblings.length > 0) {
-            freshPrev = freshSiblings[freshSiblings.length - 1];
-            freshNext = null;
-          } else {
-            freshPrev = null;
-            freshNext = null;
-          }
-        } else if (freshActiveIndex !== -1 && freshActiveIndex < freshOverIndex) {
-          freshPrev = freshSiblings[freshOverIndex];
-          freshNext = freshSiblings[freshOverIndex + 1];
-        } else {
-          freshPrev = freshSiblings[freshOverIndex - 1];
-          freshNext = freshSiblings[freshOverIndex];
-        }
-
-        const freshPrevPos = freshPrev ? freshPrev.position ?? 0 : 0;
-        const freshNextPos = freshNext ? freshNext.position ?? 0 : null;
-
-        newPos = calculateNewPosition(freshPrevPos, freshNextPos);
-
-        if (newPos === null) {
+        if (!result.isValid || result.newPos === null) {
           console.error("Failed to calculate position even after renormalization.");
-          return; // Abort if still failing (hard collision)
+          return;
         }
+
+        newPos = result.newPos;
+        newParentId = result.newParentId;
       }
 
       // Optimistic Update

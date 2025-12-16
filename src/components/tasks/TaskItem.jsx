@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import RoleIndicator from '../common/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useDroppable } from '@dnd-kit/core';
 
 const TaskItem = ({
   task,
@@ -55,6 +56,15 @@ const TaskItem = ({
       onAddChildTask(task);
     }
   };
+
+  const { setNodeRef: setDroppableNodeRef } = useDroppable({
+    id: `child-context-${task.id}`,
+    data: {
+      type: 'container',
+      parentId: task.id,
+      origin: task.origin,
+    },
+  });
 
   return (
     <>
@@ -152,7 +162,11 @@ const TaskItem = ({
       </div>
 
       {canHaveChildren && isExpanded && (
-        <div className="task-children" style={{ minHeight: '10px' }}>
+        <div
+          className="task-children"
+          style={{ minHeight: '10px' }}
+          ref={setDroppableNodeRef}
+        >
           <SortableContext
             items={task.children ? task.children.map((c) => c.id) : []}
             strategy={verticalListSortingStrategy}

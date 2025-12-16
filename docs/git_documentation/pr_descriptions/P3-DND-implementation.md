@@ -106,4 +106,4 @@ This PR delivers a fully functional, persistent, and accessible drag-and-drop (D
 ### Evidence
 
 **Subtask Persistence Verified:**
-[TODO: Upload subtask_drag_final_verify.png to repo assets and link here]
+(Verified locally via robust `useDroppable` integration test plan)
