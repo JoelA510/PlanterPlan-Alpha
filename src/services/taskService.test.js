@@ -85,7 +85,7 @@ describe('fetchMasterLibraryTasks', () => {
   });
 
   it('returns empty array when payload shape invalid', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
     const { client } = createMockClient({ data: [{ bad: 'record' }], error: null });
 
     const results = await fetchMasterLibraryTasks({}, client);
@@ -145,6 +145,13 @@ describe('deepCloneTask', () => {
               return {
                 eq: jest.fn(() => ({
                   single: mockSingle,
+                })),
+              };
+            }
+            if (cols === 'root_id') {
+              return {
+                eq: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({ data: { root_id: 'existing-root' }, error: null }),
                 })),
               };
             }

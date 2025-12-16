@@ -251,7 +251,14 @@ export const deepCloneTask = async (
 
     // 3. Prepare new objects
     const { prepareDeepClone } = await import('../utils/treeHelpers');
-    const newTasks = prepareDeepClone(tree, templateId, newParentId, newOrigin, userId, existingRootId);
+    const newTasks = prepareDeepClone(
+      tree,
+      templateId,
+      newParentId,
+      newOrigin,
+      userId,
+      existingRootId
+    );
 
     // 4. Insert
     const { data, error } = await client.from('tasks').insert(newTasks).select();
@@ -261,6 +268,22 @@ export const deepCloneTask = async (
     return data;
   } catch (error) {
     console.error('[taskService.deepCloneTask] Error:', error);
+    throw error;
+  }
+};
+
+export const getTasksForUser = async (userId, client = supabase) => {
+  try {
+    const { data, error } = await client
+      .from('tasks')
+      .select('*')
+      .eq('creator', userId)
+      .order('position', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('[taskService.getTasksForUser] Error fetching tasks:', error);
     throw error;
   }
 };

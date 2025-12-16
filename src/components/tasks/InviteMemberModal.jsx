@@ -10,7 +10,8 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
   const [success, setSuccess] = useState(false);
 
   // Fix UX-01: Client-side UUID Regex
-  const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  const UUID_REGEX =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
