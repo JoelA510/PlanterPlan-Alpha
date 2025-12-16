@@ -64,7 +64,9 @@ const separateTasksByOrigin = (tasks) => {
   };
 };
 
-const calculateDropTarget = (allTasks, activeId, overId, activeOrigin) => {
+const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
+  const activeId = active.id;
+  const overId = over.id;
   const activeTask = allTasks.find((t) => t.id === activeId);
   if (!activeTask) return { isValid: false };
 
@@ -72,15 +74,16 @@ const calculateDropTarget = (allTasks, activeId, overId, activeOrigin) => {
   let newParentId = null;
   let targetOrigin = null;
   const overIdStr = String(overId);
+  const overData = over.data?.current || {};
 
-  if (overIdStr.startsWith('child-context-')) {
-    const parentId = overIdStr.replace('child-context-', '');
-    const parentTask = allTasks.find((t) => t.id === parentId);
-    if (parentTask) {
-      newParentId = parentId;
-      targetOrigin = parentTask.origin;
-    } else {
-      console.warn(`Drop target parent ${parentId} not found`);
+  if (overData.type === 'container') {
+    // Dropped into an empty container
+    newParentId = overData.parentId; // This might be a task ID or null (for root)
+    targetOrigin = overData.origin;
+
+    // Safety check: verify parent exists if it's not a root drop
+    if (newParentId && !allTasks.find((t) => t.id === newParentId)) {
+      console.warn(`Drop target parent ${newParentId} not found`);
       return { isValid: false };
     }
   } else if (overIdStr === 'root-instance') {
@@ -100,6 +103,21 @@ const calculateDropTarget = (allTasks, activeId, overId, activeOrigin) => {
     }
   }
 
+  // 1b. Circular Ancestry Check (Grandfather Paradox)
+  // If we are reparenting (newParentId is not null), we must ensure 
+  // that the new parent is not a descendant of the active task.
+  if (newParentId) {
+    let ancestorId = newParentId;
+    while (ancestorId) {
+      if (ancestorId === activeId) {
+        console.warn('Cannot drop a parent into its own child (Circular dependency detected)');
+        return { isValid: false };
+      }
+      const ancestor = allTasks.find((t) => t.id === ancestorId);
+      ancestorId = ancestor ? ancestor.parent_task_id : null;
+    }
+  }
+
   // 2. Validate Origin
   if (activeOrigin !== targetOrigin) {
     return { isValid: false };
@@ -116,7 +134,7 @@ const calculateDropTarget = (allTasks, activeId, overId, activeOrigin) => {
   // 4. Determine prev/next neighbors
   let prevTask, nextTask;
 
-  const isContainerDrop = overIdStr.startsWith('child-context-') || overIdStr === 'root-instance' || overIdStr === 'root-template';
+  const isContainerDrop = overData.type === 'container' || overIdStr === 'root-instance' || overIdStr === 'root-template';
 
   if (isContainerDrop) {
     // Dropped into container -> Append to end logic
@@ -258,7 +276,7 @@ const TaskList = () => {
       if (!activeTask) return;
 
       // Attempt 1: Calculate Position
-      let result = calculateDropTarget(tasks, active.id, over.id, activeTask.origin);
+      let result = calculateDropTarget(tasks, active, over, activeTask.origin);
 
       if (!result.isValid) {
         return;
@@ -274,7 +292,7 @@ const TaskList = () => {
         const freshTasks = await fetchTasks();
 
         // Attempt 2: Re-calculate with fresh data
-        result = calculateDropTarget(freshTasks, active.id, over.id, activeTask.origin);
+        result = calculateDropTarget(freshTasks, active, over, activeTask.origin);
 
         if (!result.isValid || result.newPos === null) {
           console.error("Failed to calculate position even after renormalization.");

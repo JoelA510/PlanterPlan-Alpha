@@ -34,8 +34,10 @@ This PR implements a robust, persistent, and accessible Drag-and-Drop (DnD) syst
 - **Logic Resilience**:
     - **Container Drops**: Enabled dropping items into empty containers (empty lists) by detecting container drop targets.
     - **Renormalization Retry**: Implemented automatic retry logic when a position collision occurs, ensuring the move completes successfully after rebalancing.
-    - **Robust Drop Parsing**: Extracted `calculateDropTarget` helper to parse `child-context-{id}` and `root-` IDs reliably, replacing fragile data queries.
+    - **Robust Drop Parsing**: Refactored to use `over.data.current` for type safety, replacing brittle ID string parsing.
     - **Empty Drops**: Added explicit `useDroppable` zones to `TaskItem.jsx` to ensure empty lists are valid targets.
+    - **Circular Safety**: Added ancestry checks to prevent dropping a parent task into its own descendant.
+
 
 ### **Verification**
 - **Tests**: Added `src/services/positionService.test.js` verifying midpoint logic, boundary conditions (start/end), and renormalization triggers.

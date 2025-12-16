@@ -52,28 +52,18 @@ export const renormalizePositions = async (parentId, origin) => {
   }
 
   // 2. Perform updates
-  // Refactored to use Promise.all for parallelism as per PR #25 optimization directives.
-
+  // Refactored to use bulk upsert for atomicity and performance
   const updates = tasks.map((task, index) => ({
     id: task.id,
     position: (index + 1) * POSITION_STEP,
+    updated_at: new Date().toISOString(),
   }));
 
-  const updatePromises = updates.map((update) =>
-    supabase
-      .from('tasks')
-      .update({ position: update.position })
-      .eq('id', update.id)
-      .then(({ error }) => {
-        if (error) throw error;
-      })
-  );
+  const { error: updateError } = await supabase.from('tasks').upsert(updates);
 
-  try {
-    await Promise.all(updatePromises);
-  } catch (error) {
-    console.error('Renormalization update failed', error);
-    throw error;
+  if (updateError) {
+    console.error('Renormalization update failed', updateError);
+    throw updateError;
   }
 };
 

@@ -170,7 +170,7 @@ const TaskItem = ({
           <SortableContext
             items={task.children ? task.children.map((c) => c.id) : []}
             strategy={verticalListSortingStrategy}
-            id={`child-context-${task.id}`}
+            id={`sortable-context-${task.id}`}
           >
             {task.children &&
               task.children.map((child) => (

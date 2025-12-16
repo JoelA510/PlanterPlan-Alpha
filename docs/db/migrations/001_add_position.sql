@@ -16,7 +16,7 @@ WITH numbered_tasks AS (
   SELECT 
     id, 
     ROW_NUMBER() OVER (
-      PARTITION BY parent_task_id 
+      PARTITION BY origin, parent_task_id 
       ORDER BY created_at ASC
     ) as rn
   FROM public.tasks
