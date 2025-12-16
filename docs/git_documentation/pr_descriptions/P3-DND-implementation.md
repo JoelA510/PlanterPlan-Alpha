@@ -106,4 +106,4 @@ This PR delivers a fully functional, persistent, and accessible drag-and-drop (D
 ### Evidence
 
 **Subtask Persistence Verified:**
-![Subtask Fix Proof](file:///C:/Users/joel.abraham/.gemini/antigravity/brain/04177868-74aa-479b-bafa-4075668c12fd/subtask_drag_final_verify_1765837581702.png)
+[TODO: Upload subtask_drag_final_verify.png to repo assets and link here]

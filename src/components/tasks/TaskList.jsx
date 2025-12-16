@@ -46,7 +46,12 @@ const buildTaskHierarchy = (tasks) => {
     }
   });
 
-  return rootTasks.sort((a, b) => (a.position || 0) - (b.position || 0));
+  // Sort children for every task to ensure deterministic rendering order
+  Object.values(taskMap).forEach((task) => {
+    task.children.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  });
+
+  return rootTasks.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 };
 
 const separateTasksByOrigin = (tasks) => {
@@ -180,13 +185,13 @@ const TaskList = () => {
         return;
       }
 
-      const newParentId = overTask ? overTask.parent_task_id || null : null;
+      const newParentId = overTask ? overTask.parent_task_id ?? null : null;
 
       // We need the siblings in the target container to determine neighbors.
       // NOTE: This assumes we are reordering within the same parent or reparenting to the dropped item's parent.
       const siblings = tasks
-        .filter((t) => (t.parent_task_id || null) === newParentId && t.origin === activeTask.origin)
-        .sort((a, b) => (a.position || 0) - (b.position || 0));
+        .filter((t) => (t.parent_task_id ?? null) === newParentId && t.origin === activeTask.origin)
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
       const activeIndex = siblings.findIndex((t) => t.id === active.id);
       const overIndex = siblings.findIndex((t) => t.id === over.id);
@@ -209,8 +214,8 @@ const TaskList = () => {
           nextTask = siblings[overIndex];
         }
 
-        const prevPos = prevTask ? prevTask.position || 0 : 0;
-        const nextPos = nextTask ? nextTask.position || 0 : null; // null means "end" or far future
+        const prevPos = prevTask ? prevTask.position ?? 0 : 0;
+        const nextPos = nextTask ? nextTask.position ?? 0 : null; // null means "end" or far future
 
         const calculated = calculateNewPosition(prevPos, nextPos);
         newPos = calculated;
@@ -225,8 +230,8 @@ const TaskList = () => {
         const prevTask = siblings[overIndex - 1];
         const nextTask = siblings[overIndex];
 
-        const prevPos = prevTask ? prevTask.position || 0 : 0;
-        const nextPos = nextTask ? nextTask.position || 0 : null;
+        const prevPos = prevTask ? prevTask.position ?? 0 : 0;
+        const nextPos = nextTask ? nextTask.position ?? 0 : null;
 
         const calculated = calculateNewPosition(prevPos, nextPos);
 
@@ -366,7 +371,7 @@ const TaskList = () => {
 
       const instanceTasks = tasks.filter((t) => t.origin === 'instance' && !t.parent_task_id);
       const maxPosition =
-        instanceTasks.length > 0 ? Math.max(...instanceTasks.map((t) => t.position || 0)) : 0;
+        instanceTasks.length > 0 ? Math.max(...instanceTasks.map((t) => t.position ?? 0)) : 0;
 
       const projectStartDate = toIsoDate(formData.start_date);
 
@@ -527,7 +532,7 @@ const TaskList = () => {
       });
 
       const maxPosition =
-        siblings.length > 0 ? Math.max(...siblings.map((task) => task.position || 0)) : 0;
+        siblings.length > 0 ? Math.max(...siblings.map((task) => task.position ?? 0)) : 0;
 
       const insertPayload = {
         title: formData.title,

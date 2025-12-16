@@ -52,25 +52,28 @@ export const renormalizePositions = async (parentId, origin) => {
   }
 
   // 2. Perform updates
-  // We use sequential updates to avoid "upsert" issues with missing NOT NULL columns.
-  // Performance note: For typical list sizes (buckets), this is acceptable.
+  // Refactored to use Promise.all for parallelism as per PR #25 optimization directives.
 
   const updates = tasks.map((task, index) => ({
     id: task.id,
     position: (index + 1) * POSITION_STEP,
   }));
 
-  for (const update of updates) {
-    const { error: updateError } = await supabase
+  const updatePromises = updates.map((update) =>
+    supabase
       .from('tasks')
       .update({ position: update.position })
-      .eq('id', update.id);
+      .eq('id', update.id)
+      .then(({ error }) => {
+        if (error) throw error;
+      })
+  );
 
-    if (updateError) {
-      console.error('Renormalization update failed for task', update.id, updateError);
-      // Continue trying others? Or throw? Throwing is safer to alert.
-      throw updateError;
-    }
+  try {
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.error('Renormalization update failed', error);
+    throw error;
   }
 };
 

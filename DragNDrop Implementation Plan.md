@@ -159,7 +159,7 @@ Use a helper in `src/services/taskService.js` or `src/utils/dragUtils.js`:
   - `prevPos = prev ? prev.position : 0`
   - `nextPos = next ? next.position : prevPos + STEP`
 
-- `newPos = (prevPos + nextPos) / 2` (numeric positions)
+- `newPos = Math.floor((prevPos + nextPos) / 2)` (numeric positions)
 - If `nextPos - prevPos < MIN_GAP` -> renormalize siblings:
   - assign `position = (index + 1) * STEP` for the full sibling list
   - bulk persist (single upsert call if supported)
