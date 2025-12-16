@@ -34,7 +34,7 @@ export const renormalizePositions = async (parentId, origin, userId) => {
 
   let query = supabase
     .from('tasks')
-    .select('id, position')
+    .select('*') // Fetched full objects to allow local state update
     .eq('origin', origin)
     .eq('creator', userId)
     .order('position', { ascending: true });
@@ -49,15 +49,20 @@ export const renormalizePositions = async (parentId, origin, userId) => {
 
   if (error || !tasks) {
     console.error('Error fetching tasks for renormalization:', error);
-    return;
+    return [];
   }
 
   // 2. Perform updates
   // Refactored to use bulk upsert for atomicity and performance
   // Removed updated_at to prevent schema cache conflicts
-  const updates = tasks.map((task, index) => ({
-    id: task.id,
+  const updatedTasks = tasks.map((task, index) => ({
+    ...task, // Keep all original fields
     position: (index + 1) * POSITION_STEP,
+  }));
+
+  const updates = updatedTasks.map(({ id, position }) => ({
+    id,
+    position,
   }));
 
   const { error: updateError } = await supabase.from('tasks').upsert(updates);
@@ -66,6 +71,8 @@ export const renormalizePositions = async (parentId, origin, userId) => {
     console.error('Renormalization update failed', updateError);
     throw updateError;
   }
+
+  return updatedTasks;
 };
 
 /**

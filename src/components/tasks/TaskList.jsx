@@ -283,9 +283,11 @@ const TaskList = () => {
         // Retry Logic: Renormalization
         if (newPos === null) {
           console.log("Collision detected. Renormalizing...");
-          await renormalizePositions(newParentId, activeTask.origin, currentUserId);
+          const renormalizedSiblings = await renormalizePositions(newParentId, activeTask.origin, currentUserId);
 
-          const freshTasks = await getTasksForUser(currentUserId);
+          // Merge renormalized tasks into current state locally
+          const siblingsMap = new Map(renormalizedSiblings.map(t => [t.id, t]));
+          const freshTasks = tasks.map(t => siblingsMap.get(t.id) || t);
 
           // Attempt 2: Re-calculate with fresh data
           result = calculateDropTarget(freshTasks, active, over, activeTask.origin);

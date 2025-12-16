@@ -49,6 +49,7 @@ This PR implements a robust, persistent, and accessible Drag-and-Drop (DnD) syst
     - **Build Fix**: Resolved duplicate import errors in `TaskList.jsx`.
     - **Data Integrity**: Enforced Number coercion for position calculations to prevent BigInt string concatenation bugs.
     - **DB Performance**: Optimized composite index to support multi-column filtering used in renormalization.
+    - **Renormalization Perf**: Refactored `renormalizePositions` to return updated rows, allowing `TaskList` to merge changes locally without a full re-fetch.
     - **UX**: Explicitly disabled "Add Subtask" for Joined Projects to remove ambiguity.
 
 
