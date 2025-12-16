@@ -129,7 +129,7 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
   // 4. Determine prev/next neighbors
   let prevTask, nextTask;
 
-  const isContainerDrop = overData.type === 'container' || overIdStr === 'root-instance' || overIdStr === 'root-template';
+  const isContainerDrop = overData.type === 'container';
 
   if (isContainerDrop) {
     // Dropped into container -> Append to end logic
