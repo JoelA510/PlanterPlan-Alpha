@@ -11,9 +11,8 @@ const MIN_GAP = 2; // Minimum gap before triggering renormalization
  */
 export const calculateNewPosition = (prevPos, nextPos) => {
   const previous = Number(prevPos ?? 0);
-  // If no next item, give plenty of space
-  const next =
-    nextPos != null ? Number(nextPos) : previous + POSITION_STEP * 2;
+  const hasNext = nextPos !== undefined && nextPos !== null;
+  const next = hasNext ? Number(nextPos) : previous + POSITION_STEP * 2;
 
   // Check for collision or insufficient gap
   if (next - previous < MIN_GAP) {

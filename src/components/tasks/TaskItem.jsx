@@ -162,11 +162,7 @@ const TaskItem = ({
       </div>
 
       {canHaveChildren && isExpanded && (
-        <div
-          className="task-children"
-          style={{ minHeight: '10px' }}
-          ref={setDroppableNodeRef}
-        >
+        <div className="task-children" style={{ minHeight: '10px' }} ref={setDroppableNodeRef}>
           <SortableContext
             items={task.children ? task.children.map((c) => c.id) : []}
             strategy={verticalListSortingStrategy}

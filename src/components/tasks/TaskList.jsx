@@ -74,7 +74,6 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
   // 1. Determine new parent and origin based on drop target ID
   let newParentId = null;
   let targetOrigin = null;
-  const overIdStr = String(overId);
   const overData = over.data?.current || {};
 
   if (overData.type === 'container') {
@@ -99,7 +98,7 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
   }
 
   // 1b. Circular Ancestry Check (Grandfather Paradox)
-  // If we are reparenting (newParentId is not null), we must ensure 
+  // If we are reparenting (newParentId is not null), we must ensure
   // that the new parent is not a descendant of the active task.
   if (newParentId) {
     let ancestorId = newParentId;
@@ -108,7 +107,8 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
         console.warn('Cannot drop a parent into its own child (Circular dependency detected)');
         return { isValid: false };
       }
-      const ancestor = allTasks.find((t) => t.id === ancestorId);
+      const currentAncestorId = ancestorId;
+      const ancestor = allTasks.find((t) => t.id === currentAncestorId);
       ancestorId = ancestor ? ancestor.parent_task_id : null;
     }
   }
@@ -129,7 +129,7 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
   // 4. Determine prev/next neighbors
   let prevTask, nextTask;
 
-  const isContainerDrop = overData.type === 'container';
+  const isContainerDrop = overData.type === 'container'; // removed unused vars
 
   if (isContainerDrop) {
     // Dropped into container -> Append to end logic
@@ -150,8 +150,8 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
     nextTask = siblings[overIndex];
   }
 
-  const prevPos = prevTask ? prevTask.position ?? 0 : 0;
-  const nextPos = nextTask ? nextTask.position ?? 0 : null;
+  const prevPos = prevTask ? (prevTask.position ?? 0) : 0;
+  const nextPos = nextTask ? (nextTask.position ?? 0) : null;
 
   // 5. Calculate New Position
   const newPos = calculateNewPosition(prevPos, nextPos);
@@ -282,18 +282,22 @@ const TaskList = () => {
 
         // Retry Logic: Renormalization
         if (newPos === null) {
-          console.log("Collision detected. Renormalizing...");
-          const renormalizedSiblings = await renormalizePositions(newParentId, activeTask.origin, currentUserId);
+          console.log('Collision detected. Renormalizing...');
+          const renormalizedSiblings = await renormalizePositions(
+            newParentId,
+            activeTask.origin,
+            currentUserId
+          );
 
           // Merge renormalized tasks into current state locally
-          const siblingsMap = new Map(renormalizedSiblings.map(t => [t.id, t]));
-          const freshTasks = tasks.map(t => siblingsMap.get(t.id) || t);
+          const siblingsMap = new Map(renormalizedSiblings.map((t) => [t.id, t]));
+          const freshTasks = tasks.map((t) => siblingsMap.get(t.id) || t);
 
           // Attempt 2: Re-calculate with fresh data
           result = calculateDropTarget(freshTasks, active, over, activeTask.origin);
 
           if (!result.isValid || result.newPos === null) {
-            console.error("Failed to calculate position even after renormalization.");
+            console.error('Failed to calculate position even after renormalization.');
             return;
           }
 
@@ -334,7 +338,6 @@ const TaskList = () => {
     },
     [tasks, fetchTasks, currentUserId]
   );
-
 
   useEffect(() => {
     isMountedRef.current = true;
