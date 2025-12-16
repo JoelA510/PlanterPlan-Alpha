@@ -305,7 +305,7 @@ const TaskList = () => {
           newParentId = result.newParentId;
 
           // IMPORTANT: Use freshTasks for the optimistic update to ensure consistency
-          setTasks((prev) =>
+          setTasks(() =>
             freshTasks.map((t) => {
               if (t.id === active.id) {
                 return { ...t, position: newPos, parent_task_id: newParentId };

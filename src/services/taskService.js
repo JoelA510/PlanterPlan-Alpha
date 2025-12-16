@@ -101,7 +101,7 @@ export const searchMasterLibraryTasks = async (
   let queryBuilder = client
     .from(MASTER_LIBRARY_VIEW)
     .select('*')
-    .or(`title.ilike.${likePattern},description.ilike.${likePattern}`)
+    .or(`title.ilike."${likePattern}",description.ilike."${likePattern}"`)
     .order('updated_at', { ascending: false })
     .limit(size);
 
