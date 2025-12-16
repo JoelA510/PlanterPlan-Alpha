@@ -26,10 +26,8 @@ describe('positionService', () => {
     it('handles insertion at end (next=undefined/null)', () => {
       const prev = 30000;
       const result = calculateNewPosition(prev, null);
-      // Logic: prev + 2*STEP (30000 + 20000) / 2 = 25000?
-      // Wait, let's check implementation:
-      // next = previous + (POSITION_STEP * 2) -> 30000 + 20000 = 50000
-      // (30000 + 50000) / 2 = 40000.
+      // Logic: next is treated as prev + 2*STEP (30000 + 20000 = 50000)
+      // Midpoint: (30000 + 50000) / 2 = 40000
       expect(result).toBe(40000);
     });
 

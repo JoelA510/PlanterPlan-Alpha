@@ -271,3 +271,19 @@ export const deepCloneTask = async (
     throw error;
   }
 };
+
+export const getTasksForUser = async (userId, client = supabase) => {
+  try {
+    const { data, error } = await client
+      .from('tasks')
+      .select('*')
+      .eq('creator', userId)
+      .order('position', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('[taskService.getTasksForUser] Error fetching tasks:', error);
+    throw error;
+  }
+};

@@ -7,7 +7,8 @@ import TaskDetailsView from './TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
 import InviteMemberModal from './InviteMemberModal';
 import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
-import { deepCloneTask } from '../../services/taskService';
+import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
+import { deepCloneTask, getTasksForUser } from '../../services/taskService';
 import { getJoinedProjects } from '../../services/projectService';
 import {
   DndContext,
@@ -233,19 +234,9 @@ const TaskList = () => {
       }
       setCurrentUserId(user.id);
 
-      const { data, error: fetchError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('creator', user.id)
-        .order('position', { ascending: true });
+      const data = await getTasksForUser(user.id);
 
       if (!isMountedRef.current) {
-        return [];
-      }
-
-      if (fetchError) {
-        setError(fetchError.message);
-        setTasks([]);
         return [];
       }
 
@@ -300,7 +291,7 @@ const TaskList = () => {
         console.log("Collision detected. Renormalizing...");
         await renormalizePositions(newParentId, activeTask.origin, currentUserId);
 
-        const freshTasks = await fetchTasks();
+        const freshTasks = await getTasksForUser(currentUserId);
 
         // Attempt 2: Re-calculate with fresh data
         result = calculateDropTarget(freshTasks, active, over, activeTask.origin);

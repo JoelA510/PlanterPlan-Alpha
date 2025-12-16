@@ -11,7 +11,7 @@ const TaskItem = ({
   selectedTaskId,
   onAddChildTask,
   onInviteMember,
-  dragHandleProps, // New prop for dnd-kit
+  dragHandleProps = {}, // New prop for dnd-kit
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 

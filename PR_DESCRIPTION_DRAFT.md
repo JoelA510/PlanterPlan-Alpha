@@ -39,6 +39,8 @@ This PR implements a robust, persistent, and accessible Drag-and-Drop (DnD) syst
     - **Circular Safety**: Added ancestry checks to prevent dropping a parent task into its own descendant.
     - **Multi-tenant Safety**: Scoped `renormalizePositions` to the current user to prevent cross-account data corruption.
     - **Schema Compatibility**: Removed `updated_at` from bulk upserts to avoid PostgREST schema cache conflicts.
+    - **Crash Prevention**: Guarded `dragHandleProps` in `TaskItem` to prevent runtime errors in non-sortable lists (e.g., Joined Projects).
+    - **Performance**: Decoupled data fetching from state updates during drag-and-drop retries to avoid unnecessary re-renders.
 
 
 ### **Verification**
