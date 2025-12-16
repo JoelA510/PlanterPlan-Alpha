@@ -7,7 +7,6 @@ import TaskDetailsView from './TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
 import InviteMemberModal from './InviteMemberModal';
 import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
-import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
 import { deepCloneTask, getTasksForUser } from '../../services/taskService';
 import { getJoinedProjects } from '../../services/projectService';
 import {
@@ -262,72 +261,78 @@ const TaskList = () => {
 
   const handleDragEnd = useCallback(
     async (event) => {
-      const { active, over } = event;
+      try {
+        const { active, over } = event;
 
-      if (!over || active.id === over.id) {
-        return;
-      }
-
-      const activeTask = tasks.find((t) => t.id === active.id);
-      if (!activeTask) return;
-
-      // Attempt 1: Calculate Position
-      let result = calculateDropTarget(tasks, active, over, activeTask.origin);
-
-      if (!result.isValid) {
-        return;
-      }
-
-      let { newPos, newParentId } = result;
-
-      // Retry Logic: Renormalization
-      if (newPos === null) {
-        console.log("Collision detected. Renormalizing...");
-        await renormalizePositions(newParentId, activeTask.origin, currentUserId);
-
-        const freshTasks = await getTasksForUser(currentUserId);
-
-        // Attempt 2: Re-calculate with fresh data
-        result = calculateDropTarget(freshTasks, active, over, activeTask.origin);
-
-        if (!result.isValid || result.newPos === null) {
-          console.error("Failed to calculate position even after renormalization.");
+        if (!over || active.id === over.id) {
           return;
         }
 
-        newPos = result.newPos;
-        newParentId = result.newParentId;
+        const activeTask = tasks.find((t) => t.id === active.id);
+        if (!activeTask) return;
 
-        // IMPORTANT: Use freshTasks for the optimistic update to ensure consistency
-        setTasks((prev) =>
-          freshTasks.map((t) => {
-            if (t.id === active.id) {
-              return { ...t, position: newPos, parent_task_id: newParentId };
-            }
-            return t;
-          })
-        );
-      } else {
-        // Standard optimistic update uses existing state
-        setTasks((prev) =>
-          prev.map((t) => {
-            if (t.id === active.id) {
-              return { ...t, position: newPos, parent_task_id: newParentId };
-            }
-            return t;
-          })
-        );
-      }
+        // Attempt 1: Calculate Position
+        let result = calculateDropTarget(tasks, active, over, activeTask.origin);
 
-      try {
-        await updateTaskPosition(active.id, newPos, newParentId);
-      } catch (e) {
-        console.error('Failed to persist move', e);
+        if (!result.isValid) {
+          return;
+        }
+
+        let { newPos, newParentId } = result;
+
+        // Retry Logic: Renormalization
+        if (newPos === null) {
+          console.log("Collision detected. Renormalizing...");
+          await renormalizePositions(newParentId, activeTask.origin, currentUserId);
+
+          const freshTasks = await getTasksForUser(currentUserId);
+
+          // Attempt 2: Re-calculate with fresh data
+          result = calculateDropTarget(freshTasks, active, over, activeTask.origin);
+
+          if (!result.isValid || result.newPos === null) {
+            console.error("Failed to calculate position even after renormalization.");
+            return;
+          }
+
+          newPos = result.newPos;
+          newParentId = result.newParentId;
+
+          // IMPORTANT: Use freshTasks for the optimistic update to ensure consistency
+          setTasks((prev) =>
+            freshTasks.map((t) => {
+              if (t.id === active.id) {
+                return { ...t, position: newPos, parent_task_id: newParentId };
+              }
+              return t;
+            })
+          );
+        } else {
+          // Standard optimistic update uses existing state
+          setTasks((prev) =>
+            prev.map((t) => {
+              if (t.id === active.id) {
+                return { ...t, position: newPos, parent_task_id: newParentId };
+              }
+              return t;
+            })
+          );
+        }
+
+        try {
+          await updateTaskPosition(active.id, newPos, newParentId);
+        } catch (e) {
+          console.error('Failed to persist move', e);
+          fetchTasks();
+        }
+      } catch (globalError) {
+        console.error('Unexpected error in handleDragEnd:', globalError);
         fetchTasks();
       }
     },
-    [tasks, fetchTasks]
+    [tasks, fetchTasks, currentUserId]
   );
+
 
   useEffect(() => {
     isMountedRef.current = true;

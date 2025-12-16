@@ -44,6 +44,8 @@ This PR implements a robust, persistent, and accessible Drag-and-Drop (DnD) syst
     - **Documentation**: Corrected comments in `positionService.test.js` to accurately reflect the midpoint calculation logic.
     - **State Consistency**: During renormalization retries, `TaskList` now uses fresh data for the optimistic update, preventing visual flickering or stale positioning.
     - **Root Drops**: Root "Projects" and "Templates" lists are now valid drop targets at all times (not just when empty).
+    - **Stability**: Wrapped drag handler in robust try/catch blocks for graceful failure recovery.
+    - **Clean Code**: Removed redundant imports and UI elements (Joined Projects buttons).
     - **Build Fix**: Resolved duplicate import errors in `TaskList.jsx`.
 
 
