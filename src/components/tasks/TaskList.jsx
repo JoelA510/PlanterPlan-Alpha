@@ -16,6 +16,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -188,6 +189,16 @@ const TaskList = () => {
     })
   );
 
+  const { setNodeRef: setInstanceRootRef } = useDroppable({
+    id: 'drop-root-instance',
+    data: { type: 'container', parentId: null, origin: 'instance' },
+  });
+
+  const { setNodeRef: setTemplateRootRef } = useDroppable({
+    id: 'drop-root-template',
+    data: { type: 'container', parentId: null, origin: 'template' },
+  });
+
   const getTaskById = useCallback(
     (taskId) => {
       if (taskId === null || taskId === undefined) {
@@ -287,7 +298,7 @@ const TaskList = () => {
       // Retry Logic: Renormalization
       if (newPos === null) {
         console.log("Collision detected. Renormalizing...");
-        await renormalizePositions(newParentId, activeTask.origin);
+        await renormalizePositions(newParentId, activeTask.origin, currentUserId);
 
         const freshTasks = await fetchTasks();
 
@@ -886,7 +897,10 @@ const TaskList = () => {
                 </div>
               </SortableContext>
             ) : (
-              <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
+              <div
+                ref={setInstanceRootRef}
+                className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg"
+              >
                 No active projects yet. Use "New Project" to get started.
               </div>
             )}
@@ -925,7 +939,10 @@ const TaskList = () => {
                 </div>
               </SortableContext>
             ) : (
-              <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
+              <div
+                ref={setTemplateRootRef}
+                className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg"
+              >
                 No templates yet. Use "New Template" to start building your reusable library.
               </div>
             )}

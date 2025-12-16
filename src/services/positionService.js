@@ -29,13 +29,14 @@ export const calculateNewPosition = (prevPos, nextPos) => {
  * @param {string} origin - The task origin ('instance' or 'template')
  * @returns {Promise<void>}
  */
-export const renormalizePositions = async (parentId, origin) => {
+export const renormalizePositions = async (parentId, origin, userId) => {
   console.log('Triggering renormalization for parent:', parentId);
 
   let query = supabase
     .from('tasks')
     .select('id, position')
     .eq('origin', origin)
+    .eq('creator', userId)
     .order('position', { ascending: true });
 
   if (parentId) {
@@ -53,10 +54,10 @@ export const renormalizePositions = async (parentId, origin) => {
 
   // 2. Perform updates
   // Refactored to use bulk upsert for atomicity and performance
+  // Removed updated_at to prevent schema cache conflicts
   const updates = tasks.map((task, index) => ({
     id: task.id,
     position: (index + 1) * POSITION_STEP,
-    updated_at: new Date().toISOString(),
   }));
 
   const { error: updateError } = await supabase.from('tasks').upsert(updates);

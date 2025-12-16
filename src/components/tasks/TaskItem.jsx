@@ -130,7 +130,7 @@ const TaskItem = ({
                 </svg>
               </button>
             )}
-            {onInviteMember && (
+            {level === 0 && onInviteMember && (
               <button
                 className="add-child-btn ml-2"
                 onClick={(e) => {
