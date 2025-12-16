@@ -88,12 +88,6 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
       console.warn(`Drop target parent ${newParentId} not found`);
       return { isValid: false };
     }
-  } else if (overIdStr === 'root-instance') {
-    newParentId = null;
-    targetOrigin = 'instance';
-  } else if (overIdStr === 'root-template') {
-    newParentId = null;
-    targetOrigin = 'template';
   } else {
     // Dropping onto another task item directly
     const overTask = allTasks.find((t) => t.id === overId);
@@ -303,17 +297,27 @@ const TaskList = () => {
 
         newPos = result.newPos;
         newParentId = result.newParentId;
-      }
 
-      // Optimistic Update
-      setTasks((prev) =>
-        prev.map((t) => {
-          if (t.id === active.id) {
-            return { ...t, position: newPos, parent_task_id: newParentId };
-          }
-          return t;
-        })
-      );
+        // IMPORTANT: Use freshTasks for the optimistic update to ensure consistency
+        setTasks((prev) =>
+          freshTasks.map((t) => {
+            if (t.id === active.id) {
+              return { ...t, position: newPos, parent_task_id: newParentId };
+            }
+            return t;
+          })
+        );
+      } else {
+        // Standard optimistic update uses existing state
+        setTasks((prev) =>
+          prev.map((t) => {
+            if (t.id === active.id) {
+              return { ...t, position: newPos, parent_task_id: newParentId };
+            }
+            return t;
+          })
+        );
+      }
 
       try {
         await updateTaskPosition(active.id, newPos, newParentId);
@@ -873,7 +877,7 @@ const TaskList = () => {
                 strategy={verticalListSortingStrategy}
                 id="root-instance"
               >
-                <div className="task-cards-container">
+                <div ref={setInstanceRootRef} className="task-cards-container">
                   {instanceTasks.map((project) => (
                     <SortableTaskItem
                       key={project.id}
@@ -916,7 +920,7 @@ const TaskList = () => {
                 strategy={verticalListSortingStrategy}
                 id="root-template"
               >
-                <div className="task-cards-container">
+                <div ref={setTemplateRootRef} className="task-cards-container">
                   {templateTasks.map((template) => (
                     <SortableTaskItem
                       key={template.id}

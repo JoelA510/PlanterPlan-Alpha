@@ -42,6 +42,8 @@ This PR implements a robust, persistent, and accessible Drag-and-Drop (DnD) syst
     - **Crash Prevention**: Guarded `dragHandleProps` in `TaskItem` to prevent runtime errors in non-sortable lists (e.g., Joined Projects).
     - **Performance**: Decoupled data fetching from state updates during drag-and-drop retries to avoid unnecessary re-renders.
     - **Documentation**: Corrected comments in `positionService.test.js` to accurately reflect the midpoint calculation logic.
+    - **State Consistency**: During renormalization retries, `TaskList` now uses fresh data for the optimistic update, preventing visual flickering or stale positioning.
+    - **Root Drops**: Root "Projects" and "Templates" lists are now valid drop targets at all times (not just when empty).
 
 
 ### **Verification**
