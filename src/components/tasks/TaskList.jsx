@@ -178,17 +178,40 @@ const TaskList = () => {
       if (!activeTask) return;
 
       // Safety: Origin Check
-      // over.data.current might be populated by SortableTaskItem or Droppable
+      // over.data.current might be populated by SortableTaskItem or Droppable (container)
       const overOrigin = over.data?.current?.origin || overTask?.origin;
 
       if (activeTask.origin !== overOrigin) {
         return;
       }
 
-      const newParentId = overTask ? overTask.parent_task_id ?? null : null;
+      // Determine new parent
+      let newParentId;
+      if (over.data.current?.type === 'container') {
+        // Dropping into an explicitly defined container (e.g. empty list)
+        // The container's ID should match the parentTaskId it represents (or null for root)
+        // Adjust this if your container data structure is different (e.g. over.data.current.parentId)
+        newParentId = over.data.current.parentId ?? over.id;
+        // NOTE: If using over.id as parentId scheme, verify it matches. 
+        // The directive said: "use over.id (or over.data.current.parentId...)"
+        // We'll use the data property if available for clarity, fallback to over.data.current.parentId (if we store it there) -> fallback to over.id check?
+        // Let's stick to the directive: "use over.id (or over.data.current.parentId)"
+        // If the container IS the parent task (or a placeholder for it), over.id works if it's the task ID.
+        // But usually containers have IDs like "container:taskId". 
+        // We'll trust over.data.current.parentId if present, as it's explicit.
+        if (over.data.current.parentId !== undefined) {
+          newParentId = over.data.current.parentId;
+        } else {
+          // Fallback/Default: assume the container ID itself is the parent ID (unlikely if prefixed)
+          // safe fallback: null if we can't determine
+          newParentId = null;
+        }
+      } else {
+        // Dropping onto another task item
+        newParentId = overTask ? overTask.parent_task_id ?? null : null;
+      }
 
       // We need the siblings in the target container to determine neighbors.
-      // NOTE: This assumes we are reordering within the same parent or reparenting to the dropped item's parent.
       const siblings = tasks
         .filter((t) => (t.parent_task_id ?? null) === newParentId && t.origin === activeTask.origin)
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -196,51 +219,88 @@ const TaskList = () => {
       const activeIndex = siblings.findIndex((t) => t.id === active.id);
       const overIndex = siblings.findIndex((t) => t.id === over.id);
 
-      let newPos = 0;
+      let prevTask, nextTask;
 
-      if (activeIndex !== -1) {
-        // Reordering in same list
-        if (active.id === over.id) return;
-
-        let prevTask, nextTask;
-
-        if (activeIndex < overIndex) {
-          // Dragging down. Active goes AFTER Over.
-          prevTask = siblings[overIndex];
-          nextTask = siblings[overIndex + 1];
+      if (over.data.current?.type === 'container') {
+        // Dropped into container -> Append to end (or start?). Standard DnD often appends to end of empty/non-empty list if dropped on container.
+        // If empty, prev=undefined, next=undefined.
+        // If not empty, we might want to support inserting at specific index if we knew coordinate, 
+        // but for now, "drop on container" usually implies "move to this list". 
+        // Let's put it at the END by default for container drops.
+        if (siblings.length > 0) {
+          prevTask = siblings[siblings.length - 1];
+          nextTask = null;
         } else {
-          // Dragging up. Active goes BEFORE Over.
-          prevTask = siblings[overIndex - 1];
-          nextTask = siblings[overIndex];
+          prevTask = null;
+          nextTask = null;
         }
-
-        const prevPos = prevTask ? prevTask.position ?? 0 : 0;
-        const nextPos = nextTask ? nextTask.position ?? 0 : null; // null means "end" or far future
-
-        const calculated = calculateNewPosition(prevPos, nextPos);
-        newPos = calculated;
-
-        if (calculated === null) {
-          await renormalizePositions(newParentId, activeTask.origin);
-          await fetchTasks();
-          return;
-        }
+      } else if (activeIndex !== -1 && activeIndex < overIndex) {
+        // Reordering in same list: Dragging DOWN. Active goes AFTER Over.
+        prevTask = siblings[overIndex];
+        nextTask = siblings[overIndex + 1];
       } else {
-        // Reparenting - Insert BEFORE the target (Standard Sortable Behavior)
-        const prevTask = siblings[overIndex - 1];
-        const nextTask = siblings[overIndex];
+        // Dragging UP or Reparenting onto a task: Insert BEFORE the target (Standard Sortable Behavior)
+        // note: if activeIndex > overIndex (dragging up), we put it before Over.
+        // if reparenting (activeIndex === -1), we put it before Over.
+        prevTask = siblings[overIndex - 1];
+        nextTask = siblings[overIndex];
+      }
 
-        const prevPos = prevTask ? prevTask.position ?? 0 : 0;
-        const nextPos = nextTask ? nextTask.position ?? 0 : null;
+      const prevPos = prevTask ? prevTask.position ?? 0 : 0;
+      const nextPos = nextTask ? nextTask.position ?? 0 : null;
 
-        const calculated = calculateNewPosition(prevPos, nextPos);
+      let newPos = calculateNewPosition(prevPos, nextPos);
 
-        if (calculated === null) {
-          await renormalizePositions(newParentId, activeTask.origin);
-          await fetchTasks();
-          return;
+      if (newPos === null) {
+        // Collision detected. Renormalize and Retry.
+        await renormalizePositions(newParentId, activeTask.origin);
+
+        // Fetch fresh data to get new positions
+        const freshTasks = await fetchTasks();
+
+        // Re-calculate based on fresh data
+        const freshSiblings = freshTasks
+          .filter((t) => (t.parent_task_id ?? null) === newParentId && t.origin === activeTask.origin)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
+        // Re-find neighbors in fresh list
+        // Note: active task ID is still the same. Over ID is same.
+        // We need to re-apply the logic to find prev/next in fresh list.
+        // This is tricky because indices might have changed (unlikely if just renormalized, but safer to re-find).
+
+        // Simplified Retry: Just take the gap at the end? No, we want to maintain the specific user intent.
+        // We must re-find the 'over' task in the fresh list and apply the same logic.
+
+        const freshOverIndex = freshSiblings.findIndex((t) => t.id === over.id);
+        const freshActiveIndex = freshSiblings.findIndex((t) => t.id === active.id); // might be -1 if reparenting
+
+        let freshPrev, freshNext;
+
+        if (over.data.current?.type === 'container') {
+          if (freshSiblings.length > 0) {
+            freshPrev = freshSiblings[freshSiblings.length - 1];
+            freshNext = null;
+          } else {
+            freshPrev = null;
+            freshNext = null;
+          }
+        } else if (freshActiveIndex !== -1 && freshActiveIndex < freshOverIndex) {
+          freshPrev = freshSiblings[freshOverIndex];
+          freshNext = freshSiblings[freshOverIndex + 1];
+        } else {
+          freshPrev = freshSiblings[freshOverIndex - 1];
+          freshNext = freshSiblings[freshOverIndex];
         }
-        newPos = calculated;
+
+        const freshPrevPos = freshPrev ? freshPrev.position ?? 0 : 0;
+        const freshNextPos = freshNext ? freshNext.position ?? 0 : null;
+
+        newPos = calculateNewPosition(freshPrevPos, freshNextPos);
+
+        if (newPos === null) {
+          console.error("Failed to calculate position even after renormalization.");
+          return; // Abort if still failing (hard collision)
+        }
       }
 
       // Optimistic Update

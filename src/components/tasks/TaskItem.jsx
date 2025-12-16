@@ -189,7 +189,7 @@ export function SortableTaskItem({ task, level, ...props }) {
     data: {
       type: 'Task',
       origin: task.origin,
-      parentId: task.parent_task_id || null, // null for roots
+      parentId: task.parent_task_id ?? null, // null for roots
     },
   });
 

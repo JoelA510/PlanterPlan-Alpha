@@ -82,7 +82,6 @@ export const renormalizePositions = async (parentId, origin) => {
  * @param {string} taskId - ID of moving task
  * @param {number} newPosition - Calculated optimisitic position
  * @param {string} parentId - New parent ID
- * @param {string} origin - Task origin
  */
 export const updateTaskPosition = async (taskId, newPosition, parentId) => {
   const updates = {
