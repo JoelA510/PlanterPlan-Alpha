@@ -1,13 +1,35 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import TaskItem from './TaskItem';
+
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from './TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
+import InviteMemberModal from './InviteMemberModal';
 import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
-import { deepCloneTask } from '../../services/taskService';
+import { deepCloneTask, getTasksForUser } from '../../services/taskService';
 import { getJoinedProjects } from '../../services/projectService';
+import {
+  DndContext,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import TaskItem, { SortableTaskItem } from './TaskItem';
+import {
+  calculateNewPosition,
+  updateTaskPosition,
+  renormalizePositions,
+  POSITION_STEP,
+} from '../../services/positionService';
 
 const buildTaskHierarchy = (tasks) => {
   const taskMap = {};
@@ -25,7 +47,12 @@ const buildTaskHierarchy = (tasks) => {
     }
   });
 
-  return rootTasks.sort((a, b) => (a.position || 0) - (b.position || 0));
+  // Sort children for every task to ensure deterministic rendering order
+  Object.values(taskMap).forEach((task) => {
+    task.children.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  });
+
+  return rootTasks.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 };
 
 const separateTasksByOrigin = (tasks) => {
@@ -38,15 +65,133 @@ const separateTasksByOrigin = (tasks) => {
   };
 };
 
+const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
+  const activeId = active.id;
+  const overId = over.id;
+  const activeTask = allTasks.find((t) => t.id === activeId);
+  if (!activeTask) return { isValid: false };
+
+  // 1. Determine new parent and origin based on drop target ID
+  let newParentId = null;
+  let targetOrigin = null;
+  const overData = over.data?.current || {};
+
+  if (overData.type === 'container') {
+    // Dropped into an empty container
+    newParentId = overData.parentId; // This might be a task ID or null (for root)
+    targetOrigin = overData.origin;
+
+    // Safety check: verify parent exists if it's not a root drop
+    if (newParentId && !allTasks.find((t) => t.id === newParentId)) {
+      console.warn(`Drop target parent ${newParentId} not found`);
+      return { isValid: false };
+    }
+  } else {
+    // Dropping onto another task item directly
+    const overTask = allTasks.find((t) => t.id === overId);
+    if (overTask) {
+      newParentId = overTask.parent_task_id ?? null;
+      targetOrigin = overTask.origin;
+    } else {
+      return { isValid: false };
+    }
+  }
+
+  // 1b. Circular Ancestry Check (Grandfather Paradox)
+  // If we are reparenting (newParentId is not null), we must ensure
+  // that the new parent is not a descendant of the active task.
+  if (newParentId) {
+    let ancestorId = newParentId;
+    while (ancestorId) {
+      if (ancestorId === activeId) {
+        console.warn('Cannot drop a parent into its own child (Circular dependency detected)');
+        return { isValid: false };
+      }
+      const currentAncestorId = ancestorId;
+      const ancestor = allTasks.find((t) => t.id === currentAncestorId);
+      ancestorId = ancestor ? ancestor.parent_task_id : null;
+    }
+  }
+
+  // 2. Validate Origin
+  if (activeOrigin !== targetOrigin) {
+    return { isValid: false };
+  }
+
+  // 3. Filter & Sort Siblings
+  const siblings = allTasks
+    .filter((t) => (t.parent_task_id ?? null) === newParentId && t.origin === activeOrigin)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
+  const activeIndex = siblings.findIndex((t) => t.id === activeId);
+  const overIndex = siblings.findIndex((t) => t.id === overId);
+
+  // 4. Determine prev/next neighbors
+  let prevTask, nextTask;
+
+  const isContainerDrop = overData.type === 'container'; // removed unused vars
+
+  if (isContainerDrop) {
+    // Dropped into container -> Append to end logic
+    if (siblings.length > 0) {
+      prevTask = siblings[siblings.length - 1];
+      nextTask = null;
+    } else {
+      prevTask = null;
+      nextTask = null;
+    }
+  } else if (activeIndex !== -1 && activeIndex < overIndex) {
+    // Reordering in same list: Dragging DOWN
+    prevTask = siblings[overIndex];
+    nextTask = siblings[overIndex + 1];
+  } else {
+    // Dragging UP or Reparenting onto a task
+    prevTask = siblings[overIndex - 1];
+    nextTask = siblings[overIndex];
+  }
+
+  const prevPos = prevTask ? (prevTask.position ?? 0) : 0;
+  const nextPos = nextTask ? (nextTask.position ?? 0) : null;
+
+  // 5. Calculate New Position
+  const newPos = calculateNewPosition(prevPos, nextPos);
+
+  return { isValid: true, newPos, newParentId };
+};
+
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const [joinedProjects, setJoinedProjects] = useState([]);
+  const [joinedError, setJoinedError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskFormState, setTaskFormState] = useState(null);
+  const [inviteModalProject, setInviteModalProject] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const isMountedRef = useRef(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const { setNodeRef: setInstanceRootRef } = useDroppable({
+    id: 'drop-root-instance',
+    data: { type: 'container', parentId: null, origin: 'instance' },
+  });
+
+  const { setNodeRef: setTemplateRootRef } = useDroppable({
+    id: 'drop-root-template',
+    data: { type: 'container', parentId: null, origin: 'template' },
+  });
 
   const getTaskById = useCallback(
     (taskId) => {
@@ -80,20 +225,11 @@ const TaskList = () => {
         setTasks([]);
         return [];
       }
+      setCurrentUserId(user.id);
 
-      const { data, error: fetchError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('creator', user.id)
-        .order('position', { ascending: true });
+      const data = await getTasksForUser(user.id);
 
       if (!isMountedRef.current) {
-        return [];
-      }
-
-      if (fetchError) {
-        setError(fetchError.message);
-        setTasks([]);
         return [];
       }
 
@@ -101,9 +237,12 @@ const TaskList = () => {
       setTasks(nextTasks);
 
       // Fetch joined projects
-      const joined = await getJoinedProjects(user.id);
+      const { data: joinedData, error: joinedProjectError } = await getJoinedProjects(user.id);
       if (isMountedRef.current) {
-        setJoinedProjects(joined);
+        if (joinedProjectError) {
+          setJoinedError('Failed to load joined projects');
+        }
+        setJoinedProjects(joinedData || []);
       }
 
       return nextTasks;
@@ -119,6 +258,86 @@ const TaskList = () => {
       }
     }
   }, []);
+
+  const handleDragEnd = useCallback(
+    async (event) => {
+      try {
+        const { active, over } = event;
+
+        if (!over || active.id === over.id) {
+          return;
+        }
+
+        const activeTask = tasks.find((t) => t.id === active.id);
+        if (!activeTask) return;
+
+        // Attempt 1: Calculate Position
+        let result = calculateDropTarget(tasks, active, over, activeTask.origin);
+
+        if (!result.isValid) {
+          return;
+        }
+
+        let { newPos, newParentId } = result;
+
+        // Retry Logic: Renormalization
+        if (newPos === null) {
+          console.log('Collision detected. Renormalizing...');
+          const renormalizedSiblings = await renormalizePositions(
+            newParentId,
+            activeTask.origin,
+            currentUserId
+          );
+
+          // Merge renormalized tasks into current state locally
+          const siblingsMap = new Map(renormalizedSiblings.map((t) => [t.id, t]));
+          const freshTasks = tasks.map((t) => siblingsMap.get(t.id) || t);
+
+          // Attempt 2: Re-calculate with fresh data
+          result = calculateDropTarget(freshTasks, active, over, activeTask.origin);
+
+          if (!result.isValid || result.newPos === null) {
+            console.error('Failed to calculate position even after renormalization.');
+            return;
+          }
+
+          newPos = result.newPos;
+          newParentId = result.newParentId;
+
+          // IMPORTANT: Use freshTasks for the optimistic update to ensure consistency
+          setTasks(() =>
+            freshTasks.map((t) => {
+              if (t.id === active.id) {
+                return { ...t, position: newPos, parent_task_id: newParentId };
+              }
+              return t;
+            })
+          );
+        } else {
+          // Standard optimistic update uses existing state
+          setTasks((prev) =>
+            prev.map((t) => {
+              if (t.id === active.id) {
+                return { ...t, position: newPos, parent_task_id: newParentId };
+              }
+              return t;
+            })
+          );
+        }
+
+        try {
+          await updateTaskPosition(active.id, newPos, newParentId);
+        } catch (e) {
+          console.error('Failed to persist move', e);
+          fetchTasks();
+        }
+      } catch (globalError) {
+        console.error('Unexpected error in handleDragEnd:', globalError);
+        fetchTasks();
+      }
+    },
+    [tasks, fetchTasks, currentUserId]
+  );
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -212,6 +431,10 @@ const TaskList = () => {
     }
   };
 
+  const handleOpenInvite = (project) => {
+    setInviteModalProject(project);
+  };
+
   const handleCreateProject = async (formData) => {
     try {
       const {
@@ -224,7 +447,7 @@ const TaskList = () => {
 
       const instanceTasks = tasks.filter((t) => t.origin === 'instance' && !t.parent_task_id);
       const maxPosition =
-        instanceTasks.length > 0 ? Math.max(...instanceTasks.map((t) => t.position || 0)) : 0;
+        instanceTasks.length > 0 ? Math.max(...instanceTasks.map((t) => t.position ?? 0)) : 0;
 
       const projectStartDate = toIsoDate(formData.start_date);
 
@@ -262,8 +485,6 @@ const TaskList = () => {
 
           if (updateError) {
             console.error('Error updating cloned root task:', updateError);
-            // We don't throw here to avoid failing the whole flow if the clone worked,
-            // but ideally we should alert the user.
           }
         }
       } else {
@@ -315,12 +536,9 @@ const TaskList = () => {
 
       const origin = taskFormState.origin || 'instance';
       const parentId = taskFormState.parentId ?? null;
+      const daysVal = formData.days_from_start;
       const parsedDays =
-        formData.days_from_start === '' ||
-          formData.days_from_start === null ||
-          formData.days_from_start === undefined
-          ? null
-          : Number(formData.days_from_start);
+        daysVal === '' || daysVal === null || daysVal === undefined ? null : Number(daysVal);
 
       if (parsedDays !== null && Number.isNaN(parsedDays)) {
         throw new Error('Invalid days_from_start');
@@ -390,7 +608,7 @@ const TaskList = () => {
       });
 
       const maxPosition =
-        siblings.length > 0 ? Math.max(...siblings.map((task) => task.position || 0)) : 0;
+        siblings.length > 0 ? Math.max(...siblings.map((task) => task.position ?? 0)) : 0;
 
       const insertPayload = {
         title: formData.title,
@@ -400,7 +618,7 @@ const TaskList = () => {
         origin,
         creator: user.id,
         parent_task_id: parentId,
-        position: maxPosition + 1000,
+        position: maxPosition + POSITION_STEP,
         is_complete: false,
       };
 
@@ -419,12 +637,7 @@ const TaskList = () => {
 
       if (formData.templateId) {
         // Deep clone the template
-        const newTasks = await deepCloneTask(
-          formData.templateId,
-          parentId,
-          origin,
-          user.id
-        );
+        const newTasks = await deepCloneTask(formData.templateId, parentId, origin, user.id);
 
         // Find the new root task
         const newRoot = newTasks.find((t) => t.parent_task_id === parentId);
@@ -601,176 +814,216 @@ const TaskList = () => {
   }
 
   return (
-    <div className="split-layout">
-      <div className="task-list-area">
-        <div className="dashboard-header">
-          <h1 className="dashboard-title">Dashboard</h1>
-        </div>
-
-        {/* Joined Projects Section */}
-        <div className="task-section">
-          <div className="section-header">
-            <div className="section-header-left">
-              <h2 className="section-title">Joined Projects</h2>
-              <span className="section-count">{joinedProjects.length}</span>
-            </div>
+    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+      <div className="split-layout">
+        <div className="task-list-area">
+          <div className="dashboard-header">
+            <h1 className="dashboard-title">Dashboard</h1>
           </div>
-          {joinedProjects.length > 0 ? (
-            <div className="task-cards-container">
-              {joinedProjects.map((project) => (
-                <TaskItem
-                  key={project.id}
-                  task={project}
-                  level={0}
-                  onTaskClick={handleTaskClick}
-                  selectedTaskId={selectedTask?.id}
-                  onAddChildTask={handleAddChildTask}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
-              You haven't joined any projects yet.
-            </div>
-          )}
-        </div>
 
-        <div className="task-section">
-          <div className="section-header">
-            <div className="section-header-left">
-              <h2 className="section-title">Projects</h2>
-              <span className="section-count">{instanceTasks.length}</span>
-            </div>
-            <button
-              onClick={() => {
-                setShowForm(true);
-                setSelectedTask(null);
-                setTaskFormState(null);
-              }}
-              className="btn-new-item"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
-              </svg>
-              New Project
-            </button>
-          </div>
-          {instanceTasks.length > 0 ? (
-            <div className="task-cards-container">
-              {instanceTasks.map((project) => (
-                <TaskItem
-                  key={project.id}
-                  task={project}
-                  level={0}
-                  onTaskClick={handleTaskClick}
-                  selectedTaskId={selectedTask?.id}
-                  onAddChildTask={handleAddChildTask}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
-              No active projects yet. Use "New Project" to get started.
-            </div>
-          )}
-        </div>
-
-        <div className="task-section">
-          <div className="section-header">
-            <div className="section-header-left">
-              <h2 className="section-title">Templates</h2>
-              <span className="section-count">{templateTasks.length}</span>
-            </div>
-            <button onClick={handleCreateTemplateRoot} className="btn-new-item">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
-              </svg>
-              New Template
-            </button>
-          </div>
-          {templateTasks.length > 0 ? (
-            <div className="task-cards-container">
-              {templateTasks.map((template) => (
-                <TaskItem
-                  key={template.id}
-                  task={template}
-                  level={0}
-                  onTaskClick={handleTaskClick}
-                  selectedTaskId={selectedTask?.id}
-                  onAddChildTask={handleAddChildTask}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
-              No templates yet. Use "New Template" to start building your reusable library.
-            </div>
-          )}
-        </div>
-
-        <MasterLibraryList />
-      </div>
-
-      <div className="permanent-side-panel">
-        <div className="panel-header">
-          <h2 className="panel-title">{panelTitle}</h2>
-          {showForm && (
-            <button onClick={() => setShowForm(false)} className="panel-header-btn">
-              Hide Form
-            </button>
-          )}
-          {isTaskFormOpen && (
-            <button onClick={() => setTaskFormState(null)} className="panel-header-btn">
-              Cancel
-            </button>
-          )}
-          {selectedTask && !showForm && !isTaskFormOpen && (
-            <button onClick={() => setSelectedTask(null)} className="panel-header-btn">
-              Close
-            </button>
-          )}
-        </div>
-        <div className="panel-content">
-          {showForm ? (
-            <NewProjectForm onSubmit={handleCreateProject} onCancel={() => setShowForm(false)} />
-          ) : isTaskFormOpen ? (
-            <NewTaskForm
-              parentTask={parentTaskForForm}
-              initialTask={taskBeingEdited}
-              origin={taskFormState?.origin}
-              enableLibrarySearch={taskFormState?.mode !== 'edit'}
-              submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
-              onSubmit={handleSubmitTask}
-              onCancel={() => setTaskFormState(null)}
-            />
-          ) : selectedTask ? (
-            <TaskDetailsView
-              task={selectedTask}
-              onAddChildTask={handleAddChildTask}
-              onEditTask={handleEditTask}
-              onDeleteTask={handleDeleteTask}
-            />
-          ) : (
-            <div className="empty-panel-state">
-              <div className="empty-panel-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
+          <div className="task-section">
+            <div className="section-header">
+              <div className="section-header-left">
+                <h2 className="section-title">Joined Projects</h2>
+                <span className="section-count">{joinedProjects.length}</span>
               </div>
-              <h3 className="empty-panel-title">No Selection</h3>
-              <p className="empty-panel-text">
-                Click "New Project" to create a project, or select a task to view its details.
-              </p>
             </div>
-          )}
+            {joinedError ? (
+              <div className="text-sm text-red-600 px-4 py-8 border border-red-200 bg-red-50 rounded-lg">
+                {joinedError}
+              </div>
+            ) : joinedProjects.length > 0 ? (
+              <div className="task-cards-container">
+                {joinedProjects.map((project) => (
+                  <TaskItem
+                    key={project.id}
+                    task={project}
+                    level={0}
+                    onTaskClick={handleTaskClick}
+                    selectedTaskId={selectedTask?.id}
+                    onAddChildTask={undefined}
+                    onInviteMember={
+                      project.membership_role === 'owner' || project.creator === currentUserId
+                        ? handleOpenInvite
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
+                You haven't joined any projects yet.
+              </div>
+            )}
+          </div>
+
+          <div className="task-section">
+            <div className="section-header">
+              <div className="section-header-left">
+                <h2 className="section-title">Projects</h2>
+                <span className="section-count">{instanceTasks.length}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setShowForm(true);
+                  setSelectedTask(null);
+                  setTaskFormState(null);
+                }}
+                className="btn-new-item"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
+                </svg>
+                New Project
+              </button>
+            </div>
+            {instanceTasks.length > 0 ? (
+              <SortableContext
+                items={instanceTasks.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
+                id="root-instance"
+              >
+                <div ref={setInstanceRootRef} className="task-cards-container">
+                  {instanceTasks.map((project) => (
+                    <SortableTaskItem
+                      key={project.id}
+                      task={project}
+                      level={0}
+                      onTaskClick={handleTaskClick}
+                      selectedTaskId={selectedTask?.id}
+                      onAddChildTask={handleAddChildTask}
+                      onInviteMember={handleOpenInvite}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            ) : (
+              <div
+                ref={setInstanceRootRef}
+                className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg"
+              >
+                No active projects yet. Use "New Project" to get started.
+              </div>
+            )}
+          </div>
+
+          <div className="task-section">
+            <div className="section-header">
+              <div className="section-header-left">
+                <h2 className="section-title">Templates</h2>
+                <span className="section-count">{templateTasks.length}</span>
+              </div>
+              <button onClick={handleCreateTemplateRoot} className="btn-new-item">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
+                </svg>
+                New Template
+              </button>
+            </div>
+            {templateTasks.length > 0 ? (
+              <SortableContext
+                items={templateTasks.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
+                id="root-template"
+              >
+                <div ref={setTemplateRootRef} className="task-cards-container">
+                  {templateTasks.map((template) => (
+                    <SortableTaskItem
+                      key={template.id}
+                      task={template}
+                      level={0}
+                      onTaskClick={handleTaskClick}
+                      selectedTaskId={selectedTask?.id}
+                      onAddChildTask={handleAddChildTask}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            ) : (
+              <div
+                ref={setTemplateRootRef}
+                className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg"
+              >
+                No templates yet. Use "New Template" to start building your reusable library.
+              </div>
+            )}
+          </div>
+
+          <MasterLibraryList />
         </div>
+
+        <div className="permanent-side-panel">
+          <div className="panel-header">
+            <h2 className="panel-title">{panelTitle}</h2>
+            {showForm && (
+              <button onClick={() => setShowForm(false)} className="panel-header-btn">
+                Hide Form
+              </button>
+            )}
+            {isTaskFormOpen && (
+              <button onClick={() => setTaskFormState(null)} className="panel-header-btn">
+                Cancel
+              </button>
+            )}
+            {selectedTask && !showForm && !isTaskFormOpen && (
+              <button onClick={() => setSelectedTask(null)} className="panel-header-btn">
+                Close
+              </button>
+            )}
+          </div>
+          <div className="panel-content">
+            {showForm ? (
+              <NewProjectForm onSubmit={handleCreateProject} onCancel={() => setShowForm(false)} />
+            ) : isTaskFormOpen ? (
+              <NewTaskForm
+                parentTask={parentTaskForForm}
+                initialTask={taskBeingEdited}
+                origin={taskFormState?.origin}
+                enableLibrarySearch={taskFormState?.mode !== 'edit'}
+                submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
+                onSubmit={handleSubmitTask}
+                onCancel={() => setTaskFormState(null)}
+              />
+            ) : selectedTask ? (
+              <TaskDetailsView
+                task={selectedTask}
+                onAddChildTask={handleAddChildTask}
+                onEditTask={handleEditTask}
+                onDeleteTask={handleDeleteTask}
+              />
+            ) : (
+              <div className="empty-panel-state">
+                <div className="empty-panel-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="empty-panel-title">No Selection</h3>
+                <p className="empty-panel-text">
+                  Click "New Project" to create a project, or select a task to view its details.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+        {inviteModalProject && (
+          <InviteMemberModal
+            project={inviteModalProject}
+            onClose={() => setInviteModalProject(null)}
+            onInviteSuccess={() => {
+              // Maybe show a toast?
+              alert('Invitation sent!');
+              setInviteModalProject(null);
+            }}
+          />
+        )}
       </div>
-    </div>
+    </DndContext>
   );
 };
 

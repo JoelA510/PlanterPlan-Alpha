@@ -86,7 +86,7 @@ The application addresses the challenge that church planters face: managing hund
 
 - Progress visualization (donut charts)
 
-### Lower Priority Completions:
+### Lower Priority Completions
 
 6. **Store functionality**: Stripe integration, Admin management
    - items purchasable: resources, licenses, etc
@@ -747,10 +747,13 @@ Template Selection → License Validation → Hierarchy Traversal
 
 ### Permission System
 
-- Role hierarchy: owner > full > limited > coach
-- Project-level permissions
-- Organization admin rights
-- Resource visibility controls
+- **Row Level Security (RLS)**: Strictly enforced at the database layer.
+- **Role hierarchy**:
+  - **Owner**: Full access, including project deletion and member management.
+  - **Editor**: Can create/edit tasks and subtasks.
+  - **Viewer**: Read-only access.
+- **Project-level permissions**: Managed via `project_members` table.
+- **Organization admin rights**: (Placeholder `is_admin` function implemented).
 
 ### Data Protection
 

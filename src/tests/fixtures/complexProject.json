@@ -1,60 +1,54 @@
 {
-    "id": "proj_complex_001",
-    "title": "Complex Test Project",
-    "description": "A project with nested phases and dependencies for testing drag-and-drop and deep copy.",
-    "phases": [
+  "id": "proj_complex_001",
+  "title": "Complex Test Project",
+  "description": "A project with nested phases and dependencies for testing drag-and-drop and deep copy.",
+  "phases": [
+    {
+      "id": "phase_01",
+      "title": "Planning Phase",
+      "order": 0,
+      "tasks": [
         {
-            "id": "phase_01",
-            "title": "Planning Phase",
-            "order": 0,
-            "tasks": [
-                {
-                    "id": "task_01",
-                    "title": "Define Requirements",
-                    "status": "completed",
-                    "order": 0,
-                    "dependencies": []
-                },
-                {
-                    "id": "task_02",
-                    "title": "Approve Budget",
-                    "status": "in_progress",
-                    "order": 1,
-                    "dependencies": [
-                        "task_01"
-                    ]
-                }
-            ]
+          "id": "task_01",
+          "title": "Define Requirements",
+          "status": "completed",
+          "order": 0,
+          "dependencies": []
         },
         {
-            "id": "phase_02",
-            "title": "Execution Phase",
-            "order": 1,
-            "tasks": [
-                {
-                    "id": "task_03",
-                    "title": "Hire Team",
-                    "status": "todo",
-                    "order": 0,
-                    "dependencies": [
-                        "task_02"
-                    ]
-                },
-                {
-                    "id": "task_04",
-                    "title": "Kickoff Meeting",
-                    "status": "todo",
-                    "order": 1,
-                    "dependencies": [
-                        "task_03"
-                    ]
-                }
-            ]
+          "id": "task_02",
+          "title": "Approve Budget",
+          "status": "in_progress",
+          "order": 1,
+          "dependencies": ["task_01"]
         }
-    ],
-    "metadata": {
-        "created_at": "2023-10-01T10:00:00Z",
-        "updated_at": "2023-10-05T14:30:00Z",
-        "owner_id": "user_123"
+      ]
+    },
+    {
+      "id": "phase_02",
+      "title": "Execution Phase",
+      "order": 1,
+      "tasks": [
+        {
+          "id": "task_03",
+          "title": "Hire Team",
+          "status": "todo",
+          "order": 0,
+          "dependencies": ["task_02"]
+        },
+        {
+          "id": "task_04",
+          "title": "Kickoff Meeting",
+          "status": "todo",
+          "order": 1,
+          "dependencies": ["task_03"]
+        }
+      ]
     }
+  ],
+  "metadata": {
+    "created_at": "2023-10-01T10:00:00Z",
+    "updated_at": "2023-10-05T14:30:00Z",
+    "owner_id": "user_123"
+  }
 }

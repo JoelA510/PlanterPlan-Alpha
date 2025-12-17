@@ -74,6 +74,7 @@
 ### 2.x P1-UI-COPY-WIRING - Copy Mode Integration (UI Layer)
 
 **A. TL;DR (1–2 sentences)**
+
 - Updated `NewTaskForm` and `TaskList` to handle template selection and trigger the deep clone process upon submission.
 
 **B. 5W + H**
@@ -126,6 +127,7 @@
 ### 2.x P2-DB-RLS-POLICIES - Database RLS Policies
 
 **A. TL;DR (1–2 sentences)**
+
 - Added SQL policy to allow users to select tasks from projects they are members of.
 
 **B. 5W + H**
@@ -174,6 +176,7 @@
 ### 2.x P2-SVC-MEMBERSHIPS - Membership Service
 
 **A. TL;DR (1–2 sentences)**
+
 - Created a service to fetch projects a user has joined.
 
 **B. 5W + H**
@@ -222,6 +225,7 @@
 ### 2.x P2-UI-ROLE-INDICATOR - Role Indicator UI
 
 **A. TL;DR (1–2 sentences)**
+
 - Added a badge component to display user roles.
 
 **B. 5W + H**
@@ -272,6 +276,7 @@
 ### 2.x P2-UI-JOINED-SECTION - Dashboard "Joined" Section
 
 **A. TL;DR (1–2 sentences)**
+
 - Added a section to the dashboard to display joined projects.
 
 **B. 5W + H**
@@ -321,6 +326,7 @@
 ### 2.x P3-CLEAN-DIRS - Directory Cleanup
 
 **A. TL;DR (1–2 sentences)**
+
 - Refactored CSS imports to be component-specific.
 
 **B. 5W + H**
@@ -359,9 +365,11 @@
   - Verified styles still apply correctly in the UI.
 
 - **Known gaps / follow-ups:**
- ## 📦 Changes
+
+## 📦 Changes
 
 ### 🔄 Deep Copy Integration (P1)
+
 - **Implemented `deepCloneTask` service**: Recursively clones task trees (templates -> instances).
 - **Updated `TaskList.jsx`**: Now supports creating projects from templates with full deep copy.
 - **Updated `NewTaskForm.jsx`**: Captures template ID for subtask cloning.
@@ -369,20 +377,24 @@
 - **Unit Tests**: Added comprehensive tests for `deepCloneTask` and `treeHelpers`.
 
 ### 👥 Membership & Joined Projects (P2)
+
 - **Created `projectService.js`**: Added `getJoinedProjects` to fetch projects where user is a member.
 - **Updated RLS Policies**: Added `select_joined_projects` policy to `docs/db/policies.sql`.
 - **UI Integration**: Added "Joined Projects" section to `TaskList.jsx` dashboard.
 - **Role Badges**: Created `RoleIndicator` component to display "Owner", "Editor", or "Viewer" roles.
 
 ### 🔍 Master Library Search (Fix)
+
 - **Hardened Search**: Improved error handling in `useMasterLibrarySearch.js` and `MasterLibrarySearch.jsx`.
 - **Test Coverage**: Added unit tests for search failure scenarios and highlight logic.
 
 ### 🛠 Local Development
+
 - **Documentation**: Created `docs/local_development.md` with setup, linting, and testing instructions.
 - **Testing Guide**: Added instructions for manually testing membership features locally.
 
 ## 🧪 Verification
+
 - **Automated Tests**:
   - `npm test src/services/taskService.test.js` (Deep copy, Search)
   - `npm test src/utils/treeHelpers.test.js` (Tree logic)
@@ -390,7 +402,7 @@
 - **Manual Verification**:
   - Verified "Joined Projects" section renders correctly.
   - Verified deep copy logic via unit tests mocking Supabase.
- / follow-ups:**
+    / follow-ups:\*\*
   - None.
 
 **E. Risk & rollback**
@@ -406,6 +418,7 @@
 ### 2.x P3-TEST-UTILS - Test Coverage Spike
 
 **A. TL;DR (1–2 sentences)**
+
 - Added unit tests for utility functions.
 
 **B. 5W + H**
@@ -456,6 +469,7 @@
 ### 2.x P4-DATA-FIXTURES - Data Fixtures (Safety Net)
 
 **A. TL;DR (1–2 sentences)**
+
 - Created a complex project fixture for testing.
 
 **B. 5W + H**

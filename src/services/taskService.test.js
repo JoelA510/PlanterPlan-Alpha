@@ -85,7 +85,7 @@ describe('fetchMasterLibraryTasks', () => {
   });
 
   it('returns empty array when payload shape invalid', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const { client } = createMockClient({ data: [{ bad: 'record' }], error: null });
 
     const results = await fetchMasterLibraryTasks({}, client);
@@ -103,17 +103,27 @@ describe('deepCloneTask', () => {
   });
 
   it('clones a task tree correctly', async () => {
-    const templateRoot = { id: 't1', title: 'Template Root', origin: 'template', parent_task_id: null };
-    const templateChild = { id: 't2', title: 'Template Child', origin: 'template', parent_task_id: 't1' };
+    const templateRoot = {
+      id: 't1',
+      title: 'Template Root',
+      origin: 'template',
+      parent_task_id: null,
+    };
+    const templateChild = {
+      id: 't2',
+      title: 'Template Child',
+      origin: 'template',
+      parent_task_id: 't1',
+    };
     const allTasks = [templateRoot, templateChild];
 
     // Mock client for fetchTaskChildren
-    const mockSelect = jest.fn().mockResolvedValue({ data: allTasks, error: null });
+
     const mockSingle = jest.fn().mockResolvedValue({ data: { origin: 'template' }, error: null });
 
     // Mock client for insert
     const mockInsert = jest.fn().mockReturnValue({
-      select: jest.fn().mockResolvedValue({ data: [{ id: 'new1' }, { id: 'new2' }], error: null })
+      select: jest.fn().mockResolvedValue({ data: [{ id: 'new1' }, { id: 'new2' }], error: null }),
     });
 
     const client = {
@@ -122,8 +132,8 @@ describe('deepCloneTask', () => {
           if (cols === 'origin') return { eq: jest.fn().mockReturnValue({ single: mockSingle }) };
           return { eq: jest.fn().mockReturnValue({ data: allTasks, error: null }) }; // Simplified mock for fetchTaskChildren
         },
-        insert: mockInsert
-      })
+        insert: mockInsert,
+      }),
     };
 
     // We need to refine the mock for fetchTaskChildren because it chains .select().eq().single() and .select().eq()
@@ -134,23 +144,32 @@ describe('deepCloneTask', () => {
             if (cols === 'origin') {
               return {
                 eq: jest.fn(() => ({
-                  single: mockSingle
-                }))
+                  single: mockSingle,
+                })),
+              };
+            }
+            if (cols === 'root_id') {
+              return {
+                eq: jest.fn(() => ({
+                  single: jest
+                    .fn()
+                    .mockResolvedValue({ data: { root_id: 'existing-root' }, error: null }),
+                })),
               };
             }
             return {
               eq: jest.fn(() => ({
                 data: allTasks,
-                error: null
-              }))
+                error: null,
+              })),
             };
           }),
-          insert: mockInsert
+          insert: mockInsert,
         };
       }
     });
 
-    const result = await deepCloneTask('t1', 'p1', 'instance', 'user1', client);
+    await deepCloneTask('t1', 'p1', 'instance', 'user1', client);
 
     expect(client.from).toHaveBeenCalledWith('tasks');
     expect(mockSingle).toHaveBeenCalled(); // fetched root origin
@@ -161,8 +180,8 @@ describe('deepCloneTask', () => {
     expect(insertedRows[0].origin).toBe('instance');
     expect(insertedRows[0].creator).toBe('user1');
     // Check parentage
-    const newRoot = insertedRows.find(r => r.parent_task_id === 'p1');
-    const newChild = insertedRows.find(r => r.parent_task_id !== 'p1');
+    const newRoot = insertedRows.find((r) => r.parent_task_id === 'p1');
+    const newChild = insertedRows.find((r) => r.parent_task_id !== 'p1');
     expect(newRoot).toBeDefined();
     expect(newChild).toBeDefined();
     expect(newChild.parent_task_id).toBe(newRoot.id);
