@@ -20,8 +20,8 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2025-12-16 (America/Los_Angeles)  
-**Commit**: 0e2393c (based on git history)  
+**Last verified**: 2025-12-18 (America/Los_Angeles)  
+**Commit**: (Current Tip)  
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/ENGINEERING_KNOWLEDGE.md)
 
@@ -173,6 +173,8 @@ flowchart LR
 - ✅ **Task Management**: Fetching tasks, data modeling for hierarchy (Ref: `taskService.js`).
 - ✅ **Deep Cloning**: Duplicating entire template trees to new instances (Ref: `deepCloneTask` in `taskService.js`).
 - ✅ **Master Library Search**: Searching templates via `searchMasterLibraryTasks` (Ref: `taskService.js`).
+- ✅ **Project Reporting**: Read-only print view with completion stats (Ref: `ProjectReport.jsx`).
+- ✅ **Optimization**: Task trees fetched via `root_id` index instead of recursive calls (Ref: `fetchTaskChildren` in `taskService.js`).
 
 ### 5.2 Known Limitations
 
@@ -181,5 +183,4 @@ flowchart LR
 
 ### 5.3 Technical Debt (Brutal Honesty)
 
-- **Orphaned Comments/Logic Mismatch**: `taskService.js` (line 155) claims "we don't have a 'root_id' column on all tasks", contradicting `schema.sql` (line 22) which explicitly defines and maintains `root_id`. This suggests the service layer may not be fully leveraging the database optimization.
-  - Evidence: [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js#L155) vs [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L22)
+- **No major items identified at this time.** (Previous item regarding `root_id` mismatch was resolved).
