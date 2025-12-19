@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginForm from './components/auth/LoginForm';
 import TaskList from './components/tasks/TaskList';
+import ProjectReport from './components/reports/ProjectReport';
 // Dashboard component with modern styling
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -82,6 +83,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/report/:projectId"
+        element={
+          <ProtectedRoute>
+            <ProjectReport />
           </ProtectedRoute>
         }
       />
