@@ -31,7 +31,7 @@
 graph TD
     A[User Visits /report/:projectId] --> B[ProjectReport.jsx]
     B --> C[taskService.fetchTaskChildren]
-    C --> D[Supabase Query (root_id index)]
+    C --> D["Supabase Query (root_id index)"]
     D --> C
     C --> B[Receive Flat List]
     B --> E[Client-side DFS Sort]
