@@ -5,10 +5,17 @@ const PAGE_SIZE = 10;
 
 const MasterLibraryList = () => {
   const [page, setPage] = useState(0);
+  const [resourceType, setResourceType] = useState('all');
   const { tasks, isLoading, error, hasMore, refresh } = useMasterLibraryTasks({
     page,
     limit: PAGE_SIZE,
+    resourceType,
   });
+
+  const handleFilterChange = (type) => {
+    setResourceType(type);
+    setPage(0);
+  };
 
   const pageDescription = useMemo(() => {
     if (isLoading) {
@@ -50,6 +57,23 @@ const MasterLibraryList = () => {
         >
           Refresh
         </button>
+      </div>
+
+      <div className="flex space-x-2 mb-6 border-b border-slate-200">
+        {['all', 'text', 'pdf', 'url'].map((type) => (
+          <button
+            key={type}
+            onClick={() => handleFilterChange(type)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              resourceType === type
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+            style={{ textTransform: 'capitalize' }}
+          >
+            {type}
+          </button>
+        ))}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
@@ -119,6 +143,18 @@ const MasterLibraryList = () => {
                         >
                           {task.origin || 'Template'}
                         </span>
+                        {task.resource_type && (
+                          <span
+                            className="ml-2 inline-flex items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600"
+                            style={{
+                              padding: '2px 10px',
+                              textTransform: 'capitalize',
+                              border: '1px solid rgba(100, 116, 139, 0.2)',
+                            }}
+                          >
+                            {task.resource_type}
+                          </span>
+                        )}
                       </div>
                       {task.description ? (
                         <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">

@@ -32,6 +32,7 @@ Using ONLY what you found in the code (never invent or assume), produce a README
 ## 1. What Is This?
 
 3-5 sentences maximum. Answer:
+
 - What does this application do?
 - Who is it for?
 - What problem does it solve?
@@ -43,6 +44,7 @@ No marketing language. No feature lists. Just the core purpose.
 ## 2. Project Structure
 
 ### Directory Layout
+
 ```
 src/
 ├── folder/        # One-line description
@@ -54,8 +56,8 @@ Annotate every top-level directory. Go one level deeper for complex folders.
 
 ### Where to Find Things
 
-| To change... | Look in... |
-|--------------|------------|
+| To change...  | Look in...        |
+| ------------- | ----------------- |
 | [common task] | `path/to/file.js` |
 | [common task] | `path/to/file.js` |
 
@@ -64,6 +66,7 @@ Include 5-10 of the most likely things a developer would need to find.
 ### Environment Requirements
 
 List every environment variable required to run the application:
+
 ```
 VARIABLE_NAME=<description>
 VARIABLE_NAME=<description>
@@ -76,6 +79,7 @@ Note any external dependencies (databases, APIs, services).
 ## 3. Core Concepts
 
 This section builds the mental model. For each concept:
+
 - One paragraph explaining what it is and why it exists
 - A Mermaid diagram if it involves relationships, hierarchy, or state changes
 - Concrete examples from the codebase
@@ -83,6 +87,7 @@ This section builds the mental model. For each concept:
 Include diagrams for:
 
 **Entity Relationships** (if the domain has related entities):
+
 ```mermaid
 erDiagram
     ENTITY1 ||--o{ ENTITY2 : contains
@@ -90,6 +95,7 @@ erDiagram
 ```
 
 **Hierarchies** (if there are nested structures):
+
 ```mermaid
 graph TD
     A[Parent] --> B[Child]
@@ -97,6 +103,7 @@ graph TD
 ```
 
 **State Machines** (if entities have lifecycles):
+
 ```mermaid
 stateDiagram-v2
     [*] --> State1
@@ -114,6 +121,7 @@ Only include concepts that are essential to understanding the system. Aim for 3-
 ### Data Flow
 
 Describe how data moves through the system. Use a diagram:
+
 ```mermaid
 flowchart LR
     A[User Action] --> B[Component]
@@ -126,23 +134,24 @@ flowchart LR
 
 ### Component Responsibilities
 
-| Component | Responsibility |
-|-----------|----------------|
+| Component       | Responsibility        |
+| --------------- | --------------------- |
 | `ComponentName` | What it owns and does |
 
 List the major components/modules. Be specific about what each one is responsible for.
 
 ### Database Schema
 
-| Table/Collection | Purpose | Key Fields |
-|------------------|---------|------------|
-| `table_name` | What it stores | `field1`, `field2`, `field3` |
+| Table/Collection | Purpose        | Key Fields                   |
+| ---------------- | -------------- | ---------------------------- |
+| `table_name`     | What it stores | `field1`, `field2`, `field3` |
 
 If there are important indexes, constraints, or relationships, note them.
 
 ### Security Model
 
 How is access controlled? Include:
+
 - Authentication method
 - Authorization model (roles, permissions)
 - Any row-level security or data isolation
@@ -154,18 +163,21 @@ How is access controlled? Include:
 ### Working Features
 
 List features that are fully implemented and functional:
+
 - ✅ Feature description
 - ✅ Feature description
 
 ### Known Limitations
 
 List features that are incomplete, broken, or missing:
+
 - ⚠️ Limitation description
 - ⚠️ Limitation description
 
 ### Technical Debt
 
 List architectural issues, code smells, or deferred decisions:
+
 - Specific file or pattern that needs attention
 - Why it's a problem
 

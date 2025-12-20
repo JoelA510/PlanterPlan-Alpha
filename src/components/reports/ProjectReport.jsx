@@ -58,9 +58,7 @@ const ProjectReport = () => {
 
         // 3. Calculate Stats
         const total = rawTasks.length;
-        const completed = rawTasks.filter(
-          (t) => t.status === 'completed' || t.is_complete
-        ).length;
+        const completed = rawTasks.filter((t) => t.status === 'completed' || t.is_complete).length;
         const overdue = rawTasks.filter((t) => {
           return (
             t.due_date &&
@@ -89,9 +87,7 @@ const ProjectReport = () => {
       {/* Header */}
       <div className="mb-8 border-b pb-4">
         <h1 className="text-3xl font-bold text-gray-900">Project Status Report</h1>
-        <p className="text-gray-500">
-          Generated on {new Date().toLocaleDateString()}
-        </p>
+        <p className="text-gray-500">Generated on {new Date().toLocaleDateString()}</p>
       </div>
 
       {/* High-Level Stats */}
@@ -102,10 +98,7 @@ const ProjectReport = () => {
         </div>
         <div className="p-4 bg-green-50 rounded-lg text-center border border-green-100">
           <div className="text-2xl font-bold text-green-700">
-            {stats.total > 0
-              ? Math.round((stats.completed / stats.total) * 100)
-              : 0}
-            %
+            {stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%
           </div>
           <div className="text-sm text-green-600">Completion</div>
         </div>
@@ -134,7 +127,13 @@ const ProjectReport = () => {
           {tasks.map((task) => (
             <tr
               key={task.id}
-              className={task.depth === 0 ? 'bg-gray-100 font-bold' : task.depth === 1 ? 'bg-gray-50 font-semibold' : 'bg-white'}
+              className={
+                task.depth === 0
+                  ? 'bg-gray-100 font-bold'
+                  : task.depth === 1
+                    ? 'bg-gray-50 font-semibold'
+                    : 'bg-white'
+              }
             >
               <td
                 className="px-6 py-4 text-sm text-gray-900"
@@ -146,9 +145,7 @@ const ProjectReport = () => {
                 {task.status || (task.is_complete ? 'Completed' : 'Todo')}
               </td>
               <td className="px-6 py-4 text-sm text-gray-500">
-                {task.due_date
-                  ? new Date(task.due_date).toLocaleDateString()
-                  : '-'}
+                {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
               </td>
             </tr>
           ))}

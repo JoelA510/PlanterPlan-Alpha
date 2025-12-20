@@ -12,6 +12,7 @@ const initialState = {
 const useMasterLibrarySearch = ({
   query,
   limit = DEFAULT_SEARCH_LIMIT,
+  resourceType = null,
   enabled = true,
   debounceMs = 300,
 } = {}) => {
@@ -39,6 +40,7 @@ const useMasterLibrarySearch = ({
         const results = await searchMasterLibraryTasks({
           query: searchTerm,
           limit,
+          resourceType,
           signal: controller.signal,
         });
 
@@ -75,7 +77,7 @@ const useMasterLibrarySearch = ({
         }
       }
     },
-    [limit]
+    [limit, resourceType]
   );
 
   useEffect(() => {

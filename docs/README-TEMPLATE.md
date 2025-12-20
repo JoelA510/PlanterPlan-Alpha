@@ -28,7 +28,9 @@ Update discipline:
 ---
 
 ## 1. What Is This?
+
 <3-5 sentences max. No marketing. No feature lists.>
+
 - What does the application do?
 - Who is it for?
 - What problem does it solve?
@@ -38,11 +40,13 @@ Update discipline:
 ## 2. Project Structure
 
 ### Directory Layout
+
 ```text
 <repo-root>/
   <dir>/                 # one-line purpose
   <dir>/                 # one-line purpose
   ...
+```
 ````
 
 ### Where to Find Things
@@ -66,15 +70,15 @@ Update discipline:
 
 **External dependencies**
 
-* <DB/Auth/Storage/etc> -> <what> (refer to config file(s): `<path>`)
-* <Queue/Cache/etc> -> <what> (refer to config file(s): `<path>`)
+- <DB/Auth/Storage/etc> -> <what> (refer to config file(s): `<path>`)
+- <Queue/Cache/etc> -> <what> (refer to config file(s): `<path>`)
 
 ---
 
 ## 3. Core Concepts & Mental Model
 
-<3-6 concepts. This is the highest ROI section. Focus on the *mental model* (e.g., life cycles, hierarchies, state machines).
-Each concept must include: (1) one paragraph explaining *why* it exists (2) a Mermaid diagram derived from code (3) concrete code references.>
+<3-6 concepts. This is the highest ROI section. Focus on the _mental model_ (e.g., life cycles, hierarchies, state machines).
+Each concept must include: (1) one paragraph explaining _why_ it exists (2) a Mermaid diagram derived from code (3) concrete code references.>
 
 ### 3.1 <Concept name>
 
@@ -86,8 +90,8 @@ Each concept must include: (1) one paragraph explaining *why* it exists (2) a Me
 
 **Repo evidence**
 
-* `<path/to/file>` -> <symbol/function/component name>
-* `<path/to/file>` -> <schema/migration/config reference>
+- `<path/to/file>` -> <symbol/function/component name>
+- `<path/to/file>` -> <schema/migration/config reference>
 
 ### 3.2 <Concept name>
 
@@ -128,25 +132,25 @@ flowchart LR
 
 **Relationships / constraints (only if present and important)**
 
-* <relationship> -> <how enforced> (migration: `<path>` / code: `<path>`)
+- <relationship> -> <how enforced> (migration: `<path>` / code: `<path>`)
 
 **Indexes worth knowing**
 
-* `<index>` -> <why it exists> (migration: `<path>`)
+- `<index>` -> <why it exists> (migration: `<path>`)
 
 ### 4.4 Security Model
 
 **Authentication**
 
-* Method -> <e.g., Supabase Auth / JWT / OAuth> (code: `<path>`)
+- Method -> <e.g., Supabase Auth / JWT / OAuth> (code: `<path>`)
 
 **Authorization**
 
-* Roles/permissions -> <summary> (code/policies: `<path>`)
+- Roles/permissions -> <summary> (code/policies: `<path>`)
 
 **Data isolation**
 
-* RLS / tenant scoping -> <how enforced> (policies/migrations: `<path>`)
+- RLS / tenant scoping -> <how enforced> (policies/migrations: `<path>`)
 
 ```mermaid
 flowchart TB
@@ -162,17 +166,19 @@ flowchart TB
 
 ### 5.1 Working Features
 
-* ✅ <feature> (evidence: `<path>`)
-* ✅ <feature> (evidence: `<path>`)
+- ✅ <feature> (evidence: `<path>`)
+- ✅ <feature> (evidence: `<path>`)
 
 ### 5.2 Known Limitations
 
-* ⚠️ <limitation> (symptom -> cause -> evidence: `<path>`)
-* ⚠️ <limitation> (symptom -> cause -> evidence: `<path>`)
+- ⚠️ <limitation> (symptom -> cause -> evidence: `<path>`)
+- ⚠️ <limitation> (symptom -> cause -> evidence: `<path>`)
 
 ### 5.3 Technical Debt (Brutal Honesty)
 
-* <debt item> -> why it matters -> evidence: `<path>`
-* <debt item> -> why it matters -> evidence: `<path>`
+- <debt item> -> why it matters -> evidence: `<path>`
+- <debt item> -> why it matters -> evidence: `<path>`
+
+```
 
 ```
