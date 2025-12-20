@@ -24,11 +24,11 @@
 
 ```mermaid
 graph TD
-    A[User Clicks Filter Tab] --> B[MasterLibraryList State Update]
-    B --> C[useMasterLibraryTasks Hook]
-    C --> D[taskService.fetchMasterLibraryTasks]
-    D --> E[Supabase Query .eq('resource_type', type)]
-    E --> F[Update UI List]
+    A["User Clicks Filter Tab"] --> B["MasterLibraryList State Update"]
+    B --> C["useMasterLibraryTasks Hook"]
+    C --> D["taskService.fetchMasterLibraryTasks"]
+    D --> E["Supabase Query .eq('resource_type', type)"]
+    E --> F["Update UI List"]
 ```
 
 ## 🔍 Review Guide
