@@ -13,6 +13,11 @@ This PR implements a robust, persistent, and accessible Drag-and-Drop (DnD) syst
 - **New Column**: Added `position` (BIGINT) to the `tasks` table.
 - **Index**: Added composite index on `(parent_task_id, position)` to optimize ordered retrieval.
 - **Migration**: Included `docs/db/migrations/001_add_position.sql`.
+- **Schema Alignment**:
+  - `004_restore_missing_columns.sql`: Restored `purpose`, `actions`, `resources`, `is_complete` columns to `tasks`.
+  - `005_fix_permissions.sql`: Fixed RLS policies for `public.has_project_role`.
+- **Bug Fixes (Ambiguity Saga)**:
+  - `006` - `010`: Iteratively fixed "Ambiguous Column Reference" errors in PL/pgSQL triggers and auth functions (`maintain_task_root_id`, `get_task_root_id`, `has_project_role`) by strictly enforcing Hungarian notation for local variables (`v_root_id`).
 
 #### **2. Backend Services** (`src/services/positionService.js`)
 
@@ -61,6 +66,7 @@ This PR implements a robust, persistent, and accessible Drag-and-Drop (DnD) syst
 
 - **Tests**: Added `src/services/positionService.test.js` verifying midpoint logic, boundary conditions (start/end), and renormalization triggers.
 - **Manual**: Verified persistence of top-level moves, nested subtask moves, and cross-session stability.
+- **E2E verification**: Passed "Golden Path" test (Project creation -> Task creation -> Edit -> Persistence -> Delete) using Browser Agent.
 
 ### **Checklist**
 
