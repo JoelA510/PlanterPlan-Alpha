@@ -1,103 +1,55 @@
-import React, { useState } from 'react';
+import React, { useCallback } from 'react';
+import { useTaskForm } from '../../hooks/useTaskForm';
 import MasterLibrarySearch from './MasterLibrarySearch';
 
+const initialState = {
+  title: '',
+  description: '',
+  purpose: '',
+  actions: '',
+  resources: '',
+  notes: '',
+  start_date: '',
+  templateId: null,
+};
+
 const NewProjectForm = ({ onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    purpose: '',
-    actions: '',
-    resources: '',
-    notes: '',
-    start_date: '',
-    templateId: null,
-  });
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showResourceCreator, setShowResourceCreator] = useState(false);
-  const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-  };
-
-  const validate = () => {
+  const validate = useCallback((data) => {
     const newErrors = {};
 
-    if (!formData.title.trim()) {
+    if (!data.title?.trim()) {
       newErrors.title = 'Project title is required';
     }
 
-    if (!formData.start_date) {
+    if (!data.start_date) {
       newErrors.start_date = 'Start date is required';
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    return newErrors;
+  }, []);
 
-  const handleApplyFromLibrary = (task) => {
-    setFormData((prev) => ({
-      ...prev,
-      title: task.title ?? prev.title,
-      description: task.description ?? prev.description,
-      purpose: task.purpose ?? prev.purpose,
-      actions: task.actions ?? prev.actions,
-      resources: task.resources ?? prev.resources,
-      templateId: task.id,
-    }));
-    setLastAppliedTaskTitle(task.title || '');
-  };
+  const {
+    formData,
+    setFormData,
+    errors,
+    isSubmitting,
+    showResourceCreator,
+    lastAppliedTaskTitle,
+    handleChange,
+    handleApplyFromLibrary,
+    handleCreateResource,
+    dismissResourceCreator,
+    handleSubmit: hookSubmit,
+  } = useTaskForm(initialState, validate);
 
-  const handleCreateResource = () => {
-    setShowResourceCreator(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validate()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      await onSubmit(formData);
-      // Reset form on success
-      setFormData({
-        title: '',
-        description: '',
-        purpose: '',
-        actions: '',
-        resources: '',
-        notes: '',
-
-        start_date: '',
-        templateId: null,
-      });
-      setLastAppliedTaskTitle('');
-      setShowResourceCreator(false);
-    } catch (error) {
-      setErrors({ submit: error.message || 'Failed to create project' });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleFormSubmit = (e) => {
+    hookSubmit(e, onSubmit, () => {
+      setFormData(initialState);
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="project-form">
+    <form onSubmit={handleFormSubmit} className="project-form">
       <div className="form-group">
         <MasterLibrarySearch
           mode="copy"
@@ -124,7 +76,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
             <button
               type="button"
               className="text-xs font-medium text-blue-700 hover:underline"
-              onClick={() => setShowResourceCreator(false)}
+              onClick={dismissResourceCreator}
             >
               Dismiss
             </button>
@@ -179,82 +131,35 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
           value={formData.purpose}
           onChange={handleChange}
           className="form-textarea"
-          placeholder="What is the purpose of this project?"
+          placeholder="Why is this project being created?"
           rows="3"
         />
       </div>
 
-      {/* Actions Field */}
-      <div className="form-group">
-        <label htmlFor="actions" className="form-label">
-          Actions
-        </label>
-        <textarea
-          id="actions"
-          name="actions"
-          value={formData.actions}
-          onChange={handleChange}
-          className="form-textarea"
-          placeholder="What actions need to be taken?"
-          rows="3"
-        />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="form-group">
+          <label htmlFor="start_date" className="form-label">
+            Start Date <span className="required">*</span>
+          </label>
+          <input
+            type="date"
+            id="start_date"
+            name="start_date"
+            value={formData.start_date}
+            onChange={handleChange}
+            className={`form-input ${errors.start_date ? 'error' : ''}`}
+          />
+          {errors.start_date && <span className="form-error">{errors.start_date}</span>}
+        </div>
+        <div className="form-group">{/* Placeholder for layout */}</div>
       </div>
 
-      {/* Start Date Field */}
-      <div className="form-group">
-        <label htmlFor="start_date" className="form-label">
-          Project Start Date <span className="required">*</span>
-        </label>
-        <input
-          type="date"
-          id="start_date"
-          name="start_date"
-          value={formData.start_date}
-          onChange={handleChange}
-          className={`form-input ${errors.start_date ? 'error' : ''}`}
-        />
-        {errors.start_date && <span className="form-error">{errors.start_date}</span>}
-      </div>
-
-      {/* Resources Field */}
-      <div className="form-group">
-        <label htmlFor="resources" className="form-label">
-          Resources
-        </label>
-        <textarea
-          id="resources"
-          name="resources"
-          value={formData.resources}
-          onChange={handleChange}
-          className="form-textarea"
-          placeholder="What resources are needed?"
-          rows="3"
-        />
-      </div>
-
-      {/* Notes Field */}
-      <div className="form-group">
-        <label htmlFor="notes" className="form-label">
-          Notes
-        </label>
-        <textarea
-          id="notes"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          className="form-textarea"
-          placeholder="Internal notes for this project"
-          rows="3"
-        />
-      </div>
-
-      {/* Form Actions */}
-      <div className="form-actions">
+      <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">
         <button type="button" onClick={onCancel} className="btn-secondary" disabled={isSubmitting}>
           Cancel
         </button>
         <button type="submit" className="btn-primary" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating...' : 'Create Project'}
+          {isSubmitting ? 'Create Project' : 'Create Project'}
         </button>
       </div>
     </form>

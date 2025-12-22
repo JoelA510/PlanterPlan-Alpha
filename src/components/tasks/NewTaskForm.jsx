@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useCallback } from 'react';
+import { useTaskForm } from '../../hooks/useTaskForm';
 import MasterLibrarySearch from './MasterLibrarySearch';
 
 const extractDateInput = (value) => {
@@ -28,118 +29,72 @@ const NewTaskForm = ({
   submitLabel = 'Add New Task',
   enableLibrarySearch = true,
 }) => {
-  const [formData, setFormData] = useState(() => createInitialState(initialTask));
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showResourceCreator, setShowResourceCreator] = useState(false);
-  const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
   const isEditMode = Boolean(initialTask);
 
-  useEffect(() => {
-    setFormData(createInitialState(initialTask));
-    setErrors({});
-    setLastAppliedTaskTitle('');
-    setShowResourceCreator(false);
-  }, [initialTask]);
+  const validate = useCallback(
+    (data) => {
+      const newErrors = {};
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-  };
-
-  const validate = () => {
-    const newErrors = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Task title is required';
-    }
-
-    if (
-      formData.days_from_start !== '' &&
-      formData.days_from_start !== undefined &&
-      formData.days_from_start !== null
-    ) {
-      const value = Number(formData.days_from_start);
-      if (Number.isNaN(value) || value < 0) {
-        newErrors.days_from_start = 'Days from start must be zero or greater';
-      }
-    }
-
-    if (origin === 'instance') {
-      if (!formData.days_from_start && !formData.start_date && parentTask) {
-        // Allow manual dates even without parent start; no error.
+      if (!data.title?.trim()) {
+        newErrors.title = 'Task title is required';
       }
 
-      if (formData.start_date && formData.due_date) {
-        const start = new Date(`${formData.start_date}T00:00:00.000Z`);
-        const due = new Date(`${formData.due_date}T00:00:00.000Z`);
-
-        if (!Number.isNaN(start.getTime()) && !Number.isNaN(due.getTime()) && due < start) {
-          newErrors.due_date = 'Due date cannot be before start date';
+      if (
+        data.days_from_start !== '' &&
+        data.days_from_start !== undefined &&
+        data.days_from_start !== null
+      ) {
+        const value = Number(data.days_from_start);
+        if (Number.isNaN(value) || value < 0) {
+          newErrors.days_from_start = 'Days from start must be zero or greater';
         }
       }
-    }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+      if (origin === 'instance') {
+        if (data.start_date && data.due_date) {
+          const start = new Date(`${data.start_date}T00:00:00.000Z`);
+          const due = new Date(`${data.due_date}T00:00:00.000Z`);
 
-  const handleApplyFromLibrary = (task) => {
-    setFormData((prev) => ({
-      ...prev,
-      title: task.title ?? prev.title,
-      description: task.description ?? prev.description,
-      notes: task.notes ?? prev.notes,
-      days_from_start:
-        task.days_from_start !== null && task.days_from_start !== undefined
-          ? String(task.days_from_start)
-          : prev.days_from_start,
-      start_date: extractDateInput(task.start_date) || prev.start_date,
-      due_date: extractDateInput(task.due_date) || prev.due_date,
-      templateId: task.id,
-    }));
-    setLastAppliedTaskTitle(task.title || '');
-  };
+          if (!Number.isNaN(start.getTime()) && !Number.isNaN(due.getTime()) && due < start) {
+            newErrors.due_date = 'Due date cannot be before start date';
+          }
+        }
+      }
 
-  const handleCreateResource = () => {
-    setShowResourceCreator(true);
-  };
+      return newErrors;
+    },
+    [origin]
+  );
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const {
+    formData,
+    setFormData,
+    errors,
+    isSubmitting,
+    showResourceCreator,
+    lastAppliedTaskTitle,
+    handleChange,
+    handleApplyFromLibrary,
+    handleCreateResource,
+    dismissResourceCreator,
+    handleSubmit: hookSubmit,
+  } = useTaskForm(createInitialState(initialTask), validate);
 
-    if (!validate()) {
-      return;
-    }
+  // Update form data when initialTask changes (for re-use)
+  useEffect(() => {
+    setFormData(createInitialState(initialTask));
+  }, [initialTask, setFormData]);
 
-    setIsSubmitting(true);
-
-    try {
-      await onSubmit(formData);
+  const handleFormSubmit = (e) => {
+    hookSubmit(e, onSubmit, () => {
       if (!isEditMode) {
         setFormData(createInitialState(null));
       }
-      setLastAppliedTaskTitle('');
-      setShowResourceCreator(false);
-    } catch (error) {
-      setErrors({ submit: error.message || 'Failed to create task' });
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="project-form">
+    <form onSubmit={handleFormSubmit} className="project-form">
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
         {origin === 'template' ? 'Template Task' : 'Project Task'}
       </div>
@@ -172,7 +127,7 @@ const NewTaskForm = ({
                 <button
                   type="button"
                   className="text-xs font-medium text-blue-700 hover:underline"
-                  onClick={() => setShowResourceCreator(false)}
+                  onClick={dismissResourceCreator}
                 >
                   Dismiss
                 </button>
@@ -181,18 +136,17 @@ const NewTaskForm = ({
           )}
         </>
       )}
+
       {/* Parent Task Info */}
       {parentTask && (
-        <div className="parent-task-info">
-          <span className="parent-label">Adding task to:</span>
-          <span className="parent-name">{parentTask.title}</span>
+        <div className="mb-4 flex items-center gap-2 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+          <span className="font-semibold text-slate-500">Adding to:</span>
+          <span className="font-medium">{parentTask.title}</span>
         </div>
       )}
 
-      {/* General error message */}
       {errors.submit && <div className="form-error-banner">{errors.submit}</div>}
 
-      {/* Title Field */}
       <div className="form-group">
         <label htmlFor="title" className="form-label">
           Task Title <span className="required">*</span>
@@ -210,7 +164,6 @@ const NewTaskForm = ({
         {errors.title && <span className="form-error">{errors.title}</span>}
       </div>
 
-      {/* Description Field */}
       <div className="form-group">
         <label htmlFor="description" className="form-label">
           Description
@@ -221,15 +174,14 @@ const NewTaskForm = ({
           value={formData.description}
           onChange={handleChange}
           className="form-textarea"
-          placeholder="Describe this task..."
-          rows="6"
+          placeholder="Describe the task..."
+          rows="3"
         />
       </div>
 
-      {/* Notes Field */}
       <div className="form-group">
         <label htmlFor="notes" className="form-label">
-          Notes
+          Notes / Context
         </label>
         <textarea
           id="notes"
@@ -237,71 +189,81 @@ const NewTaskForm = ({
           value={formData.notes}
           onChange={handleChange}
           className="form-textarea"
-          placeholder="Internal notes or context..."
-          rows="4"
+          placeholder="Internal notes, hints, or context..."
+          rows="2"
         />
-      </div>
-
-      {/* Days from Start Field */}
-      <div className="form-group">
-        <label htmlFor="days_from_start" className="form-label">
-          Days from project start
-        </label>
-        <input
-          type="number"
-          id="days_from_start"
-          name="days_from_start"
-          value={formData.days_from_start}
-          onChange={handleChange}
-          className="form-input"
-          placeholder="Optional offset in days"
-          min="0"
-        />
-        {errors.days_from_start && <span className="form-error">{errors.days_from_start}</span>}
-        <span className="text-xs text-slate-500">
-          Use this to schedule the task relative to the project start date.
-        </span>
       </div>
 
       {origin === 'instance' && (
-        <div className="form-group">
-          <label className="form-label" htmlFor="start_date">
-            Manual Schedule (optional)
-          </label>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <span className="form-label text-xs text-slate-500">Start date</span>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="form-group">
+            <label htmlFor="days_from_start" className="form-label">
+              Days from Start
+            </label>
+            <div className="relative">
               <input
-                type="date"
-                id="start_date"
-                name="start_date"
-                value={formData.start_date}
+                type="number"
+                id="days_from_start"
+                name="days_from_start"
+                value={formData.days_from_start}
                 onChange={handleChange}
-                className="form-input"
+                className={`form-input pl-10 ${errors.days_from_start ? 'error' : ''}`}
+                placeholder="0"
+                min="0"
               />
+              <div className="pointer-events-none absolute left-0 top-0 flex h-full w-10 items-center justify-center text-slate-400">
+                <span className="text-sm font-medium">T+</span>
+              </div>
             </div>
-            <div>
-              <span className="form-label text-xs text-slate-500">Due date</span>
-              <input
-                type="date"
-                id="due_date"
-                name="due_date"
-                value={formData.due_date}
-                onChange={handleChange}
-                className={`form-input ${errors.due_date ? 'error' : ''}`}
-              />
-              {errors.due_date && <span className="form-error">{errors.due_date}</span>}
-            </div>
+            {errors.days_from_start && <span className="form-error">{errors.days_from_start}</span>}
+            <p className="mt-1 text-xs text-slate-500">
+              Auto-calculates dates based on project start
+            </p>
           </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Provide dates when the offset isn’t known. Leaving all three fields blank keeps the
-            current schedule.
-          </p>
+
+          <div className="form-group">{/* Spacing placeholder */}</div>
         </div>
       )}
 
-      {/* Form Actions */}
-      <div className="form-actions">
+      {origin === 'instance' && (
+        <>
+          <div className="my-4 border-t border-slate-100 pt-4">
+            <h4 className="mb-3 text-sm font-medium text-slate-700">Manual Schedule Overrides</h4>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="form-group">
+                <label htmlFor="start_date" className="form-label">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  id="start_date"
+                  name="start_date"
+                  value={formData.start_date}
+                  onChange={handleChange}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="due_date" className="form-label">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  id="due_date"
+                  name="due_date"
+                  value={formData.due_date}
+                  onChange={handleChange}
+                  className={`form-input ${errors.due_date ? 'error' : ''}`}
+                />
+                {errors.due_date && <span className="form-error">{errors.due_date}</span>}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">
         <button type="button" onClick={onCancel} className="btn-secondary" disabled={isSubmitting}>
           Cancel
         </button>
