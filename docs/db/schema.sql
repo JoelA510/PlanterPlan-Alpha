@@ -166,28 +166,32 @@ RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = public
 AS $$
-BEGIN
-  -- If explicitly provided (rare), respect it on insert
-  IF TG_OP = 'INSERT' AND NEW.root_id IS NOT NULL THEN
-    RETURN NEW;
-  END IF;
-
-  IF NEW.parent_task_id IS NULL THEN
-    NEW.root_id := NEW.id;
-  ELSE
-    -- Use alias 't' to strictly identify the source column
-    SELECT t.root_id
-      INTO NEW.root_id
-    FROM public.tasks t
-    WHERE t.id = NEW.parent_task_id;
-
-    IF NEW.root_id IS NULL THEN
-      RAISE EXCEPTION 'Parent task % does not exist or has no root_id', NEW.parent_task_id;
+  DECLARE
+    v_root_id uuid;
+  BEGIN
+    -- If explicitly provided (rare), respect it on insert
+    IF TG_OP = 'INSERT' AND NEW.root_id IS NOT NULL THEN
+      RETURN NEW;
     END IF;
-  END IF;
 
-  RETURN NEW;
-END;
+    IF NEW.parent_task_id IS NULL THEN
+      NEW.root_id := NEW.id;
+    ELSE
+      -- Select into a separate variable to guarantee no ambiguity
+      SELECT t.root_id
+        INTO v_root_id
+      FROM public.tasks t
+      WHERE t.id = NEW.parent_task_id;
+
+      IF v_root_id IS NULL THEN
+        RAISE EXCEPTION 'Parent task % does not exist or has no root_id', NEW.parent_task_id;
+      END IF;
+
+      NEW.root_id := v_root_id;
+    END IF;
+
+    RETURN NEW;
+  END;
 $$;
 
 -- 4.3 root_id propagation for subtree moves (AFTER)
@@ -350,7 +354,7 @@ BEGIN
     SET search_path = public
     AS $function$
     DECLARE
-      root_id uuid;
+      v_root_id uuid;
       user_role text;
     BEGIN
       -- Prevent probing other users; policies pass auth.uid() anyway.
@@ -358,8 +362,8 @@ BEGIN
         RETURN false;
       END IF;
 
-      root_id := public.get_task_root_id($1);
-      IF root_id IS NULL THEN
+      v_root_id := public.get_task_root_id($1);
+      IF v_root_id IS NULL THEN
         RETURN false;
       END IF;
 
@@ -367,7 +371,7 @@ BEGIN
       IF EXISTS (
         SELECT 1
         FROM public.tasks t
-        WHERE t.id = root_id
+        WHERE t.id = v_root_id
           AND t.creator = $2
       ) THEN
         RETURN true;
@@ -376,7 +380,7 @@ BEGIN
       SELECT pm.role
       INTO user_role
       FROM public.project_members pm
-      WHERE pm.project_id = root_id
+      WHERE pm.project_id = v_root_id
         AND pm.user_id = $2
       LIMIT 1;
 

@@ -1,76 +1,97 @@
-# Pull Request Description
+# Pull Request: Critical Backend Scale-Down & Ambiguity Fixes
 
-## **Title:** Feature: Nested Drag-and-Drop Reordering with `dnd-kit`
+## 📋 Summary
 
-### **Summary**
+- **Massive Backend Downsizing**: Consolidated the database schema from ~40 mixed-domain tables to **2 core tables** (`tasks`, `project_members`). This eliminates technical debt from previous "sports management" experiments and focuses entirely on hierarchical task management.
+- **Critical Bug Fixes (Ambiguity Saga)**: Iteratively resolved specific PL/pgSQL variable naming conflicts ("Ambiguous Column Reference") that were blocking Task Creation and RLS operations (Migrations 006-010).
+- **Data Integrity**: Restored missing fields (`purpose`, `actions`, `resources`) and enforced strict RLS policies to prevent recursion crashes and unauthorized access.
+- **Documentation**: Synchronized `Roadmap`, `Engineering Knowledge`, and `Testing Strategy` with the new optimized architecture.
 
-This PR implements a robust, persistent, and accessible Drag-and-Drop (DnD) system for the Task Management module. It enables users to reorder tasks both at the root level and within nested hierarchies (Project -> Phase -> Task -> Subtask). The implementation uses `@dnd-kit` for the frontend interactions and introduces a sparse `BIGINT` positioning system in Supabase for efficient, scalable persistence.
+## 🗺️ Roadmap Progress
 
-### **Key Changes**
+| Item ID | Feature Name | Phase | Status | Notes |
+| ------- | ------------ | ----- | ------------------------ | ------- |
+| P1-CORE | Core Schema Optimization | 1 | ✅ Done | Reduced to 2 tables. |
+| DB-RLS | RLS & Permissions | 1 | ✅ Done | `has_project_role`, `check_project_ownership`. |
+| DB-FIX | Ambiguous Column Fixes | 1 | ✅ Done | Trigger & Auth function cleanup. |
+| FE-SAVE | Task Persistence | 1 | ✅ Done | Purpose/Actions/Resources saving correctly. |
 
-#### **1. Database Schema**
+## 🏗️ Architecture Decisions
 
-- **New Column**: Added `position` (BIGINT) to the `tasks` table.
-- **Index**: Added composite index on `(parent_task_id, position)` to optimize ordered retrieval.
-- **Migration**: Included `docs/db/migrations/001_add_position.sql`.
-- **Schema Alignment**:
-  - `004_restore_missing_columns.sql`: Restored `purpose`, `actions`, `resources`, `is_complete` columns to `tasks`.
-  - `005_fix_permissions.sql`: Fixed RLS policies for `public.has_project_role`.
-- **Bug Fixes (Ambiguity Saga)**:
-  - `006` - `010`: Iteratively fixed "Ambiguous Column Reference" errors in PL/pgSQL triggers and auth functions (`maintain_task_root_id`, `get_task_root_id`, `has_project_role`) by strictly enforcing Hungarian notation for local variables (`v_root_id`).
+### Key Patterns & Decisions
 
-#### **2. Backend Services** (`src/services/positionService.js`)
+- **Adaptable Hierarchy (Adjacency List)**: We chose a simple `parent_task_id` adjacency list for `tasks`, reinforced by a **denormalized `root_id`**. This allows efficient subtree retrieval without recursive CTEs for permissions checking.
+- **Strict PL/pgSQL Naming**: Enforced Hungarian notation (e.g., `v_root_id`) for all local variables in functions to prevent PostgreSQL from confusing them with column names (`root_id`).
+- **Canonical Helper Functions**: Replaced disparate logic/views with 5 canonical `SECURITY DEFINER` functions (e.g., `get_task_root_id`) to bypass RLS loops safely when calculating permissions.
 
-- **Sparse Positioning**: Implemented a "midpoint" calculation algorithm (`(prev + next) / 2`) leveraging 10,000-unit gaps to minimize the need for cascading updates.
-- **Renormalization**: Added a self-healing `renormalizePositions` function that bulk-updates siblings evenly if a collision (gap too small) occurs.
-- **Parallel Updates**: Optimized renormalization to use `Promise.all` for parallel database writes, resolving potential performance bottlenecks.
+### Logic Flow / State Changes
 
-#### **3. Frontend Logic** (`src/components/tasks/`)
+```mermaid
+graph TD
+A["User Creates Task"] --> B["UI: NewTaskForm"]
+B --> C["Service: insert task"]
+C --> D["DB: BEFORE TRIGGER maintain_task_root_id"]
+D --> E["DB: Calculate root_id"]
+E --> F["DB: RLS Check has_project_role"]
+F --> G{"Authorized?"}
+G -- Yes --> H["Insert Row"]
+H --> I["DB: AFTER TRIGGER propagate_task_root_id"]
+```
 
-- **`TaskList.jsx`**:
-  - Acts as the central `DndContext`.
-  - Handles `onDragEnd` logic: determining drop targets (containers vs. items), calculating new positions, and managing optimistic UI updates.
-  - Implements logic to sort children arrays deterministically by `position` to ensure visual consistency.
-- **`TaskItem.jsx`**:
-  - Refactored to include sortable logic directly (removed circular dependency with `SortableTaskItem`).
-  - Added a dedicated **Drag Handle** accessible via keyboard and pointer, ensuring drag events don't conflict with card interactions.
-  - Recursively renders `SortableContext` to support infinite nesting.
+## 🔍 Review Guide
 
-### **Refactor Improvements (from Code Review)**
+### 🚨 High Risk / Security Sensitive
 
-- **Boolean Safety**: Switched logical OR (`||`) to nullish coalescing (`??`) in `TaskList.jsx` and `TaskItem.jsx` to correctly handle `0` as a valid position or parent ID.
-- **Sorting Integrity**: Enforced explicit sorting of children arrays in the hierarchy builder to prevent visual regressions after drops.
-- **Performance**: Upgraded `renormalizePositions` from sequential execution to parallel execution.
-- **Logic Resilience**:
-  - **Container Drops**: Enabled dropping items into empty containers (empty lists) by detecting container drop targets.
-  - **Renormalization Retry**: Implemented automatic retry logic when a position collision occurs, ensuring the move completes successfully after rebalancing.
-  - **Robust Drop Parsing**: Refactored to use `over.data.current` for type safety, replacing brittle ID string parsing.
-  - **Empty Drops**: Added explicit `useDroppable` zones to `TaskItem.jsx` (for nested lists) and `TaskList.jsx` (for root lists) to ensure empty lists are valid targets.
-  - **Circular Safety**: Added ancestry checks to prevent dropping a parent task into its own descendant.
-  - **Multi-tenant Safety**: Scoped `renormalizePositions` to the current user to prevent cross-account data corruption.
-  - **Schema Compatibility**: Removed `updated_at` from bulk upserts to avoid PostgREST schema cache conflicts.
-  - **Crash Prevention**: Guarded `dragHandleProps` in `TaskItem` to prevent runtime errors in non-sortable lists (e.g., Joined Projects).
-  - **Performance**: Decoupled data fetching from state updates during drag-and-drop retries to avoid unnecessary re-renders.
-  - **Documentation**: Corrected comments in `positionService.test.js` to accurately reflect the midpoint calculation logic.
-  - **State Consistency**: During renormalization retries, `TaskList` now uses fresh data for the optimistic update, preventing visual flickering or stale positioning.
-  - **Root Drops**: Root "Projects" and "Templates" lists are now valid drop targets at all times (not just when empty).
-  - **Stability**: Wrapped drag handler in robust try/catch blocks for graceful failure recovery.
-  - **Clean Code**: Removed redundant imports and UI elements (Joined Projects buttons).
-  - **Build Fix**: Resolved duplicate import errors in `TaskList.jsx`.
-  - **Data Integrity**: Enforced Number coercion for position calculations to prevent BigInt string concatenation bugs.
-  - **DB Performance**: Optimized composite index to support multi-column filtering used in renormalization.
-  - **Renormalization Perf**: Refactored `renormalizePositions` to return updated rows, allowing `TaskList` to merge changes locally without a full re-fetch.
-  - **UX**: Explicitly disabled "Add Subtask" for Joined Projects to remove ambiguity.
+- `docs/db/migrations/010_fix_has_project_role.sql` - **Core Auth Logic**. Defines who can do what.
+- `docs/db/migrations/005_fix_permissions.sql` - **RLS Policies**. Ensure these strictly match the hierarchy (Creator > Owner > Editor).
 
-### **Verification**
+### 🧠 Medium Complexity
 
-- **Tests**: Added `src/services/positionService.test.js` verifying midpoint logic, boundary conditions (start/end), and renormalization triggers.
-- **Manual**: Verified persistence of top-level moves, nested subtask moves, and cross-session stability.
-- **E2E verification**: Passed "Golden Path" test (Project creation -> Task creation -> Edit -> Persistence -> Delete) using Browser Agent.
+- `src/components/NewTaskForm.jsx` - Ensuring `purpose`, `actions`, `resources` are not dropped during state updates.
 
-### **Checklist**
+### 🟢 Low Risk / Boilerplate
 
-- [x] Migrations created and applied.
-- [x] `npm test` passing (`positionService`).
-- [x] Accessibility verified (Drag Handle focus).
-- [x] Code review directives applied (Safety, Perf, Docs).
+- `docs/operations/ENGINEERING_KNOWLEDGE.md` - Documentation updates.
+
+## 🧪 Verification Plan
+
+### 1. Environment Setup
+
+- [ ] Run `npm install`
+- [ ] Run Migrations 004 through 010.
+
+### 2. Test Scenarios
+
+1. **Golden Path (Browser Agent Verified)**:
+    - Create Project "Golden Path".
+    - Create Task "Child A" (Verify "Ambiguous Column" error is GONE).
+    - Edit Task "Child A" -> Add Purpose/Actions -> Save.
+    - Refresh -> Verify Data Persists.
+    - Delete Project.
+
+2. **Ambiguity Check**:
+    - Try to insert a task without a `root_id` provided (Trigger should catch it).
+    - Try to view a project as a non-member (RLS should block it).
+
+---
+
+<details>
+<summary><strong>📉 Detailed Changelog (Collapsible)</strong></summary>
+
+- **Database**:
+  - `docs/db/schema.sql` (Synced with migrations)
+  - `004_restore_missing_columns.sql`
+  - `005_fix_permissions.sql`
+  - `006_fix_ambiguous_root.sql`
+  - `007_force_recreate_trigger.sql`
+  - `008_fix_ambiguous_root_final.sql`
+  - `009_fix_get_task_root_id.sql`
+  - `010_fix_has_project_role.sql`
+- **Docs**:
+  - Updated `ENGINEERING_KNOWLEDGE.md` with PL/pgSQL lessons.
+  - Updated `README-PROMPT.md` and `ROADMAP-PROMPT.md`.
+- **Frontend**:
+  - `NewTaskForm.jsx`: State fix.
+  - `dateUtils.js`: UTC normalization.
+
+</details>
