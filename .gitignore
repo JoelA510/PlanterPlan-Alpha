@@ -27,3 +27,6 @@ test_output*.txt
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Documentation
+docs/git_documentation/PR_DESCRIPTION_DRAFT.md
