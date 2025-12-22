@@ -3,9 +3,10 @@ require('dotenv').config();
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const testUserPassword = process.env.TEST_USER_PASSWORD;
 
-if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing env vars!');
+if (!supabaseUrl || !supabaseKey || !testUserPassword) {
+    console.error('Missing env vars! Ensure REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY, and TEST_USER_PASSWORD are set.');
     process.exit(1);
 }
 
@@ -29,12 +30,11 @@ async function testConnection() {
     // 2. Test Auth (Sign Up)
     console.log('\n--- 2. Auth Test (Sign Up) ---');
     const email = `test_script_${Math.floor(Math.random() * 10000)}@example.com`;
-    const password = 'TestScriptPassword123!';
     console.log('Attempting sign up with:', email);
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        password,
+        password: testUserPassword,
     });
 
     if (authError) {

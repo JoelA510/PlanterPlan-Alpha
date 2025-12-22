@@ -9,7 +9,7 @@ SET search_path = public
 AS $function$
 DECLARE
   v_root_id uuid;
-  user_role text;
+  v_user_role text;
 BEGIN
   -- Prevent probing other users; policies pass auth.uid() anyway.
   IF p_user_id IS DISTINCT FROM auth.uid() THEN
@@ -32,12 +32,12 @@ BEGIN
   END IF;
 
   SELECT pm.role
-  INTO user_role
+  INTO v_user_role
   FROM public.project_members pm
   WHERE pm.project_id = v_root_id
     AND pm.user_id = p_user_id
   LIMIT 1;
 
-  RETURN (user_role IS NOT NULL AND user_role = ANY(p_allowed_roles));
+  RETURN (v_user_role IS NOT NULL AND v_user_role = ANY(p_allowed_roles));
 END;
 $function$;

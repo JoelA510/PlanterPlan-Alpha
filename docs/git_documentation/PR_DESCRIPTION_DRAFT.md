@@ -86,7 +86,9 @@ H --> I["DB: AFTER TRIGGER propagate_task_root_id"]
   - `007_force_recreate_trigger.sql`
   - `008_fix_ambiguous_root_final.sql`
   - `009_fix_get_task_root_id.sql`
-  - `010_fix_has_project_role.sql`
+  - `010_fix_has_project_role.sql` (Refactored to named params & strict vars)
+- **Scripts**:
+  - `test-db-connection.js` (Secured with env vars)
 - **Docs**:
   - Updated `ENGINEERING_KNOWLEDGE.md` with PL/pgSQL lessons.
   - Updated `README-PROMPT.md` and `ROADMAP-PROMPT.md`.
