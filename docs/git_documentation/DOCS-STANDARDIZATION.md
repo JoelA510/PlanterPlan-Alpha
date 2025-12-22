@@ -4,7 +4,7 @@
 
 - **Consolidated Documentation**: Moved root-level documentation templates (`README-PROMPT.md`, `README-TEMPLATE.md`) into `docs/` to reduce clutter.
 - **Established Knowledge Base**: Created `docs/ENGINEERING_KNOWLEDGE.md`, a structured database of 12 critical engineering lessons (RLS, DnD, Date logic) to prevent regression.
-- **Standardized Workflows**: Introduced `docs/PR-TEMPLATE.md` and `docs/PR-PROMPT.md` to ensure consistent, high-quality PR descriptions moving forward.
+- **Standardized Workflows**: Introduced `docs/git_documentation/PR-PROMPT.md` to ensure consistent, high-quality PR descriptions moving forward.
 - **Updated Roadmap**: Refreshed `roadmap.md` with a complete historical timeline and current UX workflow status.
 
 ## 🗺️ Roadmap Progress
@@ -41,9 +41,9 @@ N/A (Documentation changes only)
 ### 🟢 Low Risk / Boilerplate
 
 - `roadmap.md` - Text updates.
-- `docs/README-PROMPT.md` - Reference path updates.
+- `docs/operations/README-PROMPT.md` - Reference path updates.
 - `docs/PR-TEMPLATE.md` - New file.
-- `docs/PR-PROMPT.md` - New file.
+- `docs/git_documentation/PR-PROMPT.md` - New file.
 
 ## 🧪 Verification Plan
 
@@ -58,9 +58,9 @@ N/A
 
 ### 3. Test Scenarios
 
-1.  **Verify File Structure**: Ensure `docs/` contains `README-PROMPT.md`, `README-TEMPLATE.md`, `ENGINEERING_KNOWLEDGE.md`, `PR-TEMPLATE.md`, and `PR-PROMPT.md`.
-2.  **Verify Links**: Click the "Engineering Knowledge Base" link in `README.md` to ensure it resolves.
-3.  **Verify Roadmap**: Open `roadmap.md` and check the "Project History" section.
+1. **Verify File Structure**: Ensure `docs/` contains `README-PROMPT.md`, `README-TEMPLATE.md`, `ENGINEERING_KNOWLEDGE.md`, `PR-TEMPLATE.md`, and `PR-PROMPT.md`.
+2. **Verify Links**: Click the "Engineering Knowledge Base" link in `README.md` to ensure it resolves.
+3. **Verify Roadmap**: Open `roadmap.md` and check the "Project History" section.
 
 ---
 

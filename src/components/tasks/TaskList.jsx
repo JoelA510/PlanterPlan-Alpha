@@ -473,11 +473,11 @@ const TaskList = () => {
             .from('tasks')
             .update({
               title: formData.title,
-              description: formData.description || newRoot.description,
-              purpose: formData.purpose || newRoot.purpose,
-              actions: formData.actions || newRoot.actions,
-              resources: formData.resources || newRoot.resources,
-              notes: formData.notes || newRoot.notes,
+              description: formData.description ?? newRoot.description,
+              purpose: formData.purpose ?? newRoot.purpose,
+              actions: formData.actions ?? newRoot.actions,
+              resources: formData.resources ?? newRoot.resources,
+              notes: formData.notes ?? newRoot.notes,
               start_date: projectStartDate,
               due_date: projectStartDate, // Default due date to start date for now
             })
@@ -491,11 +491,11 @@ const TaskList = () => {
         const { error: insertError } = await supabase.from('tasks').insert([
           {
             title: formData.title,
-            description: formData.description || null,
-            purpose: formData.purpose || null,
-            actions: formData.actions || null,
-            resources: formData.resources || null,
-            notes: formData.notes || null,
+            description: formData.description ?? null,
+            purpose: formData.purpose ?? null,
+            actions: formData.actions ?? null,
+            resources: formData.resources ?? null,
+            notes: formData.notes ?? null,
             days_from_start: null,
             origin: 'instance',
             creator: user.id,
@@ -574,8 +574,11 @@ const TaskList = () => {
 
         const updates = {
           title: formData.title,
-          description: formData.description || null,
-          notes: formData.notes || null,
+          description: formData.description ?? null,
+          notes: formData.notes ?? null,
+          purpose: formData.purpose ?? null,
+          actions: formData.actions ?? null,
+          resources: formData.resources ?? null,
           days_from_start: parsedDays,
           updated_at: new Date().toISOString(),
           ...scheduleUpdates,
@@ -612,8 +615,11 @@ const TaskList = () => {
 
       const insertPayload = {
         title: formData.title,
-        description: formData.description || null,
-        notes: formData.notes || null,
+        description: formData.description ?? null,
+        notes: formData.notes ?? null,
+        purpose: formData.purpose ?? null,
+        actions: formData.actions ?? null,
+        resources: formData.resources ?? null,
         days_from_start: parsedDays,
         origin,
         creator: user.id,
@@ -646,8 +652,11 @@ const TaskList = () => {
           // Update the root task with form details
           const updates = {
             title: formData.title,
-            description: formData.description || newRoot.description,
-            notes: formData.notes || newRoot.notes,
+            description: formData.description ?? newRoot.description,
+            notes: formData.notes ?? newRoot.notes,
+            purpose: formData.purpose ?? newRoot.purpose,
+            actions: formData.actions ?? newRoot.actions,
+            resources: formData.resources ?? newRoot.resources,
             days_from_start: parsedDays,
             updated_at: new Date().toISOString(),
           };
