@@ -102,7 +102,7 @@ export const searchMasterLibraryTasks = async (
     .from(MASTER_LIBRARY_VIEW)
     .select('*')
     .or(`title.ilike."${likePattern}",description.ilike."${likePattern}"`)
-    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(size);
 
   if (signal) {
