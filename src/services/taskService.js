@@ -27,7 +27,7 @@ const validateTaskShape = (task) => {
 };
 
 export const fetchMasterLibraryTasks = async (
-  { from = 0, limit = DEFAULT_PAGE_SIZE, signal } = {},
+  { from = 0, limit = DEFAULT_PAGE_SIZE, resourceType = null, signal } = {},
   client = supabase
 ) => {
   const start = coercePositiveInt(from, 0);
@@ -39,6 +39,10 @@ export const fetchMasterLibraryTasks = async (
     .select('*')
     .order('created_at', { ascending: false })
     .range(start, end);
+
+  if (resourceType && resourceType !== 'all') {
+    query = query.eq('resource_type', resourceType);
+  }
 
   if (signal) {
     query = query.abortSignal(signal);
@@ -85,7 +89,7 @@ export const fetchMasterLibraryTasks = async (
 const escapeIlike = (value) => value.replace(/[\\%_]/g, (char) => `\\${char}`);
 
 export const searchMasterLibraryTasks = async (
-  { query, limit = DEFAULT_SEARCH_LIMIT, signal } = {},
+  { query, limit = DEFAULT_SEARCH_LIMIT, resourceType = null, signal } = {},
   client = supabase
 ) => {
   const normalizedQuery = typeof query === 'string' ? query.trim().slice(0, 100) : '';
@@ -102,8 +106,12 @@ export const searchMasterLibraryTasks = async (
     .from(MASTER_LIBRARY_VIEW)
     .select('*')
     .or(`title.ilike."${likePattern}",description.ilike."${likePattern}"`)
-    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(size);
+
+  if (resourceType && resourceType !== 'all') {
+    queryBuilder = queryBuilder.eq('resource_type', resourceType);
+  }
 
   if (signal) {
     queryBuilder = queryBuilder.abortSignal(signal);
@@ -141,6 +149,7 @@ export const searchMasterLibraryTasks = async (
     }
 
     console.error('[taskService.searchMasterLibraryTasks] Fatal error performing search:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     throw error;
   }
 };

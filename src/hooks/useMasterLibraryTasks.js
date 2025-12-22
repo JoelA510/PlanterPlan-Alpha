@@ -10,7 +10,12 @@ const initialState = {
   hasMore: false,
 };
 
-const useMasterLibraryTasks = ({ page = 0, limit = DEFAULT_LIMIT, enabled = true } = {}) => {
+const useMasterLibraryTasks = ({
+  page = 0,
+  limit = DEFAULT_LIMIT,
+  resourceType = 'all',
+  enabled = true,
+} = {}) => {
   const [state, setState] = useState(initialState);
   const latestRequestRef = useRef(0);
   const controllerRef = useRef(null);
@@ -40,6 +45,7 @@ const useMasterLibraryTasks = ({ page = 0, limit = DEFAULT_LIMIT, enabled = true
         const tasks = await fetchMasterLibraryTasks({
           from,
           limit,
+          resourceType,
           signal: abortController.signal,
         });
 
@@ -77,7 +83,7 @@ const useMasterLibraryTasks = ({ page = 0, limit = DEFAULT_LIMIT, enabled = true
         }
       }
     },
-    [limit, page]
+    [limit, page, resourceType]
   );
 
   const refresh = useCallback(() => {

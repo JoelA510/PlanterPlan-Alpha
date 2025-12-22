@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated:** 2025-12-18
-**Current Focus:** Resource Filters and Real-time Collaboration.
+**Last Updated:** 2025-12-20
+**Current Focus:** Real-time Collaboration and Performance.
 
 ---
 
@@ -46,7 +46,7 @@ The core user journeys identified in the codebase and their current operational 
 | :--------------------- | :------------- | :------------------------------------------------------------------------------------------------- |
 | **CRUD Operations**    | ✅ **Working** | Create, Read, Update, Delete (with cascade).                                                       |
 | **Reordering (DnD)**   | ✅ **Working** | Drag-and-drop tasks within/across phases. Persists to DB via `position`.                           |
-| **Task Search (Copy)** | ✅ **Working** | "Master Library Search" allows finding and copying individual template tasks into active projects. |
+| **Task Search (Copy)** | ✅ **Working** | "Master Library Search" allows finding and copying templates. Supports filtering by resource type (PDF/Text/URL). |
 | **Scheduling**         | ✅ **Working** | Supports "Days from Start" offsets and auto-calculation of dates.                                  |
 
 ### 👥 Collaboration
@@ -77,7 +77,7 @@ _Goal: Add reporting capabilities and expand the resource library._
 
 - **ID:** `P5-RESOURCE-FILTERS`
 - **Goal**: Filter learning resources by type (PDF, URL, Text).
-- **Status**: 📅 Planned
+- **Status**: ✅ Done
 
 #### 3.2 Monthly Report View
 

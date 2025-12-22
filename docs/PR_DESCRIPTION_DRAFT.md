@@ -1,74 +1,95 @@
-# Pull Request: Tech Debt Fix & Project Status Report UI
+# Pull Request: Feature: Resource Filters & Critical Search Fix
 
 ## 📋 Summary
 
-*   **Project Reports:** Users can now view a read-only, print-friendly "Project Status Report" for any project, showing completion percentages, overdue items, and a hierarchical task list.
-*   **Performance Boost:** The system now fetches task trees significantly faster and more reliably by leveraging the database's `root_id` index instead of inefficient scanning.
-*   **Documentation Fixes:** Fixed broken diagrams in the README and standardized the roadmap documentation.
+- **Resource Filtering**: Users can now filter the Master Library by "Text", "PDF", or "URL" to quickly find specific types of content.
+- **Visual Badges**: Added UI badges to library items indicating their resource type.
+- **Critical Search Fix**: Resolved a crashing bug in the Master Library search function that prevented users from finding templates.
 
 ## 🗺️ Roadmap Progress
 
 | Item ID | Feature Name | Phase | Status | Notes |
 | ------- | ------------ | ----- | ------ | ----- |
-| `P5-REPORT-UI` | Monthly Report View | 3 | ✅ Done | Implemented via `ProjectReport.jsx` |
-| `P6-RECURSIVE-FETCH` | Recursive Fetch Optimization | 4 | ✅ Done | Addressed via `root_id` optimization in `taskService` |
+| [P5-RESOURCE-FILTERS] | Resource Filters | 3 | ✅ Done | Full stack implementation (DB, API, UI). |
 
 ## 🏗️ Architecture Decisions
 
 ### Key Patterns & Decisions
 
-*   **DFS Rendering for Reports:**
-    *   **Why:** The `fetchTaskChildren` service returns a flat list of tasks. To render them hierarchically in the report (Project > Phase > Task), we implemented a Depth-First Search (DFS) sort in the frontend component (`ProjectReport.jsx`).
-    *   **Trade-off:** We are doing the sorting in memory (client-side) rather than a complex SQL recursive CTE. This is acceptable given the `root_id` pre-filtering ensures we only process one project at a time.
+- **Schema Extension**: Added `resource_type` and `resource_url` to the `tasks` table rather than a separate table to keep the "everything is a task" model simple.
+- **Search Robustness**: The search service previously sorted by `updated_at`, which does not exist in the `view_master_library` view. Switched to `created_at` to ensure reliability.
+- **Server-Side Filtering**: Filtering is done via Supabase query builder for efficiency, rather than filtering in memory on the client.
 
-*   **Root ID Optimization:**
-    *   **Why:** The previous `fetchTaskChildren` fetched *all* tasks for an origin and filtered them.
-    *   **Change:** Updated to query `where root_id = ?`, leveraging the database index for immediate O(1) access to the project tree.
-
-### Logic Flow / State Changes
+### Logic Flow (Filtering)
 
 ```mermaid
 graph TD
-    A[User Visits /report/:projectId] --> B[ProjectReport.jsx]
-    B --> C[taskService.fetchTaskChildren]
-    C --> D["Supabase Query (root_id index)"]
-    D --> C
-    C --> B[Receive Flat List]
-    B --> E[Client-side DFS Sort]
-    E --> F[Render Hierarchical Table]
+    A["User Clicks Filter Tab"] --> B["MasterLibraryList State Update"]
+    B --> C["useMasterLibraryTasks Hook"]
+    C --> D["taskService.fetchMasterLibraryTasks"]
+    D --> E["Supabase Query .eq('resource_type', type)"]
+    E --> F["Update UI List"]
 ```
 
 ## 🔍 Review Guide
 
 ### 🚨 High Risk / Security Sensitive
 
-*   `src/services/taskService.js`: Core data fetching logic changed. Verify that `fetchTaskChildren` correctly handles both root projects and sub-tasks (though it now defaults to fetching the whole tree via `root_id`).
+- `docs/db/migrations/003_add_resource_type.sql` - **Schema Change:** Adds columns to the core `tasks` table.
 
 ### 🧠 Medium Complexity
 
-*   `src/components/reports/ProjectReport.jsx`: New component. Review the DFS sorting logic and the "Overdue" calculation (checks `due_date < now` AND `status != completed`).
+- `src/services/taskService.js` - Contains the fix for search sorting and the new filtering logic.
+- `src/hooks/useMasterLibrarySearch.js` - Updated to pass filter state to the service.
 
 ### 🟢 Low Risk / Boilerplate
 
-*   `README.md`: Diagram syntax fixes.
-*   `roadmap.md`: Status updates.
-*   `docs/ROADMAP-TEMPLATE.md` & `docs/ROADMAP-PROMPT.md`: New documentation standards.
+- `src/components/tasks/MasterLibraryList.jsx` - UI updates for tabs and badges.
 
 ## 🧪 Verification Plan
 
 ### 1. Environment Setup
 
-*   No new dependencies or migrations required.
+- [ ] Run migration: `docs/db/migrations/003_add_resource_type.sql` in Supabase SQL Editor.
+- [ ] No new npm dependencies.
 
-### 2. Test Scenarios
+### 2. Seed Data (Copy/Paste)
 
-1.  **Happy Path (Report Viewing):**
-    *   Login to the app.
-    *   Manually navigate to `/report/<your-project-id>` (get ID from URL in dashboard).
-    *   **Verify:** You see the "Project Status Report".
-    *   **Verify:** Tasks are indented correctly (hierarchy matches dashboard).
-    *   **Verify:** "Completion" % looks accurate.
+```sql
+-- Tag an existing template as a PDF for testing
+UPDATE public.tasks 
+SET resource_type = 'pdf' 
+WHERE origin = 'template' 
+LIMIT 1;
 
-2.  **Tech Debt Check:**
-    *   Open a project normally.
-    *   **Verify:** The Task List still loads correctly (regression test for `taskService` change).
+-- Tag another as URL
+UPDATE public.tasks 
+SET resource_type = 'url' 
+WHERE origin = 'template' 
+AND resource_type IS NULL
+LIMIT 1;
+```
+
+### 3. Test Scenarios
+
+1.  **Filter Verification:**
+    *   Navigate to Master Library.
+    *   Click "PDF" tab. Ensure only the task updated above appears.
+    *   Click "All" tab. Ensure all tasks appear.
+2.  **Search Verification:**
+    *   Type "Test" (or any known task title) in the search bar.
+    *   **Success:** Results appear without error.
+    *   **Failure:** "Failed to load results" error (Fixed in this PR).
+
+---
+
+<details>
+<summary><strong>📉 Detailed Changelog (Collapsible)</strong></summary>
+
+- `src/services/taskService.js`: Fixed sort column for search; added filter logic.
+- `src/components/tasks/MasterLibraryList.jsx`: Added filter tabs and state.
+- `src/hooks/useMasterLibraryTasks.js`: Wired up `resourceType` param.
+- `src/hooks/useMasterLibrarySearch.js`: Wired up `resourceType` param.
+- `docs/db/migrations/003_add_resource_type.sql`: New migration file.
+
+</details>
