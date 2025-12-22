@@ -27,7 +27,7 @@ const validateTaskShape = (task) => {
 };
 
 export const fetchMasterLibraryTasks = async (
-  { from = 0, limit = DEFAULT_PAGE_SIZE, signal } = {},
+  { from = 0, limit = DEFAULT_PAGE_SIZE, resourceType = null, signal } = {},
   client = supabase
 ) => {
   const start = coercePositiveInt(from, 0);
@@ -39,6 +39,10 @@ export const fetchMasterLibraryTasks = async (
     .select('*')
     .order('created_at', { ascending: false })
     .range(start, end);
+
+  if (resourceType && resourceType !== 'all') {
+    query = query.eq('resource_type', resourceType);
+  }
 
   if (signal) {
     query = query.abortSignal(signal);
@@ -85,7 +89,7 @@ export const fetchMasterLibraryTasks = async (
 const escapeIlike = (value) => value.replace(/[\\%_]/g, (char) => `\\${char}`);
 
 export const searchMasterLibraryTasks = async (
-  { query, limit = DEFAULT_SEARCH_LIMIT, signal } = {},
+  { query, limit = DEFAULT_SEARCH_LIMIT, resourceType = null, signal } = {},
   client = supabase
 ) => {
   const normalizedQuery = typeof query === 'string' ? query.trim().slice(0, 100) : '';
@@ -104,6 +108,10 @@ export const searchMasterLibraryTasks = async (
     .or(`title.ilike."${likePattern}",description.ilike."${likePattern}"`)
     .order('created_at', { ascending: false })
     .limit(size);
+
+  if (resourceType && resourceType !== 'all') {
+    queryBuilder = queryBuilder.eq('resource_type', resourceType);
+  }
 
   if (signal) {
     queryBuilder = queryBuilder.abortSignal(signal);
@@ -141,61 +149,50 @@ export const searchMasterLibraryTasks = async (
     }
 
     console.error('[taskService.searchMasterLibraryTasks] Fatal error performing search:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     throw error;
   }
 };
 
 export const fetchTaskChildren = async (taskId, client = supabase) => {
   try {
-    // Recursive query would be ideal, but for now we'll fetch all tasks and filter in memory
-    // or use a stored procedure if available.
-    // Given the constraints, let's assume we can fetch by origin/project or just fetch all for now
-    // if the dataset is small, OR we can implement a recursive fetch.
-    // BETTER APPROACH: Fetch all tasks that belong to the same tree.
-    // Since we don't have a 'root_id' column on all tasks, we might have to rely on
-    // fetching all tasks for the user/origin and filtering.
-    // HOWEVER, for templates, they are public/shared.
+    // Optimization: Use the 'root_id' column to fetch only the relevant tree.
+    // This replaces the previous inefficient method of fetching all tasks by origin.
 
-    // Let's try to find a way to get descendants.
-    // If we assume a max depth or just fetch all 'template' tasks if origin is template.
-
-    // First, get the task to know its origin.
-    const { data: root, error: rootError } = await client
+    // 1. Get the task's root_id to identify the project scope
+    const { data: targetTask, error: targetError } = await client
       .from('tasks')
-      .select('origin')
+      .select('id, root_id')
       .eq('id', taskId)
       .single();
 
-    if (rootError) throw rootError;
+    if (targetError) throw targetError;
 
-    // If it's a template, we can fetch all templates and filter.
-    // If it's an instance, we fetch all instance tasks for that user.
-    // This is not efficient for huge DBs but fine for this scale.
+    // If the task has a root_id, use it. If it IS the root, its root_id might be self or null depending on triggers,
+    // but the schema guarantees root_id is set. Fallback to taskId if root_id is somehow missing.
+    const projectRootId = targetTask.root_id || targetTask.id;
 
-    let query = client.from('tasks').select('*');
+    // 2. Fetch all tasks belonging to this project (same root_id)
+    const { data: projectTasks, error: fetchError } = await client
+      .from('tasks')
+      .select('*')
+      .eq('root_id', projectRootId);
 
-    if (root.origin === 'template') {
-      query = query.eq('origin', 'template');
-    } else {
-      // For instances, we might need to be more careful, but usually we clone FROM templates.
-      query = query.eq('origin', 'instance');
-    }
-
-    const { data: allTasks, error: fetchError } = await query;
     if (fetchError) throw fetchError;
 
-    // Now filter for descendants
+    // 3. Filter in-memory to get the specific subtree for 'taskId'
+    // (If taskId is the project root, this returns the whole project)
     const descendants = [];
     const queue = [taskId];
     const visited = new Set([taskId]);
 
-    // Add root to result? Usually we want the whole tree including root.
-    const rootTask = allTasks.find((t) => t.id === taskId);
+    // Include the target task itself
+    const rootTask = projectTasks.find((t) => t.id === taskId);
     if (rootTask) descendants.push(rootTask);
 
     while (queue.length > 0) {
       const currentId = queue.shift();
-      const children = allTasks.filter((t) => t.parent_task_id === currentId);
+      const children = projectTasks.filter((t) => t.parent_task_id === currentId);
 
       children.forEach((child) => {
         if (!visited.has(child.id)) {
