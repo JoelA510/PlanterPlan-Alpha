@@ -4,7 +4,7 @@
 
 - **Massive Backend Downsizing**: Consolidated the database schema from ~40 mixed-domain tables to **2 core tables** (`tasks`, `project_members`). This eliminates technical debt from previous "sports management" experiments and focuses entirely on hierarchical task management.
 - **Critical Bug Fixes (Ambiguity Saga)**: Iteratively resolved specific PL/pgSQL variable naming conflicts ("Ambiguous Column Reference") that were blocking Task Creation and RLS operations (Migrations 006-010).
-- **Data Integrity**: Restored missing fields (`purpose`, `actions`, `resources`) and enforced strict RLS policies to prevent recursion crashes and unauthorized access.
+- **Data Integrity**: Restored missing fields (`purpose`, `actions`, `resources`) and enforced strict RLS policies. Added robust, infinite-depth backfill logic in `one_time_setup.sql`.
 - **Documentation**: Synchronized `Roadmap`, `Engineering Knowledge`, and `Testing Strategy` with the new optimized architecture.
 
 ## 🗺️ Roadmap Progress
@@ -42,8 +42,7 @@ H --> I["DB: AFTER TRIGGER propagate_task_root_id"]
 
 ### 🚨 High Risk / Security Sensitive
 
-- `docs/db/migrations/010_fix_has_project_role.sql` - **Core Auth Logic**. Defines who can do what.
-- `docs/db/migrations/005_fix_permissions.sql` - **RLS Policies**. Ensure these strictly match the hierarchy (Creator > Owner > Editor).
+- `docs/db/schema.sql` - **Core Auth Logic & RLS**. Defines who can do what (replaces old migration files).
 
 ### 🧠 Medium Complexity
 
@@ -58,7 +57,7 @@ H --> I["DB: AFTER TRIGGER propagate_task_root_id"]
 ### 1. Environment Setup
 
 - [ ] Run `npm install`
-- [ ] Run Migrations 004 through 010.
+- [ ] Run `docs/db/schema.sql` (Idempotent single source of truth).
 
 ### 2. Test Scenarios
 
@@ -78,15 +77,8 @@ H --> I["DB: AFTER TRIGGER propagate_task_root_id"]
 <details>
 <summary><strong>📉 Detailed Changelog (Collapsible)</strong></summary>
 
-- **Database**:
-  - `docs/db/schema.sql` (Synced with migrations)
-  - `004_restore_missing_columns.sql`
-  - `005_fix_permissions.sql`
-  - `006_fix_ambiguous_root.sql`
-  - `007_force_recreate_trigger.sql`
-  - `008_fix_ambiguous_root_final.sql`
-  - `009_fix_get_task_root_id.sql`
-  - `010_fix_has_project_role.sql` (Refactored to named params & strict vars)
+- `docs/db/schema.sql` (Refactored to be the Single Source of Truth, removing dynamic SQL. **Includes 42P13 Fixes via explicit DROP FUNCTION**).
+- `docs/db/one_time_setup.sql` (Consolidated data migrations. **Added robust backfill loop**).
 - **Scripts**:
   - `test-db-connection.js` (Secured with env vars)
 - **Docs**:
@@ -94,6 +86,7 @@ H --> I["DB: AFTER TRIGGER propagate_task_root_id"]
   - Updated `README-PROMPT.md` and `ROADMAP-PROMPT.md`.
 - **Frontend**:
   - `NewTaskForm.jsx`: State fix.
+  - `TaskList.jsx`: Fixed nullish coalescing for empty strings.
   - `dateUtils.js`: UTC normalization.
 
 </details>

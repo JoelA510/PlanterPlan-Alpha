@@ -183,8 +183,12 @@ AS $$
       FROM public.tasks t
       WHERE t.id = NEW.parent_task_id;
 
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Parent task with id % does not exist.', NEW.parent_task_id;
+      END IF;
+
       IF v_root_id IS NULL THEN
-        RAISE EXCEPTION 'Parent task % does not exist or has no root_id', NEW.parent_task_id;
+        RAISE EXCEPTION 'Parent task % has a NULL root_id. This indicates a data integrity issue that should be investigated.', NEW.parent_task_id;
       END IF;
 
       NEW.root_id := v_root_id;
@@ -224,98 +228,58 @@ END;
 $$;
 
 -- 4.4 get_task_root_id (SECURITY DEFINER, 42P13-proof)
-DO $$
+DROP FUNCTION IF EXISTS public.get_task_root_id(uuid) CASCADE;
+CREATE OR REPLACE FUNCTION public.get_task_root_id(p_task_id uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
 DECLARE
-  rp regprocedure;
-  args text;
+  v_root_id uuid;
 BEGIN
-  rp := to_regprocedure('public.get_task_root_id(uuid)');
-  IF rp IS NOT NULL THEN
-    SELECT pg_get_function_arguments(rp) INTO args;
-  END IF;
+  -- Use a distinct variable and table alias to guarantee no ambiguity.
+  SELECT t.root_id INTO v_root_id
+  FROM public.tasks t
+  WHERE t.id = p_task_id;
 
-  args := COALESCE(args, 't_id uuid');
-
-  EXECUTE format($sql$
-    CREATE OR REPLACE FUNCTION public.get_task_root_id(%s)
-    RETURNS uuid
-    LANGUAGE plpgsql
-    SECURITY DEFINER
-    SET search_path = public
-    AS $function$
-    DECLARE
-      r_id uuid;
-    BEGIN
-      SELECT root_id INTO r_id
-      FROM public.tasks
-      WHERE id = $1;
-
-      RETURN r_id;
-    END;
-    $function$;
-  $sql$, args);
-END $$;
+  RETURN v_root_id;
+END;
+$function$;
 
 -- 4.5 is_active_member (SECURITY DEFINER, 42P13-proof)
-DO $$
-DECLARE
-  rp regprocedure;
-  args text;
+DROP FUNCTION IF EXISTS public.is_active_member(uuid, uuid) CASCADE;
+CREATE OR REPLACE FUNCTION public.is_active_member(p_project_id uuid, p_user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
 BEGIN
-  rp := to_regprocedure('public.is_active_member(uuid,uuid)');
-  IF rp IS NOT NULL THEN
-    SELECT pg_get_function_arguments(rp) INTO args;
-  END IF;
-
-  args := COALESCE(args, 'p_id uuid, u_id uuid');
-
-  EXECUTE format($sql$
-    CREATE OR REPLACE FUNCTION public.is_active_member(%s)
-    RETURNS boolean
-    LANGUAGE plpgsql
-    SECURITY DEFINER
-    SET search_path = public
-    AS $function$
-    BEGIN
-      RETURN EXISTS (
-        SELECT 1
-        FROM public.project_members
-        WHERE project_id = $1
-          AND user_id = $2
-      );
-    END;
-    $function$;
-  $sql$, args);
-END $$;
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.project_members
+    WHERE project_id = p_project_id
+      AND user_id = p_user_id
+  );
+END;
+$function$;
 
 -- 4.6 is_admin placeholder (SECURITY DEFINER, 42P13-proof)
-DO $$
-DECLARE
-  rp regprocedure;
-  args text;
+DROP FUNCTION IF EXISTS public.is_admin(uuid) CASCADE;
+CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
 BEGIN
-  rp := to_regprocedure('public.is_admin(uuid)');
-  IF rp IS NOT NULL THEN
-    SELECT pg_get_function_arguments(rp) INTO args;
-  END IF;
-
-  args := COALESCE(args, 'user_id uuid');
-
-  EXECUTE format($sql$
-    CREATE OR REPLACE FUNCTION public.is_admin(%s)
-    RETURNS boolean
-    LANGUAGE plpgsql
-    SECURITY DEFINER
-    SET search_path = public
-    AS $function$
-    BEGIN
-      RETURN false;
-    END;
-    $function$;
-  $sql$, args);
-END $$;
+  RETURN false;
+END;
+$function$;
 
 -- 4.7 check_project_ownership (breaks recursion; SECURITY DEFINER)
+DROP FUNCTION IF EXISTS public.check_project_ownership(uuid, uuid) CASCADE;
 CREATE OR REPLACE FUNCTION public.check_project_ownership(p_id uuid, u_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -333,6 +297,7 @@ END;
 $$;
 
 -- 4.8 has_project_role (SECURITY DEFINER, hardened, 42P13-proof)
+DROP FUNCTION IF EXISTS public.has_project_role(uuid, uuid, text[]) CASCADE;
 CREATE OR REPLACE FUNCTION public.has_project_role(p_task_id uuid, p_user_id uuid, p_allowed_roles text[])
 RETURNS boolean
 LANGUAGE plpgsql

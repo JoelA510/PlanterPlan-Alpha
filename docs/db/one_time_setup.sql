@@ -1,37 +1,40 @@
+-- one_time_setup.sql
 -- PlanterPlan One-Time Setup / Data Migration
--- Run this ONCE on an existing database to backfill data.
--- New deployments using schema.sql do not need this unless importing legacy data.
+-- Run ONCE on an existing database to backfill data for root_id and ordering.
+
+BEGIN;
 
 -- -------------------------------------------------------------------------
 -- 1. Backfill root_id
 -- -------------------------------------------------------------------------
 
--- 1.1 Roots (Roots point to themselves)
+-- 1.1 Roots point to themselves
 UPDATE public.tasks
 SET root_id = id
 WHERE parent_task_id IS NULL
-  AND root_id IS NULL;
+  AND (root_id IS NULL OR root_id <> id);
 
--- 1.2 Children (Recurse to fill depth)
+-- 1.2 Children inherit parent root_id (iterative fill for deep trees)
 DO $$
+DECLARE
+  updated_rows integer;
 BEGIN
-  -- Simple loop to fill depth for existing deep trees
-  FOR i IN 1..10 LOOP
+  -- Loop to fill depth for existing deep trees until no more rows are updated.
+  LOOP
     UPDATE public.tasks t
     SET root_id = p.root_id
     FROM public.tasks p
     WHERE t.parent_task_id = p.id
-      AND t.root_id IS NULL
+      AND (t.root_id IS NULL OR t.root_id <> p.root_id)
       AND p.root_id IS NOT NULL;
 
-    IF NOT FOUND THEN
-      EXIT;
-    END IF;
+    GET DIAGNOSTICS updated_rows = ROW_COUNT;
+    EXIT WHEN updated_rows = 0;
   END LOOP;
 END $$;
 
 -- -------------------------------------------------------------------------
--- 2. Backfill Position (Migration 001)
+-- 2. Backfill position (sparse spacing)
 -- -------------------------------------------------------------------------
 
 WITH numbered_tasks AS (
@@ -49,19 +52,4 @@ FROM numbered_tasks n
 WHERE t.id = n.id
   AND (t.position IS NULL OR t.position = 0);
 
--- -------------------------------------------------------------------------
--- 3. OPTIONAL VALIDATION (read-only)
--- -------------------------------------------------------------------------
-
--- Confirm no policies reference has_project_role_v2 (should return 0 rows)
--- SELECT
---   n.nspname AS policy_schema,
---   c.relname  AS table_name,
---   p.polname  AS policy_name,
---   pg_get_expr(p.polqual, p.polrelid) AS using_expr,
---   pg_get_expr(p.polwithcheck, p.polrelid) AS with_check_expr
--- FROM pg_policy p
--- JOIN pg_class c ON p.polrelid = c.oid
--- JOIN pg_namespace n ON c.relnamespace = n.oid
--- WHERE pg_get_expr(p.polqual, p.polrelid) ILIKE '%has_project_role_v2(%'
---    OR pg_get_expr(p.polwithcheck, p.polrelid) ILIKE '%has_project_role_v2(%';
+COMMIT;
