@@ -20,7 +20,8 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
   const [fileData, setFileData] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchResources = async () => {
+  // Stabilized fetch hook
+  const fetchResources = React.useCallback(async () => {
     try {
       setLoading(true);
       const data = await listTaskResources(taskId);
@@ -30,12 +31,11 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [taskId]);
 
   useEffect(() => {
     fetchResources();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskId]);
+  }, [fetchResources]);
 
   const resetForm = () => {
     setType('url');
@@ -268,7 +268,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
                 required
                 accept="application/pdf"
                 className="text-sm"
-                onChange={(e) => setFileData(e.files[0])}
+                onChange={(e) => setFileData(e.currentTarget.files?.[0] ?? null)}
               />
             </div>
           )}

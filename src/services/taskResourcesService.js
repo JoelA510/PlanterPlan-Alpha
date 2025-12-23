@@ -39,10 +39,7 @@ export const listTaskResources = async (taskId) => {
  * @param {string} [payload.name]
  * @returns {Promise<TaskResource>}
  */
-export const createTaskResource = async (
-  taskId,
-  { type, url, text_content, storage_path, name }
-) => {
+export const createTaskResource = async (taskId, { type, url, text_content, storage_path }) => {
   // Basic validation
   if (!type) throw new Error('Resource type is required');
   if (type === 'url' && !url) throw new Error('URL is required for url type');

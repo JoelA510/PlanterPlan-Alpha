@@ -158,8 +158,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_creator_origin_parent_position ON public.ta
 -- Resource indexes
 CREATE INDEX IF NOT EXISTS idx_task_resources_task_id ON public.task_resources(task_id);
 CREATE INDEX IF NOT EXISTS idx_task_resources_type ON public.task_resources(resource_type);
-CREATE INDEX IF NOT EXISTS task_resources_task_id_idx ON public.task_resources(task_id); -- Duplicate check?
-CREATE INDEX IF NOT EXISTS task_resources_type_idx ON public.task_resources(resource_type);
+
 
 CREATE INDEX IF NOT EXISTS idx_members_user ON public.project_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_members_project ON public.project_members(project_id);

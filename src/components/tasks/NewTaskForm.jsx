@@ -73,12 +73,9 @@ const NewTaskForm = ({
     setFormData,
     errors,
     isSubmitting,
-    showResourceCreator,
     lastAppliedTaskTitle,
     handleChange,
     handleApplyFromLibrary,
-    handleCreateResource,
-    dismissResourceCreator,
     handleSubmit: hookSubmit,
   } = useTaskForm(createInitialState(initialTask), validate);
 

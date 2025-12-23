@@ -163,6 +163,7 @@ const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const [joinedProjects, setJoinedProjects] = useState([]);
   const [joinedError, setJoinedError] = useState(null);
+  const [moveError, setMoveError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -182,6 +183,13 @@ const TaskList = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  useEffect(() => {
+    if (moveError) {
+      const timer = setTimeout(() => setMoveError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [moveError]);
 
   const { setNodeRef: setInstanceRootRef } = useDroppable({
     id: 'drop-root-instance',
@@ -324,7 +332,7 @@ const TaskList = () => {
             // ROLLBACK: Revert to previous state immediately
             setTasks(previousTasks);
             // Optional: Show a toast here if we had a toast system
-            alert('Failed to move task. Reverting changes...');
+            setMoveError('Failed to move task. Reverting changes...');
           }
         } else {
           // Standard optimistic update uses existing state
@@ -345,7 +353,7 @@ const TaskList = () => {
             console.error('Failed to persist move', e);
             // ROLLBACK
             setTasks(previousTasks);
-            alert('Failed to move task. Reverting changes...');
+            setMoveError('Failed to move task. Reverting changes...');
           }
         }
       } catch (globalError) {
@@ -847,6 +855,23 @@ const TaskList = () => {
           <div className="dashboard-header">
             <h1 className="dashboard-title">Dashboard</h1>
           </div>
+
+          {moveError && (
+            <div
+              role="alert"
+              className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded flex justify-between items-center text-sm"
+            >
+              <span>{moveError}</span>
+              <button
+                type="button"
+                aria-label="Dismiss error"
+                onClick={() => setMoveError(null)}
+                className="font-bold px-2 py-1 hover:bg-red-100 rounded text-red-500 hover:text-red-700"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           <div className="task-section">
             <div className="section-header">

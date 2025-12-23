@@ -32,12 +32,9 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
     setFormData,
     errors,
     isSubmitting,
-    showResourceCreator,
     lastAppliedTaskTitle,
     handleChange,
     handleApplyFromLibrary,
-    handleCreateResource,
-    dismissResourceCreator,
     handleSubmit: hookSubmit,
   } = useTaskForm(initialState, validate);
 
