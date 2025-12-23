@@ -304,6 +304,9 @@ const TaskList = () => {
           newPos = result.newPos;
           newParentId = result.newParentId;
 
+          // Capture state for rollback
+          const previousTasks = [...tasks];
+
           // IMPORTANT: Use freshTasks for the optimistic update to ensure consistency
           setTasks(() =>
             freshTasks.map((t) => {
@@ -313,8 +316,20 @@ const TaskList = () => {
               return t;
             })
           );
+
+          try {
+            await updateTaskPosition(active.id, newPos, newParentId);
+          } catch (e) {
+            console.error('Failed to persist move', e);
+            // ROLLBACK: Revert to previous state immediately
+            setTasks(previousTasks);
+            // Optional: Show a toast here if we had a toast system
+            alert('Failed to move task. Reverting changes...');
+          }
         } else {
           // Standard optimistic update uses existing state
+          const previousTasks = [...tasks]; // Capture for rollback
+
           setTasks((prev) =>
             prev.map((t) => {
               if (t.id === active.id) {
@@ -323,16 +338,19 @@ const TaskList = () => {
               return t;
             })
           );
-        }
 
-        try {
-          await updateTaskPosition(active.id, newPos, newParentId);
-        } catch (e) {
-          console.error('Failed to persist move', e);
-          fetchTasks();
+          try {
+            await updateTaskPosition(active.id, newPos, newParentId);
+          } catch (e) {
+            console.error('Failed to persist move', e);
+            // ROLLBACK
+            setTasks(previousTasks);
+            alert('Failed to move task. Reverting changes...');
+          }
         }
       } catch (globalError) {
         console.error('Unexpected error in handleDragEnd:', globalError);
+        // Fallback to heavy fetch only on unexpected crashes
         fetchTasks();
       }
     },
@@ -476,7 +494,6 @@ const TaskList = () => {
               description: formData.description ?? newRoot.description,
               purpose: formData.purpose ?? newRoot.purpose,
               actions: formData.actions ?? newRoot.actions,
-              resources: formData.resources ?? newRoot.resources,
               notes: formData.notes ?? newRoot.notes,
               start_date: projectStartDate,
               due_date: projectStartDate, // Default due date to start date for now
@@ -494,7 +511,6 @@ const TaskList = () => {
             description: formData.description ?? null,
             purpose: formData.purpose ?? null,
             actions: formData.actions ?? null,
-            resources: formData.resources ?? null,
             notes: formData.notes ?? null,
             days_from_start: null,
             origin: 'instance',
@@ -574,11 +590,10 @@ const TaskList = () => {
 
         const updates = {
           title: formData.title,
-          description: formData.description || null,
-          notes: formData.notes || null,
-          purpose: formData.purpose || null,
-          actions: formData.actions || null,
-          resources: formData.resources || null,
+          description: formData.description ?? null,
+          notes: formData.notes ?? null,
+          purpose: formData.purpose ?? null,
+          actions: formData.actions ?? null,
           days_from_start: parsedDays,
           updated_at: new Date().toISOString(),
           ...scheduleUpdates,
@@ -619,7 +634,6 @@ const TaskList = () => {
         notes: formData.notes ?? null,
         purpose: formData.purpose ?? null,
         actions: formData.actions ?? null,
-        resources: formData.resources ?? null,
         days_from_start: parsedDays,
         origin,
         creator: user.id,
@@ -656,7 +670,6 @@ const TaskList = () => {
             notes: formData.notes ?? newRoot.notes,
             purpose: formData.purpose ?? newRoot.purpose,
             actions: formData.actions ?? newRoot.actions,
-            resources: formData.resources ?? newRoot.resources,
             days_from_start: parsedDays,
             updated_at: new Date().toISOString(),
           };
@@ -999,6 +1012,7 @@ const TaskList = () => {
                 onAddChildTask={handleAddChildTask}
                 onEditTask={handleEditTask}
                 onDeleteTask={handleDeleteTask}
+                onTaskUpdated={fetchTasks}
               />
             ) : (
               <div className="empty-panel-state">

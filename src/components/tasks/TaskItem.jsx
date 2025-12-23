@@ -112,6 +112,11 @@ const TaskItem = ({
             <div className="task-info">
               <span className="task-title">{task.title}</span>
               {task.duration && <span className="task-duration">{task.duration}</span>}
+              {task.resource_type && (
+                <span className="ml-2" title={`Has ${task.resource_type} resource`}>
+                  {task.resource_type === 'url' ? '🔗' : task.resource_type === 'pdf' ? '📄' : '📝'}
+                </span>
+              )}
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import React from 'react';
+import TaskResources from './TaskResources';
 
-const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask }) => {
+const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated }) => {
   // Format date for display
   const formatDate = (date) => {
     if (!date) return 'Not set';
@@ -113,12 +114,11 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask }) => 
       )}
 
       {/* Resources */}
-      {task.resources && (
-        <div className="detail-section">
-          <h3 className="detail-section-title">Resources</h3>
-          <p className="detail-section-content">{task.resources}</p>
-        </div>
-      )}
+      <TaskResources
+        taskId={task.id}
+        primaryResourceId={task.primary_resource_id}
+        onUpdate={onTaskUpdated}
+      />
 
       {/* Dates */}
       <div className="detail-section">

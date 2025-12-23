@@ -13,7 +13,6 @@ const createInitialState = (task) => ({
   notes: task?.notes ?? '',
   purpose: task?.purpose ?? '',
   actions: task?.actions ?? '',
-  resources: task?.resources ?? '',
   days_from_start:
     task?.days_from_start !== null && task?.days_from_start !== undefined
       ? String(task.days_from_start)
@@ -108,7 +107,6 @@ const NewTaskForm = ({
             <MasterLibrarySearch
               mode="copy"
               onSelect={handleApplyFromLibrary}
-              onCreateResource={handleCreateResource}
               label="Search master library"
               placeholder="Start typing to copy an existing template task"
             />
@@ -117,24 +115,6 @@ const NewTaskForm = ({
           {lastAppliedTaskTitle && (
             <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
               Copied details from <span className="font-semibold">{lastAppliedTaskTitle}</span>.
-            </div>
-          )}
-
-          {showResourceCreator && (
-            <div className="mb-4 rounded-md border border-dashed border-blue-300 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-              <div className="flex items-start justify-between gap-4">
-                <p>
-                  Creating a new resource? Add its details directly to this task, then share the
-                  finalized task with your team.
-                </p>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-blue-700 hover:underline"
-                  onClick={dismissResourceCreator}
-                >
-                  Dismiss
-                </button>
-              </div>
             </div>
           )}
         </>
@@ -212,36 +192,19 @@ const NewTaskForm = ({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="form-group">
-          <label htmlFor="actions" className="form-label">
-            Actions
-          </label>
-          <textarea
-            id="actions"
-            name="actions"
-            value={formData.actions ?? ''}
-            onChange={handleChange}
-            className="form-textarea"
-            placeholder="Specific actions to take..."
-            rows="2"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="resources" className="form-label">
-            Resources
-          </label>
-          <textarea
-            id="resources"
-            name="resources"
-            value={formData.resources ?? ''}
-            onChange={handleChange}
-            className="form-textarea"
-            placeholder="Links, PDF names, or text resources..."
-            rows="2"
-          />
-        </div>
+      <div className="form-group">
+        <label htmlFor="actions" className="form-label">
+          Actions
+        </label>
+        <textarea
+          id="actions"
+          name="actions"
+          value={formData.actions ?? ''}
+          onChange={handleChange}
+          className="form-textarea"
+          placeholder="Specific actions to take..."
+          rows="2"
+        />
       </div>
 
       {origin === 'instance' && (
