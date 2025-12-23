@@ -520,7 +520,6 @@ const TaskList = () => {
             description: formData.description ?? null,
             purpose: formData.purpose ?? null,
             actions: formData.actions ?? null,
-            resources: formData.resources ?? null,
             notes: formData.notes ?? null,
             days_from_start: null,
             origin: 'instance',
@@ -604,6 +603,7 @@ const TaskList = () => {
           notes: formData.notes ?? null,
           purpose: formData.purpose ?? null,
           actions: formData.actions ?? null,
+
           days_from_start: parsedDays,
           updated_at: new Date().toISOString(),
           ...scheduleUpdates,
@@ -644,7 +644,7 @@ const TaskList = () => {
         notes: formData.notes ?? null,
         purpose: formData.purpose ?? null,
         actions: formData.actions ?? null,
-        resources: formData.resources ?? null,
+
         days_from_start: parsedDays,
         origin,
         creator: user.id,
