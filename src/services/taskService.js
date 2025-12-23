@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient';
 
-const MASTER_LIBRARY_VIEW = 'view_master_library';
+// Updated to use the view that includes primary resource info
+const MASTER_LIBRARY_VIEW = 'tasks_with_primary_resource';
 const DEFAULT_PAGE_SIZE = 25;
 const REQUIRED_FIELDS = ['id', 'title', 'origin'];
 const DEFAULT_SEARCH_LIMIT = 20;
@@ -37,6 +38,8 @@ export const fetchMasterLibraryTasks = async (
   let query = client
     .from(MASTER_LIBRARY_VIEW)
     .select('*')
+    .eq('origin', 'template')
+    .is('parent_task_id', null)
     .order('created_at', { ascending: false })
     .range(start, end);
 
@@ -105,6 +108,8 @@ export const searchMasterLibraryTasks = async (
   let queryBuilder = client
     .from(MASTER_LIBRARY_VIEW)
     .select('*')
+    .eq('origin', 'template')
+    .is('parent_task_id', null)
     .or(`title.ilike."${likePattern}",description.ilike."${likePattern}"`)
     .order('created_at', { ascending: false })
     .limit(size);
@@ -161,7 +166,7 @@ export const fetchTaskChildren = async (taskId, client = supabase) => {
 
     // 1. Get the task's root_id to identify the project scope
     const { data: targetTask, error: targetError } = await client
-      .from('tasks')
+      .from('tasks_with_primary_resource')
       .select('id, root_id')
       .eq('id', taskId)
       .single();
@@ -174,7 +179,7 @@ export const fetchTaskChildren = async (taskId, client = supabase) => {
 
     // 2. Fetch all tasks belonging to this project (same root_id)
     const { data: projectTasks, error: fetchError } = await client
-      .from('tasks')
+      .from('tasks_with_primary_resource')
       .select('*')
       .eq('root_id', projectRootId);
 
@@ -226,29 +231,25 @@ export const deepCloneTask = async (
     }
 
     // 2. Resolve root_id for the deep clone
-    // If we have a newParentId, we are inserting into an existing tree, so we need its root_id.
-    // If newParentId is null, we are creating a whole new tree (new root).
     let existingRootId = null;
 
     if (newParentId) {
-      // Fetch the root_id of the parent we are attaching to
-      // (This assumes the parent already has a root_id set correctly)
       const { data: parentTask, error: parentError } = await client
-        .from('tasks')
+        .from('tasks_with_primary_resource')
         .select('root_id')
         .eq('id', newParentId)
         .single();
 
       if (parentError) {
-        // Fallback: If parent not found or error, we abort to preserve integrity
         throw new Error(`Parent task ${newParentId} not found or error fetching root_id`);
       }
       existingRootId = parentTask?.root_id;
     }
 
-    // 3. Prepare new objects
+    // 3. Prepare new tasks
     const { prepareDeepClone } = await import('../utils/treeHelpers');
-    const newTasks = prepareDeepClone(
+    // Prepare logic return { newTasks, idMap } now
+    const { newTasks, idMap } = prepareDeepClone(
       tree,
       templateId,
       newParentId,
@@ -257,10 +258,72 @@ export const deepCloneTask = async (
       existingRootId
     );
 
-    // 4. Insert
+    // 3b. Fetch resources for ALL tasks in the source tree
+    const sourceTaskIds = tree.map((t) => t.id);
+    const { data: sourceResources, error: resError } = await client
+      .from('task_resources')
+      .select('*')
+      .in('task_id', sourceTaskIds);
+
+    if (resError) throw resError;
+
+    // 3c. Prepare new resources
+    const resourceMap = {}; // oldResId -> newResId
+    const newResources = [];
+
+    if (sourceResources && sourceResources.length > 0) {
+      sourceResources.forEach((res) => {
+        // Only clone if the task was part of the tree (it should be)
+        if (idMap[res.task_id]) {
+          const newResId = crypto.randomUUID();
+          resourceMap[res.id] = newResId;
+          newResources.push({
+            id: newResId,
+            task_id: idMap[res.task_id], // Map to new task ID
+            resource_type: res.resource_type,
+            resource_url: res.resource_url,
+            resource_text: res.resource_text,
+            storage_path: res.storage_path,
+          });
+        }
+      });
+    }
+
+    // 4. Insert tasks (without primary_resource_id initially)
     const { data, error } = await client.from('tasks').insert(newTasks).select();
 
     if (error) throw error;
+
+    // 5. Insert resources
+    if (newResources.length > 0) {
+      const { error: resInsertError } = await client.from('task_resources').insert(newResources);
+      if (resInsertError) throw resInsertError;
+    }
+
+    // 6. Update tasks with primary_resource_id
+    // Now that resources exist, we can link them
+    const tasksToUpdate = [];
+    tree.forEach((original) => {
+      // If original task had a primary resource, and we cloned that resource
+      if (original.primary_resource_id && resourceMap[original.primary_resource_id]) {
+        const newTaskId = idMap[original.id];
+        tasksToUpdate.push({
+          id: newTaskId,
+          primary_resource_id: resourceMap[original.primary_resource_id],
+        });
+      }
+    });
+
+    if (tasksToUpdate.length > 0) {
+      const { error: updateError } = await client.from('tasks').upsert(tasksToUpdate);
+      if (updateError) {
+        console.warn(
+          '[taskService.deepCloneTask] Warning: Failed to restore primary resources:',
+          updateError
+        );
+        // We don't throw here to avoid failing the whole clone, as data is mostly there.
+      }
+    }
 
     return data;
   } catch (error) {
@@ -272,7 +335,7 @@ export const deepCloneTask = async (
 export const getTasksForUser = async (userId, client = supabase) => {
   try {
     const { data, error } = await client
-      .from('tasks')
+      .from('tasks_with_primary_resource')
       .select('*')
       .eq('creator', userId)
       .order('position', { ascending: true });

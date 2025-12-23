@@ -163,6 +163,7 @@ const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const [joinedProjects, setJoinedProjects] = useState([]);
   const [joinedError, setJoinedError] = useState(null);
+  const [moveError, setMoveError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -182,6 +183,13 @@ const TaskList = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  useEffect(() => {
+    if (moveError) {
+      const timer = setTimeout(() => setMoveError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [moveError]);
 
   const { setNodeRef: setInstanceRootRef } = useDroppable({
     id: 'drop-root-instance',
@@ -304,6 +312,9 @@ const TaskList = () => {
           newPos = result.newPos;
           newParentId = result.newParentId;
 
+          // Capture state for rollback
+          const previousTasks = [...tasks];
+
           // IMPORTANT: Use freshTasks for the optimistic update to ensure consistency
           setTasks(() =>
             freshTasks.map((t) => {
@@ -313,8 +324,20 @@ const TaskList = () => {
               return t;
             })
           );
+
+          try {
+            await updateTaskPosition(active.id, newPos, newParentId);
+          } catch (e) {
+            console.error('Failed to persist move', e);
+            // ROLLBACK: Revert to previous state immediately
+            setTasks(previousTasks);
+            // Optional: Show a toast here if we had a toast system
+            setMoveError('Failed to move task. Reverting changes...');
+          }
         } else {
           // Standard optimistic update uses existing state
+          const previousTasks = [...tasks]; // Capture for rollback
+
           setTasks((prev) =>
             prev.map((t) => {
               if (t.id === active.id) {
@@ -323,16 +346,19 @@ const TaskList = () => {
               return t;
             })
           );
-        }
 
-        try {
-          await updateTaskPosition(active.id, newPos, newParentId);
-        } catch (e) {
-          console.error('Failed to persist move', e);
-          fetchTasks();
+          try {
+            await updateTaskPosition(active.id, newPos, newParentId);
+          } catch (e) {
+            console.error('Failed to persist move', e);
+            // ROLLBACK
+            setTasks(previousTasks);
+            setMoveError('Failed to move task. Reverting changes...');
+          }
         }
       } catch (globalError) {
         console.error('Unexpected error in handleDragEnd:', globalError);
+        // Fallback to heavy fetch only on unexpected crashes
         fetchTasks();
       }
     },
@@ -494,7 +520,6 @@ const TaskList = () => {
             description: formData.description ?? null,
             purpose: formData.purpose ?? null,
             actions: formData.actions ?? null,
-            resources: formData.resources ?? null,
             notes: formData.notes ?? null,
             days_from_start: null,
             origin: 'instance',
@@ -578,7 +603,7 @@ const TaskList = () => {
           notes: formData.notes ?? null,
           purpose: formData.purpose ?? null,
           actions: formData.actions ?? null,
-          resources: formData.resources ?? null,
+
           days_from_start: parsedDays,
           updated_at: new Date().toISOString(),
           ...scheduleUpdates,
@@ -619,7 +644,7 @@ const TaskList = () => {
         notes: formData.notes ?? null,
         purpose: formData.purpose ?? null,
         actions: formData.actions ?? null,
-        resources: formData.resources ?? null,
+
         days_from_start: parsedDays,
         origin,
         creator: user.id,
@@ -830,6 +855,23 @@ const TaskList = () => {
             <h1 className="dashboard-title">Dashboard</h1>
           </div>
 
+          {moveError && (
+            <div
+              role="alert"
+              className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded flex justify-between items-center text-sm"
+            >
+              <span>{moveError}</span>
+              <button
+                type="button"
+                aria-label="Dismiss error"
+                onClick={() => setMoveError(null)}
+                className="font-bold px-2 py-1 hover:bg-red-100 rounded text-red-500 hover:text-red-700"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           <div className="task-section">
             <div className="section-header">
               <div className="section-header-left">
@@ -999,6 +1041,7 @@ const TaskList = () => {
                 onAddChildTask={handleAddChildTask}
                 onEditTask={handleEditTask}
                 onDeleteTask={handleDeleteTask}
+                onTaskUpdated={fetchTasks}
               />
             ) : (
               <div className="empty-panel-state">

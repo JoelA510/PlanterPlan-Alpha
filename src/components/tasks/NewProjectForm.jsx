@@ -7,7 +7,6 @@ const initialState = {
   description: '',
   purpose: '',
   actions: '',
-  resources: '',
   notes: '',
   start_date: '',
   templateId: null,
@@ -33,12 +32,9 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
     setFormData,
     errors,
     isSubmitting,
-    showResourceCreator,
     lastAppliedTaskTitle,
     handleChange,
     handleApplyFromLibrary,
-    handleCreateResource,
-    dismissResourceCreator,
     handleSubmit: hookSubmit,
   } = useTaskForm(initialState, validate);
 
@@ -54,7 +50,6 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         <MasterLibrarySearch
           mode="copy"
           onSelect={handleApplyFromLibrary}
-          onCreateResource={handleCreateResource}
           label="Search master library"
           placeholder="Search tasks to prefill this project"
         />
@@ -66,23 +61,6 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         </div>
       )}
 
-      {showResourceCreator && (
-        <div className="mb-4 rounded-md border border-dashed border-blue-300 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-          <div className="flex items-start justify-between gap-4">
-            <p>
-              Capture new resource details in the form fields below. Once saved, you can promote it
-              to the master library later.
-            </p>
-            <button
-              type="button"
-              className="text-xs font-medium text-blue-700 hover:underline"
-              onClick={dismissResourceCreator}
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
       {/* General error message */}
       {errors.submit && <div className="form-error-banner">{errors.submit}</div>}
 

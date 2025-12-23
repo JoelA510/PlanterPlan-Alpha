@@ -141,11 +141,12 @@ flowchart LR
 
 ### 4.3 Database Schema
 
-| Table/Collection      | Purpose                                        | Key fields                                             |
-| --------------------- | ---------------------------------------------- | ------------------------------------------------------ |
-| `tasks`               | Stores both projects and tasks in a hierarchy. | `id`, `parent_task_id`, `root_id`, `origin`, `creator` |
-| `project_members`     | Manages permissions for shared projects.       | `project_id`, `user_id`, `role`                        |
-| `view_master_library` | Filters tasks to show only root templates.     | `*` (from tasks)                                       |
+| Table/Collection      | Purpose                                        | Key fields                                                                    |
+| --------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------- |
+| `tasks`               | Stores both projects and tasks in a hierarchy. | `id`, `parent_task_id`, `root_id`, `origin`, `creator`, `primary_resource_id` |
+| `task_resources`      | Stores resources attached to tasks.            | `id`, `task_id`, `type`, `url`, `storage_path`                                |
+| `project_members`     | Manages permissions for shared projects.       | `project_id`, `user_id`, `role`                                               |
+| `view_master_library` | Filters tasks to show only root templates.     | `*` (from tasks)                                                              |
 
 **Relationships**
 

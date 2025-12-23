@@ -40,7 +40,7 @@ export const prepareDeepClone = (
   // Otherwise, the new root task IS the new root ID.
   const resolvedRootId = existingRootId || newRootId;
 
-  return tasks.map((task) => {
+  const newTasks = tasks.map((task) => {
     const isRoot = task.id === rootId;
     const newId = idMap[task.id];
 
@@ -54,7 +54,6 @@ export const prepareDeepClone = (
       description: task.description,
       purpose: task.purpose,
       actions: task.actions,
-      resources: task.resources,
       notes: task.notes,
       days_from_start: task.days_from_start,
       origin: newOrigin,
@@ -68,6 +67,9 @@ export const prepareDeepClone = (
       // but we can copy offsets if needed. For now, we rely on days_from_start.
       start_date: null,
       due_date: null,
+      primary_resource_id: null, // Will be set after resources are cloned
     };
   });
+
+  return { newTasks, idMap };
 };

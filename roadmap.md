@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated:** 2025-12-20
-**Current Focus:** Real-time Collaboration and Performance.
+**Last Updated:** 2025-12-23
+**Current Focus:** Stability, Error Handling, and UX Polish.
 
 ---
 
@@ -9,14 +9,17 @@
 
 A chronological overview of the project's evolution from Day 1.
 
-| Era                     | Timeline     | Key Milestones & Context                                                                                                                                                 |
-| :---------------------- | :----------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Origins**             | ~Sep 2025    | **Initial Prototype**: Basic app structure, Supabase Auth integration, and fetching user tasks.                                                                          |
-| **The "Refactor"**      | Oct 2025     | **UI & Architecture Overhaul**: Unifying UI with blue accent scheme, implementing side panels, and separating "Instance" vs "Template" tasks.                            |
-| **Master Library**      | Oct 2025     | **Templating System**: Added `view_master_library` view, search services, and ability to copy template tasks.                                                            |
-| **Standards & Hygiene** | Nov 2025     | **Codebase Maturation**: Enforced content-agnostic "shapes" (PropTypes), strict linting/formatting (Prettier/ESLint), and consolidated CSS.                              |
-| **Phase 2: Teams**      | Nov-Dec 2025 | **Simulated Multi-Tenancy**: Added RLS policies for `project_members`, "Joined Projects" view, and Invite logic.                                                         |
-| **Phase 4: The Engine** | Dec 2025     | **Deep Copy & Drag-n-Drop**: Implemented recursive "Deep Clone" for templates and a robust `dnd-kit` implementation with database persistence and optimistic UI updates. |
+| Era                      | Timeline     | Key Milestones & Context                                                                                                                                                 |
+| :----------------------- | :----------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Origins**              | ~Sep 2025    | **Initial Prototype**: Basic app structure, Supabase Auth integration, and fetching user tasks.                                                                          |
+| **The "Refactor"**       | Oct 2025     | **UI & Architecture Overhaul**: Unifying UI with blue accent scheme, implementing side panels, and separating "Instance" vs "Template" tasks.                            |
+| **Master Library**       | Oct 2025     | **Templating System**: Added `view_master_library` view, search services, and ability to copy template tasks.                                                            |
+| **Standards & Hygiene**  | Nov 2025     | **Codebase Maturation**: Enforced content-agnostic "shapes" (PropTypes), strict linting/formatting (Prettier/ESLint), and consolidated CSS.                              |
+| **Phase 2: Teams**       | Nov-Dec 2025 | **Simulated Multi-Tenancy**: Added RLS policies for `project_members`, "Joined Projects" view, and Invite logic.                                                         |
+| **Phase 4: The Engine**  | Dec 2025     | **Deep Copy & Drag-n-Drop**: Implemented recursive "Deep Clone" for templates and a robust `dnd-kit` implementation with database persistence and optimistic UI updates. |
+| **Tech Debt: Resources** | Dec 2025     | **Resource Migration**: Normalized `task_resources` into a dedicated table, migrated legacy data, and established extensive RLS policies.                                |
+| **Assessment Review**    | Dec 2025     | **Stability Audit**: Verified architectural integrity, identified optimistic update edge cases, and prioritized error boundaries over new features.                      |
+| **Stability Push**       | Dec 2025     | **Optimistic Rollback**: Implemented graceful UI rollback for drag-and-drop failures, preventing full page reloads.                                                      |
 
 ---
 
@@ -69,33 +72,45 @@ The core user journeys identified in the codebase and their current operational 
 
 Remaining phases from the original plan, updated for current context.
 
-### Phase 3: Reports & Resources (Next Up)
+### Phase 5: Stability & Polish (Current Priority)
 
-_Goal: Add reporting capabilities and expand the resource library._
+_Goal: Ensure the app is rock-solid for beta users before adding more complexity._
 
-#### 3.1 Resource Filters
+#### 5.1 Error Boundaries
 
-- **ID:** `P5-RESOURCE-FILTERS`
-- **Goal**: Filter learning resources by type (PDF, URL, Text).
+- **ID:** `P5-ERR-BOUND`
+- **Goal**: Prevent white-screen crashes by catching React errors in `TaskList` and `TaskItem`.
+- **Status**: 📅 Planned
+
+#### 5.2 Optimistic Rollback Refinement
+
+- **ID:** `P5-OPT-ROLLBACK`
+- **Goal**: Improve user experience when a drag operation fails (currently does a heavy full-refetch).
 - **Status**: ✅ Done
 
-#### 3.2 Monthly Report View
+#### 5.3 Invite by Email
 
-- **ID:** `P5-REPORT-UI`
-- **Goal**: Read-only "Print View" for project status reports.
-- **Status**: ✅ Done
+- **ID:** `P5-EMAIL-INVITES`
+- **Goal**: Allow inviting members by email instead of raw UUIDs (requires new look-up logic).
+- **Status**: 📅 Planned
 
-### Phase 4: Performance & Scale
+### Phase 6: Performance & Scale
 
 _Goal: Optimize for large trees and many users._
 
-#### 4.1 Recursive Fetch Optimization
+#### 6.1 Dashboard Pagination
+
+- **ID:** `P6-DASH-PAGINATION`
+- **Goal**: Implement server-side pagination for the main dashboard to handle users with >1000 tasks.
+- **Status**: 📅 Planned
+
+#### 6.2 Recursive Fetch Optimization
 
 - **ID:** `P6-RECURSIVE-FETCH`
 - **Goal**: Optimize `taskService.js` to handle large trees efficiently.
 - **Status**: ✅ Done (Implemented via `root_id` optimization + in-memory DFS)
 
-#### 4.2 Real-time Collaboration
+#### 6.3 Real-time Collaboration
 
 - **ID:** `P6-REALTIME`
 - **Goal**: Implement Supabase Realtime subscriptions to reflect task updates instantly across clients.
