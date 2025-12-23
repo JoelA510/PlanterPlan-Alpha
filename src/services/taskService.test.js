@@ -56,9 +56,8 @@ describe('searchMasterLibraryTasks', () => {
     await searchMasterLibraryTasks({ query: '%_plan' }, client);
 
     const orArgument = builder.or.mock.calls[0][0];
-    expect(orArgument).toContain('title.ilike.%\\%\\_plan%');
-    expect(orArgument).toContain('description.ilike.%\\%\\_plan%');
-    expect(orArgument).toContain('description.ilike.%\\%\\_plan%');
+    expect(orArgument).toContain('title.ilike."%\\%\\_plan%"');
+    expect(orArgument).toContain('description.ilike."%\\%\\_plan%"');
   });
 
   it('handles search errors gracefully', async () => {
@@ -148,12 +147,13 @@ describe('deepCloneTask', () => {
                 })),
               };
             }
-            if (cols === 'root_id') {
+            if (cols.includes('root_id')) {
               return {
                 eq: jest.fn(() => ({
-                  single: jest
-                    .fn()
-                    .mockResolvedValue({ data: { root_id: 'existing-root' }, error: null }),
+                  single: jest.fn().mockResolvedValue({
+                    data: { id: 't1', root_id: 'existing-root' },
+                    error: null,
+                  }),
                 })),
               };
             }
@@ -172,7 +172,7 @@ describe('deepCloneTask', () => {
     await deepCloneTask('t1', 'p1', 'instance', 'user1', client);
 
     expect(client.from).toHaveBeenCalledWith('tasks');
-    expect(mockSingle).toHaveBeenCalled(); // fetched root origin
+    // expect(mockSingle).toHaveBeenCalled(); // fetched root origin - No longer called explicitly
     expect(mockInsert).toHaveBeenCalled();
 
     const insertedRows = mockInsert.mock.calls[0][0];

@@ -42,12 +42,12 @@ The core user journeys identified in the codebase and their current operational 
 
 ### 📝 Task Execution
 
-| Workflow               | Status         | Notes                                                                                              |
-| :--------------------- | :------------- | :------------------------------------------------------------------------------------------------- |
-| **CRUD Operations**    | ✅ **Working** | Create, Read, Update, Delete (with cascade).                                                       |
-| **Reordering (DnD)**   | ✅ **Working** | Drag-and-drop tasks within/across phases. Persists to DB via `position`.                           |
+| Workflow               | Status         | Notes                                                                                                             |
+| :--------------------- | :------------- | :---------------------------------------------------------------------------------------------------------------- |
+| **CRUD Operations**    | ✅ **Working** | Create, Read, Update, Delete (with cascade).                                                                      |
+| **Reordering (DnD)**   | ✅ **Working** | Drag-and-drop tasks within/across phases. Persists to DB via `position`.                                          |
 | **Task Search (Copy)** | ✅ **Working** | "Master Library Search" allows finding and copying templates. Supports filtering by resource type (PDF/Text/URL). |
-| **Scheduling**         | ✅ **Working** | Supports "Days from Start" offsets and auto-calculation of dates.                                  |
+| **Scheduling**         | ✅ **Working** | Supports "Days from Start" offsets and auto-calculation of dates.                                                 |
 
 ### 👥 Collaboration
 
@@ -59,8 +59,8 @@ The core user journeys identified in the codebase and their current operational 
 
 ### 📊 Reporting
 
-| Workflow | Status | Notes |
-| :------- | :----- | :---- |
+| Workflow                  | Status         | Notes                                                   |
+| :------------------------ | :------------- | :------------------------------------------------------ |
 | **Project Status Report** | ✅ **Working** | Print-friendly read-only view via `/report/:projectId`. |
 
 ---

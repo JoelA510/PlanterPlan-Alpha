@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -7,18 +5,28 @@
 
 # testing
 /coverage
+test_output*.txt
 
 # production
 /build
-.env
-# misc
-.DS_Store
+
+# environment
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
+# IDE & Editor
+.vscode/
+*.code-workspace
+.DS_Store
+
+# Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Documentation
+docs/git_documentation/PR_DESCRIPTION_DRAFT.md

@@ -1,23 +1,38 @@
-````markdown
-<!--
-README CONTRACT (keep this block at the top)
+# README Generation Prompt
 
-Scope:
-- This README is a codebase-understanding document for reviewers + PMs.
-- It is NOT a roadmap, NOT a setup guide, NOT marketing.
+## Your Task
 
-Non-negotiables:
-- Document ONLY what exists in the repo at the referenced commit.
-- **Evidence Rule**: If you can't link it, you can't claim it.
-- Every non-trivial claim must be backed by concrete repo evidence:
-  - file paths, exported symbols, function names, table/column names, migration filenames.
-- Mermaid diagrams must be derivable from real code flows (handlers/events/states).
-- Keep the 5-section structure intact. Do not add new top-level sections.
+You are a senior software architect conducting a thorough code review. Your goal is to produce a README that enables a code reviewer or project manager with zero prior context to understand this codebase within 15 minutes.
 
-Update discipline:
-- Before editing, update "Last verified" and "Commit".
-- If a section cannot be verified from code, mark it explicitly as "Unverified" and describe what is missing.
--->
+## Instructions
+
+### Phase 1: Deep Analysis (Do This First)
+
+Before writing anything, systematically review the codebase:
+
+1. **Map the file structure** — Identify all directories and their purposes
+2. **Identify entry points** — Find main/index files, routing, app initialization
+
+- **Frontend**: React 18, Vite, TailwindCSS, `dnd-kit`.
+- **Backend**: Supabase (PostgreSQL 15+), Edge Functions.
+- **Database**:
+  - Row Level Security (RLS) for multi-tenancy.
+  - Recursive CTEs for hierarchy traversal.
+  - **Strict PL/pgSQL**: No ambiguous column references allowed.
+
+3. **Trace data flow** — Follow how data moves from UI → state → persistence
+4. **Catalog components** — List every component/module and what it owns
+5. **Extract the domain model** — What are the core entities? How do they relate?
+6. **Review database/API layer** — What's the schema? What services exist?
+7. **Note security boundaries** — Auth, permissions, access control
+
+### Phase 2: Generate README
+
+Using ONLY what you found in the code (never invent or assume), produce a README with the exact structure below.
+
+**Constraint**: Every claim must be backed by a file link. if you can't link it, leave it out.
+
+---
 
 # <ProjectName>
 
@@ -47,15 +62,11 @@ Update discipline:
   <dir>/                 # one-line purpose
   ...
 ```
-````
 
 ### Where to Find Things
 
 | To change...  | Look in...       |
 | ------------- | ---------------- |
-| <common task> | `<path/to/file>` |
-| <common task> | `<path/to/file>` |
-| <common task> | `<path/to/file>` |
 | <common task> | `<path/to/file>` |
 | <common task> | `<path/to/file>` |
 
@@ -65,13 +76,11 @@ Update discipline:
 
 ```text
 <ENV_VAR_NAME>=<what it is used for + where read in code>
-<ENV_VAR_NAME>=<what it is used for + where read in code>
 ```
 
 **External dependencies**
 
 - <DB/Auth/Storage/etc> -> <what> (refer to config file(s): `<path>`)
-- <Queue/Cache/etc> -> <what> (refer to config file(s): `<path>`)
 
 ---
 
@@ -91,7 +100,6 @@ Each concept must include: (1) one paragraph explaining _why_ it exists (2) a Me
 **Repo evidence**
 
 - `<path/to/file>` -> <symbol/function/component name>
-- `<path/to/file>` -> <schema/migration/config reference>
 
 ### 3.2 <Concept name>
 
@@ -122,7 +130,6 @@ flowchart LR
 | Component/Module | Responsibility          | Primary files      |
 | ---------------- | ----------------------- | ------------------ |
 | `<Name>`         | <what it owns and does> | `<path>`, `<path>` |
-| `<Name>`         | <what it owns and does> | `<path>`, `<path>` |
 
 ### 4.3 Database Schema
 
@@ -130,13 +137,9 @@ flowchart LR
 | ---------------- | ---------------- | ------------------------------- |
 | `<name>`         | <what it stores> | `<field>`, `<field>`, `<field>` |
 
-**Relationships / constraints (only if present and important)**
+**Relationships / constraints**
 
 - <relationship> -> <how enforced> (migration: `<path>` / code: `<path>`)
-
-**Indexes worth knowing**
-
-- `<index>` -> <why it exists> (migration: `<path>`)
 
 ### 4.4 Security Model
 
@@ -152,14 +155,6 @@ flowchart LR
 
 - RLS / tenant scoping -> <how enforced> (policies/migrations: `<path>`)
 
-```mermaid
-flowchart TB
-  U[User] --> A[Auth boundary]
-  A --> Z{Authorized?}
-  Z -->|No| D[Deny]
-  Z -->|Yes| R[Read/Write permitted scope]
-```
-
 ---
 
 ## 5. Current State
@@ -172,13 +167,19 @@ flowchart TB
 ### 5.2 Known Limitations
 
 - ⚠️ <limitation> (symptom -> cause -> evidence: `<path>`)
-- ⚠️ <limitation> (symptom -> cause -> evidence: `<path>`)
 
 ### 5.3 Technical Debt (Brutal Honesty)
 
 - <debt item> -> why it matters -> evidence: `<path>`
-- <debt item> -> why it matters -> evidence: `<path>`
 
-```
+---
 
-```
+## Output Requirements
+
+1. **Accuracy over completeness** — Only document what exists.
+2. **Concrete references** — When describing patterns or components, reference actual file paths and function names.
+3. **Diagrams must reflect code** — Every diagram must be derivable from the actual codebase.
+4. **Evidence Rule** — If you can't cite a file path, you can't claim it.
+5. **Honest current state** — The "Current State" section should be unflinching.
+6. **Minimal prose** — Prefer tables, diagrams, and code blocks over paragraphs.
+7. **No setup instructions** — This is not a "how to run" guide. It's a "how to understand" guide.

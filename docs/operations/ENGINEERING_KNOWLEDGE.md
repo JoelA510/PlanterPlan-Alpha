@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD024 -->
 # Engineering Knowledge Base
 
 **Purpose**: This living document captures hard-won lessons, architectural decisions, and recurrent pitfalls.
@@ -20,9 +21,9 @@ The policy looked up the task's `parent_task_id` recursively to find the root.
 
 We introduced a denormalized `root_id` column on the `tasks` table.
 
-1.  **Schema Change**: Added `root_id` UUID column.
-2.  **Trigger**: A `BEFORE INSERT/UPDATE` trigger (`maintain_task_root_id`) automatically enforces that every child task inherits its parent's `root_id`.
-3.  **Policy Simplification**: RLS now simply checks `root_id IN (SELECT project_id FROM project_members...)`. Zero recursion.
+1. **Schema Change**: Added `root_id` UUID column.
+2. **Trigger**: A `BEFORE INSERT/UPDATE` trigger (`maintain_task_root_id`) automatically enforces that every child task inherits its parent's `root_id`.
+3. **Policy Simplification**: RLS now simply checks `root_id IN (SELECT project_id FROM project_members...)`. Zero recursion.
 
 ### Critical Rule
 
@@ -43,8 +44,8 @@ We were attempting to insert tasks in parallel (`Promise.all`) to speed it up.
 
 ### Solution & Pattern
 
-1.  **Topological Sort**: We switched to a strictly sequential insertion order: Roots first, then Level 1, then Level 2.
-2.  **ID Mapping**: We generate **new UUIDs in memory** for the entire tree _before_ insertion. This allows us to construct the full dependency graph with valid FKs without needing to wait for DB round-trips to return IDs.
+1. **Topological Sort**: We switched to a strictly sequential insertion order: Roots first, then Level 1, then Level 2.
+2. **ID Mapping**: We generate **new UUIDs in memory** for the entire tree _before_ insertion. This allows us to construct the full dependency graph with valid FKs without needing to wait for DB round-trips to return IDs.
 
 ### Critical Rule
 
@@ -65,8 +66,8 @@ The issue was that `renormalizePositions` (fixing gaps in 10, 20, 30...) was fet
 
 ### Solution & Pattern
 
-1.  **Scope by Context**: All position calculations must explicitly include `owner_id` or `project_id` filters.
-2.  **Optimistic Rollback**: We implemented a `try/catch` in `handleDragEnd`. If the API call fails, we force a `fetchTasks()` to snap the UI back to reality immediately.
+1. **Scope by Context**: All position calculations must explicitly include `owner_id` or `project_id` filters.
+2. **Optimistic Rollback**: We implemented a `try/catch` in `handleDragEnd`. If the API call fails, we force a `fetchTasks()` to snap the UI back to reality immediately.
 
 ### Critical Rule
 
@@ -87,10 +88,10 @@ The child update trigger noticed the parent changed, which triggered the parent 
 
 ### Solution & Pattern
 
-1.  **Directional Updates Only**:
-    - **Downstream**: Parent moves -> shift children by delta.
-    - **Upstream**: Child expands range -> extend parent (min/max).
-2.  **Atomic Commits**: Calculate all required date changes in memory first, then perform a single bulk `update` (or batched updates) rather than chaining `useEffect` dependent calls.
+1. **Directional Updates Only**:
+   - **Downstream**: Parent moves -> shift children by delta.
+   - **Upstream**: Child expands range -> extend parent (min/max).
+2. **Atomic Commits**: Calculate all required date changes in memory first, then perform a single bulk `update` (or batched updates) rather than chaining `useEffect` dependent calls.
 
 ### Critical Rule
 
@@ -135,9 +136,9 @@ Often, the results of an _older_ request (e.g., query "Test") would arrive _afte
 
 We implemented `AbortController` in `taskService.js`.
 
-1.  **Signal**: The service accepts `{ signal }` in its arguments.
-2.  **Cleanup**: The `useEffect` in the UI calls `controller.abort()` on unmount or before the next request.
-3.  **DB Layer**: We pass `.abortSignal(signal)` to the Supabase client builder.
+1. **Signal**: The service accepts `{ signal }` in its arguments.
+2. **Cleanup**: The `useEffect` in the UI calls `controller.abort()` on unmount or before the next request.
+3. **DB Layer**: We pass `.abortSignal(signal)` to the Supabase client builder.
 
 ### Critical Rule
 
@@ -158,8 +159,8 @@ Worse, on `INSERT`, if we provided a `root_id` (from our memory-generated ID map
 
 ### Solution & Pattern
 
-1.  **Trust User Input on ID generation**: `IF TG_OP = 'INSERT' AND NEW.root_id IS NOT NULL THEN RETURN NEW;`. Check if we already did the work.
-2.  **Update Guard**: Only recalculate if `parent_task_id` actually _changed_ (`OR UPDATE OF parent_task_id`).
+1. **Trust User Input on ID generation**: `IF TG_OP = 'INSERT' AND NEW.root_id IS NOT NULL THEN RETURN NEW;`. Check if we already did the work.
+2. **Update Guard**: Only recalculate if `parent_task_id` actually _changed_ (`OR UPDATE OF parent_task_id`).
 
 ### Critical Rule
 
@@ -224,8 +225,8 @@ Application failed to startup or connected to the wrong backend because `npm sta
 
 ### Solution & Pattern
 
-1.  **Strict Port**: We verified the startup log to ensure it was actually on 3000.
-2.  **Kill Scripts**: Used `npx kill-port 3000` to free up the port before starting, ensuring environmental consistency.
+1. **Strict Port**: We verified the startup log to ensure it was actually on 3000.
+2. **Kill Scripts**: Used `npx kill-port 3000` to free up the port before starting, ensuring environmental consistency.
 
 ### Critical Rule
 
@@ -275,4 +276,95 @@ This causes any warning to fail the build/commit hook, forcing immediate resolut
 
 ### Critical Rule
 
-> **Warnings are Errors.** In a complex codebase (especially with React Hooks), treat lint warnings as blocking errors. Zero tolerance prevents technical debt rot.
+---
+
+## [ARC-013] Context Provider Hierarchy
+
+**Tags**: #react, #architecture, #bug
+**Date**: 2025-04-17
+
+### Context & Problem
+
+Users experienced infinite reload loops or "stale auth" states when refreshing the page.
+The issue was caused by incorrect nesting of global context providers.
+If `TaskContext` (which fetches data using Org ID) is placed _outside_ `OrganizationProvider` (which supplies Org ID), it initiates fetches with null IDs or causes re-renders when the inner context finally initializes.
+
+### Solution & Pattern
+
+We established a strict hierarchy for the application root:
+
+1. **AuthContext**: Must be top-level to handle user session.
+2. **Router**: Needs Auth to decide on redirects (Protected Routes).
+3. **OrganizationProvider**: Needs Router params (URL slug) to determine the current organization.
+4. **TaskContext**: Needs Organization ID to scope data fetches.
+
+### Critical Rule
+
+> **Respect the Data Dependency Chain.** Never place a data-fetching context higher than the provider that supplies its required IDs/Tokens.
+
+---
+
+## [DB-014] RLS Silent Filtering
+
+**Tags**: #database, #rls, #debugging
+**Date**: 2025-03-26
+
+### Context & Problem
+
+Frontend showed "0 Tasks" despite the user being logged in and data existing in the DB.
+Console logs showed no errors, just empty arrays.
+The root cause was Row Level Security (RLS) silently filtering out the rows because the API query was missing a required scope (e.g., `organization_id`) that the RLS policy checked for.
+
+### Solution & Pattern
+
+1. **Explicit Filtering**: All service calls must now explicitly include `organization_id` (or the relevant scope).
+2. **Service Isolation**: We created `organizationService.js` to handle scope resolution separate from the valid business logic.
+
+### Critical Rule
+
+> **RLS is Silent.** If an API returns exactly 0 results and no error, assume your RLS policy is filtering you out due to missing context params (Org ID / User ID) in the query or session.
+
+---
+
+## [DB-015] PL/pgSQL Ambiguous Column References
+
+**Tags**: #database, #plpgsql, #debugging, #ambiguity
+**Date**: 2025-12-22
+
+### Context & Problem
+
+A `BEFORE INSERT` trigger (`maintain_task_root_id`) and a helper function (`get_task_root_id`) were both failing with the error:
+`column reference "root_id" is ambiguous`.
+
+This happened because the code looked like this:
+
+```sql
+DECLARE
+  root_id uuid; -- Local variable named 'root_id'
+BEGIN
+  SELECT t.root_id INTO root_id -- Selecting into variable 'root_id'
+  FROM public.tasks t ...
+```
+
+Postgres PL/pgSQL couldn't distinguish between the column `root_id` and the local variable `root_id` in the `INTO` clause or subsequent usage, causing the query to fail (or worse, silently behave unexpectedly).
+
+### Solution & Pattern
+
+**Hungarian Notation (or similar prefixing) for variables is MANDATORY** in PL/pgSQL.
+
+1. **Prefix Variables**: Always prefix local variables (e.g., `v_root_id`, `p_task_id`, `r_result`).
+2. **Qualify Columns**: Always use the table alias (e.g., `t.root_id`).
+
+**Corrected Code**:
+
+```sql
+DECLARE
+  v_root_id uuid; -- DISTINCT name
+BEGIN
+  SELECT t.root_id INTO v_root_id
+  ...
+```
+
+### Critical Rule
+
+> **Never name a PL/pgSQL variable the same as a table column.** It creates inherent ambiguity. Use `v_` or `p_` prefixes to guarantee distinctness.
