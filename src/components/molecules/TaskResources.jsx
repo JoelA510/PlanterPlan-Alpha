@@ -46,71 +46,80 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
     setIsAdding(false);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
+  const handleSubmit = React.useCallback(
+    async (e) => {
+      e.preventDefault();
+      setSubmitting(true);
+      setError(null);
 
-    try {
-      let storage_path = null;
-      if (type === 'pdf') {
-        if (!fileData) throw new Error('Please select a PDF file');
+      try {
+        let storage_path = null;
+        if (type === 'pdf') {
+          if (!fileData) throw new Error('Please select a PDF file');
 
-        // Simple bucket assumption. Make sure 'resources' bucket exists in Supabase.
-        const fileExt = fileData.name.split('.').pop();
-        const fileName = `${taskId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          // Simple bucket assumption. Make sure 'resources' bucket exists in Supabase.
+          const fileExt = fileData.name.split('.').pop();
+          const fileName = `${taskId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('resources')
-          .upload(fileName, fileData);
+          const { error: uploadError } = await supabase.storage
+            .from('resources')
+            .upload(fileName, fileData);
 
-        if (uploadError) throw uploadError;
-        storage_path = fileName;
-      } else if (type === 'url') {
-        if (!urlData) throw new Error('Please enter a URL');
-      } else if (type === 'text') {
-        if (!textData) throw new Error('Please enter text content');
+          if (uploadError) throw uploadError;
+          storage_path = fileName;
+        } else if (type === 'url') {
+          if (!urlData) throw new Error('Please enter a URL');
+        } else if (type === 'text') {
+          if (!textData) throw new Error('Please enter text content');
+        }
+
+        await createTaskResource(taskId, {
+          type,
+          url: type === 'url' ? urlData : null,
+          text_content: type === 'text' ? textData : null,
+          storage_path,
+        });
+
+        resetForm();
+        fetchResources();
+        if (onUpdate) onUpdate();
+      } catch (e) {
+        setError(e.message || 'Failed to create resource');
+      } finally {
+        setSubmitting(false);
       }
+    },
+    [type, fileData, taskId, urlData, textData, fetchResources, onUpdate]
+  );
 
-      await createTaskResource(taskId, {
-        type,
-        url: type === 'url' ? urlData : null,
-        text_content: type === 'text' ? textData : null,
-        storage_path,
-      });
+  const handleDelete = React.useCallback(
+    async (id) => {
+      if (!window.confirm('Are you sure you want to delete this resource?')) return;
+      try {
+        await deleteTaskResource(id);
+        fetchResources();
+        if (onUpdate) onUpdate();
+      } catch (e) {
+        console.error('Failed to delete resource', e);
+        setError('Failed to delete resource');
+      }
+    },
+    [fetchResources, onUpdate]
+  );
 
-      resetForm();
-      fetchResources();
-      if (onUpdate) onUpdate();
-    } catch (e) {
-      setError(e.message || 'Failed to create resource');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this resource?')) return;
-    try {
-      await deleteTaskResource(id);
-      fetchResources();
-      if (onUpdate) onUpdate();
-    } catch (e) {
-      console.error('Failed to delete resource', e);
-      setError('Failed to delete resource');
-    }
-  };
-
-  const handleSetPrimary = async (resource) => {
-    try {
-      const newPrimaryId = resource.id === primaryResourceId ? null : resource.id;
-      await setPrimaryResource(taskId, newPrimaryId);
-      if (onUpdate) onUpdate();
-    } catch (e) {
-      console.error('Failed to set primary resource', e);
-      setError('Failed to set primary resource');
-    }
-  };
+  const handleSetPrimary = React.useCallback(
+    async (resource) => {
+      try {
+        const newPrimaryId = resource.id === primaryResourceId ? null : resource.id;
+        await setPrimaryResource(taskId, newPrimaryId);
+        if (onUpdate) onUpdate();
+      } catch (e) {
+        console.error('Failed to set primary resource', e);
+        setError('Failed to set primary resource');
+      }
+    },
+    [primaryResourceId, taskId, onUpdate]
+  );
 
   return (
     <div className="detail-section">
