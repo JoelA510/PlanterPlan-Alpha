@@ -42,7 +42,7 @@ const TaskItem = ({
   const canHaveChildren = level < 4;
   const showChevron = canHaveChildren && (hasChildren || forceShowChevron);
 
-  const handleCardClick = (e) => {
+  const handleCardClick = useCallback((e) => {
     // Prevent click when interacting with controls
     if (
       e.target.closest('.expand-button') ||
@@ -54,14 +54,14 @@ const TaskItem = ({
     if (onTaskClick) {
       onTaskClick(task);
     }
-  };
+  }, [onTaskClick, task]);
 
-  const handleAddChild = (e) => {
+  const handleAddChild = useCallback((e) => {
     e.stopPropagation();
     if (onAddChildTask) {
       onAddChildTask(task);
     }
-  };
+  }, [onAddChildTask, task]);
 
   const handleEdit = useCallback(
     (e) => {
@@ -85,6 +85,28 @@ const TaskItem = ({
       if (onInviteMember) onInviteMember(task);
     },
     [onInviteMember, task]
+  );
+
+  const handleToggleExpandClick = useCallback(
+    (e) => {
+      e.stopPropagation();
+      setIsExpanded((prev) => {
+        const newExpanded = !prev;
+        if (onToggleExpand) {
+          onToggleExpand(task, newExpanded);
+        }
+        return newExpanded;
+      });
+    },
+    [onToggleExpand, task]
+  );
+
+  const handleStatusChangeClick = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (onStatusChange) onStatusChange(task.id, e.target.value);
+    },
+    [onStatusChange, task]
   );
 
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
@@ -123,14 +145,7 @@ const TaskItem = ({
             {/* Expand / Collapse Chevron */}
             {showChevron ? (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const newExpanded = !isExpanded;
-                  setIsExpanded(newExpanded);
-                  if (onToggleExpand) {
-                    onToggleExpand(task, newExpanded);
-                  }
-                }}
+                onClick={handleToggleExpandClick}
                 className="expand-button"
                 style={{ visibility: 'visible' }}
               >
@@ -172,10 +187,7 @@ const TaskItem = ({
                 className={`appearance-none cursor-pointer pl-3 pr-8 py-1 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-[var(--brand-primary)] focus:outline-none`}
                 value={task.status}
                 onClick={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  if (onStatusChange) onStatusChange(task.id, e.target.value);
-                }}
+                onChange={handleStatusChangeClick}
               >
                 <option value="todo">To Do</option>
                 <option value="in_progress">In Progress</option>
