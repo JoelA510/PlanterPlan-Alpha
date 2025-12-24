@@ -141,7 +141,7 @@ const TaskItem = ({
             {/* Modern Status Pill Dropdown */}
             <div className="relative group">
               <select
-                className={`appearance-none cursor-pointer pl-3 pr-8 py-1 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 focus:outline-none`}
+                className={`appearance-none cursor-pointer pl-3 pr-8 py-1 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-[var(--brand-primary)] focus:outline-none`}
                 value={task.status}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => {

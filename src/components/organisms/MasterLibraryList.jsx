@@ -122,13 +122,15 @@ const MasterLibraryList = (props) => {
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
+    const previousTreeData = treeData;
     try {
       // Optimistic update
       setTreeData((prev) => updateTaskInTree(prev, taskId, { status: newStatus }));
       await updateTaskStatus(taskId, newStatus);
     } catch (err) {
       console.error('Failed to update status', err);
-      refresh();
+      // Rollback to previous state on failure
+      setTreeData(previousTreeData);
     }
   };
 

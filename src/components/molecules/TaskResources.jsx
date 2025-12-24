@@ -149,7 +149,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
                     className={`
                         text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border
                         ${res.resource_type === 'url'
-                        ? 'bg-blue-50 text-blue-600 border-blue-100' // Using mapped global brand colors
+                        ? 'bg-blue-50 text-blue-600 border-orange-100' // Mapped to soft orange bg/text, with orange border
                         : res.resource_type === 'pdf'
                           ? 'bg-orange-50 text-orange-600 border-orange-100'
                           : 'bg-slate-100 text-slate-600 border-slate-200'
