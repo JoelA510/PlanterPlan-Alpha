@@ -41,6 +41,8 @@ const MasterLibraryList = (props) => {
   const [treeData, setTreeData] = useState([]);
   // Track which tasks are currently loading children
   const [loadingNodes, setLoadingNodes] = useState({});
+  // Track expanded tasks to persist across refreshes
+  const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
 
   const {
     tasks: rootTasks,
@@ -57,14 +59,19 @@ const MasterLibraryList = (props) => {
   React.useEffect(() => {
     if (rootTasks) {
       if (rootTasks.length > 0) {
-        setTreeData(() => {
-          // Simple replacement for pagination
-          return rootTasks.map((t) => ({ ...t, children: [] }));
+        setTreeData(rootTasks.map((t) => ({ ...t, children: [] })));
+
+        // Re-hydrate expanded state for visible roots
+        rootTasks.forEach((task) => {
+          if (expandedTaskIds.has(task.id)) {
+            handleToggleExpand(task, true);
+          }
         });
       } else {
         setTreeData([]);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rootTasks]);
 
   // const handleFilterChange = (type) => {
@@ -73,9 +80,17 @@ const MasterLibraryList = (props) => {
   // };
 
   const handleToggleExpand = useCallback(
-    async (task) => {
-      // Check if children are loaded
-      if ((!task.children || task.children.length === 0) && !loadingNodes[task.id]) {
+    async (task, isExpanded) => {
+      // Update persistent expansion state
+      setExpandedTaskIds((prev) => {
+        const next = new Set(prev);
+        if (isExpanded) next.add(task.id);
+        else next.delete(task.id);
+        return next;
+      });
+
+      // If expanding and children missing, fetch them
+      if (isExpanded && (!task.children || task.children.length === 0) && !loadingNodes[task.id]) {
         // Fetch children
         setLoadingNodes((prev) => ({ ...prev, [task.id]: true }));
         try {
@@ -83,15 +98,28 @@ const MasterLibraryList = (props) => {
           // Let's filter out the root task itself (which is in descendants)
           const rawDescendants = children.filter((c) => c.id !== task.id);
 
-          // Build tree from flat list
+          // Build tree using Map for O(n) complexity
           const buildTree = (items, parentId) => {
-            return items
-              .filter((item) => item.parent_task_id === parentId)
-              .map((item) => ({
-                ...item,
-                children: buildTree(items, item.id),
-              }))
-              .sort((a, b) => a.position - b.position);
+            const map = new Map();
+            // Initialize map
+            items.forEach((item) => map.set(item.id, { ...item, children: [] }));
+
+            const roots = [];
+            // Link children to parents
+            items.forEach((item) => {
+              if (item.parent_task_id === parentId) {
+                roots.push(map.get(item.id));
+              } else if (map.has(item.parent_task_id)) {
+                map.get(item.parent_task_id).children.push(map.get(item.id));
+              }
+            });
+
+            // Sort all children arrays
+            map.forEach((node) => {
+              node.children.sort((a, b) => a.position - b.position);
+            });
+
+            return roots.sort((a, b) => a.position - b.position);
           };
 
           const nestedChildren = buildTree(rawDescendants, task.id);
@@ -191,7 +219,7 @@ const MasterLibraryList = (props) => {
                     // Mock handlers for required props
                     onAddChildTask={() => { }}
                     forceShowChevron={true}
-                    onToggleExpand={handleTaskClick}
+                    onToggleExpand={handleToggleExpand}
                   />
                   {loadingNodes[task.id] && (
                     <div className="absolute top-2 right-2 text-xs text-gray-500">
