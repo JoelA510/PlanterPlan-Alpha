@@ -41,10 +41,10 @@ PlanterPlan is a project management tool tailored for church planting. It allows
 /
   docs/db/               # Database schemas and migrations
   src/
-    components/          # React UI components
+    components/          # React UI components (Atomic: atoms, molecules, organisms, templates)
     contexts/            # React Contexts (Auth)
     services/            # Supabase API wrappers
-    styles/              # Global styles
+    styles/              # Global styles (Tailwind + Semantic vars)
     utils/               # Helper logic (tree manipulation)
     App.jsx              # Main routing and layout
     supabaseClient.js    # Supabase initialization

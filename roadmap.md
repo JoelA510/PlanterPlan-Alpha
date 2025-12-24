@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
 **Last Updated:** 2025-12-23
-**Current Focus:** Data Recovery & Master Library UI
+**Current Focus:** UI Refactor & Atomic Design Verification
 
 ---
 
@@ -21,6 +21,7 @@ A chronological overview of the project's evolution from Day 1.
 | **Assessment Review**    | Dec 2025     | **Stability Audit**: Verified architectural integrity, identified optimistic update edge cases, and prioritized error boundaries over new features.                      |
 | **Stability Push**       | Dec 2025     | **Optimistic Rollback**: Implemented graceful UI rollback for drag-and-drop failures, preventing full page reloads.                                                      |
 | **Recovery & UI**        | Dec 2025     | **Data Recovery**: Restored lost task data via `supabase_importer.py` and implemented Recursive Tree View for Master Library.                                            |
+| **UI Modernization**     | Dec 2025     | **Atomic Design**: Refactored components into Atoms/Molecules/Organisms. Implemented semantic Elevation & Motion system.                                                 |
 
 ---
 

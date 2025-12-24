@@ -206,7 +206,7 @@ This happened because `flex` defaults to `flex-row` if not specified, or a paren
 
 Explicitly defined flex direction in Tailwind classes.
 
-- Added `flex-col` to the text container wrapper.
+- **Added `flex-col`** to the text container wrapper.
 - Ensured specific widths (`w-full` or `flex-1`) were applied to children to force them to consume available space if needed.
 
 ### Critical Rule
@@ -274,8 +274,6 @@ Developers were ignoring warnings because "the app still runs".
 We updated `package.json` to enforce strictness in the `lint` command:
 `"lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings=0"`
 This causes any warning to fail the build/commit hook, forcing immediate resolution.
-
-### Critical Rule
 
 ---
 
@@ -395,3 +393,32 @@ We implemented a **Local State Rollback**.
 ### Critical Rule
 
 > **Snap Back, Don't Reload.** When an optimistic UI action fails, revert the local state synchronously using captured data. Do not rely on a full network refetch to fix the UI unless the state is likely corrupted.
+
+---
+
+## [UI-017] Atomic Design & Elevation System
+
+**Tags**: #ui, #css, #architecture, #atomic-design
+**Date**: 2025-12-23
+
+### Context & Problem
+
+The component hierarchy was flat and inconsistent (`components/tasks`, `components/common`), leading to circular dependency risks ("Organisms importing Molecules that import Organisms") and unclear boundaries.
+Visually, the app used an eclectic mix of hard-coded colors and inconsistent shadow depths ("Booty Coloration").
+
+### Solution & Pattern
+
+1. **Atomic Design Migration**: We strictly reorganized `src/components` into:
+   - `atoms/`: Indivisible UI bits (e.g., `RoleIndicator`, `ErrorFallback`).
+   - `molecules/`: Simple groups (e.g., `TaskItem`, `TaskResources`).
+   - `organisms/`: Complex logic zones (e.g., `TaskList`, `NewProjectForm`).
+   - `templates/`: Page layouts (e.g., `TaskDetailsView`).
+
+2. **Semantic Elevation System**:
+   - Replaced ad-hoc shadows with a global CSS variable system in `globals.css` (`--elevation-1`, `--elevation-2`).
+   - Implemented standard motion utilities (`.elevation-hover`) for consistent "lift" effects.
+
+### Critical Rule
+
+> **Define Depth Globally.** Do not hardcode box-shadows. Use the shared `--elevation-N` variables to ensure a consistent lighting model across the application.
+> **Dependency Direction**: Organisms import Molecules. Molecules import Atoms. **Never the reverse.**
