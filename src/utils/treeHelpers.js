@@ -73,3 +73,29 @@ export const prepareDeepClone = (
 
   return { newTasks, idMap };
 };
+
+// Helper to merge new children into a nested tree structure
+export const mergeChildrenIntoTree = (nodes, parentId, children) => {
+  return nodes.map((node) => {
+    if (node.id === parentId) {
+      return { ...node, children: children };
+    }
+    if (node.children) {
+      return { ...node, children: mergeChildrenIntoTree(node.children, parentId, children) };
+    }
+    return node;
+  });
+};
+
+// Helper to update a specific task in the tree
+export const updateTaskInTree = (nodes, taskId, updates) => {
+  return nodes.map((node) => {
+    if (node.id === taskId) {
+      return { ...node, ...updates };
+    }
+    if (node.children) {
+      return { ...node, children: updateTaskInTree(node.children, taskId, updates) };
+    }
+    return node;
+  });
+};

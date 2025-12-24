@@ -5,31 +5,7 @@ import TaskItem from '../molecules/TaskItem';
 import { fetchTaskChildren, updateTaskStatus } from '../../services/taskService';
 import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 
-// Helper to merge new children into a nested tree structure
-const mergeChildrenIntoTree = (nodes, parentId, children) => {
-  return nodes.map((node) => {
-    if (node.id === parentId) {
-      return { ...node, children: children };
-    }
-    if (node.children) {
-      return { ...node, children: mergeChildrenIntoTree(node.children, parentId, children) };
-    }
-    return node;
-  });
-};
-
-// Helper to update a specific task in the tree
-const updateTaskInTree = (nodes, taskId, updates) => {
-  return nodes.map((node) => {
-    if (node.id === taskId) {
-      return { ...node, ...updates };
-    }
-    if (node.children) {
-      return { ...node, children: updateTaskInTree(node.children, taskId, updates) };
-    }
-    return node;
-  });
-};
+import { mergeChildrenIntoTree, updateTaskInTree } from '../../utils/treeHelpers';
 
 const PAGE_SIZE = 50;
 
@@ -71,8 +47,7 @@ const MasterLibraryList = (props) => {
         setTreeData([]);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rootTasks]);
+  }, [rootTasks, expandedTaskIds, handleToggleExpand]);
 
   // const handleFilterChange = (type) => {
   //   setResourceType(type);

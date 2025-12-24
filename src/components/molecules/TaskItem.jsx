@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import RoleIndicator from '../atoms/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import '../../styles/components/task-card.css'; // Ensure CSS is imported
+
+// Status Styling Map (Pill Design)
+const getStatusStyle = (status) => {
+  switch (status) {
+    case 'complete':
+      return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    case 'in_progress':
+      return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'blocked':
+      return 'bg-rose-100 text-rose-700 border-rose-200';
+    default:
+      return 'bg-slate-100 text-slate-600 border-slate-200';
+  }
+};
 
 const TaskItem = ({
   task,
@@ -58,19 +72,7 @@ const TaskItem = ({
     },
   });
 
-  // Status Styling Map (Pill Design)
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'complete':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'blocked':
-        return 'bg-rose-100 text-rose-700 border-rose-200';
-      default:
-        return 'bg-slate-100 text-slate-600 border-slate-200';
-    }
-  };
+
 
   return (
     <>
@@ -162,10 +164,7 @@ const TaskItem = ({
             {/* Edit Button */}
             <button
               className="action-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onEdit) onEdit(task);
-              }}
+              onClick={handleEdit}
               title="Edit Task"
             >
               <svg
@@ -206,10 +205,7 @@ const TaskItem = ({
             {onInviteMember && (
               <button
                 className="action-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onInviteMember(task);
-                }}
+                onClick={handleInvite}
                 title="Invite Member"
               >
                 <svg
@@ -233,10 +229,7 @@ const TaskItem = ({
             {/* Delete Button */}
             <button
               className="action-btn delete"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onDelete) onDelete(task.id);
-              }}
+              onClick={handleDelete}
               title="Delete Task"
             >
               <svg
