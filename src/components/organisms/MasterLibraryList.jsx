@@ -189,6 +189,7 @@ const MasterLibraryList = (props) => {
                     // Mock handlers for required props
                     onAddChildTask={() => { }}
                     forceShowChevron={true}
+                    onToggleExpand={handleTaskClick}
                   />
                   {loadingNodes[task.id] && (
                     <div className="absolute top-2 right-2 text-xs text-gray-500">

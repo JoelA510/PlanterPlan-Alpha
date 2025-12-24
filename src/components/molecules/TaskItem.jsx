@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import RoleIndicator from '../common/RoleIndicator';
+import RoleIndicator from '../atoms/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
+import '../../styles/components/task-card.css'; // Ensure CSS is imported
 
 const TaskItem = ({
   task,
@@ -11,38 +12,26 @@ const TaskItem = ({
   selectedTaskId,
   onAddChildTask,
   onInviteMember,
-  onStatusChange, // Add this
-  dragHandleProps = {}, // New prop for dnd-kit
+  onStatusChange,
+  dragHandleProps = {},
+  forceShowChevron = false,
+  onToggleExpand,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const hasChildren = task.children && task.children.length > 0;
-  const indentWidth = level * 24;
+  // Reduced indentation multiplier for tighter tree (24px -> 20px)
+  const indentWidth = level * 20;
   const isSelected = selectedTaskId === task.id;
-
-  // Hierarchy: Project(0) > Phase(1) > Milestone(2) > Task(3) > Subtask(4)
-  // Subtasks (level 4) cannot have children
   const canHaveChildren = level < 4;
-
-  const getBackgroundColor = () => {
-    if (level === 0) {
-      return 'bg-gray-600';
-    } else if (level === 1) {
-      return 'bg-blue-600';
-    } else if (level === 2) {
-      return 'bg-blue-500';
-    } else if (level === 3) {
-      return 'bg-blue-400';
-    } else {
-      return 'bg-blue-300';
-    }
-  };
+  const showChevron = canHaveChildren && (hasChildren || forceShowChevron);
 
   const handleCardClick = (e) => {
+    // Prevent click when interacting with controls
     if (
       e.target.closest('.expand-button') ||
-      e.target.closest('.status-icon') ||
-      e.target.closest('.add-child-btn')
+      e.target.closest('select') ||
+      e.target.closest('button')
     ) {
       return;
     }
@@ -67,15 +56,30 @@ const TaskItem = ({
     },
   });
 
+  // Status Styling Map (Pill Design)
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case 'complete':
+        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'blocked':
+        return 'bg-rose-100 text-rose-700 border-rose-200';
+      default:
+        return 'bg-slate-100 text-slate-600 border-slate-200';
+    }
+  };
+
   return (
     <>
       <div
-        className={`task-card ${getBackgroundColor()} ${isSelected ? 'selected' : ''}`}
+        className={`task-card level-${level} ${isSelected ? 'selected' : ''}`}
         style={{ marginLeft: `${indentWidth}px` }}
         onClick={handleCardClick}
       >
         <div className="task-card-content">
           <div className="task-card-left">
+            {/* Drag Handle */}
             <button
               className="drag-handle-btn"
               type="button"
@@ -83,38 +87,48 @@ const TaskItem = ({
               ref={dragHandleProps?.ref}
               {...dragHandleProps}
             >
-              <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
-                <circle cx="2" cy="2" r="1" fill="currentColor" />
-                <circle cx="6" cy="2" r="1" fill="currentColor" />
-                <circle cx="2" cy="7" r="1" fill="currentColor" />
-                <circle cx="6" cy="7" r="1" fill="currentColor" />
-                <circle cx="2" cy="12" r="1" fill="currentColor" />
-                <circle cx="6" cy="12" r="1" fill="currentColor" />
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M4 4h2v2H4V4zm6 0h2v2h-2V4zM4 10h2v2H4v-2zm6 0h2v2h-2v-2z" opacity="0.6" />
               </svg>
             </button>
 
-            {canHaveChildren ? (
-              <button onClick={() => setIsExpanded(!isExpanded)} className="expand-button">
+            {/* Expand / Collapse Chevron */}
+            {showChevron ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newExpanded = !isExpanded;
+                  setIsExpanded(newExpanded);
+                  if (onToggleExpand) {
+                    onToggleExpand(task, newExpanded);
+                  }
+                }}
+                className="expand-button"
+                style={{ visibility: 'visible' }}
+              >
                 <svg
                   className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="currentColor"
-                  style={{ opacity: hasChildren ? 1 : 0.3 }}
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <path d="M4.5 3L7.5 6L4.5 9V3Z" />
+                  <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
             ) : (
               <div className="expand-spacer"></div>
             )}
 
-            <div className="task-info">
+            <div className="task-info flex items-center">
               <span className="task-title">{task.title}</span>
               {task.duration && <span className="task-duration">{task.duration}</span>}
               {task.resource_type && (
-                <span className="ml-2 px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600 border border-slate-200 capitalize" title="Resource">
+                <span className="ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded bg-slate-100 text-slate-500 border border-slate-200">
                   {task.resource_type}
                 </span>
               )}
@@ -124,82 +138,54 @@ const TaskItem = ({
           <div className="task-card-right">
             {task.membership_role && <RoleIndicator role={task.membership_role} />}
 
-            {/* Status Picker - Using native select for simplicity but styled */}
-            <div className="relative mr-2">
+            {/* Modern Status Pill Dropdown */}
+            <div className="relative group">
               <select
-                className={`appearance-none cursor-pointer pl-2 pr-6 py-0.5 text-xs rounded border capitalize focus:outline-none focus:ring-1 focus:ring-blue-500
-                  ${task.status === 'complete' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    task.status === 'in_progress' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      task.status === 'blocked' ? 'bg-red-50 text-red-700 border-red-200' :
-                        'bg-slate-50 text-slate-600 border-slate-200'}`}
+                className={`appearance-none cursor-pointer pl-3 pr-8 py-1 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 focus:outline-none`}
                 value={task.status}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   e.stopPropagation();
                   if (onStatusChange) onStatusChange(task.id, e.target.value);
                 }}
-                title="Change status"
               >
-                <option value="todo">Todo</option>
+                <option value="todo">To Do</option>
                 <option value="in_progress">In Progress</option>
                 <option value="blocked">Blocked</option>
                 <option value="complete">Complete</option>
               </select>
-              {/* Chevron icon for select */}
-              <div className="absolute inset-y-0 right-0 flex items-center px-1 pointer-events-none text-slate-400">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-              </div>
+              {/* Arrow removed per user request */}
             </div>
 
             {/* Edit Button */}
             <button
-              className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-600 transition-colors mx-1"
-              onClick={(e) => { e.stopPropagation(); alert('Edit task logic here'); }}
+              className="action-btn"
+              onClick={(e) => {
+                e.stopPropagation(); /* Edit logic */
+              }}
               title="Edit Task"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </button>
 
-            {/* Delete Button */}
-            <button
-              className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-600 transition-colors mx-1"
-              onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete?')) alert('Delete logic here'); }}
-              title="Delete Task"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-
+            {/* Add Subtask Button */}
             {canHaveChildren && onAddChildTask && (
-              <button className="add-child-btn" onClick={handleAddChild} title="Add subtask">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path
-                    d="M6 2.5V9.5M2.5 6H9.5"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            )}
-            {level === 0 && onInviteMember && (
-              <button
-                className="add-child-btn ml-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onInviteMember(task);
-                }}
-                title="Invite Member"
-              >
+              <button className="action-btn" onClick={handleAddChild} title="Add Subtask">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -207,19 +193,41 @@ const TaskItem = ({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="8.5" cy="7" r="4"></circle>
-                  <line x1="20" y1="8" x2="20" y2="14"></line>
-                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
               </button>
             )}
+
+            {/* Delete Button */}
+            <button
+              className="action-btn delete"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm('Delete?')) alert('Delete logic here');
+              }}
+              title="Delete Task"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
 
       {canHaveChildren && isExpanded && (
-        <div className="task-children" style={{ minHeight: '10px' }} ref={setDroppableNodeRef}>
+        <div className="task-children" ref={setDroppableNodeRef}>
           <SortableContext
             items={task.children ? task.children.map((c) => c.id) : []}
             strategy={verticalListSortingStrategy}
@@ -236,6 +244,7 @@ const TaskItem = ({
                   onAddChildTask={onAddChildTask}
                   onInviteMember={onInviteMember}
                   onStatusChange={onStatusChange}
+                  onToggleExpand={onToggleExpand}
                 />
               ))}
           </SortableContext>
@@ -245,6 +254,7 @@ const TaskItem = ({
   );
 };
 
+// ... SortableTaskItem remains the same ...
 export function SortableTaskItem({ task, level, ...props }) {
   const {
     attributes,
@@ -259,7 +269,7 @@ export function SortableTaskItem({ task, level, ...props }) {
     data: {
       type: 'Task',
       origin: task.origin,
-      parentId: task.parent_task_id ?? null, // null for roots
+      parentId: task.parent_task_id ?? null,
     },
   });
 
