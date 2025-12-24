@@ -443,4 +443,35 @@ The application lacked a distinct brand identity, using generic "Developer Blue"
 
 ### Critical Rule
 >
-> **Respect the Brand.** Do not introduce new arbitrary colors. Use `--brand-primary` and `--brand-secondary` variables to maintain visual consistency with the marketing site.
+  const handleAddChild = (e) => {
+    e.stopPropagation();
+    if (onAddChildTask) {
+      onAddChildTask(task);
+    }
+  };
+
+  const handleEdit = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (onEdit) onEdit(task);
+    },
+    [onEdit, task]
+  );
+
+  const handleDelete = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (onDelete) onDelete(task.id);
+    },
+    [onDelete, task]
+  );
+
+  const handleInvite = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (onInviteMember) onInviteMember(task);
+    },
+    [onInviteMember, task]
+  );
+
+  const { setNodeRef: setDroppableNodeRef } = useDroppable({

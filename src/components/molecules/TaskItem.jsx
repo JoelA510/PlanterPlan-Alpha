@@ -63,6 +63,30 @@ const TaskItem = ({
     }
   };
 
+  const handleEdit = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (onEdit) onEdit(task);
+    },
+    [onEdit, task]
+  );
+
+  const handleDelete = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (onDelete) onDelete(task.id);
+    },
+    [onDelete, task]
+  );
+
+  const handleInvite = useCallback(
+    (e) => {
+      e.stopPropagation();
+      if (onInviteMember) onInviteMember(task);
+    },
+    [onInviteMember, task]
+  );
+
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
     id: `child-context-${task.id}`,
     data: {
