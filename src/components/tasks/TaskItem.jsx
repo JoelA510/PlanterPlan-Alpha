@@ -11,6 +11,7 @@ const TaskItem = ({
   selectedTaskId,
   onAddChildTask,
   onInviteMember,
+  onStatusChange, // Add this
   dragHandleProps = {}, // New prop for dnd-kit
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -122,7 +123,43 @@ const TaskItem = ({
 
           <div className="task-card-right">
             {task.membership_role && <RoleIndicator role={task.membership_role} />}
-            <div className={`status-icon ${task.status}`}></div>
+
+            {/* Status Picker */}
+            <div className="relative group/status">
+              <button
+                className={`status-icon ${task.status} cursor-pointer hover:ring-2 ring-offset-1 ring-blue-300 transition-all`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // simple toggle for now, or could trigger a generic callback
+                  // For the Master Library requirement, we might want a dropdown. 
+                  // But sticking to the requested "change status" via existing UI patterns if possible.
+                  // If onStatusChange is provided, we can cycle or open a menu.
+                  // For now, let's implement a cycle for quick testing or a small native select if easier?
+                  // Let's use a native select hidden over the icon for simplicity and accessibility if that's preferred, 
+                  // or just a custom dropdown. 
+                  // Given the constraints, a simple select is robust.
+                }}
+                title={`Current status: ${task.status}`}
+              ></button>
+              {onStatusChange && (
+                <select
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  value={task.status}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    onStatusChange(task.id, e.target.value);
+                  }}
+                  title="Change status"
+                >
+                  <option value="todo">Todo</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="complete">Complete</option>
+                </select>
+              )}
+            </div>
+
             {canHaveChildren && onAddChildTask && (
               <button className="add-child-btn" onClick={handleAddChild} title="Add subtask">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -183,6 +220,7 @@ const TaskItem = ({
                   selectedTaskId={selectedTaskId}
                   onAddChildTask={onAddChildTask}
                   onInviteMember={onInviteMember}
+                  onStatusChange={onStatusChange}
                 />
               ))}
           </SortableContext>

@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
 **Last Updated:** 2025-12-23
-**Current Focus:** Stability, Error Handling, and UX Polish.
+**Current Focus:** Data Recovery & Master Library UI
 
 ---
 
@@ -20,6 +20,7 @@ A chronological overview of the project's evolution from Day 1.
 | **Tech Debt: Resources** | Dec 2025     | **Resource Migration**: Normalized `task_resources` into a dedicated table, migrated legacy data, and established extensive RLS policies.                                |
 | **Assessment Review**    | Dec 2025     | **Stability Audit**: Verified architectural integrity, identified optimistic update edge cases, and prioritized error boundaries over new features.                      |
 | **Stability Push**       | Dec 2025     | **Optimistic Rollback**: Implemented graceful UI rollback for drag-and-drop failures, preventing full page reloads.                                                      |
+| **Recovery & UI**        | Dec 2025     | **Data Recovery**: Restored lost task data via `supabase_importer.py` and implemented Recursive Tree View for Master Library.                                            |
 
 ---
 
