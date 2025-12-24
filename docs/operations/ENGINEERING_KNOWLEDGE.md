@@ -422,3 +422,25 @@ Visually, the app used an eclectic mix of hard-coded colors and inconsistent sha
 
 > **Define Depth Globally.** Do not hardcode box-shadows. Use the shared `--elevation-N` variables to ensure a consistent lighting model across the application.
 > **Dependency Direction**: Organisms import Molecules. Molecules import Atoms. **Never the reverse.**
+
+---
+
+## [UI-018] Brand Identity System
+
+**Tags**: #ui, #branding, #css
+**Date**: 2025-12-24
+
+### Context & Problem
+
+The application lacked a distinct brand identity, using generic "Developer Blue" colors. The goal was to align with the visual identity of `planterplan.com`.
+
+### Solution & Pattern
+
+1. **Brand Extraction**: We extracted the primary brand colors from `https://planterplan.com/`:
+    - **Primary Orange**: `#F1592A` (Used for Actions, Links, Highlights).
+    - **Accents**: Charcoal (`#222222`) for text/nav, Light Gray (`#EEEEEE`) for backgrounds.
+2. **Global Mapping**: We mapped these to global CSS variables in `globals.css` and updated utility classes (`.bg-blue-500` -> Primary Orange) to propagate the brand instantly across legacy components.
+
+### Critical Rule
+>
+> **Respect the Brand.** Do not introduce new arbitrary colors. Use `--brand-primary` and `--brand-secondary` variables to maintain visual consistency with the marketing site.
