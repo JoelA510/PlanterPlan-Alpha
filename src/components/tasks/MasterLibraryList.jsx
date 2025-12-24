@@ -30,9 +30,9 @@ const updateTaskInTree = (nodes, taskId, updates) => {
   });
 };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 50;
 
-const MasterLibraryList = () => {
+const MasterLibraryList = (props) => {
   const [page, setPage] = useState(0);
   const [resourceType, setResourceType] = useState('all');
 
@@ -99,8 +99,18 @@ const MasterLibraryList = () => {
     }
   }, [loadingNodes]);
 
+  /* 
+   * Note: If we want to support selection for the Details panel, we need to lift state up or use a Context.
+   * Based on the user feedback "Details panel stuck on No Selection", checking if onTaskSelect prop is needed.
+   * Assuming the Dashboard passes a prop, we should use it. 
+   * But the current definition doesn't take props. 
+   * I will add `onTaskSelect` to props.
+   */
   const handleTaskClick = (task) => {
     handleToggleExpand(task);
+    if (props.onTaskSelect) {
+      props.onTaskSelect(task);
+    }
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
