@@ -41,7 +41,7 @@ const MasterLibraryList = (props) => {
   // Track which tasks are currently loading children
   const [loadingNodes, setLoadingNodes] = useState({});
 
-  const { tasks: rootTasks, isLoading, error, hasMore, refresh } = useMasterLibraryTasks({
+  const { tasks: rootTasks, isLoading, hasMore, refresh } = useMasterLibraryTasks({
     page,
     limit: PAGE_SIZE,
     resourceType,

@@ -14,7 +14,7 @@ const TaskItem = ({
   onStatusChange, // Add this
   dragHandleProps = {}, // New prop for dnd-kit
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const hasChildren = task.children && task.children.length > 0;
   const indentWidth = level * 24;
