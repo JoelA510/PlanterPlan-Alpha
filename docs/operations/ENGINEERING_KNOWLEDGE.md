@@ -1,4 +1,5 @@
 <!-- markdownlint-disable MD024 -->
+
 # Engineering Knowledge Base
 
 **Purpose**: This living document captures hard-won lessons, architectural decisions, and recurrent pitfalls.
@@ -368,3 +369,29 @@ BEGIN
 ### Critical Rule
 
 > **Never name a PL/pgSQL variable the same as a table column.** It creates inherent ambiguity. Use `v_` or `p_` prefixes to guarantee distinctness.
+
+---
+
+## [UI-016] Optimistic Rollback Strategy
+
+**Tags**: #ui, #ux, #optimistic-ui, #error-handling
+**Date**: 2025-12-23
+
+### Context & Problem
+
+When a user drags a task, we update the UI immediately (optimistic update) for responsiveness.
+However, if the backend call (`updateTaskPosition`) failed, the previous behavior was to trigger a full `fetchTasks()`.
+**Result**: This caused the entire task list to flicker or reload, creating a jarring user experience compared to the smooth drag interaction.
+
+### Solution & Pattern
+
+We implemented a **Local State Rollback**.
+
+1. **Capture State**: Before applying the optimistic update, capture the current state: `const previousTasks = [...tasks];`.
+2. **Try/Catch**: Wrap the API call in a try/catch block.
+3. **Rollback**: In the `catch` block, immediately call `setTasks(previousTasks)` to revert the UI to its exact pre-drag state without a network fetch.
+4. **Feedback**: Show a user-friendly alert or toast ("Failed to move task. Reverting...") instead of a generic error.
+
+### Critical Rule
+
+> **Snap Back, Don't Reload.** When an optimistic UI action fails, revert the local state synchronously using captured data. Do not rely on a full network refetch to fix the UI unless the state is likely corrupted.

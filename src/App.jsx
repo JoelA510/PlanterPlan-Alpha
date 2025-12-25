@@ -1,6 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
+import { ErrorBoundary } from 'react-error-boundary';
+import ErrorFallback from './components/common/ErrorFallback';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginForm from './components/auth/LoginForm';
 import TaskList from './components/tasks/TaskList';
@@ -103,7 +105,9 @@ function App() {
   return (
     <div className="App">
       <AuthProvider>
-        <AppRoutes />
+        <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>
+          <AppRoutes />
+        </ErrorBoundary>
       </AuthProvider>
     </div>
   );
