@@ -4,7 +4,7 @@ import TaskItem from '../molecules/TaskItem';
 import { fetchTaskChildren, updateTaskStatus } from '../../services/taskService';
 import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 
-import { mergeChildrenIntoTree, updateTaskInTree, buildTree } from '../../utils/treeHelpers';
+import { mergeChildrenIntoTree, updateTaskInTree, buildTree, mergeTaskUpdates } from '../../utils/treeHelpers';
 
 const PAGE_SIZE = 50;
 
@@ -34,7 +34,7 @@ const MasterLibraryList = (props) => {
   React.useEffect(() => {
     if (rootTasks) {
       if (rootTasks.length > 0) {
-        setTreeData(rootTasks.map((t) => ({ ...t, children: [] })));
+        setTreeData((prevTree) => mergeTaskUpdates(prevTree, rootTasks));
 
         // Re-hydrate expanded state for visible roots
         rootTasks.forEach((task) => {

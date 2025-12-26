@@ -531,7 +531,7 @@ const TaskList = () => {
         handleDeleteTask(task);
       }
     },
-    [tasks, joinedProjects]
+    [tasks, joinedProjects, handleDeleteTask]
   );
 
   const handleOpenInvite = (project) => {

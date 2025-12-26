@@ -19,7 +19,7 @@ const getStatusStyle = (status) => {
   }
 };
 
-const TaskItem = ({
+const TaskItem = React.memo(({
   task,
   level = 0,
   onTaskClick,
@@ -79,7 +79,7 @@ const TaskItem = ({
       e.stopPropagation();
       if (onDelete) onDelete(task.id);
     },
-    [onDelete, task]
+    [onDelete, task.id]
   );
 
   const handleInvite = useCallback(
@@ -105,7 +105,7 @@ const TaskItem = ({
       e.stopPropagation();
       if (onStatusChange) onStatusChange(task.id, e.target.value);
     },
-    [onStatusChange, task]
+    [onStatusChange, task.id]
   );
 
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
@@ -319,10 +319,10 @@ const TaskItem = ({
       )}
     </>
   );
-};
+});
 
 // ... SortableTaskItem remains the same ...
-export function SortableTaskItem({ task, level, ...props }) {
+export const SortableTaskItem = React.memo(function SortableTaskItem({ task, level, ...props }) {
   const {
     attributes,
     listeners,
@@ -358,6 +358,6 @@ export function SortableTaskItem({ task, level, ...props }) {
       />
     </div>
   );
-}
+});
 
 export default TaskItem;

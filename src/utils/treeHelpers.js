@@ -129,3 +129,23 @@ export const buildTree = (items, parentId) => {
 
   return roots.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 };
+
+/**
+ * Merges updates from a list of new tasks into an existing tree, preserving children.
+ * @param {Array} currentTree - Valid current tree state.
+ * @param {Array} newTasks - Incoming list of tasks (e.g. from pagination).
+ * @returns {Array} - Merged tree.
+ */
+export const mergeTaskUpdates = (currentTree, newTasks) => {
+  const currentMap = new Map(currentTree.map((t) => [t.id, t]));
+
+  return newTasks.map((newTask) => {
+    const existing = currentMap.get(newTask.id);
+    if (existing) {
+      // Preserve existing children, update other props
+      return { ...newTask, children: existing.children };
+    }
+    // New task, initialize children
+    return { ...newTask, children: [] };
+  });
+};
