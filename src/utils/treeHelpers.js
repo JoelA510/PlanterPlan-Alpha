@@ -99,3 +99,33 @@ export const updateTaskInTree = (nodes, taskId, updates) => {
     return node;
   });
 };
+
+/**
+ * Builds a hierarchical tree from a flat list of items.
+ * Uses a Map for O(n) complexity.
+ * @param {Array} items - Flat list of items.
+ * @param {string|number} parentId - The parent ID to start building from.
+ * @returns {Array} - Array of root nodes with nested children.
+ */
+export const buildTree = (items, parentId) => {
+  const map = new Map();
+  // Initialize map
+  items.forEach((item) => map.set(item.id, { ...item, children: [] }));
+
+  const roots = [];
+  // Link children to parents
+  items.forEach((item) => {
+    if (item.parent_task_id === parentId) {
+      roots.push(map.get(item.id));
+    } else if (map.has(item.parent_task_id)) {
+      map.get(item.parent_task_id).children.push(map.get(item.id));
+    }
+  });
+
+  // Sort all children arrays
+  map.forEach((node) => {
+    node.children.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  });
+
+  return roots.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+};

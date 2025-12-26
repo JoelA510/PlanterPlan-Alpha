@@ -32,14 +32,17 @@ const TaskItem = ({
   onToggleExpand,
   onEdit,
   onDelete,
+  isExpanded, // New prop
+  expandedTaskIds, // New prop
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // const [isExpanded, setIsExpanded] = useState(false);  <-- REMOVED
 
   const hasChildren = task.children && task.children.length > 0;
   // Reduced indentation multiplier for tighter tree (24px -> 20px)
   const indentWidth = level * 20;
   const isSelected = selectedTaskId === task.id;
   const canHaveChildren = level < 4;
+  // Use prop for expanded state (or default to false)
   const showChevron = canHaveChildren && (hasChildren || forceShowChevron);
 
   const handleCardClick = useCallback((e) => {
@@ -90,15 +93,11 @@ const TaskItem = ({
   const handleToggleExpandClick = useCallback(
     (e) => {
       e.stopPropagation();
-      setIsExpanded((prev) => {
-        const newExpanded = !prev;
-        if (onToggleExpand) {
-          onToggleExpand(task, newExpanded);
-        }
-        return newExpanded;
-      });
+      if (onToggleExpand) {
+        onToggleExpand(task, !isExpanded);
+      }
     },
-    [onToggleExpand, task]
+    [onToggleExpand, task, isExpanded]
   );
 
   const handleStatusChangeClick = useCallback(
@@ -311,6 +310,8 @@ const TaskItem = ({
                   onToggleExpand={onToggleExpand}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  expandedTaskIds={expandedTaskIds}
+                  isExpanded={expandedTaskIds?.has(child.id)}
                 />
               ))}
           </SortableContext>

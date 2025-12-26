@@ -4,7 +4,7 @@ import TaskItem from '../molecules/TaskItem';
 import { fetchTaskChildren, updateTaskStatus } from '../../services/taskService';
 import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 
-import { mergeChildrenIntoTree, updateTaskInTree } from '../../utils/treeHelpers';
+import { mergeChildrenIntoTree, updateTaskInTree, buildTree } from '../../utils/treeHelpers';
 
 const PAGE_SIZE = 50;
 
@@ -12,7 +12,7 @@ const MasterLibraryList = (props) => {
   const [page, setPage] = useState(0);
   const [resourceType, setResourceType] = useState('all');
 
-  // Local state to store the full tree with fetched children
+  // Local state to store the tree with fetched children
   const [treeData, setTreeData] = useState([]);
   // Track which tasks are currently loading children
   const [loadingNodes, setLoadingNodes] = useState({});
@@ -46,7 +46,7 @@ const MasterLibraryList = (props) => {
         setTreeData([]);
       }
     }
-  }, [rootTasks, expandedTaskIds, handleToggleExpand]);
+  }, [rootTasks]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // const handleFilterChange = (type) => {
   //   setResourceType(type);
@@ -72,30 +72,6 @@ const MasterLibraryList = (props) => {
           // Let's filter out the root task itself (which is in descendants)
           const rawDescendants = children.filter((c) => c.id !== task.id);
 
-          // Build tree using Map for O(n) complexity
-          const buildTree = (items, parentId) => {
-            const map = new Map();
-            // Initialize map
-            items.forEach((item) => map.set(item.id, { ...item, children: [] }));
-
-            const roots = [];
-            // Link children to parents
-            items.forEach((item) => {
-              if (item.parent_task_id === parentId) {
-                roots.push(map.get(item.id));
-              } else if (map.has(item.parent_task_id)) {
-                map.get(item.parent_task_id).children.push(map.get(item.id));
-              }
-            });
-
-            // Sort all children arrays
-            map.forEach((node) => {
-              node.children.sort((a, b) => a.position - b.position);
-            });
-
-            return roots.sort((a, b) => a.position - b.position);
-          };
-
           const nestedChildren = buildTree(rawDescendants, task.id);
 
           setTreeData((prev) => mergeChildrenIntoTree(prev, task.id, nestedChildren));
@@ -117,7 +93,7 @@ const MasterLibraryList = (props) => {
    * I will add `onTaskSelect` to props.
    */
   const handleTaskClick = (task) => {
-    handleToggleExpand(task);
+    // Removed handleToggleExpand(task) to prevent auto-collapse on selection
     if (props.onTaskSelect) {
       props.onTaskSelect(task);
     }
@@ -194,6 +170,8 @@ const MasterLibraryList = (props) => {
                     onAddChildTask={() => { }}
                     forceShowChevron={true}
                     onToggleExpand={handleToggleExpand}
+                    isExpanded={expandedTaskIds.has(task.id)}
+                    expandedTaskIds={expandedTaskIds}
                   />
                   {loadingNodes[task.id] && (
                     <div className="absolute top-2 right-2 text-xs text-gray-500">
