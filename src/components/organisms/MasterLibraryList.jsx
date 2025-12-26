@@ -46,7 +46,7 @@ const MasterLibraryList = (props) => {
     } else if (rootTasks) {
       setTreeData([]);
     }
-  }, [rootTasks, expandedTaskIds]); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rootTasks, expandedTaskIds]);
 
   // const handleFilterChange = (type) => {
   //   setResourceType(type);

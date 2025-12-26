@@ -31,7 +31,6 @@ const TaskItem = React.memo(({
   forceShowChevron = false,
   onToggleExpand,
   onEdit,
-  onEdit,
   onDelete,
 }) => {
   // const [isExpanded, setIsExpanded] = useState(false);  <-- REMOVED
