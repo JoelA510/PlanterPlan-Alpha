@@ -142,10 +142,14 @@ export const mergeTaskUpdates = (currentTree, newTasks) => {
   return newTasks.map((newTask) => {
     const existing = currentMap.get(newTask.id);
     if (existing) {
-      // Preserve existing children, update other props
-      return { ...newTask, children: existing.children };
+      // Preserve existing children and expansion state, update other props
+      return {
+        ...newTask,
+        children: existing.children,
+        isExpanded: existing.isExpanded // Preserve UI state
+      };
     }
     // New task, initialize children
-    return { ...newTask, children: [] };
+    return { ...newTask, children: [], isExpanded: false };
   });
 };

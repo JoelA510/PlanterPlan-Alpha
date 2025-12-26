@@ -31,9 +31,8 @@ const TaskItem = React.memo(({
   forceShowChevron = false,
   onToggleExpand,
   onEdit,
+  onEdit,
   onDelete,
-  isExpanded, // New prop
-  expandedTaskIds, // New prop
 }) => {
   // const [isExpanded, setIsExpanded] = useState(false);  <-- REMOVED
 
@@ -42,7 +41,9 @@ const TaskItem = React.memo(({
   const indentWidth = level * 20;
   const isSelected = selectedTaskId === task.id;
   const canHaveChildren = level < 4;
-  // Use prop for expanded state (or default to false)
+
+  // Use property on task object for expanded state
+  const isExpanded = !!task.isExpanded;
   const showChevron = canHaveChildren && (hasChildren || forceShowChevron);
 
   const handleCardClick = useCallback((e) => {
@@ -310,8 +311,6 @@ const TaskItem = React.memo(({
                   onToggleExpand={onToggleExpand}
                   onEdit={onEdit}
                   onDelete={onDelete}
-                  expandedTaskIds={expandedTaskIds}
-                  isExpanded={expandedTaskIds?.has(child.id)}
                 />
               ))}
           </SortableContext>

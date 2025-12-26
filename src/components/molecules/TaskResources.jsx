@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   listTaskResources,
   createTaskResource,
@@ -19,6 +19,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
   const [textData, setTextData] = useState('');
   const [fileData, setFileData] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Stabilized fetch hook
   const fetchResources = React.useCallback(async () => {
@@ -44,6 +45,9 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
     setFileData(null);
     setError(null);
     setIsAdding(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = React.useCallback(
@@ -281,6 +285,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
               <label className="block text-xs font-medium text-slate-700 mb-1">File</label>
               <input
                 type="file"
+                ref={fileInputRef}
                 required
                 accept="application/pdf"
                 className="text-sm"

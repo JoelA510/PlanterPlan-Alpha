@@ -32,21 +32,21 @@ const MasterLibraryList = (props) => {
 
   // Sync root tasks from hook to local tree state when they change
   React.useEffect(() => {
-    if (rootTasks) {
-      if (rootTasks.length > 0) {
-        setTreeData((prevTree) => mergeTaskUpdates(prevTree, rootTasks));
+    if (rootTasks && rootTasks.length > 0) {
+      setTreeData((prevTree) => {
+        // First merge updates (preserving existing tree state)
+        const merged = mergeTaskUpdates(prevTree, rootTasks);
 
-        // Re-hydrate expanded state for visible roots
-        rootTasks.forEach((task) => {
-          if (expandedTaskIds.has(task.id)) {
-            handleToggleExpand(task, true);
-          }
-        });
-      } else {
-        setTreeData([]);
-      }
+        // Then apply persistent expansion state if not already set (e.g. initial load)
+        return merged.map(t => ({
+          ...t,
+          isExpanded: t.isExpanded || expandedTaskIds.has(t.id)
+        }));
+      });
+    } else if (rootTasks) {
+      setTreeData([]);
     }
-  }, [rootTasks]); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rootTasks, expandedTaskIds]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // const handleFilterChange = (type) => {
   //   setResourceType(type);
@@ -54,24 +54,24 @@ const MasterLibraryList = (props) => {
   // };
 
   const handleToggleExpand = useCallback(
-    async (task, isExpanded) => {
-      // Update persistent expansion state
+    async (task, expanded) => {
+      // 1. Update persistent state (for future reloads)
       setExpandedTaskIds((prev) => {
         const next = new Set(prev);
-        if (isExpanded) next.add(task.id);
+        if (expanded) next.add(task.id);
         else next.delete(task.id);
         return next;
       });
 
-      // If expanding and children missing, fetch them
-      if (isExpanded && (!task.children || task.children.length === 0) && !loadingNodes[task.id]) {
-        // Fetch children
+      // 2. Update immediate UI state in treeData
+      setTreeData(prev => updateTaskInTree(prev, task.id, { isExpanded: expanded }));
+
+      // 3. Fetch children if needed
+      if (expanded && (!task.children || task.children.length === 0) && !loadingNodes[task.id]) {
         setLoadingNodes((prev) => ({ ...prev, [task.id]: true }));
         try {
           const children = await fetchTaskChildren(task.id);
-          // Let's filter out the root task itself (which is in descendants)
           const rawDescendants = children.filter((c) => c.id !== task.id);
-
           const nestedChildren = buildTree(rawDescendants, task.id);
 
           setTreeData((prev) => mergeChildrenIntoTree(prev, task.id, nestedChildren));
@@ -82,7 +82,7 @@ const MasterLibraryList = (props) => {
         }
       }
     },
-    [loadingNodes]
+    [loadingNodes] // removed expandedTaskIds from dep to keep stable
   );
 
   /*
@@ -170,8 +170,6 @@ const MasterLibraryList = (props) => {
                     onAddChildTask={() => { }}
                     forceShowChevron={true}
                     onToggleExpand={handleToggleExpand}
-                    isExpanded={expandedTaskIds.has(task.id)}
-                    expandedTaskIds={expandedTaskIds}
                   />
                   {loadingNodes[task.id] && (
                     <div className="absolute top-2 right-2 text-xs text-gray-500">
