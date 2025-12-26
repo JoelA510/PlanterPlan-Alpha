@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2025-12-20 (America/Los_Angeles)  
+**Last verified**: 2025-12-25 (America/Los_Angeles)  
 **Commit**: (Current Tip)  
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/ENGINEERING_KNOWLEDGE.md)
@@ -41,10 +41,10 @@ PlanterPlan is a project management tool tailored for church planting. It allows
 /
   docs/db/               # Database schemas and migrations
   src/
-    components/          # React UI components
+    components/          # React UI components (Atomic: atoms, molecules, organisms, templates)
     contexts/            # React Contexts (Auth)
     services/            # Supabase API wrappers
-    styles/              # Global styles
+    styles/              # Global styles (Tailwind + Semantic vars)
     utils/               # Helper logic (tree manipulation)
     App.jsx              # Main routing and layout
     supabaseClient.js    # Supabase initialization
@@ -175,6 +175,7 @@ flowchart LR
 - ✅ **Deep Cloning**: Duplicating entire template trees to new instances (Ref: `deepCloneTask` in `taskService.js`).
 - ✅ **Master Library Search**: Searching templates via `searchMasterLibraryTasks`, with support for resource type filtering (Ref: `taskService.js`).
 - ✅ **Project Reporting**: Read-only print view with completion stats (Ref: `ProjectReport.jsx`).
+- ✅ **Master Library Tree View**: Recursive display of template hierarchies with on-demand loading (Ref: `MasterLibraryList.jsx`).
 - ✅ **Optimization**: Task trees fetched via `root_id` index instead of recursive calls (Ref: `fetchTaskChildren` in `taskService.js`).
 
 ### 5.2 Known Limitations

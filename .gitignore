@@ -20,6 +20,7 @@ test_output*.txt
 # IDE & Editor
 .vscode/
 *.code-workspace
+PlanterPlan.code-workspace
 .DS_Store
 
 # Logs
@@ -34,3 +35,4 @@ docs/git_documentation/PR_DESCRIPTION_DRAFT.md
 
 # Context
 /Context
+/recovery

@@ -1,5 +1,5 @@
 import React from 'react';
-import TaskResources from './TaskResources';
+import TaskResources from '../molecules/TaskResources';
 
 const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated }) => {
   // Format date for display

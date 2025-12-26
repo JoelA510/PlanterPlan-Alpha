@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient';
 
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
-import TaskDetailsView from './TaskDetailsView';
+import TaskDetailsView from '../templates/TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
 import InviteMemberModal from './InviteMemberModal';
 import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
@@ -23,7 +23,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import TaskItem, { SortableTaskItem } from './TaskItem';
+import TaskItem, { SortableTaskItem } from '../molecules/TaskItem';
 import {
   calculateNewPosition,
   updateTaskPosition,
@@ -423,7 +423,73 @@ const TaskList = () => {
     setSelectedTask(task);
   };
 
-  const handleDeleteTask = async (task) => {
+
+
+  const recalculateAncestorDates = useCallback(async (taskId, currentTasks) => {
+    if (!taskId || !currentTasks) {
+      return;
+    }
+
+    const source = currentTasks;
+    const parent = source.find((task) => task.id === taskId);
+
+    if (!parent || parent.origin !== 'instance') {
+      return;
+    }
+
+    const children = source.filter(
+      (task) => task.parent_task_id === parent.id && task.origin === parent.origin
+    );
+
+    if (children.length === 0) {
+      return;
+    }
+
+    const parseDates = (values) =>
+      values
+        .filter(Boolean)
+        .map((value) => new Date(value))
+        .filter((date) => !Number.isNaN(date.getTime()));
+
+    const childStartDates = parseDates(children.map((child) => child.start_date));
+    const childDueDates = parseDates(children.map((child) => child.due_date));
+
+    const updates = {};
+
+    if (childStartDates.length > 0) {
+      const minTime = Math.min(...childStartDates.map((date) => date.getTime()));
+      updates.start_date = new Date(minTime).toISOString();
+    }
+
+    if (childDueDates.length > 0) {
+      const maxTime = Math.max(...childDueDates.map((date) => date.getTime()));
+      updates.due_date = new Date(maxTime).toISOString();
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await supabase
+        .from('tasks')
+        .update(updates)
+        .eq('id', parent.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      if (updates.start_date) {
+        parent.start_date = updates.start_date;
+      }
+      if (updates.due_date) {
+        parent.due_date = updates.due_date;
+      }
+    }
+
+    if (parent.parent_task_id) {
+      await recalculateAncestorDates(parent.parent_task_id, source);
+    }
+  }, []);
+
+  const handleDeleteTask = useCallback(async (task) => {
     const confirmed = window.confirm(
       `Delete "${task.title}" and its subtasks? This action cannot be undone.`
     );
@@ -455,7 +521,18 @@ const TaskList = () => {
       console.error('Error deleting task:', error);
       throw error;
     }
-  };
+  }, [fetchTasks, selectedTask, taskFormState, recalculateAncestorDates]);
+
+  const handleDeleteById = useCallback(
+    (taskId) => {
+      const task =
+        tasks.find((t) => t.id === taskId) || joinedProjects.find((t) => t.id === taskId);
+      if (task) {
+        handleDeleteTask(task);
+      }
+    },
+    [tasks, joinedProjects, handleDeleteTask]
+  );
 
   const handleOpenInvite = (project) => {
     setInviteModalProject(project);
@@ -761,69 +838,7 @@ const TaskList = () => {
     return 'Details';
   }, [showForm, taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
 
-  const recalculateAncestorDates = async (taskId, currentTasks) => {
-    if (!taskId) {
-      return;
-    }
 
-    const source = currentTasks ?? tasks;
-    const parent = source.find((task) => task.id === taskId);
-
-    if (!parent || parent.origin !== 'instance') {
-      return;
-    }
-
-    const children = source.filter(
-      (task) => task.parent_task_id === parent.id && task.origin === parent.origin
-    );
-
-    if (children.length === 0) {
-      return;
-    }
-
-    const parseDates = (values) =>
-      values
-        .filter(Boolean)
-        .map((value) => new Date(value))
-        .filter((date) => !Number.isNaN(date.getTime()));
-
-    const childStartDates = parseDates(children.map((child) => child.start_date));
-    const childDueDates = parseDates(children.map((child) => child.due_date));
-
-    const updates = {};
-
-    if (childStartDates.length > 0) {
-      const minTime = Math.min(...childStartDates.map((date) => date.getTime()));
-      updates.start_date = new Date(minTime).toISOString();
-    }
-
-    if (childDueDates.length > 0) {
-      const maxTime = Math.max(...childDueDates.map((date) => date.getTime()));
-      updates.due_date = new Date(maxTime).toISOString();
-    }
-
-    if (Object.keys(updates).length > 0) {
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .update(updates)
-        .eq('id', parent.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      if (updates.start_date) {
-        parent.start_date = updates.start_date;
-      }
-      if (updates.due_date) {
-        parent.due_date = updates.due_date;
-      }
-    }
-
-    if (parent.parent_task_id) {
-      await recalculateAncestorDates(parent.parent_task_id, source);
-    }
-  };
 
   if (loading) {
     return (
@@ -893,6 +908,8 @@ const TaskList = () => {
                     onTaskClick={handleTaskClick}
                     selectedTaskId={selectedTask?.id}
                     onAddChildTask={undefined}
+                    onEdit={handleEditTask}
+                    onDelete={handleDeleteById}
                     onInviteMember={
                       project.membership_role === 'owner' || project.creator === currentUserId
                         ? handleOpenInvite
@@ -944,6 +961,8 @@ const TaskList = () => {
                       selectedTaskId={selectedTask?.id}
                       onAddChildTask={handleAddChildTask}
                       onInviteMember={handleOpenInvite}
+                      onEdit={handleEditTask}
+                      onDelete={handleDeleteById}
                     />
                   ))}
                 </div>
