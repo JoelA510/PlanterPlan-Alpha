@@ -443,38 +443,8 @@ The application lacked a distinct brand identity, using generic "Developer Blue"
 
 ### Critical Rule
 >
-  const handleAddChild = (e) => {
-    e.stopPropagation();
-    if (onAddChildTask) {
-      onAddChildTask(task);
-    }
-  };
+> **Use the Variables.** Never hardcode hex values like `#F1592A`. Always use usage-derived variables (e.g., `var(--brand-primary)`) or Tailwind utility aliases (e.g., `bg-brand-primary`) to ensure theming consistency.
 
-  const handleEdit = useCallback(
-    (e) => {
-      e.stopPropagation();
-      if (onEdit) onEdit(task);
-    },
-    [onEdit, task]
-  );
-
-  const handleDelete = useCallback(
-    (e) => {
-      e.stopPropagation();
-      if (onDelete) onDelete(task.id);
-    },
-    [onDelete, task]
-  );
-
-  const handleInvite = useCallback(
-    (e) => {
-      e.stopPropagation();
-      if (onInviteMember) onInviteMember(task);
-    },
-    [onInviteMember, task]
-  );
-
-const { setNodeRef: setDroppableNodeRef } = useDroppable({
 ---
 
 ## [FE-019] Recursive Tree Expansion State

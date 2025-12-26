@@ -426,11 +426,11 @@ const TaskList = () => {
 
 
   const recalculateAncestorDates = useCallback(async (taskId, currentTasks) => {
-    if (!taskId) {
+    if (!taskId || !currentTasks) {
       return;
     }
 
-    const source = currentTasks ?? tasks;
+    const source = currentTasks;
     const parent = source.find((task) => task.id === taskId);
 
     if (!parent || parent.origin !== 'instance') {
@@ -487,7 +487,7 @@ const TaskList = () => {
     if (parent.parent_task_id) {
       await recalculateAncestorDates(parent.parent_task_id, source);
     }
-  }, [tasks]);
+  }, []);
 
   const handleDeleteTask = useCallback(async (task) => {
     const confirmed = window.confirm(

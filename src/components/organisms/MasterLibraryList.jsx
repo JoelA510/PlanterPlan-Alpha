@@ -166,8 +166,6 @@ const MasterLibraryList = (props) => {
                     level={0}
                     onTaskClick={handleTaskClick}
                     onStatusChange={handleStatusChange}
-                    // Mock handlers for required props
-                    onAddChildTask={() => { }}
                     forceShowChevron={true}
                     onToggleExpand={handleToggleExpand}
                   />
