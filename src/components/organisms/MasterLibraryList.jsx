@@ -55,16 +55,14 @@ const MasterLibraryList = (props) => {
 
   const handleToggleExpand = useCallback(
     async (task, expanded) => {
-      // 1. Update persistent state (for future reloads)
+      // 1. Update persistent state. The `useEffect` listening to `expandedTaskIds`
+      // will be triggered and will update the tree's `isExpanded` state.
       setExpandedTaskIds((prev) => {
         const next = new Set(prev);
         if (expanded) next.add(task.id);
         else next.delete(task.id);
         return next;
       });
-
-      // 2. Update immediate UI state in treeData
-      setTreeData(prev => updateTaskInTree(prev, task.id, { isExpanded: expanded }));
 
       // 3. Fetch children if needed
       if (expanded && (!task.children || task.children.length === 0) && !loadingNodes[task.id]) {
