@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated:** 2025-12-23
-**Current Focus:** UI Refactor & Atomic Design Verification
+**Last Updated:** 2025-12-25
+**Current Focus:** Stability, Performance, & Documentation Cleanups
 
 ---
 
@@ -110,7 +110,12 @@ _Goal: Optimize for large trees and many users._
 
 - **ID:** `P6-RECURSIVE-FETCH`
 - **Goal**: Optimize `taskService.js` to handle large trees efficiently.
-- **Status**: ✅ Done (Implemented via `root_id` optimization + in-memory DFS)
+
+#### 5.4 Performance: Recursive Tree Optimization
+
+- **ID:** `P5-TREE-PERF`
+- **Goal**: Prevent re-renders in deep trees using `React.memo` and data-driven expansion state.
+- **Status**: ✅ Done
 
 #### 6.3 Real-time Collaboration
 

@@ -474,4 +474,27 @@ The application lacked a distinct brand identity, using generic "Developer Blue"
     [onInviteMember, task]
   );
 
-  const { setNodeRef: setDroppableNodeRef } = useDroppable({
+const { setNodeRef: setDroppableNodeRef } = useDroppable({
+---
+
+## [FE-019] Recursive Tree Expansion State
+
+**Tags**: #react, #recursion, #performance, #state-management
+**Date**: 2025-12-25
+
+### Context & Problem
+
+Passing a mutable `Set` or `ExpandedIds` array down a recursive component tree (`TaskItem` -> `TaskItem` -> ...) causes "Prop Instability".
+Every time the Set changes (reference update), **every** node in the tree re-renders, even if only one small leaf toggled. This destroys the benefits of `React.memo`.
+
+### Solution & Pattern
+
+**Data-Driven State**: Instead of passing external state props, merge the visual state into the data itself.
+
+1. **Merge**: In the parent (`MasterLibraryList`), when `expandedTaskIds` changes, map it to the `treeData` (`task.isExpanded = true`).
+2. **Memoize**: Pass the stable `task` object to `TaskItem`. `TaskItem` reads `task.isExpanded`.
+3. **Result**: Toggling expands only the specific node and its immediate parent/children, not the entire tree.
+
+### Critical Rule
+
+> **Don't drill unstable state props.** For recursive trees, merge UI state (like `isExpanded`) into the node data object itself before rendering. This preserves reference stability for `React.memo`.
