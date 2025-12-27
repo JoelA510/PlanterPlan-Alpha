@@ -1,1 +1,448 @@
-[{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\App.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\auth\\LoginForm.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\common\\ErrorFallback.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\common\\RoleIndicator.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\reports\\ProjectReport.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\InviteMemberModal.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\MasterLibraryList.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\MasterLibrarySearch.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\NewProjectForm.jsx","messages":[{"ruleId":"no-unused-vars","severity":1,"message":"'showResourceCreator' is assigned a value but never used. Allowed unused vars must match /^_/u.","line":35,"column":5,"nodeType":"Identifier","messageId":"unusedVar","endLine":35,"endColumn":24},{"ruleId":"no-unused-vars","severity":1,"message":"'handleCreateResource' is assigned a value but never used. Allowed unused vars must match /^_/u.","line":39,"column":5,"nodeType":"Identifier","messageId":"unusedVar","endLine":39,"endColumn":25},{"ruleId":"no-unused-vars","severity":1,"message":"'dismissResourceCreator' is assigned a value but never used. Allowed unused vars must match /^_/u.","line":40,"column":5,"nodeType":"Identifier","messageId":"unusedVar","endLine":40,"endColumn":27}],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":3,"fixableErrorCount":0,"fixableWarningCount":0,"source":"import React, { useCallback } from 'react';\nimport { useTaskForm } from '../../hooks/useTaskForm';\nimport MasterLibrarySearch from './MasterLibrarySearch';\n\nconst initialState = {\n  title: '',\n  description: '',\n  purpose: '',\n  actions: '',\n  notes: '',\n  start_date: '',\n  templateId: null,\n};\n\nconst NewProjectForm = ({ onSubmit, onCancel }) => {\n  const validate = useCallback((data) => {\n    const newErrors = {};\n\n    if (!data.title?.trim()) {\n      newErrors.title = 'Project title is required';\n    }\n\n    if (!data.start_date) {\n      newErrors.start_date = 'Start date is required';\n    }\n\n    return newErrors;\n  }, []);\n\n  const {\n    formData,\n    setFormData,\n    errors,\n    isSubmitting,\n    showResourceCreator,\n    lastAppliedTaskTitle,\n    handleChange,\n    handleApplyFromLibrary,\n    handleCreateResource,\n    dismissResourceCreator,\n    handleSubmit: hookSubmit,\n  } = useTaskForm(initialState, validate);\n\n  const handleFormSubmit = (e) => {\n    hookSubmit(e, onSubmit, () => {\n      setFormData(initialState);\n    });\n  };\n\n  return (\n    <form onSubmit={handleFormSubmit} className=\"project-form\">\n      <div className=\"form-group\">\n        <MasterLibrarySearch\n          mode=\"copy\"\n          onSelect={handleApplyFromLibrary}\n          label=\"Search master library\"\n          placeholder=\"Search tasks to prefill this project\"\n        />\n      </div>\n\n      {lastAppliedTaskTitle && (\n        <div className=\"mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700\">\n          Copied details from <span className=\"font-semibold\">{lastAppliedTaskTitle}</span>.\n        </div>\n      )}\n\n      {/* General error message */}\n      {errors.submit && <div className=\"form-error-banner\">{errors.submit}</div>}\n\n      {/* Title Field */}\n      <div className=\"form-group\">\n        <label htmlFor=\"title\" className=\"form-label\">\n          Project Title <span className=\"required\">*</span>\n        </label>\n        <input\n          type=\"text\"\n          id=\"title\"\n          name=\"title\"\n          value={formData.title}\n          onChange={handleChange}\n          className={`form-input ${errors.title ? 'error' : ''}`}\n          placeholder=\"Enter project title\"\n          autoFocus\n        />\n        {errors.title && <span className=\"form-error\">{errors.title}</span>}\n      </div>\n\n      {/* Description Field */}\n      <div className=\"form-group\">\n        <label htmlFor=\"description\" className=\"form-label\">\n          Description\n        </label>\n        <textarea\n          id=\"description\"\n          name=\"description\"\n          value={formData.description}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Describe this project...\"\n          rows=\"4\"\n        />\n      </div>\n\n      {/* Purpose Field */}\n      <div className=\"form-group\">\n        <label htmlFor=\"purpose\" className=\"form-label\">\n          Purpose\n        </label>\n        <textarea\n          id=\"purpose\"\n          name=\"purpose\"\n          value={formData.purpose}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Why is this project being created?\"\n          rows=\"3\"\n        />\n      </div>\n\n      <div className=\"grid grid-cols-1 gap-4 md:grid-cols-2\">\n        <div className=\"form-group\">\n          <label htmlFor=\"start_date\" className=\"form-label\">\n            Start Date <span className=\"required\">*</span>\n          </label>\n          <input\n            type=\"date\"\n            id=\"start_date\"\n            name=\"start_date\"\n            value={formData.start_date}\n            onChange={handleChange}\n            className={`form-input ${errors.start_date ? 'error' : ''}`}\n          />\n          {errors.start_date && <span className=\"form-error\">{errors.start_date}</span>}\n        </div>\n        <div className=\"form-group\">{/* Placeholder for layout */}</div>\n      </div>\n\n      <div className=\"form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4\">\n        <button type=\"button\" onClick={onCancel} className=\"btn-secondary\" disabled={isSubmitting}>\n          Cancel\n        </button>\n        <button type=\"submit\" className=\"btn-primary\" disabled={isSubmitting}>\n          {isSubmitting ? 'Create Project' : 'Create Project'}\n        </button>\n      </div>\n    </form>\n  );\n};\n\nexport default NewProjectForm;\n","usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\NewTaskForm.jsx","messages":[{"ruleId":"no-unused-vars","severity":1,"message":"'showResourceCreator' is assigned a value but never used. Allowed unused vars must match /^_/u.","line":76,"column":5,"nodeType":"Identifier","messageId":"unusedVar","endLine":76,"endColumn":24},{"ruleId":"no-unused-vars","severity":1,"message":"'handleCreateResource' is assigned a value but never used. Allowed unused vars must match /^_/u.","line":80,"column":5,"nodeType":"Identifier","messageId":"unusedVar","endLine":80,"endColumn":25},{"ruleId":"no-unused-vars","severity":1,"message":"'dismissResourceCreator' is assigned a value but never used. Allowed unused vars must match /^_/u.","line":81,"column":5,"nodeType":"Identifier","messageId":"unusedVar","endLine":81,"endColumn":27}],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":3,"fixableErrorCount":0,"fixableWarningCount":0,"source":"import React, { useEffect, useCallback } from 'react';\nimport { useTaskForm } from '../../hooks/useTaskForm';\nimport MasterLibrarySearch from './MasterLibrarySearch';\n\nconst extractDateInput = (value) => {\n  if (!value) return '';\n  return value.slice(0, 10);\n};\n\nconst createInitialState = (task) => ({\n  title: task?.title ?? '',\n  description: task?.description ?? '',\n  notes: task?.notes ?? '',\n  purpose: task?.purpose ?? '',\n  actions: task?.actions ?? '',\n  days_from_start:\n    task?.days_from_start !== null && task?.days_from_start !== undefined\n      ? String(task.days_from_start)\n      : '',\n  start_date: extractDateInput(task?.start_date),\n  due_date: extractDateInput(task?.due_date),\n  templateId: null,\n});\n\nconst NewTaskForm = ({\n  onSubmit,\n  onCancel,\n  parentTask,\n  initialTask = null,\n  origin = 'instance',\n  submitLabel = 'Add New Task',\n  enableLibrarySearch = true,\n}) => {\n  const isEditMode = Boolean(initialTask);\n\n  const validate = useCallback(\n    (data) => {\n      const newErrors = {};\n\n      if (!data.title?.trim()) {\n        newErrors.title = 'Task title is required';\n      }\n\n      if (\n        data.days_from_start !== '' &&\n        data.days_from_start !== undefined &&\n        data.days_from_start !== null\n      ) {\n        const value = Number(data.days_from_start);\n        if (Number.isNaN(value) || value < 0) {\n          newErrors.days_from_start = 'Days from start must be zero or greater';\n        }\n      }\n\n      if (origin === 'instance') {\n        if (data.start_date && data.due_date) {\n          const start = new Date(`${data.start_date}T00:00:00.000Z`);\n          const due = new Date(`${data.due_date}T00:00:00.000Z`);\n\n          if (!Number.isNaN(start.getTime()) && !Number.isNaN(due.getTime()) && due < start) {\n            newErrors.due_date = 'Due date cannot be before start date';\n          }\n        }\n      }\n\n      return newErrors;\n    },\n    [origin]\n  );\n\n  const {\n    formData,\n    setFormData,\n    errors,\n    isSubmitting,\n    showResourceCreator,\n    lastAppliedTaskTitle,\n    handleChange,\n    handleApplyFromLibrary,\n    handleCreateResource,\n    dismissResourceCreator,\n    handleSubmit: hookSubmit,\n  } = useTaskForm(createInitialState(initialTask), validate);\n\n  // Update form data when initialTask changes (for re-use)\n  useEffect(() => {\n    setFormData(createInitialState(initialTask));\n  }, [initialTask, setFormData]);\n\n  const handleFormSubmit = (e) => {\n    hookSubmit(e, onSubmit, () => {\n      if (!isEditMode) {\n        setFormData(createInitialState(null));\n      }\n    });\n  };\n\n  return (\n    <form onSubmit={handleFormSubmit} className=\"project-form\">\n      <div className=\"mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500\">\n        {origin === 'template' ? 'Template Task' : 'Project Task'}\n      </div>\n\n      {enableLibrarySearch && (\n        <>\n          <div className=\"form-group\">\n            <MasterLibrarySearch\n              mode=\"copy\"\n              onSelect={handleApplyFromLibrary}\n              label=\"Search master library\"\n              placeholder=\"Start typing to copy an existing template task\"\n            />\n          </div>\n\n          {lastAppliedTaskTitle && (\n            <div className=\"mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700\">\n              Copied details from <span className=\"font-semibold\">{lastAppliedTaskTitle}</span>.\n            </div>\n          )}\n        </>\n      )}\n\n      {/* Parent Task Info */}\n      {parentTask && (\n        <div className=\"mb-4 flex items-center gap-2 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700\">\n          <span className=\"font-semibold text-slate-500\">Adding to:</span>\n          <span className=\"font-medium\">{parentTask.title}</span>\n        </div>\n      )}\n\n      {errors.submit && <div className=\"form-error-banner\">{errors.submit}</div>}\n\n      <div className=\"form-group\">\n        <label htmlFor=\"title\" className=\"form-label\">\n          Task Title <span className=\"required\">*</span>\n        </label>\n        <input\n          type=\"text\"\n          id=\"title\"\n          name=\"title\"\n          value={formData.title}\n          onChange={handleChange}\n          className={`form-input ${errors.title ? 'error' : ''}`}\n          placeholder=\"Enter task title\"\n          autoFocus\n        />\n        {errors.title && <span className=\"form-error\">{errors.title}</span>}\n      </div>\n\n      <div className=\"form-group\">\n        <label htmlFor=\"description\" className=\"form-label\">\n          Description\n        </label>\n        <textarea\n          id=\"description\"\n          name=\"description\"\n          value={formData.description}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Describe the task...\"\n          rows=\"3\"\n        />\n      </div>\n\n      <div className=\"form-group\">\n        <label htmlFor=\"notes\" className=\"form-label\">\n          Notes / Context\n        </label>\n        <textarea\n          id=\"notes\"\n          name=\"notes\"\n          value={formData.notes}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Internal notes, hints, or context...\"\n          rows=\"2\"\n        />\n      </div>\n\n      <div className=\"form-group\">\n        <label htmlFor=\"purpose\" className=\"form-label\">\n          Purpose\n        </label>\n        <textarea\n          id=\"purpose\"\n          name=\"purpose\"\n          value={formData.purpose ?? ''}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Why is this task needed?\"\n          rows=\"2\"\n        />\n      </div>\n\n      <div className=\"form-group\">\n        <label htmlFor=\"actions\" className=\"form-label\">\n          Actions\n        </label>\n        <textarea\n          id=\"actions\"\n          name=\"actions\"\n          value={formData.actions ?? ''}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Specific actions to take...\"\n          rows=\"2\"\n        />\n      </div>\n\n      {origin === 'instance' && (\n        <div className=\"grid grid-cols-1 gap-4 md:grid-cols-2\">\n          <div className=\"form-group\">\n            <label htmlFor=\"days_from_start\" className=\"form-label\">\n              Days from Start\n            </label>\n            <div className=\"relative\">\n              <input\n                type=\"number\"\n                id=\"days_from_start\"\n                name=\"days_from_start\"\n                value={formData.days_from_start}\n                onChange={handleChange}\n                className={`form-input pl-10 ${errors.days_from_start ? 'error' : ''}`}\n                placeholder=\"0\"\n                min=\"0\"\n              />\n              <div className=\"pointer-events-none absolute left-0 top-0 flex h-full w-10 items-center justify-center text-slate-400\">\n                <span className=\"text-sm font-medium\">T+</span>\n              </div>\n            </div>\n            {errors.days_from_start && <span className=\"form-error\">{errors.days_from_start}</span>}\n            <p className=\"mt-1 text-xs text-slate-500\">\n              Auto-calculates dates based on project start\n            </p>\n          </div>\n\n          <div className=\"form-group\">{/* Spacing placeholder */}</div>\n        </div>\n      )}\n\n      {origin === 'instance' && (\n        <>\n          <div className=\"my-4 border-t border-slate-100 pt-4\">\n            <h4 className=\"mb-3 text-sm font-medium text-slate-700\">Manual Schedule Overrides</h4>\n            <div className=\"grid grid-cols-1 gap-4 md:grid-cols-2\">\n              <div className=\"form-group\">\n                <label htmlFor=\"start_date\" className=\"form-label\">\n                  Start Date\n                </label>\n                <input\n                  type=\"date\"\n                  id=\"start_date\"\n                  name=\"start_date\"\n                  value={formData.start_date}\n                  onChange={handleChange}\n                  className=\"form-input\"\n                />\n              </div>\n\n              <div className=\"form-group\">\n                <label htmlFor=\"due_date\" className=\"form-label\">\n                  Due Date\n                </label>\n                <input\n                  type=\"date\"\n                  id=\"due_date\"\n                  name=\"due_date\"\n                  value={formData.due_date}\n                  onChange={handleChange}\n                  className={`form-input ${errors.due_date ? 'error' : ''}`}\n                />\n                {errors.due_date && <span className=\"form-error\">{errors.due_date}</span>}\n              </div>\n            </div>\n          </div>\n        </>\n      )}\n\n      <div className=\"form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4\">\n        <button type=\"button\" onClick={onCancel} className=\"btn-secondary\" disabled={isSubmitting}>\n          Cancel\n        </button>\n        <button type=\"submit\" className=\"btn-primary\" disabled={isSubmitting}>\n          {isSubmitting ? 'Saving...' : submitLabel}\n        </button>\n      </div>\n    </form>\n  );\n};\n\nexport default NewTaskForm;\n","usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\TaskDetailsView.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\TaskItem.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\TaskList.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\TaskResources.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\contexts\\AuthContext.jsx","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\hooks\\useDebounce.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\hooks\\useMasterLibrarySearch.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\hooks\\useMasterLibraryTasks.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\hooks\\useTaskForm.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\index.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\positionService.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\positionService.test.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\projectService.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\projectService.test.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\taskResourcesService.js","messages":[{"ruleId":"no-unused-vars","severity":1,"message":"'name' is defined but never used. Allowed unused args must match /^_/u.","line":44,"column":44,"nodeType":"Identifier","messageId":"unusedVar","endLine":44,"endColumn":48}],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":1,"fixableErrorCount":0,"fixableWarningCount":0,"source":"import { supabase } from '../supabaseClient';\n\n/**\n * @typedef {Object} TaskResource\n * @property {string} id\n * @property {string} task_id\n * @property {'url' | 'text' | 'pdf'} type\n * @property {string} [url]\n * @property {string} [text_content]\n * @property {string} [storage_path]\n * @property {string} [name]\n * @property {string} created_at\n */\n\n/**\n * List all resources for a task.\n * @param {string} taskId\n * @returns {Promise<TaskResource[]>}\n */\nexport const listTaskResources = async (taskId) => {\n  const { data, error } = await supabase\n    .from('task_resources')\n    .select('*')\n    .eq('task_id', taskId)\n    .order('created_at', { ascending: true });\n\n  if (error) throw error;\n  return data;\n};\n\n/**\n * Create a new resource for a task.\n * @param {string} taskId\n * @param {Object} payload\n * @param {'url' | 'text' | 'pdf'} payload.type\n * @param {string} [payload.url]\n * @param {string} [payload.text_content]\n * @param {string} [payload.storage_path]\n * @param {string} [payload.name]\n * @returns {Promise<TaskResource>}\n */\nexport const createTaskResource = async (\n  taskId,\n  { type, url, text_content, storage_path, name }\n) => {\n  // Basic validation\n  if (!type) throw new Error('Resource type is required');\n  if (type === 'url' && !url) throw new Error('URL is required for url type');\n  if (type === 'text' && !text_content) throw new Error('Content is required for text type');\n  if (type === 'pdf' && !storage_path) throw new Error('Storage path is required for pdf type');\n\n  const { data, error } = await supabase\n    .from('task_resources')\n    .insert({\n      task_id: taskId,\n      resource_type: type,\n      resource_url: type === 'url' ? url : null,\n      resource_text: type === 'text' ? text_content : null,\n      storage_path: type === 'pdf' ? storage_path : null,\n    })\n    .select()\n    .single();\n\n  if (error) throw error;\n  return data;\n};\n\n/**\n * Delete a resource.\n * @param {string} resourceId\n */\nexport const deleteTaskResource = async (resourceId) => {\n  const { error } = await supabase.from('task_resources').delete().eq('id', resourceId);\n\n  if (error) throw error;\n};\n\n/**\n * Set the primary resource for a task.\n * @param {string} taskId\n * @param {string} resourceId - Pass NULL to clear primary resource\n */\nexport const setPrimaryResource = async (taskId, resourceId) => {\n  const { error } = await supabase\n    .from('tasks')\n    .update({ primary_resource_id: resourceId })\n    .eq('id', taskId);\n\n  if (error) throw error;\n};\n","usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\taskService.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\taskService.test.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\supabaseClient.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\dateUtils.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\dateUtils.test.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\highlightMatches.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\highlightMatches.test.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]},{"filePath":"C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\treeHelpers.js","messages":[],"suppressedMessages":[],"errorCount":0,"fatalErrorCount":0,"warningCount":0,"fixableErrorCount":0,"fixableWarningCount":0,"usedDeprecatedRules":[{"ruleId":"no-new-object","replacedBy":["no-object-constructor"]}]}]
+[
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\App.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\auth\\LoginForm.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\common\\ErrorFallback.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\common\\RoleIndicator.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\reports\\ProjectReport.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\InviteMemberModal.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\MasterLibraryList.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\MasterLibrarySearch.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\NewProjectForm.jsx",
+    "messages": [
+      {
+        "ruleId": "no-unused-vars",
+        "severity": 1,
+        "message": "'showResourceCreator' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+        "line": 35,
+        "column": 5,
+        "nodeType": "Identifier",
+        "messageId": "unusedVar",
+        "endLine": 35,
+        "endColumn": 24
+      },
+      {
+        "ruleId": "no-unused-vars",
+        "severity": 1,
+        "message": "'handleCreateResource' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+        "line": 39,
+        "column": 5,
+        "nodeType": "Identifier",
+        "messageId": "unusedVar",
+        "endLine": 39,
+        "endColumn": 25
+      },
+      {
+        "ruleId": "no-unused-vars",
+        "severity": 1,
+        "message": "'dismissResourceCreator' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+        "line": 40,
+        "column": 5,
+        "nodeType": "Identifier",
+        "messageId": "unusedVar",
+        "endLine": 40,
+        "endColumn": 27
+      }
+    ],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 3,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "source": "import React, { useCallback } from 'react';\nimport { useTaskForm } from '../../hooks/useTaskForm';\nimport MasterLibrarySearch from './MasterLibrarySearch';\n\nconst initialState = {\n  title: '',\n  description: '',\n  purpose: '',\n  actions: '',\n  notes: '',\n  start_date: '',\n  templateId: null,\n};\n\nconst NewProjectForm = ({ onSubmit, onCancel }) => {\n  const validate = useCallback((data) => {\n    const newErrors = {};\n\n    if (!data.title?.trim()) {\n      newErrors.title = 'Project title is required';\n    }\n\n    if (!data.start_date) {\n      newErrors.start_date = 'Start date is required';\n    }\n\n    return newErrors;\n  }, []);\n\n  const {\n    formData,\n    setFormData,\n    errors,\n    isSubmitting,\n    showResourceCreator,\n    lastAppliedTaskTitle,\n    handleChange,\n    handleApplyFromLibrary,\n    handleCreateResource,\n    dismissResourceCreator,\n    handleSubmit: hookSubmit,\n  } = useTaskForm(initialState, validate);\n\n  const handleFormSubmit = (e) => {\n    hookSubmit(e, onSubmit, () => {\n      setFormData(initialState);\n    });\n  };\n\n  return (\n    <form onSubmit={handleFormSubmit} className=\"project-form\">\n      <div className=\"form-group\">\n        <MasterLibrarySearch\n          mode=\"copy\"\n          onSelect={handleApplyFromLibrary}\n          label=\"Search master library\"\n          placeholder=\"Search tasks to prefill this project\"\n        />\n      </div>\n\n      {lastAppliedTaskTitle && (\n        <div className=\"mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700\">\n          Copied details from <span className=\"font-semibold\">{lastAppliedTaskTitle}</span>.\n        </div>\n      )}\n\n      {/* General error message */}\n      {errors.submit && <div className=\"form-error-banner\">{errors.submit}</div>}\n\n      {/* Title Field */}\n      <div className=\"form-group\">\n        <label htmlFor=\"title\" className=\"form-label\">\n          Project Title <span className=\"required\">*</span>\n        </label>\n        <input\n          type=\"text\"\n          id=\"title\"\n          name=\"title\"\n          value={formData.title}\n          onChange={handleChange}\n          className={`form-input ${errors.title ? 'error' : ''}`}\n          placeholder=\"Enter project title\"\n          autoFocus\n        />\n        {errors.title && <span className=\"form-error\">{errors.title}</span>}\n      </div>\n\n      {/* Description Field */}\n      <div className=\"form-group\">\n        <label htmlFor=\"description\" className=\"form-label\">\n          Description\n        </label>\n        <textarea\n          id=\"description\"\n          name=\"description\"\n          value={formData.description}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Describe this project...\"\n          rows=\"4\"\n        />\n      </div>\n\n      {/* Purpose Field */}\n      <div className=\"form-group\">\n        <label htmlFor=\"purpose\" className=\"form-label\">\n          Purpose\n        </label>\n        <textarea\n          id=\"purpose\"\n          name=\"purpose\"\n          value={formData.purpose}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Why is this project being created?\"\n          rows=\"3\"\n        />\n      </div>\n\n      <div className=\"grid grid-cols-1 gap-4 md:grid-cols-2\">\n        <div className=\"form-group\">\n          <label htmlFor=\"start_date\" className=\"form-label\">\n            Start Date <span className=\"required\">*</span>\n          </label>\n          <input\n            type=\"date\"\n            id=\"start_date\"\n            name=\"start_date\"\n            value={formData.start_date}\n            onChange={handleChange}\n            className={`form-input ${errors.start_date ? 'error' : ''}`}\n          />\n          {errors.start_date && <span className=\"form-error\">{errors.start_date}</span>}\n        </div>\n        <div className=\"form-group\">{/* Placeholder for layout */}</div>\n      </div>\n\n      <div className=\"form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4\">\n        <button type=\"button\" onClick={onCancel} className=\"btn-secondary\" disabled={isSubmitting}>\n          Cancel\n        </button>\n        <button type=\"submit\" className=\"btn-primary\" disabled={isSubmitting}>\n          {isSubmitting ? 'Create Project' : 'Create Project'}\n        </button>\n      </div>\n    </form>\n  );\n};\n\nexport default NewProjectForm;\n",
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\NewTaskForm.jsx",
+    "messages": [
+      {
+        "ruleId": "no-unused-vars",
+        "severity": 1,
+        "message": "'showResourceCreator' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+        "line": 76,
+        "column": 5,
+        "nodeType": "Identifier",
+        "messageId": "unusedVar",
+        "endLine": 76,
+        "endColumn": 24
+      },
+      {
+        "ruleId": "no-unused-vars",
+        "severity": 1,
+        "message": "'handleCreateResource' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+        "line": 80,
+        "column": 5,
+        "nodeType": "Identifier",
+        "messageId": "unusedVar",
+        "endLine": 80,
+        "endColumn": 25
+      },
+      {
+        "ruleId": "no-unused-vars",
+        "severity": 1,
+        "message": "'dismissResourceCreator' is assigned a value but never used. Allowed unused vars must match /^_/u.",
+        "line": 81,
+        "column": 5,
+        "nodeType": "Identifier",
+        "messageId": "unusedVar",
+        "endLine": 81,
+        "endColumn": 27
+      }
+    ],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 3,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "source": "import React, { useEffect, useCallback } from 'react';\nimport { useTaskForm } from '../../hooks/useTaskForm';\nimport MasterLibrarySearch from './MasterLibrarySearch';\n\nconst extractDateInput = (value) => {\n  if (!value) return '';\n  return value.slice(0, 10);\n};\n\nconst createInitialState = (task) => ({\n  title: task?.title ?? '',\n  description: task?.description ?? '',\n  notes: task?.notes ?? '',\n  purpose: task?.purpose ?? '',\n  actions: task?.actions ?? '',\n  days_from_start:\n    task?.days_from_start !== null && task?.days_from_start !== undefined\n      ? String(task.days_from_start)\n      : '',\n  start_date: extractDateInput(task?.start_date),\n  due_date: extractDateInput(task?.due_date),\n  templateId: null,\n});\n\nconst NewTaskForm = ({\n  onSubmit,\n  onCancel,\n  parentTask,\n  initialTask = null,\n  origin = 'instance',\n  submitLabel = 'Add New Task',\n  enableLibrarySearch = true,\n}) => {\n  const isEditMode = Boolean(initialTask);\n\n  const validate = useCallback(\n    (data) => {\n      const newErrors = {};\n\n      if (!data.title?.trim()) {\n        newErrors.title = 'Task title is required';\n      }\n\n      if (\n        data.days_from_start !== '' &&\n        data.days_from_start !== undefined &&\n        data.days_from_start !== null\n      ) {\n        const value = Number(data.days_from_start);\n        if (Number.isNaN(value) || value < 0) {\n          newErrors.days_from_start = 'Days from start must be zero or greater';\n        }\n      }\n\n      if (origin === 'instance') {\n        if (data.start_date && data.due_date) {\n          const start = new Date(`${data.start_date}T00:00:00.000Z`);\n          const due = new Date(`${data.due_date}T00:00:00.000Z`);\n\n          if (!Number.isNaN(start.getTime()) && !Number.isNaN(due.getTime()) && due < start) {\n            newErrors.due_date = 'Due date cannot be before start date';\n          }\n        }\n      }\n\n      return newErrors;\n    },\n    [origin]\n  );\n\n  const {\n    formData,\n    setFormData,\n    errors,\n    isSubmitting,\n    showResourceCreator,\n    lastAppliedTaskTitle,\n    handleChange,\n    handleApplyFromLibrary,\n    handleCreateResource,\n    dismissResourceCreator,\n    handleSubmit: hookSubmit,\n  } = useTaskForm(createInitialState(initialTask), validate);\n\n  // Update form data when initialTask changes (for re-use)\n  useEffect(() => {\n    setFormData(createInitialState(initialTask));\n  }, [initialTask, setFormData]);\n\n  const handleFormSubmit = (e) => {\n    hookSubmit(e, onSubmit, () => {\n      if (!isEditMode) {\n        setFormData(createInitialState(null));\n      }\n    });\n  };\n\n  return (\n    <form onSubmit={handleFormSubmit} className=\"project-form\">\n      <div className=\"mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500\">\n        {origin === 'template' ? 'Template Task' : 'Project Task'}\n      </div>\n\n      {enableLibrarySearch && (\n        <>\n          <div className=\"form-group\">\n            <MasterLibrarySearch\n              mode=\"copy\"\n              onSelect={handleApplyFromLibrary}\n              label=\"Search master library\"\n              placeholder=\"Start typing to copy an existing template task\"\n            />\n          </div>\n\n          {lastAppliedTaskTitle && (\n            <div className=\"mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700\">\n              Copied details from <span className=\"font-semibold\">{lastAppliedTaskTitle}</span>.\n            </div>\n          )}\n        </>\n      )}\n\n      {/* Parent Task Info */}\n      {parentTask && (\n        <div className=\"mb-4 flex items-center gap-2 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700\">\n          <span className=\"font-semibold text-slate-500\">Adding to:</span>\n          <span className=\"font-medium\">{parentTask.title}</span>\n        </div>\n      )}\n\n      {errors.submit && <div className=\"form-error-banner\">{errors.submit}</div>}\n\n      <div className=\"form-group\">\n        <label htmlFor=\"title\" className=\"form-label\">\n          Task Title <span className=\"required\">*</span>\n        </label>\n        <input\n          type=\"text\"\n          id=\"title\"\n          name=\"title\"\n          value={formData.title}\n          onChange={handleChange}\n          className={`form-input ${errors.title ? 'error' : ''}`}\n          placeholder=\"Enter task title\"\n          autoFocus\n        />\n        {errors.title && <span className=\"form-error\">{errors.title}</span>}\n      </div>\n\n      <div className=\"form-group\">\n        <label htmlFor=\"description\" className=\"form-label\">\n          Description\n        </label>\n        <textarea\n          id=\"description\"\n          name=\"description\"\n          value={formData.description}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Describe the task...\"\n          rows=\"3\"\n        />\n      </div>\n\n      <div className=\"form-group\">\n        <label htmlFor=\"notes\" className=\"form-label\">\n          Notes / Context\n        </label>\n        <textarea\n          id=\"notes\"\n          name=\"notes\"\n          value={formData.notes}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Internal notes, hints, or context...\"\n          rows=\"2\"\n        />\n      </div>\n\n      <div className=\"form-group\">\n        <label htmlFor=\"purpose\" className=\"form-label\">\n          Purpose\n        </label>\n        <textarea\n          id=\"purpose\"\n          name=\"purpose\"\n          value={formData.purpose ?? ''}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Why is this task needed?\"\n          rows=\"2\"\n        />\n      </div>\n\n      <div className=\"form-group\">\n        <label htmlFor=\"actions\" className=\"form-label\">\n          Actions\n        </label>\n        <textarea\n          id=\"actions\"\n          name=\"actions\"\n          value={formData.actions ?? ''}\n          onChange={handleChange}\n          className=\"form-textarea\"\n          placeholder=\"Specific actions to take...\"\n          rows=\"2\"\n        />\n      </div>\n\n      {origin === 'instance' && (\n        <div className=\"grid grid-cols-1 gap-4 md:grid-cols-2\">\n          <div className=\"form-group\">\n            <label htmlFor=\"days_from_start\" className=\"form-label\">\n              Days from Start\n            </label>\n            <div className=\"relative\">\n              <input\n                type=\"number\"\n                id=\"days_from_start\"\n                name=\"days_from_start\"\n                value={formData.days_from_start}\n                onChange={handleChange}\n                className={`form-input pl-10 ${errors.days_from_start ? 'error' : ''}`}\n                placeholder=\"0\"\n                min=\"0\"\n              />\n              <div className=\"pointer-events-none absolute left-0 top-0 flex h-full w-10 items-center justify-center text-slate-400\">\n                <span className=\"text-sm font-medium\">T+</span>\n              </div>\n            </div>\n            {errors.days_from_start && <span className=\"form-error\">{errors.days_from_start}</span>}\n            <p className=\"mt-1 text-xs text-slate-500\">\n              Auto-calculates dates based on project start\n            </p>\n          </div>\n\n          <div className=\"form-group\">{/* Spacing placeholder */}</div>\n        </div>\n      )}\n\n      {origin === 'instance' && (\n        <>\n          <div className=\"my-4 border-t border-slate-100 pt-4\">\n            <h4 className=\"mb-3 text-sm font-medium text-slate-700\">Manual Schedule Overrides</h4>\n            <div className=\"grid grid-cols-1 gap-4 md:grid-cols-2\">\n              <div className=\"form-group\">\n                <label htmlFor=\"start_date\" className=\"form-label\">\n                  Start Date\n                </label>\n                <input\n                  type=\"date\"\n                  id=\"start_date\"\n                  name=\"start_date\"\n                  value={formData.start_date}\n                  onChange={handleChange}\n                  className=\"form-input\"\n                />\n              </div>\n\n              <div className=\"form-group\">\n                <label htmlFor=\"due_date\" className=\"form-label\">\n                  Due Date\n                </label>\n                <input\n                  type=\"date\"\n                  id=\"due_date\"\n                  name=\"due_date\"\n                  value={formData.due_date}\n                  onChange={handleChange}\n                  className={`form-input ${errors.due_date ? 'error' : ''}`}\n                />\n                {errors.due_date && <span className=\"form-error\">{errors.due_date}</span>}\n              </div>\n            </div>\n          </div>\n        </>\n      )}\n\n      <div className=\"form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4\">\n        <button type=\"button\" onClick={onCancel} className=\"btn-secondary\" disabled={isSubmitting}>\n          Cancel\n        </button>\n        <button type=\"submit\" className=\"btn-primary\" disabled={isSubmitting}>\n          {isSubmitting ? 'Saving...' : submitLabel}\n        </button>\n      </div>\n    </form>\n  );\n};\n\nexport default NewTaskForm;\n",
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\TaskDetailsView.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\TaskItem.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\TaskList.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\components\\tasks\\TaskResources.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\contexts\\AuthContext.jsx",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\hooks\\useDebounce.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\hooks\\useMasterLibrarySearch.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\hooks\\useMasterLibraryTasks.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\hooks\\useTaskForm.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\index.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\positionService.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\positionService.test.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\projectService.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\projectService.test.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\taskResourcesService.js",
+    "messages": [
+      {
+        "ruleId": "no-unused-vars",
+        "severity": 1,
+        "message": "'name' is defined but never used. Allowed unused args must match /^_/u.",
+        "line": 44,
+        "column": 44,
+        "nodeType": "Identifier",
+        "messageId": "unusedVar",
+        "endLine": 44,
+        "endColumn": 48
+      }
+    ],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 1,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "source": "import { supabase } from '../supabaseClient';\n\n/**\n * @typedef {Object} TaskResource\n * @property {string} id\n * @property {string} task_id\n * @property {'url' | 'text' | 'pdf'} type\n * @property {string} [url]\n * @property {string} [text_content]\n * @property {string} [storage_path]\n * @property {string} [name]\n * @property {string} created_at\n */\n\n/**\n * List all resources for a task.\n * @param {string} taskId\n * @returns {Promise<TaskResource[]>}\n */\nexport const listTaskResources = async (taskId) => {\n  const { data, error } = await supabase\n    .from('task_resources')\n    .select('*')\n    .eq('task_id', taskId)\n    .order('created_at', { ascending: true });\n\n  if (error) throw error;\n  return data;\n};\n\n/**\n * Create a new resource for a task.\n * @param {string} taskId\n * @param {Object} payload\n * @param {'url' | 'text' | 'pdf'} payload.type\n * @param {string} [payload.url]\n * @param {string} [payload.text_content]\n * @param {string} [payload.storage_path]\n * @param {string} [payload.name]\n * @returns {Promise<TaskResource>}\n */\nexport const createTaskResource = async (\n  taskId,\n  { type, url, text_content, storage_path, name }\n) => {\n  // Basic validation\n  if (!type) throw new Error('Resource type is required');\n  if (type === 'url' && !url) throw new Error('URL is required for url type');\n  if (type === 'text' && !text_content) throw new Error('Content is required for text type');\n  if (type === 'pdf' && !storage_path) throw new Error('Storage path is required for pdf type');\n\n  const { data, error } = await supabase\n    .from('task_resources')\n    .insert({\n      task_id: taskId,\n      resource_type: type,\n      resource_url: type === 'url' ? url : null,\n      resource_text: type === 'text' ? text_content : null,\n      storage_path: type === 'pdf' ? storage_path : null,\n    })\n    .select()\n    .single();\n\n  if (error) throw error;\n  return data;\n};\n\n/**\n * Delete a resource.\n * @param {string} resourceId\n */\nexport const deleteTaskResource = async (resourceId) => {\n  const { error } = await supabase.from('task_resources').delete().eq('id', resourceId);\n\n  if (error) throw error;\n};\n\n/**\n * Set the primary resource for a task.\n * @param {string} taskId\n * @param {string} resourceId - Pass NULL to clear primary resource\n */\nexport const setPrimaryResource = async (taskId, resourceId) => {\n  const { error } = await supabase\n    .from('tasks')\n    .update({ primary_resource_id: resourceId })\n    .eq('id', taskId);\n\n  if (error) throw error;\n};\n",
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\taskService.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\services\\taskService.test.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\supabaseClient.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\dateUtils.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\dateUtils.test.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\highlightMatches.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\highlightMatches.test.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  },
+  {
+    "filePath": "C:\\Users\\joel.abraham\\PlanterPlan\\PlanterPlan-Alpha\\src\\utils\\treeHelpers.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": [{ "ruleId": "no-new-object", "replacedBy": ["no-object-constructor"] }]
+  }
+]

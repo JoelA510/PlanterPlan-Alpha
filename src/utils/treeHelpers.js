@@ -1,3 +1,5 @@
+// src/utils/treeHelpers.js
+
 /**
  * Generates a mapping of old IDs to new IDs for a list of tasks.
  * @param {Array} tasks - List of tasks to clone.
@@ -146,10 +148,24 @@ export const mergeTaskUpdates = (currentTree, newTasks) => {
       return {
         ...newTask,
         children: existing.children,
-        isExpanded: existing.isExpanded // Preserve UI state
+        isExpanded: existing.isExpanded, // Preserve UI state
       };
     }
     // New task, initialize children
     return { ...newTask, children: [], isExpanded: false };
   });
+};
+
+/**
+ * Recursively updates the expansion state of the tree based on a Set of IDs.
+ * @param {Array} nodes - The tree nodes.
+ * @param {Set} expandedIds - Set of IDs that should be expanded.
+ * @returns {Array} - New tree with updated expansion state.
+ */
+export const updateTreeExpansion = (nodes, expandedIds) => {
+  return nodes.map((node) => ({
+    ...node,
+    isExpanded: expandedIds.has(node.id),
+    children: node.children ? updateTreeExpansion(node.children, expandedIds) : [],
+  }));
 };

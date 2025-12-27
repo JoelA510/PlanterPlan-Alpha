@@ -423,8 +423,6 @@ const TaskList = () => {
     setSelectedTask(task);
   };
 
-
-
   const recalculateAncestorDates = useCallback(async (taskId, currentTasks) => {
     if (!taskId || !currentTasks) {
       return;
@@ -489,39 +487,42 @@ const TaskList = () => {
     }
   }, []);
 
-  const handleDeleteTask = useCallback(async (task) => {
-    const confirmed = window.confirm(
-      `Delete "${task.title}" and its subtasks? This action cannot be undone.`
-    );
+  const handleDeleteTask = useCallback(
+    async (task) => {
+      const confirmed = window.confirm(
+        `Delete "${task.title}" and its subtasks? This action cannot be undone.`
+      );
 
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      const { error: deleteError } = await supabase.from('tasks').delete().eq('id', task.id);
-
-      if (deleteError) throw deleteError;
-
-      let latestTasks = await fetchTasks();
-
-      if (task.origin === 'instance' && task.parent_task_id) {
-        await recalculateAncestorDates(task.parent_task_id, latestTasks);
-        await fetchTasks();
+      if (!confirmed) {
+        return;
       }
 
-      if (selectedTask?.id === task.id) {
-        setSelectedTask(null);
-      }
+      try {
+        const { error: deleteError } = await supabase.from('tasks').delete().eq('id', task.id);
 
-      if (taskFormState?.taskId === task.id) {
-        setTaskFormState(null);
+        if (deleteError) throw deleteError;
+
+        let latestTasks = await fetchTasks();
+
+        if (task.origin === 'instance' && task.parent_task_id) {
+          await recalculateAncestorDates(task.parent_task_id, latestTasks);
+          await fetchTasks();
+        }
+
+        if (selectedTask?.id === task.id) {
+          setSelectedTask(null);
+        }
+
+        if (taskFormState?.taskId === task.id) {
+          setTaskFormState(null);
+        }
+      } catch (error) {
+        console.error('Error deleting task:', error);
+        throw error;
       }
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      throw error;
-    }
-  }, [fetchTasks, selectedTask, taskFormState, recalculateAncestorDates]);
+    },
+    [fetchTasks, selectedTask, taskFormState, recalculateAncestorDates]
+  );
 
   const handleDeleteById = useCallback(
     (taskId) => {
@@ -837,8 +838,6 @@ const TaskList = () => {
 
     return 'Details';
   }, [showForm, taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
-
-
 
   if (loading) {
     return (

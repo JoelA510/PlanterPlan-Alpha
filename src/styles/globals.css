@@ -6,23 +6,23 @@
 
 :root {
   /* Brand Colors (PlanterPlan.com) */
-  --brand-primary: #F1592A;
+  --brand-primary: #f1592a;
   /* Orange */
   --brand-secondary: #222222;
   /* Charcoal */
 
   /* Mapping "Blue" legacy variables to new Brand Orange */
-  --accent-blue: #F1592A;
-  --accent-blue-dark: #D94418;
+  --accent-blue: #f1592a;
+  --accent-blue-dark: #d94418;
   /* Darker orange for hover */
-  --accent-blue-soft: #FFF3F0;
+  --accent-blue-soft: #fff3f0;
   /* Very light orange for backgrounds */
 
   /* Semantic Colors */
   --text-primary: #222222;
   --text-secondary: #4b5563;
   --bg-surface: #ffffff;
-  --bg-background: #EEEEEE;
+  --bg-background: #eeeeee;
   /* Light Gray from brand */
 
   /* MASTERING DEPTH: ELEVATION SYSTEM */
@@ -57,7 +57,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
   color: #222222;
-  background: #EEEEEE;
+  background: #eeeeee;
 }
 
 button {
@@ -144,31 +144,31 @@ input[type='text']:focus {
      ===================================================== */
 
 /* Space Between */
-.space-x-2>*+* {
+.space-x-2 > * + * {
   margin-left: 0.5rem;
 }
 
-.space-x-3>*+* {
+.space-x-3 > * + * {
   margin-left: 0.75rem;
 }
 
-.space-x-4>*+* {
+.space-x-4 > * + * {
   margin-left: 1rem;
 }
 
-.space-y-2>*+* {
+.space-y-2 > * + * {
   margin-top: 0.5rem;
 }
 
-.space-y-4>*+* {
+.space-y-4 > * + * {
   margin-top: 1rem;
 }
 
-.space-y-6>*+* {
+.space-y-6 > * + * {
   margin-top: 1.5rem;
 }
 
-.space-y-8>*+* {
+.space-y-8 > * + * {
   margin-top: 2rem;
 }
 
@@ -275,7 +275,7 @@ input[type='text']:focus {
 }
 
 .bg-slate-50 {
-  background-color: #EEEEEE;
+  background-color: #eeeeee;
 }
 
 .bg-slate-900 {
@@ -283,7 +283,7 @@ input[type='text']:focus {
 }
 
 .bg-blue-50 {
-  background-color: #FFF3F0;
+  background-color: #fff3f0;
   /* Soft Orange */
 }
 
@@ -296,15 +296,15 @@ input[type='text']:focus {
 }
 
 .bg-indigo-50 {
-  background-color: #FFF3F0;
+  background-color: #fff3f0;
 }
 
 .bg-indigo-600 {
-  background-color: #F1592A;
+  background-color: #f1592a;
 }
 
 .bg-indigo-700 {
-  background-color: #D94418;
+  background-color: #d94418;
 }
 
 .bg-purple-100 {
@@ -364,11 +364,11 @@ input[type='text']:focus {
 }
 
 .text-indigo-600 {
-  color: #F1592A;
+  color: #f1592a;
 }
 
 .text-indigo-500 {
-  color: #F1592A;
+  color: #f1592a;
 }
 
 .text-purple-800 {
@@ -524,15 +524,15 @@ input[type='text']:focus {
 }
 
 /* Dividers */
-.divide-y>*+* {
+.divide-y > * + * {
   border-top-width: 1px;
 }
 
-.divide-gray-100>*+* {
+.divide-gray-100 > * + * {
   border-color: #f3f4f6;
 }
 
-.divide-gray-200>*+* {
+.divide-gray-200 > * + * {
   border-color: #e5e7eb;
 }
 
