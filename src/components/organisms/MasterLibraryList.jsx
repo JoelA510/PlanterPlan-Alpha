@@ -156,7 +156,7 @@ const MasterLibraryList = (props) => {
                     level={0}
                     onTaskClick={handleTaskClick}
                     onStatusChange={handleStatusChange}
-                    onAddChildTask={() => {}}
+                    onAddChildTask={() => { }}
                     forceShowChevron={true}
                     onToggleExpand={handleToggleExpand}
                   />
