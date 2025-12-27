@@ -347,3 +347,20 @@ export const getTasksForUser = async (userId, client = supabase) => {
     throw error;
   }
 };
+
+export const updateTaskStatus = async (taskId, status, client = supabase) => {
+  try {
+    const { data, error } = await client
+      .from('tasks')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('[taskService.updateTaskStatus] Error updating status:', error);
+    throw error;
+  }
+};

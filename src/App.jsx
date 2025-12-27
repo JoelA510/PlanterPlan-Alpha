@@ -2,10 +2,10 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import { ErrorBoundary } from 'react-error-boundary';
-import ErrorFallback from './components/common/ErrorFallback';
+import ErrorFallback from './components/atoms/ErrorFallback';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import LoginForm from './components/auth/LoginForm';
-import TaskList from './components/tasks/TaskList';
+import LoginForm from './components/molecules/LoginForm';
+import TaskList from './components/organisms/TaskList';
 import ProjectReport from './components/reports/ProjectReport';
 // Dashboard component with modern styling
 const Dashboard = () => {

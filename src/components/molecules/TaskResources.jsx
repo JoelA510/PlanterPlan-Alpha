@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   listTaskResources,
   createTaskResource,
@@ -19,6 +19,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
   const [textData, setTextData] = useState('');
   const [fileData, setFileData] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Stabilized fetch hook
   const fetchResources = React.useCallback(async () => {
@@ -44,73 +45,85 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
     setFileData(null);
     setError(null);
     setIsAdding(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
+  const handleSubmit = React.useCallback(
+    async (e) => {
+      e.preventDefault();
+      setSubmitting(true);
+      setError(null);
 
-    try {
-      let storage_path = null;
-      if (type === 'pdf') {
-        if (!fileData) throw new Error('Please select a PDF file');
+      try {
+        let storage_path = null;
+        if (type === 'pdf') {
+          if (!fileData) throw new Error('Please select a PDF file');
 
-        // Simple bucket assumption. Make sure 'resources' bucket exists in Supabase.
-        const fileExt = fileData.name.split('.').pop();
-        const fileName = `${taskId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          // Simple bucket assumption. Make sure 'resources' bucket exists in Supabase.
+          const fileExt = fileData.name.split('.').pop();
+          const fileName = `${taskId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('resources')
-          .upload(fileName, fileData);
+          const { error: uploadError } = await supabase.storage
+            .from('resources')
+            .upload(fileName, fileData);
 
-        if (uploadError) throw uploadError;
-        storage_path = fileName;
-      } else if (type === 'url') {
-        if (!urlData) throw new Error('Please enter a URL');
-      } else if (type === 'text') {
-        if (!textData) throw new Error('Please enter text content');
+          if (uploadError) throw uploadError;
+          storage_path = fileName;
+        } else if (type === 'url') {
+          if (!urlData) throw new Error('Please enter a URL');
+        } else if (type === 'text') {
+          if (!textData) throw new Error('Please enter text content');
+        }
+
+        await createTaskResource(taskId, {
+          type,
+          url: type === 'url' ? urlData : null,
+          text_content: type === 'text' ? textData : null,
+          storage_path,
+        });
+
+        resetForm();
+        fetchResources();
+        if (onUpdate) onUpdate();
+      } catch (e) {
+        setError(e.message || 'Failed to create resource');
+      } finally {
+        setSubmitting(false);
       }
+    },
+    [type, fileData, taskId, urlData, textData, fetchResources, onUpdate]
+  );
 
-      await createTaskResource(taskId, {
-        type,
-        url: type === 'url' ? urlData : null,
-        text_content: type === 'text' ? textData : null,
-        storage_path,
-      });
+  const handleDelete = React.useCallback(
+    async (id) => {
+      if (!window.confirm('Are you sure you want to delete this resource?')) return;
+      try {
+        await deleteTaskResource(id);
+        fetchResources();
+        if (onUpdate) onUpdate();
+      } catch (e) {
+        console.error('Failed to delete resource', e);
+        setError('Failed to delete resource');
+      }
+    },
+    [fetchResources, onUpdate]
+  );
 
-      resetForm();
-      fetchResources();
-      if (onUpdate) onUpdate();
-    } catch (e) {
-      setError(e.message || 'Failed to create resource');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this resource?')) return;
-    try {
-      await deleteTaskResource(id);
-      fetchResources();
-      if (onUpdate) onUpdate();
-    } catch (e) {
-      console.error('Failed to delete resource', e);
-      setError('Failed to delete resource');
-    }
-  };
-
-  const handleSetPrimary = async (resource) => {
-    try {
-      const newPrimaryId = resource.id === primaryResourceId ? null : resource.id;
-      await setPrimaryResource(taskId, newPrimaryId);
-      if (onUpdate) onUpdate();
-    } catch (e) {
-      console.error('Failed to set primary resource', e);
-      setError('Failed to set primary resource');
-    }
-  };
+  const handleSetPrimary = React.useCallback(
+    async (resource) => {
+      try {
+        const newPrimaryId = resource.id === primaryResourceId ? null : resource.id;
+        await setPrimaryResource(taskId, newPrimaryId);
+        if (onUpdate) onUpdate();
+      } catch (e) {
+        console.error('Failed to set primary resource', e);
+        setError('Failed to set primary resource');
+      }
+    },
+    [primaryResourceId, taskId, onUpdate]
+  );
 
   return (
     <div className="detail-section">
@@ -144,15 +157,22 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
             >
               <div className="flex-1 min-w-0 pr-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase text-slate-500">
+                  {/* Resource Badge */}
+                  <span
+                    className={`
+                        text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border
+                        ${res.resource_type === 'url'
+                        ? 'bg-blue-50 text-blue-600 border-blue-200'
+                        : res.resource_type === 'pdf'
+                          ? 'bg-orange-100 text-orange-700 border-orange-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }
+                      `}
+                  >
                     {res.resource_type}
                   </span>
                   <span className="text-sm font-medium truncate text-slate-800">
-                    {res.resource_type === 'url'
-                      ? res.resource_url
-                      : res.resource_type === 'text'
-                        ? 'Text Note'
-                        : 'PDF Document'}
+                    {res.resource_type === 'url' ? 'External Link' : res.resource_type === 'pdf' ? 'Document' : 'Note'}
                   </span>
                 </div>
                 {res.resource_type === 'url' && (
@@ -265,6 +285,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
               <label className="block text-xs font-medium text-slate-700 mb-1">File</label>
               <input
                 type="file"
+                ref={fileInputRef}
                 required
                 accept="application/pdf"
                 className="text-sm"

@@ -206,7 +206,7 @@ This happened because `flex` defaults to `flex-row` if not specified, or a paren
 
 Explicitly defined flex direction in Tailwind classes.
 
-- Added `flex-col` to the text container wrapper.
+- **Added `flex-col`** to the text container wrapper.
 - Ensured specific widths (`w-full` or `flex-1`) were applied to children to force them to consume available space if needed.
 
 ### Critical Rule
@@ -274,8 +274,6 @@ Developers were ignoring warnings because "the app still runs".
 We updated `package.json` to enforce strictness in the `lint` command:
 `"lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings=0"`
 This causes any warning to fail the build/commit hook, forcing immediate resolution.
-
-### Critical Rule
 
 ---
 
@@ -395,3 +393,78 @@ We implemented a **Local State Rollback**.
 ### Critical Rule
 
 > **Snap Back, Don't Reload.** When an optimistic UI action fails, revert the local state synchronously using captured data. Do not rely on a full network refetch to fix the UI unless the state is likely corrupted.
+
+---
+
+## [UI-017] Atomic Design & Elevation System
+
+**Tags**: #ui, #css, #architecture, #atomic-design
+**Date**: 2025-12-23
+
+### Context & Problem
+
+The component hierarchy was flat and inconsistent (`components/tasks`, `components/common`), leading to circular dependency risks ("Organisms importing Molecules that import Organisms") and unclear boundaries.
+Visually, the app used an eclectic mix of hard-coded colors and inconsistent shadow depths ("Booty Coloration").
+
+### Solution & Pattern
+
+1. **Atomic Design Migration**: We strictly reorganized `src/components` into:
+   - `atoms/`: Indivisible UI bits (e.g., `RoleIndicator`, `ErrorFallback`).
+   - `molecules/`: Simple groups (e.g., `TaskItem`, `TaskResources`).
+   - `organisms/`: Complex logic zones (e.g., `TaskList`, `NewProjectForm`).
+   - `templates/`: Page layouts (e.g., `TaskDetailsView`).
+
+2. **Semantic Elevation System**:
+   - Replaced ad-hoc shadows with a global CSS variable system in `globals.css` (`--elevation-1`, `--elevation-2`).
+   - Implemented standard motion utilities (`.elevation-hover`) for consistent "lift" effects.
+
+### Critical Rule
+
+> **Define Depth Globally.** Do not hardcode box-shadows. Use the shared `--elevation-N` variables to ensure a consistent lighting model across the application.
+> **Dependency Direction**: Organisms import Molecules. Molecules import Atoms. **Never the reverse.**
+
+---
+
+## [UI-018] Brand Identity System
+
+**Tags**: #ui, #branding, #css
+**Date**: 2025-12-24
+
+### Context & Problem
+
+The application lacked a distinct brand identity, using generic "Developer Blue" colors. The goal was to align with the visual identity of `planterplan.com`.
+
+### Solution & Pattern
+
+1. **Brand Extraction**: We extracted the primary brand colors from `https://planterplan.com/`:
+    - **Primary Orange**: `#F1592A` (Used for Actions, Links, Highlights).
+    - **Accents**: Charcoal (`#222222`) for text/nav, Light Gray (`#EEEEEE`) for backgrounds.
+2. **Global Mapping**: We mapped these to global CSS variables in `globals.css` and updated utility classes (`.bg-blue-500` -> Primary Orange) to propagate the brand instantly across legacy components.
+
+### Critical Rule
+>
+> **Use the Variables.** Never hardcode hex values like `#F1592A`. Always use usage-derived variables (e.g., `var(--brand-primary)`) or Tailwind utility aliases (e.g., `bg-brand-primary`) to ensure theming consistency.
+
+---
+
+## [FE-019] Recursive Tree Expansion State
+
+**Tags**: #react, #recursion, #performance, #state-management
+**Date**: 2025-12-25
+
+### Context & Problem
+
+Passing a mutable `Set` or `ExpandedIds` array down a recursive component tree (`TaskItem` -> `TaskItem` -> ...) causes "Prop Instability".
+Every time the Set changes (reference update), **every** node in the tree re-renders, even if only one small leaf toggled. This destroys the benefits of `React.memo`.
+
+### Solution & Pattern
+
+**Data-Driven State**: Instead of passing external state props, merge the visual state into the data itself.
+
+1. **Merge**: In the parent (`MasterLibraryList`), when `expandedTaskIds` changes, map it to the `treeData` (`task.isExpanded = true`).
+2. **Memoize**: Pass the stable `task` object to `TaskItem`. `TaskItem` reads `task.isExpanded`.
+3. **Result**: Toggling expands only the specific node and its immediate parent/children, not the entire tree.
+
+### Critical Rule
+
+> **Don't drill unstable state props.** For recursive trees, merge UI state (like `isExpanded`) into the node data object itself before rendering. This preserves reference stability for `React.memo`.
