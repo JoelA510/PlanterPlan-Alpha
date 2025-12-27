@@ -19,7 +19,7 @@ I will provide:
 
 # Output Instructions
 
-Generate the response in Markdown using **specifically** the following template. Do not deviate from this structure.
+Generate the response in Markdown using **specifically** the following template. Do not deviate from this structure. Output the response to a file at `docs/git_documentation/PR_DESCRIPTION_DRAFT.md`. The file will be in the .gitignore so it will not be committed.
 
 ---
 

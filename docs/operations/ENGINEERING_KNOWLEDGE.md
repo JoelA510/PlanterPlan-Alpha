@@ -437,12 +437,12 @@ The application lacked a distinct brand identity, using generic "Developer Blue"
 ### Solution & Pattern
 
 1. **Brand Extraction**: We extracted the primary brand colors from `https://planterplan.com/`:
-    - **Primary Orange**: `#F1592A` (Used for Actions, Links, Highlights).
-    - **Accents**: Charcoal (`#222222`) for text/nav, Light Gray (`#EEEEEE`) for backgrounds.
+   - **Primary Orange**: `#F1592A` (Used for Actions, Links, Highlights).
+   - **Accents**: Charcoal (`#222222`) for text/nav, Light Gray (`#EEEEEE`) for backgrounds.
 2. **Global Mapping**: We mapped these to global CSS variables in `globals.css` and updated utility classes (`.bg-blue-500` -> Primary Orange) to propagate the brand instantly across legacy components.
 
 ### Critical Rule
->
+
 > **Use the Variables.** Never hardcode hex values like `#F1592A`. Always use usage-derived variables (e.g., `var(--brand-primary)`) or Tailwind utility aliases (e.g., `bg-brand-primary`) to ensure theming consistency.
 
 ---

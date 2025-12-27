@@ -161,18 +161,23 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
                   <span
                     className={`
                         text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border
-                        ${res.resource_type === 'url'
-                        ? 'bg-blue-50 text-blue-600 border-blue-200'
-                        : res.resource_type === 'pdf'
-                          ? 'bg-orange-100 text-orange-700 border-orange-200'
-                          : 'bg-slate-100 text-slate-600 border-slate-200'
-                      }
+                        ${
+                          res.resource_type === 'url'
+                            ? 'bg-blue-50 text-blue-600 border-blue-200'
+                            : res.resource_type === 'pdf'
+                              ? 'bg-orange-100 text-orange-700 border-orange-200'
+                              : 'bg-slate-100 text-slate-600 border-slate-200'
+                        }
                       `}
                   >
                     {res.resource_type}
                   </span>
                   <span className="text-sm font-medium truncate text-slate-800">
-                    {res.resource_type === 'url' ? 'External Link' : res.resource_type === 'pdf' ? 'Document' : 'Note'}
+                    {res.resource_type === 'url'
+                      ? 'External Link'
+                      : res.resource_type === 'pdf'
+                        ? 'Document'
+                        : 'Note'}
                   </span>
                 </div>
                 {res.resource_type === 'url' && (
