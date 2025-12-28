@@ -7,6 +7,11 @@ const createMockClient = (response) => {
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     range: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    range: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    is: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
     abortSignal: jest.fn().mockReturnThis(),
     then(resolve, reject) {
       return Promise.resolve(response).then(resolve, reject);
@@ -36,7 +41,7 @@ describe('searchMasterLibraryTasks', () => {
 
     const results = await searchMasterLibraryTasks({ query: 'soil' }, client);
 
-    expect(client.from).toHaveBeenCalledWith('view_master_library');
+    expect(client.from).toHaveBeenCalledWith('tasks_with_primary_resource');
     expect(builder.select).toHaveBeenCalledWith('*');
     expect(builder.or).toHaveBeenCalledWith(expect.stringContaining('title.ilike'));
     expect(builder.or).toHaveBeenCalledWith(expect.stringContaining('description.ilike'));
@@ -77,7 +82,7 @@ describe('fetchMasterLibraryTasks', () => {
 
     const results = await fetchMasterLibraryTasks({ from: 10, limit: 5 }, client);
 
-    expect(client.from).toHaveBeenCalledWith('view_master_library');
+    expect(client.from).toHaveBeenCalledWith('tasks_with_primary_resource');
     expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false });
     expect(builder.range).toHaveBeenCalledWith(10, 14);
     expect(results).toEqual(sampleTasks);
@@ -137,7 +142,11 @@ describe('deepCloneTask', () => {
 
     // We need to refine the mock for fetchTaskChildren because it chains .select().eq().single() and .select().eq()
     client.from = jest.fn((table) => {
-      if (table === 'tasks') {
+      if (
+        table === 'tasks' ||
+        table === 'tasks_with_primary_resource' ||
+        table === 'task_resources'
+      ) {
         return {
           select: jest.fn((cols) => {
             if (cols === 'origin') {
@@ -162,9 +171,14 @@ describe('deepCloneTask', () => {
                 data: allTasks,
                 error: null,
               })),
+              in: jest.fn(() => ({
+                data: [], // mock task resources
+                error: null,
+              })),
             };
           }),
           insert: mockInsert,
+          upsert: jest.fn().mockResolvedValue({ error: null }), // Also needed for update tasks with primary resource
         };
       }
     });

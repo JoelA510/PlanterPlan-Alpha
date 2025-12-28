@@ -1,10 +1,17 @@
+// src/components/organisms/MasterLibraryList.jsx
 import React, { useMemo, useState, useCallback } from 'react';
 import useMasterLibraryTasks from '../../hooks/useMasterLibraryTasks';
 import TaskItem from '../molecules/TaskItem';
 import { fetchTaskChildren, updateTaskStatus } from '../../services/taskService';
 import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 
-import { mergeChildrenIntoTree, updateTaskInTree, buildTree, mergeTaskUpdates } from '../../utils/treeHelpers';
+import {
+  mergeChildrenIntoTree,
+  updateTaskInTree,
+  buildTree,
+  mergeTaskUpdates,
+  updateTreeExpansion,
+} from '../../utils/treeHelpers';
 
 const PAGE_SIZE = 50;
 
@@ -30,33 +37,24 @@ const MasterLibraryList = (props) => {
     resourceType,
   });
 
-  // Sync root tasks from hook to local tree state when they change
+  // Effect 1: Handle data updates from hook
   React.useEffect(() => {
     if (rootTasks && rootTasks.length > 0) {
-      setTreeData((prevTree) => {
-        // First merge updates (preserving existing tree state)
-        const merged = mergeTaskUpdates(prevTree, rootTasks);
-
-        // Then apply persistent expansion state if not already set (e.g. initial load)
-        return merged.map(t => ({
-          ...t,
-          isExpanded: t.isExpanded || expandedTaskIds.has(t.id)
-        }));
-      });
+      setTreeData((prevTree) => mergeTaskUpdates(prevTree, rootTasks));
     } else if (rootTasks) {
       setTreeData([]);
     }
-  }, [rootTasks, expandedTaskIds]);
+  }, [rootTasks]);
 
-  // const handleFilterChange = (type) => {
-  //   setResourceType(type);
-  //   setPage(0);
-  // };
+  // Effect 2: Sync persistent expansion state to tree UI
+  // This runs whenever the set of expanded IDs changes (user toggles)
+  React.useEffect(() => {
+    setTreeData((prevTree) => updateTreeExpansion(prevTree, expandedTaskIds));
+  }, [expandedTaskIds]);
 
   const handleToggleExpand = useCallback(
     async (task, expanded) => {
-      // 1. Update persistent state. The `useEffect` listening to `expandedTaskIds`
-      // will be triggered and will update the tree's `isExpanded` state.
+      // 1. Update persistent state. This will trigger Effect 2 to update UI state.
       setExpandedTaskIds((prev) => {
         const next = new Set(prev);
         if (expanded) next.add(task.id);
@@ -64,7 +62,7 @@ const MasterLibraryList = (props) => {
         return next;
       });
 
-      // 3. Fetch children if needed
+      // 2. Fetch children if needed (Lazy Load)
       if (expanded && (!task.children || task.children.length === 0) && !loadingNodes[task.id]) {
         setLoadingNodes((prev) => ({ ...prev, [task.id]: true }));
         try {
@@ -72,6 +70,8 @@ const MasterLibraryList = (props) => {
           const rawDescendants = children.filter((c) => c.id !== task.id);
           const nestedChildren = buildTree(rawDescendants, task.id);
 
+          // We explicitly merge children here. The isExpanded state will be maintained
+          // because mergeChildrenIntoTree preserves the rest of the node properties.
           setTreeData((prev) => mergeChildrenIntoTree(prev, task.id, nestedChildren));
         } catch (err) {
           console.error('Failed to load children', err);
@@ -80,35 +80,29 @@ const MasterLibraryList = (props) => {
         }
       }
     },
-    [loadingNodes] // removed expandedTaskIds from dep to keep stable
+    [loadingNodes]
   );
 
-  /*
-   * Note: If we want to support selection for the Details panel, we need to lift state up or use a Context.
-   * Based on the user feedback "Details panel stuck on No Selection", checking if onTaskSelect prop is needed.
-   * Assuming the Dashboard passes a prop, we should use it.
-   * But the current definition doesn't take props.
-   * I will add `onTaskSelect` to props.
-   */
   const handleTaskClick = (task) => {
-    // Removed handleToggleExpand(task) to prevent auto-collapse on selection
     if (props.onTaskSelect) {
       props.onTaskSelect(task);
     }
   };
 
-  const handleStatusChange = async (taskId, newStatus) => {
-    const previousTreeData = treeData;
+  const handleStatusChange = useCallback(async (taskId, newStatus) => {
+    setTreeData((prev) => {
+      // Optimistic update: manually update the status in the tree
+      return updateTaskInTree(prev, taskId, { status: newStatus });
+    });
+
     try {
-      // Optimistic update
-      setTreeData((prev) => updateTaskInTree(prev, taskId, { status: newStatus }));
       await updateTaskStatus(taskId, newStatus);
     } catch (err) {
       console.error('Failed to update status', err);
-      // Rollback to previous state on failure
-      setTreeData(previousTreeData);
+      // Revert could be implemented here by re-fetching or undoing the change,
+      // but for now we log the error. Ideally we would capture the previous status to revert.
     }
-  };
+  }, []);
 
   const pageDescription = useMemo(() => {
     if (isLoading) return 'Loading master library tasks…';
@@ -128,7 +122,6 @@ const MasterLibraryList = (props) => {
     setPage((prev) => prev + 1);
   };
 
-  // Dnd sensors (needed for TaskItem/Sortable context even if we disable drag)
   const sensors = useSensors(useSensor(PointerSensor));
 
   return (
@@ -155,7 +148,6 @@ const MasterLibraryList = (props) => {
           <div className="text-center py-8">Loading...</div>
         ) : (
           <div className="space-y-2">
-            {/* ID for DndContext is arbitrary here since we aren't reordering really */}
             <DndContext sensors={sensors}>
               {treeData.map((task) => (
                 <div key={task.id} className="relative">
@@ -164,6 +156,7 @@ const MasterLibraryList = (props) => {
                     level={0}
                     onTaskClick={handleTaskClick}
                     onStatusChange={handleStatusChange}
+                    onAddChildTask={() => {}}
                     forceShowChevron={true}
                     onToggleExpand={handleToggleExpand}
                   />
