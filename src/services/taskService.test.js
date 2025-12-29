@@ -7,12 +7,11 @@ const createMockClient = (response) => {
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     range: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    range: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
     is: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
     abortSignal: jest.fn().mockReturnThis(),
+
     then(resolve, reject) {
       return Promise.resolve(response).then(resolve, reject);
     },
@@ -89,7 +88,7 @@ describe('fetchMasterLibraryTasks', () => {
   });
 
   it('returns empty array when payload shape invalid', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const { client } = createMockClient({ data: [{ bad: 'record' }], error: null });
 
     const results = await fetchMasterLibraryTasks({}, client);
@@ -121,7 +120,7 @@ describe('deepCloneTask', () => {
       title: 'New Title',
       description: 'New Desc',
       start_date: '2025-01-01',
-      due_date: '2025-01-31'
+      due_date: '2025-01-31',
     };
 
     const result = await deepCloneTask('t1', 'p1', 'instance', 'user1', overrides, client);
@@ -134,7 +133,7 @@ describe('deepCloneTask', () => {
       p_title: 'New Title',
       p_description: 'New Desc',
       p_start_date: '2025-01-01',
-      p_due_date: '2025-01-31'
+      p_due_date: '2025-01-31',
     });
 
     expect(result).toEqual({
@@ -151,12 +150,15 @@ describe('deepCloneTask', () => {
     // Pass empty overrides or undefined
     await deepCloneTask('t1', null, 'instance', 'u1', {}, client);
 
-    expect(mockRpc).toHaveBeenCalledWith('clone_project_template', expect.objectContaining({
-      p_template_id: 't1',
-      p_user_id: 'u1',
-      p_title: null,
-      p_description: null
-    }));
+    expect(mockRpc).toHaveBeenCalledWith(
+      'clone_project_template',
+      expect.objectContaining({
+        p_template_id: 't1',
+        p_user_id: 'u1',
+        p_title: null,
+        p_description: null,
+      })
+    );
   });
 
   it('throws error if RPC fails', async () => {

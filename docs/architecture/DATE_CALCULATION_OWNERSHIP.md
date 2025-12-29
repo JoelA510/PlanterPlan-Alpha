@@ -4,11 +4,11 @@ This document clarifies responsibility for date-related calculations in the appl
 
 ## Summary
 
-| Field | Calculated By | Location |
-|-------|---------------|----------|
-| `days_from_start` | Client (UI) | `useTaskOperations.js` |
-| `start_date` / `due_date` (parent rollup) | Database Trigger | `calc_task_date_rollup` |
-| `start_date` / `due_date` (on clone) | Database RPC | `clone_project_template` |
+| Field                                     | Calculated By    | Location                 |
+| ----------------------------------------- | ---------------- | ------------------------ |
+| `days_from_start`                         | Client (UI)      | `useTaskOperations.js`   |
+| `start_date` / `due_date` (parent rollup) | Database Trigger | `calc_task_date_rollup`  |
+| `start_date` / `due_date` (on clone)      | Database RPC     | `clone_project_template` |
 
 ## Details
 

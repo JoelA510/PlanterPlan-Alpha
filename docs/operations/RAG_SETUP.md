@@ -12,25 +12,25 @@ Running the RAG backend (Edge Functions) locally requires **Docker**.
 ## How to Enable
 
 1. **Environment Variable**:
-    Add the following to your `.env` file (do not commit to git):
+   Add the following to your `.env` file (do not commit to git):
 
-    ```bash
-    REACT_APP_ENABLE_RAG=true
-    ```
+   ```bash
+   REACT_APP_ENABLE_RAG=true
+   ```
 
 2. **Run the Backend (Requires Docker)**:
 
-    ```bash
-    # Start the local Edge Function
-    supabase functions serve rag-answer --no-verify-jwt
-    ```
+   ```bash
+   # Start the local Edge Function
+   supabase functions serve rag-answer --no-verify-jwt
+   ```
 
 3. **API Keys**:
-    Ensure you have set the `GEMINI_API_KEY` secret locally:
+   Ensure you have set the `GEMINI_API_KEY` secret locally:
 
-    ```bash
-    supabase secrets set GEMINI_API_KEY=your_key_here
-    ```
+   ```bash
+   supabase secrets set GEMINI_API_KEY=your_key_here
+   ```
 
 ## Database Migrations
 

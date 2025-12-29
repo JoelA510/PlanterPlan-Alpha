@@ -17,7 +17,7 @@ const PAGE_SIZE = 50;
 
 const MasterLibraryList = (props) => {
   const [page, setPage] = useState(0);
-  const [resourceType, setResourceType] = useState('all');
+  const [resourceType, _setResourceType] = useState('all');
 
   // Local state to store the tree with fetched children
   const [treeData, setTreeData] = useState([]);

@@ -9,10 +9,6 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
 
   const [success, setSuccess] = useState(false);
 
-  // Fix UX-01: Client-side UUID Regex
-  const UUID_REGEX =
-    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!userId.trim()) return;
@@ -38,7 +34,6 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
     }
 
     const { error: inviteError } = result;
-
 
     if (inviteError) {
       setError(inviteError.message || 'Failed to invite member');
@@ -84,9 +79,7 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
               placeholder="user@example.com or UUID"
               required
             />
-            <p className="mt-1 text-xs text-slate-400">
-              Enter the email of an existing user.
-            </p>
+            <p className="mt-1 text-xs text-slate-400">Enter the email of an existing user.</p>
           </div>
 
           <div>

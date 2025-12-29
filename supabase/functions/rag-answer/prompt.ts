@@ -1,8 +1,4 @@
-export const generateSystemPrompt = (
-    tasks: any[],
-    resources: any[],
-    chunks: string[]
-) => `
+export const generateSystemPrompt = (tasks: any[], resources: any[], chunks: string[]) => `
 You are an AI assistant for the PlanterPlan project management app.
 Your goal is to answer questions based ONLY on the provided context.
 

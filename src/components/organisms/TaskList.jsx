@@ -1,13 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  DndContext,
-  closestCorners,
-  useDroppable,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { DndContext, closestCorners, useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
@@ -34,14 +27,14 @@ const TaskList = () => {
     fetchTasks,
     createProject,
     createTaskOrUpdate,
-    deleteTask
+    deleteTask,
   } = useTaskOperations();
 
   const { sensors, handleDragEnd, moveError, setMoveError } = useTaskDrag({
     tasks,
     setTasks,
     fetchTasks,
-    currentUserId
+    currentUserId,
   });
 
   // UI State
@@ -53,7 +46,6 @@ const TaskList = () => {
   // --- Derived State via Helper ---
   const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
-
   // --- DND Droppables ---
   const { setNodeRef: setInstanceRootRef } = useDroppable({
     id: 'drop-root-instance',
@@ -64,7 +56,6 @@ const TaskList = () => {
     id: 'drop-root-template',
     data: { type: 'container', parentId: null, origin: 'template' },
   });
-
 
   // --- Handlers ---
 
@@ -113,16 +104,19 @@ const TaskList = () => {
     setSelectedTask(task);
   };
 
-  const onDeleteTaskWrapper = useCallback(async (task) => {
-    const confirmed = window.confirm(
-      `Delete "${task.title}" and its subtasks? This action cannot be undone.`
-    );
-    if (!confirmed) return;
-    await deleteTask(task);
+  const onDeleteTaskWrapper = useCallback(
+    async (task) => {
+      const confirmed = window.confirm(
+        `Delete "${task.title}" and its subtasks? This action cannot be undone.`
+      );
+      if (!confirmed) return;
+      await deleteTask(task);
 
-    if (selectedTask?.id === task.id) setSelectedTask(null);
-    if (taskFormState?.taskId === task.id) setTaskFormState(null);
-  }, [deleteTask, selectedTask, taskFormState]);
+      if (selectedTask?.id === task.id) setSelectedTask(null);
+      if (taskFormState?.taskId === task.id) setTaskFormState(null);
+    },
+    [deleteTask, selectedTask, taskFormState]
+  );
 
   const handleDeleteById = useCallback(
     (taskId) => {
@@ -134,7 +128,6 @@ const TaskList = () => {
     },
     [tasks, joinedProjects, onDeleteTaskWrapper]
   );
-
 
   const handleOpenInvite = (project) => {
     setInviteModalProject(project);
@@ -149,7 +142,6 @@ const TaskList = () => {
     await createTaskOrUpdate(formData, taskFormState);
     setTaskFormState(null);
   };
-
 
   // --- Render Helpers ---
 
@@ -176,7 +168,6 @@ const TaskList = () => {
     if (selectedTask) return selectedTask.title;
     return 'Details';
   }, [showForm, taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
-
 
   if (loading) {
     return (

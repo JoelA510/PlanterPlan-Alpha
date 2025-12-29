@@ -8,24 +8,24 @@ const DEFAULT_SEARCH_LIMIT = 20;
 const REQUIRED_FIELDS = ['id', 'title', 'origin'];
 
 const coercePositiveInt = (value, fallback) => {
-    if (!Number.isFinite(value)) {
-        return fallback;
-    }
-    const coerced = Math.max(0, Math.floor(value));
-    return coerced;
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+  const coerced = Math.max(0, Math.floor(value));
+  return coerced;
 };
 
 const validateTaskShape = (task) => {
-    if (typeof task !== 'object' || task === null) {
-        return false;
-    }
+  if (typeof task !== 'object' || task === null) {
+    return false;
+  }
 
-    return REQUIRED_FIELDS.every((field) => {
-        if (field === 'id') {
-            return typeof task[field] === 'string' || typeof task[field] === 'number';
-        }
-        return typeof task[field] === 'string' && task[field].trim().length > 0;
-    });
+  return REQUIRED_FIELDS.every((field) => {
+    if (field === 'id') {
+      return typeof task[field] === 'string' || typeof task[field] === 'number';
+    }
+    return typeof task[field] === 'string' && task[field].trim().length > 0;
+  });
 };
 
 const escapeIlike = (value) => value.replace(/[\\%_]/g, (char) => `\\${char}`);
@@ -34,132 +34,141 @@ const escapeIlike = (value) => value.replace(/[\\%_]/g, (char) => `\\${char}`);
  * Fetch paginated root-level template tasks from the Master Library.
  */
 export const fetchMasterLibraryTasks = async (
-    { from = 0, limit = DEFAULT_PAGE_SIZE, resourceType = null, signal } = {},
-    client = supabase
+  { from = 0, limit = DEFAULT_PAGE_SIZE, resourceType = null, signal } = {},
+  client = supabase
 ) => {
-    const start = coercePositiveInt(from, 0);
-    const size = Math.max(1, coercePositiveInt(limit, DEFAULT_PAGE_SIZE));
-    const end = Math.max(start, start + size - 1);
+  const start = coercePositiveInt(from, 0);
+  const size = Math.max(1, coercePositiveInt(limit, DEFAULT_PAGE_SIZE));
+  const end = Math.max(start, start + size - 1);
 
-    let query = client
-        .from(MASTER_LIBRARY_VIEW)
-        .select('*')
-        .eq('origin', 'template')
-        .is('parent_task_id', null)
-        .order('created_at', { ascending: false })
-        .range(start, end);
+  let query = client
+    .from(MASTER_LIBRARY_VIEW)
+    .select('*')
+    .eq('origin', 'template')
+    .is('parent_task_id', null)
+    .order('created_at', { ascending: false })
+    .range(start, end);
 
-    if (resourceType && resourceType !== 'all') {
-        query = query.eq('resource_type', resourceType);
+  if (resourceType && resourceType !== 'all') {
+    query = query.eq('resource_type', resourceType);
+  }
+
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
+
+  try {
+    const { data, error } = await query;
+
+    if (signal?.aborted) {
+      throw new DOMException('Request aborted', 'AbortError');
     }
 
-    if (signal) {
-        query = query.abortSignal(signal);
+    if (error) {
+      throw error;
     }
 
-    try {
-        const { data, error } = await query;
+    if (!Array.isArray(data)) {
+      console.warn(
+        '[taskMasterLibraryService.fetchMasterLibraryTasks] Unexpected payload shape:',
+        data
+      );
+      return [];
+    }
 
-        if (signal?.aborted) {
-            throw new DOMException('Request aborted', 'AbortError');
-        }
-
-        if (error) {
-            throw error;
-        }
-
-        if (!Array.isArray(data)) {
-            console.warn('[taskMasterLibraryService.fetchMasterLibraryTasks] Unexpected payload shape:', data);
-            return [];
-        }
-
-        const validTasks = data.filter((task) => {
-            const isValid = validateTaskShape(task);
-            if (!isValid) {
-                console.warn('[taskMasterLibraryService.fetchMasterLibraryTasks] Dropping malformed task record:', task);
-            }
-            return isValid;
-        });
-
-        return validTasks;
-    } catch (error) {
-        if (error?.name === 'AbortError') {
-            throw error;
-        }
-
-        console.error(
-            '[taskMasterLibraryService.fetchMasterLibraryTasks] Fatal error fetching master library tasks:',
-            error
+    const validTasks = data.filter((task) => {
+      const isValid = validateTaskShape(task);
+      if (!isValid) {
+        console.warn(
+          '[taskMasterLibraryService.fetchMasterLibraryTasks] Dropping malformed task record:',
+          task
         );
-        throw error;
+      }
+      return isValid;
+    });
+
+    return validTasks;
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw error;
     }
+
+    console.error(
+      '[taskMasterLibraryService.fetchMasterLibraryTasks] Fatal error fetching master library tasks:',
+      error
+    );
+    throw error;
+  }
 };
 
 /**
  * Search template tasks by title/description with optional resource type filter.
  */
 export const searchMasterLibraryTasks = async (
-    { query, limit = DEFAULT_SEARCH_LIMIT, resourceType = null, signal } = {},
-    client = supabase
+  { query, limit = DEFAULT_SEARCH_LIMIT, resourceType = null, signal } = {},
+  client = supabase
 ) => {
-    const normalizedQuery = typeof query === 'string' ? query.trim().slice(0, 100) : '';
+  const normalizedQuery = typeof query === 'string' ? query.trim().slice(0, 100) : '';
 
-    if (!normalizedQuery) {
-        return [];
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const size = Math.max(1, coercePositiveInt(limit, DEFAULT_SEARCH_LIMIT));
+  const pattern = `"%${escapeIlike(normalizedQuery)}%"`;
+
+  let queryBuilder = client
+    .from(MASTER_LIBRARY_VIEW)
+    .select('*')
+    .eq('origin', 'template')
+    .or(`title.ilike.${pattern},description.ilike.${pattern}`)
+
+    .order('title', { ascending: true })
+    .limit(size);
+
+  if (resourceType && resourceType !== 'all') {
+    queryBuilder = queryBuilder.eq('resource_type', resourceType);
+  }
+
+  if (signal) {
+    queryBuilder = queryBuilder.abortSignal(signal);
+  }
+
+  try {
+    const { data, error } = await queryBuilder;
+
+    if (signal?.aborted) {
+      throw new DOMException('Request aborted', 'AbortError');
     }
 
-    const size = Math.max(1, coercePositiveInt(limit, DEFAULT_SEARCH_LIMIT));
-    const pattern = `"%${escapeIlike(normalizedQuery)}%"`;
-
-    let queryBuilder = client
-        .from(MASTER_LIBRARY_VIEW)
-        .select('*')
-        .eq('origin', 'template')
-        .or(`title.ilike.${pattern},description.ilike.${pattern}`)
-
-        .order('title', { ascending: true })
-        .limit(size);
-
-    if (resourceType && resourceType !== 'all') {
-        queryBuilder = queryBuilder.eq('resource_type', resourceType);
+    if (error) {
+      throw error;
     }
 
-    if (signal) {
-        queryBuilder = queryBuilder.abortSignal(signal);
+    if (!Array.isArray(data)) {
+      console.warn(
+        '[taskMasterLibraryService.searchMasterLibraryTasks] Unexpected payload shape:',
+        data
+      );
+      return [];
     }
 
-    try {
-        const { data, error } = await queryBuilder;
-
-        if (signal?.aborted) {
-            throw new DOMException('Request aborted', 'AbortError');
-        }
-
-        if (error) {
-            throw error;
-        }
-
-        if (!Array.isArray(data)) {
-            console.warn('[taskMasterLibraryService.searchMasterLibraryTasks] Unexpected payload shape:', data);
-            return [];
-        }
-
-        return data.filter((task) => {
-            const isValid = validateTaskShape(task);
-            if (!isValid) {
-                console.warn('[taskMasterLibraryService.searchMasterLibraryTasks] Dropping malformed task record:', task);
-            }
-            return isValid;
-        });
-    } catch (error) {
-        if (error?.name === 'AbortError') {
-            throw error;
-        }
-
-        console.error(
-            '[taskMasterLibraryService.searchMasterLibraryTasks] Fatal error:',
-            error
+    return data.filter((task) => {
+      const isValid = validateTaskShape(task);
+      if (!isValid) {
+        console.warn(
+          '[taskMasterLibraryService.searchMasterLibraryTasks] Dropping malformed task record:',
+          task
         );
-        throw error;
+      }
+      return isValid;
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw error;
     }
+
+    console.error('[taskMasterLibraryService.searchMasterLibraryTasks] Fatal error:', error);
+    throw error;
+  }
 };
