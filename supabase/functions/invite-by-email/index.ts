@@ -84,46 +84,8 @@ serve(async (req) => {
             });
         }
 
-        // 5. Lookup User by Email (Admin Only)
-        // Note: listUsers is generally strictly rate limited or paginated. 
-        // A better approach for specific email lookup might be to assume strict match.
-        // However, Supabase Admin API doesn't have a simple "getByEmail" without listing.
-        // actually, admin.listUsers() supports filters? No, mostly pagination.
-        // Wait, createClient... admin.auth.admin.listUsers()
-
-        // Attempt to lookup
-        // If we can't search by email efficiently, we might have to rely on the fact that we can't 
-        // simply "get" a user ID from email easily without leaking info if we aren't careful.
-        // BUT, we are the admin here.
-
-        // Currently, listUsers doesn't support filtering by email in v2 API effectively without fetching.
-        // Actually, there is `getUserById` but not `getUserByEmail` exposed cleanly in some versions.
-        // Let's try `admin.listUsers` and scan? No, that's bad for scale.
-        // 
-        // Correction: supabase-js v2 admin.listUsers() does NOT explicitly filter by email in the JS client params usually.
-        // BUT! `generateLink` or `inviteUserByEmail` works.
-        //
-        // WAIT! If the user exists, we just want their ID.
-        // We can try `supabaseAdmin.rpc('get_user_id_by_email', { email })` if we wrote an RPC?
-        // No, we want to avoid extra migrations if possible.
-
-        // Let's check if the standard Admin API allows specific user retrieval.
-        // `supabaseAdmin.auth.admin.listUsers()` is the standard.
-        // If the project is small, it's fine. If large, bad.
-
-        // Alternative: We try to INVITE them.
-        // `supabaseAdmin.auth.admin.inviteUserByEmail(email)`
-        // If they exist, it *might*) return their user object?
-        // Or `createUser` with email?
-
-        // Let's stick to the simplest correct path for now.
-        // We will use a PostgreSQL query on `auth.users` via the service role client? 
-        // No, standard client can't query `auth` schema directly usually.
-        // UNLESS we use the service role key which bypasses RLS? 
-        // The service role CAN query `auth.users` if we mapped it, but `auth` schema is usually protected.
-        // Usually `auth` schema is NOT exposed to Postgrest.
-
-        // Best Approach:
+        // 5. Lookup User by Email and Insert (Admin Only)
+        // We use inviteUserByEmail to resolve the user ID safely or send a fresh invite if they don't exist.
         const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
 
         if (inviteError) {

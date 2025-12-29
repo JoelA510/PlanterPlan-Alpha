@@ -102,7 +102,7 @@ describe('fetchMasterLibraryTasks', () => {
 describe('deepCloneTask', () => {
   const { deepCloneTask } = require('./taskService');
 
-  it('calls the RPC successfully', async () => {
+  it('calls the RPC successfully with overrides', async () => {
     // Mock client.rpc
     const mockRpc = jest.fn().mockResolvedValue({
       data: {
@@ -117,13 +117,24 @@ describe('deepCloneTask', () => {
       rpc: mockRpc,
     };
 
-    const result = await deepCloneTask('t1', 'p1', 'instance', 'user1', client);
+    const overrides = {
+      title: 'New Title',
+      description: 'New Desc',
+      start_date: '2025-01-01',
+      due_date: '2025-01-31'
+    };
+
+    const result = await deepCloneTask('t1', 'p1', 'instance', 'user1', overrides, client);
 
     expect(mockRpc).toHaveBeenCalledWith('clone_project_template', {
       p_template_id: 't1',
       p_new_parent_id: 'p1',
       p_new_origin: 'instance',
       p_user_id: 'user1',
+      p_title: 'New Title',
+      p_description: 'New Desc',
+      p_start_date: '2025-01-01',
+      p_due_date: '2025-01-31'
     });
 
     expect(result).toEqual({
@@ -131,6 +142,21 @@ describe('deepCloneTask', () => {
       root_project_id: 'new-root-uuid',
       tasks_cloned: 5,
     });
+  });
+
+  it('calls the RPC successfully without overrides', async () => {
+    const mockRpc = jest.fn().mockResolvedValue({ data: {}, error: null });
+    const client = { rpc: mockRpc };
+
+    // Pass empty overrides or undefined
+    await deepCloneTask('t1', null, 'instance', 'u1', {}, client);
+
+    expect(mockRpc).toHaveBeenCalledWith('clone_project_template', expect.objectContaining({
+      p_template_id: 't1',
+      p_user_id: 'u1',
+      p_title: null,
+      p_description: null
+    }));
   });
 
   it('throws error if RPC fails', async () => {
@@ -141,7 +167,7 @@ describe('deepCloneTask', () => {
 
     const client = { rpc: mockRpc };
 
-    await expect(deepCloneTask('t1', null, 'instance', 'u1', client)).rejects.toEqual({
+    await expect(deepCloneTask('t1', null, 'instance', 'u1', {}, client)).rejects.toEqual({
       message: 'RPC Failed',
     });
   });

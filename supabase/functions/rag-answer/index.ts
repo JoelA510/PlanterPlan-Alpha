@@ -1,6 +1,7 @@
 // supabase/functions/rag-answer/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -13,10 +14,21 @@ serve(async (req) => {
     }
 
     try {
-        const { projectId, query } = await req.json();
-        if (!projectId || !query) {
-            throw new Error("Missing projectId or query");
+        const body = await req.json();
+        const RequestSchema = z.object({
+            projectId: z.string().uuid(),
+            query: z.string().min(1).max(1000)
+        });
+
+        const parseResult = RequestSchema.safeParse(body);
+        if (!parseResult.success) {
+            return new Response(JSON.stringify({ error: "Invalid input", details: parseResult.error.format() }), {
+                status: 400,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
         }
+
+        const { projectId, query } = parseResult.data;
 
         // 1. Setup Supabase Client (Service Role not needed if we want to respect user RLS, 
         //    but usually Edge Functions use Service Role for specific overrides. 
@@ -73,23 +85,10 @@ serve(async (req) => {
         // 4. Construct Prompt
         const tasks = contextData?.tasks || [];
         const resources = contextData?.resources || [];
-        const chunks = chunkData || [];
+        const chunks = chunkData ? chunkData.map((c: any) => c.content) : [];
 
-        const systemPrompt = `
-You are an AI assistant for the PlanterPlan project management app.
-Your goal is to answer questions based ONLY on the provided context.
-
-Rules:
-1. Retrieval is pre-filtered by project_id. Do not hallucinate data outside this context.
-2. If the answer is not in the context, say "Insufficient evidence" and list what is missing.
-3. Cite your sources. When using a fact from a task, append [task:ID]. For resources, [resource:ID].
-4. Be concise.
-
-Context:
-Tasks: ${JSON.stringify(tasks.map((t: any) => ({ id: t.id, title: t.title, status: t.status, notes: t.notes })))}
-Resources: ${JSON.stringify(resources.map((r: any) => ({ id: r.id, title: r.title, type: r.type })))}
-Relevant text chunks: ${JSON.stringify(chunks.map((c: any) => c.content))}
-    `;
+        const { generateSystemPrompt } = await import("./prompt.ts");
+        const systemPrompt = generateSystemPrompt(tasks, resources, chunks);
 
         // 5. Call LLM (Google Gemini)
         const geminiKey = Deno.env.get("GEMINI_API_KEY");

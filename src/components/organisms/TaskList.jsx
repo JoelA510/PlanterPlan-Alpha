@@ -113,7 +113,7 @@ const TaskList = () => {
     setSelectedTask(task);
   };
 
-  const onDeleteTaskWrapper = async (task) => {
+  const onDeleteTaskWrapper = useCallback(async (task) => {
     const confirmed = window.confirm(
       `Delete "${task.title}" and its subtasks? This action cannot be undone.`
     );
@@ -122,7 +122,7 @@ const TaskList = () => {
 
     if (selectedTask?.id === task.id) setSelectedTask(null);
     if (taskFormState?.taskId === task.id) setTaskFormState(null);
-  };
+  }, [deleteTask, selectedTask, taskFormState]);
 
   const handleDeleteById = useCallback(
     (taskId) => {

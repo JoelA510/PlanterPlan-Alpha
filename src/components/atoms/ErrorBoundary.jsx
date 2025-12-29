@@ -22,24 +22,21 @@ class ErrorBoundary extends React.Component {
 
     render() {
         if (this.state.hasError) {
-            // Allow custom fallback, or default to standard ErrorFallback
-            const FallbackComponent = this.props.fallback || ErrorFallback;
+            const { fallback: Fallback } = this.props;
+            const props = {
+                error: this.state.error,
+                resetErrorBoundary: this.resetErrorBoundary,
+            };
 
-            // If passing a component class/function
-            if (typeof this.props.fallback === 'function' || typeof this.props.fallback === 'object') {
-                // If it's a valid React element (already instantiated), clone it
-                if (React.isValidElement(this.props.fallback)) {
-                    return React.cloneElement(this.props.fallback, {
-                        error: this.state.error,
-                        resetErrorBoundary: this.resetErrorBoundary
-                    });
-                }
-                // Otherwise assume it's a component reference
-                return <FallbackComponent error={this.state.error} resetErrorBoundary={this.resetErrorBoundary} />;
+            if (React.isValidElement(Fallback)) {
+                return React.cloneElement(Fallback, props);
             }
 
-            // Default case
-            return <ErrorFallback error={this.state.error} resetErrorBoundary={this.resetErrorBoundary} />;
+            if (typeof Fallback === 'function') {
+                return <Fallback {...props} />;
+            }
+
+            return <ErrorFallback {...props} />;
         }
 
         return this.props.children;

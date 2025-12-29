@@ -12,7 +12,11 @@ CREATE OR REPLACE FUNCTION public.clone_project_template(
     p_template_id uuid,
     p_new_parent_id uuid,
     p_new_origin text,
-    p_user_id uuid
+    p_user_id uuid,
+    p_title text DEFAULT NULL,
+    p_description text DEFAULT NULL,
+    p_start_date date DEFAULT NULL,
+    p_due_date date DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -74,8 +78,14 @@ BEGIN
         v_new_root_id,
         p_user_id,
         p_new_origin,
-        t.title, t.description, t.status, t.position,
-        t.notes, t.purpose, t.actions, false, t.days_from_start, null, null -- Reset dates/completion? Or copy? Keeping implementation logic: Usually reset for templates.
+        -- Override Title/Desc for Root if provided
+        CASE WHEN t.id = p_template_id AND p_title IS NOT NULL THEN p_title ELSE t.title END,
+        CASE WHEN t.id = p_template_id AND p_description IS NOT NULL THEN p_description ELSE t.description END,
+        t.status, t.position,
+        t.notes, t.purpose, t.actions, false, t.days_from_start, 
+        -- Set Dates for Root if provided
+        CASE WHEN t.id = p_template_id THEN p_start_date ELSE null END,
+        CASE WHEN t.id = p_template_id THEN p_due_date ELSE null END
     FROM public.tasks t
     JOIN temp_task_map m ON t.id = m.old_id
     LEFT JOIN temp_task_map mp ON t.parent_task_id = mp.old_id;

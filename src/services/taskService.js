@@ -220,6 +220,7 @@ export const deepCloneTask = async (
   newParentId,
   newOrigin,
   userId,
+  overrides = {},
   client = supabase
 ) => {
   try {
@@ -228,6 +229,10 @@ export const deepCloneTask = async (
       p_new_parent_id: newParentId,
       p_new_origin: newOrigin,
       p_user_id: userId,
+      p_title: overrides.title ?? null,
+      p_description: overrides.description ?? null,
+      p_start_date: overrides.start_date ?? null,
+      p_due_date: overrides.due_date ?? null,
     });
 
     if (error) throw error;
