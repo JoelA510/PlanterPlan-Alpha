@@ -28,7 +28,7 @@ function assertObject(v: unknown): asserts v is Record<string, unknown> {
 }
 
 export async function ragGetProjectContext(projectId: string): Promise<RagContext> {
-    if (import.meta.env.VITE_ENABLE_RAG !== 'true') {
+    if (process.env.REACT_APP_ENABLE_RAG !== 'true') {
         // Return empty structure if disabled
         return { project_id: projectId, tasks: [], resources: [] };
     }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { inviteMember } from '../../services/projectService';
+import { inviteMember, inviteMemberByEmail } from '../../services/projectService';
 
 const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
   const [userId, setUserId] = useState('');
@@ -17,15 +17,28 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
     e.preventDefault();
     if (!userId.trim()) return;
 
-    if (!UUID_REGEX.test(userId)) {
-      setError('Invalid UUID format. Please check the ID.');
+    // Updated Logic: Check for Email OR UUID
+    const isEmail = userId.includes('@');
+    const UUID_REGEX =
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+    if (!isEmail && !UUID_REGEX.test(userId)) {
+      setError('Please enter a valid Email Address or UUID.');
       return;
     }
 
     setIsSubmitting(true);
     setError(null);
 
-    const { error: inviteError } = await inviteMember(project.id, userId, role);
+    let result;
+    if (isEmail) {
+      result = await inviteMemberByEmail(project.id, userId, role);
+    } else {
+      result = await inviteMember(project.id, userId, role);
+    }
+
+    const { error: inviteError } = result;
+
 
     if (inviteError) {
       setError(inviteError.message || 'Failed to invite member');
@@ -60,7 +73,7 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
             <label htmlFor="userId" className="block text-sm font-medium text-slate-700">
-              User ID (UUID)
+              User Email or UUID
             </label>
             <input
               type="text"
@@ -68,11 +81,11 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-input"
-              placeholder="e.g. 123e4567-e89b..."
+              placeholder="user@example.com or UUID"
               required
             />
             <p className="mt-1 text-xs text-slate-400">
-              Enter the exact UUID of the user. (Future: Email lookup)
+              Enter the email of an existing user.
             </p>
           </div>
 

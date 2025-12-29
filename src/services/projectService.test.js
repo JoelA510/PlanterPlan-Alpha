@@ -1,4 +1,4 @@
-import { getJoinedProjects } from './projectService';
+import { getJoinedProjects, inviteMemberByEmail } from './projectService';
 
 const createMockClient = (membershipsData, tasksData, memberError = null, taskError = null) => {
   const from = jest.fn((table) => {
@@ -65,5 +65,48 @@ describe('getJoinedProjects', () => {
 
     expect(error).toBeNull();
     expect(data).toEqual([]);
+  });
+});
+
+
+describe('inviteMemberByEmail', () => {
+  // Import dynamically since it's not exported by default in the test file snippet above, 
+  it('calls the edge function successfully', async () => {
+    const invokeMock = jest.fn().mockResolvedValue({ data: { message: 'Success' }, error: null });
+    const client = {
+      functions: { invoke: invokeMock }
+    };
+
+    const result = await inviteMemberByEmail('p1', 'test@example.com', 'editor', client);
+
+    expect(result.error).toBeNull();
+    expect(invokeMock).toHaveBeenCalledWith('invite-by-email', {
+      body: { projectId: 'p1', email: 'test@example.com', role: 'editor' }
+    });
+  });
+
+  it('handles function errors', async () => {
+    const invokeMock = jest.fn().mockResolvedValue({ data: { error: 'User not found' }, error: null });
+    const client = {
+      functions: { invoke: invokeMock }
+    };
+
+    const result = await inviteMemberByEmail('p1', 'fail@example.com', 'viewer', client);
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBeTruthy();
+    expect(result.error.message).toBe('User not found');
+  });
+
+  it('handles implementation errors', async () => {
+    const invokeMock = jest.fn().mockResolvedValue({ data: null, error: new Error('Network Fail') });
+    const client = {
+      functions: { invoke: invokeMock }
+    };
+
+    const result = await inviteMemberByEmail('p1', 'fail@example.com', 'viewer', client);
+
+    expect(result.error).toBeTruthy();
+    expect(result.error.message).toBe('Network Fail');
   });
 });

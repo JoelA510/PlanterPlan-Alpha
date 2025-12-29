@@ -15,7 +15,7 @@ Running the RAG backend (Edge Functions) locally requires **Docker**.
     Add the following to your `.env` file (do not commit to git):
 
     ```bash
-    VITE_ENABLE_RAG=true
+    REACT_APP_ENABLE_RAG=true
     ```
 
 2. **Run the Backend (Requires Docker)**:

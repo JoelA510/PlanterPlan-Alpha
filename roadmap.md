@@ -95,7 +95,7 @@ _Goal: Ensure the app is rock-solid for beta users before adding more complexity
 
 - **ID:** `P5-EMAIL-INVITES`
 - **Goal**: Allow inviting members by email instead of raw UUIDs (requires new look-up logic).
-- **Status**: 📅 Planned
+- **Status**: 🛠️ In Progress
 
 ### Phase 6: Performance & Scale
 

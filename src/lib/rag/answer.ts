@@ -11,8 +11,8 @@ export type RagAnswerResponse = {
 };
 
 export async function ragGenerateAnswer(projectId: string, query: string): Promise<RagAnswerResponse> {
-    if (import.meta.env.VITE_ENABLE_RAG !== 'true') {
-        console.warn("RAG is disabled. Set VITE_ENABLE_RAG=true in .env to enable.");
+    if (process.env.REACT_APP_ENABLE_RAG !== 'true') {
+        console.warn("RAG is disabled. Set REACT_APP_ENABLE_RAG=true in .env to enable.");
         return {
             answer: "RAG feature is disabled on this environment.",
             meta: { task_count: 0, resource_count: 0, chunk_count: 0 }
