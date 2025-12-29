@@ -21,12 +21,30 @@ serve(async (req) => {
         // 1. Setup Supabase Client (Service Role not needed if we want to respect user RLS, 
         //    but usually Edge Functions use Service Role for specific overrides. 
         //    Here we use the USER'S token to strictly enforce RLS.)
+        // 1. Setup Supabase Client
+        const authHeader = req.headers.get("Authorization");
+        if (!authHeader) {
+            return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+                status: 401,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+        }
+
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        if (!supabaseUrl) {
+            throw new Error("SUPABASE_URL is not set in environment");
+        }
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+        if (!supabaseAnonKey) {
+            throw new Error("SUPABASE_ANON_KEY is not set in environment");
+        }
+
         const supabaseClient = createClient(
-            Deno.env.get("SUPABASE_URL") ?? "",
-            Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+            supabaseUrl,
+            supabaseAnonKey,
             {
                 global: {
-                    headers: { Authorization: req.headers.get("Authorization")! },
+                    headers: { Authorization: authHeader },
                 },
             }
         );

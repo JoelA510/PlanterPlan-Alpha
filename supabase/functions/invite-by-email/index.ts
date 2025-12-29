@@ -30,16 +30,32 @@ serve(async (req) => {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
+
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        if (!supabaseUrl) {
+            throw new Error("SUPABASE_URL is not set in environment");
+        }
+
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+        if (!supabaseAnonKey) {
+            throw new Error("SUPABASE_ANON_KEY is not set in environment");
+        }
+
         const supabaseClient = createClient(
-            Deno.env.get("SUPABASE_URL") ?? "",
-            Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+            supabaseUrl,
+            supabaseAnonKey,
             { global: { headers: { Authorization: authHeader } } }
         );
 
         // Client B: The Admin (for user lookup & privileged insert)
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (!serviceRoleKey) {
+            throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set in environment");
+        }
+
         const supabaseAdmin = createClient(
-            Deno.env.get("SUPABASE_URL") ?? "",
-            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+            supabaseUrl,
+            serviceRoleKey
         );
 
         // 4. Verify Caller Permissions

@@ -81,7 +81,7 @@ export const useTaskOperations = () => {
         }
     }, []);
 
-    const createProject = async (formData) => {
+    const createProject = useCallback(async (formData) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('User not authenticated');
@@ -140,9 +140,9 @@ export const useTaskOperations = () => {
             console.error('Error creating project:', error);
             throw error;
         }
-    };
+    }, [tasks, fetchTasks]);
 
-    const createTaskOrUpdate = async (formData, formState) => {
+    const createTaskOrUpdate = useCallback(async (formData, formState) => {
         // Wraps both create and update logic for tasks
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -264,9 +264,9 @@ export const useTaskOperations = () => {
             console.error('Error saving task:', error);
             throw error;
         }
-    };
+    }, [tasks, fetchTasks]);
 
-    const deleteTask = async (task) => {
+    const deleteTask = useCallback(async (task) => {
         try {
             const { error: deleteError } = await supabase.from('tasks').delete().eq('id', task.id);
             if (deleteError) throw deleteError;
@@ -275,7 +275,7 @@ export const useTaskOperations = () => {
             console.error('Error deleting task:', error);
             throw error;
         }
-    };
+    }, [fetchTasks]);
 
     useEffect(() => {
         isMountedRef.current = true;
