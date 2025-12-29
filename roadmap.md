@@ -1,6 +1,6 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated:** 2025-12-27
+**Last Updated:** 2025-12-29
 **Current Focus:** Stability, Performance, & Documentation Cleanups
 
 ---
@@ -95,7 +95,19 @@ _Goal: Ensure the app is rock-solid for beta users before adding more complexity
 
 - **ID:** `P5-EMAIL-INVITES`
 - **Goal**: Allow inviting members by email instead of raw UUIDs (requires new look-up logic).
-- **Status**: 🛠️ In Progress
+- **Status**: ✅ Done
+
+#### 5.4 Performance: Recursive Tree Optimization
+
+- **ID:** `P5-TREE-PERF`
+- **Goal**: Prevent re-renders in deep trees using `React.memo` and data-driven expansion state.
+- **Status**: ✅ Done
+
+#### 5.5 Tech Debt Resolution (Deep Clone & Refactor)
+
+- **ID:** `P5-TECH-DEBT`
+- **Goal**: Fix transactional integrity of deep cloning and refactor `TaskList.jsx` into hooks.
+- **Status**: ✅ Done
 
 ### Phase 6: Performance & Scale
 
@@ -112,12 +124,6 @@ _Goal: Optimize for large trees and many users._
 - **ID:** `P6-RECURSIVE-FETCH`
 - **Goal**: Optimize `taskService.js` to handle large trees efficiently.
 - **Status**: ✅ Done (Implemented `root_id` based fetching in `fetchTaskChildren`)
-
-#### 5.4 Performance: Recursive Tree Optimization
-
-- **ID:** `P5-TREE-PERF`
-- **Goal**: Prevent re-renders in deep trees using `React.memo` and data-driven expansion state.
-- **Status**: ✅ Done
 
 #### 6.3 Real-time Collaboration
 

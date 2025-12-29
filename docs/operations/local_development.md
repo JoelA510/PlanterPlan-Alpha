@@ -60,3 +60,12 @@ To test "Joined Projects" and membership roles locally without a full backend UI
    - Log in as User B.
    - The project should appear in the "Joined Projects" section of the Dashboard.
    - The role badge (e.g., "Editor") should be visible next to the project title.
+
+## Application Architecture
+
+- **Frontend**: React (Create React App), TailwindCSS.
+- **Backend Service**: Supabase (Postgres).
+- **Edge Functions**: Used for secure logic like "Invite by Email".
+  - To test Edge Functions locally, you need the **Supabase CLI** and Docker.
+  - Run `supabase start` and `supabase functions serve`.
+  - Otherwise, use the deployed staging project.

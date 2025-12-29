@@ -23,7 +23,13 @@ serve(async (req) => {
 
         // 3. Initialize Supabase Clients
         // Client A: The caller (for permission check)
-        const authHeader = req.headers.get("Authorization")!;
+        const authHeader = req.headers.get("Authorization");
+        if (!authHeader) {
+            return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+                status: 401,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+        }
         const supabaseClient = createClient(
             Deno.env.get("SUPABASE_URL") ?? "",
             Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -99,81 +105,18 @@ serve(async (req) => {
         // No, standard client can't query `auth` schema directly usually.
         // UNLESS we use the service role key which bypasses RLS? 
         // The service role CAN query `auth.users` if we mapped it, but `auth` schema is usually protected.
-
-        // BEST APPROACH for Supabase Ops:
-        // User `listUsers` isn't great.
-        // Actually, looking at Supabase docs, `admin.listUsers` is the way, typically users are < 10000 in early apps.
-        // But let's look for a direct email query.
-        // In Edge Functions, we can just use the Management API potentially? No.
-
-        // Let's try `supabaseAdmin.from('users').select('id').eq('email', email)`? 
-        // This only works if `users` is in `public` and synced. We DO NOT have a public users table.
-
-        // Okay, let's use the SCARY but effective method: 
-        // `supabaseAdmin.auth.admin.listUsers()` DOES NOT support email filter in Typescript definitions commonly, 
-        // BUT `supabaseAdmin.auth.admin.getUserByEmail(email)` DOES NOT EXIST.
-        //
-        // Wait, `supabase-js` v2: `supabase.auth.admin.listUsers({ page: 1, perPage: 1 })` ?? No email filter.
-
-        // PLAN B: `supabaseAdmin.rpc`?
-        // We don't have an RPC for this.
-
-        // PLAN C: We assume the user creates an invite, and we send an email? 
-        // The requirement is "Invite existing users".
-
-        // Let's try to query `auth.users` via RPC? No, trying to avoid migration.
-        //
-        // Wait, Supabase Edge Runtime:
-        // We can just try to insert into `project_members` with a subquery? 
-        // `insert into project_members (project_id, user_id) values (pid, (select id from auth.users where email = ...))`
-        // This requires the function to run as an owner that can see `auth.users`. 
-        // The `service_role` client executing a query... 
-        // Client libraries query postgrest. Postgrest *checks* visibility.
-        // The `service_role` *can* bypass RLS, but visibility of `auth.users` is often restricted by `pg_hba.conf` or schema permissions to Postgrest.
         // Usually `auth` schema is NOT exposed to Postgrest.
 
-        // Okay, I will implement a brute-force check using `listUsers` for now (assuming < 1000 users), 
-        // OR (Better) - Check if `supabase.auth.admin.createUser` with existing email returns the user?
-        //
-        // Actually, looking at docs: `listUsers` is indeed the standard way if you don't have a custom table.
-        // However, I will check if I can just write a quick SQL function to help? 
-        // No, avoiding migrations if I can.
-
-        // Let's assume for this "Alpha" phase, we might not have many users.
-        // I will write a simple loop over `listUsers`? No that's terrible for perfromance.
-
-        // Let's try to find the User ID via `inviteUserByEmail`.
-        // `const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email)`
-        // If the user is already confirmed, this sends an email but returns the User structure.
-        // This is actually a robust way to "Find or Invite".
-        // AND it sends them a magic link which is nice.
-        //
-        // Limitation in Plan: "Only supports inviting existing users".
-        // If I use `inviteUserByEmail`, it might Create a user if they don't exist.
-        // That might be Acceptable or even Better?
-        //
-        // Let's check the return of `inviteUserByEmail`.
-        // It returns `User`. 
-        // Getting an ID from an email is sensitive.
-        // If I use `inviteUserByEmail`, I get the ID.
-        //
-        // Let's proceed with `inviteUserByEmail`. It handles the lookup for us.
-
+        // Best Approach:
         const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
 
         if (inviteError) {
-            // If "User already registered", it might throw? 
-            // Actually usually it just resends invite.
-            // If it sends an error saying they exist, does it return ID?
-            //
-            // NOTE: Supabase `inviteUserByEmail` creates a user if not exists.
-            // The implementation plan said "Only existing".
-            // Maybe we just ACCEPT that we might create a user? 
-            // This is actually better for an invite flow.
-
             console.error("Invite Error", inviteError);
-            // Fallback: This might be because we can't search.
             throw inviteError;
+        }
+
+        if (!inviteData || !inviteData.user) {
+            throw new Error("Failed to resolve user from invite.");
         }
 
         const targetUserId = inviteData.user.id;
