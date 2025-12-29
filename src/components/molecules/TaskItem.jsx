@@ -5,6 +5,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import '../../styles/components/task-card.css';
+import ErrorBoundary from '../atoms/ErrorBoundary';
 
 const getStatusStyle = (status) => {
   switch (status) {
@@ -331,12 +332,14 @@ export const SortableTaskItem = React.memo(function SortableTaskItem({ task, lev
 
   return (
     <div ref={setNodeRef} style={style} className="sortable-task-wrapper">
-      <TaskItem
-        task={task}
-        level={level}
-        dragHandleProps={{ ...attributes, ...listeners, ref: setActivatorNodeRef }}
-        {...props}
-      />
+      <ErrorBoundary name={`Task-${task.id}`}>
+        <TaskItem
+          task={task}
+          level={level}
+          dragHandleProps={{ ...attributes, ...listeners, ref: setActivatorNodeRef }}
+          {...props}
+        />
+      </ErrorBoundary>
     </div>
   );
 });

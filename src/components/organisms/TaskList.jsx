@@ -6,6 +6,7 @@ import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from '../templates/TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
 import InviteMemberModal from './InviteMemberModal';
+import ErrorBoundary from '../atoms/ErrorBoundary';
 import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
 import { deepCloneTask, getTasksForUser } from '../../services/taskService';
 import { getJoinedProjects } from '../../services/projectService';
@@ -1097,4 +1098,12 @@ const TaskList = () => {
   );
 };
 
-export default TaskList;
+// Export wrapped component
+const TaskListWithErrorBoundary = (props) => (
+  <ErrorBoundary name="TaskList">
+    <TaskList {...props} />
+  </ErrorBoundary>
+);
+
+export default TaskListWithErrorBoundary;
+
