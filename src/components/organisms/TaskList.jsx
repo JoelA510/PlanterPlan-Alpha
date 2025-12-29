@@ -132,8 +132,9 @@ const TaskList = () => {
         onDeleteTaskWrapper(task);
       }
     },
-    [tasks, joinedProjects] // eslint-disable-line react-hooks/exhaustive-deps
+    [tasks, joinedProjects, onDeleteTaskWrapper]
   );
+
 
   const handleOpenInvite = (project) => {
     setInviteModalProject(project);

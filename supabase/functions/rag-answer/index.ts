@@ -3,10 +3,14 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { z } from "https://esm.sh/zod@3.22.4";
 
+// Use APP_ORIGIN for production; fallback to localhost for development
+const allowedOrigin = Deno.env.get("APP_ORIGIN") || "http://localhost:3000";
+
 const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
 
 serve(async (req) => {
     if (req.method === "OPTIONS") {

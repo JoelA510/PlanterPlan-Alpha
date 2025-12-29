@@ -20,9 +20,13 @@ CREATE OR REPLACE FUNCTION public.clone_project_template(
 )
 RETURNS jsonb
 LANGUAGE plpgsql
+-- SECURITY DEFINER is required to:
+-- 1. Read from template projects the caller may not have direct RLS access to
+-- 2. Insert new tasks with correct ownership and root_id in a single transaction
 SECURITY DEFINER
 SET search_path = public
 AS $$
+
 DECLARE
     v_new_root_id uuid;
     v_top_new_id uuid;

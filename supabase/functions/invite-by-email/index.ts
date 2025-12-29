@@ -2,10 +2,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
+// Use APP_ORIGIN for production; fallback to localhost for development
+const allowedOrigin = Deno.env.get("APP_ORIGIN") || "http://localhost:3000";
+
 const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
 
 serve(async (req) => {
     // 1. Handle CORS Preflight
@@ -121,8 +125,10 @@ serve(async (req) => {
         });
 
     } catch (error) {
+        // Differentiate server config errors (500) from client input errors (400)
+        const isServerError = error.message?.includes("not set in environment");
         return new Response(JSON.stringify({ error: error.message }), {
-            status: 400,
+            status: isServerError ? 500 : 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
