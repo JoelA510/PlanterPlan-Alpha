@@ -140,8 +140,11 @@ serve(async (req) => {
         );
 
     } catch (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: 400,
+        // Differentiate server config errors (500) from client input errors (400)
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isServerError = errorMessage.includes("not set in environment");
+        return new Response(JSON.stringify({ error: errorMessage }), {
+            status: isServerError ? 500 : 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
