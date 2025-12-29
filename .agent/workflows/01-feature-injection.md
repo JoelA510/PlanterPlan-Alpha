@@ -1,5 +1,5 @@
 ---
-description: Workflow: Feature Injection
+description: Feature Injection
 ---
 
 You are in Planning mode.
@@ -22,4 +22,4 @@ Steps:
    - If updating `README.md`, follow instructions in `docs/operations/README-PROMPT.md`.
 5. Verify with commands; include results in Walkthrough artifact.
 6. Finalize:
-   - Generate PR Description using `docs/git_documentation/PR-PROMPT.md`.
+   - Generate PR Description using `docs/git_documentation/PR-PROMPT.md`

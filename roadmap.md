@@ -1,6 +1,6 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated:** 2025-12-27
+**Last Updated:** 2025-12-29
 **Current Focus:** Stability, Performance, & Documentation Cleanups
 
 ---
@@ -22,6 +22,7 @@ A chronological overview of the project's evolution from Day 1.
 | **Stability Push**       | Dec 2025     | **Optimistic Rollback**: Implemented graceful UI rollback for drag-and-drop failures, preventing full page reloads.                                                      |
 | **Recovery & UI**        | Dec 2025     | **Data Recovery**: Restored lost task data via `supabase_importer.py` and implemented Recursive Tree View for Master Library.                                            |
 | **UI Modernization**     | Dec 2025     | **Atomic Design**: Refactored components into Atoms/Molecules/Organisms. Implemented semantic Elevation & Motion system.                                                 |
+| **Tree Optimization**    | Dec 2025     | **Performance & Stability**: Refactored `MasterLibraryList` with split effects and recursive state updates. Fixed deployment blockers.                                   |
 
 ---
 
@@ -82,7 +83,7 @@ _Goal: Ensure the app is rock-solid for beta users before adding more complexity
 
 - **ID:** `P5-ERR-BOUND`
 - **Goal**: Prevent white-screen crashes by catching React errors in `TaskList` and `TaskItem`.
-- **Status**: 📅 Planned
+- **Status**: ✅ Done
 
 #### 5.2 Optimistic Rollback Refinement
 
@@ -94,7 +95,19 @@ _Goal: Ensure the app is rock-solid for beta users before adding more complexity
 
 - **ID:** `P5-EMAIL-INVITES`
 - **Goal**: Allow inviting members by email instead of raw UUIDs (requires new look-up logic).
-- **Status**: 📅 Planned
+- **Status**: ✅ Done
+
+#### 5.4 Performance: Recursive Tree Optimization
+
+- **ID:** `P5-TREE-PERF`
+- **Goal**: Prevent re-renders in deep trees using `React.memo` and data-driven expansion state.
+- **Status**: ✅ Done
+
+#### 5.5 Tech Debt Resolution (Deep Clone & Refactor)
+
+- **ID:** `P5-TECH-DEBT`
+- **Goal**: Fix transactional integrity of deep cloning and refactor `TaskList.jsx` into hooks.
+- **Status**: ✅ Done
 
 ### Phase 6: Performance & Scale
 
@@ -110,15 +123,38 @@ _Goal: Optimize for large trees and many users._
 
 - **ID:** `P6-RECURSIVE-FETCH`
 - **Goal**: Optimize `taskService.js` to handle large trees efficiently.
-
-#### 5.4 Performance: Recursive Tree Optimization
-
-- **ID:** `P5-TREE-PERF`
-- **Goal**: Prevent re-renders in deep trees using `React.memo` and data-driven expansion state.
-- **Status**: ✅ Done
+- **Status**: ✅ Done (Implemented `root_id` based fetching in `fetchTaskChildren`)
 
 #### 6.3 Real-time Collaboration
 
 - **ID:** `P6-REALTIME`
 - **Goal**: Implement Supabase Realtime subscriptions to reflect task updates instantly across clients.
 - **Status**: 📅 Planned
+
+### Phase 7: RAG Implementation (App Capability)
+
+_Goal: Enable project Q&A grounded in Supabase data, implemented safely via small verifiable PRs._
+
+#### 7.1 Contracts & Evaluation
+
+- **ID:** `P7-RAG-CONTRACT`
+- **Goal**: Define security contracts, retrieval budgets, and evaluation, datasets.
+- **Status**: ✅ Done
+
+#### 7.2 SQL Context Retrieval
+
+- **ID:** `P7-RAG-SQL`
+- **Goal**: Implement RPCs for structured project context retrieval (tasks/resources) without embeddings.
+- **Status**: ✅ Done
+
+#### 7.3 Hybrid Retrieval (Vectors + FTS)
+
+- **ID:** `P7-RAG-HYBRID`
+- **Goal**: Add `rag_chunks` table, FTS index, and vector embeddings for unstructured data search.
+- **Status**: ✅ Done
+
+#### 7.4 Answer Generation Loop
+
+- **ID:** `P7-RAG-ANSWER`
+- **Goal**: Implement the generation loop with corrective retries, citations, and strict refusal logic.
+- **Status**: ✅ Done

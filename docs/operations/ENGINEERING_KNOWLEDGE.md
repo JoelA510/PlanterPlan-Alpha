@@ -467,4 +467,52 @@ Every time the Set changes (reference update), **every** node in the tree re-ren
 
 ### Critical Rule
 
-> **Don't drill unstable state props.** For recursive trees, merge UI state (like `isExpanded`) into the node data object itself before rendering. This preserves reference stability for `React.memo`.
+---
+
+## [RPC-020] Atomic Deep Cloning
+
+**Tags**: #database, #performance, #rpc, #transactions
+**Date**: 2025-12-29
+
+### Context & Problem
+
+Client-side deep cloning (fetching a tree, generating IDs, inserting sequentially) was brittle.
+Network latency causes "partial" clones if the connection drops.
+`Promise.all` logic was complex and prone to race conditions (orphaned children).
+
+### Solution & Pattern
+
+**Move strict transactional logic to the Database (RPC).**
+
+1. **RPC**: `clone_project_template(template_id, owner_id)`.
+2. **Transaction**: Postgres functions are atomic by default.
+3. **Performance**: Reduces 200+ HTTP round-trips to **1 request**.
+
+### Critical Rule
+
+> **Transactions belong in the DB.** For multi-step write operations where partial success is unacceptable (like cloning trees), use a Postgres Function (RPC) instead of orchestrating it from the client.
+
+---
+
+## [FE-021] Hook Extraction for Complex Components
+
+**Tags**: #react, #hooks, #refactoring
+**Date**: 2025-12-29
+
+### Context & Problem
+
+`TaskList.jsx` grew to ~1100 lines (The "God Component").
+It mixed **Drag-and-Drop sensors**, **CRUD API calls**, **Optimistic UI logic**, and **Layout**.
+This made it impossible to test logic without rendering the full UI.
+
+### Solution & Pattern
+
+**Split by Concern, not just by Component.**
+
+1. **`useTaskDrag`**: Encapsulates `dnd-kit` sensors, effect handling, and rollback state. Exports `{ handleDragEnd }`.
+2. **`useTaskOperations`**: Encapsulates `supabase` calls, state (tasks array), and loading states. Exports `{ createTask, updateTask }`.
+3. **`TaskList`**: Becomes a "dumb" layout component that wires hooks together.
+
+### Critical Rule
+
+> **Extract Logic to Hooks.** If a component exceeds 500 lines or manages >3 distinct state concerns (e.g., Data, Dragging, Form visibility), extract the logic into custom hooks to verify them independently.

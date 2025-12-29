@@ -31,6 +31,7 @@ yarn-error.log*
 
 # Documentation
 docs/git_documentation/PR_DESCRIPTION_DRAFT.md
+*PR_DESCRIPTION_DRAFT.md
 *TEST_PLAN.md
 
 # Context
