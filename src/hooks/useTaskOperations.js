@@ -27,14 +27,7 @@ export const useTaskOperations = () => {
     // Given we added DB triggers, the DB is the source of truth for "Rolling up" start/due dates.
     // However, `days_from_start` logic (shifting children) is still useful.
 
-    const recalculateAncestorDates = useCallback(async (taskId, currentTasks) => {
-        // With DB triggers, we might not strictly need this client-side recursion for
-        // bubbling UP dates. The DB does it.
-        // But we might want to keep it if the UI needs to be updated optimistically without a refetch.
-        // For now, to be safe and reduce complexity, we will rely on Fetching after major updates.
-        // If we see lag, we can re-introduce optimistic bubbling.
-        return Promise.resolve();
-    }, []);
+
 
 
     const fetchTasks = useCallback(async () => {
