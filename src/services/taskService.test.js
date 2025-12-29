@@ -89,7 +89,7 @@ describe('fetchMasterLibraryTasks', () => {
   });
 
   it('returns empty array when payload shape invalid', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
     const { client } = createMockClient({ data: [{ bad: 'record' }], error: null });
 
     const results = await fetchMasterLibraryTasks({}, client);
@@ -102,102 +102,47 @@ describe('fetchMasterLibraryTasks', () => {
 describe('deepCloneTask', () => {
   const { deepCloneTask } = require('./taskService');
 
-  beforeAll(() => {
-    global.crypto = { randomUUID: () => 'mock-uuid-' + Math.random() };
-  });
-
-  it('clones a task tree correctly', async () => {
-    const templateRoot = {
-      id: 't1',
-      title: 'Template Root',
-      origin: 'template',
-      parent_task_id: null,
-    };
-    const templateChild = {
-      id: 't2',
-      title: 'Template Child',
-      origin: 'template',
-      parent_task_id: 't1',
-    };
-    const allTasks = [templateRoot, templateChild];
-
-    // Mock client for fetchTaskChildren
-
-    const mockSingle = jest.fn().mockResolvedValue({ data: { origin: 'template' }, error: null });
-
-    // Mock client for insert
-    const mockInsert = jest.fn().mockReturnValue({
-      select: jest.fn().mockResolvedValue({ data: [{ id: 'new1' }, { id: 'new2' }], error: null }),
+  it('calls the RPC successfully', async () => {
+    // Mock client.rpc
+    const mockRpc = jest.fn().mockResolvedValue({
+      data: {
+        new_root_id: 'new-root-uuid',
+        root_project_id: 'new-root-uuid',
+        tasks_cloned: 5,
+      },
+      error: null,
     });
 
     const client = {
-      from: jest.fn().mockReturnValue({
-        select: (cols) => {
-          if (cols === 'origin') return { eq: jest.fn().mockReturnValue({ single: mockSingle }) };
-          return { eq: jest.fn().mockReturnValue({ data: allTasks, error: null }) }; // Simplified mock for fetchTaskChildren
-        },
-        insert: mockInsert,
-      }),
+      rpc: mockRpc,
     };
 
-    // We need to refine the mock for fetchTaskChildren because it chains .select().eq().single() and .select().eq()
-    client.from = jest.fn((table) => {
-      if (
-        table === 'tasks' ||
-        table === 'tasks_with_primary_resource' ||
-        table === 'task_resources'
-      ) {
-        return {
-          select: jest.fn((cols) => {
-            if (cols === 'origin') {
-              return {
-                eq: jest.fn(() => ({
-                  single: mockSingle,
-                })),
-              };
-            }
-            if (cols.includes('root_id')) {
-              return {
-                eq: jest.fn(() => ({
-                  single: jest.fn().mockResolvedValue({
-                    data: { id: 't1', root_id: 'existing-root' },
-                    error: null,
-                  }),
-                })),
-              };
-            }
-            return {
-              eq: jest.fn(() => ({
-                data: allTasks,
-                error: null,
-              })),
-              in: jest.fn(() => ({
-                data: [], // mock task resources
-                error: null,
-              })),
-            };
-          }),
-          insert: mockInsert,
-          upsert: jest.fn().mockResolvedValue({ error: null }), // Also needed for update tasks with primary resource
-        };
-      }
+    const result = await deepCloneTask('t1', 'p1', 'instance', 'user1', client);
+
+    expect(mockRpc).toHaveBeenCalledWith('clone_project_template', {
+      p_template_id: 't1',
+      p_new_parent_id: 'p1',
+      p_new_origin: 'instance',
+      p_user_id: 'user1',
     });
 
-    await deepCloneTask('t1', 'p1', 'instance', 'user1', client);
+    expect(result).toEqual({
+      new_root_id: 'new-root-uuid',
+      root_project_id: 'new-root-uuid',
+      tasks_cloned: 5,
+    });
+  });
 
-    expect(client.from).toHaveBeenCalledWith('tasks');
-    // expect(mockSingle).toHaveBeenCalled(); // fetched root origin - No longer called explicitly
-    expect(mockInsert).toHaveBeenCalled();
+  it('throws error if RPC fails', async () => {
+    const mockRpc = jest.fn().mockResolvedValue({
+      data: null,
+      error: { message: 'RPC Failed' },
+    });
 
-    const insertedRows = mockInsert.mock.calls[0][0];
-    expect(insertedRows).toHaveLength(2);
-    expect(insertedRows[0].origin).toBe('instance');
-    expect(insertedRows[0].creator).toBe('user1');
-    // Check parentage
-    const newRoot = insertedRows.find((r) => r.parent_task_id === 'p1');
-    const newChild = insertedRows.find((r) => r.parent_task_id !== 'p1');
-    expect(newRoot).toBeDefined();
-    expect(newChild).toBeDefined();
-    expect(newChild.parent_task_id).toBe(newRoot.id);
+    const client = { rpc: mockRpc };
+
+    await expect(deepCloneTask('t1', null, 'instance', 'u1', client)).rejects.toEqual({
+      message: 'RPC Failed',
+    });
   });
 });

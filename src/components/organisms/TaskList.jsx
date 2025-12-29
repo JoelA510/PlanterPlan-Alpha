@@ -562,34 +562,42 @@ const TaskList = () => {
 
       // If a template was selected, perform a deep clone
       if (formData.templateId) {
-        const newTasks = await deepCloneTask(
+        const cloneResult = await deepCloneTask(
           formData.templateId,
           null, // newParentId (null for root)
           'instance', // newOrigin
           user.id
         );
 
-        // Find the new root task (the one with no parent)
-        const newRoot = newTasks.find((t) => !t.parent_task_id);
-
-        if (newRoot) {
-          // Update the root task with the form's title and start date
-          const { error: updateError } = await supabase
+        if (cloneResult && cloneResult.new_root_id) {
+          // Fetch the new root task to update it
+          const { data: newRoot, error: fetchError } = await supabase
             .from('tasks')
-            .update({
-              title: formData.title,
-              description: formData.description ?? newRoot.description,
-              purpose: formData.purpose ?? newRoot.purpose,
-              actions: formData.actions ?? newRoot.actions,
-              resources: formData.resources ?? newRoot.resources,
-              notes: formData.notes ?? newRoot.notes,
-              start_date: projectStartDate,
-              due_date: projectStartDate, // Default due date to start date for now
-            })
-            .eq('id', newRoot.id);
+            .select('*')
+            .eq('id', cloneResult.new_root_id)
+            .single();
 
-          if (updateError) {
-            console.error('Error updating cloned root task:', updateError);
+          if (fetchError || !newRoot) {
+            console.error("Error fetching cloned root:", fetchError);
+            // Fallback or alert? Proceeding might leave title incorrect
+          } else {
+            // Update the root task with the form's title and start date
+            const { error: updateError } = await supabase
+              .from('tasks')
+              .update({
+                title: formData.title,
+                description: formData.description ?? newRoot.description,
+                purpose: formData.purpose ?? newRoot.purpose,
+                actions: formData.actions ?? newRoot.actions,
+                // notes: formData.notes ?? newRoot.notes, // 'notes' isn't standard in form data usually, checking below
+                start_date: projectStartDate,
+                due_date: projectStartDate,
+              })
+              .eq('id', newRoot.id);
+
+            if (updateError) {
+              console.error('Error updating cloned root task:', updateError);
+            }
           }
         }
       } else {
