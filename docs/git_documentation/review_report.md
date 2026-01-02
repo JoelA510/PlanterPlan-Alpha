@@ -38,6 +38,7 @@ A comprehensive review was performed on the `feature/cleanup-and-fixes` branch a
 ## 4. Other Changes
 - **`docs/db/seed_recovery.sql`**: Added by recovery script. **ACTION**: Added to `.gitignore` (along with `scripts/recover_db.js`) to prevent repo bloat. Removed from tracking.
 - **`supabase/.temp/`**: Accidental files found in diff. **ACTION**: Deleted and added to `.gitignore`.
+- **`eslint-report.json`**: Generated build artifact found in repo. **ACTION**: Removed from tracking and added to `.gitignore`.
 
 ## Conclusion
 The code is clean, free of RAG artifacts, and contains the requested fixes. The temporary files have been remediated. The branch is ready for merge.
