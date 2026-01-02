@@ -12,7 +12,7 @@ serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': corsOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Vary': 'Origin',
+    Vary: 'Origin',
   };
 
   // 1. Handle CORS Preflight

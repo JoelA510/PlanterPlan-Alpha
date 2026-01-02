@@ -49,6 +49,7 @@ graph TD
     A["User Actions"] --> B["Component"]
     B --> C["New Service"]
 ```
+
 > **Note**: Always use quotes for node labels to prevent syntax errors (e.g., `A["Label"]`).
 
 ## 🔍 Review Guide

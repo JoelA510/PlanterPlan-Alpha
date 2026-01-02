@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { DndContext, closestCorners, useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DndContext, closestCorners } from '@dnd-kit/core';
 
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
@@ -8,7 +7,12 @@ import TaskDetailsView from '../templates/TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
 import InviteMemberModal from './InviteMemberModal';
 import ErrorBoundary from '../atoms/ErrorBoundary';
-import TaskItem, { SortableTaskItem } from '../molecules/TaskItem';
+import TaskItem from '../molecules/TaskItem';
+import JoinedProjectsList from '../molecules/JoinedProjectsList';
+import InstanceList from '../molecules/InstanceList';
+import TemplateList from '../molecules/TemplateList';
+import SideNav from './SideNav';
+import ProjectTasksView from '../molecules/ProjectTasksView';
 
 // Hooks & Utils
 import { useTaskOperations } from '../../hooks/useTaskOperations';
@@ -43,19 +47,33 @@ const TaskList = () => {
   const [taskFormState, setTaskFormState] = useState(null);
   const [inviteModalProject, setInviteModalProject] = useState(null);
 
+  // --- Active Project Logic ---
+  const [activeProjectId, setActiveProjectId] = useState(null);
+
+  const activeProject = useMemo(() => {
+    if (!activeProjectId) return null;
+    return (
+      tasks.find((t) => t.id === activeProjectId) ||
+      joinedProjects.find((t) => t.id === activeProjectId) ||
+      null
+    );
+  }, [activeProjectId, tasks, joinedProjects]);
+
+  const handleProjectClick = (task) => {
+    if (!task.parent_task_id) {
+      setActiveProjectId(task.id);
+      setSelectedTask(null);
+      setShowForm(false);
+    } else {
+      handleTaskClick(task);
+    }
+  };
+
   // --- Derived State via Helper ---
-  const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
-
-  // --- DND Droppables ---
-  const { setNodeRef: setInstanceRootRef } = useDroppable({
-    id: 'drop-root-instance',
-    data: { type: 'container', parentId: null, origin: 'instance' },
-  });
-
-  const { setNodeRef: setTemplateRootRef } = useDroppable({
-    id: 'drop-root-template',
-    data: { type: 'container', parentId: null, origin: 'template' },
-  });
+  const { instanceTasks, templateTasks: _templateTasks } = useMemo(
+    () => separateTasksByOrigin(tasks),
+    [tasks]
+  );
 
   // --- Handlers ---
 
@@ -73,7 +91,7 @@ const TaskList = () => {
     [tasks]
   );
 
-  const handleCreateTemplateRoot = () => {
+  const _handleCreateTemplateRoot = () => {
     setTaskFormState({
       mode: 'create',
       origin: 'template',
@@ -193,230 +211,104 @@ const TaskList = () => {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className="split-layout">
-        <div className="task-list-area">
-          <div className="dashboard-header">
-            <h1 className="dashboard-title">Dashboard</h1>
+      <div className="app-layout">
+        <SideNav
+          joinedProjects={joinedProjects}
+          instanceTasks={instanceTasks}
+          joinedError={joinedError}
+          currentUserId={currentUserId}
+          handleTaskClick={handleProjectClick}
+          selectedTaskId={activeProjectId} // Highlight the active project in nav
+          handleEditTask={handleEditTask}
+          handleDeleteById={handleDeleteById}
+          handleOpenInvite={handleOpenInvite}
+          handleAddChildTask={handleAddChildTask}
+          onNewProjectClick={() => {
+            setShowForm(true);
+            setSelectedTask(null);
+            setTaskFormState(null);
+          }}
+        />
+
+        <div className="main-content">
+          <div className="project-view-area">
+            {!activeProject ? (
+              <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                <h2 className="text-xl font-semibold mb-2">Welcome to PlanterPlan</h2>
+                <p>Select a project from the sidebar to view its tasks.</p>
+                <div className="mt-8">
+                  <MasterLibraryList />
+                </div>
+              </div>
+            ) : (
+              <ProjectTasksView
+                project={activeProject}
+                handleTaskClick={handleTaskClick} // Clicking a task in the board opens details
+                handleAddChildTask={handleAddChildTask}
+                handleOpenInvite={handleOpenInvite}
+                handleEditTask={handleEditTask}
+                handleDeleteById={handleDeleteById}
+                selectedTaskId={selectedTask?.id}
+              />
+            )}
           </div>
 
-          {moveError && (
-            <div
-              role="alert"
-              className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded flex justify-between items-center text-sm"
-            >
-              <span>{moveError}</span>
-              <button
-                type="button"
-                aria-label="Dismiss error"
-                onClick={() => setMoveError(null)}
-                className="font-bold px-2 py-1 hover:bg-red-100 rounded text-red-500 hover:text-red-700"
-              >
-                ✕
-              </button>
+          {/* Permanent Side Panel (Right) - Details / Forms */}
+          {(showForm || selectedTask || taskFormState) && (
+            <div className="permanent-side-panel">
+              <div className="panel-header">
+                <h2 className="panel-title">{panelTitle}</h2>
+                {showForm && (
+                  <button onClick={() => setShowForm(false)} className="panel-header-btn">
+                    Hide Form
+                  </button>
+                )}
+                {isTaskFormOpen && (
+                  <button onClick={() => setTaskFormState(null)} className="panel-header-btn">
+                    Cancel
+                  </button>
+                )}
+                {selectedTask && !showForm && !isTaskFormOpen && (
+                  <button onClick={() => setSelectedTask(null)} className="panel-header-btn">
+                    Close
+                  </button>
+                )}
+              </div>
+              <div className="panel-content">
+                {showForm ? (
+                  <NewProjectForm
+                    onSubmit={handleProjectSubmit}
+                    onCancel={() => setShowForm(false)}
+                  />
+                ) : isTaskFormOpen ? (
+                  <NewTaskForm
+                    parentTask={parentTaskForForm}
+                    initialTask={taskBeingEdited}
+                    origin={taskFormState?.origin}
+                    enableLibrarySearch={taskFormState?.mode !== 'edit'}
+                    submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
+                    onSubmit={handleTaskSubmit}
+                    onCancel={() => setTaskFormState(null)}
+                  />
+                ) : selectedTask ? (
+                  <TaskDetailsView
+                    task={selectedTask}
+                    onAddChildTask={handleAddChildTask}
+                    onEditTask={handleEditTask}
+                    onDeleteTask={onDeleteTaskWrapper}
+                    onTaskUpdated={fetchTasks}
+                  />
+                ) : null}
+              </div>
             </div>
           )}
-
-          <div className="task-section">
-            <div className="section-header">
-              <div className="section-header-left">
-                <h2 className="section-title">Joined Projects</h2>
-                <span className="section-count">{joinedProjects.length}</span>
-              </div>
-            </div>
-            {joinedError ? (
-              <div className="text-sm text-red-600 px-4 py-8 border border-red-200 bg-red-50 rounded-lg">
-                {joinedError}
-              </div>
-            ) : joinedProjects.length > 0 ? (
-              <div className="task-cards-container">
-                {joinedProjects.map((project) => (
-                  <TaskItem
-                    key={project.id}
-                    task={project}
-                    level={0}
-                    onTaskClick={handleTaskClick}
-                    selectedTaskId={selectedTask?.id}
-                    onAddChildTask={undefined}
-                    onEdit={handleEditTask}
-                    onDelete={handleDeleteById}
-                    onInviteMember={
-                      project.membership_role === 'owner' || project.creator === currentUserId
-                        ? handleOpenInvite
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
-                You haven't joined any projects yet.
-              </div>
-            )}
-          </div>
-
-          <div className="task-section">
-            <div className="section-header">
-              <div className="section-header-left">
-                <h2 className="section-title">Projects</h2>
-                <span className="section-count">{instanceTasks.length}</span>
-              </div>
-              <button
-                onClick={() => {
-                  setShowForm(true);
-                  setSelectedTask(null);
-                  setTaskFormState(null);
-                }}
-                className="btn-new-item"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
-                </svg>
-                New Project
-              </button>
-            </div>
-            {instanceTasks.length > 0 ? (
-              <SortableContext
-                items={instanceTasks.map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
-                id="root-instance"
-              >
-                <div ref={setInstanceRootRef} className="task-cards-container">
-                  {instanceTasks.map((project) => (
-                    <SortableTaskItem
-                      key={project.id}
-                      task={project}
-                      level={0}
-                      onTaskClick={handleTaskClick}
-                      selectedTaskId={selectedTask?.id}
-                      onAddChildTask={handleAddChildTask}
-                      onInviteMember={handleOpenInvite}
-                      onEdit={handleEditTask}
-                      onDelete={handleDeleteById}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            ) : (
-              <div
-                ref={setInstanceRootRef}
-                className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg"
-              >
-                No active projects yet. Use "New Project" to get started.
-              </div>
-            )}
-          </div>
-
-          <div className="task-section">
-            <div className="section-header">
-              <div className="section-header-left">
-                <h2 className="section-title">Templates</h2>
-                <span className="section-count">{templateTasks.length}</span>
-              </div>
-              <button onClick={handleCreateTemplateRoot} className="btn-new-item">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
-                </svg>
-                New Template
-              </button>
-            </div>
-            {templateTasks.length > 0 ? (
-              <SortableContext
-                items={templateTasks.map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
-                id="root-template"
-              >
-                <div ref={setTemplateRootRef} className="task-cards-container">
-                  {templateTasks.map((template) => (
-                    <SortableTaskItem
-                      key={template.id}
-                      task={template}
-                      level={0}
-                      onTaskClick={handleTaskClick}
-                      selectedTaskId={selectedTask?.id}
-                      onAddChildTask={handleAddChildTask}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            ) : (
-              <div
-                ref={setTemplateRootRef}
-                className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg"
-              >
-                No templates yet. Use "New Template" to start building your reusable library.
-              </div>
-            )}
-          </div>
-
-          <MasterLibraryList />
         </div>
 
-        <div className="permanent-side-panel">
-          <div className="panel-header">
-            <h2 className="panel-title">{panelTitle}</h2>
-            {showForm && (
-              <button onClick={() => setShowForm(false)} className="panel-header-btn">
-                Hide Form
-              </button>
-            )}
-            {isTaskFormOpen && (
-              <button onClick={() => setTaskFormState(null)} className="panel-header-btn">
-                Cancel
-              </button>
-            )}
-            {selectedTask && !showForm && !isTaskFormOpen && (
-              <button onClick={() => setSelectedTask(null)} className="panel-header-btn">
-                Close
-              </button>
-            )}
-          </div>
-          <div className="panel-content">
-            {showForm ? (
-              <NewProjectForm onSubmit={handleProjectSubmit} onCancel={() => setShowForm(false)} />
-            ) : isTaskFormOpen ? (
-              <NewTaskForm
-                parentTask={parentTaskForForm}
-                initialTask={taskBeingEdited}
-                origin={taskFormState?.origin}
-                enableLibrarySearch={taskFormState?.mode !== 'edit'}
-                submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
-                onSubmit={handleTaskSubmit}
-                onCancel={() => setTaskFormState(null)}
-              />
-            ) : selectedTask ? (
-              <TaskDetailsView
-                task={selectedTask}
-                onAddChildTask={handleAddChildTask}
-                onEditTask={handleEditTask}
-                onDeleteTask={onDeleteTaskWrapper}
-                onTaskUpdated={fetchTasks}
-              />
-            ) : (
-              <div className="empty-panel-state">
-                <div className="empty-panel-icon">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="empty-panel-title">No Selection</h3>
-                <p className="empty-panel-text">
-                  Click "New Project" to create a project, or select a task to view its details.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
         {inviteModalProject && (
           <InviteMemberModal
             project={inviteModalProject}
             onClose={() => setInviteModalProject(null)}
             onInviteSuccess={() => {
-              // Maybe show a toast?
               alert('Invitation sent!');
               setInviteModalProject(null);
             }}

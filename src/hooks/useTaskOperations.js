@@ -16,13 +16,12 @@ export const useTaskOperations = () => {
 
   // --- Helpers ---
 
-  // Note: Date recalculation is now largely handled by DB triggers (Phase 1),
-  // but we still have client-side logic for "Schedule Offset" (days_from_start).
-  // We will keep `recalculateAncestorDates` for now as a fallback or for optimistic UI if needed,
-  // OR we can rely on re-fetching.
-  // The original implementation had a recursive client-side update.
-  // Given we added DB triggers, the DB is the source of truth for "Rolling up" start/due dates.
-  // However, `days_from_start` logic (shifting children) is still useful.
+  // Note: Date Ownership Architecture
+  // 1. DB Triggers (SOURCE OF TRUTH): Handle 'rollup' logic. If a child task moves, the parent's start/end/duration
+  //    are automatically recalculated by PostgreSQL triggers (`update_parent_dates`).
+  // 2. Client (OPTIMISTIC / SHIFTING): `days_from_start` logic below is used to explicitly Calculate
+  //    new dates when a user changes the offset. We send these specific dates to the DB.
+  //    We DO NOT rely on the client to roll up dates to parents; we only calculate the specific task's schedule.
 
   const fetchTasks = useCallback(async () => {
     if (!isMountedRef.current) return [];
