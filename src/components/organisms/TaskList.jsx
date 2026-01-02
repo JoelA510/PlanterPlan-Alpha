@@ -14,6 +14,7 @@ import ProjectTasksView from '../molecules/ProjectTasksView';
 import { useTaskOperations } from '../../hooks/useTaskOperations';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { separateTasksByOrigin } from '../../utils/viewHelpers';
+import { updateTaskInTree } from '../../utils/treeHelpers';
 
 const TaskList = () => {
   const {
@@ -87,6 +88,15 @@ const TaskList = () => {
       return tasks.find((task) => task.id === taskId) || null;
     },
     [tasks]
+  );
+
+  // --- Expansion State Handler ---
+  // Toggles isExpanded on a task within the tasks tree
+  const handleToggleExpand = useCallback(
+    (task, expanded) => {
+      setTasks((prev) => updateTaskInTree(prev, task.id, { isExpanded: expanded }));
+    },
+    [setTasks]
   );
 
   const handleAddChildTask = (parentTask) => {
@@ -237,6 +247,7 @@ const TaskList = () => {
                 handleEditTask={handleEditTask}
                 handleDeleteById={handleDeleteById}
                 selectedTaskId={selectedTask?.id}
+                onToggleExpand={handleToggleExpand}
               />
             )}
           </div>

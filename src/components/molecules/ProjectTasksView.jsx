@@ -16,6 +16,7 @@ const ProjectTasksView = ({
   handleEditTask,
   handleDeleteById,
   selectedTaskId,
+  onToggleExpand,
 }) => {
   const { setNodeRef } = useDroppable({
     id: `project-view-${project.id}`,
@@ -72,6 +73,7 @@ const ProjectTasksView = ({
                 onDelete={handleDeleteById}
                 // We show expansion here because this is the task tree
                 hideExpansion={false}
+                onToggleExpand={onToggleExpand}
               />
             ))}
           </div>
@@ -102,6 +104,7 @@ ProjectTasksView.propTypes = {
   handleEditTask: PropTypes.func.isRequired,
   handleDeleteById: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,
+  onToggleExpand: PropTypes.func,
 };
 
 export default ProjectTasksView;
