@@ -7,10 +7,6 @@ import TaskDetailsView from '../templates/TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
 import InviteMemberModal from './InviteMemberModal';
 import ErrorBoundary from '../atoms/ErrorBoundary';
-import TaskItem from '../molecules/TaskItem';
-import JoinedProjectsList from '../molecules/JoinedProjectsList';
-import InstanceList from '../molecules/InstanceList';
-import TemplateList from '../molecules/TemplateList';
 import SideNav from './SideNav';
 import ProjectTasksView from '../molecules/ProjectTasksView';
 
@@ -34,7 +30,12 @@ const TaskList = () => {
     deleteTask,
   } = useTaskOperations();
 
-  const { sensors, handleDragEnd, moveError, setMoveError } = useTaskDrag({
+  const {
+    sensors,
+    handleDragEnd,
+    moveError: _moveError,
+    setMoveError: _setMoveError,
+  } = useTaskDrag({
     tasks,
     setTasks,
     fetchTasks,
@@ -70,10 +71,7 @@ const TaskList = () => {
   };
 
   // --- Derived State via Helper ---
-  const { instanceTasks, templateTasks: _templateTasks } = useMemo(
-    () => separateTasksByOrigin(tasks),
-    [tasks]
-  );
+  const { instanceTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
   // --- Handlers ---
 
@@ -90,16 +88,6 @@ const TaskList = () => {
     },
     [tasks]
   );
-
-  const _handleCreateTemplateRoot = () => {
-    setTaskFormState({
-      mode: 'create',
-      origin: 'template',
-      parentId: null,
-    });
-    setShowForm(false);
-    setSelectedTask(null);
-  };
 
   const handleAddChildTask = (parentTask) => {
     setTaskFormState({

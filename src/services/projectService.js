@@ -25,8 +25,12 @@ export const getJoinedProjects = async (userId, client = supabase) => {
 
     if (projectError) throw projectError;
 
-    // 3. Merge role info into the project objects for UI display
-    const joinedProjects = projects.map((project) => {
+    // 3. Filter out projects created by the user (they appear in "My Projects")
+    //    This prevents duplicates when a user creates a project and is also a member.
+    const filteredProjects = projects.filter((project) => project.creator !== userId);
+
+    // 4. Merge role info into the project objects for UI display
+    const joinedProjects = filteredProjects.map((project) => {
       const membership = memberships.find((m) => m.project_id === project.id);
       return {
         ...project,

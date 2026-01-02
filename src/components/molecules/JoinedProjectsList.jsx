@@ -37,11 +37,7 @@ const JoinedProjectsList = ({
               onAddChildTask={undefined}
               onEdit={handleEditTask}
               onDelete={handleDeleteById}
-              onInviteMember={
-                project.membership_role === 'owner' || project.creator === currentUserId
-                  ? handleOpenInvite
-                  : undefined
-              }
+              onInviteMember={project.membership_role === 'owner' ? handleOpenInvite : undefined}
               hideExpansion={hideExpansion}
             />
           ))}
