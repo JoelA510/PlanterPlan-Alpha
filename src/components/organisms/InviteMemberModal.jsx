@@ -36,7 +36,10 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
     const { error: inviteError } = result;
 
     if (inviteError) {
-      setError(inviteError.message || 'Failed to invite member');
+      const msg =
+        inviteError.message ||
+        (typeof inviteError === 'string' ? inviteError : JSON.stringify(inviteError));
+      setError(msg || 'Failed to invite member (Unknown Error)');
       setIsSubmitting(false);
     } else {
       setIsSubmitting(false);

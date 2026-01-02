@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated:** 2025-12-29
-**Current Focus:** Stability, Performance, & Documentation Cleanups
+**Last Updated:** 2026-01-01
+**Current Focus:** Cleanup, Stability & Critical Fixes
 
 ---
 
@@ -23,6 +23,7 @@ A chronological overview of the project's evolution from Day 1.
 | **Recovery & UI**        | Dec 2025     | **Data Recovery**: Restored lost task data via `supabase_importer.py` and implemented Recursive Tree View for Master Library.                                            |
 | **UI Modernization**     | Dec 2025     | **Atomic Design**: Refactored components into Atoms/Molecules/Organisms. Implemented semantic Elevation & Motion system.                                                 |
 | **Tree Optimization**    | Dec 2025     | **Performance & Stability**: Refactored `MasterLibraryList` with split effects and recursive state updates. Fixed deployment blockers.                                   |
+| **Cleanup & QA**         | Jan 2026     | **Feature Hardening**: Removed experimental RAG features. Fixed critical Master Library expansion bugs. Hardened Invite flow with CORS fixes and better error handling.  |
 
 ---
 
@@ -131,30 +132,17 @@ _Goal: Optimize for large trees and many users._
 - **Goal**: Implement Supabase Realtime subscriptions to reflect task updates instantly across clients.
 - **Status**: 📅 Planned
 
-### Phase 7: RAG Implementation (App Capability)
-
-_Goal: Enable project Q&A grounded in Supabase data, implemented safely via small verifiable PRs._
-
-#### 7.1 Contracts & Evaluation
-
-- **ID:** `P7-RAG-CONTRACT`
-- **Goal**: Define security contracts, retrieval budgets, and evaluation, datasets.
+#### 5.6 RAG Removal
+- **ID:** `P5-RAG-CLEANUP`
+- **Goal**: Remove experimental RAG implementation to focus on core stability.
 - **Status**: ✅ Done
 
-#### 7.2 SQL Context Retrieval
-
-- **ID:** `P7-RAG-SQL`
-- **Goal**: Implement RPCs for structured project context retrieval (tasks/resources) without embeddings.
+#### 5.7 Fix: Master Library Expansion
+- **ID:** `P5-FIX-ML-EXPAND`
+- **Goal**: Resolve race conditions preventing items from staying expanded in the Master Library.
 - **Status**: ✅ Done
 
-#### 7.3 Hybrid Retrieval (Vectors + FTS)
-
-- **ID:** `P7-RAG-HYBRID`
-- **Goal**: Add `rag_chunks` table, FTS index, and vector embeddings for unstructured data search.
-- **Status**: ✅ Done
-
-#### 7.4 Answer Generation Loop
-
-- **ID:** `P7-RAG-ANSWER`
-- **Goal**: Implement the generation loop with corrective retries, citations, and strict refusal logic.
+#### 5.8 Fix: Invite CORS & Errors
+- **ID:** `P5-FIX-INVITES`
+- **Goal**: Fix CORS for localhost (Edge Function) and improve error reporting in UI.
 - **Status**: ✅ Done

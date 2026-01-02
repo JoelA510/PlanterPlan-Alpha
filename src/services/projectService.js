@@ -76,16 +76,22 @@ export const inviteMemberByEmail = async (projectId, email, role = 'viewer', cli
       body: { projectId, email, role },
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('[projectService.inviteMemberByEmail] Edge Function Error:', error);
+      throw error;
+    }
 
     // The edge function might return 200 OK but with { error: "..." } in the body
     if (data && data.error) {
-      throw new Error(data.error);
+      console.warn('[projectService.inviteMemberByEmail] Logical Error:', data.error);
+      const msg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+      throw new Error(msg);
     }
 
     return { data, error: null };
   } catch (error) {
-    console.error('[projectService.inviteMemberByEmail] Error:', error);
+    console.error('[projectService.inviteMemberByEmail] Exception:', error);
+    // Return the error object directly so the UI can extract .message
     return { data: null, error };
   }
 };
