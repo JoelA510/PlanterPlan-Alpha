@@ -5,7 +5,6 @@ import TaskItem from '../molecules/TaskItem';
 const JoinedProjectsList = ({
   projects,
   error,
-  currentUserId,
   handleTaskClick,
   selectedTaskId,
   handleEditTask,
@@ -54,7 +53,6 @@ const JoinedProjectsList = ({
 JoinedProjectsList.propTypes = {
   projects: PropTypes.array.isRequired,
   error: PropTypes.string,
-  currentUserId: PropTypes.string,
   handleTaskClick: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,
   handleEditTask: PropTypes.func.isRequired,

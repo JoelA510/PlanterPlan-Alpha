@@ -14,7 +14,8 @@ import ProjectTasksView from '../molecules/ProjectTasksView';
 import { useTaskOperations } from '../../hooks/useTaskOperations';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { separateTasksByOrigin } from '../../utils/viewHelpers';
-import { updateTaskInTree } from '../../utils/treeHelpers';
+import { updateTaskInTree, buildTree } from '../../utils/treeHelpers';
+import { fetchTaskChildren } from '../../services/taskService';
 
 const TaskList = () => {
   const {
@@ -51,25 +52,60 @@ const TaskList = () => {
 
   // --- Active Project Logic ---
   const [activeProjectId, setActiveProjectId] = useState(null);
+  // Cache for hydrated joined projects (with children loaded)
+  const [hydratedJoinedProjects, setHydratedJoinedProjects] = useState({});
+  const [_loadingJoinedProject, setLoadingJoinedProject] = useState(false);
 
   const activeProject = useMemo(() => {
     if (!activeProjectId) return null;
-    return (
-      tasks.find((t) => t.id === activeProjectId) ||
-      joinedProjects.find((t) => t.id === activeProjectId) ||
-      null
-    );
-  }, [activeProjectId, tasks, joinedProjects]);
+    // Try owned tasks first (they have children from flat list + tree building in viewHelpers)
+    const ownedProject = tasks.find((t) => t.id === activeProjectId);
+    if (ownedProject) return ownedProject;
+    // Then try hydrated joined projects (with fetched children)
+    if (hydratedJoinedProjects[activeProjectId]) {
+      return hydratedJoinedProjects[activeProjectId];
+    }
+    // Fallback to unhydrated joined project (will show loading state)
+    return joinedProjects.find((t) => t.id === activeProjectId) || null;
+  }, [activeProjectId, tasks, joinedProjects, hydratedJoinedProjects]);
 
-  const handleProjectClick = (task) => {
-    if (!task.parent_task_id) {
+  const handleProjectClick = useCallback(
+    async (task) => {
+      if (task.parent_task_id) {
+        handleTaskClick(task);
+        return;
+      }
+
       setActiveProjectId(task.id);
       setSelectedTask(null);
       setShowForm(false);
-    } else {
-      handleTaskClick(task);
-    }
-  };
+
+      // Check if this is a joined project that needs hydration
+      const isJoinedProject = joinedProjects.some((jp) => jp.id === task.id);
+      const alreadyHydrated = !!hydratedJoinedProjects[task.id];
+
+      if (isJoinedProject && !alreadyHydrated) {
+        setLoadingJoinedProject(true);
+        try {
+          const descendants = await fetchTaskChildren(task.id);
+          // Build tree from flat list (children of this project)
+          const childTasks = descendants.filter((d) => d.id !== task.id);
+          const childTree = buildTree(childTasks, task.id);
+          // Create hydrated project with children
+          const hydratedProject = { ...task, children: childTree };
+          setHydratedJoinedProjects((prev) => ({
+            ...prev,
+            [task.id]: hydratedProject,
+          }));
+        } catch (err) {
+          console.error('[TaskList] Failed to hydrate joined project:', err);
+        } finally {
+          setLoadingJoinedProject(false);
+        }
+      }
+    },
+    [joinedProjects, hydratedJoinedProjects]
+  );
 
   // --- Derived State via Helper ---
   const { instanceTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
@@ -214,7 +250,6 @@ const TaskList = () => {
           joinedProjects={joinedProjects}
           instanceTasks={instanceTasks}
           joinedError={joinedError}
-          currentUserId={currentUserId}
           handleTaskClick={handleProjectClick}
           selectedTaskId={activeProjectId} // Highlight the active project in nav
           handleEditTask={handleEditTask}

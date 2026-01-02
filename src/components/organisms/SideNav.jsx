@@ -7,7 +7,6 @@ const SideNav = ({
   joinedProjects,
   instanceTasks,
   joinedError,
-  currentUserId,
   handleTaskClick,
   selectedTaskId,
   handleEditTask,
@@ -40,7 +39,6 @@ const SideNav = ({
         <JoinedProjectsList
           projects={joinedProjects}
           error={joinedError}
-          currentUserId={currentUserId}
           handleTaskClick={handleTaskClick}
           selectedTaskId={selectedTaskId}
           handleEditTask={handleEditTask}
@@ -57,7 +55,6 @@ SideNav.propTypes = {
   joinedProjects: PropTypes.array.isRequired,
   instanceTasks: PropTypes.array.isRequired,
   joinedError: PropTypes.string,
-  currentUserId: PropTypes.string,
   handleTaskClick: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,
   handleEditTask: PropTypes.func.isRequired,
