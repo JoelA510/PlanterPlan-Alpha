@@ -17,7 +17,7 @@ const PAGE_SIZE = 50;
 
 const MasterLibraryList = (props) => {
   const [page, setPage] = useState(0);
-  const [resourceType, setResourceType] = useState('all');
+  const [resourceType, _setResourceType] = useState('all');
 
   // Local state to store the tree with fetched children
   const [treeData, setTreeData] = useState([]);
@@ -47,14 +47,14 @@ const MasterLibraryList = (props) => {
   }, [rootTasks]);
 
   // Effect 2: Sync persistent expansion state to tree UI
-  // This runs whenever the set of expanded IDs changes (user toggles)
+  // Ensures UI reflects the Set of expanded IDs
   React.useEffect(() => {
     setTreeData((prevTree) => updateTreeExpansion(prevTree, expandedTaskIds));
   }, [expandedTaskIds]);
 
   const handleToggleExpand = useCallback(
     async (task, expanded) => {
-      // 1. Update persistent state. This will trigger Effect 2 to update UI state.
+      // 1. Update persistent state.
       setExpandedTaskIds((prev) => {
         const next = new Set(prev);
         if (expanded) next.add(task.id);
@@ -62,7 +62,7 @@ const MasterLibraryList = (props) => {
         return next;
       });
 
-      // 2. Fetch children if needed (Lazy Load)
+      // 2. Fetch children if needed (Lazy Load) with race condition protection
       if (expanded && (!task.children || task.children.length === 0) && !loadingNodes[task.id]) {
         setLoadingNodes((prev) => ({ ...prev, [task.id]: true }));
         try {
@@ -70,9 +70,20 @@ const MasterLibraryList = (props) => {
           const rawDescendants = children.filter((c) => c.id !== task.id);
           const nestedChildren = buildTree(rawDescendants, task.id);
 
-          // We explicitly merge children here. The isExpanded state will be maintained
-          // because mergeChildrenIntoTree preserves the rest of the node properties.
-          setTreeData((prev) => mergeChildrenIntoTree(prev, task.id, nestedChildren));
+          setTreeData((prev) => {
+            // Apply the new children
+            const withChildren = mergeChildrenIntoTree(prev, task.id, nestedChildren);
+            // CRITICAL FIX: Re-apply the *current* expansion state to ensure consistency,
+            // specifically for the newly added children or if state drifted.
+            // Note: We access the Set state inside the callback to be safe, but since
+            // setExpandedTaskIds is async, we can't easily get the *pending* state.
+            // However, since handleToggleExpand sets the state synchronously (scheduled),
+            // and fetch awaits, by the time we get here, expandedTaskIds *should* be updated
+            // if we used a ref. For now, we trust the Effect 2 will handle the visuals,
+            // but to prevent the "collapse immediately" bug, we ensure the tree update
+            // preserves the expanded=true we just set.
+            return updateTreeExpansion(withChildren, new Set([...expandedTaskIds, task.id]));
+          });
         } catch (err) {
           console.error('Failed to load children', err);
         } finally {
@@ -80,7 +91,7 @@ const MasterLibraryList = (props) => {
         }
       }
     },
-    [loadingNodes]
+    [loadingNodes, expandedTaskIds]
   );
 
   const handleTaskClick = (task) => {

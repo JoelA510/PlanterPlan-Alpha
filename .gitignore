@@ -6,6 +6,7 @@
 # testing
 /coverage
 test_output*.txt
+eslint-report.json
 
 # production
 /build
@@ -31,8 +32,16 @@ yarn-error.log*
 
 # Documentation
 docs/git_documentation/PR_DESCRIPTION_DRAFT.md
+docs/git_documentation/review_report.md
+*PR_DESCRIPTION_DRAFT.md
 *TEST_PLAN.md
+*DEBT_REPORT.md
 
 # Context
 /Context
 /recovery
+supabase/.temp/
+
+# Recovery & One-time Scripts
+docs/db/seed_recovery.sql
+scripts/recover_db.js

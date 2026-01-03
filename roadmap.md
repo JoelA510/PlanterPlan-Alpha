@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated:** 2025-12-27
-**Current Focus:** Stability, Performance, & Documentation Cleanups
+**Last Updated:** 2026-01-01
+**Current Focus:** Cleanup, Stability & Critical Fixes
 
 ---
 
@@ -22,6 +22,8 @@ A chronological overview of the project's evolution from Day 1.
 | **Stability Push**       | Dec 2025     | **Optimistic Rollback**: Implemented graceful UI rollback for drag-and-drop failures, preventing full page reloads.                                                      |
 | **Recovery & UI**        | Dec 2025     | **Data Recovery**: Restored lost task data via `supabase_importer.py` and implemented Recursive Tree View for Master Library.                                            |
 | **UI Modernization**     | Dec 2025     | **Atomic Design**: Refactored components into Atoms/Molecules/Organisms. Implemented semantic Elevation & Motion system.                                                 |
+| **Tree Optimization**    | Dec 2025     | **Performance & Stability**: Refactored `MasterLibraryList` with split effects and recursive state updates. Fixed deployment blockers.                                   |
+| **Cleanup & QA**         | Jan 2026     | **Feature Hardening**: Removed experimental RAG features. Fixed critical Master Library expansion bugs. Hardened Invite flow with CORS fixes and better error handling.  |
 
 ---
 
@@ -82,7 +84,7 @@ _Goal: Ensure the app is rock-solid for beta users before adding more complexity
 
 - **ID:** `P5-ERR-BOUND`
 - **Goal**: Prevent white-screen crashes by catching React errors in `TaskList` and `TaskItem`.
-- **Status**: 📅 Planned
+- **Status**: ✅ Done
 
 #### 5.2 Optimistic Rollback Refinement
 
@@ -94,7 +96,19 @@ _Goal: Ensure the app is rock-solid for beta users before adding more complexity
 
 - **ID:** `P5-EMAIL-INVITES`
 - **Goal**: Allow inviting members by email instead of raw UUIDs (requires new look-up logic).
-- **Status**: 📅 Planned
+- **Status**: ✅ Done
+
+#### 5.4 Performance: Recursive Tree Optimization
+
+- **ID:** `P5-TREE-PERF`
+- **Goal**: Prevent re-renders in deep trees using `React.memo` and data-driven expansion state.
+- **Status**: ✅ Done
+
+#### 5.5 Tech Debt Resolution (Deep Clone & Refactor)
+
+- **ID:** `P5-TECH-DEBT`
+- **Goal**: Fix transactional integrity of deep cloning and refactor `TaskList.jsx` into hooks.
+- **Status**: ✅ Done
 
 ### Phase 6: Performance & Scale
 
@@ -110,15 +124,25 @@ _Goal: Optimize for large trees and many users._
 
 - **ID:** `P6-RECURSIVE-FETCH`
 - **Goal**: Optimize `taskService.js` to handle large trees efficiently.
-
-#### 5.4 Performance: Recursive Tree Optimization
-
-- **ID:** `P5-TREE-PERF`
-- **Goal**: Prevent re-renders in deep trees using `React.memo` and data-driven expansion state.
-- **Status**: ✅ Done
+- **Status**: ✅ Done (Implemented `root_id` based fetching in `fetchTaskChildren`)
 
 #### 6.3 Real-time Collaboration
 
 - **ID:** `P6-REALTIME`
 - **Goal**: Implement Supabase Realtime subscriptions to reflect task updates instantly across clients.
 - **Status**: 📅 Planned
+
+#### 5.6 RAG Removal
+- **ID:** `P5-RAG-CLEANUP`
+- **Goal**: Remove experimental RAG implementation to focus on core stability.
+- **Status**: ✅ Done
+
+#### 5.7 Fix: Master Library Expansion
+- **ID:** `P5-FIX-ML-EXPAND`
+- **Goal**: Resolve race conditions preventing items from staying expanded in the Master Library.
+- **Status**: ✅ Done
+
+#### 5.8 Fix: Invite CORS & Errors
+- **ID:** `P5-FIX-INVITES`
+- **Goal**: Fix CORS for localhost (Edge Function) and improve error reporting in UI.
+- **Status**: ✅ Done

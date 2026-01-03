@@ -1,6 +1,7 @@
 // src/components/organisms/MasterLibraryList.test.jsx
+/* eslint-disable testing-library/no-node-access */
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import MasterLibraryList from './MasterLibraryList';
 import { fetchTaskChildren, updateTaskStatus } from '../../services/taskService';

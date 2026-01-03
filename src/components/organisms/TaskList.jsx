@@ -1,196 +1,52 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import React, { useCallback, useMemo, useState } from 'react';
+import { DndContext, closestCorners, useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from '../templates/TaskDetailsView';
 import MasterLibraryList from './MasterLibraryList';
 import InviteMemberModal from './InviteMemberModal';
-import { calculateScheduleFromOffset, toIsoDate } from '../../utils/dateUtils';
-import { deepCloneTask, getTasksForUser } from '../../services/taskService';
-import { getJoinedProjects } from '../../services/projectService';
-import {
-  DndContext,
-  closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  useDroppable,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import ErrorBoundary from '../atoms/ErrorBoundary';
 import TaskItem, { SortableTaskItem } from '../molecules/TaskItem';
-import {
-  calculateNewPosition,
-  updateTaskPosition,
-  renormalizePositions,
-  POSITION_STEP,
-} from '../../services/positionService';
 
-const buildTaskHierarchy = (tasks) => {
-  const taskMap = {};
-  const rootTasks = [];
-
-  tasks.forEach((task) => {
-    taskMap[task.id] = { ...task, children: [] };
-  });
-
-  tasks.forEach((task) => {
-    if (task.parent_task_id && taskMap[task.parent_task_id]) {
-      taskMap[task.parent_task_id].children.push(taskMap[task.id]);
-    } else {
-      rootTasks.push(taskMap[task.id]);
-    }
-  });
-
-  // Sort children for every task to ensure deterministic rendering order
-  Object.values(taskMap).forEach((task) => {
-    task.children.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-  });
-
-  return rootTasks.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-};
-
-const separateTasksByOrigin = (tasks) => {
-  const instanceTasks = tasks.filter((task) => task.origin === 'instance');
-  const templateTasks = tasks.filter((task) => task.origin === 'template');
-
-  return {
-    instanceTasks: buildTaskHierarchy(instanceTasks),
-    templateTasks: buildTaskHierarchy(templateTasks),
-  };
-};
-
-const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
-  const activeId = active.id;
-  const overId = over.id;
-  const activeTask = allTasks.find((t) => t.id === activeId);
-  if (!activeTask) return { isValid: false };
-
-  // 1. Determine new parent and origin based on drop target ID
-  let newParentId = null;
-  let targetOrigin = null;
-  const overData = over.data?.current || {};
-
-  if (overData.type === 'container') {
-    // Dropped into an empty container
-    newParentId = overData.parentId; // This might be a task ID or null (for root)
-    targetOrigin = overData.origin;
-
-    // Safety check: verify parent exists if it's not a root drop
-    if (newParentId && !allTasks.find((t) => t.id === newParentId)) {
-      console.warn(`Drop target parent ${newParentId} not found`);
-      return { isValid: false };
-    }
-  } else {
-    // Dropping onto another task item directly
-    const overTask = allTasks.find((t) => t.id === overId);
-    if (overTask) {
-      newParentId = overTask.parent_task_id ?? null;
-      targetOrigin = overTask.origin;
-    } else {
-      return { isValid: false };
-    }
-  }
-
-  // 1b. Circular Ancestry Check (Grandfather Paradox)
-  // If we are reparenting (newParentId is not null), we must ensure
-  // that the new parent is not a descendant of the active task.
-  if (newParentId) {
-    let ancestorId = newParentId;
-    while (ancestorId) {
-      if (ancestorId === activeId) {
-        console.warn('Cannot drop a parent into its own child (Circular dependency detected)');
-        return { isValid: false };
-      }
-      const currentAncestorId = ancestorId;
-      const ancestor = allTasks.find((t) => t.id === currentAncestorId);
-      ancestorId = ancestor ? ancestor.parent_task_id : null;
-    }
-  }
-
-  // 2. Validate Origin
-  if (activeOrigin !== targetOrigin) {
-    return { isValid: false };
-  }
-
-  // 3. Filter & Sort Siblings
-  const siblings = allTasks
-    .filter((t) => (t.parent_task_id ?? null) === newParentId && t.origin === activeOrigin)
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-
-  const activeIndex = siblings.findIndex((t) => t.id === activeId);
-  const overIndex = siblings.findIndex((t) => t.id === overId);
-
-  // 4. Determine prev/next neighbors
-  let prevTask, nextTask;
-
-  const isContainerDrop = overData.type === 'container'; // removed unused vars
-
-  if (isContainerDrop) {
-    // Dropped into container -> Append to end logic
-    if (siblings.length > 0) {
-      prevTask = siblings[siblings.length - 1];
-      nextTask = null;
-    } else {
-      prevTask = null;
-      nextTask = null;
-    }
-  } else if (activeIndex !== -1 && activeIndex < overIndex) {
-    // Reordering in same list: Dragging DOWN
-    prevTask = siblings[overIndex];
-    nextTask = siblings[overIndex + 1];
-  } else {
-    // Dragging UP or Reparenting onto a task
-    prevTask = siblings[overIndex - 1];
-    nextTask = siblings[overIndex];
-  }
-
-  const prevPos = prevTask ? (prevTask.position ?? 0) : 0;
-  const nextPos = nextTask ? (nextTask.position ?? 0) : null;
-
-  // 5. Calculate New Position
-  const newPos = calculateNewPosition(prevPos, nextPos);
-
-  return { isValid: true, newPos, newParentId };
-};
+// Hooks & Utils
+import { useTaskOperations } from '../../hooks/useTaskOperations';
+import { useTaskDrag } from '../../hooks/useTaskDrag';
+import { separateTasksByOrigin } from '../../utils/viewHelpers';
 
 const TaskList = () => {
-  const [tasks, setTasks] = useState([]);
-  const [joinedProjects, setJoinedProjects] = useState([]);
-  const [joinedError, setJoinedError] = useState(null);
-  const [moveError, setMoveError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    tasks,
+    setTasks,
+    joinedProjects,
+    loading,
+    error,
+    joinedError,
+    currentUserId,
+    fetchTasks,
+    createProject,
+    createTaskOrUpdate,
+    deleteTask,
+  } = useTaskOperations();
+
+  const { sensors, handleDragEnd, moveError, setMoveError } = useTaskDrag({
+    tasks,
+    setTasks,
+    fetchTasks,
+    currentUserId,
+  });
+
+  // UI State
   const [showForm, setShowForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskFormState, setTaskFormState] = useState(null);
   const [inviteModalProject, setInviteModalProject] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const isMountedRef = useRef(false);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  // --- Derived State via Helper ---
+  const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
-  useEffect(() => {
-    if (moveError) {
-      const timer = setTimeout(() => setMoveError(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [moveError]);
-
+  // --- DND Droppables ---
   const { setNodeRef: setInstanceRootRef } = useDroppable({
     id: 'drop-root-instance',
     data: { type: 'container', parentId: null, origin: 'instance' },
@@ -201,190 +57,7 @@ const TaskList = () => {
     data: { type: 'container', parentId: null, origin: 'template' },
   });
 
-  const getTaskById = useCallback(
-    (taskId) => {
-      if (taskId === null || taskId === undefined) {
-        return null;
-      }
-      return tasks.find((task) => task.id === taskId) || null;
-    },
-    [tasks]
-  );
-
-  const fetchTasks = useCallback(async () => {
-    if (!isMountedRef.current) {
-      return [];
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!isMountedRef.current) {
-        return [];
-      }
-
-      if (!user) {
-        setError('User not authenticated');
-        setTasks([]);
-        return [];
-      }
-      setCurrentUserId(user.id);
-
-      const data = await getTasksForUser(user.id);
-
-      if (!isMountedRef.current) {
-        return [];
-      }
-
-      const nextTasks = data || [];
-      setTasks(nextTasks);
-
-      // Fetch joined projects
-      const { data: joinedData, error: joinedProjectError } = await getJoinedProjects(user.id);
-      if (isMountedRef.current) {
-        if (joinedProjectError) {
-          setJoinedError('Failed to load joined projects');
-        }
-        setJoinedProjects(joinedData || []);
-      }
-
-      return nextTasks;
-    } catch (err) {
-      if (!isMountedRef.current) {
-        return [];
-      }
-      setError('Failed to fetch tasks');
-      return [];
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, []);
-
-  const handleDragEnd = useCallback(
-    async (event) => {
-      try {
-        const { active, over } = event;
-
-        if (!over || active.id === over.id) {
-          return;
-        }
-
-        const activeTask = tasks.find((t) => t.id === active.id);
-        if (!activeTask) return;
-
-        // Attempt 1: Calculate Position
-        let result = calculateDropTarget(tasks, active, over, activeTask.origin);
-
-        if (!result.isValid) {
-          return;
-        }
-
-        let { newPos, newParentId } = result;
-
-        // Retry Logic: Renormalization
-        if (newPos === null) {
-          console.log('Collision detected. Renormalizing...');
-          const renormalizedSiblings = await renormalizePositions(
-            newParentId,
-            activeTask.origin,
-            currentUserId
-          );
-
-          // Merge renormalized tasks into current state locally
-          const siblingsMap = new Map(renormalizedSiblings.map((t) => [t.id, t]));
-          const freshTasks = tasks.map((t) => siblingsMap.get(t.id) || t);
-
-          // Attempt 2: Re-calculate with fresh data
-          result = calculateDropTarget(freshTasks, active, over, activeTask.origin);
-
-          if (!result.isValid || result.newPos === null) {
-            console.error('Failed to calculate position even after renormalization.');
-            return;
-          }
-
-          newPos = result.newPos;
-          newParentId = result.newParentId;
-
-          // Capture state for rollback
-          const previousTasks = [...tasks];
-
-          // IMPORTANT: Use freshTasks for the optimistic update to ensure consistency
-          setTasks(() =>
-            freshTasks.map((t) => {
-              if (t.id === active.id) {
-                return { ...t, position: newPos, parent_task_id: newParentId };
-              }
-              return t;
-            })
-          );
-
-          try {
-            await updateTaskPosition(active.id, newPos, newParentId);
-          } catch (e) {
-            console.error('Failed to persist move', e);
-            // ROLLBACK: Revert to previous state immediately
-            setTasks(previousTasks);
-            // Optional: Show a toast here if we had a toast system
-            setMoveError('Failed to move task. Reverting changes...');
-          }
-        } else {
-          // Standard optimistic update uses existing state
-          const previousTasks = [...tasks]; // Capture for rollback
-
-          setTasks((prev) =>
-            prev.map((t) => {
-              if (t.id === active.id) {
-                return { ...t, position: newPos, parent_task_id: newParentId };
-              }
-              return t;
-            })
-          );
-
-          try {
-            await updateTaskPosition(active.id, newPos, newParentId);
-          } catch (e) {
-            console.error('Failed to persist move', e);
-            // ROLLBACK
-            setTasks(previousTasks);
-            setMoveError('Failed to move task. Reverting changes...');
-          }
-        }
-      } catch (globalError) {
-        console.error('Unexpected error in handleDragEnd:', globalError);
-        // Fallback to heavy fetch only on unexpected crashes
-        fetchTasks();
-      }
-    },
-    [tasks, fetchTasks, currentUserId]
-  );
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    fetchTasks();
-
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [fetchTasks]);
-
-  useEffect(() => {
-    if (!selectedTask) {
-      return;
-    }
-
-    const latest = tasks.find((task) => task.id === selectedTask.id);
-
-    if (latest && latest !== selectedTask) {
-      setSelectedTask(latest);
-    }
-  }, [tasks, selectedTask]);
+  // --- Handlers ---
 
   const handleTaskClick = (task) => {
     setSelectedTask(task);
@@ -392,21 +65,29 @@ const TaskList = () => {
     setTaskFormState(null);
   };
 
-  const handleAddChildTask = (parentTask) => {
-    setTaskFormState({
-      mode: 'create',
-      origin: parentTask.origin,
-      parentId: parentTask.id,
-    });
-    setShowForm(false);
-    setSelectedTask(null);
-  };
+  const getTaskById = useCallback(
+    (taskId) => {
+      if (taskId === null || taskId === undefined) return null;
+      return tasks.find((task) => task.id === taskId) || null;
+    },
+    [tasks]
+  );
 
   const handleCreateTemplateRoot = () => {
     setTaskFormState({
       mode: 'create',
       origin: 'template',
       parentId: null,
+    });
+    setShowForm(false);
+    setSelectedTask(null);
+  };
+
+  const handleAddChildTask = (parentTask) => {
+    setTaskFormState({
+      mode: 'create',
+      origin: parentTask.origin,
+      parentId: parentTask.id,
     });
     setShowForm(false);
     setSelectedTask(null);
@@ -423,105 +104,18 @@ const TaskList = () => {
     setSelectedTask(task);
   };
 
-  const recalculateAncestorDates = useCallback(async (taskId, currentTasks) => {
-    if (!taskId || !currentTasks) {
-      return;
-    }
-
-    const source = currentTasks;
-    const parent = source.find((task) => task.id === taskId);
-
-    if (!parent || parent.origin !== 'instance') {
-      return;
-    }
-
-    const children = source.filter(
-      (task) => task.parent_task_id === parent.id && task.origin === parent.origin
-    );
-
-    if (children.length === 0) {
-      return;
-    }
-
-    const parseDates = (values) =>
-      values
-        .filter(Boolean)
-        .map((value) => new Date(value))
-        .filter((date) => !Number.isNaN(date.getTime()));
-
-    const childStartDates = parseDates(children.map((child) => child.start_date));
-    const childDueDates = parseDates(children.map((child) => child.due_date));
-
-    const updates = {};
-
-    if (childStartDates.length > 0) {
-      const minTime = Math.min(...childStartDates.map((date) => date.getTime()));
-      updates.start_date = new Date(minTime).toISOString();
-    }
-
-    if (childDueDates.length > 0) {
-      const maxTime = Math.max(...childDueDates.map((date) => date.getTime()));
-      updates.due_date = new Date(maxTime).toISOString();
-    }
-
-    if (Object.keys(updates).length > 0) {
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .update(updates)
-        .eq('id', parent.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      if (updates.start_date) {
-        parent.start_date = updates.start_date;
-      }
-      if (updates.due_date) {
-        parent.due_date = updates.due_date;
-      }
-    }
-
-    if (parent.parent_task_id) {
-      await recalculateAncestorDates(parent.parent_task_id, source);
-    }
-  }, []);
-
-  const handleDeleteTask = useCallback(
+  const onDeleteTaskWrapper = useCallback(
     async (task) => {
       const confirmed = window.confirm(
         `Delete "${task.title}" and its subtasks? This action cannot be undone.`
       );
+      if (!confirmed) return;
+      await deleteTask(task);
 
-      if (!confirmed) {
-        return;
-      }
-
-      try {
-        const { error: deleteError } = await supabase.from('tasks').delete().eq('id', task.id);
-
-        if (deleteError) throw deleteError;
-
-        let latestTasks = await fetchTasks();
-
-        if (task.origin === 'instance' && task.parent_task_id) {
-          await recalculateAncestorDates(task.parent_task_id, latestTasks);
-          await fetchTasks();
-        }
-
-        if (selectedTask?.id === task.id) {
-          setSelectedTask(null);
-        }
-
-        if (taskFormState?.taskId === task.id) {
-          setTaskFormState(null);
-        }
-      } catch (error) {
-        console.error('Error deleting task:', error);
-        throw error;
-      }
+      if (selectedTask?.id === task.id) setSelectedTask(null);
+      if (taskFormState?.taskId === task.id) setTaskFormState(null);
     },
-    [fetchTasks, selectedTask, taskFormState, recalculateAncestorDates]
+    [deleteTask, selectedTask, taskFormState]
   );
 
   const handleDeleteById = useCallback(
@@ -529,282 +123,27 @@ const TaskList = () => {
       const task =
         tasks.find((t) => t.id === taskId) || joinedProjects.find((t) => t.id === taskId);
       if (task) {
-        handleDeleteTask(task);
+        onDeleteTaskWrapper(task);
       }
     },
-    [tasks, joinedProjects, handleDeleteTask]
+    [tasks, joinedProjects, onDeleteTaskWrapper]
   );
 
   const handleOpenInvite = (project) => {
     setInviteModalProject(project);
   };
 
-  const handleCreateProject = async (formData) => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const instanceTasks = tasks.filter((t) => t.origin === 'instance' && !t.parent_task_id);
-      const maxPosition =
-        instanceTasks.length > 0 ? Math.max(...instanceTasks.map((t) => t.position ?? 0)) : 0;
-
-      const projectStartDate = toIsoDate(formData.start_date);
-
-      if (!projectStartDate) {
-        throw new Error('A valid project start date is required');
-      }
-
-      // If a template was selected, perform a deep clone
-      if (formData.templateId) {
-        const newTasks = await deepCloneTask(
-          formData.templateId,
-          null, // newParentId (null for root)
-          'instance', // newOrigin
-          user.id
-        );
-
-        // Find the new root task (the one with no parent)
-        const newRoot = newTasks.find((t) => !t.parent_task_id);
-
-        if (newRoot) {
-          // Update the root task with the form's title and start date
-          const { error: updateError } = await supabase
-            .from('tasks')
-            .update({
-              title: formData.title,
-              description: formData.description ?? newRoot.description,
-              purpose: formData.purpose ?? newRoot.purpose,
-              actions: formData.actions ?? newRoot.actions,
-              resources: formData.resources ?? newRoot.resources,
-              notes: formData.notes ?? newRoot.notes,
-              start_date: projectStartDate,
-              due_date: projectStartDate, // Default due date to start date for now
-            })
-            .eq('id', newRoot.id);
-
-          if (updateError) {
-            console.error('Error updating cloned root task:', updateError);
-          }
-        }
-      } else {
-        const { error: insertError } = await supabase.from('tasks').insert([
-          {
-            title: formData.title,
-            description: formData.description ?? null,
-            purpose: formData.purpose ?? null,
-            actions: formData.actions ?? null,
-            notes: formData.notes ?? null,
-            days_from_start: null,
-            origin: 'instance',
-            creator: user.id,
-            parent_task_id: null,
-            position: maxPosition + 1000,
-            is_complete: false,
-            start_date: projectStartDate,
-            due_date: projectStartDate,
-          },
-        ]);
-
-        if (insertError) throw insertError;
-      }
-
-      await fetchTasks();
-      setShowForm(false);
-      setSelectedTask(null);
-      setTaskFormState(null);
-    } catch (error) {
-      console.error('Error creating project:', error);
-      throw error;
-    }
+  const handleProjectSubmit = async (formData) => {
+    await createProject(formData);
+    setShowForm(false);
   };
 
-  const handleSubmitTask = async (formData) => {
-    if (!taskFormState) {
-      return;
-    }
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const origin = taskFormState.origin || 'instance';
-      const parentId = taskFormState.parentId ?? null;
-      const daysVal = formData.days_from_start;
-      const parsedDays =
-        daysVal === '' || daysVal === null || daysVal === undefined ? null : Number(daysVal);
-
-      if (parsedDays !== null && Number.isNaN(parsedDays)) {
-        throw new Error('Invalid days_from_start');
-      }
-
-      const manualStartDate = toIsoDate(formData.start_date);
-      const manualDueDate = toIsoDate(formData.due_date);
-      const hasManualDates = Boolean(manualStartDate || manualDueDate);
-
-      if (taskFormState.mode === 'edit' && taskFormState.taskId) {
-        let scheduleUpdates = {};
-
-        if (origin === 'instance') {
-          if (parsedDays !== null) {
-            scheduleUpdates = calculateScheduleFromOffset(
-              tasks,
-              taskFormState.parentId,
-              parsedDays
-            );
-          }
-
-          if (hasManualDates) {
-            scheduleUpdates = {
-              start_date: manualStartDate,
-              due_date: manualDueDate || manualStartDate || scheduleUpdates.due_date || null,
-            };
-          }
-
-          if (!hasManualDates && parsedDays === null) {
-            scheduleUpdates = {};
-          }
-        }
-
-        const updates = {
-          title: formData.title,
-          description: formData.description ?? null,
-          notes: formData.notes ?? null,
-          purpose: formData.purpose ?? null,
-          actions: formData.actions ?? null,
-
-          days_from_start: parsedDays,
-          updated_at: new Date().toISOString(),
-          ...scheduleUpdates,
-        };
-
-        const { error: updateError } = await supabase
-          .from('tasks')
-          .update(updates)
-          .eq('id', taskFormState.taskId);
-
-        if (updateError) throw updateError;
-
-        let latestTasks = await fetchTasks();
-
-        if (origin === 'instance' && taskFormState.parentId) {
-          await recalculateAncestorDates(taskFormState.parentId, latestTasks);
-          latestTasks = await fetchTasks();
-        }
-
-        const nextSelected = latestTasks.find((task) => task.id === taskFormState.taskId) || null;
-        setSelectedTask(nextSelected);
-        setTaskFormState(null);
-        return;
-      }
-
-      const siblings = tasks.filter((task) => {
-        const sameOrigin = task.origin === origin;
-        const sameParent = (task.parent_task_id || null) === parentId;
-        return sameOrigin && sameParent;
-      });
-
-      const maxPosition =
-        siblings.length > 0 ? Math.max(...siblings.map((task) => task.position ?? 0)) : 0;
-
-      const insertPayload = {
-        title: formData.title,
-        description: formData.description ?? null,
-        notes: formData.notes ?? null,
-        purpose: formData.purpose ?? null,
-        actions: formData.actions ?? null,
-
-        days_from_start: parsedDays,
-        origin,
-        creator: user.id,
-        parent_task_id: parentId,
-        position: maxPosition + POSITION_STEP,
-        is_complete: false,
-      };
-
-      if (origin === 'instance') {
-        if (parsedDays !== null) {
-          const schedule = calculateScheduleFromOffset(tasks, parentId, parsedDays);
-          Object.assign(insertPayload, schedule);
-        }
-
-        if (hasManualDates) {
-          insertPayload.start_date = manualStartDate;
-          insertPayload.due_date =
-            manualDueDate || manualStartDate || insertPayload.due_date || null;
-        }
-      }
-
-      if (formData.templateId) {
-        // Deep clone the template
-        const newTasks = await deepCloneTask(formData.templateId, parentId, origin, user.id);
-
-        // Find the new root task
-        const newRoot = newTasks.find((t) => t.parent_task_id === parentId);
-
-        if (newRoot) {
-          // Update the root task with form details
-          const updates = {
-            title: formData.title,
-            description: formData.description ?? newRoot.description,
-            notes: formData.notes ?? newRoot.notes,
-            purpose: formData.purpose ?? newRoot.purpose,
-            actions: formData.actions ?? newRoot.actions,
-            resources: formData.resources ?? newRoot.resources,
-            days_from_start: parsedDays,
-            updated_at: new Date().toISOString(),
-          };
-
-          if (origin === 'instance') {
-            // Apply schedule logic to the cloned root
-            if (parsedDays !== null) {
-              const schedule = calculateScheduleFromOffset(tasks, parentId, parsedDays);
-              Object.assign(updates, schedule);
-            }
-            if (hasManualDates) {
-              updates.start_date = manualStartDate;
-              updates.due_date = manualDueDate || manualStartDate || updates.due_date || null;
-            }
-          }
-
-          const { error: updateError } = await supabase
-            .from('tasks')
-            .update(updates)
-            .eq('id', newRoot.id);
-
-          if (updateError) console.error('Error updating cloned subtask root:', updateError);
-        }
-      } else {
-        // Normal single task insert
-        const { error: insertError } = await supabase.from('tasks').insert([insertPayload]);
-        if (insertError) throw insertError;
-      }
-
-      let latestTasks = await fetchTasks();
-
-      if (origin === 'instance' && parentId) {
-        await recalculateAncestorDates(parentId, latestTasks);
-        latestTasks = await fetchTasks();
-      }
-
-      setTaskFormState(null);
-      setSelectedTask(null);
-    } catch (error) {
-      console.error('Error saving task:', error);
-      throw error;
-    }
+  const handleTaskSubmit = async (formData) => {
+    await createTaskOrUpdate(formData, taskFormState);
+    setTaskFormState(null);
   };
 
-  const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
+  // --- Render Helpers ---
 
   const parentTaskForForm = taskFormState?.parentId ? getTaskById(taskFormState.parentId) : null;
   const taskBeingEdited =
@@ -814,28 +153,19 @@ const TaskList = () => {
   const isTaskFormOpen = Boolean(taskFormState);
 
   const panelTitle = useMemo(() => {
-    if (showForm) {
-      return 'New Project';
-    }
-
+    if (showForm) return 'New Project';
     if (taskFormState) {
       if (taskFormState.mode === 'edit') {
         return taskBeingEdited ? `Edit ${taskBeingEdited.title}` : 'Edit Task';
       }
-
       if (taskFormState.origin === 'template') {
         return parentTaskForForm
           ? `New Template Task in ${parentTaskForForm.title}`
           : 'New Template Task';
       }
-
       return parentTaskForForm ? `New Task in ${parentTaskForForm.title}` : 'New Task';
     }
-
-    if (selectedTask) {
-      return selectedTask.title;
-    }
-
+    if (selectedTask) return selectedTask.title;
     return 'Details';
   }, [showForm, taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
 
@@ -1042,7 +372,7 @@ const TaskList = () => {
           </div>
           <div className="panel-content">
             {showForm ? (
-              <NewProjectForm onSubmit={handleCreateProject} onCancel={() => setShowForm(false)} />
+              <NewProjectForm onSubmit={handleProjectSubmit} onCancel={() => setShowForm(false)} />
             ) : isTaskFormOpen ? (
               <NewTaskForm
                 parentTask={parentTaskForForm}
@@ -1050,7 +380,7 @@ const TaskList = () => {
                 origin={taskFormState?.origin}
                 enableLibrarySearch={taskFormState?.mode !== 'edit'}
                 submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
-                onSubmit={handleSubmitTask}
+                onSubmit={handleTaskSubmit}
                 onCancel={() => setTaskFormState(null)}
               />
             ) : selectedTask ? (
@@ -1058,7 +388,7 @@ const TaskList = () => {
                 task={selectedTask}
                 onAddChildTask={handleAddChildTask}
                 onEditTask={handleEditTask}
-                onDeleteTask={handleDeleteTask}
+                onDeleteTask={onDeleteTaskWrapper}
                 onTaskUpdated={fetchTasks}
               />
             ) : (
@@ -1097,4 +427,11 @@ const TaskList = () => {
   );
 };
 
-export default TaskList;
+// Export wrapped component
+const TaskListWithErrorBoundary = (props) => (
+  <ErrorBoundary name="TaskList">
+    <TaskList {...props} />
+  </ErrorBoundary>
+);
+
+export default TaskListWithErrorBoundary;

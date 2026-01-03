@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2025-12-27 (America/Los_Angeles)  
+**Last verified**: 2026-01-01 (America/Los_Angeles)  
 **Commit**: (Current Tip)
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/ENGINEERING_KNOWLEDGE.md)
@@ -40,9 +40,11 @@ PlanterPlan is a project management tool tailored for church planting. It allows
 ```text
 /
   docs/db/               # Database schemas and migrations
+  supabase/functions/    # Edge Functions (Deno/TS)
   src/
     components/          # React UI components (Atomic: atoms, molecules, organisms, templates)
     contexts/            # React Contexts (Auth)
+    hooks/               # Custom Hooks (Task logic, DND)
     services/            # Supabase API wrappers
     styles/              # Global styles (Tailwind + Semantic vars)
     utils/               # Helper logic (tree manipulation)

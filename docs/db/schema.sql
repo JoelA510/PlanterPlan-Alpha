@@ -241,6 +241,7 @@ END;
 $$;
 
 -- 4.4 get_task_root_id
+-- SECURITY DEFINER: Needed to look up root_id for RLS policy evaluation without recursion.
 CREATE OR REPLACE FUNCTION public.get_task_root_id(p_task_id uuid)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
 DECLARE v_root_id uuid;
@@ -251,6 +252,7 @@ END;
 $function$;
 
 -- 4.5 is_active_member
+-- SECURITY DEFINER: Used by RLS policies to check membership without exposing project_members directly.
 CREATE OR REPLACE FUNCTION public.is_active_member(p_project_id uuid, p_user_id uuid)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
 BEGIN
@@ -259,12 +261,14 @@ END;
 $function$;
 
 -- 4.6 is_admin
+-- SECURITY DEFINER: Reserved for future admin role check. Currently returns false.
 CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
 BEGIN RETURN false; END;
 $function$;
 
 -- 4.7 check_project_ownership
+-- SECURITY DEFINER: Used by RLS to verify task ownership without exposing tasks table.
 CREATE OR REPLACE FUNCTION public.check_project_ownership(p_id uuid, u_id uuid)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
@@ -273,6 +277,7 @@ END;
 $$;
 
 -- 4.8 has_project_role
+-- SECURITY DEFINER: Checks if user has specific role in project, used by RLS for role-based access.
 CREATE OR REPLACE FUNCTION public.has_project_role(p_task_id uuid, p_user_id uuid, p_allowed_roles text[])
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
 DECLARE v_root_id uuid; v_user_role text;
