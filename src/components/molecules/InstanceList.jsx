@@ -50,8 +50,8 @@ const InstanceList = ({
                 selectedTaskId={selectedTaskId}
                 onAddChildTask={handleAddChildTask}
                 onInviteMember={handleOpenInvite}
-                onEdit={handleEditTask}
-                onDelete={handleDeleteById}
+                onEdit={undefined}
+                onDelete={undefined}
                 hideExpansion={hideExpansion}
               />
             ))}
