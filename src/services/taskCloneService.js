@@ -32,16 +32,22 @@ export const deepCloneTask = async (
   client = supabase
 ) => {
   try {
-    const { data, error } = await client.rpc('clone_project_template', {
+    // Construct params dynamically. This ensures that if an override is `undefined`,
+    // the parameter is omitted from the RPC call, allowing the database function to use its default value.
+    // This is safer than the previous implementation which would send `null` for `undefined` values.
+    const rpcParams = {
       p_template_id: templateId,
       p_new_parent_id: newParentId,
       p_new_origin: newOrigin,
       p_user_id: userId,
-      p_title: overrides.title ?? null,
-      p_description: overrides.description ?? null,
-      p_start_date: overrides.start_date ?? null,
-      p_due_date: overrides.due_date ?? null,
-    });
+    };
+
+    if (overrides.title !== undefined) rpcParams.p_title = overrides.title;
+    if (overrides.description !== undefined) rpcParams.p_description = overrides.description;
+    if (overrides.start_date !== undefined) rpcParams.p_start_date = overrides.start_date;
+    if (overrides.due_date !== undefined) rpcParams.p_due_date = overrides.due_date;
+
+    const { data, error } = await client.rpc('clone_project_template', rpcParams);
 
     if (error) throw error;
 

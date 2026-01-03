@@ -1,19 +1,20 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { DndContext, closestCorners, useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DndContext, closestCorners } from '@dnd-kit/core';
 
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from '../templates/TaskDetailsView';
-import MasterLibraryList from './MasterLibraryList';
 import InviteMemberModal from './InviteMemberModal';
 import ErrorBoundary from '../atoms/ErrorBoundary';
-import TaskItem, { SortableTaskItem } from '../molecules/TaskItem';
+import SideNav from './SideNav';
+import ProjectTasksView from '../molecules/ProjectTasksView';
 
 // Hooks & Utils
 import { useTaskOperations } from '../../hooks/useTaskOperations';
 import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { separateTasksByOrigin } from '../../utils/viewHelpers';
+import { updateTaskInTree, buildTree } from '../../utils/treeHelpers';
+import { fetchTaskChildren } from '../../services/taskService';
 
 const TaskList = () => {
   const {
@@ -30,7 +31,7 @@ const TaskList = () => {
     deleteTask,
   } = useTaskOperations();
 
-  const { sensors, handleDragEnd, moveError, setMoveError } = useTaskDrag({
+  const { sensors, handleDragEnd } = useTaskDrag({
     tasks,
     setTasks,
     fetchTasks,
@@ -43,19 +44,76 @@ const TaskList = () => {
   const [taskFormState, setTaskFormState] = useState(null);
   const [inviteModalProject, setInviteModalProject] = useState(null);
 
-  // --- Derived State via Helper ---
+  // --- Active Project Logic ---
+  const [activeProjectId, setActiveProjectId] = useState(null);
+  const [hydratedJoinedProjects, setHydratedJoinedProjects] = useState({});
+  const [hydrationError, setHydrationError] = useState(null);
+
+  // --- Derived State via Helper (must be before activeProject) ---
   const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
-  // --- DND Droppables ---
-  const { setNodeRef: setInstanceRootRef } = useDroppable({
-    id: 'drop-root-instance',
-    data: { type: 'container', parentId: null, origin: 'instance' },
-  });
+  const activeProject = useMemo(() => {
+    if (!activeProjectId) return null;
+    // Try owned instance projects first (hierarchical with children)
+    const ownedInstance = instanceTasks.find((t) => t.id === activeProjectId);
+    if (ownedInstance) return ownedInstance;
+    // Try owned template projects (hierarchical with children)
+    const ownedTemplate = templateTasks.find((t) => t.id === activeProjectId);
+    if (ownedTemplate) return ownedTemplate;
+    // Then try hydrated joined projects (with fetched children)
+    if (hydratedJoinedProjects[activeProjectId]) {
+      return hydratedJoinedProjects[activeProjectId];
+    }
+    // Fallback to unhydrated joined project (will show loading state)
+    return joinedProjects.find((t) => t.id === activeProjectId) || null;
+  }, [activeProjectId, instanceTasks, templateTasks, joinedProjects, hydratedJoinedProjects]);
 
-  const { setNodeRef: setTemplateRootRef } = useDroppable({
-    id: 'drop-root-template',
-    data: { type: 'container', parentId: null, origin: 'template' },
-  });
+  const handleSelectProject = useCallback(
+    async (project) => {
+      setActiveProjectId(project.id);
+      setSelectedTask(null);
+      setShowForm(false);
+
+      // Check if this is a joined project that needs hydration
+      const isJoinedProject = joinedProjects.some((jp) => jp.id === project.id);
+      const alreadyHydrated = !!hydratedJoinedProjects[project.id];
+
+      if (isJoinedProject && !alreadyHydrated) {
+        setHydrationError(null);
+        try {
+          const descendants = await fetchTaskChildren(project.id);
+          // Build tree from flat list (children of this project)
+          const childTasks = descendants.filter((d) => d.id !== project.id);
+          const childTree = buildTree(childTasks, project.id);
+          // Create hydrated project with children
+          const hydratedProject = { ...project, children: childTree };
+          setHydratedJoinedProjects((prev) => ({
+            ...prev,
+            [project.id]: hydratedProject,
+          }));
+        } catch (err) {
+          console.error('[TaskList] Failed to hydrate joined project:', err);
+          setHydrationError('Failed to load project tasks. Please try again.');
+        }
+      }
+    },
+    [joinedProjects, hydratedJoinedProjects]
+  );
+
+  // --- Cache Invalidation ---
+  // Invalidate a joined project's hydrated cache so it re-fetches on next click
+  const invalidateJoinedProjectCache = useCallback(
+    (projectId) => {
+      if (projectId && hydratedJoinedProjects[projectId]) {
+        setHydratedJoinedProjects((prev) => {
+          const next = { ...prev };
+          delete next[projectId];
+          return next;
+        });
+      }
+    },
+    [hydratedJoinedProjects]
+  );
 
   // --- Handlers ---
 
@@ -73,15 +131,34 @@ const TaskList = () => {
     [tasks]
   );
 
-  const handleCreateTemplateRoot = () => {
-    setTaskFormState({
-      mode: 'create',
-      origin: 'template',
-      parentId: null,
-    });
-    setShowForm(false);
-    setSelectedTask(null);
-  };
+  // --- Expansion State Handler ---
+  // Toggles isExpanded on a task within the tasks tree (owned or joined)
+  const handleToggleExpand = useCallback(
+    (task, expanded) => {
+      // Update owned tasks tree
+      setTasks((prev) => updateTaskInTree(prev, task.id, { isExpanded: expanded }));
+
+      // Also update hydrated joined projects if the task belongs to one
+      const joinedProjectId = task.root_id || task.id;
+      if (hydratedJoinedProjects[joinedProjectId]) {
+        setHydratedJoinedProjects((prev) => {
+          const project = prev[joinedProjectId];
+          if (!project) return prev;
+          // Update the task within the joined project's children tree
+          const updatedChildren = updateTaskInTree(project.children || [], task.id, {
+            isExpanded: expanded,
+          });
+          // Also handle if the toggled task is the project root itself
+          const updatedProject =
+            project.id === task.id
+              ? { ...project, isExpanded: expanded, children: updatedChildren }
+              : { ...project, children: updatedChildren };
+          return { ...prev, [joinedProjectId]: updatedProject };
+        });
+      }
+    },
+    [setTasks, hydratedJoinedProjects]
+  );
 
   const handleAddChildTask = (parentTask) => {
     setTaskFormState({
@@ -112,21 +189,51 @@ const TaskList = () => {
       if (!confirmed) return;
       await deleteTask(task);
 
+      // Invalidate joined project cache if this task belongs to one
+      const projectId = task.root_id || task.id;
+      invalidateJoinedProjectCache(projectId);
+
       if (selectedTask?.id === task.id) setSelectedTask(null);
       if (taskFormState?.taskId === task.id) setTaskFormState(null);
     },
-    [deleteTask, selectedTask, taskFormState]
+    [deleteTask, selectedTask, taskFormState, invalidateJoinedProjectCache]
+  );
+
+  // Helper to find a task in hydrated joined project trees
+  const findTaskInHydratedProjects = useCallback(
+    (taskId) => {
+      for (const projectId of Object.keys(hydratedJoinedProjects)) {
+        const project = hydratedJoinedProjects[projectId];
+        if (project.id === taskId) return project;
+        // Search recursively in children
+        const findInChildren = (children) => {
+          for (const child of children || []) {
+            if (child.id === taskId) return child;
+            const found = findInChildren(child.children);
+            if (found) return found;
+          }
+          return null;
+        };
+        const found = findInChildren(project.children);
+        if (found) return found;
+      }
+      return null;
+    },
+    [hydratedJoinedProjects]
   );
 
   const handleDeleteById = useCallback(
     (taskId) => {
+      // Search owned tasks, top-level joined projects, then hydrated joined project children
       const task =
-        tasks.find((t) => t.id === taskId) || joinedProjects.find((t) => t.id === taskId);
+        tasks.find((t) => t.id === taskId) ||
+        joinedProjects.find((t) => t.id === taskId) ||
+        findTaskInHydratedProjects(taskId);
       if (task) {
         onDeleteTaskWrapper(task);
       }
     },
-    [tasks, joinedProjects, onDeleteTaskWrapper]
+    [tasks, joinedProjects, findTaskInHydratedProjects, onDeleteTaskWrapper]
   );
 
   const handleOpenInvite = (project) => {
@@ -140,6 +247,24 @@ const TaskList = () => {
 
   const handleTaskSubmit = async (formData) => {
     await createTaskOrUpdate(formData, taskFormState);
+
+    // Invalidate joined project cache if editing/creating in a joined project.
+    // We check multiple sources since the task might be in a joined project:
+    // 1. If activeProjectId is a joined project, invalidate it
+    // 2. If parentTask has a root_id pointing to a joined project, invalidate that
+    const isActiveJoinedProject =
+      activeProjectId && joinedProjects.some((jp) => jp.id === activeProjectId);
+    if (isActiveJoinedProject) {
+      invalidateJoinedProjectCache(activeProjectId);
+    } else if (taskFormState?.parentId) {
+      // Fallback: check if parent is in owned tasks and belongs to a joined project
+      const parentTask = getTaskById(taskFormState.parentId);
+      if (parentTask) {
+        const projectId = parentTask.root_id || parentTask.id;
+        invalidateJoinedProjectCache(projectId);
+      }
+    }
+
     setTaskFormState(null);
   };
 
@@ -193,230 +318,112 @@ const TaskList = () => {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className="split-layout">
-        <div className="task-list-area">
-          <div className="dashboard-header">
-            <h1 className="dashboard-title">Dashboard</h1>
+      <div className="app-layout">
+        <SideNav
+          joinedProjects={joinedProjects}
+          instanceTasks={instanceTasks}
+          templateTasks={templateTasks}
+          joinedError={joinedError}
+          handleSelectProject={handleSelectProject}
+          selectedTaskId={activeProjectId} // Highlight the active project in nav
+          handleOpenInvite={handleOpenInvite}
+          handleAddChildTask={handleAddChildTask}
+          onNewProjectClick={() => {
+            setShowForm(true);
+            setSelectedTask(null);
+            setTaskFormState(null);
+          }}
+          onNewTemplateClick={() => {
+            setTaskFormState({
+              mode: 'create',
+              origin: 'template',
+              parentId: null,
+            });
+            setShowForm(false);
+            setSelectedTask(null);
+          }}
+        />
+
+        <div className="main-content">
+          <div className="project-view-area">
+            {!activeProject ? (
+              <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                <h2 className="text-xl font-semibold mb-2">Welcome to PlanterPlan</h2>
+                <p>Select a project from the sidebar to view its tasks.</p>
+              </div>
+            ) : (
+              <ProjectTasksView
+                project={activeProject}
+                handleTaskClick={handleTaskClick} // Clicking a task in the board opens details
+                handleAddChildTask={handleAddChildTask}
+                handleEditTask={handleEditTask}
+                handleDeleteById={handleDeleteById}
+                selectedTaskId={selectedTask?.id}
+                onToggleExpand={handleToggleExpand}
+                disableDrag={joinedProjects.some((jp) => jp.id === activeProjectId)}
+                hydrationError={hydrationError}
+              />
+            )}
           </div>
 
-          {moveError && (
-            <div
-              role="alert"
-              className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded flex justify-between items-center text-sm"
-            >
-              <span>{moveError}</span>
-              <button
-                type="button"
-                aria-label="Dismiss error"
-                onClick={() => setMoveError(null)}
-                className="font-bold px-2 py-1 hover:bg-red-100 rounded text-red-500 hover:text-red-700"
-              >
-                ✕
-              </button>
+          {/* Permanent Side Panel (Right) - Details / Forms */}
+          {(showForm || selectedTask || taskFormState) && (
+            <div className="permanent-side-panel">
+              <div className="panel-header">
+                <h2 className="panel-title">{panelTitle}</h2>
+                {showForm && (
+                  <button onClick={() => setShowForm(false)} className="panel-header-btn">
+                    Hide Form
+                  </button>
+                )}
+                {isTaskFormOpen && (
+                  <button onClick={() => setTaskFormState(null)} className="panel-header-btn">
+                    Cancel
+                  </button>
+                )}
+                {selectedTask && !showForm && !isTaskFormOpen && (
+                  <button onClick={() => setSelectedTask(null)} className="panel-header-btn">
+                    Close
+                  </button>
+                )}
+              </div>
+              <div className="panel-content">
+                {showForm ? (
+                  <NewProjectForm
+                    onSubmit={handleProjectSubmit}
+                    onCancel={() => setShowForm(false)}
+                  />
+                ) : isTaskFormOpen ? (
+                  <NewTaskForm
+                    parentTask={parentTaskForForm}
+                    initialTask={taskBeingEdited}
+                    origin={taskFormState?.origin}
+                    enableLibrarySearch={taskFormState?.mode !== 'edit'}
+                    submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
+                    onSubmit={handleTaskSubmit}
+                    onCancel={() => setTaskFormState(null)}
+                  />
+                ) : selectedTask ? (
+                  <TaskDetailsView
+                    task={selectedTask}
+                    onAddChildTask={handleAddChildTask}
+                    onEditTask={handleEditTask}
+                    onDeleteTask={onDeleteTaskWrapper}
+                    onTaskUpdated={fetchTasks}
+                  />
+                ) : null}
+              </div>
             </div>
           )}
-
-          <div className="task-section">
-            <div className="section-header">
-              <div className="section-header-left">
-                <h2 className="section-title">Joined Projects</h2>
-                <span className="section-count">{joinedProjects.length}</span>
-              </div>
-            </div>
-            {joinedError ? (
-              <div className="text-sm text-red-600 px-4 py-8 border border-red-200 bg-red-50 rounded-lg">
-                {joinedError}
-              </div>
-            ) : joinedProjects.length > 0 ? (
-              <div className="task-cards-container">
-                {joinedProjects.map((project) => (
-                  <TaskItem
-                    key={project.id}
-                    task={project}
-                    level={0}
-                    onTaskClick={handleTaskClick}
-                    selectedTaskId={selectedTask?.id}
-                    onAddChildTask={undefined}
-                    onEdit={handleEditTask}
-                    onDelete={handleDeleteById}
-                    onInviteMember={
-                      project.membership_role === 'owner' || project.creator === currentUserId
-                        ? handleOpenInvite
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg">
-                You haven't joined any projects yet.
-              </div>
-            )}
-          </div>
-
-          <div className="task-section">
-            <div className="section-header">
-              <div className="section-header-left">
-                <h2 className="section-title">Projects</h2>
-                <span className="section-count">{instanceTasks.length}</span>
-              </div>
-              <button
-                onClick={() => {
-                  setShowForm(true);
-                  setSelectedTask(null);
-                  setTaskFormState(null);
-                }}
-                className="btn-new-item"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
-                </svg>
-                New Project
-              </button>
-            </div>
-            {instanceTasks.length > 0 ? (
-              <SortableContext
-                items={instanceTasks.map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
-                id="root-instance"
-              >
-                <div ref={setInstanceRootRef} className="task-cards-container">
-                  {instanceTasks.map((project) => (
-                    <SortableTaskItem
-                      key={project.id}
-                      task={project}
-                      level={0}
-                      onTaskClick={handleTaskClick}
-                      selectedTaskId={selectedTask?.id}
-                      onAddChildTask={handleAddChildTask}
-                      onInviteMember={handleOpenInvite}
-                      onEdit={handleEditTask}
-                      onDelete={handleDeleteById}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            ) : (
-              <div
-                ref={setInstanceRootRef}
-                className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg"
-              >
-                No active projects yet. Use "New Project" to get started.
-              </div>
-            )}
-          </div>
-
-          <div className="task-section">
-            <div className="section-header">
-              <div className="section-header-left">
-                <h2 className="section-title">Templates</h2>
-                <span className="section-count">{templateTasks.length}</span>
-              </div>
-              <button onClick={handleCreateTemplateRoot} className="btn-new-item">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
-                </svg>
-                New Template
-              </button>
-            </div>
-            {templateTasks.length > 0 ? (
-              <SortableContext
-                items={templateTasks.map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
-                id="root-template"
-              >
-                <div ref={setTemplateRootRef} className="task-cards-container">
-                  {templateTasks.map((template) => (
-                    <SortableTaskItem
-                      key={template.id}
-                      task={template}
-                      level={0}
-                      onTaskClick={handleTaskClick}
-                      selectedTaskId={selectedTask?.id}
-                      onAddChildTask={handleAddChildTask}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            ) : (
-              <div
-                ref={setTemplateRootRef}
-                className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg"
-              >
-                No templates yet. Use "New Template" to start building your reusable library.
-              </div>
-            )}
-          </div>
-
-          <MasterLibraryList />
         </div>
 
-        <div className="permanent-side-panel">
-          <div className="panel-header">
-            <h2 className="panel-title">{panelTitle}</h2>
-            {showForm && (
-              <button onClick={() => setShowForm(false)} className="panel-header-btn">
-                Hide Form
-              </button>
-            )}
-            {isTaskFormOpen && (
-              <button onClick={() => setTaskFormState(null)} className="panel-header-btn">
-                Cancel
-              </button>
-            )}
-            {selectedTask && !showForm && !isTaskFormOpen && (
-              <button onClick={() => setSelectedTask(null)} className="panel-header-btn">
-                Close
-              </button>
-            )}
-          </div>
-          <div className="panel-content">
-            {showForm ? (
-              <NewProjectForm onSubmit={handleProjectSubmit} onCancel={() => setShowForm(false)} />
-            ) : isTaskFormOpen ? (
-              <NewTaskForm
-                parentTask={parentTaskForForm}
-                initialTask={taskBeingEdited}
-                origin={taskFormState?.origin}
-                enableLibrarySearch={taskFormState?.mode !== 'edit'}
-                submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
-                onSubmit={handleTaskSubmit}
-                onCancel={() => setTaskFormState(null)}
-              />
-            ) : selectedTask ? (
-              <TaskDetailsView
-                task={selectedTask}
-                onAddChildTask={handleAddChildTask}
-                onEditTask={handleEditTask}
-                onDeleteTask={onDeleteTaskWrapper}
-                onTaskUpdated={fetchTasks}
-              />
-            ) : (
-              <div className="empty-panel-state">
-                <div className="empty-panel-icon">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="empty-panel-title">No Selection</h3>
-                <p className="empty-panel-text">
-                  Click "New Project" to create a project, or select a task to view its details.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
         {inviteModalProject && (
           <InviteMemberModal
             project={inviteModalProject}
             onClose={() => setInviteModalProject(null)}
             onInviteSuccess={() => {
-              // Maybe show a toast?
+              // TODO: Replace with a toast notification for better UX.
+              // For example: toast.success('Invitation sent!');
               alert('Invitation sent!');
               setInviteModalProject(null);
             }}

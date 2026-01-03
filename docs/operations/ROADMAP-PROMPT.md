@@ -17,12 +17,10 @@ You are a Technical Product Manager updating the project roadmap based on recent
 
 ## Output Requirements
 
-- [x] **Drag and Drop**: Nested task reordering with `dnd-kit` and fractional indexing.
-- [x] **Data Integrity**: Enforced Foreign Key constraints and RLS recursion protection.
-- [x] **Ambiguity Fixes**: Resolved strict PL/pgSQL variable naming conflicts in Triggers and Auth functions.
-- **Strict Adherence**: Follow the definitions in the template below.
-- **No Optimism**: Do not mark things as "Done" unless they are in the codebase.
-- **ID Consistency**: Do not change the IDs (e.g., `P5-REPORT-UI`) of existing items so we can track them.
+- [x] **Update discipline**: Ensure the "Last Updated" date is changed.
+- [x] **Strict Adherence**: Follow the definitions in the template below.
+- [x] **No Optimism**: Do not mark things as "Done" unless they are in the codebase.
+- [x] **ID Consistency**: Do not change the IDs (e.g., `P5-REPORT-UI`) of existing items so we can track them.
 
 ---
 

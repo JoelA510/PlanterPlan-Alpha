@@ -20,8 +20,8 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-01 (America/Los_Angeles)  
-**Commit**: (Current Tip)
+**Last verified**: 2026-01-02 (America/Los_Angeles)  
+**Commit**: 144ca39
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/ENGINEERING_KNOWLEDGE.md)
 
@@ -135,11 +135,12 @@ flowchart LR
 
 ### 4.2 Component Responsibilities
 
-| Component/Module | Responsibility                                                   | Primary files                                                                                                                            |
-| ---------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| **AuthContext**  | Manages user session (login/logout/user object).                 | [src/contexts/AuthContext.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/contexts/AuthContext.jsx)           |
-| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js)             |
-| **TaskList**     | Displays hierarchical list of projects/tasks.                    | [src/components/tasks/TaskList.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/components/tasks/TaskList.jsx) | (Inferred path) |
+| Component/Module | Responsibility                                                   | Primary files                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **AuthContext**  | Manages user session (login/logout/user object).                 | [src/contexts/AuthContext.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/contexts/AuthContext.jsx)                   |
+| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js)                     |
+| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [src/components/organisms/TaskList.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/components/organisms/TaskList.jsx) |
+| **SideNav**      | Persistent sidebar for project navigation.                       | [src/components/organisms/SideNav.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/components/organisms/SideNav.jsx)   |
 
 ### 4.3 Database Schema
 
@@ -179,6 +180,7 @@ flowchart LR
 - ✅ **Project Reporting**: Read-only print view with completion stats (Ref: `ProjectReport.jsx`).
 - ✅ **Master Library Tree View**: Recursive display of template hierarchies with on-demand loading (Ref: `MasterLibraryList.jsx`).
 - ✅ **Optimization**: Task trees fetched via `root_id` index instead of recursive calls (Ref: `fetchTaskChildren` in `taskService.js`).
+- ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `SideNav.jsx`).
 
 ### 5.2 Known Limitations
 

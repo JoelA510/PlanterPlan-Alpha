@@ -32,8 +32,9 @@ const TaskItem = React.memo(
     dragHandleProps = {},
     forceShowChevron = false,
     onToggleExpand,
-    onEdit,
-    onDelete,
+    onEdit = null,
+    onDelete = null,
+    hideExpansion = false,
   }) => {
     const hasChildren = task.children && task.children.length > 0;
     const indentWidth = level * 20;
@@ -41,7 +42,7 @@ const TaskItem = React.memo(
     const canHaveChildren = level < 4;
 
     const isExpanded = !!task.isExpanded;
-    const showChevron = canHaveChildren && (hasChildren || forceShowChevron);
+    const showChevron = !hideExpansion && canHaveChildren && (hasChildren || forceShowChevron);
 
     const handleCardClick = useCallback(
       (e) => {
