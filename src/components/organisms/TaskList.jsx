@@ -4,7 +4,6 @@ import { DndContext, closestCorners } from '@dnd-kit/core';
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from '../templates/TaskDetailsView';
-import MasterLibraryList from './MasterLibraryList';
 import InviteMemberModal from './InviteMemberModal';
 import ErrorBoundary from '../atoms/ErrorBoundary';
 import SideNav from './SideNav';
@@ -48,6 +47,7 @@ const TaskList = () => {
   // --- Active Project Logic ---
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [hydratedJoinedProjects, setHydratedJoinedProjects] = useState({});
+  const [hydrationError, setHydrationError] = useState(null);
 
   // --- Derived State via Helper (must be before activeProject) ---
   const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
@@ -79,6 +79,7 @@ const TaskList = () => {
       const alreadyHydrated = !!hydratedJoinedProjects[project.id];
 
       if (isJoinedProject && !alreadyHydrated) {
+        setHydrationError(null);
         try {
           const descendants = await fetchTaskChildren(project.id);
           // Build tree from flat list (children of this project)
@@ -92,6 +93,7 @@ const TaskList = () => {
           }));
         } catch (err) {
           console.error('[TaskList] Failed to hydrate joined project:', err);
+          setHydrationError('Failed to load project tasks. Please try again.');
         }
       }
     },
@@ -348,9 +350,6 @@ const TaskList = () => {
               <div className="flex flex-col items-center justify-center h-full text-slate-500">
                 <h2 className="text-xl font-semibold mb-2">Welcome to PlanterPlan</h2>
                 <p>Select a project from the sidebar to view its tasks.</p>
-                <div className="mt-8">
-                  <MasterLibraryList />
-                </div>
               </div>
             ) : (
               <ProjectTasksView
@@ -363,6 +362,7 @@ const TaskList = () => {
                 selectedTaskId={selectedTask?.id}
                 onToggleExpand={handleToggleExpand}
                 disableDrag={joinedProjects.some((jp) => jp.id === activeProjectId)}
+                hydrationError={hydrationError}
               />
             )}
           </div>
@@ -423,7 +423,8 @@ const TaskList = () => {
             project={inviteModalProject}
             onClose={() => setInviteModalProject(null)}
             onInviteSuccess={() => {
-              // TODO: Replace with a toast notification for better UX
+              // TODO: Replace with a toast notification for better UX.
+              // For example: toast.success('Invitation sent!');
               alert('Invitation sent!');
               setInviteModalProject(null);
             }}

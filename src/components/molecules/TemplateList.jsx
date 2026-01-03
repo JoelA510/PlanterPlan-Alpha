@@ -48,7 +48,6 @@ const TemplateList = ({
                 onTaskClick={handleTaskClick}
                 selectedTaskId={selectedTaskId}
                 onAddChildTask={handleAddChildTask}
-                onInviteMember={undefined}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteById}
                 hideExpansion={hideExpansion}

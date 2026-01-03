@@ -32,8 +32,8 @@ const TaskItem = React.memo(
     dragHandleProps = {},
     forceShowChevron = false,
     onToggleExpand,
-    onEdit,
-    onDelete,
+    onEdit = null,
+    onDelete = null,
     hideExpansion = false,
   }) => {
     const hasChildren = task.children && task.children.length > 0;

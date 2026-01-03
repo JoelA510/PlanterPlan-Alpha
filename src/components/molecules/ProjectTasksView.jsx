@@ -19,6 +19,7 @@ const ProjectTasksView = ({
   selectedTaskId,
   onToggleExpand,
   disableDrag = false,
+  hydrationError = null,
 }) => {
   const { setNodeRef } = useDroppable({
     id: `project-view-${project.id}`,
@@ -96,6 +97,12 @@ const ProjectTasksView = ({
         </div>
       </div>
 
+      {hydrationError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {hydrationError}
+        </div>
+      )}
+
       {children.length > 0 ? (
         renderTaskList()
       ) : (
@@ -126,6 +133,7 @@ ProjectTasksView.propTypes = {
   selectedTaskId: PropTypes.string,
   onToggleExpand: PropTypes.func,
   disableDrag: PropTypes.bool,
+  hydrationError: PropTypes.string,
 };
 
 export default ProjectTasksView;
