@@ -2,18 +2,21 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import JoinedProjectsList from '../molecules/JoinedProjectsList';
 import InstanceList from '../molecules/InstanceList';
+import TemplateList from '../molecules/TemplateList';
 
 const SideNav = ({
   joinedProjects,
   instanceTasks,
+  templateTasks,
   joinedError,
-  handleTaskClick,
+  handleSelectProject,
   selectedTaskId,
   handleEditTask,
   handleDeleteById,
   handleOpenInvite,
   handleAddChildTask,
   onNewProjectClick,
+  onNewTemplateClick,
 }) => {
   return (
     <div className="side-nav">
@@ -25,7 +28,7 @@ const SideNav = ({
         <InstanceList
           tasks={instanceTasks}
           selectedTaskId={selectedTaskId}
-          handleTaskClick={handleTaskClick}
+          handleTaskClick={handleSelectProject}
           handleAddChildTask={handleAddChildTask}
           handleOpenInvite={handleOpenInvite}
           handleEditTask={handleEditTask}
@@ -39,11 +42,24 @@ const SideNav = ({
         <JoinedProjectsList
           projects={joinedProjects}
           error={joinedError}
-          handleTaskClick={handleTaskClick}
+          handleTaskClick={handleSelectProject}
           selectedTaskId={selectedTaskId}
           handleEditTask={handleEditTask}
           handleDeleteById={handleDeleteById}
           handleOpenInvite={handleOpenInvite}
+          hideExpansion={true}
+        />
+
+        <div className="side-nav-divider"></div>
+
+        <TemplateList
+          tasks={templateTasks}
+          selectedTaskId={selectedTaskId}
+          handleTaskClick={handleSelectProject}
+          handleAddChildTask={handleAddChildTask}
+          handleEditTask={handleEditTask}
+          handleDeleteById={handleDeleteById}
+          onNewTemplateClick={onNewTemplateClick}
           hideExpansion={true}
         />
       </div>
@@ -54,14 +70,16 @@ const SideNav = ({
 SideNav.propTypes = {
   joinedProjects: PropTypes.array.isRequired,
   instanceTasks: PropTypes.array.isRequired,
+  templateTasks: PropTypes.array.isRequired,
   joinedError: PropTypes.string,
-  handleTaskClick: PropTypes.func.isRequired,
+  handleSelectProject: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,
   handleEditTask: PropTypes.func.isRequired,
   handleDeleteById: PropTypes.func.isRequired,
   handleOpenInvite: PropTypes.func.isRequired,
   handleAddChildTask: PropTypes.func.isRequired,
   onNewProjectClick: PropTypes.func.isRequired,
+  onNewTemplateClick: PropTypes.func.isRequired,
 };
 
 export default SideNav;

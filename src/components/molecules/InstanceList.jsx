@@ -10,8 +10,8 @@ const InstanceList = ({
   handleTaskClick,
   handleAddChildTask,
   handleOpenInvite,
-  handleEditTask,
-  handleDeleteById,
+  handleEditTask: _handleEditTask,
+  handleDeleteById: _handleDeleteById,
   onNewProjectClick,
   hideExpansion = false,
 }) => {

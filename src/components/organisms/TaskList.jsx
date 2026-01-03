@@ -62,32 +62,27 @@ const TaskList = () => {
     return joinedProjects.find((t) => t.id === activeProjectId) || null;
   }, [activeProjectId, tasks, joinedProjects, hydratedJoinedProjects]);
 
-  const handleProjectClick = useCallback(
-    async (task) => {
-      if (task.parent_task_id) {
-        handleTaskClick(task);
-        return;
-      }
-
-      setActiveProjectId(task.id);
+  const handleSelectProject = useCallback(
+    async (project) => {
+      setActiveProjectId(project.id);
       setSelectedTask(null);
       setShowForm(false);
 
       // Check if this is a joined project that needs hydration
-      const isJoinedProject = joinedProjects.some((jp) => jp.id === task.id);
-      const alreadyHydrated = !!hydratedJoinedProjects[task.id];
+      const isJoinedProject = joinedProjects.some((jp) => jp.id === project.id);
+      const alreadyHydrated = !!hydratedJoinedProjects[project.id];
 
       if (isJoinedProject && !alreadyHydrated) {
         try {
-          const descendants = await fetchTaskChildren(task.id);
+          const descendants = await fetchTaskChildren(project.id);
           // Build tree from flat list (children of this project)
-          const childTasks = descendants.filter((d) => d.id !== task.id);
-          const childTree = buildTree(childTasks, task.id);
+          const childTasks = descendants.filter((d) => d.id !== project.id);
+          const childTree = buildTree(childTasks, project.id);
           // Create hydrated project with children
-          const hydratedProject = { ...task, children: childTree };
+          const hydratedProject = { ...project, children: childTree };
           setHydratedJoinedProjects((prev) => ({
             ...prev,
-            [task.id]: hydratedProject,
+            [project.id]: hydratedProject,
           }));
         } catch (err) {
           console.error('[TaskList] Failed to hydrate joined project:', err);
@@ -98,7 +93,7 @@ const TaskList = () => {
   );
 
   // --- Derived State via Helper ---
-  const { instanceTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
+  const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
   // --- Cache Invalidation ---
   // Invalidate a joined project's hydrated cache so it re-fetches on next click
@@ -322,8 +317,9 @@ const TaskList = () => {
         <SideNav
           joinedProjects={joinedProjects}
           instanceTasks={instanceTasks}
+          templateTasks={templateTasks}
           joinedError={joinedError}
-          handleTaskClick={handleProjectClick}
+          handleSelectProject={handleSelectProject}
           selectedTaskId={activeProjectId} // Highlight the active project in nav
           handleEditTask={handleEditTask}
           handleDeleteById={handleDeleteById}
@@ -333,6 +329,15 @@ const TaskList = () => {
             setShowForm(true);
             setSelectedTask(null);
             setTaskFormState(null);
+          }}
+          onNewTemplateClick={() => {
+            setTaskFormState({
+              mode: 'create',
+              origin: 'template',
+              parentId: null,
+            });
+            setShowForm(false);
+            setSelectedTask(null);
           }}
         />
 
@@ -356,6 +361,7 @@ const TaskList = () => {
                 handleDeleteById={handleDeleteById}
                 selectedTaskId={selectedTask?.id}
                 onToggleExpand={handleToggleExpand}
+                disableDrag={joinedProjects.some((jp) => jp.id === activeProjectId)}
               />
             )}
           </div>

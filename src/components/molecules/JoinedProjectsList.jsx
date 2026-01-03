@@ -7,8 +7,8 @@ const JoinedProjectsList = ({
   error,
   handleTaskClick,
   selectedTaskId,
-  handleEditTask,
-  handleDeleteById,
+  handleEditTask: _handleEditTask,
+  handleDeleteById: _handleDeleteById,
   handleOpenInvite,
   hideExpansion = false,
 }) => {
@@ -34,8 +34,8 @@ const JoinedProjectsList = ({
               onTaskClick={handleTaskClick}
               selectedTaskId={selectedTaskId}
               onAddChildTask={undefined}
-              onEdit={undefined},
-              onDelete={undefined},
+              onEdit={undefined}
+              onDelete={undefined}
               onInviteMember={project.membership_role === 'owner' ? handleOpenInvite : undefined}
               hideExpansion={hideExpansion}
             />

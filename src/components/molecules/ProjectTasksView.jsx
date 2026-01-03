@@ -2,11 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import { SortableTaskItem } from '../molecules/TaskItem';
+import TaskItem, { SortableTaskItem } from '../molecules/TaskItem';
 
 /**
  * ProjectTasksView
  * Renders the children of a specific project (Root Task) as the main content.
+ * When disableDrag is true (e.g., for joined projects), tasks are not sortable.
  */
 const ProjectTasksView = ({
   project,
@@ -17,6 +18,7 @@ const ProjectTasksView = ({
   handleDeleteById,
   selectedTaskId,
   onToggleExpand,
+  disableDrag = false,
 }) => {
   const { setNodeRef } = useDroppable({
     id: `project-view-${project.id}`,
@@ -25,9 +27,50 @@ const ProjectTasksView = ({
       parentId: project.id,
       origin: project.origin,
     },
+    disabled: disableDrag,
   });
 
   const children = project.children || [];
+
+  // Common props for task items
+  const taskItemProps = {
+    onTaskClick: handleTaskClick,
+    selectedTaskId,
+    onAddChildTask: handleAddChildTask,
+    onInviteMember: handleOpenInvite,
+    onEdit: handleEditTask,
+    onDelete: handleDeleteById,
+    hideExpansion: false,
+    onToggleExpand,
+  };
+
+  const renderTaskList = () => {
+    if (disableDrag) {
+      // Render without sorting for joined projects
+      return (
+        <div ref={setNodeRef} className="task-cards-container space-y-2">
+          {children.map((task) => (
+            <TaskItem key={task.id} task={task} level={0} {...taskItemProps} />
+          ))}
+        </div>
+      );
+    }
+
+    // Render with sorting for owned projects
+    return (
+      <SortableContext
+        items={children.map((t) => t.id)}
+        strategy={verticalListSortingStrategy}
+        id={`sortable-project-${project.id}`}
+      >
+        <div ref={setNodeRef} className="task-cards-container space-y-2">
+          {children.map((task) => (
+            <SortableTaskItem key={task.id} task={task} level={0} {...taskItemProps} />
+          ))}
+        </div>
+      </SortableContext>
+    );
+  };
 
   return (
     <div className="project-view-container p-6 w-full max-w-5xl mx-auto">
@@ -54,30 +97,7 @@ const ProjectTasksView = ({
       </div>
 
       {children.length > 0 ? (
-        <SortableContext
-          items={children.map((t) => t.id)}
-          strategy={verticalListSortingStrategy}
-          id={`sortable-project-${project.id}`}
-        >
-          <div ref={setNodeRef} className="task-cards-container space-y-2">
-            {children.map((task) => (
-              <SortableTaskItem
-                key={task.id}
-                task={task}
-                level={0} // Reset level to 0 for the view, or 1? logic says 0 relative to view
-                onTaskClick={handleTaskClick}
-                selectedTaskId={selectedTaskId}
-                onAddChildTask={handleAddChildTask}
-                onInviteMember={handleOpenInvite}
-                onEdit={handleEditTask}
-                onDelete={handleDeleteById}
-                // We show expansion here because this is the task tree
-                hideExpansion={false}
-                onToggleExpand={onToggleExpand}
-              />
-            ))}
-          </div>
-        </SortableContext>
+        renderTaskList()
       ) : (
         <div
           ref={setNodeRef}
@@ -105,6 +125,7 @@ ProjectTasksView.propTypes = {
   handleDeleteById: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,
   onToggleExpand: PropTypes.func,
+  disableDrag: PropTypes.bool,
 };
 
 export default ProjectTasksView;

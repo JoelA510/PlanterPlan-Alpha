@@ -9,7 +9,10 @@ const TemplateList = ({
   selectedTaskId,
   handleTaskClick,
   handleAddChildTask,
-  handleCreateTemplateRoot,
+  handleEditTask,
+  handleDeleteById,
+  onNewTemplateClick,
+  hideExpansion = false,
 }) => {
   const { setNodeRef } = useDroppable({
     id: 'drop-root-template',
@@ -23,7 +26,7 @@ const TemplateList = ({
           <h2 className="section-title">Templates</h2>
           <span className="section-count">{tasks.length}</span>
         </div>
-        <button onClick={handleCreateTemplateRoot} className="btn-new-item">
+        <button onClick={onNewTemplateClick} className="btn-new-item">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
           </svg>
@@ -45,6 +48,10 @@ const TemplateList = ({
                 onTaskClick={handleTaskClick}
                 selectedTaskId={selectedTaskId}
                 onAddChildTask={handleAddChildTask}
+                onInviteMember={undefined}
+                onEdit={handleEditTask}
+                onDelete={handleDeleteById}
+                hideExpansion={hideExpansion}
               />
             ))}
           </div>
@@ -66,7 +73,10 @@ TemplateList.propTypes = {
   selectedTaskId: PropTypes.string,
   handleTaskClick: PropTypes.func.isRequired,
   handleAddChildTask: PropTypes.func.isRequired,
-  handleCreateTemplateRoot: PropTypes.func.isRequired,
+  handleEditTask: PropTypes.func.isRequired,
+  handleDeleteById: PropTypes.func.isRequired,
+  onNewTemplateClick: PropTypes.func.isRequired,
+  hideExpansion: PropTypes.bool,
 };
 
 export default TemplateList;
