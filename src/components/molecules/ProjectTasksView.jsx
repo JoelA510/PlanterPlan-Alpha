@@ -13,7 +13,6 @@ const ProjectTasksView = ({
   project,
   handleTaskClick,
   handleAddChildTask,
-  handleOpenInvite,
   handleEditTask,
   handleDeleteById,
   selectedTaskId,
@@ -33,12 +32,12 @@ const ProjectTasksView = ({
 
   const children = project.children || [];
 
-  // Common props for task items
+  // Common props for task items (children of the project)
+  // Note: onInviteMember is intentionally omitted - invites should only be on project root
   const taskItemProps = {
     onTaskClick: handleTaskClick,
     selectedTaskId,
     onAddChildTask: handleAddChildTask,
-    onInviteMember: handleOpenInvite,
     onEdit: handleEditTask,
     onDelete: handleDeleteById,
     hideExpansion: false,
@@ -127,7 +126,6 @@ ProjectTasksView.propTypes = {
   project: PropTypes.object.isRequired,
   handleTaskClick: PropTypes.func.isRequired,
   handleAddChildTask: PropTypes.func.isRequired,
-  handleOpenInvite: PropTypes.func.isRequired,
   handleEditTask: PropTypes.func.isRequired,
   handleDeleteById: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,

@@ -356,7 +356,6 @@ const TaskList = () => {
                 project={activeProject}
                 handleTaskClick={handleTaskClick} // Clicking a task in the board opens details
                 handleAddChildTask={handleAddChildTask}
-                handleOpenInvite={handleOpenInvite}
                 handleEditTask={handleEditTask}
                 handleDeleteById={handleDeleteById}
                 selectedTaskId={selectedTask?.id}
