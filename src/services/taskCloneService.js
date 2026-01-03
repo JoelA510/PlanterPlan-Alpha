@@ -32,9 +32,9 @@ export const deepCloneTask = async (
   client = supabase
 ) => {
   try {
-    // Construct params dynamically to avoid sending 'null' if the intent is "use default"
-    // (Though here, null is often the intended "no override" value for the RPC,
-    // but we ensure we strictly follow the provided overrides).
+    // Construct params dynamically. This ensures that if an override is `undefined`,
+    // the parameter is omitted from the RPC call, allowing the database function to use its default value.
+    // This is safer than the previous implementation which would send `null` for `undefined` values.
     const rpcParams = {
       p_template_id: templateId,
       p_new_parent_id: newParentId,

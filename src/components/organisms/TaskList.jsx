@@ -32,12 +32,7 @@ const TaskList = () => {
     deleteTask,
   } = useTaskOperations();
 
-  const {
-    sensors,
-    handleDragEnd,
-    moveError: _moveError,
-    setMoveError: _setMoveError,
-  } = useTaskDrag({
+  const { sensors, handleDragEnd } = useTaskDrag({
     tasks,
     setTasks,
     fetchTasks,
@@ -110,6 +105,21 @@ const TaskList = () => {
   // --- Derived State via Helper ---
   const { instanceTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
+  // --- Cache Invalidation ---
+  // Invalidate a joined project's hydrated cache so it re-fetches on next click
+  const invalidateJoinedProjectCache = useCallback(
+    (projectId) => {
+      if (projectId && hydratedJoinedProjects[projectId]) {
+        setHydratedJoinedProjects((prev) => {
+          const next = { ...prev };
+          delete next[projectId];
+          return next;
+        });
+      }
+    },
+    [hydratedJoinedProjects]
+  );
+
   // --- Handlers ---
 
   const handleTaskClick = (task) => {
@@ -127,12 +137,32 @@ const TaskList = () => {
   );
 
   // --- Expansion State Handler ---
-  // Toggles isExpanded on a task within the tasks tree
+  // Toggles isExpanded on a task within the tasks tree (owned or joined)
   const handleToggleExpand = useCallback(
     (task, expanded) => {
+      // Update owned tasks tree
       setTasks((prev) => updateTaskInTree(prev, task.id, { isExpanded: expanded }));
+
+      // Also update hydrated joined projects if the task belongs to one
+      const joinedProjectId = task.root_id || task.id;
+      if (hydratedJoinedProjects[joinedProjectId]) {
+        setHydratedJoinedProjects((prev) => {
+          const project = prev[joinedProjectId];
+          if (!project) return prev;
+          // Update the task within the joined project's children tree
+          const updatedChildren = updateTaskInTree(project.children || [], task.id, {
+            isExpanded: expanded,
+          });
+          // Also handle if the toggled task is the project root itself
+          const updatedProject =
+            project.id === task.id
+              ? { ...project, isExpanded: expanded, children: updatedChildren }
+              : { ...project, children: updatedChildren };
+          return { ...prev, [joinedProjectId]: updatedProject };
+        });
+      }
     },
-    [setTasks]
+    [setTasks, hydratedJoinedProjects]
   );
 
   const handleAddChildTask = (parentTask) => {
@@ -164,10 +194,14 @@ const TaskList = () => {
       if (!confirmed) return;
       await deleteTask(task);
 
+      // Invalidate joined project cache if this task belongs to one
+      const projectId = task.root_id || task.id;
+      invalidateJoinedProjectCache(projectId);
+
       if (selectedTask?.id === task.id) setSelectedTask(null);
       if (taskFormState?.taskId === task.id) setTaskFormState(null);
     },
-    [deleteTask, selectedTask, taskFormState]
+    [deleteTask, selectedTask, taskFormState, invalidateJoinedProjectCache]
   );
 
   const handleDeleteById = useCallback(
@@ -192,6 +226,16 @@ const TaskList = () => {
 
   const handleTaskSubmit = async (formData) => {
     await createTaskOrUpdate(formData, taskFormState);
+
+    // Invalidate joined project cache if editing/creating in a joined project
+    if (taskFormState?.parentId) {
+      const parentTask = getTaskById(taskFormState.parentId);
+      if (parentTask) {
+        const projectId = parentTask.root_id || parentTask.id;
+        invalidateJoinedProjectCache(projectId);
+      }
+    }
+
     setTaskFormState(null);
   };
 

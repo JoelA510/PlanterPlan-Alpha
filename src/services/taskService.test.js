@@ -88,7 +88,7 @@ describe('fetchMasterLibraryTasks', () => {
   });
 
   it('returns empty array when payload shape invalid', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
     const { client } = createMockClient({ data: [{ bad: 'record' }], error: null });
 
     const results = await fetchMasterLibraryTasks({}, client);
@@ -147,18 +147,17 @@ describe('deepCloneTask', () => {
     const mockRpc = jest.fn().mockResolvedValue({ data: {}, error: null });
     const client = { rpc: mockRpc };
 
-    // Pass empty overrides or undefined
+    // Pass empty overrides - these should NOT be sent to the RPC
     await deepCloneTask('t1', null, 'instance', 'u1', {}, client);
 
-    expect(mockRpc).toHaveBeenCalledWith(
-      'clone_project_template',
-      expect.objectContaining({
-        p_template_id: 't1',
-        p_user_id: 'u1',
-        p_title: null,
-        p_description: null,
-      })
-    );
+    // When no overrides are provided, only the required params should be sent
+    // p_title, p_description, p_start_date, p_due_date should be omitted (not null)
+    expect(mockRpc).toHaveBeenCalledWith('clone_project_template', {
+      p_template_id: 't1',
+      p_new_parent_id: null,
+      p_new_origin: 'instance',
+      p_user_id: 'u1',
+    });
   });
 
   it('throws error if RPC fails', async () => {
