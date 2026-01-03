@@ -72,8 +72,8 @@ TemplateList.propTypes = {
   selectedTaskId: PropTypes.string,
   handleTaskClick: PropTypes.func.isRequired,
   handleAddChildTask: PropTypes.func.isRequired,
-  handleEditTask: PropTypes.func.isRequired,
-  handleDeleteById: PropTypes.func.isRequired,
+  handleEditTask: PropTypes.func,
+  handleDeleteById: PropTypes.func,
   onNewTemplateClick: PropTypes.func.isRequired,
   hideExpansion: PropTypes.bool,
 };
