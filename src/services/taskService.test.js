@@ -88,7 +88,7 @@ describe('fetchMasterLibraryTasks', () => {
   });
 
   it('returns empty array when payload shape invalid', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const { client } = createMockClient({ data: [{ bad: 'record' }], error: null });
 
     const results = await fetchMasterLibraryTasks({}, client);

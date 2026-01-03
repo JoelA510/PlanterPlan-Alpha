@@ -47,9 +47,7 @@ const TaskList = () => {
 
   // --- Active Project Logic ---
   const [activeProjectId, setActiveProjectId] = useState(null);
-  // Cache for hydrated joined projects (with children loaded)
   const [hydratedJoinedProjects, setHydratedJoinedProjects] = useState({});
-  const [_loadingJoinedProject, setLoadingJoinedProject] = useState(false);
 
   const activeProject = useMemo(() => {
     if (!activeProjectId) return null;
@@ -80,7 +78,6 @@ const TaskList = () => {
       const alreadyHydrated = !!hydratedJoinedProjects[task.id];
 
       if (isJoinedProject && !alreadyHydrated) {
-        setLoadingJoinedProject(true);
         try {
           const descendants = await fetchTaskChildren(task.id);
           // Build tree from flat list (children of this project)
@@ -94,8 +91,6 @@ const TaskList = () => {
           }));
         } catch (err) {
           console.error('[TaskList] Failed to hydrate joined project:', err);
-        } finally {
-          setLoadingJoinedProject(false);
         }
       }
     },
@@ -204,15 +199,41 @@ const TaskList = () => {
     [deleteTask, selectedTask, taskFormState, invalidateJoinedProjectCache]
   );
 
+  // Helper to find a task in hydrated joined project trees
+  const findTaskInHydratedProjects = useCallback(
+    (taskId) => {
+      for (const projectId of Object.keys(hydratedJoinedProjects)) {
+        const project = hydratedJoinedProjects[projectId];
+        if (project.id === taskId) return project;
+        // Search recursively in children
+        const findInChildren = (children) => {
+          for (const child of children || []) {
+            if (child.id === taskId) return child;
+            const found = findInChildren(child.children);
+            if (found) return found;
+          }
+          return null;
+        };
+        const found = findInChildren(project.children);
+        if (found) return found;
+      }
+      return null;
+    },
+    [hydratedJoinedProjects]
+  );
+
   const handleDeleteById = useCallback(
     (taskId) => {
+      // Search owned tasks, top-level joined projects, then hydrated joined project children
       const task =
-        tasks.find((t) => t.id === taskId) || joinedProjects.find((t) => t.id === taskId);
+        tasks.find((t) => t.id === taskId) ||
+        joinedProjects.find((t) => t.id === taskId) ||
+        findTaskInHydratedProjects(taskId);
       if (task) {
         onDeleteTaskWrapper(task);
       }
     },
-    [tasks, joinedProjects, onDeleteTaskWrapper]
+    [tasks, joinedProjects, findTaskInHydratedProjects, onDeleteTaskWrapper]
   );
 
   const handleOpenInvite = (project) => {
@@ -227,8 +248,16 @@ const TaskList = () => {
   const handleTaskSubmit = async (formData) => {
     await createTaskOrUpdate(formData, taskFormState);
 
-    // Invalidate joined project cache if editing/creating in a joined project
-    if (taskFormState?.parentId) {
+    // Invalidate joined project cache if editing/creating in a joined project.
+    // We check multiple sources since the task might be in a joined project:
+    // 1. If activeProjectId is a joined project, invalidate it
+    // 2. If parentTask has a root_id pointing to a joined project, invalidate that
+    const isActiveJoinedProject =
+      activeProjectId && joinedProjects.some((jp) => jp.id === activeProjectId);
+    if (isActiveJoinedProject) {
+      invalidateJoinedProjectCache(activeProjectId);
+    } else if (taskFormState?.parentId) {
+      // Fallback: check if parent is in owned tasks and belongs to a joined project
       const parentTask = getTaskById(taskFormState.parentId);
       if (parentTask) {
         const projectId = parentTask.root_id || parentTask.id;
