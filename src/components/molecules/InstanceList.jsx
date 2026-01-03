@@ -10,8 +10,6 @@ const InstanceList = ({
   handleTaskClick,
   handleAddChildTask,
   handleOpenInvite,
-  handleEditTask: _handleEditTask,
-  handleDeleteById: _handleDeleteById,
   onNewProjectClick,
   hideExpansion = false,
 }) => {
@@ -75,8 +73,6 @@ InstanceList.propTypes = {
   handleTaskClick: PropTypes.func.isRequired,
   handleAddChildTask: PropTypes.func.isRequired,
   handleOpenInvite: PropTypes.func.isRequired,
-  handleEditTask: PropTypes.func.isRequired,
-  handleDeleteById: PropTypes.func.isRequired,
   onNewProjectClick: PropTypes.func.isRequired,
   hideExpansion: PropTypes.bool,
 };

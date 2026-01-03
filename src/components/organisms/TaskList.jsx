@@ -49,18 +49,24 @@ const TaskList = () => {
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [hydratedJoinedProjects, setHydratedJoinedProjects] = useState({});
 
+  // --- Derived State via Helper (must be before activeProject) ---
+  const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
+
   const activeProject = useMemo(() => {
     if (!activeProjectId) return null;
-    // Try owned tasks first (they have children from flat list + tree building in viewHelpers)
-    const ownedProject = tasks.find((t) => t.id === activeProjectId);
-    if (ownedProject) return ownedProject;
+    // Try owned instance projects first (hierarchical with children)
+    const ownedInstance = instanceTasks.find((t) => t.id === activeProjectId);
+    if (ownedInstance) return ownedInstance;
+    // Try owned template projects (hierarchical with children)
+    const ownedTemplate = templateTasks.find((t) => t.id === activeProjectId);
+    if (ownedTemplate) return ownedTemplate;
     // Then try hydrated joined projects (with fetched children)
     if (hydratedJoinedProjects[activeProjectId]) {
       return hydratedJoinedProjects[activeProjectId];
     }
     // Fallback to unhydrated joined project (will show loading state)
     return joinedProjects.find((t) => t.id === activeProjectId) || null;
-  }, [activeProjectId, tasks, joinedProjects, hydratedJoinedProjects]);
+  }, [activeProjectId, instanceTasks, templateTasks, joinedProjects, hydratedJoinedProjects]);
 
   const handleSelectProject = useCallback(
     async (project) => {
@@ -91,9 +97,6 @@ const TaskList = () => {
     },
     [joinedProjects, hydratedJoinedProjects]
   );
-
-  // --- Derived State via Helper ---
-  const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
   // --- Cache Invalidation ---
   // Invalidate a joined project's hydrated cache so it re-fetches on next click
@@ -321,8 +324,6 @@ const TaskList = () => {
           joinedError={joinedError}
           handleSelectProject={handleSelectProject}
           selectedTaskId={activeProjectId} // Highlight the active project in nav
-          handleEditTask={handleEditTask}
-          handleDeleteById={handleDeleteById}
           handleOpenInvite={handleOpenInvite}
           handleAddChildTask={handleAddChildTask}
           onNewProjectClick={() => {
@@ -422,6 +423,7 @@ const TaskList = () => {
             project={inviteModalProject}
             onClose={() => setInviteModalProject(null)}
             onInviteSuccess={() => {
+              // TODO: Replace with a toast notification for better UX
               alert('Invitation sent!');
               setInviteModalProject(null);
             }}

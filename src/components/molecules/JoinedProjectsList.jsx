@@ -7,8 +7,6 @@ const JoinedProjectsList = ({
   error,
   handleTaskClick,
   selectedTaskId,
-  handleEditTask: _handleEditTask,
-  handleDeleteById: _handleDeleteById,
   handleOpenInvite,
   hideExpansion = false,
 }) => {
@@ -55,8 +53,6 @@ JoinedProjectsList.propTypes = {
   error: PropTypes.string,
   handleTaskClick: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,
-  handleEditTask: PropTypes.func.isRequired,
-  handleDeleteById: PropTypes.func.isRequired,
   handleOpenInvite: PropTypes.func.isRequired,
   hideExpansion: PropTypes.bool,
 };

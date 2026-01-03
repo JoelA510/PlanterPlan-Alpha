@@ -11,8 +11,6 @@ const SideNav = ({
   joinedError,
   handleSelectProject,
   selectedTaskId,
-  handleEditTask,
-  handleDeleteById,
   handleOpenInvite,
   handleAddChildTask,
   onNewProjectClick,
@@ -31,8 +29,6 @@ const SideNav = ({
           handleTaskClick={handleSelectProject}
           handleAddChildTask={handleAddChildTask}
           handleOpenInvite={handleOpenInvite}
-          handleEditTask={handleEditTask}
-          handleDeleteById={handleDeleteById}
           onNewProjectClick={onNewProjectClick}
           hideExpansion={true}
         />
@@ -44,8 +40,6 @@ const SideNav = ({
           error={joinedError}
           handleTaskClick={handleSelectProject}
           selectedTaskId={selectedTaskId}
-          handleEditTask={handleEditTask}
-          handleDeleteById={handleDeleteById}
           handleOpenInvite={handleOpenInvite}
           hideExpansion={true}
         />
@@ -57,8 +51,8 @@ const SideNav = ({
           selectedTaskId={selectedTaskId}
           handleTaskClick={handleSelectProject}
           handleAddChildTask={handleAddChildTask}
-          handleEditTask={handleEditTask}
-          handleDeleteById={handleDeleteById}
+          handleEditTask={undefined}
+          handleDeleteById={undefined}
           onNewTemplateClick={onNewTemplateClick}
           hideExpansion={true}
         />
@@ -74,8 +68,6 @@ SideNav.propTypes = {
   joinedError: PropTypes.string,
   handleSelectProject: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,
-  handleEditTask: PropTypes.func.isRequired,
-  handleDeleteById: PropTypes.func.isRequired,
   handleOpenInvite: PropTypes.func.isRequired,
   handleAddChildTask: PropTypes.func.isRequired,
   onNewProjectClick: PropTypes.func.isRequired,
