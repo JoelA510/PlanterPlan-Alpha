@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { inviteMember, inviteMemberByEmail } from '../../services/projectService';
 
 const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
@@ -11,7 +12,12 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!userId.trim()) return;
+    console.log('[InviteMemberModal] Submitting invite for:', userId, 'Role:', role);
+
+    if (!userId.trim()) {
+      console.warn('[InviteMemberModal] User ID empty');
+      return;
+    }
 
     // Updated Logic: Check for Email OR UUID
     const isEmail = userId.includes('@');
@@ -39,9 +45,11 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
       const msg =
         inviteError.message ||
         (typeof inviteError === 'string' ? inviteError : JSON.stringify(inviteError));
+      console.error('[InviteMemberModal] Invite Failed:', msg);
       setError(msg || 'Failed to invite member (Unknown Error)');
       setIsSubmitting(false);
     } else {
+      console.log('[InviteMemberModal] Invite Success!');
       setIsSubmitting(false);
       setSuccess(true);
       if (onInviteSuccess) onInviteSuccess();
@@ -53,8 +61,21 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  return ReactDOM.createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      }}
+    >
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
         <h2 className="text-lg font-semibold text-slate-900">Invite Member</h2>
         <p className="mt-1 text-sm text-slate-500">
@@ -119,7 +140,8 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

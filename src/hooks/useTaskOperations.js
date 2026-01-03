@@ -86,7 +86,8 @@ export const useTaskOperations = () => {
 
         // If a template was selected, perform a deep clone (RPC)
         if (formData.templateId) {
-          await deepCloneTask(
+          // Deep clone (RPC)
+          const newTasks = await deepCloneTask(
             formData.templateId,
             null, // newParentId (null for root)
             'instance', // newOrigin
@@ -94,38 +95,39 @@ export const useTaskOperations = () => {
             {
               title: formData.title,
               description: formData.description,
-              // Note: purpose/actions are usually specific to the template or cleared.
-              // The RPC preserves them from template unless we add overrides for them too.
-              // Current RPC update only added title/desc/dates.
-              // If we needed to override purpose/actions/notes we'd need more params.
-              // Assuming acceptable behavior for now based on PR description "Atomic Deep Clone".
               start_date: projectStartDate,
               due_date: projectStartDate,
             }
           );
-          // No need to fetch/update root anymore.
+          await fetchTasks();
+          return newTasks; // Return the result (containing new_root_id)
         } else {
-          const { error: insertError } = await supabase.from('tasks').insert([
-            {
-              title: formData.title,
-              description: formData.description ?? null,
-              purpose: formData.purpose ?? null,
-              actions: formData.actions ?? null,
-              notes: formData.notes ?? null,
-              days_from_start: null,
-              origin: 'instance',
-              creator: user.id,
-              parent_task_id: null,
-              position: maxPosition + 1000,
-              is_complete: false,
-              start_date: projectStartDate,
-              due_date: projectStartDate,
-            },
-          ]);
-          if (insertError) throw insertError;
-        }
+          const { data, error: insertError } = await supabase
+            .from('tasks')
+            .insert([
+              {
+                title: formData.title,
+                description: formData.description ?? null,
+                purpose: formData.purpose ?? null,
+                actions: formData.actions ?? null,
+                notes: formData.notes ?? null,
+                days_from_start: null,
+                origin: 'instance',
+                creator: user.id,
+                parent_task_id: null,
+                position: maxPosition + 1000,
+                is_complete: false,
+                start_date: projectStartDate,
+                due_date: projectStartDate,
+              },
+            ])
+            .select()
+            .single();
 
-        await fetchTasks();
+          if (insertError) throw insertError;
+          await fetchTasks();
+          return data; // Return the new task object
+        }
       } catch (error) {
         console.error('Error creating project:', error);
         throw error;

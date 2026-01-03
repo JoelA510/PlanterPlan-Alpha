@@ -15,6 +15,7 @@ import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { separateTasksByOrigin } from '../../utils/viewHelpers';
 import { updateTaskInTree, buildTree } from '../../utils/treeHelpers';
 import { fetchTaskChildren } from '../../services/taskService';
+import { inviteMember } from '../../services/projectService';
 
 const TaskList = () => {
   const {
@@ -241,7 +242,20 @@ const TaskList = () => {
   };
 
   const handleProjectSubmit = async (formData) => {
-    await createProject(formData);
+    try {
+      const newProject = await createProject(formData);
+      // If we got a new project back (either object or deep clone result)
+      // We need to ensure the creator is added as a member for Edge Function checks.
+      if (newProject) {
+        const newProjectId = newProject.new_root_id || newProject.id;
+        if (newProjectId && currentUserId) {
+          console.log('[TaskList] Adding creator as member:', newProjectId, currentUserId);
+          await inviteMember(newProjectId, currentUserId, 'owner');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to create project:', err);
+    }
     setShowForm(false);
   };
 

@@ -516,3 +516,48 @@ This made it impossible to test logic without rendering the full UI.
 ### Critical Rule
 
 > **Extract Logic to Hooks.** If a component exceeds 500 lines or manages >3 distinct state concerns (e.g., Data, Dragging, Form visibility), extract the logic into custom hooks to verify them independently.
+
+---
+
+## [FE-022] Modal Portals for Stacking Context Isolation
+
+**Tags**: #react, #css, #modals, #z-index
+**Date**: 2026-01-03
+
+### Context & Problem
+
+The "Invite Member" modal was rendering at the bottom of the page instead of centered, despite having `position: fixed` and `z-index: 9999`. The modal was a child of a complex layout with CSS `transform` and `overflow: hidden` properties.
+
+**Result**: CSS `position: fixed` breaks when any ancestor has `transform`, `filter`, or `perspective` properties—this creates a new stacking context that traps the "fixed" element.
+
+### Solution & Pattern
+
+1. **React Portal**: Wrap modal content with `ReactDOM.createPortal(content, document.body)` to render it outside the DOM hierarchy entirely.
+2. **Inline Styles as Fallback**: When Tailwind classes don't apply correctly due to context, use inline `style={{ position: 'fixed', ... }}` to guarantee behavior.
+
+### Critical Rule
+
+> **Modals must portal to body.** Never render modals inside layout containers with `transform`, `overflow`, or `perspective`. Use `ReactDOM.createPortal` to escape the stacking context.
+
+---
+
+## [SEC-023] Project Membership Initialization
+
+**Tags**: #security, #rls, #edge-functions, #membership
+**Date**: 2026-01-03
+
+### Context & Problem
+
+The "Invite by Email" Edge Function returned 403 Forbidden for newly created projects, even when the logged-in user was the project creator.
+
+**Root Cause**: The Edge Function checks `project_members` table for authorization. Project creation only inserted into `tasks` table—the creator was never added to `project_members`. The function's permission check failed because the user had no membership row.
+
+### Solution & Pattern
+
+1. **Return Project ID**: Modified `createProject` in `useTaskOperations.js` to return the newly created project object (added `.select().single()` to the insert).
+2. **Auto-Add Member**: In `TaskList.jsx`, immediately call `inviteMember(projectId, userId, 'owner')` after project creation to populate `project_members`.
+
+### Critical Rule
+
+> **Creators must be members.** When an Edge Function or RLS policy checks a membership table for authorization, ensure the creation logic explicitly adds the creator to that table. Do not rely on implicit "owner" status from other columns.
+
