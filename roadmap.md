@@ -1,6 +1,6 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated:** 2026-01-02
+**Last Updated**: 2026-01-03
 **Current Focus:** Feature Parity & Structural Refinement
 
 ---
@@ -25,6 +25,7 @@ A chronological overview of the project's evolution from Day 1.
 | **Tree Optimization**    | Dec 2025     | **Performance & Stability**: Refactored `MasterLibraryList` with split effects and recursive state updates. Fixed deployment blockers.                                   |
 | **Workflow Audit**       | Jan 2026     | **Roadmap Alignment**: Caught up with `notion.md` requirements. Hardened RAG removal and modularized services.                                                           |
 | **Side Nav & Debt**      | Jan 2026     | **Navigation Overhaul**: Implemented persistent Side Navigation and refactored `TaskList` for modularity and performance.                                                |
+| **Mobile Polish**        | Jan 2026     | **Responsive UI**: Implemented mobile-responsive `DashboardLayout` with drawer navigation and light theme polish.                                                        |
 
 ---
 

@@ -42,12 +42,18 @@ PlanterPlan is a project management tool tailored for church planting. It allows
   docs/db/               # Database schemas and migrations
   supabase/functions/    # Edge Functions (Deno/TS)
   src/
-    components/          # React UI components (Atomic: atoms, molecules, organisms, templates)
-    contexts/            # React Contexts (Auth)
-    hooks/               # Custom Hooks (Task logic, DND)
-    services/            # Supabase API wrappers
-    styles/              # Global styles (Tailwind + Semantic vars)
-    utils/               # Helper logic (tree manipulation)
+    ├── components/
+    │   ├── atoms/          # Basic building blocks (Buttons, Inputs, Breadcrumbs)
+    │   ├── molecules/      # Compound components (TaskItem, ProjectHeader)
+    │   ├── organisms/      # Complex sections (SideNav, TaskList)
+    │   ├── templates/      # Page layouts (TaskDetailsView)
+    │   └── reports/        # Data visualization
+    ├── contexts/           # Global state (Auth, Toast)
+    ├── hooks/              # Custom React hooks (useTaskOperations)
+    ├── layouts/            # Page shells (DashboardLayout)
+    ├── services/           # API interaction layer
+    ├── styles/             # CSS modules and utilities
+    └── utils/              # Helper functions
     App.jsx              # Main routing and layout
     supabaseClient.js    # Supabase initialization
 ```
