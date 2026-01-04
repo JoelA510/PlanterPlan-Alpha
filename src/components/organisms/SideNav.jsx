@@ -17,6 +17,7 @@ const SideNav = ({
   onNewProjectClick,
   onNewTemplateClick,
   loading = false,
+  error = null,
   onNavClick, // Injected by DashboardLayout
 }) => {
   const { user, signOut } = useAuth();
@@ -79,6 +80,12 @@ const SideNav = ({
 
       {/* Main Navigation Lists (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar">
+        {error && (
+          <div className="p-3 mb-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+            ⚠️ {error}
+          </div>
+        )}
+
         <InstanceList
           tasks={instanceTasks}
           selectedTaskId={selectedTaskId}
@@ -131,6 +138,7 @@ SideNav.propTypes = {
   instanceTasks: PropTypes.array.isRequired,
   templateTasks: PropTypes.array.isRequired,
   joinedError: PropTypes.string,
+  error: PropTypes.string,
   handleSelectProject: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,
   onNewProjectClick: PropTypes.func.isRequired,

@@ -655,3 +655,10 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Context & Problem**: The application crashed on startup for some users because `SideNav` accessed `user.email[0]` without checking if `user.email` existed, leading to "Cannot read property '0' of undefined".
 - **Solution & Pattern**: Used optional chaining and fallback: `user?.email ? user.email[0] : '?'`.
 - **Critical Rule**: Never assume `user` or `user.email` is present; always provide fallbacks for initial/avatar generation.
+
+## [DB-027] Edge Function Auth Schema Access (PGRST106)
+- **Tags**: #database, #security, #rpc, #edge-functions
+- **Date**: 2026-01-03
+- **Context & Problem**: The generic Supabase client (even with Service Role) cannot query the `auth` schema directly via REST because PostgREST does not expose it (`PGRST106`). This caused Edge Functions to fail when trying to check if a user Email already existed in the system before inviting them.
+- **Solution & Pattern**: Create a Postgres Function (RPC) with `SECURITY DEFINER` that runs with escalated privileges to perform the specific lookup (`select id from auth.users...`) and expose *that function* to the API.
+- **Critical Rule**: Do not try to direct-query `auth.users` from the client; assume it is hidden. Wrap privileged lookups in a secure RPC.

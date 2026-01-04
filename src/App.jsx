@@ -61,6 +61,7 @@ const AppRoutes = () => {
         }
       />
       <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

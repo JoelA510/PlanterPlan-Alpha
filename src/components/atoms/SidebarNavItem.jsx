@@ -26,7 +26,8 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
-          handleClick(e);
+          e.preventDefault();
+          if (onClick) onClick(task);
         }
       }}
       title={task.title}

@@ -335,6 +335,7 @@ const TaskList = () => {
       instanceTasks={instanceTasks}
       templateTasks={templateTasks}
       joinedError={joinedError}
+      error={error}
       handleSelectProject={handleSelectProject}
       selectedTaskId={activeProjectId}
       loading={loading && instanceTasks.length === 0} // Show skeleton if loading initial data
