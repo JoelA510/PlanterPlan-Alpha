@@ -374,7 +374,7 @@ const TaskList = () => {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
       <DashboardLayout sidebar={sidebarContent}>
-        <div className="flex h-full gap-6">
+        <div className="flex h-full gap-8">
           {/* Project View Area - Flex 1 to take remaining space */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {!activeProject ? (

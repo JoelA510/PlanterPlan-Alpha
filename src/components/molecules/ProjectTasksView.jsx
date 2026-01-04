@@ -75,9 +75,9 @@ const ProjectTasksView = ({
   };
 
   return (
-    <div className="project-view-container p-6 w-full max-w-5xl mx-auto">
+    <div className="project-view-container px-8 py-6 w-full max-w-5xl mx-auto">
       {/* Replaces simple header with rich ProjectHeader */}
-      <div className="mr-8">
+      <div className="mb-6">
         <ProjectHeader project={project} onInviteMember={onInviteMember} />
       </div>
 
