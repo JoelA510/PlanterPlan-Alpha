@@ -662,3 +662,10 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Context & Problem**: The generic Supabase client (even with Service Role) cannot query the `auth` schema directly via REST because PostgREST does not expose it (`PGRST106`). This caused Edge Functions to fail when trying to check if a user Email already existed in the system before inviting them.
 - **Solution & Pattern**: Create a Postgres Function (RPC) with `SECURITY DEFINER` that runs with escalated privileges to perform the specific lookup (`select id from auth.users...`) and expose *that function* to the API.
 - **Critical Rule**: Do not try to direct-query `auth.users` from the client; assume it is hidden. Wrap privileged lookups in a secure RPC.
+
+## [CSS-028] The Cost of Manual Utility CSS
+- **Tags**: #css, #maintenance, #tailwind
+- **Date**: 2026-01-03
+- **Context & Problem**: The project uses a `globals.css` that *emulates* Tailwind but is manually maintained. Features built assuming standard Tailwind availability (e.g., `w-64`, `animate-pulse`) broke silently because those specific classes were missing from the manual file.
+- **Solution & Pattern**: We appended the specific missing classes to `globals.css`.
+- **Critical Rule**: If emulating a framework, you must rigorously audit used classes against available classes. Prefer migrating to the actual framework (Tailwind) to avoid "missing utility" regression.
