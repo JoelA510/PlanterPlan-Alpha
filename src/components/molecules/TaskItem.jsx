@@ -170,7 +170,7 @@ const TaskItem = React.memo(
                 <div className="expand-spacer"></div>
               )}
 
-              <div className="task-info flex items-center flex-1 min-w-0 mr-4">
+              <div className="task-info flex items-center gap-3 flex-1 min-w-0 mr-4">
                 <span
                   className="task-title truncate font-medium text-slate-800 text-sm"
                   title={task.title}
@@ -178,12 +178,12 @@ const TaskItem = React.memo(
                   {task.title}
                 </span>
                 {task.duration && (
-                  <span className="task-duration ml-3 text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 whitespace-nowrap flex-shrink-0">
+                  <span className="task-duration text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 whitespace-nowrap flex-shrink-0">
                     {task.duration}
                   </span>
                 )}
                 {task.resource_type && (
-                  <span className="ml-2 px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap flex-shrink-0">
+                  <span className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap flex-shrink-0">
                     {task.resource_type}
                   </span>
                 )}
