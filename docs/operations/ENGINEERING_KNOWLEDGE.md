@@ -669,3 +669,19 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Context & Problem**: The project uses a `globals.css` that *emulates* Tailwind but is manually maintained. Features built assuming standard Tailwind availability (e.g., `w-64`, `animate-pulse`) broke silently because those specific classes were missing from the manual file.
 - **Solution & Pattern**: We appended the specific missing classes to `globals.css`.
 - **Critical Rule**: If emulating a framework, you must rigorously audit used classes against available classes. Prefer migrating to the actual framework (Tailwind) to avoid "missing utility" regression.
+
+## [CSS-029] Responsive Utilities Verification
+- **Tags**: #css, #responsive, #tailwind
+- **Date**: 2026-01-03
+- **Context & Problem**: During adversarial testing, the sidebar failed to hide on mobile viewports (800px) despite having  classes. Because we use a manual CSS file, these media-query-specific utilities were missing.
+- **Solution & Pattern**: Manually implemented the  block with  and  overrides.
+- **Critical Rule**: Responsive modifiers (, ) are not magic; in a manual CSS setup, they must be explicitly defined in media queries. verify resizing behavior interactively.
+
+## [DATE-003] Dual-Mode Date Parsing Strategy
+- **Tags**: #dates, #javascript, #hybrid
+- **Date**: 2026-01-03
+- **Context & Problem**: The app consumes both strictly formatted "YYYY-MM-DD" dates (Project Start Date) and ISO timestamps (Created At). Using a single formatting strategy caused "Invalid Date" for one or offset errors for the other.
+- **Solution & Pattern**:  helper now detects the presence of Time () to branch logic:
+  - Has 'T': Parse as standard  (Local Time).
+  - No 'T': Parse as Manual UTC split ().
+- **Critical Rule**: Do not treat "Dates" and "Timestamps" as the same data type. Branch parsing logic based on input format to preserve semantic correctness.
