@@ -44,7 +44,7 @@ Check against `00-operating-principles.md` and `20-engineering-standards.md`:
 
 Create the standardized review report.
 
-1.  **Create Artifact**: Create/Overwrite `/home/joel/.gemini/antigravity/brain/4c247ba6-66cb-4ec8-845e-823cb16ae7fe/code_review.md`.
+1.  **Create Artifact**: Create/Overwrite `code_review_draft.md` in the project root (ensure it's in `.gitignore`).
 2.  **Content Format**:
 
 ```markdown
