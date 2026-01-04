@@ -128,15 +128,15 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
 
   return (
     <div className="detail-section">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="detail-section-title mb-0">Resources</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Resources</h3>
         {!isAdding && (
           <button
             type="button"
             onClick={() => setIsAdding(true)}
-            className="text-xs font-medium text-blue-600 hover:text-blue-800"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
           >
-            + Add Resource
+            + Add
           </button>
         )}
       </div>
@@ -146,14 +146,8 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
       {/* Resource List */}
       <div className="space-y-2 mb-4">
         {!loading && resources.length === 0 && !isAdding && (
-          <div className="text-center py-4 border border-dashed border-slate-200 rounded-lg bg-slate-50">
-            <p className="text-sm text-slate-500 mb-2">No resources attached yet.</p>
-            <button
-              onClick={() => setIsAdding(true)}
-              className="text-xs px-3 py-1.5 bg-white border border-slate-300 rounded text-blue-600 font-medium hover:bg-blue-50 transition-colors shadow-sm"
-            >
-              + Add First Resource
-            </button>
+          <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+            <p className="text-xs text-slate-400 mb-2">No resources yet.</p>
           </div>
         )}
 

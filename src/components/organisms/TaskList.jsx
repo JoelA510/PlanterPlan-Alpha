@@ -426,16 +426,19 @@ const TaskList = () => {
           {/* Show as slide-over/panel on desktop, fixed full screen or modal on mobile? */}
           {/* For now keeping as side panel but ensuring it fits in flex layout */}
           {(showForm || selectedTask || taskFormState) && (
-            <div className="w-[480px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-2xl z-10 h-full overflow-hidden transition-all duration-300">
+            <div className="w-[600px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-2xl z-10 h-full overflow-hidden transition-all duration-300">
               <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
-                <h2 className="font-bold text-lg text-slate-800 truncate pr-4">{panelTitle}</h2>
+                <h2 className="font-bold text-xl text-slate-800 truncate pr-4 leading-tight">
+                  {panelTitle}
+                </h2>
                 <button
                   onClick={() => {
                     setShowForm(false);
                     setTaskFormState(null);
                     setSelectedTask(null);
                   }}
-                  className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors"
+                  aria-label="Close panel"
                 >
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
@@ -447,7 +450,7 @@ const TaskList = () => {
                   </svg>
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white">
+              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-white">
                 {showForm ? (
                   <NewProjectForm
                     onSubmit={handleProjectSubmit}
