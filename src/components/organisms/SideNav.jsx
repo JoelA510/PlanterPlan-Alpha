@@ -4,6 +4,7 @@ import JoinedProjectsList from '../molecules/JoinedProjectsList';
 import InstanceList from '../molecules/InstanceList';
 import TemplateList from '../molecules/TemplateList';
 import { useAuth } from '../../contexts/AuthContext';
+import { ROLES } from '../../constants';
 import SidebarSkeleton from '../atoms/SidebarSkeleton';
 
 const SideNav = ({
@@ -19,7 +20,7 @@ const SideNav = ({
 }) => {
   const { user, signOut } = useAuth();
   // Simple check for admin role (assuming user.role exists from DB/Auth)
-  const isAdmin = user?.role === 'admin' || user?.email?.includes('@admin'); // Fallback logic if role missing
+  const isAdmin = user?.role === ROLES.ADMIN || user?.email?.includes('@admin'); // Fallback logic if role missing
 
   if (loading) {
     return (

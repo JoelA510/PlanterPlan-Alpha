@@ -37,7 +37,7 @@ const useMasterLibrarySearch = ({
       }));
 
       try {
-        const results = await searchMasterLibraryTasks({
+        const { data: results, error: searchError } = await searchMasterLibraryTasks({
           query: searchTerm,
           limit,
           resourceType,
@@ -48,8 +48,12 @@ const useMasterLibrarySearch = ({
           return;
         }
 
+        if (searchError) {
+          throw searchError; // Re-throw to hit catch block (or handle here directly)
+        }
+
         setState({
-          results,
+          results: results || [],
           isLoading: false,
           error: null,
         });

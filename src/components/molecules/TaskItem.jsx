@@ -10,13 +10,13 @@ import ErrorBoundary from '../atoms/ErrorBoundary';
 const getStatusStyle = (status) => {
   switch (status) {
     case 'complete':
-      return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      return 'status-badge-complete';
     case 'in_progress':
-      return 'bg-blue-100 text-blue-700 border-blue-200';
+      return 'status-badge-progress';
     case 'blocked':
-      return 'bg-rose-100 text-rose-700 border-rose-200';
+      return 'status-badge-blocked';
     default:
-      return 'bg-slate-100 text-slate-600 border-slate-200';
+      return 'status-badge-todo';
   }
 };
 
@@ -148,8 +148,9 @@ const TaskItem = React.memo(
               {showChevron ? (
                 <button
                   onClick={handleToggleExpandClick}
-                  className="expand-button"
-                  style={{ visibility: 'visible' }}
+                  className="expand-button p-2 -m-2 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                  style={{ visibility: 'visible', minWidth: '32px', minHeight: '32px' }}
+                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
                 >
                   <svg
                     className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
@@ -326,9 +327,11 @@ export const SortableTaskItem = React.memo(function SortableTaskItem({ task, lev
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging ? 0.8 : 1,
     position: 'relative',
     zIndex: isDragging ? 999 : 'auto',
+    boxShadow: isDragging ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' : 'none',
+    scale: isDragging ? 1.02 : 1,
   };
 
   return (

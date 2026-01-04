@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { inviteMember, inviteMemberByEmail } from '../../services/projectService';
+import { ROLES } from '../../constants';
 
 const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
   const [userId, setUserId] = useState('');
-  const [role, setRole] = useState('viewer');
+  const [role, setRole] = useState(ROLES.VIEWER);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -20,14 +21,16 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
     }
 
     // Updated Logic: Check for Email OR UUID
-    const isEmail = userId.includes('@');
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const UUID_REGEX =
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
-    if (!isEmail && !UUID_REGEX.test(userId)) {
+    if (!EMAIL_REGEX.test(userId) && !UUID_REGEX.test(userId)) {
       setError('Please enter a valid Email Address or UUID.');
       return;
     }
+
+    const isEmail = userId.includes('@');
 
     setIsSubmitting(true);
     setError(null);
@@ -110,8 +113,8 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
               onChange={(e) => setRole(e.target.value)}
               className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-select p-2 border"
             >
-              <option value="viewer">Viewer (Read-only)</option>
-              <option value="editor">Editor (Can edit tasks)</option>
+              <option value={ROLES.VIEWER}>Viewer (Read-only)</option>
+              <option value={ROLES.EDITOR}>Editor (Can edit tasks)</option>
             </select>
           </div>
 

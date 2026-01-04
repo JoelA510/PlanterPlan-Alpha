@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import { deepCloneTask, getTasksForUser } from '../services/taskService';
 import { getJoinedProjects } from '../services/projectService';
 import { calculateScheduleFromOffset, toIsoDate } from '../utils/dateUtils';
-import { POSITION_STEP } from '../services/positionService';
+import { POSITION_STEP } from '../constants';
 
 export const useTaskOperations = () => {
   const [tasks, setTasks] = useState([]);
@@ -43,9 +43,16 @@ export const useTaskOperations = () => {
       }
       setCurrentUserId(user.id);
 
-      const data = await getTasksForUser(user.id);
+      const { data, error: taskError } = await getTasksForUser(user.id);
 
       if (!isMountedRef.current) return [];
+
+      if (taskError) {
+        console.error('Error fetching tasks:', taskError);
+        setError('Failed to fetch tasks');
+        setTasks([]);
+        return [];
+      }
 
       const nextTasks = data || [];
       setTasks(nextTasks);
@@ -87,7 +94,7 @@ export const useTaskOperations = () => {
         // If a template was selected, perform a deep clone (RPC)
         if (formData.templateId) {
           // Deep clone (RPC)
-          const newTasks = await deepCloneTask(
+          const { data: newTasks, error: cloneError } = await deepCloneTask(
             formData.templateId,
             null, // newParentId (null for root)
             'instance', // newOrigin
@@ -99,6 +106,7 @@ export const useTaskOperations = () => {
               due_date: projectStartDate,
             }
           );
+          if (cloneError) throw cloneError;
           await fetchTasks();
           return newTasks; // Return the result (containing new_root_id)
         } else {
@@ -136,7 +144,7 @@ export const useTaskOperations = () => {
     [tasks, fetchTasks]
   );
 
-  const createTaskOrUpdate = useCallback(
+  const saveTask = useCallback(
     async (formData, formState) => {
       // Wraps both create and update logic for tasks
       try {
@@ -232,14 +240,11 @@ export const useTaskOperations = () => {
 
         if (formData.templateId) {
           // Deep clone (RPC)
-          const newTasks = await deepCloneTask(
+          const { data: newTasks, error: cloneError } = await deepCloneTask(
             formData.templateId,
             parentId,
             origin,
             user.id,
-            // Subtasks created from template usually inherit the template's relative schedule
-            // or if days_from_start is set we might want to apply it?
-            // The 'updates' below handled it.
             {
               title: formData.title,
               description: formData.description,
@@ -248,12 +253,10 @@ export const useTaskOperations = () => {
             }
           );
 
+          if (cloneError) throw cloneError;
+
           // newTasks is a summary object now with new_root_id.
           // We still need to apply 'days_from_start' logic if it wasn't passed to RPC.
-          // The updated RPC *doesn't* take 'days_from_start' override yet (only title/desc/dates).
-          // So if we have days_from_start, we STILL need to update.
-          // However, for Manual Dates, we passed them.
-
           if (
             newTasks &&
             newTasks.new_root_id &&
@@ -322,7 +325,7 @@ export const useTaskOperations = () => {
     currentUserId,
     fetchTasks,
     createProject,
-    createTaskOrUpdate,
+    saveTask,
     deleteTask,
   };
 };

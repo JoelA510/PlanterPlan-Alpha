@@ -6,6 +6,7 @@ import {
   setPrimaryResource,
 } from '../../services/taskResourcesService';
 import { supabase } from '../../supabaseClient';
+import { STORAGE_BUCKETS } from '../../constants';
 
 const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
   const [resources, setResources] = useState([]);
@@ -66,7 +67,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
           const fileName = `${taskId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
           const { error: uploadError } = await supabase.storage
-            .from('resources')
+            .from(STORAGE_BUCKETS.RESOURCES)
             .upload(fileName, fileData);
 
           if (uploadError) throw uploadError;
@@ -145,7 +146,15 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
       {/* Resource List */}
       <div className="space-y-2 mb-4">
         {!loading && resources.length === 0 && !isAdding && (
-          <p className="text-sm text-slate-400 italic">No resources attached.</p>
+          <div className="text-center py-4 border border-dashed border-slate-200 rounded-lg bg-slate-50">
+            <p className="text-sm text-slate-500 mb-2">No resources attached yet.</p>
+            <button
+              onClick={() => setIsAdding(true)}
+              className="text-xs px-3 py-1.5 bg-white border border-slate-300 rounded text-blue-600 font-medium hover:bg-blue-50 transition-colors shadow-sm"
+            >
+              + Add First Resource
+            </button>
+          </div>
         )}
 
         {resources.map((res) => {
@@ -161,13 +170,12 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
                   <span
                     className={`
                         text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border
-                        ${
-                          res.resource_type === 'url'
-                            ? 'bg-blue-50 text-blue-600 border-blue-200'
-                            : res.resource_type === 'pdf'
-                              ? 'bg-orange-100 text-orange-700 border-orange-200'
-                              : 'bg-slate-100 text-slate-600 border-slate-200'
-                        }
+                        ${res.resource_type === 'url'
+                        ? 'bg-blue-50 text-blue-600 border-blue-200'
+                        : res.resource_type === 'pdf'
+                          ? 'bg-orange-100 text-orange-700 border-orange-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }
                       `}
                   >
                     {res.resource_type}

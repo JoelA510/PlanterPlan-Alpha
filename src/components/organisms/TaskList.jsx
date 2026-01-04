@@ -5,6 +5,7 @@ import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from '../templates/TaskDetailsView';
 import InviteMemberModal from './InviteMemberModal';
+import { ROLES } from '../../constants';
 import ErrorBoundary from '../atoms/ErrorBoundary';
 import SideNav from './SideNav';
 import ProjectTasksView from '../molecules/ProjectTasksView';
@@ -30,7 +31,7 @@ const TaskList = () => {
     currentUserId,
     fetchTasks,
     createProject,
-    createTaskOrUpdate,
+    saveTask,
     deleteTask,
   } = useTaskOperations();
 
@@ -253,7 +254,7 @@ const TaskList = () => {
       if (newProject) {
         const newProjectId = newProject.new_root_id || newProject.id;
         if (newProjectId && currentUserId) {
-          await inviteMember(newProjectId, currentUserId, 'owner');
+          await inviteMember(newProjectId, currentUserId, ROLES.OWNER);
         }
       }
       addToast('Project created successfully!', 'success');
@@ -265,26 +266,32 @@ const TaskList = () => {
   };
 
   const handleTaskSubmit = async (formData) => {
-    await createTaskOrUpdate(formData, taskFormState);
+    try {
+      await saveTask(formData, taskFormState);
 
-    // Invalidate joined project cache if editing/creating in a joined project.
-    // We check multiple sources since the task might be in a joined project:
-    // 1. If activeProjectId is a joined project, invalidate it
-    // 2. If parentTask has a root_id pointing to a joined project, invalidate that
-    const isActiveJoinedProject =
-      activeProjectId && joinedProjects.some((jp) => jp.id === activeProjectId);
-    if (isActiveJoinedProject) {
-      invalidateJoinedProjectCache(activeProjectId);
-    } else if (taskFormState?.parentId) {
-      // Fallback: check if parent is in owned tasks and belongs to a joined project
-      const parentTask = getTaskById(taskFormState.parentId);
-      if (parentTask) {
-        const projectId = parentTask.root_id || parentTask.id;
-        invalidateJoinedProjectCache(projectId);
+      // Invalidate joined project cache if editing/creating in a joined project.
+      // We check multiple sources since the task might be in a joined project:
+      // 1. If activeProjectId is a joined project, invalidate it
+      // 2. If parentTask has a root_id pointing to a joined project, invalidate that
+      const isActiveJoinedProject =
+        activeProjectId && joinedProjects.some((jp) => jp.id === activeProjectId);
+      if (isActiveJoinedProject) {
+        invalidateJoinedProjectCache(activeProjectId);
+      } else if (taskFormState?.parentId) {
+        // Fallback: check if parent is in owned tasks and belongs to a joined project
+        const parentTask = getTaskById(taskFormState.parentId);
+        if (parentTask) {
+          const projectId = parentTask.root_id || parentTask.id;
+          invalidateJoinedProjectCache(projectId);
+        }
       }
-    }
 
-    setTaskFormState(null);
+      setTaskFormState(null);
+      addToast('Task saved successfully', 'success');
+    } catch (err) {
+      console.error('Failed to save task:', err);
+      addToast('Failed to save task. Please try again.', 'error');
+    }
   };
 
   // --- Render Helpers ---

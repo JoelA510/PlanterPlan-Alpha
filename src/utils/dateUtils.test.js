@@ -54,17 +54,18 @@ describe('calculateScheduleFromOffset', () => {
 
 describe('toIsoDate', () => {
   it('converts yyyy-mm-dd to UTC midnight ISO', () => {
-    expect(toIsoDate('2025-02-01')).toBe('2025-02-01T00:00:00.000Z');
+    // New behavior: returns YYYY-MM-DD part only to avoid timezone shifts
+    expect(toIsoDate('2025-02-01')).toBe('2025-02-01');
   });
 
   it('returns null for empty values', () => {
-    expect(toIsoDate('')).toBeNull();
     expect(toIsoDate(null)).toBeNull();
+    expect(toIsoDate('')).toBeNull();
   });
 
-  it('passes through ISO strings unchanged', () => {
+  it('truncates ISO strings to YYYY-MM-DD', () => {
     const value = '2025-03-10T00:00:00.000Z';
-    expect(toIsoDate(value)).toBe(value);
+    expect(toIsoDate(value)).toBe('2025-03-10');
   });
 
   it('returns null for invalid inputs', () => {

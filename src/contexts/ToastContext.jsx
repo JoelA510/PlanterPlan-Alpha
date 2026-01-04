@@ -31,7 +31,7 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      <div className="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 pointer-events-none">
         <AnimatePresence>
           {toasts.map((toast) => (
             <motion.div
@@ -44,12 +44,11 @@ export const ToastProvider = ({ children }) => {
               className={`
                 pointer-events-auto cursor-pointer rounded-lg px-4 py-3 shadow-lg text-sm font-medium
                 transform transition-all duration-300 hover:scale-105 active:scale-95
-                ${
-                  toast.type === 'success'
-                    ? 'bg-green-500 text-white'
-                    : toast.type === 'error'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-gray-800 text-white'
+                ${toast.type === 'success'
+                  ? 'bg-green-500 text-white'
+                  : toast.type === 'error'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-gray-800 text-white'
                 }
               `}
             >

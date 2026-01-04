@@ -41,6 +41,48 @@
 
   --duration-fast: 150ms;
   --duration-medium: 300ms;
+
+  /* Status Colors */
+  --status-complete-bg: #d1fae5;
+  --status-complete-text: #047857;
+  --status-complete-border: #a7f3d0;
+
+  --status-progress-bg: #dbeafe;
+  --status-progress-text: #1d4ed8;
+  --status-progress-border: #bfdbfe;
+
+  --status-blocked-bg: #ffe4e6;
+  --status-blocked-text: #be123c;
+  --status-blocked-border: #fecdd3;
+
+  --status-todo-bg: #f1f5f9;
+  --status-todo-text: #475569;
+  --status-todo-border: #e2e8f0;
+}
+
+/* Status Utilities */
+.status-badge-complete {
+  background-color: var(--status-complete-bg);
+  color: var(--status-complete-text);
+  border-color: var(--status-complete-border);
+}
+
+.status-badge-progress {
+  background-color: var(--status-progress-bg);
+  color: var(--status-progress-text);
+  border-color: var(--status-progress-border);
+}
+
+.status-badge-blocked {
+  background-color: var(--status-blocked-bg);
+  color: var(--status-blocked-text);
+  border-color: var(--status-blocked-border);
+}
+
+.status-badge-todo {
+  background-color: var(--status-todo-bg);
+  color: var(--status-todo-text);
+  border-color: var(--status-todo-border);
 }
 
 * {
@@ -696,15 +738,28 @@ input[type='text']:focus {
     padding-right: 2rem;
   }
 
-  .lg\:hidden {
-    display: none;
-  }
-
-  .lg\:flex {
-    display: flex;
-  }
-
   .lg\:flex-shrink-0 {
     flex-shrink: 0;
+  }
+}
+
+/* =====================================================
+     11. PRINT STYLES
+     ===================================================== */
+@media print {
+
+  .no-print,
+  button,
+  .sidebar,
+  nav {
+    display: none !important;
+  }
+
+  body {
+    background-color: white;
+  }
+
+  .print\:p-0 {
+    padding: 0 !important;
   }
 }

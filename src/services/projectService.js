@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { ROLES } from '../constants';
 
 export const getJoinedProjects = async (userId, client = supabase) => {
   try {
@@ -34,7 +35,7 @@ export const getJoinedProjects = async (userId, client = supabase) => {
       const membership = memberships.find((m) => m.project_id === project.id);
       return {
         ...project,
-        membership_role: membership?.role || 'viewer',
+        membership_role: membership?.role || ROLES.VIEWER,
       };
     });
 
@@ -45,7 +46,7 @@ export const getJoinedProjects = async (userId, client = supabase) => {
   }
 };
 
-export const inviteMember = async (projectId, userId, role = 'viewer', client = supabase) => {
+export const inviteMember = async (projectId, userId, role = ROLES.VIEWER, client = supabase) => {
   try {
     // Check if membership already exists?
     // Depending on RLS and constraints, we might just upsert or insert.
@@ -74,7 +75,7 @@ export const inviteMember = async (projectId, userId, role = 'viewer', client = 
   }
 };
 
-export const inviteMemberByEmail = async (projectId, email, role = 'viewer', client = supabase) => {
+export const inviteMemberByEmail = async (projectId, email, role = ROLES.VIEWER, client = supabase) => {
   try {
     const { data, error } = await client.functions.invoke('invite-by-email', {
       body: { projectId, email, role },
