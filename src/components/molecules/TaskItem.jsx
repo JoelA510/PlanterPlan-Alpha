@@ -124,14 +124,14 @@ const TaskItem = React.memo(
     return (
       <>
         <div
-          className={`task-card level-${level} ${isSelected ? 'selected' : ''}`}
+          className={`task-card level-${level} ${isSelected ? 'selected' : ''} py-4 px-5 mb-3`}
           style={{ marginLeft: `${indentWidth}px` }}
           onClick={handleCardClick}
         >
           <div className="task-card-content">
-            <div className="task-card-left">
+            <div className="task-card-left flex-1 min-w-0 mr-4">
               <button
-                className="drag-handle-btn"
+                className="drag-handle-btn mr-2"
                 type="button"
                 aria-label="Reorder task"
                 ref={dragHandleProps?.ref}
@@ -170,11 +170,17 @@ const TaskItem = React.memo(
                 <div className="expand-spacer"></div>
               )}
 
-              <div className="task-info flex items-center">
-                <span className="task-title">{task.title}</span>
-                {task.duration && <span className="task-duration">{task.duration}</span>}
+              <div className="task-info flex items-center flex-1 min-w-0 overflow-hidden">
+                <span className="task-title truncate font-medium text-slate-800 text-sm">
+                  {task.title}
+                </span>
+                {task.duration && (
+                  <span className="task-duration ml-3 text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 whitespace-nowrap">
+                    {task.duration}
+                  </span>
+                )}
                 {task.resource_type && (
-                  <span className="ml-2 px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-slate-100 text-slate-500 border border-slate-200">
+                  <span className="ml-3 px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-slate-100 text-slate-500 border border-slate-200 whitespace-nowrap flex-shrink-0">
                     {task.resource_type}
                   </span>
                 )}

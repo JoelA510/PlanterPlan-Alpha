@@ -395,10 +395,16 @@ const TaskList = () => {
                   </svg>
                 </div>
                 <h2 className="text-xl font-semibold mb-2 text-slate-700">No Project Selected</h2>
-                <p className="max-w-md text-center">
-                  Select a project from the sidebar to view tasks, or create a new one to get
-                  started.
-                </p>
+                <p className="max-w-md text-center mb-6">Select a project to view tasks.</p>
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setSelectedTask(null);
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm font-medium"
+                >
+                  Create New Project
+                </button>
               </div>
             ) : (
               <ProjectTasksView
@@ -420,18 +426,18 @@ const TaskList = () => {
           {/* Show as slide-over/panel on desktop, fixed full screen or modal on mobile? */}
           {/* For now keeping as side panel but ensuring it fits in flex layout */}
           {(showForm || selectedTask || taskFormState) && (
-            <div className="w-96 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-lg rounded-l-xl h-full overflow-hidden">
-              <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h2 className="font-semibold text-slate-800 truncate">{panelTitle}</h2>
+            <div className="w-[480px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-2xl z-10 h-full overflow-hidden transition-all duration-300">
+              <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
+                <h2 className="font-bold text-lg text-slate-800 truncate pr-4">{panelTitle}</h2>
                 <button
                   onClick={() => {
                     setShowForm(false);
                     setTaskFormState(null);
                     setSelectedTask(null);
                   }}
-                  className="text-slate-400 hover:text-slate-600"
+                  className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -441,7 +447,7 @@ const TaskList = () => {
                   </svg>
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white">
                 {showForm ? (
                   <NewProjectForm
                     onSubmit={handleProjectSubmit}
