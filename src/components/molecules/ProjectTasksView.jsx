@@ -20,6 +20,7 @@ const ProjectTasksView = ({
   onToggleExpand,
   disableDrag = false,
   hydrationError = null,
+  onInviteMember,
 }) => {
   const { setNodeRef } = useDroppable({
     id: `project-view-${project.id}`,
@@ -76,7 +77,7 @@ const ProjectTasksView = ({
   return (
     <div className="project-view-container p-6 w-full max-w-5xl mx-auto">
       {/* Replaces simple header with rich ProjectHeader */}
-      <ProjectHeader project={project} />
+      <ProjectHeader project={project} onInviteMember={onInviteMember} />
 
       {/* Action Bar (Below Header) */}
       <div className="mb-6 flex space-x-2">
@@ -127,6 +128,7 @@ ProjectTasksView.propTypes = {
   onToggleExpand: PropTypes.func,
   disableDrag: PropTypes.bool,
   hydrationError: PropTypes.string,
+  onInviteMember: PropTypes.func, // Optional, for invite flow
 };
 
 export default ProjectTasksView;

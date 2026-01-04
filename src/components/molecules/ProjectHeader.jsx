@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Breadcrumbs } from '../atoms/Breadcrumbs';
 
-const ProjectHeader = ({ project }) => {
+const ProjectHeader = ({ project, onInviteMember }) => {
   // Update document title for SEO/UX
   useEffect(() => {
     if (project?.title) {
@@ -30,31 +30,35 @@ const ProjectHeader = ({ project }) => {
           {/* Status Badge */}
           <span
             className={`px-3 py-1 rounded-full text-xs font-medium border
-            ${
-              project.status === 'active'
+            ${project.status === 'active'
                 ? 'bg-green-50 text-green-700 border-green-200'
                 : project.status === 'archived'
                   ? 'bg-slate-100 text-slate-600 border-slate-200'
                   : 'bg-blue-50 text-blue-700 border-blue-200'
-            }`}
+              }`}
           >
             {project.status || 'Active'}
           </span>
 
-          {/* Simple Member Count or Avatars if available */}
-          {/* Assuming project.members is populated or we use a placeholder */}
-          <div className="flex -space-x-2">
+          {/* Member Avatars & Invite */}
+          <div className="flex -space-x-2 mr-2">
             <div
               className="h-8 w-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-xs font-bold text-slate-600"
               title="Project Owner"
             >
               OWN
             </div>
-            {/* Placeholder for other members */}
-            <div className="h-8 w-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-xs text-slate-400">
-              +
-            </div>
           </div>
+
+          {onInviteMember && (
+            <button
+              onClick={onInviteMember}
+              className="flex items-center text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full px-3 py-1 transition-colors border border-blue-200"
+              title="Invite Member"
+            >
+              <span className="mr-1 text-lg font-bold leading-none">+</span> Invite
+            </button>
+          )}
         </div>
       </div>
     </div>

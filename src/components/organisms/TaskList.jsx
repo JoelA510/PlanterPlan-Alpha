@@ -411,6 +411,7 @@ const TaskList = () => {
                 onToggleExpand={handleToggleExpand}
                 disableDrag={joinedProjects.some((jp) => jp.id === activeProjectId)}
                 hydrationError={hydrationError}
+                onInviteMember={() => handleOpenInvite(activeProject)}
               />
             )}
           </div>
