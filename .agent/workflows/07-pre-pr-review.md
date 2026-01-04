@@ -85,4 +85,4 @@ If issues are found:
 
 1.  Fix them immediately in the branch.
 2.  Re-run Verification (Step 2).
-3.  Update the `code_review.md` artifact.
+3.  Update the `code_review_draft.md` artifact.
