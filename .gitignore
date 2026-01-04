@@ -46,3 +46,4 @@ supabase/.temp/
 # Recovery & One-time Scripts
 docs/db/seed_recovery.sql
 scripts/recover_db.js
+feedback.md

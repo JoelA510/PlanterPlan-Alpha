@@ -560,4 +560,3 @@ The "Invite by Email" Edge Function returned 403 Forbidden for newly created pro
 ### Critical Rule
 
 > **Creators must be members.** When an Edge Function or RLS policy checks a membership table for authorization, ensure the creation logic explicitly adds the creator to that table. Do not rely on implicit "owner" status from other columns.
-

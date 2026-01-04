@@ -1,6 +1,7 @@
 ---
 description: Pre-PR documentation update - updates README, roadmap, PR description, and engineering knowledge
 ---
+
 // turbo-all
 
 # Pre-PR Documentation Workflow
@@ -14,6 +15,7 @@ This workflow updates all project documentation before creating a Pull Request. 
 Before making any updates, collect the information needed:
 
 1. **Get the Git diff summary**:
+
    ```bash
    git diff --stat HEAD~10
    git log --oneline -10
@@ -88,6 +90,7 @@ Generate the PR description using the template in PR-PROMPT.md:
 5. **Verification Plan**: Step-by-step test instructions
 
 ### Required Input Data:
+
 - Git diff: `git diff main...HEAD --stat`
 - Changed files: `git diff main...HEAD --name-only`
 - Commit messages: `git log main...HEAD --oneline`
@@ -111,9 +114,9 @@ Generate the PR description using the template in PR-PROMPT.md:
 
 ## Quick Reference
 
-| Document | When to Update | Prompt File |
-|----------|----------------|-------------|
-| `ENGINEERING_KNOWLEDGE.md` | Bugs fixed, patterns learned | N/A (follow existing format) |
-| `roadmap.md` | Features completed/started | `docs/operations/ROADMAP-PROMPT.md` |
-| `README.md` | Structure/architecture changes | `docs/operations/README-PROMPT.md` |
-| `PR_DESCRIPTION_DRAFT.md` | Every PR | `docs/git_documentation/PR-PROMPT.md` |
+| Document                   | When to Update                 | Prompt File                           |
+| -------------------------- | ------------------------------ | ------------------------------------- |
+| `ENGINEERING_KNOWLEDGE.md` | Bugs fixed, patterns learned   | N/A (follow existing format)          |
+| `roadmap.md`               | Features completed/started     | `docs/operations/ROADMAP-PROMPT.md`   |
+| `README.md`                | Structure/architecture changes | `docs/operations/README-PROMPT.md`    |
+| `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `docs/git_documentation/PR-PROMPT.md` |

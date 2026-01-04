@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import SidebarNavItem from '../atoms/SidebarNavItem';
 
-const TemplateList = ({ tasks, selectedTaskId, handleTaskClick, onNewTemplateClick }) => {
+const TemplateList = ({ tasks, selectedTaskId, handleTaskClick }) => {
   return (
     <div className="task-section">
       <div className="section-header">
