@@ -1068,3 +1068,16 @@ input[type='text']:focus {
 .border-purple-100 {
   border-color: #f3e8ff;
 }
+
+.pt-8 {
+  padding-top: 2rem;
+}
+.pb-6 {
+  padding-bottom: 1.5rem;
+}
+.items-start {
+  align-items: flex-start;
+}
+.gap-1 {
+  gap: 0.25rem;
+}
