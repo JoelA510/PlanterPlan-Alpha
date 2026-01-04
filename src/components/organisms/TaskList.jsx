@@ -249,7 +249,7 @@ const TaskList = () => {
       if (newProject) {
         const newProjectId = newProject.new_root_id || newProject.id;
         if (newProjectId && currentUserId) {
-          console.log('[TaskList] Adding creator as member:', newProjectId, currentUserId);
+          // console.log('[TaskList] Adding creator as member:', newProjectId, currentUserId);
           await inviteMember(newProjectId, currentUserId, 'owner');
         }
       }
