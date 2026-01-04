@@ -1,23 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useDroppable } from '@dnd-kit/core';
-import { SortableTaskItem } from '../molecules/TaskItem';
+import SidebarNavItem from '../atoms/SidebarNavItem';
 
-const InstanceList = ({
-  tasks,
-  selectedTaskId,
-  handleTaskClick,
-  handleAddChildTask,
-  handleOpenInvite,
-  onNewProjectClick,
-  hideExpansion = false,
-}) => {
-  const { setNodeRef } = useDroppable({
-    id: 'drop-root-instance',
-    data: { type: 'container', parentId: null, origin: 'instance' },
-  });
-
+const InstanceList = ({ tasks, selectedTaskId, handleTaskClick, onNewProjectClick }) => {
   return (
     <div className="task-section">
       <div className="section-header">
@@ -33,32 +18,19 @@ const InstanceList = ({
         </button>
       </div>
       {tasks.length > 0 ? (
-        <SortableContext
-          items={tasks.map((t) => t.id)}
-          strategy={verticalListSortingStrategy}
-          id="root-instance"
-        >
-          <div ref={setNodeRef} className="task-cards-container">
-            {tasks.map((project) => (
-              <SortableTaskItem
-                key={project.id}
-                task={project}
-                level={0}
-                onTaskClick={handleTaskClick}
-                selectedTaskId={selectedTaskId}
-                onAddChildTask={handleAddChildTask}
-                onInviteMember={handleOpenInvite}
-                hideExpansion={hideExpansion}
-              />
-            ))}
-          </div>
-        </SortableContext>
+        <div className="sidebar-nav-list">
+          {tasks.map((project) => (
+            <SidebarNavItem
+              key={project.id}
+              task={project}
+              isSelected={selectedTaskId === project.id}
+              onClick={handleTaskClick}
+            />
+          ))}
+        </div>
       ) : (
-        <div
-          ref={setNodeRef}
-          className="text-sm text-slate-500 px-4 py-8 border border-dashed border-slate-200 rounded-lg"
-        >
-          No active projects yet. Use "New Project" to get started.
+        <div className="text-sm text-slate-400 px-3 py-4">
+          No active projects yet. Click "New Project" to get started.
         </div>
       )}
     </div>
@@ -69,10 +41,7 @@ InstanceList.propTypes = {
   tasks: PropTypes.array.isRequired,
   selectedTaskId: PropTypes.string,
   handleTaskClick: PropTypes.func.isRequired,
-  handleAddChildTask: PropTypes.func.isRequired,
-  handleOpenInvite: PropTypes.func.isRequired,
   onNewProjectClick: PropTypes.func.isRequired,
-  hideExpansion: PropTypes.bool,
 };
 
 export default InstanceList;

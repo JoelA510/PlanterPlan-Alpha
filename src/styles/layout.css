@@ -147,6 +147,46 @@
   /* Hide extra details in sidebar */
 }
 
+/* Sidebar Navigation Item - Lightweight nav links */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.sidebar-nav-item:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.2);
+  transform: translateX(4px);
+}
+
+.sidebar-nav-item.selected {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav-item-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
 /* Main Content Area */
 .main-content {
   flex: 1;

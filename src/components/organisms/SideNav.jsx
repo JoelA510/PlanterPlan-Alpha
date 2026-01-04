@@ -11,8 +11,6 @@ const SideNav = ({
   joinedError,
   handleSelectProject,
   selectedTaskId,
-  handleOpenInvite,
-  handleAddChildTask,
   onNewProjectClick,
   onNewTemplateClick,
 }) => {
@@ -27,10 +25,7 @@ const SideNav = ({
           tasks={instanceTasks}
           selectedTaskId={selectedTaskId}
           handleTaskClick={handleSelectProject}
-          handleAddChildTask={handleAddChildTask}
-          handleOpenInvite={handleOpenInvite}
           onNewProjectClick={onNewProjectClick}
-          hideExpansion={true}
         />
 
         <div className="side-nav-divider"></div>
@@ -40,8 +35,6 @@ const SideNav = ({
           error={joinedError}
           handleTaskClick={handleSelectProject}
           selectedTaskId={selectedTaskId}
-          handleOpenInvite={handleOpenInvite}
-          hideExpansion={true}
         />
 
         <div className="side-nav-divider"></div>
@@ -50,11 +43,7 @@ const SideNav = ({
           tasks={templateTasks}
           selectedTaskId={selectedTaskId}
           handleTaskClick={handleSelectProject}
-          handleAddChildTask={handleAddChildTask}
-          handleEditTask={undefined}
-          handleDeleteById={undefined}
           onNewTemplateClick={onNewTemplateClick}
-          hideExpansion={true}
         />
       </div>
     </div>
@@ -68,8 +57,6 @@ SideNav.propTypes = {
   joinedError: PropTypes.string,
   handleSelectProject: PropTypes.func.isRequired,
   selectedTaskId: PropTypes.string,
-  handleOpenInvite: PropTypes.func.isRequired,
-  handleAddChildTask: PropTypes.func.isRequired,
   onNewProjectClick: PropTypes.func.isRequired,
   onNewTemplateClick: PropTypes.func.isRequired,
 };
