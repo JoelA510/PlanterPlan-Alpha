@@ -78,6 +78,7 @@ export const inviteMemberByEmail = async (projectId, email, role = 'viewer', cli
   try {
     const { data, error } = await client.functions.invoke('invite-by-email', {
       body: { projectId, email, role },
+      method: 'POST',
     });
 
     if (error) {

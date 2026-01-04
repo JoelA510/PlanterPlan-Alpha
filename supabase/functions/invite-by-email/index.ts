@@ -2,17 +2,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 serve(async (req) => {
-  const configAppOrigin = Deno.env.get('APP_ORIGIN');
-  const reqOrigin = req.headers.get('Origin');
-
-  // Allow localhost for dev, plus the configured production origin
-  const isAllowed = reqOrigin === 'http://localhost:3000' || reqOrigin === configAppOrigin;
-  const corsOrigin = isAllowed ? reqOrigin : configAppOrigin || 'http://localhost:3000';
-
   const corsHeaders = {
-    'Access-Control-Allow-Origin': corsOrigin,
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    Vary: 'Origin',
   };
 
   // 1. Handle CORS Preflight

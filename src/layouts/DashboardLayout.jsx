@@ -74,10 +74,7 @@ const DashboardLayout = ({ children, sidebar }) => {
 
         {/* Main Scrollable Content */}
         <main className="flex-1 overflow-y-auto focus:outline-none relative">
-          {/* Constrained Container */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full h-full flex flex-col">
-            {children}
-          </div>
+          <div className="w-full h-full flex flex-col px-4 sm:px-6 lg:px-8 py-8">{children}</div>
         </main>
       </div>
     </div>

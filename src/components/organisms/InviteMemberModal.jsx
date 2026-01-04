@@ -62,21 +62,15 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
   };
 
   return ReactDOM.createPortal(
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      }}
-    >
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Modal Content */}
+      <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl transform transition-all">
         <h2 className="text-lg font-semibold text-slate-900">Invite Member</h2>
         <p className="mt-1 text-sm text-slate-500">
           Invite a user to <strong>{project.title}</strong>
@@ -99,7 +93,7 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
               id="userId"
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-input"
+              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-input p-2 border"
               placeholder="user@example.com or UUID"
               required
             />
@@ -114,7 +108,7 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
               id="role"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-select"
+              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-select p-2 border"
             >
               <option value="viewer">Viewer (Read-only)</option>
               <option value="editor">Editor (Can edit tasks)</option>

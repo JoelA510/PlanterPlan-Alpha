@@ -32,8 +32,14 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
       title={task.title}
     >
       <div className={statusClass}></div>
-      <span className="sidebar-nav-item-title">{task.title}</span>
-      {showRole && task.membership_role && <RoleIndicator role={task.membership_role} />}
+      <div className="flex-1 min-w-0 flex items-center justify-between">
+        <span className="sidebar-nav-item-title truncate">{task.title}</span>
+        {showRole && task.membership_role && (
+          <div className="ml-2 flex-shrink-0">
+            <RoleIndicator role={task.membership_role} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
