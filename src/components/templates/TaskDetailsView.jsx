@@ -3,13 +3,20 @@ import TaskResources from '../molecules/TaskResources';
 
 const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated }) => {
   // Format date for display
-  const formatDate = (date) => {
-    if (!date) return 'Not set';
-    return new Date(date).toLocaleDateString('en-US', {
+  // Format date for display (UTC-aware to prevent timezone shifts)
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'Not set';
+    // dateStr is YYYY-MM-DD. Parse as UTC.
+    // We can just split the string since it is strictly formatted.
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(Date.UTC(year, month - 1, day));
+
+    return date.toLocaleDateString('en-US', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+      timeZone: 'UTC', // Critical: Force UTC timezone for display
     });
   };
 

@@ -14,28 +14,15 @@ export const useTaskOperations = () => {
   const [currentUserId, setCurrentUserId] = useState(null);
   const isMountedRef = useRef(false);
 
-  // --- Helpers ---
-
-  // Note: Date Ownership Architecture
-  // 1. DB Triggers (SOURCE OF TRUTH): Handle 'rollup' logic. If a child task moves, the parent's start/end/duration
-  //    are automatically recalculated by PostgreSQL triggers (`update_parent_dates`).
-  // 2. Client (OPTIMISTIC / SHIFTING): `days_from_start` logic below is used to explicitly Calculate
-  //    new dates when a user changes the offset. We send these specific dates to the DB.
-  //    We DO NOT rely on the client to roll up dates to parents; we only calculate the specific task's schedule.
-
   const fetchTasks = useCallback(async () => {
     if (!isMountedRef.current) return [];
-
     setLoading(true);
     setError(null);
-
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-
       if (!isMountedRef.current) return [];
-
       if (!user) {
         setError('User not authenticated');
         setTasks([]);
@@ -44,7 +31,6 @@ export const useTaskOperations = () => {
       setCurrentUserId(user.id);
 
       const { data, error: taskError } = await getTasksForUser(user.id);
-
       if (!isMountedRef.current) return [];
 
       if (taskError) {
@@ -57,18 +43,15 @@ export const useTaskOperations = () => {
       const nextTasks = data || [];
       setTasks(nextTasks);
 
-      // Fetch joined projects
       const { data: joinedData, error: joinedProjectError } = await getJoinedProjects(user.id);
       if (isMountedRef.current) {
-        if (joinedProjectError) {
-          setJoinedError('Failed to load joined projects');
-        }
+        if (joinedProjectError) setJoinedError('Failed to load joined projects');
         setJoinedProjects(joinedData || []);
       }
-
       return nextTasks;
     } catch (err) {
       if (!isMountedRef.current) return [];
+      console.error('Fetch tasks exception:', err);
       setError('Failed to fetch tasks');
       return [];
     } finally {
@@ -83,21 +66,17 @@ export const useTaskOperations = () => {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated');
-
         const instanceTasks = tasks.filter((t) => t.origin === 'instance' && !t.parent_task_id);
         const maxPosition =
           instanceTasks.length > 0 ? Math.max(...instanceTasks.map((t) => t.position ?? 0)) : 0;
         const projectStartDate = toIsoDate(formData.start_date);
-
         if (!projectStartDate) throw new Error('A valid project start date is required');
 
-        // If a template was selected, perform a deep clone (RPC)
         if (formData.templateId) {
-          // Deep clone (RPC)
           const { data: newTasks, error: cloneError } = await deepCloneTask(
             formData.templateId,
-            null, // newParentId (null for root)
-            'instance', // newOrigin
+            null,
+            'instance',
             user.id,
             {
               title: formData.title,
@@ -108,7 +87,7 @@ export const useTaskOperations = () => {
           );
           if (cloneError) throw cloneError;
           await fetchTasks();
-          return newTasks; // Return the result (containing new_root_id)
+          return newTasks;
         } else {
           const { data, error: insertError } = await supabase
             .from('tasks')
@@ -131,10 +110,9 @@ export const useTaskOperations = () => {
             ])
             .select()
             .single();
-
           if (insertError) throw insertError;
           await fetchTasks();
-          return data; // Return the new task object
+          return data;
         }
       } catch (error) {
         console.error('Error creating project:', error);
@@ -144,9 +122,8 @@ export const useTaskOperations = () => {
     [tasks, fetchTasks]
   );
 
-  const saveTask = useCallback(
+  const createTaskOrUpdate = useCallback(
     async (formData, formState) => {
-      // Wraps both create and update logic for tasks
       try {
         const {
           data: { user },
@@ -166,7 +143,6 @@ export const useTaskOperations = () => {
         const manualDueDate = toIsoDate(formData.due_date);
         const hasManualDates = Boolean(manualStartDate || manualDueDate);
 
-        // --- EDIT MODE ---
         if (formState.mode === 'edit' && formState.taskId) {
           let scheduleUpdates = {};
           if (origin === 'instance') {
@@ -179,9 +155,7 @@ export const useTaskOperations = () => {
                 due_date: manualDueDate || manualStartDate || scheduleUpdates.due_date || null,
               };
             }
-            if (!hasManualDates && parsedDays === null) {
-              scheduleUpdates = {};
-            }
+            if (!hasManualDates && parsedDays === null) scheduleUpdates = {};
           }
 
           const updates = {
@@ -200,15 +174,13 @@ export const useTaskOperations = () => {
             .update(updates)
             .eq('id', formState.taskId);
           if (updateError) throw updateError;
-
           await fetchTasks();
           return;
         }
 
-        // --- CREATE MODE ---
-        const siblings = tasks.filter((task) => {
-          return task.origin === origin && (task.parent_task_id || null) === parentId;
-        });
+        const siblings = tasks.filter(
+          (task) => task.origin === origin && (task.parent_task_id || null) === parentId
+        );
         const maxPosition =
           siblings.length > 0 ? Math.max(...siblings.map((task) => task.position ?? 0)) : 0;
 
@@ -227,10 +199,8 @@ export const useTaskOperations = () => {
         };
 
         if (origin === 'instance') {
-          if (parsedDays !== null) {
-            const schedule = calculateScheduleFromOffset(tasks, parentId, parsedDays);
-            Object.assign(insertPayload, schedule);
-          }
+          if (parsedDays !== null)
+            Object.assign(insertPayload, calculateScheduleFromOffset(tasks, parentId, parsedDays));
           if (hasManualDates) {
             insertPayload.start_date = manualStartDate;
             insertPayload.due_date =
@@ -239,7 +209,6 @@ export const useTaskOperations = () => {
         }
 
         if (formData.templateId) {
-          // Deep clone (RPC)
           const { data: newTasks, error: cloneError } = await deepCloneTask(
             formData.templateId,
             parentId,
@@ -252,27 +221,15 @@ export const useTaskOperations = () => {
               due_date: hasManualDates ? manualDueDate || manualStartDate : null,
             }
           );
-
           if (cloneError) throw cloneError;
-
-          // newTasks is a summary object now with new_root_id.
-          // We still need to apply 'days_from_start' logic if it wasn't passed to RPC.
           if (
             newTasks &&
             newTasks.new_root_id &&
             (parsedDays !== null || (origin === 'instance' && parsedDays !== null))
           ) {
-            const updates = {
-              days_from_start: parsedDays,
-              updated_at: new Date().toISOString(),
-            };
-
-            if (origin === 'instance' && parsedDays !== null) {
-              const schedule = calculateScheduleFromOffset(tasks, parentId, parsedDays);
-              Object.assign(updates, schedule);
-            }
-            // Manual dates handled by RPC override above.
-
+            const updates = { days_from_start: parsedDays, updated_at: new Date().toISOString() };
+            if (origin === 'instance' && parsedDays !== null)
+              Object.assign(updates, calculateScheduleFromOffset(tasks, parentId, parsedDays));
             const { error: updateError } = await supabase
               .from('tasks')
               .update(updates)
@@ -283,7 +240,6 @@ export const useTaskOperations = () => {
           const { error: insertError } = await supabase.from('tasks').insert([insertPayload]);
           if (insertError) throw insertError;
         }
-
         await fetchTasks();
       } catch (error) {
         console.error('Error saving task:', error);
@@ -325,7 +281,7 @@ export const useTaskOperations = () => {
     currentUserId,
     fetchTasks,
     createProject,
-    saveTask,
+    createTaskOrUpdate,
     deleteTask,
   };
 };

@@ -3,6 +3,11 @@ import React, { useState } from 'react';
 const DashboardLayout = ({ children, sidebar }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Inject props into sidebar to handle mobile closing
+  const sidebarWithProps = React.isValidElement(sidebar)
+    ? React.cloneElement(sidebar, { onNavClick: () => setSidebarOpen(false) })
+    : sidebar;
+
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Mobile Sidebar Overlay */}
@@ -35,7 +40,7 @@ const DashboardLayout = ({ children, sidebar }) => {
               </button>
             </div>
             {/* Mobile Sidebar Content */}
-            <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">{sidebar}</div>
+            <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">{sidebarWithProps}</div>
           </div>
           <div className="flex-shrink-0 w-14" aria-hidden="true">
             {/* Force sidebar to shrink to fit close icon */}
@@ -45,7 +50,7 @@ const DashboardLayout = ({ children, sidebar }) => {
 
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:flex-shrink-0 border-r border-gray-200 bg-white w-64">
-        <div className="flex flex-col flex-1 h-full">{sidebar}</div>
+        <div className="flex flex-col flex-1 h-full">{sidebarWithProps}</div>
       </div>
 
       {/* Main Content Area */}

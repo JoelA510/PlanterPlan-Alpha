@@ -31,7 +31,7 @@ const TaskList = () => {
     currentUserId,
     fetchTasks,
     createProject,
-    saveTask,
+    createTaskOrUpdate,
     deleteTask,
   } = useTaskOperations();
 
@@ -246,7 +246,10 @@ const TaskList = () => {
     setInviteModalProject(project);
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleProjectSubmit = async (formData) => {
+    setIsSaving(true);
     try {
       const newProject = await createProject(formData);
       // If we got a new project back (either object or deep clone result)
@@ -258,16 +261,19 @@ const TaskList = () => {
         }
       }
       addToast('Project created successfully!', 'success');
+      setShowForm(false);
     } catch (err) {
       console.error('Failed to create project:', err);
       addToast('Failed to create project. Please try again.', 'error');
+    } finally {
+      setIsSaving(false);
     }
-    setShowForm(false);
   };
 
   const handleTaskSubmit = async (formData) => {
+    setIsSaving(true);
     try {
-      await saveTask(formData, taskFormState);
+      await createTaskOrUpdate(formData, taskFormState);
 
       // Invalidate joined project cache if editing/creating in a joined project.
       // We check multiple sources since the task might be in a joined project:
@@ -291,6 +297,8 @@ const TaskList = () => {
     } catch (err) {
       console.error('Failed to save task:', err);
       addToast('Failed to save task. Please try again.', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -471,6 +479,33 @@ const TaskList = () => {
               setInviteModalProject(null);
             }}
           />
+        )}
+        {isSaving && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+            <div className="flex items-center space-x-3 rounded-lg bg-white px-6 py-4 shadow-xl">
+              <svg
+                className="h-6 w-6 animate-spin text-blue-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span className="text-sm font-medium text-slate-700">Saving...</span>
+            </div>
+          </div>
         )}
       </DashboardLayout>
     </DndContext>

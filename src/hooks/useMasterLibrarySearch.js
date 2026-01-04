@@ -21,8 +21,20 @@ const useMasterLibrarySearch = ({
   const controllerRef = useRef(null);
   const latestRequestRef = useRef(0);
 
+  const queryCache = useRef({});
+
   const executeSearch = useCallback(
     async (searchTerm, controller) => {
+      // Check cache first
+      if (queryCache.current[searchTerm]) {
+        setState({
+          results: queryCache.current[searchTerm],
+          isLoading: false,
+          error: null,
+        });
+        return;
+      }
+
       if (controllerRef.current && controllerRef.current !== controller) {
         controllerRef.current.abort();
       }
@@ -51,6 +63,9 @@ const useMasterLibrarySearch = ({
         if (searchError) {
           throw searchError; // Re-throw to hit catch block (or handle here directly)
         }
+
+        // Cache the successful result
+        queryCache.current[searchTerm] = results || [];
 
         setState({
           results: results || [],
