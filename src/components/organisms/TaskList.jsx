@@ -427,7 +427,7 @@ const TaskList = () => {
           {/* For now keeping as side panel but ensuring it fits in flex layout */}
           {(showForm || selectedTask || taskFormState) && (
             <div className="w-[600px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-2xl z-10 h-full overflow-hidden transition-all duration-300">
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
+              <div className="pt-8 px-8 pb-6 border-b border-slate-100 flex justify-between items-start bg-white sticky top-0 z-20">
                 <h2 className="font-bold text-xl text-slate-800 truncate pr-4">{panelTitle}</h2>
                 <button
                   onClick={() => {
