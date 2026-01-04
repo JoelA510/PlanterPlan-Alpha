@@ -29,14 +29,13 @@ const ProjectHeader = ({ project, onInviteMember }) => {
         <div className="flex items-center space-x-4">
           {/* Status Badge */}
           <span
-            className={`px-3 py-1 rounded-full text-xs font-medium border
-            ${
-              project.status === 'active'
+            className={`px-4 py-1.5 rounded-full text-xs font-medium border
+            ${project.status === 'active'
                 ? 'bg-green-50 text-green-700 border-green-200'
                 : project.status === 'archived'
                   ? 'bg-slate-100 text-slate-600 border-slate-200'
                   : 'bg-blue-50 text-blue-700 border-blue-200'
-            }`}
+              }`}
           >
             {project.status || 'Active'}
           </span>
@@ -54,7 +53,7 @@ const ProjectHeader = ({ project, onInviteMember }) => {
           {onInviteMember && (
             <button
               onClick={onInviteMember}
-              className="flex items-center text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full px-3 py-1 transition-colors border border-blue-200"
+              className="flex items-center text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full px-4 py-1.5 transition-colors border border-blue-200"
               title="Invite Member"
             >
               <span className="mr-1 text-lg font-bold leading-none">+</span> Invite
