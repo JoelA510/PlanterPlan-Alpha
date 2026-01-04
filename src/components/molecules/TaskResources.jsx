@@ -156,17 +156,18 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
           return (
             <div
               key={res.id}
-              className={`flex items-start justify-between p-2 rounded border ${isPrimary ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-white'}`}
+              className={`flex items-start justify-between p-3 rounded-lg border transition-all hover:shadow-sm ${
+                isPrimary ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200 bg-white'
+              }`}
             >
-              <div className="flex-1 min-w-0 pr-2">
-                <div className="flex items-center gap-2">
-                  {/* Resource Badge */}
+              <div className="flex-1 min-w-0 pr-4 flex flex-col gap-1">
+                <div className="flex items-center gap-3">
                   <span
                     className={`
-                        text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border
+                        text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border flex-shrink-0
                         ${
                           res.resource_type === 'url'
-                            ? 'bg-blue-50 text-blue-600 border-blue-200'
+                            ? 'bg-blue-100 text-blue-700 border-blue-200'
                             : res.resource_type === 'pdf'
                               ? 'bg-orange-100 text-orange-700 border-orange-200'
                               : 'bg-slate-100 text-slate-600 border-slate-200'
@@ -175,7 +176,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
                   >
                     {res.resource_type}
                   </span>
-                  <span className="text-sm font-medium truncate text-slate-800">
+                  <span className="text-sm font-semibold truncate text-slate-800">
                     {res.resource_type === 'url'
                       ? 'External Link'
                       : res.resource_type === 'pdf'
@@ -188,32 +189,34 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
                     href={res.resource_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-500 hover:underline truncate block"
+                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate block ml-[3.25rem]"
                   >
                     {res.resource_url}
                   </a>
                 )}
                 {res.resource_type === 'text' && (
-                  <p className="text-xs text-slate-600 line-clamp-2">{res.resource_text}</p>
+                  <p className="text-xs text-slate-600 line-clamp-2 ml-[3.25rem]">
+                    {res.resource_text}
+                  </p>
                 )}
                 {res.resource_type === 'pdf' && (
-                  <span className="text-xs text-slate-500">PDF Resource</span>
+                  <span className="text-xs text-slate-500 ml-[3.25rem]">PDF Resource</span>
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   title={isPrimary ? 'Primary Resource' : 'Make Primary'}
                   onClick={() => handleSetPrimary(res)}
-                  className={`text-xs ${isPrimary ? 'text-yellow-500' : 'text-slate-300 hover:text-yellow-400'}`}
+                  className={`p-2 rounded-md transition-colors ${isPrimary ? 'text-yellow-500 bg-yellow-50' : 'text-slate-300 hover:text-yellow-500 hover:bg-slate-50'}`}
                 >
-                  ★
+                  <span className="text-lg leading-none">★</span>
                 </button>
                 <button
                   onClick={() => handleDelete(res.id)}
-                  className="text-slate-400 hover:text-red-600"
+                  className="p-2 rounded-md text-slate-300 hover:text-red-600 hover:bg-slate-50 transition-colors"
                   title="Delete"
                 >
-                  🗑
+                  <span className="text-lg leading-none">🗑</span>
                 </button>
               </div>
             </div>

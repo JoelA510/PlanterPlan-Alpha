@@ -148,15 +148,19 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       <div className="detail-section mb-6">
         <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Schedule</h3>
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-            <span className="block text-xs text-slate-400 mb-1">Start Date</span>
-            <span className="block text-sm font-semibold text-slate-800">
+          <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
+            <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+              Start Date
+            </span>
+            <span className="text-sm font-bold text-slate-800 tracking-tight">
               {formatDate(task.start_date)}
             </span>
           </div>
-          <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-            <span className="block text-xs text-slate-400 mb-1">Due Date</span>
-            <span className="block text-sm font-semibold text-slate-800">
+          <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
+            <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+              Due Date
+            </span>
+            <span className="text-sm font-bold text-slate-800 tracking-tight">
               {formatDate(task.due_date)}
             </span>
           </div>
