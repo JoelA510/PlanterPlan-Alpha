@@ -483,8 +483,7 @@ const TaskList = () => {
             project={inviteModalProject}
             onClose={() => setInviteModalProject(null)}
             onInviteSuccess={() => {
-              // TODO: Use Toast here
-              alert('Invitation sent!');
+              addToast('Invitation sent successfully!', 'success');
               setInviteModalProject(null);
             }}
           />
