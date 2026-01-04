@@ -75,7 +75,12 @@ export const inviteMember = async (projectId, userId, role = ROLES.VIEWER, clien
   }
 };
 
-export const inviteMemberByEmail = async (projectId, email, role = ROLES.VIEWER, client = supabase) => {
+export const inviteMemberByEmail = async (
+  projectId,
+  email,
+  role = ROLES.VIEWER,
+  client = supabase
+) => {
   try {
     const { data, error } = await client.functions.invoke('invite-by-email', {
       body: { projectId, email, role },

@@ -330,7 +330,9 @@ export const SortableTaskItem = React.memo(function SortableTaskItem({ task, lev
     opacity: isDragging ? 0.8 : 1,
     position: 'relative',
     zIndex: isDragging ? 999 : 'auto',
-    boxShadow: isDragging ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' : 'none',
+    boxShadow: isDragging
+      ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+      : 'none',
     scale: isDragging ? 1.02 : 1,
   };
 
