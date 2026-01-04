@@ -52,16 +52,23 @@ serve(async (req) => {
 
     if (inviteError) {
       // Handle "User already registered" case
-      if (inviteError.code === 'email_exists' || inviteError.message?.includes('already been registered')) {
+      if (
+        inviteError.code === 'email_exists' ||
+        inviteError.message?.includes('already been registered')
+      ) {
         console.log('User exists, looking up ID via RPC...');
 
         // Use RPC to look up user ID safely (requires get_user_id_by_email migration)
-        const { data: existingUserId, error: lookupError } = await supabaseAdmin
-          .rpc('get_user_id_by_email', { email });
+        const { data: existingUserId, error: lookupError } = await supabaseAdmin.rpc(
+          'get_user_id_by_email',
+          { email }
+        );
 
         if (lookupError || !existingUserId) {
           console.error('User lookup failed:', lookupError);
-          throw new Error('User already registered but ID lookup failed (Check get_user_id_by_email RPC).');
+          throw new Error(
+            'User already registered but ID lookup failed (Check get_user_id_by_email RPC).'
+          );
         }
         targetUserId = existingUserId as string;
       } else {

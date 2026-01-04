@@ -624,11 +624,13 @@ Postgres would crash the transaction.
 
 **Recursion Depth Check**:
 In the PL/pgSQL trigger, we added:
+
 ```sql
 IF pg_trigger_depth() > 10 THEN
   RETURN NEW; -- Exit to prevent crash
 END IF;
 ```
+
 This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 
 ### Critical Rule
@@ -636,6 +638,7 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 > **Guard your Triggers.** Always include a `pg_trigger_depth()` check in complex cascading triggers to prevent stack overflow crashes during bulk updates or logic loops.
 
 ## [CSS-002] Malformed CSS Syntax Impact
+
 - **Tags**: #css, #debugging
 - **Date**: 2026-01-03
 - **Context & Problem**: The desktop sidebar layout broke (width collapsed) because critical utility classes (`.w-64`) were seemingly ignored.
@@ -643,6 +646,7 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Critical Rule**: Always lint or validate CSS file structure; a single missing brace can invalidate large sections of styles silently.
 
 ## [DATE-002] UTC Date Display Consistency
+
 - **Tags**: #date-handling, #javascript
 - **Date**: 2026-01-03
 - **Context & Problem**: Dates stored as `YYYY-MM-DD` (e.g., "2025-01-01") were displaying as "Dec 31, 2024" in some timezones because `new Date('2025-01-01')` parses as UTC midnight, but `toLocaleDateString()` defaults to local browser time.
@@ -650,6 +654,7 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Critical Rule**: For database dates (YYYY-MM-DD), always force UTC context during display formatting to prevent 24h timezone drifts.
 
 ## [REACT-004] Safe Navigation for User Objects
+
 - **Tags**: #react, #safety
 - **Date**: 2026-01-03
 - **Context & Problem**: The application crashed on startup for some users because `SideNav` accessed `user.email[0]` without checking if `user.email` existed, leading to "Cannot read property '0' of undefined".
@@ -657,31 +662,35 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Critical Rule**: Never assume `user` or `user.email` is present; always provide fallbacks for initial/avatar generation.
 
 ## [DB-027] Edge Function Auth Schema Access (PGRST106)
+
 - **Tags**: #database, #security, #rpc, #edge-functions
 - **Date**: 2026-01-03
 - **Context & Problem**: The generic Supabase client (even with Service Role) cannot query the `auth` schema directly via REST because PostgREST does not expose it (`PGRST106`). This caused Edge Functions to fail when trying to check if a user Email already existed in the system before inviting them.
-- **Solution & Pattern**: Create a Postgres Function (RPC) with `SECURITY DEFINER` that runs with escalated privileges to perform the specific lookup (`select id from auth.users...`) and expose *that function* to the API.
+- **Solution & Pattern**: Create a Postgres Function (RPC) with `SECURITY DEFINER` that runs with escalated privileges to perform the specific lookup (`select id from auth.users...`) and expose _that function_ to the API.
 - **Critical Rule**: Do not try to direct-query `auth.users` from the client; assume it is hidden. Wrap privileged lookups in a secure RPC.
 
 ## [CSS-028] The Cost of Manual Utility CSS
+
 - **Tags**: #css, #maintenance, #tailwind
 - **Date**: 2026-01-03
-- **Context & Problem**: The project uses a `globals.css` that *emulates* Tailwind but is manually maintained. Features built assuming standard Tailwind availability (e.g., `w-64`, `animate-pulse`) broke silently because those specific classes were missing from the manual file.
+- **Context & Problem**: The project uses a `globals.css` that _emulates_ Tailwind but is manually maintained. Features built assuming standard Tailwind availability (e.g., `w-64`, `animate-pulse`) broke silently because those specific classes were missing from the manual file.
 - **Solution & Pattern**: We appended the specific missing classes to `globals.css`.
 - **Critical Rule**: If emulating a framework, you must rigorously audit used classes against available classes. Prefer migrating to the actual framework (Tailwind) to avoid "missing utility" regression.
 
 ## [CSS-029] Responsive Utilities Verification
+
 - **Tags**: #css, #responsive, #tailwind
 - **Date**: 2026-01-03
-- **Context & Problem**: During adversarial testing, the sidebar failed to hide on mobile viewports (800px) despite having  classes. Because we use a manual CSS file, these media-query-specific utilities were missing.
-- **Solution & Pattern**: Manually implemented the  block with  and  overrides.
+- **Context & Problem**: During adversarial testing, the sidebar failed to hide on mobile viewports (800px) despite having classes. Because we use a manual CSS file, these media-query-specific utilities were missing.
+- **Solution & Pattern**: Manually implemented the block with and overrides.
 - **Critical Rule**: Responsive modifiers (, ) are not magic; in a manual CSS setup, they must be explicitly defined in media queries. verify resizing behavior interactively.
 
 ## [DATE-003] Dual-Mode Date Parsing Strategy
+
 - **Tags**: #dates, #javascript, #hybrid
 - **Date**: 2026-01-03
 - **Context & Problem**: The app consumes both strictly formatted "YYYY-MM-DD" dates (Project Start Date) and ISO timestamps (Created At). Using a single formatting strategy caused "Invalid Date" for one or offset errors for the other.
-- **Solution & Pattern**:  helper now detects the presence of Time () to branch logic:
-  - Has 'T': Parse as standard  (Local Time).
+- **Solution & Pattern**: helper now detects the presence of Time () to branch logic:
+  - Has 'T': Parse as standard (Local Time).
   - No 'T': Parse as Manual UTC split ().
 - **Critical Rule**: Do not treat "Dates" and "Timestamps" as the same data type. Branch parsing logic based on input format to preserve semantic correctness.

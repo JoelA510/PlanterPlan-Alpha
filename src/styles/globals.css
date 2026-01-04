@@ -224,31 +224,31 @@ input[type='text']:focus {
      ===================================================== */
 
 /* Space Between */
-.space-x-2>*+* {
+.space-x-2 > * + * {
   margin-left: 0.5rem;
 }
 
-.space-x-3>*+* {
+.space-x-3 > * + * {
   margin-left: 0.75rem;
 }
 
-.space-x-4>*+* {
+.space-x-4 > * + * {
   margin-left: 1rem;
 }
 
-.space-y-2>*+* {
+.space-y-2 > * + * {
   margin-top: 0.5rem;
 }
 
-.space-y-4>*+* {
+.space-y-4 > * + * {
   margin-top: 1rem;
 }
 
-.space-y-6>*+* {
+.space-y-6 > * + * {
   margin-top: 1.5rem;
 }
 
-.space-y-8>*+* {
+.space-y-8 > * + * {
   margin-top: 2rem;
 }
 
@@ -604,15 +604,15 @@ input[type='text']:focus {
 }
 
 /* Dividers */
-.divide-y>*+* {
+.divide-y > * + * {
   border-top-width: 1px;
 }
 
-.divide-gray-100>*+* {
+.divide-gray-100 > * + * {
   border-color: #f3f4f6;
 }
 
-.divide-gray-200>*+* {
+.divide-gray-200 > * + * {
   border-color: #e5e7eb;
 }
 
@@ -759,7 +759,6 @@ input[type='text']:focus {
      11. PRINT STYLES
      ===================================================== */
 @media print {
-
   .no-print,
   button,
   .sidebar,
@@ -881,14 +880,13 @@ input[type='text']:focus {
 
 /* Animation */
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;
   }
 
   50% {
-    opacity: .5;
+    opacity: 0.5;
   }
 }
 
@@ -971,9 +969,15 @@ input[type='text']:focus {
 }
 
 /* Positioning supplements */
-.sticky { position: sticky; }
-.z-10 { z-index: 10; }
-.z-20 { z-index: 20; }
+.sticky {
+  position: sticky;
+}
+.z-10 {
+  z-index: 10;
+}
+.z-20 {
+  z-index: 20;
+}
 
 /* =====================================================
      14. ADVERSARIAL FIX: Responsive Utilities
