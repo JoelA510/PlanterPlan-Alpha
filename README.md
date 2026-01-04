@@ -21,7 +21,7 @@ Update discipline:
 # PlanterPlan
 
 **Last verified**: 2026-01-04 (America/Los_Angeles)
-**Commit**: 06e4a02
+**Commit**: 442c3c1
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/operations/ENGINEERING_KNOWLEDGE.md)
 
