@@ -634,3 +634,24 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 ### Critical Rule
 
 > **Guard your Triggers.** Always include a `pg_trigger_depth()` check in complex cascading triggers to prevent stack overflow crashes during bulk updates or logic loops.
+
+## [CSS-002] Malformed CSS Syntax Impact
+- **Tags**: #css, #debugging
+- **Date**: 2026-01-03
+- **Context & Problem**: The desktop sidebar layout broke (width collapsed) because critical utility classes (`.w-64`) were seemingly ignored.
+- **Solution & Pattern**: Investigation revealed a missing closing brace `}` for a `@media print` block earlier in the file, causing subsequent classes to be treated as part of the media query (or ignored).
+- **Critical Rule**: Always lint or validate CSS file structure; a single missing brace can invalidate large sections of styles silently.
+
+## [DATE-002] UTC Date Display Consistency
+- **Tags**: #date-handling, #javascript
+- **Date**: 2026-01-03
+- **Context & Problem**: Dates stored as `YYYY-MM-DD` (e.g., "2025-01-01") were displaying as "Dec 31, 2024" in some timezones because `new Date('2025-01-01')` parses as UTC midnight, but `toLocaleDateString()` defaults to local browser time.
+- **Solution & Pattern**: Explicitly parse the YYYY-MM-DD string into UTC components and use `date.toLocaleDateString(..., { timeZone: 'UTC' })` to force consistent display regardless of user location.
+- **Critical Rule**: For database dates (YYYY-MM-DD), always force UTC context during display formatting to prevent 24h timezone drifts.
+
+## [REACT-004] Safe Navigation for User Objects
+- **Tags**: #react, #safety
+- **Date**: 2026-01-03
+- **Context & Problem**: The application crashed on startup for some users because `SideNav` accessed `user.email[0]` without checking if `user.email` existed, leading to "Cannot read property '0' of undefined".
+- **Solution & Pattern**: Used optional chaining and fallback: `user?.email ? user.email[0] : '?'`.
+- **Critical Rule**: Never assume `user` or `user.email` is present; always provide fallbacks for initial/avatar generation.
