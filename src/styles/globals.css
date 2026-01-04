@@ -745,6 +745,14 @@ input[type='text']:focus {
   .lg\:flex-shrink-0 {
     flex-shrink: 0;
   }
+
+  .lg\:flex {
+    display: flex;
+  }
+
+  .lg\:hidden {
+    display: none;
+  }
 }
 
 /* =====================================================
