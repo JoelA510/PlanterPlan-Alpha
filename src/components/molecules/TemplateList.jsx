@@ -35,7 +35,6 @@ TemplateList.propTypes = {
   tasks: PropTypes.array.isRequired,
   selectedTaskId: PropTypes.string,
   handleTaskClick: PropTypes.func.isRequired,
-  onNewTemplateClick: PropTypes.func.isRequired,
 };
 
 export default TemplateList;

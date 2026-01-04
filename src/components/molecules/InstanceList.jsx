@@ -35,7 +35,6 @@ InstanceList.propTypes = {
   tasks: PropTypes.array.isRequired,
   selectedTaskId: PropTypes.string,
   handleTaskClick: PropTypes.func.isRequired,
-  onNewProjectClick: PropTypes.func.isRequired,
 };
 
 export default InstanceList;
