@@ -16,6 +16,8 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
     }
   };
 
+  const statusClass = task.status ? `status-dot ${task.status}` : 'status-dot todo';
+
   return (
     <div
       className={`sidebar-nav-item ${isSelected ? 'selected' : ''}`}
@@ -27,7 +29,9 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
           handleClick(e);
         }
       }}
+      title={task.title}
     >
+      <div className={statusClass}></div>
       <span className="sidebar-nav-item-title">{task.title}</span>
       {showRole && task.membership_role && <RoleIndicator role={task.membership_role} />}
     </div>

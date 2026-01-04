@@ -17,7 +17,18 @@ const SideNav = ({
   return (
     <div className="side-nav">
       <div className="side-nav-header">
-        <h1 className="app-title">PlanterPlan</h1>
+        <button onClick={onNewProjectClick} className="btn-new-item justify-center w-full py-2">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
+          </svg>
+          New Project
+        </button>
+        <button onClick={onNewTemplateClick} className="btn-new-item justify-center w-full py-2">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
+          </svg>
+          New Template
+        </button>
       </div>
 
       <div className="side-nav-content">

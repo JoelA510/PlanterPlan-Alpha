@@ -10,12 +10,6 @@ const InstanceList = ({ tasks, selectedTaskId, handleTaskClick, onNewProjectClic
           <h2 className="section-title">Projects</h2>
           <span className="section-count">{tasks.length}</span>
         </div>
-        <button onClick={onNewProjectClick} className="btn-new-item">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 110-2h4V3a1 1 0 011-1z" />
-          </svg>
-          New Project
-        </button>
       </div>
       {tasks.length > 0 ? (
         <div className="sidebar-nav-list">
