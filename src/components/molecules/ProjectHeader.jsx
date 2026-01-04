@@ -30,12 +30,13 @@ const ProjectHeader = ({ project, onInviteMember }) => {
           {/* Status Badge */}
           <span
             className={`px-3 py-1 rounded-full text-xs font-medium border
-            ${project.status === 'active'
+            ${
+              project.status === 'active'
                 ? 'bg-green-50 text-green-700 border-green-200'
                 : project.status === 'archived'
                   ? 'bg-slate-100 text-slate-600 border-slate-200'
                   : 'bg-blue-50 text-blue-700 border-blue-200'
-              }`}
+            }`}
           >
             {project.status || 'Active'}
           </span>
