@@ -20,10 +20,10 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-03 (America/Los_Angeles)  
-**Commit**: 578c718
+**Last verified**: 2026-01-04 (America/Los_Angeles)  
+**Commit**: ca46366
 **Primary audience**: code reviewers, project managers
-**Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/ENGINEERING_KNOWLEDGE.md)
+**Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/operations/ENGINEERING_KNOWLEDGE.md)
 
 ---
 
@@ -187,6 +187,7 @@ flowchart LR
 - ✅ **Master Library Tree View**: Recursive display of template hierarchies with on-demand loading (Ref: `MasterLibraryList.jsx`).
 - ✅ **Optimization**: Task trees fetched via `root_id` index instead of recursive calls (Ref: `fetchTaskChildren` in `taskService.js`).
 - ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `SideNav.jsx`).
+- ✅ **Feedback Sprint**: Logic/Security/UI fixes from January 2026 Audit (Ref: `implementation_plan.md`).
 
 ### 5.2 Known Limitations
 

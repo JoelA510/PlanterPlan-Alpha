@@ -560,3 +560,77 @@ The "Invite by Email" Edge Function returned 403 Forbidden for newly created pro
 ### Critical Rule
 
 > **Creators must be members.** When an Edge Function or RLS policy checks a membership table for authorization, ensure the creation logic explicitly adds the creator to that table. Do not rely on implicit "owner" status from other columns.
+
+---
+
+## [SEC-024] Explicit Role Checking
+
+**Tags**: #security, #roles, #rbac
+**Date**: 2026-01-04
+
+### Context & Problem
+
+Authorization checks relied on loose string matching (e.g., `user.role === 'admin'`).
+Hardcoded strings are prone to typos (`'Admin'`, `'ADMIN'`) and refactoring errors.
+Specifically, an admin user could bypass checks by simply having "admin" in their email due to a fallback logic intended for debugging.
+
+### Solution & Pattern
+
+1. **Centralized Constants**: Defined `ROLES` constant in `src/constants/index.js`.
+2. **Explicit Checks**: Replaced logic with strict equality checks using the constant (`user.role === ROLES.ADMIN`).
+3. **Removed Fallbacks**: Deleted insecure email-based admin promotion logic.
+
+### Critical Rule
+
+> **No Magic Strings for Auth.** Always use a centralized constant (Enum) for role checks. Never allow string partial matching or loose fallbacks for privileged access.
+
+---
+
+## [PERF-025] Timezone Safety in Date Utils
+
+**Tags**: #dates, #timezone, #bugs
+**Date**: 2026-01-04
+
+### Context & Problem
+
+The function `toIsoDate` was creating a JS `Date` object and appending `T00:00:00.000Z` to force UTC.
+However, inputting a date string like "2025-01-01" into `new Date()` can sometimes be interpreted as Local Midnight depending on browser/runtime, and when converted to ISO, it shifts to "2024-12-31T..." in Western hemispheres.
+Users saw "Yesterday" bug when saving dates.
+
+### Solution & Pattern
+
+**String-First Approach**:
+If the goal is to save a `DATE` (YYYY-MM-DD), avoid `new Date()` object instantiation if possible, or strictly truncate the output.
+We refactored `toIsoDate` to return the `YYYY-MM-DD` part of the ISO string directly, ensuring the DB receives a clean date literal, avoiding `TIMESTAMPTZ` shifting on the server side if standard CASTs are used.
+
+### Critical Rule
+
+> **Truncate for Date-Only fields.** If a field represents a calendar date (e.g., Birthday, Due Date), pass a `YYYY-MM-DD` string to the API. Do not pass a Zulu-time ISO string unless you want it anchored to a specific instant in UTC.
+
+---
+
+## [DB-026] Recursion Depth Guard
+
+**Tags**: #database, #triggers, #stability
+**Date**: 2026-01-04
+
+### Context & Problem
+
+A trigger was designed to update parent dates when a child changed.
+However, updating the parent caused a "Child Updated" event in some edge cases (or if logic was bidirectional), creating an infinite loop.
+Postgres would crash the transaction.
+
+### Solution & Pattern
+
+**Recursion Depth Check**:
+In the PL/pgSQL trigger, we added:
+```sql
+IF pg_trigger_depth() > 10 THEN
+  RETURN NEW; -- Exit to prevent crash
+END IF;
+```
+This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
+
+### Critical Rule
+
+> **Guard your Triggers.** Always include a `pg_trigger_depth()` check in complex cascading triggers to prevent stack overflow crashes during bulk updates or logic loops.

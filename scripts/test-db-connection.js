@@ -43,8 +43,8 @@ async function testConnection() {
 
   if (authError) {
     console.error('Sign Up FAILED:', authError.status, authError.message);
-    // Print full error object to debug "Anonymous" weirdness
-    console.error('Full Error:', JSON.stringify(authError, null, 2));
+    // Redacted full error object to prevent sensitive data leak in logs
+    // console.error('Full Error:', JSON.stringify(authError, null, 2));
   } else {
     console.log('Sign Up SUCCESS. User ID:', authData.user?.id);
   }
