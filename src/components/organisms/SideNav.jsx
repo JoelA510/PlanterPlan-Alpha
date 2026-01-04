@@ -22,7 +22,7 @@ const SideNav = ({
 }) => {
   const { user, signOut } = useAuth();
   // Simple check for admin role (assuming user.role exists from DB/Auth)
-  const isAdmin = user?.role === ROLES.ADMIN || user?.email?.includes('@admin'); // Fallback logic if role missing
+  const isAdmin = user?.role === ROLES.ADMIN;
 
   const handleTaskClickWrapped = (task) => {
     handleSelectProject(task);
