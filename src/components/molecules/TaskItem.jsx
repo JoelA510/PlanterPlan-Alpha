@@ -10,13 +10,13 @@ import ErrorBoundary from '../atoms/ErrorBoundary';
 const getStatusStyle = (status) => {
   switch (status) {
     case 'complete':
-      return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      return 'status-badge-complete';
     case 'in_progress':
-      return 'bg-blue-100 text-blue-700 border-blue-200';
+      return 'status-badge-progress';
     case 'blocked':
-      return 'bg-rose-100 text-rose-700 border-rose-200';
+      return 'status-badge-blocked';
     default:
-      return 'bg-slate-100 text-slate-600 border-slate-200';
+      return 'status-badge-todo';
   }
 };
 
@@ -124,14 +124,14 @@ const TaskItem = React.memo(
     return (
       <>
         <div
-          className={`task-card level-${level} ${isSelected ? 'selected' : ''}`}
+          className={`task-card level-${level} ${isSelected ? 'selected' : ''} py-4 px-5 mb-3`}
           style={{ marginLeft: `${indentWidth}px` }}
           onClick={handleCardClick}
         >
           <div className="task-card-content">
-            <div className="task-card-left">
+            <div className="task-card-left flex-1 min-w-0 mr-4">
               <button
-                className="drag-handle-btn"
+                className="drag-handle-btn mr-2"
                 type="button"
                 aria-label="Reorder task"
                 ref={dragHandleProps?.ref}
@@ -148,8 +148,9 @@ const TaskItem = React.memo(
               {showChevron ? (
                 <button
                   onClick={handleToggleExpandClick}
-                  className="expand-button"
-                  style={{ visibility: 'visible' }}
+                  className="expand-button p-2 -m-2 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                  style={{ visibility: 'visible', minWidth: '32px', minHeight: '32px' }}
+                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
                 >
                   <svg
                     className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
@@ -169,11 +170,20 @@ const TaskItem = React.memo(
                 <div className="expand-spacer"></div>
               )}
 
-              <div className="task-info flex items-center">
-                <span className="task-title">{task.title}</span>
-                {task.duration && <span className="task-duration">{task.duration}</span>}
+              <div className="task-info flex items-center gap-3 flex-1 min-w-0 mr-4">
+                <span
+                  className="task-title truncate font-medium text-slate-800 text-sm"
+                  title={task.title}
+                >
+                  {task.title}
+                </span>
+                {task.duration && (
+                  <span className="task-duration text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 whitespace-nowrap flex-shrink-0">
+                    {task.duration}
+                  </span>
+                )}
                 {task.resource_type && (
-                  <span className="ml-2 px-1.5 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded bg-slate-100 text-slate-500 border border-slate-200">
+                  <span className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap flex-shrink-0">
                     {task.resource_type}
                   </span>
                 )}
@@ -185,7 +195,7 @@ const TaskItem = React.memo(
 
               <div className="relative group">
                 <select
-                  className={`appearance-none cursor-pointer pl-3 pr-8 py-1 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-[var(--brand-primary)] focus:outline-none`}
+                  className={`appearance-none cursor-pointer pl-4 pr-9 py-1.5 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-[var(--brand-primary)] focus:outline-none`}
                   value={task.status || 'todo'}
                   onClick={(e) => e.stopPropagation()}
                   onChange={handleStatusChangeClick}
@@ -326,9 +336,13 @@ export const SortableTaskItem = React.memo(function SortableTaskItem({ task, lev
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging ? 0.8 : 1,
     position: 'relative',
     zIndex: isDragging ? 999 : 'auto',
+    boxShadow: isDragging
+      ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+      : 'none',
+    scale: isDragging ? 1.02 : 1,
   };
 
   return (

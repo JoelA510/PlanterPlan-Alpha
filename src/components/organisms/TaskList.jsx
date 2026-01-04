@@ -5,9 +5,12 @@ import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from '../templates/TaskDetailsView';
 import InviteMemberModal from './InviteMemberModal';
+import { ROLES } from '../../constants';
 import ErrorBoundary from '../atoms/ErrorBoundary';
 import SideNav from './SideNav';
 import ProjectTasksView from '../molecules/ProjectTasksView';
+import DashboardLayout from '../../layouts/DashboardLayout';
+import { useToast } from '../../contexts/ToastContext';
 
 // Hooks & Utils
 import { useTaskOperations } from '../../hooks/useTaskOperations';
@@ -15,6 +18,7 @@ import { useTaskDrag } from '../../hooks/useTaskDrag';
 import { separateTasksByOrigin } from '../../utils/viewHelpers';
 import { updateTaskInTree, buildTree } from '../../utils/treeHelpers';
 import { fetchTaskChildren } from '../../services/taskService';
+import { inviteMember } from '../../services/projectService';
 
 const TaskList = () => {
   const {
@@ -30,6 +34,8 @@ const TaskList = () => {
     createTaskOrUpdate,
     deleteTask,
   } = useTaskOperations();
+
+  const { addToast } = useToast();
 
   const { sensors, handleDragEnd } = useTaskDrag({
     tasks,
@@ -240,32 +246,60 @@ const TaskList = () => {
     setInviteModalProject(project);
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleProjectSubmit = async (formData) => {
-    await createProject(formData);
-    setShowForm(false);
+    setIsSaving(true);
+    try {
+      const newProject = await createProject(formData);
+      // If we got a new project back (either object or deep clone result)
+      // We need to ensure the creator is added as a member for Edge Function checks.
+      if (newProject) {
+        const newProjectId = newProject.new_root_id || newProject.id;
+        if (newProjectId && currentUserId) {
+          await inviteMember(newProjectId, currentUserId, ROLES.OWNER);
+        }
+      }
+      addToast('Project created successfully!', 'success');
+      setShowForm(false);
+    } catch (err) {
+      console.error('Failed to create project:', err);
+      addToast('Failed to create project. Please try again.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleTaskSubmit = async (formData) => {
-    await createTaskOrUpdate(formData, taskFormState);
+    setIsSaving(true);
+    try {
+      await createTaskOrUpdate(formData, taskFormState);
 
-    // Invalidate joined project cache if editing/creating in a joined project.
-    // We check multiple sources since the task might be in a joined project:
-    // 1. If activeProjectId is a joined project, invalidate it
-    // 2. If parentTask has a root_id pointing to a joined project, invalidate that
-    const isActiveJoinedProject =
-      activeProjectId && joinedProjects.some((jp) => jp.id === activeProjectId);
-    if (isActiveJoinedProject) {
-      invalidateJoinedProjectCache(activeProjectId);
-    } else if (taskFormState?.parentId) {
-      // Fallback: check if parent is in owned tasks and belongs to a joined project
-      const parentTask = getTaskById(taskFormState.parentId);
-      if (parentTask) {
-        const projectId = parentTask.root_id || parentTask.id;
-        invalidateJoinedProjectCache(projectId);
+      // Invalidate joined project cache if editing/creating in a joined project.
+      // We check multiple sources since the task might be in a joined project:
+      // 1. If activeProjectId is a joined project, invalidate it
+      // 2. If parentTask has a root_id pointing to a joined project, invalidate that
+      const isActiveJoinedProject =
+        activeProjectId && joinedProjects.some((jp) => jp.id === activeProjectId);
+      if (isActiveJoinedProject) {
+        invalidateJoinedProjectCache(activeProjectId);
+      } else if (taskFormState?.parentId) {
+        // Fallback: check if parent is in owned tasks and belongs to a joined project
+        const parentTask = getTaskById(taskFormState.parentId);
+        if (parentTask) {
+          const projectId = parentTask.root_id || parentTask.id;
+          invalidateJoinedProjectCache(projectId);
+        }
       }
-    }
 
-    setTaskFormState(null);
+      setTaskFormState(null);
+      addToast('Task saved successfully', 'success');
+    } catch (err) {
+      console.error('Failed to save task:', err);
+      addToast('Failed to save task. Please try again.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // --- Render Helpers ---
@@ -294,67 +328,88 @@ const TaskList = () => {
     return 'Details';
   }, [showForm, taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
-          <span className="text-slate-600 font-medium">Loading your projects...</span>
-        </div>
-      </div>
-    );
-  }
+  // Define sidebar to pass to layout
+  const sidebarContent = (
+    <SideNav
+      joinedProjects={joinedProjects}
+      instanceTasks={instanceTasks}
+      templateTasks={templateTasks}
+      joinedError={joinedError}
+      error={error}
+      handleSelectProject={handleSelectProject}
+      selectedTaskId={activeProjectId}
+      loading={loading && instanceTasks.length === 0} // Show skeleton if loading initial data
+      handleOpenInvite={handleOpenInvite}
+      handleAddChildTask={handleAddChildTask}
+      onNewProjectClick={() => {
+        setShowForm(true);
+        setSelectedTask(null);
+        setTaskFormState(null);
+      }}
+      onNewTemplateClick={() => {
+        setTaskFormState({
+          mode: 'create',
+          origin: 'template',
+          parentId: null,
+        });
+        setShowForm(false);
+        setSelectedTask(null);
+      }}
+    />
+  );
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <div className="flex items-center">
-          <div className="text-red-600 font-semibold">Error loading projects</div>
+      <DashboardLayout sidebar={sidebarContent}>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto mt-8">
+          <div className="flex items-center">
+            <div className="text-red-600 font-semibold">Error loading projects</div>
+          </div>
+          <div className="text-red-700 text-sm mt-1">{error}</div>
         </div>
-        <div className="text-red-700 text-sm mt-1">{error}</div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className="app-layout">
-        <SideNav
-          joinedProjects={joinedProjects}
-          instanceTasks={instanceTasks}
-          templateTasks={templateTasks}
-          joinedError={joinedError}
-          handleSelectProject={handleSelectProject}
-          selectedTaskId={activeProjectId} // Highlight the active project in nav
-          handleOpenInvite={handleOpenInvite}
-          handleAddChildTask={handleAddChildTask}
-          onNewProjectClick={() => {
-            setShowForm(true);
-            setSelectedTask(null);
-            setTaskFormState(null);
-          }}
-          onNewTemplateClick={() => {
-            setTaskFormState({
-              mode: 'create',
-              origin: 'template',
-              parentId: null,
-            });
-            setShowForm(false);
-            setSelectedTask(null);
-          }}
-        />
-
-        <div className="main-content">
-          <div className="project-view-area">
+      <DashboardLayout sidebar={sidebarContent}>
+        <div className="flex h-full gap-8">
+          {/* Project View Area - Flex 1 to take remaining space */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {!activeProject ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                <h2 className="text-xl font-semibold mb-2">Welcome to PlanterPlan</h2>
-                <p>Select a project from the sidebar to view its tasks.</p>
+              <div className="flex flex-col items-center justify-center h-full text-slate-500 py-20">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <svg
+                    className="w-8 h-8 text-slate-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold mb-2 text-slate-700">No Project Selected</h2>
+                <p className="max-w-md text-center mb-6">Select a project to view tasks.</p>
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setSelectedTask(null);
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm font-medium"
+                >
+                  Create New Project
+                </button>
               </div>
             ) : (
               <ProjectTasksView
                 project={activeProject}
-                handleTaskClick={handleTaskClick} // Clicking a task in the board opens details
+                handleTaskClick={handleTaskClick}
                 handleAddChildTask={handleAddChildTask}
                 handleEditTask={handleEditTask}
                 handleDeleteById={handleDeleteById}
@@ -362,32 +417,38 @@ const TaskList = () => {
                 onToggleExpand={handleToggleExpand}
                 disableDrag={joinedProjects.some((jp) => jp.id === activeProjectId)}
                 hydrationError={hydrationError}
+                onInviteMember={() => handleOpenInvite(activeProject)}
               />
             )}
           </div>
 
           {/* Permanent Side Panel (Right) - Details / Forms */}
+          {/* Show as slide-over/panel on desktop, fixed full screen or modal on mobile? */}
+          {/* For now keeping as side panel but ensuring it fits in flex layout */}
           {(showForm || selectedTask || taskFormState) && (
-            <div className="permanent-side-panel">
-              <div className="panel-header">
-                <h2 className="panel-title">{panelTitle}</h2>
-                {showForm && (
-                  <button onClick={() => setShowForm(false)} className="panel-header-btn">
-                    Hide Form
-                  </button>
-                )}
-                {isTaskFormOpen && (
-                  <button onClick={() => setTaskFormState(null)} className="panel-header-btn">
-                    Cancel
-                  </button>
-                )}
-                {selectedTask && !showForm && !isTaskFormOpen && (
-                  <button onClick={() => setSelectedTask(null)} className="panel-header-btn">
-                    Close
-                  </button>
-                )}
+            <div className="w-[600px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-2xl z-10 h-full overflow-hidden transition-all duration-300">
+              <div className="pt-8 px-6 pb-6 border-b border-slate-100 flex justify-between items-start bg-white sticky top-0 z-20">
+                <h2 className="font-bold text-xl text-slate-800 truncate pr-4">{panelTitle}</h2>
+                <button
+                  onClick={() => {
+                    setShowForm(false);
+                    setTaskFormState(null);
+                    setSelectedTask(null);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors"
+                  aria-label="Close panel"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
               </div>
-              <div className="panel-content">
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white">
                 {showForm ? (
                   <NewProjectForm
                     onSubmit={handleProjectSubmit}
@@ -422,14 +483,39 @@ const TaskList = () => {
             project={inviteModalProject}
             onClose={() => setInviteModalProject(null)}
             onInviteSuccess={() => {
-              // TODO: Replace with a toast notification for better UX.
-              // For example: toast.success('Invitation sent!');
-              alert('Invitation sent!');
+              addToast('Invitation sent successfully!', 'success');
               setInviteModalProject(null);
             }}
           />
         )}
-      </div>
+        {isSaving && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+            <div className="flex items-center space-x-3 rounded-lg bg-white px-6 py-4 shadow-xl">
+              <svg
+                className="h-6 w-6 animate-spin text-blue-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span className="text-sm font-medium text-slate-700">Saving...</span>
+            </div>
+          </div>
+        )}
+      </DashboardLayout>
     </DndContext>
   );
 };

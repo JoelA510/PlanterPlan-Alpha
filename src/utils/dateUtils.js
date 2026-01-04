@@ -72,6 +72,7 @@ export const toIsoDate = (value) => {
     return null;
   }
 
+  // Use UTC Midnight effectively, but return YYYY-MM-DD to avoid timezone confusion in DB
   parsed.setUTCHours(0, 0, 0, 0);
-  return parsed.toISOString();
+  return parsed.toISOString().split('T')[0];
 };

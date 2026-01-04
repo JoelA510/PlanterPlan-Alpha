@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import TaskItem, { SortableTaskItem } from '../molecules/TaskItem';
+import ProjectHeader from '../molecules/ProjectHeader';
 
 /**
  * ProjectTasksView
@@ -19,6 +20,7 @@ const ProjectTasksView = ({
   onToggleExpand,
   disableDrag = false,
   hydrationError = null,
+  onInviteMember,
 }) => {
   const { setNodeRef } = useDroppable({
     id: `project-view-${project.id}`,
@@ -73,27 +75,23 @@ const ProjectTasksView = ({
   };
 
   return (
-    <div className="project-view-container p-6 w-full max-w-5xl mx-auto">
-      <div className="project-header mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">{project.title}</h1>
-        {project.description && <p className="text-slate-600 mt-2">{project.description}</p>}
-        <div className="mt-4 flex space-x-2">
-          <button
-            onClick={() => handleAddChildTask(project)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Add Task
-          </button>
-          {/* Additional project-level actions can go here */}
-        </div>
+    <div className="project-view-container px-8 py-6 w-full max-w-5xl mx-auto">
+      {/* Replaces simple header with rich ProjectHeader */}
+      <div className="mb-6">
+        <ProjectHeader project={project} onInviteMember={onInviteMember} />
+      </div>
+
+      {/* Action Bar (Below Header) */}
+      <div className="mb-6 flex space-x-2">
+        <button
+          onClick={() => handleAddChildTask(project)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center transition-all shadow-sm"
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Add Task
+        </button>
       </div>
 
       {hydrationError && (
@@ -132,6 +130,7 @@ ProjectTasksView.propTypes = {
   onToggleExpand: PropTypes.func,
   disableDrag: PropTypes.bool,
   hydrationError: PropTypes.string,
+  onInviteMember: PropTypes.func, // Optional, for invite flow
 };
 
 export default ProjectTasksView;

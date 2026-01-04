@@ -87,17 +87,15 @@ export const fetchMasterLibraryTasks = async (
       return isValid;
     });
 
-    return validTasks;
+    return { data: validTasks, error: null };
   } catch (error) {
-    if (error?.name === 'AbortError') {
-      throw error;
-    }
+    if (error?.name === 'AbortError') throw error;
 
     console.error(
       '[taskMasterLibraryService.fetchMasterLibraryTasks] Fatal error fetching master library tasks:',
       error
     );
-    throw error;
+    return { data: null, error };
   }
 };
 
@@ -153,7 +151,7 @@ export const searchMasterLibraryTasks = async (
       return [];
     }
 
-    return data.filter((task) => {
+    const validTasks = data.filter((task) => {
       const isValid = validateTaskShape(task);
       if (!isValid) {
         console.warn(
@@ -163,12 +161,12 @@ export const searchMasterLibraryTasks = async (
       }
       return isValid;
     });
+
+    return { data: validTasks, error: null };
   } catch (error) {
-    if (error?.name === 'AbortError') {
-      throw error;
-    }
+    if (error?.name === 'AbortError') throw error;
 
     console.error('[taskMasterLibraryService.searchMasterLibraryTasks] Fatal error:', error);
-    throw error;
+    return { data: null, error };
   }
 };

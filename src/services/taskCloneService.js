@@ -51,9 +51,9 @@ export const deepCloneTask = async (
 
     if (error) throw error;
 
-    return data;
+    return { data, error: null };
   } catch (error) {
     console.error('[taskCloneService.deepCloneTask] RPC Error:', error);
-    throw error;
+    return { data: null, error };
   }
 };

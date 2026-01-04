@@ -42,7 +42,7 @@ const useMasterLibraryTasks = ({
       const from = Math.max(0, page * limit);
 
       try {
-        const tasks = await fetchMasterLibraryTasks({
+        const { data: tasks, error: fetchError } = await fetchMasterLibraryTasks({
           from,
           limit,
           resourceType,
@@ -53,11 +53,13 @@ const useMasterLibraryTasks = ({
           return;
         }
 
+        if (fetchError) throw fetchError;
+
         setState({
-          tasks,
+          tasks: tasks || [],
           isLoading: false,
           error: null,
-          hasMore: tasks.length === limit,
+          hasMore: (tasks || []).length === limit,
         });
 
         if (controllerRef.current === abortController) {

@@ -146,7 +146,7 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId }) => {
 
         // Retry Logic: Renormalization
         if (newPos === null) {
-          console.log('Collision detected. Renormalizing...');
+          // console.debug('Collision detected. Renormalizing...');
           const renormalizedSiblings = await renormalizePositions(
             newParentId,
             activeTask.origin,
