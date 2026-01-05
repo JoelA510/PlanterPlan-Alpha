@@ -1,20 +1,17 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { DndContext, closestCorners } from '@dnd-kit/core';
 
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
 import TaskDetailsView from '../templates/TaskDetailsView';
 import InviteMemberModal from './InviteMemberModal';
-import { ROLES } from '../../constants';
 import ErrorBoundary from '../atoms/ErrorBoundary';
 import SideNav from './SideNav';
 import ProjectTasksView from '../molecules/ProjectTasksView';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import { useToast } from '../../contexts/ToastContext';
 
 // Hooks & Utils
 import { useTaskBoard } from '../../hooks/useTaskBoard';
-
 
 const TaskList = () => {
   const {
@@ -43,7 +40,6 @@ const TaskList = () => {
     setTaskFormState,
     inviteModalProject,
     setInviteModalProject,
-    isSaving,
 
     // Handlers
     handleSelectProject,
@@ -247,20 +243,7 @@ const TaskList = () => {
             project={inviteModalProject}
             onClose={() => setInviteModalProject(null)}
             onInviteSuccess={() => {
-              // Toast is handled in the modal itself usually? 
-              // Wait, previous code had addToast here.
-              // Actually, previous code:
-              /*
-               onInviteSuccess={() => {
-                  addToast('Invitation sent successfully!', 'success');
-                  setInviteModalProject(null);
-                }}
-              */
-              // But setInviteModalProject is in hook.
-              // Let's rely on the callback passed to hook if possible? 
-              // Wait, handleOpenInvite sets state. Where is onInviteSuccess defined in hook?
-              // It isn't. The Modal component takes onInviteSuccess.
-              // I need to wire this up in the render here.
+              setInviteModalProject(null);
             }}
           />
         )}

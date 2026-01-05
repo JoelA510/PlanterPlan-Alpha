@@ -14,7 +14,6 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-
     if (!userId.trim()) {
       console.warn('[InviteMemberModal] User ID empty');
       return;

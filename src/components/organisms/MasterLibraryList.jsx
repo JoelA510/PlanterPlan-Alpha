@@ -81,7 +81,7 @@ const MasterLibraryList = (props) => {
         }
       }
     },
-    [loadingNodes, expandedTaskIds]
+    [loadingNodes]
   );
 
   const handleTaskClick = (task) => {
