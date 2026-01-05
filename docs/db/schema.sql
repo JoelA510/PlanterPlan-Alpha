@@ -143,7 +143,6 @@ BEGIN
     ALTER TABLE public.project_members
       ADD CONSTRAINT project_members_project_id_user_id_key UNIQUE (project_id, user_id);
   END IF;
-  END IF;
 END $$;
 
 -- 1.6 Storage Buckets (Idempotent)
@@ -615,12 +614,24 @@ CREATE POLICY members_delete_policy ON public.project_members FOR DELETE USING (
 );
 
 -- Policies: Storage
--- Policy: Allow authenticated uploads if they are project members
-CREATE POLICY "Give access to authenticated users" ON storage.objects
+-- Policy: Allow access to project members only.
+-- File path structure: {task_id}/{filename}
+DROP POLICY IF EXISTS "Give access to authenticated users" ON storage.objects;
+CREATE POLICY "Give access to project members" ON storage.objects
 FOR ALL USING (
-  bucket_id = 'resources' AND auth.role() = 'authenticated'
+    bucket_id = 'resources' AND
+    public.has_project_role(
+        (storage.foldername(name))[1]::uuid,
+        auth.uid(),
+        ARRAY['owner', 'editor', 'viewer']
+    )
 ) WITH CHECK (
-  bucket_id = 'resources' AND auth.role() = 'authenticated'
+    bucket_id = 'resources' AND
+    public.has_project_role(
+        (storage.foldername(name))[1]::uuid,
+        auth.uid(),
+        ARRAY['owner', 'editor']
+    )
 );
 
 -- 7. Comments
