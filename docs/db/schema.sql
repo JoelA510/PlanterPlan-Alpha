@@ -143,7 +143,13 @@ BEGIN
     ALTER TABLE public.project_members
       ADD CONSTRAINT project_members_project_id_user_id_key UNIQUE (project_id, user_id);
   END IF;
+  END IF;
 END $$;
+
+-- 1.6 Storage Buckets (Idempotent)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('resources', 'resources', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- -------------------------------------------------------------------------
 -- 2. INDEXES
