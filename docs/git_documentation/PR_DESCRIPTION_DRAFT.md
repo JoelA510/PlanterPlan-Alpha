@@ -1,26 +1,14 @@
-# Pull Request: Surgical Refactor & Technical Debt Cleanup (Jan 2026)
+# Pull Request: Core Resilience & Engineering Excellence: Database Hardening, State Robustness & Modernized Workflows
 
 ## 📋 Summary
 
-This PR represents a major "Health & Hygiene" initiative for the codebase, addressing technical debt, hardening the database, and modernizing the development workflow.
+This pull request represents a significant 'Health & Hygiene' initiative, focusing on enhancing the application's core resilience, state management, and development workflows.
 
-### 🐛 Stability & Fixes
-
-- **Optimistic Rollback**: Implemented a robust rollback mechanism in `useTreeState` to prevent UI/State desync when drag-and-drop operations fail.
-- **Database Safety**: Added recursion guards (`pg_trigger_depth()`) to multiple triggers and idempotent checks to setup scripts to prevent crashes and infinite loops.
-- **Dependency Audit**: Updated 24+ outdated packages (including `react-router-dom`, `uuid`) to modernize `package-lock.json`.
-
-### 🏗️ Architecture & Refactoring
-
-- **"God Component" Decomposition**: Extracted complex tree logic from `MasterLibraryList.jsx` into a dedicated `useTreeState` hook, decoupling UI rendering from state management.
-- **Magic Strings**: Eliminated brittle hardcoded strings ('todo', 'in_progress') by introducing centralized `TASK_STATUS` constants in `src/constants/index.js` and propagating them across components and tests.
-- **Database Consolidation**: Merged 3 standalone migration files into the canonical `docs/db/schema.sql` and `docs/db/one_time_setup.sql` for a single source of truth.
-
-### 🤖 Agent & Developer Experience
-
-- **Agent Configuration**: Overhauled `.agent/` directory with new Workflows (`pre-pr-docs`, `auto-roadmap`, `debt-audit`) and Rules to standardize AI assistant behavior.
-- **Documentation**: Consolidated fragmented Test Plans into `testing-strategy.md` and merged Architecture rules into `ENGINEERING_KNOWLEDGE.md`.
-- **Debt Report**: Completed a comprehensive `DEBT_REPORT.md` audit, closing out multiple high-priority items.
+- **Major UI/State Refactor**: Decomposed the monolithic `MasterLibraryList` component into a dedicated `useTreeState` hook and refactored `TaskList` to utilize a new `useTaskBoard` hook, centralizing complex logic for improved maintainability.
+- **Database Hardening**: Hardened the database layer with robust recursion guards in PostgreSQL triggers, idempotent migration scripts, and refined RLS security policies.
+- **Modernized Workflows**: Overhauled the `.agent/` directory with new AI agent workflows for automated roadmap advancement, comprehensive debt auditing, and pre-PR documentation generation.
+- **Performance & UX**: Introduced paginated project loading and on-demand hydration for joined projects, significantly enhancing application performance and responsiveness.
+- **Dependency & Consistency**: Updated 24+ outdated npm packages and replaced brittle hardcoded status strings with a centralized `TASK_STATUS` constant system.
 
 ## 🗺️ Roadmap Progress
 
@@ -34,53 +22,58 @@ This PR represents a major "Health & Hygiene" initiative for the codebase, addre
 
 ### Key Patterns & Decisions
 
-- **Pattern A (Facaded Hooks):** Extracted `useTreeState` to separate "Loading/Expansion" logic from "Rendering".
+- **Pattern A (Facaded Hooks):** Extracted `useTreeState` and `useTaskBoard` to separate "Loading/Expansion" logic from "Rendering". This prevents "God Component" bloat.
 - **Pattern B (Safe Migrations):** Refactored `one_time_setup.sql` to use `DO $$` blocks with column existence checks, ensuring scripts are safe to run on both fresh and existing databases.
-- **Pattern C (Agent Workflows):** Formalized common dev tasks (roadmap updates, pre-pr docs) into `.agent/workflows/` to ensure consistency.
+- **Pattern C (Agent Workflows):** Formalized common dev tasks (roadmap updates, pre-pr docs) into `.agent/workflows/` to ensure consistency in AI assistance.
 
-### Database Changes [`docs/db/`]
+### Logic Flow / State Changes
 
-- **`schema.sql`**: Added `clone_project_template` (RPC), `calc_task_date_rollup` (Trigger), and updated RLS policies for `storage.buckets`.
-- **`one_time_setup.sql`**: Added idempotent storage bucket configuration and conditional cleanup logic.
+```mermaid
+graph TD
+    A["User Action (Expand/Move)"] --> B["useTreeState / useTaskBoard"]
+    B --> C["Update Local State (Optimistic)"]
+    C --> D{"API Call (Supabase)"}
+    D -- Success --> E["Refetch / Sync via Hook Effect"]
+    D -- Failure --> F["Rollback to Previous State"]
+```
 
 ## 🔍 Review Guide
 
 ### 🚨 High Risk / Security Sensitive
 
-- `package-lock.json` - Significant updates to internal dependencies.
-- `src/hooks/useTreeState.js` - New core logic for the Master Library tree view.
-- `docs/db/schema.sql` - Core database definition changes.
+- `docs/db/schema.sql` - Core database definition changes; includes RLS policy updates and trigger modifications.
+- `package-lock.json` - Significant updates to internal dependencies; potential for breaking changes in sub-dependencies.
+- `src/hooks/useTreeState.js` - New core logic for the Master Library tree view; handles recursive state management.
 
 ### 🧠 Medium Complexity
 
-- `.agent/` directory - New rules and workflows for AI context.
-- `src/components/organisms/MasterLibraryList.jsx` - Significant code deletion (moved to hook).
-- `src/constants/index.js` - New centralized constants.
+- `src/hooks/useTaskBoard.js` - Compositor hook for project/task operations, drag-and-drop, and hydration.
+- `.agent/` directory - New rules and workflows that define AI agent capabilities.
+- `src/components/organisms/MasterLibraryList.jsx` - Significant code deletion; now a thin wrapper around `useTreeState`.
+- `src/constants/index.js` - Introduction of `TASK_STATUS` constants.
 
 ### 🟢 Low Risk / Boilerplate
 
-- `DEBT_REPORT.md` - Status updates.
-- `docs/operations/` - Documentation consolidation.
+- `DEBT_REPORT.md` - Status updates on technical debt auditing.
+- `docs/operations/` - Documentation consolidation (merging engineering knowledge and test plans).
 
 ## 🧪 Verification Plan
 
 ### 1. Environment Setup
 
-- [ ] Run `npm install` (to sync new lockfile versions)
+- [ ] Run `npm install` to sync the updated lockfile.
+- [ ] Verify database schema using `docs/db/schema.sql` for fresh installs or `one_time_setup.sql` for migrations.
 
 ### 2. Manual Verification
 
-- **Dependency Check**:
-    1. Run `npm test` -> All tests must pass.
-    2. Run `npm run build` -> Build must succeed without lint errors.
-- **Master Library**:
-    1. Go to "Master Library".
-    2. Expand a task.
-    3. Verify children load and appear.
-    4. Collapse and Expand again (should be instant).
-- **Database Setup (Dry Run)**:
-    1. Review `docs/db/one_time_setup.sql` logic.
-    2. (Optional) Run against a local dev instance to ensure no errors.
+- **Performance & Hydration**:
+    1. Log in and verify projects load via paginated requests.
+    2. Click a "Joined Project"; verify it hydrations on-demand and displays tasks correctly.
+- **Master Library Tree**:
+    1. Go to "Master Library" and verify expansion/collapsing recursion works.
+    2. Verify added tasks appear in the correct hierarchy immediately.
+- **Optimistic Rollback**:
+    1. Trigger a status change; manually disconnect network; verify UI reverts to original status on failure.
 
 ### 3. Automated Tests
 
@@ -88,3 +81,22 @@ This PR represents a major "Health & Hygiene" initiative for the codebase, addre
 npm test -- src/components/organisms/MasterLibraryList.test.jsx
 npm run lint
 ```
+
+---
+
+<details>
+<summary><strong>📉 Detailed Changelog (Collapsible)</strong></summary>
+
+- `src/hooks/useTreeState.js`: New hook extracting tree logic from MasterLibraryList.
+- `src/hooks/useTaskBoard.js`: New compositor hook for TaskList.
+- `src/components/organisms/MasterLibraryList.jsx`: Refactored to use `useTreeState`.
+- `src/components/organisms/TaskList.jsx`: Refactored to use `useTaskBoard`.
+- `src/services/projectService.js`: Added pagination to `getUserProjects`.
+- `src/constants/index.js`: Added `TASK_STATUS` and `ROLES` constants.
+- `docs/db/schema.sql`: Consolidated migrations; added triggers and RLS.
+- `docs/db/one_time_setup.sql`: Hardened with safe-drop checks.
+- `.agent/`: New workflows and rules files.
+
+</details>
+
+---
