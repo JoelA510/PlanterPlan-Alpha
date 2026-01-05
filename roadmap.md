@@ -129,7 +129,7 @@ _Goal: Optimize for large trees and refine the dashboard interface._
 
 - **ID:** `P6-DASH-PAGINATION`
 - **Goal**: Implement server-side pagination for the main dashboard.
-- **Status**: 📅 Planned
+- **Status**: 🚧 In Progress
 
 #### 6.2 Advanced Reporting UI
 
