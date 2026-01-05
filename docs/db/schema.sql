@@ -316,8 +316,8 @@ CREATE OR REPLACE FUNCTION public.clone_project_template(
     p_user_id uuid,
     p_title text DEFAULT NULL,
     p_description text DEFAULT NULL,
-    p_start_date date DEFAULT NULL,
-    p_due_date date DEFAULT NULL
+    p_start_date timestamptz DEFAULT NULL,
+    p_due_date timestamptz DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
