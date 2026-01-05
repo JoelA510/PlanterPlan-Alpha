@@ -121,4 +121,12 @@ FROM numbered_tasks n
 WHERE t.id = n.id
   AND (t.position IS NULL OR t.position = 0);
 
+-- -------------------------------------------------------------------------
+-- 5. Setup Storage Buckets
+-- -------------------------------------------------------------------------
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('resources', 'resources', true)
+ON CONFLICT (id) DO NOTHING;
+
 COMMIT;
