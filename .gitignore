@@ -48,3 +48,4 @@ docs/db/seed_recovery.sql
 scripts/recover_db.js
 feedback.md
 code_review_draft.md
+docs/git_documentation/PR_DESCRIPTION_DRAFT.md
