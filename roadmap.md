@@ -135,7 +135,7 @@ _Goal: Optimize for large trees and refine the dashboard interface._
 
 - **ID:** `P6-ADV-REPORTING`
 - **Goal**: Implement donut charts, reporting month filters, and milestone trend analysis.
-- **Status**: 📅 Planned
+- **Status**: ✅ Done
 
 #### 6.3 Side Navigation Migration
 
