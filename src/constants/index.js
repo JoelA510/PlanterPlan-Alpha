@@ -13,7 +13,8 @@ export const TASK_ORIGIN = {
 export const TASK_STATUS = {
   TODO: 'todo',
   IN_PROGRESS: 'in_progress',
-  COMPLETED: 'completed',
+  BLOCKED: 'blocked',
+  COMPLETED: 'complete',
 };
 
 export const STORAGE_BUCKETS = {

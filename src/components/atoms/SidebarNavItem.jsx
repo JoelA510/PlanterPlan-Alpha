@@ -1,4 +1,5 @@
 import React from 'react';
+import { TASK_STATUS } from '../../constants';
 import PropTypes from 'prop-types';
 import RoleIndicator from './RoleIndicator';
 
@@ -16,7 +17,7 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
     }
   };
 
-  const statusClass = task.status ? `status-dot ${task.status}` : 'status-dot todo';
+  const statusClass = task.status ? `status-dot ${task.status}` : `status-dot ${TASK_STATUS.TODO}`;
 
   return (
     <div
