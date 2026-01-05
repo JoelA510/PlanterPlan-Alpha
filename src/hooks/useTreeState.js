@@ -64,7 +64,23 @@ export const useTreeState = (rootTasks) => {
   );
 
   const handleStatusChange = useCallback(async (taskId, newStatus) => {
+    let previousStatus;
     setTreeData((prev) => {
+      // Find previous status for rollback
+      const findTask = (nodes) => {
+        for (const node of nodes) {
+          if (node.id === taskId) return node;
+          if (node.children) {
+            const found = findTask(node.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      const task = findTask(prev);
+      if (task) previousStatus = task.status;
+
       // Optimistic update
       return updateTaskInTree(prev, taskId, { status: newStatus });
     });
@@ -73,7 +89,10 @@ export const useTreeState = (rootTasks) => {
       await updateTaskStatus(taskId, newStatus);
     } catch (err) {
       console.error('Failed to update status', err);
-      // Revert logic could go here
+      // Revert logic
+      if (previousStatus) {
+        setTreeData((prev) => updateTaskInTree(prev, taskId, { status: previousStatus }));
+      }
     }
   }, []);
 
