@@ -702,3 +702,34 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Context & Problem**: Layouts were failing (elements flushed to edges, no gaps) despite correct Tailwind classes in JSX (e.g., `p-6`, `gap-8`). The root cause was that these specific utilities were **missing** from the manually maintained `globals.css` file, which emulates Tailwind but isn't a full engine.
 - **Solution & Pattern**: When "standard" classes fail silently, grep `globals.css` immediately. We backfilled the missing classes.
 - **Critical Rule**: If a utility class isn't in `globals.css`, it doesn't exist. Don't assume full Tailwind support.
+
+## [REACT-031] The "God Hook" Facade Pattern
+
+- **Tags**: #react, #hooks, #refactoring, #architecture
+- **Date**: 2026-01-05
+- **Context & Problem**: `useTaskOperations` became a 450+ LOC "God Hook" handling fetching, state, pagination, and mutations. Splitting it indiscriminately would break ~15 consumer files.
+- **Solution & Pattern**:
+  1. **Split Logic**: Created `useTaskQuery` (read-only state) and `useTaskMutations` (write operations).
+  2. **Facade**: Rewrote the original `useTaskOperations` to import and compose these two new hooks, re-exporting the exact same API surface as before.
+- **Critical Rule**: When refactoring huge hooks, do not force consumers to change immediately. Use a Facade hook to maintain the API contract while cleaning up the internals.
+
+## [REACT-032] Controlled Tree Expansion (Race Conditions)
+
+- **Tags**: #react, #state-management, #recursion, #race-condition
+- **Date**: 2026-01-05
+- **Context & Problem**: The Master Library tree used manual state syncing (`setTreeData + setExpandedIds`) inside an async fetch callback. This caused a race condition where the expansion state would get overwritten by the data refresh, collapsing nodes immediately after opening.
+- **Solution & Pattern**:
+  - **Decouple**: Removed manual tree mutation from the toggle handler.
+  - **React**: Used a single `useEffect` that listens to `[expandedTaskIds, treeData]` to apply the specific `isExpanded` flag to the view model synchronously.
+- **Critical Rule**: Never manually mutate deep tree state inside an async callback. Use a reactive `useEffect` to merge "UI State" (expanded IDs) with "Data" (Task Nodes) whenever either changes.
+
+## [REACT-033] Form Component Splitting (Create vs Edit)
+
+- **Tags**: #react, #forms, #refactoring
+- **Date**: 2026-01-05
+- **Context & Problem**: `NewTaskForm` handled both "Create" (with template search) and "Edit" (with pre-filled data) logic, leading to complex conditionals (`if (isEditMode) ...`).
+- **Solution & Pattern**:
+  1. **Extract Fields**: Moved shared JSX inputs to `TaskFormFields`.
+  2. **Split Organisms**: Created `CreateTaskForm` (w/ search) and `EditTaskForm` (w/ initial data).
+  3. **Facade**: `NewTaskForm` simply checks `initialTask` prop and returns the correct sub-component.
+- **Critical Rule**: If a form has >2 distinct modes (Create vs Edit) with different layouts/logic, do not use one component. Split them and share the fields via a molecule.

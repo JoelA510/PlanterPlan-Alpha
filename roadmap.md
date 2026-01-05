@@ -1,6 +1,6 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-01-05
 **Current Focus:** Feature Parity & Structural Refinement
 
 ---
@@ -27,6 +27,7 @@ A chronological overview of the project's evolution from Day 1.
 | **Side Nav & Debt**      | Jan 2026     | **Navigation Overhaul**: Implemented persistent Side Navigation and refactored `TaskList` for modularity and performance.                                                |
 | **Mobile Polish**        | Jan 2026     | **Responsive UI**: Implemented mobile-responsive `DashboardLayout` with drawer navigation and light theme polish.                                                        |
 | **Feedback Sprint**      | Jan 2026     | **Logic & UI Polish**: Addressed 40+ feedback items including RBAC security, Timezone fixes, Printer styles, and form layout improvements.                               |
+| **Surgical Refactor**    | Jan 2026     | **Architecture Hardening**: Split monolithic hooks and components (`useTaskOperations`, `TaskList`, `NewTaskForm`) to resolve Top 3 Tech Debt items.                     |
 
 ---
 
