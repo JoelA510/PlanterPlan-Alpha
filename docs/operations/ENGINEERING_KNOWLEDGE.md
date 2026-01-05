@@ -696,6 +696,7 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Critical Rule**: Do not treat "Dates" and "Timestamps" as the same data type. Branch parsing logic based on input format to preserve semantic correctness.
 
 ## [CSS-030] Manual Tailwind Emulation Pitfalls
+
 - **Tags**: #css #maintenance #gotcha
 - **Date**: 2026-01-04
 - **Context & Problem**: Layouts were failing (elements flushed to edges, no gaps) despite correct Tailwind classes in JSX (e.g., `p-6`, `gap-8`). The root cause was that these specific utilities were **missing** from the manually maintained `globals.css` file, which emulates Tailwind but isn't a full engine.

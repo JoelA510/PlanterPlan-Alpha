@@ -72,17 +72,7 @@ const MasterLibraryList = (props) => {
 
           setTreeData((prev) => {
             // Apply the new children
-            const withChildren = mergeChildrenIntoTree(prev, task.id, nestedChildren);
-            // CRITICAL FIX: Re-apply the *current* expansion state to ensure consistency,
-            // specifically for the newly added children or if state drifted.
-            // Note: We access the Set state inside the callback to be safe, but since
-            // setExpandedTaskIds is async, we can't easily get the *pending* state.
-            // However, since handleToggleExpand sets the state synchronously (scheduled),
-            // and fetch awaits, by the time we get here, expandedTaskIds *should* be updated
-            // if we used a ref. For now, we trust the Effect 2 will handle the visuals,
-            // but to prevent the "collapse immediately" bug, we ensure the tree update
-            // preserves the expanded=true we just set.
-            return updateTreeExpansion(withChildren, new Set([...expandedTaskIds, task.id]));
+            return mergeChildrenIntoTree(prev, task.id, nestedChildren);
           });
         } catch (err) {
           console.error('Failed to load children', err);
@@ -167,7 +157,7 @@ const MasterLibraryList = (props) => {
                     level={0}
                     onTaskClick={handleTaskClick}
                     onStatusChange={handleStatusChange}
-                    onAddChildTask={() => {}}
+                    onAddChildTask={props.onAddChildTask}
                     forceShowChevron={true}
                     onToggleExpand={handleToggleExpand}
                   />
