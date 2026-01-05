@@ -733,6 +733,15 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Database (Trigger)**: Owns `parent rollup` (`trigger_calc_task_dates`). When a child moves, the DB ensures the Parent expands to contain it.
   - **Database (RPC)**: Owns `clone_project_template` dates. Atomic cloning must handle date shifting in the same transaction.
 - **Critical Rule**:
-  1. **Do NOT** calculate parent rollups in the client.
-  2. **Do NOT** update dates after clone (pass overrides to RPC).
   3. **Do NOT** rely on client-side re-fetch to sync dates (triggers update in-place).
+
+## [DB-035] Migration Safety via Conditional Logic
+
+- **Tags**: #database, #migrations, #safety
+- **Date**: 2026-01-05
+- **Context & Problem**: A "One-Time Setup" script contained destructive `DROP COLUMN` commands intended to clean up legacy schema. However, when run on a fresh install (where those columns never existed), the script would fail or accidentally drop dependent views, breaking the installation.
+- **Solution & Pattern**:
+  - **Check Existence**: Wrap destructive logic in a `DO $$` block.
+  - **Conditional Execution**: Query `information_schema.columns` to see if the target column exists.
+  - **Dynamic SQL**: Use `EXECUTE` inside the `IF` block to run DDL statements conditionally.
+- **Critical Rule**: Setup scripts must be **idempotent and safe**. Never assume specific schema state; check for existence before dropping or modifying.
