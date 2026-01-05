@@ -78,7 +78,7 @@ If any non-trivial bugs were fixed or new patterns were established:
 
 ## Step 5: Generate PR_DESCRIPTION_DRAFT.md
 
-**File**: `docs/git_documentation/PR_DESCRIPTION_DRAFT.md`
+**File**: `PR_DESCRIPTION_DRAFT.md`
 **Prompt Reference**: `.agent/prompts/PR-PROMPT.md`
 
 Generate the PR description using the template in PR-PROMPT.md:
