@@ -79,7 +79,7 @@ If any non-trivial bugs were fixed or new patterns were established:
 ## Step 5: Generate PR_DESCRIPTION_DRAFT.md
 
 **File**: `docs/git_documentation/PR_DESCRIPTION_DRAFT.md`
-**Prompt Reference**: `docs/git_documentation/PR-PROMPT.md`
+**Prompt Reference**: `.agent/prompts/PR-PROMPT.md`
 
 Generate the PR description using the template in PR-PROMPT.md:
 
@@ -120,4 +120,4 @@ Generate the PR description using the template in PR-PROMPT.md:
 | `ENGINEERING_KNOWLEDGE.md` | Bugs fixed, patterns learned   | N/A (follow existing format)          |
 | `roadmap.md`               | Features completed/started     | `.agent/prompts/ROADMAP-PROMPT.md`   |
 | `README.md`                | Structure/architecture changes | `.agent/prompts/README-PROMPT.md`    |
-| `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `docs/git_documentation/PR-PROMPT.md` |
+| `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `.agent/prompts/PR-PROMPT.md` |
