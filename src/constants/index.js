@@ -10,6 +10,12 @@ export const TASK_ORIGIN = {
   TEMPLATE: 'template',
 };
 
+export const TASK_STATUS = {
+  TODO: 'todo',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+};
+
 export const STORAGE_BUCKETS = {
   RESOURCES: 'resources',
 };

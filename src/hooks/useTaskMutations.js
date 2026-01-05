@@ -237,14 +237,7 @@ export const useTaskMutations = ({
         throw error;
       }
     },
-    [
-      tasks,
-      joinedProjects,
-      hydratedProjects,
-      fetchProjects,
-      refreshProjectDetails,
-      findTask,
-    ]
+    [tasks, joinedProjects, hydratedProjects, fetchProjects, refreshProjectDetails, findTask]
   );
 
   const deleteTask = useCallback(

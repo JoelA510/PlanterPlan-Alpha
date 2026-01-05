@@ -723,13 +723,16 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **React**: Used a single `useEffect` that listens to `[expandedTaskIds, treeData]` to apply the specific `isExpanded` flag to the view model synchronously.
 - **Critical Rule**: Never manually mutate deep tree state inside an async callback. Use a reactive `useEffect` to merge "UI State" (expanded IDs) with "Data" (Task Nodes) whenever either changes.
 
-## [REACT-033] Form Component Splitting (Create vs Edit)
+## [ARC-034] Date Calculation Ownership
 
-- **Tags**: #react, #forms, #refactoring
+- **Tags**: #architecture, #dates, #database, #triggers
 - **Date**: 2026-01-05
-- **Context & Problem**: `NewTaskForm` handled both "Create" (with template search) and "Edit" (with pre-filled data) logic, leading to complex conditionals (`if (isEditMode) ...`).
+- **Context & Problem**: Confusion over who calculates `start_date` vs `days_from_start` led to conflicting updates between client and DB.
 - **Solution & Pattern**:
-  1. **Extract Fields**: Moved shared JSX inputs to `TaskFormFields`.
-  2. **Split Organisms**: Created `CreateTaskForm` (w/ search) and `EditTaskForm` (w/ initial data).
-  3. **Facade**: `NewTaskForm` simply checks `initialTask` prop and returns the correct sub-component.
-- **Critical Rule**: If a form has >2 distinct modes (Create vs Edit) with different layouts/logic, do not use one component. Split them and share the fields via a molecule.
+  - **Client (UI)**: Owns `days_from_start` calculation (in `useTaskOperations.js`). Relative offsets are business logic.
+  - **Database (Trigger)**: Owns `parent rollup` (`trigger_calc_task_dates`). When a child moves, the DB ensures the Parent expands to contain it.
+  - **Database (RPC)**: Owns `clone_project_template` dates. Atomic cloning must handle date shifting in the same transaction.
+- **Critical Rule**:
+  1. **Do NOT** calculate parent rollups in the client.
+  2. **Do NOT** update dates after clone (pass overrides to RPC).
+  3. **Do NOT** rely on client-side re-fetch to sync dates (triggers update in-place).
