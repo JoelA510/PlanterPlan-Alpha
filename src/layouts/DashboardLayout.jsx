@@ -9,7 +9,7 @@ const DashboardLayout = ({ children, sidebar }) => {
     : sidebar;
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 overflow-hidden app-layout">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
@@ -17,7 +17,7 @@ const DashboardLayout = ({ children, sidebar }) => {
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-xl animate-slide-right">
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-xl animate-slide-right side-nav">
             <div className="absolute top-0 right-0 -mr-12 pt-2">
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -40,7 +40,7 @@ const DashboardLayout = ({ children, sidebar }) => {
               </button>
             </div>
             {/* Mobile Sidebar Content */}
-            <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">{sidebarWithProps}</div>
+            <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto side-nav-content">{sidebarWithProps}</div>
           </div>
           <div className="flex-shrink-0 w-14" aria-hidden="true">
             {/* Force sidebar to shrink to fit close icon */}
@@ -49,12 +49,12 @@ const DashboardLayout = ({ children, sidebar }) => {
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:flex-shrink-0 border-r border-gray-200 bg-white w-64">
-        <div className="flex flex-col flex-1 h-full">{sidebarWithProps}</div>
+      <div className="hidden lg:flex lg:flex-shrink-0 border-r border-gray-200 bg-white side-nav">
+        <div className="flex flex-col flex-1 h-full side-nav-content">{sidebarWithProps}</div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden main-content">
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 py-3">
           <div className="flex items-center">
