@@ -1,39 +1,16 @@
 /* Layout Styles - Split View and Main Structure */
 
-/* Main App Container */
-.app-layout {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background: #f8fafc;
-  /* Slate 50 */
-}
+/* Note: Core layout structure (flex, width, height) is handled by Tailwind in DashboardLayout.jsx.
+   This file focuses on component-specific styling and theming. */
 
-/* Side Navigation - Light Theme */
-.side-nav {
-  width: 260px;
-  background: #ffffff;
-  /* White */
-  color: #334155;
-  /* Slate 700 */
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  border-right: 1px solid #e2e8f0;
-  /* Slate 200 */
-}
-
+/* Side Navigation Components */
 .side-nav-header {
   padding: 20px 24px;
-  /* Removed duplicate "PlanterPlan" header background */
   background: transparent;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-
-/* Removed redundant .app-title and .side-nav-header background logic */
 
 .side-nav-content {
   flex: 1;
@@ -43,8 +20,7 @@
 
 .side-nav-divider {
   height: 1px;
-  background: #f1f5f9;
-  /* Slate 100 */
+  background: var(--status-todo-border); /* Slate 200 equivalent */
   margin: 12px 0;
 }
 
@@ -68,9 +44,8 @@
 }
 
 .side-nav .section-title {
-  color: #94a3b8;
-  /* Slate 400 */
-  font-size: 0.7rem;
+  color: var(--text-secondary); /* Slate 400/500 */
+  font-size: 0.75rem; /* Standardized to xs */
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 700;
@@ -78,11 +53,9 @@
 }
 
 .side-nav .section-count {
-  background: #f1f5f9;
-  /* Slate 100 */
-  color: #64748b;
-  /* Slate 500 */
-  font-size: 0.7rem;
+  background: var(--bg-background); /* Slate 100 */
+  color: var(--text-secondary);
+  font-size: 0.75rem;
   padding: 2px 6px;
   border-radius: 999px;
   font-weight: 600;
@@ -94,26 +67,23 @@
   align-items: center;
   gap: 4px;
   background: transparent;
-  color: #3b82f6;
-  /* Blue 500 */
-  border: 1px dashed #cbd5e1;
-  /* Slate 300 */
+  color: var(--accent-blue-dark); /* Blue 500/600 */
+  border: 1px dashed var(--status-todo-border); /* Slate 300 */
   padding: 4px 8px;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.75rem; /* Standardized */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-new-item:hover {
-  background: #eff6ff;
-  /* Blue 50 */
-  border-color: #3b82f6;
-  color: #2563eb;
+  background: var(--accent-blue-soft); /* Blue 50 */
+  border-color: var(--accent-blue-dark);
+  color: var(--accent-blue-dark);
 }
 
-/* Sidebar Navigation Item - Lightweight nav links (Light Theme) */
+/* Sidebar Navigation Item - Lightweight nav links */
 .sidebar-nav-item {
   display: flex;
   align-items: center;
@@ -122,34 +92,27 @@
   margin-bottom: 2px;
   border-radius: 6px;
   background: transparent;
-  color: #475569;
-  /* Slate 600 */
+  color: var(--text-secondary); /* Slate 600 */
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s ease;
   user-select: none;
   border-left: 3px solid transparent;
-  /* Selection marker container */
 }
 
 .sidebar-nav-item:hover {
-  background: #f8fafc;
-  /* Slate 50 */
-  color: #1e293b;
-  /* Slate 900 */
+  background: var(--bg-background); /* Slate 50 */
+  color: var(--text-primary); /* Slate 900 */
 }
 
 .sidebar-nav-item.selected {
-  background: #eff6ff;
-  /* Blue 50 */
-  color: #2563eb;
-  /* Blue 600 */
-  border-left-color: #2563eb;
-  /* Blue 600 marker */
+  background: var(--accent-blue-soft); /* Blue 50 */
+  color: var(--accent-blue-dark); /* Blue 600 */
+  border-left-color: var(--accent-blue-dark);
 }
 
 .sidebar-nav-item-title {
-  font-size: 0.875rem;
+  font-size: 0.875rem; /* Standardized to sm */
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -167,67 +130,47 @@
 }
 
 .status-dot.todo {
-  background-color: #cbd5e1;
+  background-color: #cbd5e1; /* Slate 300 - Keep specific color or map to var */
 }
 
-/* Slate 300 */
 .status-dot.in_progress {
-  background-color: #3b82f6;
+  background-color: var(--status-progress-text); /* Blue 500 */
 }
 
-/* Blue 500 */
 .status-dot.blocked {
-  background-color: #ef4444;
+  background-color: var(--status-blocked-text); /* Red 500 */
 }
 
-/* Red 500 */
 .status-dot.complete {
-  background-color: #10b981;
+  background-color: var(--status-complete-text); /* Green 500 */
 }
 
-/* Emerald 500 */
-
-/* Main Content Area - Fixed Flexbox */
-.main-content {
-  flex: 1;
-  /* Takes remaining width */
-  display: flex;
-  flex-direction: column;
-  /* Ensure vertical stacking if needed */
-  overflow: hidden;
-  position: relative;
-  background: #f8fafc;
-  /* Slate 50 */
-}
 
 /* Project View Container */
 .project-view-area {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 48px;
-  /* Increased padding */
+  /* padding handled by Tailwind in DashboardLayout */
 }
 
 /* Project Header Area */
 .project-header {
   margin-bottom: 32px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--status-todo-border);
 }
 
 .project-header h1 {
   font-size: 1.875rem;
   font-weight: 700;
-  color: #0f172a;
-  /* Slate 900 */
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   letter-spacing: -0.025em;
 }
 
 .project-header .meta {
   font-size: 0.875rem;
-  color: #64748b;
-  /* Slate 500 */
+  color: var(--text-secondary);
 }
 
 /* Welcome/Empty State Enhancement */
@@ -239,66 +182,57 @@
   text-align: center;
   height: 100%;
   padding: 40px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .welcome-state h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 /* Right side - Permanent panel (Details) */
+/* Note: Consider moving width to Tailwind if possible, but keeping here for consistency */
 .permanent-side-panel {
   width: 400px;
-  background: white;
-  border-left: 1px solid #e2e8f0;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--status-todo-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   height: 100%;
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.02);
-  /* Subtle shadow for depth */
 }
 
 /* Responsive - Stack on mobile */
 @media (max-width: 1024px) {
-  .app-layout {
-    flex-direction: column;
-    height: auto;
-    overflow-y: auto;
-  }
-
-  .side-nav {
-    width: 100%;
-    height: auto;
-    max-height: 300px;
-    border-right: none;
-    border-bottom: 1px solid #e2e8f0;
-  }
-
   .permanent-side-panel {
     width: 100%;
     border-left: none;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--status-todo-border);
   }
 }
 
 /* Custom Scrollbar for Light Mode */
-.side-nav-content::-webkit-scrollbar {
+.side-nav-content::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
   width: 5px;
+  height: 5px;
 }
 
-.side-nav-content::-webkit-scrollbar-track {
+.side-nav-content::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.side-nav-content::-webkit-scrollbar-thumb {
+.side-nav-content::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 3px;
 }
 
-.side-nav-content::-webkit-scrollbar-thumb:hover {
+.side-nav-content::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }

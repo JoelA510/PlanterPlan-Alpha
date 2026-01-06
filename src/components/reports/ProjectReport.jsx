@@ -32,57 +32,61 @@ const ProjectReport = () => {
   useEffect(() => {
     const loadReportData = async () => {
       try {
-        const rawTasks = await fetchTaskChildren(projectId);
+        const { data: rawTasks, error } = await fetchTaskChildren(projectId);
+
+        if (error) throw error;
 
         // Build parent map for DFS
         const parentMap = {};
-        rawTasks.forEach((t) => {
-          const pid = t.parent_task_id;
-          if (!parentMap[pid]) parentMap[pid] = [];
-          parentMap[pid].push(t);
-        });
-
-        // Sort helper
-        const sorter = (a, b) => {
-          const posA = a.position ?? 0;
-          const posB = b.position ?? 0;
-          if (posA !== posB) return posA - posB;
-          return new Date(a.created_at) - new Date(b.created_at);
-        };
-
-        const processedTasks = [];
-        const traverse = (currentId, depth) => {
-          const children = parentMap[currentId] || [];
-          children.sort(sorter);
-          children.forEach((child) => {
-            processedTasks.push({ ...child, depth });
-            traverse(child.id, depth + 1);
+        if (rawTasks) {
+          rawTasks.forEach((t) => {
+            const pid = t.parent_task_id;
+            if (!parentMap[pid]) parentMap[pid] = [];
+            parentMap[pid].push(t);
           });
-        };
 
-        const rootTask = rawTasks.find((t) => t.id === projectId);
-        if (rootTask) {
-          processedTasks.push({ ...rootTask, depth: 0 });
-          traverse(rootTask.id, 1);
+          // Sort helper
+          const sorter = (a, b) => {
+            const posA = a.position ?? 0;
+            const posB = b.position ?? 0;
+            if (posA !== posB) return posA - posB;
+            return new Date(a.created_at) - new Date(b.created_at);
+          };
+
+          const processedTasks = [];
+          const traverse = (currentId, depth) => {
+            const children = parentMap[currentId] || [];
+            children.sort(sorter);
+            children.forEach((child) => {
+              processedTasks.push({ ...child, depth });
+              traverse(child.id, depth + 1);
+            });
+          };
+
+          const rootTask = rawTasks.find((t) => t.id === projectId);
+          if (rootTask) {
+            processedTasks.push({ ...rootTask, depth: 0 });
+            traverse(rootTask.id, 1);
+          }
+
+          // Calculate Stats
+          const total = rawTasks.length;
+          const completed = rawTasks.filter(
+            (t) => t.status === TASK_STATUS.COMPLETED || t.is_complete
+          ).length;
+          const inProgress = rawTasks.filter((t) => t.status === TASK_STATUS.IN_PROGRESS).length;
+          const overdue = rawTasks.filter((t) => {
+            return (
+              t.due_date &&
+              new Date(t.due_date) < new Date() &&
+              t.status !== TASK_STATUS.COMPLETED &&
+              !t.is_complete
+            );
+          }).length;
+
+          setTasks(processedTasks);
+          setStats({ total, completed, overdue, inProgress });
         }
-
-        // Calculate Stats
-        const total = rawTasks.length;
-        const completed = rawTasks.filter(
-          (t) => t.status === TASK_STATUS.COMPLETED || t.is_complete
-        ).length;
-        const inProgress = rawTasks.filter((t) => t.status === TASK_STATUS.IN_PROGRESS).length;
-        const overdue = rawTasks.filter((t) => {
-          return (
-            t.due_date &&
-            new Date(t.due_date) < new Date() &&
-            t.status !== TASK_STATUS.COMPLETED &&
-            !t.is_complete
-          );
-        }).length;
-
-        setTasks(processedTasks);
-        setStats({ total, completed, overdue, inProgress });
       } catch (error) {
         console.error('Failed to load report', error);
       } finally {
@@ -160,7 +164,7 @@ const ProjectReport = () => {
       <div className="grid grid-cols-4 gap-4 mb-8">
         {/* Donut Chart */}
         <div className="col-span-2 p-4 bg-gray-50 rounded-lg border flex items-center justify-center">
-          <div className="relative w-32 h-32">
+          <div className="relative w-32 h-32" style={{ width: 150, height: 150 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

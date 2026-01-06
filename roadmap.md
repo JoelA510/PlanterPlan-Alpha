@@ -149,6 +149,12 @@ _Goal: Optimize for large trees and refine the dashboard interface._
 - **Goal**: Implement Supabase Realtime subscriptions.
 - **Status**: 📅 Planned
 
+#### 6.5 Layout & Navigation Polish
+
+- **ID:** `P6.5-LAYOUT`
+- **Goal**: Resolve layout conflicts (CSS vs Tailwind), implement persist SideNav with global links, and standardize UI.
+- **Status**: ✅ Done
+
 ### Phase 7: Advanced Engine & Automation
 
 _Goal: Automate date inheritance and status tracking._

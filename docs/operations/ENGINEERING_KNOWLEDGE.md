@@ -761,3 +761,11 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Context & Problem**: The generic `fetchTaskChildren` service was updated to return a Supabase-style object `{ data, error }`. However, legacy usage assumed it returned `data` directly (an array), causing `TypeError: rawTasks.forEach is not a function`.
 - **Solution & Pattern**: Updated usage to destructure the response: `const { data: rawTasks } = await fetchTaskChildren(...)`.
 - **Critical Rule**: Always check service return signatures. If a service wraps Supabase, standardizing on `{ data, error }` is safer than returning raw data or throwing, but call sites must adapt.
+
+## [UI-038] URL-Driven Sidebar Navigation
+
+- **Tags**: #ui, #navigation, #routing, #react-router
+- **Date**: 2026-01-06
+- **Context & Problem**: Deep linking to a specific project (`/project/:id`) failed to update the Sidebar selection state because the selection logic was purely internal to the `TaskList` component state, initialized to `null`.
+- **Solution & Pattern**: Added a `useEffect` in `TaskList` that syncs `activeProjectId` with the URL's `useParams().projectId`. This ensures that navigating directly to a URL selects the correct project in the sidebar list.
+- **Critical Rule**: State that represents a URL resource (like "Current Project") must sync with the URL. Do not rely solely on internal React state if deep linking is required.
