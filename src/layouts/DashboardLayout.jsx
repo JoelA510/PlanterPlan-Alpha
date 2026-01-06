@@ -49,7 +49,7 @@ const DashboardLayout = ({ children, sidebar }) => {
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:flex-shrink-0 border-r border-gray-200 bg-white side-nav">
+      <div className="hidden lg:flex lg:flex-shrink-0 w-64 border-r border-gray-200 bg-white side-nav">
         <div className="flex flex-col flex-1 h-full side-nav-content">{sidebarWithProps}</div>
       </div>
 
@@ -78,8 +78,8 @@ const DashboardLayout = ({ children, sidebar }) => {
         </div>
 
         {/* Main Scrollable Content */}
-        <main className="flex-1 overflow-y-auto focus:outline-none relative">
-          <div className="w-full h-full flex flex-col px-4 sm:px-6 lg:px-8 py-8">{children}</div>
+        <main className="flex-1 overflow-y-auto focus:outline-none relative bg-slate-50">
+          <div className="min-h-full flex flex-col px-4 sm:px-6 lg:px-8 py-8">{children}</div>
         </main>
       </div>
     </div>
