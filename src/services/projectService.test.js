@@ -81,6 +81,7 @@ describe('inviteMemberByEmail', () => {
     expect(result.error).toBeNull();
     expect(invokeMock).toHaveBeenCalledWith('invite-by-email', {
       body: { projectId: 'p1', email: 'test@example.com', role: 'editor' },
+      method: 'POST',
     });
   });
 

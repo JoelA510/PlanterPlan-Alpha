@@ -24,10 +24,13 @@ const ProjectReport = () => {
         });
 
         // Sort helper: Position -> CreatedAt
+        // Sort helper: Position -> CreatedAt (Tie-breaker)
         const sorter = (a, b) => {
-          if (a.position !== undefined && b.position !== undefined) {
-            return a.position - b.position;
-          }
+          const posA = a.position !== undefined && a.position !== null ? a.position : 0;
+          const posB = b.position !== undefined && b.position !== null ? b.position : 0;
+
+          if (posA !== posB) return posA - posB;
+
           return new Date(a.created_at) - new Date(b.created_at);
         };
 

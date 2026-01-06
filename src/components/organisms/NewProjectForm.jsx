@@ -114,22 +114,19 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="form-group">
-          <label htmlFor="start_date" className="form-label">
-            Start Date <span className="required">*</span>
-          </label>
-          <input
-            type="date"
-            id="start_date"
-            name="start_date"
-            value={formData.start_date}
-            onChange={handleChange}
-            className={`form-input ${errors.start_date ? 'error' : ''}`}
-          />
-          {errors.start_date && <span className="form-error">{errors.start_date}</span>}
-        </div>
-        <div className="form-group">{/* Placeholder for layout */}</div>
+      <div className="form-group">
+        <label htmlFor="start_date" className="form-label">
+          Start Date <span className="required">*</span>
+        </label>
+        <input
+          type="date"
+          id="start_date"
+          name="start_date"
+          value={formData.start_date}
+          onChange={handleChange}
+          className={`form-input ${errors.start_date ? 'error' : ''}`}
+        />
+        {errors.start_date && <span className="form-error">{errors.start_date}</span>}
       </div>
 
       <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">

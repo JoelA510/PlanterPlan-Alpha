@@ -20,10 +20,10 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-01 (America/Los_Angeles)  
-**Commit**: (Current Tip)
+**Last verified**: 2026-01-04 (America/Los_Angeles)
+**Commit**: 442c3c1
 **Primary audience**: code reviewers, project managers
-**Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/ENGINEERING_KNOWLEDGE.md)
+**Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/operations/ENGINEERING_KNOWLEDGE.md)
 
 ---
 
@@ -42,12 +42,18 @@ PlanterPlan is a project management tool tailored for church planting. It allows
   docs/db/               # Database schemas and migrations
   supabase/functions/    # Edge Functions (Deno/TS)
   src/
-    components/          # React UI components (Atomic: atoms, molecules, organisms, templates)
-    contexts/            # React Contexts (Auth)
-    hooks/               # Custom Hooks (Task logic, DND)
-    services/            # Supabase API wrappers
-    styles/              # Global styles (Tailwind + Semantic vars)
-    utils/               # Helper logic (tree manipulation)
+    ├── components/
+    │   ├── atoms/          # Basic building blocks (Buttons, Inputs, Breadcrumbs)
+    │   ├── molecules/      # Compound components (TaskItem, ProjectHeader)
+    │   ├── organisms/      # Complex sections (SideNav, TaskList)
+    │   ├── templates/      # Page layouts (TaskDetailsView)
+    │   └── reports/        # Data visualization
+    ├── contexts/           # Global state (Auth, Toast)
+    ├── hooks/              # Custom React hooks (useTaskOperations)
+    ├── layouts/            # Page shells (DashboardLayout)
+    ├── services/           # API interaction layer
+    ├── styles/             # CSS modules and utilities
+    └── utils/              # Helper functions
     App.jsx              # Main routing and layout
     supabaseClient.js    # Supabase initialization
 ```
@@ -135,11 +141,12 @@ flowchart LR
 
 ### 4.2 Component Responsibilities
 
-| Component/Module | Responsibility                                                   | Primary files                                                                                                                            |
-| ---------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| **AuthContext**  | Manages user session (login/logout/user object).                 | [src/contexts/AuthContext.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/contexts/AuthContext.jsx)           |
-| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js)             |
-| **TaskList**     | Displays hierarchical list of projects/tasks.                    | [src/components/tasks/TaskList.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/components/tasks/TaskList.jsx) | (Inferred path) |
+| Component/Module | Responsibility                                                   | Primary files                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **AuthContext**  | Manages user session (login/logout/user object).                 | [src/contexts/AuthContext.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/contexts/AuthContext.jsx)                   |
+| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js)                     |
+| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [src/components/organisms/TaskList.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/components/organisms/TaskList.jsx) |
+| **SideNav**      | Persistent sidebar for project navigation.                       | [src/components/organisms/SideNav.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/components/organisms/SideNav.jsx)   |
 
 ### 4.3 Database Schema
 
@@ -179,6 +186,8 @@ flowchart LR
 - ✅ **Project Reporting**: Read-only print view with completion stats (Ref: `ProjectReport.jsx`).
 - ✅ **Master Library Tree View**: Recursive display of template hierarchies with on-demand loading (Ref: `MasterLibraryList.jsx`).
 - ✅ **Optimization**: Task trees fetched via `root_id` index instead of recursive calls (Ref: `fetchTaskChildren` in `taskService.js`).
+- ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `SideNav.jsx`).
+- ✅ **Adversarial Polish**: Battle-tested UI for mobile responsiveness, date handling, and layout density (Ref: `implementation_plan.md`).
 
 ### 5.2 Known Limitations
 

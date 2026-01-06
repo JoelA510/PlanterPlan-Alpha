@@ -36,6 +36,7 @@ docs/git_documentation/review_report.md
 *PR_DESCRIPTION_DRAFT.md
 *TEST_PLAN.md
 *DEBT_REPORT.md
+notion.md
 
 # Context
 /Context
@@ -45,3 +46,5 @@ supabase/.temp/
 # Recovery & One-time Scripts
 docs/db/seed_recovery.sql
 scripts/recover_db.js
+feedback.md
+code_review_draft.md

@@ -1,93 +1,304 @@
 /* Layout Styles - Split View and Main Structure */
 
-/* Split Layout Container */
-.split-layout {
+/* Main App Container */
+.app-layout {
   display: flex;
-  height: calc(100vh - 80px);
-  gap: 0;
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-/* Left side - Scrollable task list */
-.task-list-area {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0 20px;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
   background: #f8fafc;
+  /* Slate 50 */
 }
 
-/* Right side - Permanent panel */
-.permanent-side-panel {
-  width: 450px;
-  background: white;
-  border-left: 1px solid #e5e7eb;
+/* Side Navigation - Light Theme */
+.side-nav {
+  width: 260px;
+  background: #ffffff;
+  /* White */
+  color: #334155;
+  /* Slate 700 */
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  border-right: 1px solid #e2e8f0;
+  /* Slate 200 */
 }
 
-/* Dashboard Container */
-.dashboard-container {
-  max-width: none;
-  padding: 0;
+.side-nav-header {
+  padding: 20px 24px;
+  /* Removed duplicate "PlanterPlan" header background */
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Dashboard Header */
-.dashboard-header {
-  padding: 20px 0;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 20px;
-  background: #f8fafc;
+/* Removed redundant .app-title and .side-nav-header background logic */
+
+.side-nav-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
 }
 
-.dashboard-title {
-  font-size: 2rem;
-  font-weight: 600;
-  color: var(--accent-blue);
+.side-nav-divider {
+  height: 1px;
+  background: #f1f5f9;
+  /* Slate 100 */
+  margin: 12px 0;
+}
+
+/* Side Nav Section Styles */
+.task-section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.side-nav .section-title {
+  color: #94a3b8;
+  /* Slate 400 */
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
   margin: 0;
 }
 
-/* Custom Scrollbar */
-.panel-content::-webkit-scrollbar,
-.task-list-area::-webkit-scrollbar {
-  width: 8px;
+.side-nav .section-count {
+  background: #f1f5f9;
+  /* Slate 100 */
+  color: #64748b;
+  /* Slate 500 */
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-weight: 600;
 }
 
-.panel-content::-webkit-scrollbar-track,
-.task-list-area::-webkit-scrollbar-track {
-  background: #f3f4f6;
-}
-
-.panel-content::-webkit-scrollbar-thumb,
-.task-list-area::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+/* Unified New Item Button (Ghost/Outline) */
+.btn-new-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  color: #3b82f6;
+  /* Blue 500 */
+  border: 1px dashed #cbd5e1;
+  /* Slate 300 */
+  padding: 4px 8px;
   border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.panel-content::-webkit-scrollbar-thumb:hover,
-.task-list-area::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+.btn-new-item:hover {
+  background: #eff6ff;
+  /* Blue 50 */
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+
+/* Sidebar Navigation Item - Lightweight nav links (Light Theme) */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin-bottom: 2px;
+  border-radius: 6px;
+  background: transparent;
+  color: #475569;
+  /* Slate 600 */
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  user-select: none;
+  border-left: 3px solid transparent;
+  /* Selection marker container */
+}
+
+.sidebar-nav-item:hover {
+  background: #f8fafc;
+  /* Slate 50 */
+  color: #1e293b;
+  /* Slate 900 */
+}
+
+.sidebar-nav-item.selected {
+  background: #eff6ff;
+  /* Blue 50 */
+  color: #2563eb;
+  /* Blue 600 */
+  border-left-color: #2563eb;
+  /* Blue 600 marker */
+}
+
+.sidebar-nav-item-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Status Dot Indicator */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.todo {
+  background-color: #cbd5e1;
+}
+
+/* Slate 300 */
+.status-dot.in_progress {
+  background-color: #3b82f6;
+}
+
+/* Blue 500 */
+.status-dot.blocked {
+  background-color: #ef4444;
+}
+
+/* Red 500 */
+.status-dot.complete {
+  background-color: #10b981;
+}
+
+/* Emerald 500 */
+
+/* Main Content Area - Fixed Flexbox */
+.main-content {
+  flex: 1;
+  /* Takes remaining width */
+  display: flex;
+  flex-direction: column;
+  /* Ensure vertical stacking if needed */
+  overflow: hidden;
+  position: relative;
+  background: #f8fafc;
+  /* Slate 50 */
+}
+
+/* Project View Container */
+.project-view-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 48px;
+  /* Increased padding */
+}
+
+/* Project Header Area */
+.project-header {
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.project-header h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  /* Slate 900 */
+  margin: 0 0 8px 0;
+  letter-spacing: -0.025em;
+}
+
+.project-header .meta {
+  font-size: 0.875rem;
+  color: #64748b;
+  /* Slate 500 */
+}
+
+/* Welcome/Empty State Enhancement */
+.welcome-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+  padding: 40px;
+  color: #64748b;
+}
+
+.welcome-state h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+/* Right side - Permanent panel (Details) */
+.permanent-side-panel {
+  width: 400px;
+  background: white;
+  border-left: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100%;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.02);
+  /* Subtle shadow for depth */
 }
 
 /* Responsive - Stack on mobile */
 @media (max-width: 1024px) {
-  .split-layout {
+  .app-layout {
     flex-direction: column;
     height: auto;
+    overflow-y: auto;
+  }
+
+  .side-nav {
+    width: 100%;
+    height: auto;
+    max-height: 300px;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
   }
 
   .permanent-side-panel {
     width: 100%;
     border-left: none;
-    border-top: 1px solid #e5e7eb;
-    max-height: 500px;
+    border-top: 1px solid #e2e8f0;
   }
+}
 
-  .task-list-area {
-    padding: 0 16px;
-    height: auto;
-    overflow-y: visible;
-  }
+/* Custom Scrollbar for Light Mode */
+.side-nav-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.side-nav-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.side-nav-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.side-nav-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

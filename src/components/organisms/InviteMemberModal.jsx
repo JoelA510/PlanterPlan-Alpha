@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { inviteMember, inviteMemberByEmail } from '../../services/projectService';
+import { ROLES } from '../../constants';
 
 const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
   const [userId, setUserId] = useState('');
-  const [role, setRole] = useState('viewer');
+  const [role, setRole] = useState(ROLES.VIEWER);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -11,17 +13,24 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!userId.trim()) return;
+    // console.log('[InviteMemberModal] Submitting invite for:', userId, 'Role:', role);
+
+    if (!userId.trim()) {
+      console.warn('[InviteMemberModal] User ID empty');
+      return;
+    }
 
     // Updated Logic: Check for Email OR UUID
-    const isEmail = userId.includes('@');
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const UUID_REGEX =
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
-    if (!isEmail && !UUID_REGEX.test(userId)) {
+    if (!EMAIL_REGEX.test(userId) && !UUID_REGEX.test(userId)) {
       setError('Please enter a valid Email Address or UUID.');
       return;
     }
+
+    const isEmail = userId.includes('@');
 
     setIsSubmitting(true);
     setError(null);
@@ -39,9 +48,11 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
       const msg =
         inviteError.message ||
         (typeof inviteError === 'string' ? inviteError : JSON.stringify(inviteError));
+      console.error('[InviteMemberModal] Invite Failed:', msg);
       setError(msg || 'Failed to invite member (Unknown Error)');
       setIsSubmitting(false);
     } else {
+      // console.log('[InviteMemberModal] Invite Success!');
       setIsSubmitting(false);
       setSuccess(true);
       if (onInviteSuccess) onInviteSuccess();
@@ -53,9 +64,16 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Modal Content */}
+      <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl transform transition-all">
         <h2 className="text-lg font-semibold text-slate-900">Invite Member</h2>
         <p className="mt-1 text-sm text-slate-500">
           Invite a user to <strong>{project.title}</strong>
@@ -78,7 +96,7 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
               id="userId"
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-input"
+              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-input p-2 border"
               placeholder="user@example.com or UUID"
               required
             />
@@ -93,10 +111,10 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
               id="role"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-select"
+              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm form-select p-2 border"
             >
-              <option value="viewer">Viewer (Read-only)</option>
-              <option value="editor">Editor (Can edit tasks)</option>
+              <option value={ROLES.VIEWER}>Viewer (Read-only)</option>
+              <option value={ROLES.EDITOR}>Editor (Can edit tasks)</option>
             </select>
           </div>
 
@@ -119,7 +137,8 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

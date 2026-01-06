@@ -64,10 +64,10 @@ export const fetchTaskChildren = async (taskId, client = supabase) => {
       });
     }
 
-    return descendants;
+    return { data: descendants, error: null };
   } catch (error) {
     console.error('[taskService.fetchTaskChildren] Error:', error);
-    throw error;
+    return { data: null, error };
   }
 };
 
@@ -87,10 +87,10 @@ export const getTasksForUser = async (userId, client = supabase) => {
       .order('position', { ascending: true });
 
     if (error) throw error;
-    return data;
+    return { data, error: null };
   } catch (error) {
     console.error('[taskService.getTasksForUser] Error:', error);
-    throw error;
+    return { data: null, error };
   }
 };
 
@@ -107,9 +107,9 @@ export const updateTaskStatus = async (taskId, status, client = supabase) => {
       .single();
 
     if (error) throw error;
-    return data;
+    return { data, error: null };
   } catch (error) {
     console.error('[taskService.updateTaskStatus] Error:', error);
-    throw error;
+    return { data: null, error };
   }
 };

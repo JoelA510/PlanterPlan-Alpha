@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated:** 2026-01-01
-**Current Focus:** Cleanup, Stability & Critical Fixes
+**Last Updated**: 2026-01-04
+**Current Focus:** Feature Parity & Structural Refinement
 
 ---
 
@@ -23,7 +23,10 @@ A chronological overview of the project's evolution from Day 1.
 | **Recovery & UI**        | Dec 2025     | **Data Recovery**: Restored lost task data via `supabase_importer.py` and implemented Recursive Tree View for Master Library.                                            |
 | **UI Modernization**     | Dec 2025     | **Atomic Design**: Refactored components into Atoms/Molecules/Organisms. Implemented semantic Elevation & Motion system.                                                 |
 | **Tree Optimization**    | Dec 2025     | **Performance & Stability**: Refactored `MasterLibraryList` with split effects and recursive state updates. Fixed deployment blockers.                                   |
-| **Cleanup & QA**         | Jan 2026     | **Feature Hardening**: Removed experimental RAG features. Fixed critical Master Library expansion bugs. Hardened Invite flow with CORS fixes and better error handling.  |
+| **Workflow Audit**       | Jan 2026     | **Roadmap Alignment**: Caught up with `notion.md` requirements. Hardened RAG removal and modularized services.                                                           |
+| **Side Nav & Debt**      | Jan 2026     | **Navigation Overhaul**: Implemented persistent Side Navigation and refactored `TaskList` for modularity and performance.                                                |
+| **Mobile Polish**        | Jan 2026     | **Responsive UI**: Implemented mobile-responsive `DashboardLayout` with drawer navigation and light theme polish.                                                        |
+| **Feedback Sprint**      | Jan 2026     | **Logic & UI Polish**: Addressed 40+ feedback items including RBAC security, Timezone fixes, Printer styles, and form layout improvements.                               |
 
 ---
 
@@ -31,44 +34,39 @@ A chronological overview of the project's evolution from Day 1.
 
 The core user journeys identified in the codebase and their current operational status.
 
-### 🔐 Authentication & Onboarding
+### 🔐 Authentication & Access Control
 
-| Workflow                | Status         | Notes                                                      |
-| :---------------------- | :------------- | :--------------------------------------------------------- |
-| **Sign Up / Login**     | ✅ **Working** | Powered by `AuthContext` + Supabase Auth.                  |
-| **Session Persistence** | ✅ **Working** | LocalStorage handling via Supabase client.                 |
-| **Profile Management**  | ⚠️ **Partial** | Basic display (`user.email`), no avatar/settings page yet. |
+| Workflow              | Status         | Notes                                                                 |
+| :-------------------- | :------------- | :-------------------------------------------------------------------- |
+| **Sign Up / Login**   | ✅ **Working** | Powered by `AuthContext` + Supabase Auth.                             |
+| **Role-Based Access** | 🚧 **Partial** | Owner/Editor badges exist. Limited User/Coach logic partially in RLS. |
+| **Invite Member**     | ✅ **Working** | Adds users to `project_members`. Hardened for CORS/Email lookups.     |
 
-### 🚀 Project Management
+### 🚀 Project & Hierarchy Management
 
 | Workflow                      | Status         | Notes                                                                       |
 | :---------------------------- | :------------- | :-------------------------------------------------------------------------- |
+| **Side Navigation List**      | ✅ **Done**    | Move list of projects to the side navigation bar (Single project focus).    |
 | **Create Project (Scratch)**  | ✅ **Working** | Creates a root-level task with `origin='instance'`.                         |
 | **Create Project (Template)** | ✅ **Working** | Deep Clones a template tree (root + descendants) to a new instance project. |
-| **Flattened Dashboard**       | ✅ **Working** | Displays both Owned and Joined projects in specific categories.             |
+| **Project Settings**          | 🚧 **Partial** | Name/Start/End dates editable. Location/'Due soon' settings planned.        |
+| **Hierarchy (Phases)**        | ✅ **Working** | Supported via recursive nesting.                                            |
 
-### 📝 Task Execution
+### 📝 Task Execution & Views
 
-| Workflow               | Status         | Notes                                                                                                             |
-| :--------------------- | :------------- | :---------------------------------------------------------------------------------------------------------------- |
-| **CRUD Operations**    | ✅ **Working** | Create, Read, Update, Delete (with cascade).                                                                      |
-| **Reordering (DnD)**   | ✅ **Working** | Drag-and-drop tasks within/across phases. Persists to DB via `position`.                                          |
-| **Task Search (Copy)** | ✅ **Working** | "Master Library Search" allows finding and copying templates. Supports filtering by resource type (PDF/Text/URL). |
-| **Scheduling**         | ✅ **Working** | Supports "Days from Start" offsets and auto-calculation of dates.                                                 |
+| Workflow              | Status         | Notes                                                                           |
+| :-------------------- | :------------- | :------------------------------------------------------------------------------ |
+| **CRUD Operations**   | ✅ **Working** | Create, Read, Update, Delete (with cascade).                                    |
+| **Reordering (DnD)**  | ✅ **Working** | Drag-and-drop tasks within/across phases. Persists to DB via `position`.        |
+| **View Filters**      | 📅 **Planned** | Priority, Status-based, Organization, and Personal views via search/filter bar. |
+| **Checkpoint System** | 📅 **Planned** | Sequential phase unlocking logic (Phase N+1 unlocks when Phase N is complete).  |
 
-### 👥 Collaboration
+### 📊 Reporting & Analytics
 
-| Workflow              | Status         | Notes                                                                   |
-| :-------------------- | :------------- | :---------------------------------------------------------------------- |
-| **Invite Member**     | ✅ **Working** | Adds users to `project_members`. RLS policies grant access.             |
-| **Role Visibility**   | ✅ **Working** | UI badges for 'Owner' vs 'Editor'.                                      |
-| **Real-time Updates** | ❌ **Planned** | No Supabase Subscription integration yet (polling or refresh mandated). |
-
-### 📊 Reporting
-
-| Workflow                  | Status         | Notes                                                   |
-| :------------------------ | :------------- | :------------------------------------------------------ |
-| **Project Status Report** | ✅ **Working** | Print-friendly read-only view via `/report/:projectId`. |
+| Workflow                | Status         | Notes                                                                       |
+| :---------------------- | :------------- | :-------------------------------------------------------------------------- |
+| **Basic Status Report** | ✅ **Working** | Print-friendly read-only view via `/report/:projectId`.                     |
+| **Advanced Dashboard**  | 📅 **Planned** | Donut charts for progress, reporting month selection, and milestone trends. |
 
 ---
 
@@ -89,60 +87,117 @@ _Goal: Ensure the app is rock-solid for beta users before adding more complexity
 #### 5.2 Optimistic Rollback Refinement
 
 - **ID:** `P5-OPT-ROLLBACK`
-- **Goal**: Improve user experience when a drag operation fails (currently does a heavy full-refetch).
+- **Goal**: Improve user experience when a drag operation fails.
 - **Status**: ✅ Done
 
 #### 5.3 Invite by Email
 
 - **ID:** `P5-EMAIL-INVITES`
-- **Goal**: Allow inviting members by email instead of raw UUIDs (requires new look-up logic).
+- **Goal**: Allow inviting members by email instead of raw UUIDs.
 - **Status**: ✅ Done
 
 #### 5.4 Performance: Recursive Tree Optimization
 
 - **ID:** `P5-TREE-PERF`
-- **Goal**: Prevent re-renders in deep trees using `React.memo` and data-driven expansion state.
+- **Goal**: Prevent re-renders in deep trees using `React.memo` and expansion state.
 - **Status**: ✅ Done
 
-#### 5.5 Tech Debt Resolution (Deep Clone & Refactor)
+#### 5.5 Tech Debt Resolution
 
 - **ID:** `P5-TECH-DEBT`
-- **Goal**: Fix transactional integrity of deep cloning and refactor `TaskList.jsx` into hooks.
+- **Goal**: Modularize task services and fix transactional integrity of deep cloning.
 - **Status**: ✅ Done
 
-### Phase 6: Performance & Scale
+#### 5.6 Infrastructure Maintenance
 
-_Goal: Optimize for large trees and many users._
+- **ID:** `P5-CLEANUP`
+- **Goal**: Remove RAG features, fix Master Library expansion bugs and CORS issues.
+- **Status**: ✅ Done
+
+#### 5.7 Feedback Integration
+
+- **ID:** `P5-FEEDBACK`
+- **Goal**: Address 60+ feedback items regarding UI/UX, Logic and Performance.
+- **Status**: ✅ Done
+
+### Phase 6: Performance & Experience
+
+_Goal: Optimize for large trees and refine the dashboard interface._
 
 #### 6.1 Dashboard Pagination
 
 - **ID:** `P6-DASH-PAGINATION`
-- **Goal**: Implement server-side pagination for the main dashboard to handle users with >1000 tasks.
+- **Goal**: Implement server-side pagination for the main dashboard.
 - **Status**: 📅 Planned
 
-#### 6.2 Recursive Fetch Optimization
+#### 6.2 Advanced Reporting UI
 
-- **ID:** `P6-RECURSIVE-FETCH`
-- **Goal**: Optimize `taskService.js` to handle large trees efficiently.
-- **Status**: ✅ Done (Implemented `root_id` based fetching in `fetchTaskChildren`)
+- **ID:** `P6-ADV-REPORTING`
+- **Goal**: Implement donut charts, reporting month filters, and milestone trend analysis.
+- **Status**: 📅 Planned
 
-#### 6.3 Real-time Collaboration
+#### 6.3 Side Navigation Migration
+
+- **ID:** `P6-SIDE-NAV`
+- **Goal**: Move project list into the side navigation bar (Single project focus).
+- **Status**: ✅ Done
+
+#### 6.4 Real-time Collaboration
 
 - **ID:** `P6-REALTIME`
-- **Goal**: Implement Supabase Realtime subscriptions to reflect task updates instantly across clients.
+- **Goal**: Implement Supabase Realtime subscriptions.
 - **Status**: 📅 Planned
 
-#### 5.6 RAG Removal
-- **ID:** `P5-RAG-CLEANUP`
-- **Goal**: Remove experimental RAG implementation to focus on core stability.
-- **Status**: ✅ Done
+### Phase 7: Advanced Engine & Automation
 
-#### 5.7 Fix: Master Library Expansion
-- **ID:** `P5-FIX-ML-EXPAND`
-- **Goal**: Resolve race conditions preventing items from staying expanded in the Master Library.
-- **Status**: ✅ Done
+_Goal: Automate date inheritance and status tracking._
 
-#### 5.8 Fix: Invite CORS & Errors
-- **ID:** `P5-FIX-INVITES`
-- **Goal**: Fix CORS for localhost (Edge Function) and improve error reporting in UI.
-- **Status**: ✅ Done
+#### 7.1 Date Inheritance
+
+- **ID:** `P7-DATE-INHERIT`
+- **Goal**: Milestone/Phase dates automatically calculate based on child task bounds.
+- **Status**: 📅 Planned
+
+#### 7.2 Nightly Sync
+
+- **ID:** `P7-NIGHTLY-SYNC`
+- **Goal**: Background jobs to update task statuses and overdue flags nightly.
+- **Status**: 📅 Planned
+
+### Phase 8: Checkpoints & Commerce
+
+_Goal: Monetization and structured progress flows._
+
+#### 8.1 Checkpoint System
+
+- **ID:** `P8-CHECKPOINTS`
+- **Goal**: Unlocking Phases sequentially when previous ones are 100% complete.
+- **Status**: 📅 Planned
+
+#### 8.2 Stripe Integration
+
+- **ID:** `P8-STRIPE`
+- **Goal**: Secure license purchasing integrated into account settings.
+- **Status**: 📅 Planned
+
+### Phase 9: Administration & Alerts
+
+_Goal: System-wide visibility and admin tools._
+
+#### 9.1 System Notifications
+
+- **ID:** `P9-ADMIN-ALERTS`
+- **Goal**: Automated email alerts to System Admin for new project creation.
+- **Status**: 📅 Planned
+
+#### 9.2 Secondary Projects
+
+- **ID:** `P9-SECONDARY-PROJ`
+- **Goal**: Support for creating and managing child/secondary projects under a master project.
+- **Status**: 📅 Planned
+
+#### 9.3 Advanced RBAC
+
+- **ID:** `P9-RBAC-ROLES`
+- **Goal**: Granular enforcement for 'Full User', 'Limited User', and 'Coach' permissions.
+- **Status**: 🚧 In Progress (Logic defined in RLS)

@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { ROLES } from '../constants';
 
 export const getJoinedProjects = async (userId, client = supabase) => {
   try {
@@ -25,12 +26,16 @@ export const getJoinedProjects = async (userId, client = supabase) => {
 
     if (projectError) throw projectError;
 
-    // 3. Merge role info into the project objects for UI display
-    const joinedProjects = projects.map((project) => {
+    // 3. Filter out projects created by the user (they appear in "My Projects")
+    //    This prevents duplicates when a user creates a project and is also a member.
+    const filteredProjects = projects.filter((project) => project.creator !== userId);
+
+    // 4. Merge role info into the project objects for UI display
+    const joinedProjects = filteredProjects.map((project) => {
       const membership = memberships.find((m) => m.project_id === project.id);
       return {
         ...project,
-        membership_role: membership?.role || 'viewer',
+        membership_role: membership?.role || ROLES.VIEWER,
       };
     });
 
@@ -41,7 +46,7 @@ export const getJoinedProjects = async (userId, client = supabase) => {
   }
 };
 
-export const inviteMember = async (projectId, userId, role = 'viewer', client = supabase) => {
+export const inviteMember = async (projectId, userId, role = ROLES.VIEWER, client = supabase) => {
   try {
     // Check if membership already exists?
     // Depending on RLS and constraints, we might just upsert or insert.
@@ -70,10 +75,16 @@ export const inviteMember = async (projectId, userId, role = 'viewer', client = 
   }
 };
 
-export const inviteMemberByEmail = async (projectId, email, role = 'viewer', client = supabase) => {
+export const inviteMemberByEmail = async (
+  projectId,
+  email,
+  role = ROLES.VIEWER,
+  client = supabase
+) => {
   try {
     const { data, error } = await client.functions.invoke('invite-by-email', {
       body: { projectId, email, role },
+      method: 'POST',
     });
 
     if (error) {

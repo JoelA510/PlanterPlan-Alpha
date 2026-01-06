@@ -1,6 +1,5 @@
 import { supabase } from '../supabaseClient';
-
-export const POSITION_STEP = 10000;
+import { POSITION_STEP } from '../constants';
 const MIN_GAP = 2; // Minimum gap before triggering renormalization
 
 /**
@@ -29,7 +28,7 @@ export const calculateNewPosition = (prevPos, nextPos) => {
  * @returns {Promise<void>}
  */
 export const renormalizePositions = async (parentId, origin, userId) => {
-  console.log('Triggering renormalization for parent:', parentId);
+  // console.debug('Triggering renormalization for parent:', parentId);
 
   let query = supabase
     .from('tasks')

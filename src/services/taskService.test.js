@@ -44,7 +44,7 @@ describe('searchMasterLibraryTasks', () => {
     expect(builder.select).toHaveBeenCalledWith('*');
     expect(builder.or).toHaveBeenCalledWith(expect.stringContaining('title.ilike'));
     expect(builder.or).toHaveBeenCalledWith(expect.stringContaining('description.ilike'));
-    expect(results).toEqual(sampleTasks);
+    expect(results).toEqual({ data: sampleTasks, error: null });
   });
 
   it('returns empty array when query is blank', async () => {
@@ -67,8 +67,9 @@ describe('searchMasterLibraryTasks', () => {
   it('handles search errors gracefully', async () => {
     const { client } = createMockClient({ data: null, error: { message: 'Search failed' } });
 
-    await expect(searchMasterLibraryTasks({ query: 'fail' }, client)).rejects.toEqual({
-      message: 'Search failed',
+    await expect(searchMasterLibraryTasks({ query: 'fail' }, client)).resolves.toEqual({
+      data: null,
+      error: { message: 'Search failed' },
     });
   });
 });
@@ -84,7 +85,7 @@ describe('fetchMasterLibraryTasks', () => {
     expect(client.from).toHaveBeenCalledWith('tasks_with_primary_resource');
     expect(builder.order).toHaveBeenCalledWith('created_at', { ascending: false });
     expect(builder.range).toHaveBeenCalledWith(10, 14);
-    expect(results).toEqual(sampleTasks);
+    expect(results).toEqual({ data: sampleTasks, error: null });
   });
 
   it('returns empty array when payload shape invalid', async () => {
@@ -93,7 +94,7 @@ describe('fetchMasterLibraryTasks', () => {
 
     const results = await fetchMasterLibraryTasks({}, client);
 
-    expect(results).toEqual([]);
+    expect(results).toEqual({ data: [], error: null });
     warnSpy.mockRestore();
   });
 });
@@ -137,9 +138,12 @@ describe('deepCloneTask', () => {
     });
 
     expect(result).toEqual({
-      new_root_id: 'new-root-uuid',
-      root_project_id: 'new-root-uuid',
-      tasks_cloned: 5,
+      data: {
+        new_root_id: 'new-root-uuid',
+        root_project_id: 'new-root-uuid',
+        tasks_cloned: 5,
+      },
+      error: null,
     });
   });
 
@@ -147,21 +151,20 @@ describe('deepCloneTask', () => {
     const mockRpc = jest.fn().mockResolvedValue({ data: {}, error: null });
     const client = { rpc: mockRpc };
 
-    // Pass empty overrides or undefined
+    // Pass empty overrides - these should NOT be sent to the RPC
     await deepCloneTask('t1', null, 'instance', 'u1', {}, client);
 
-    expect(mockRpc).toHaveBeenCalledWith(
-      'clone_project_template',
-      expect.objectContaining({
-        p_template_id: 't1',
-        p_user_id: 'u1',
-        p_title: null,
-        p_description: null,
-      })
-    );
+    // When no overrides are provided, only the required params should be sent
+    // p_title, p_description, p_start_date, p_due_date should be omitted (not null)
+    expect(mockRpc).toHaveBeenCalledWith('clone_project_template', {
+      p_template_id: 't1',
+      p_new_parent_id: null,
+      p_new_origin: 'instance',
+      p_user_id: 'u1',
+    });
   });
 
-  it('throws error if RPC fails', async () => {
+  it('handles error if RPC fails', async () => {
     const mockRpc = jest.fn().mockResolvedValue({
       data: null,
       error: { message: 'RPC Failed' },
@@ -169,8 +172,9 @@ describe('deepCloneTask', () => {
 
     const client = { rpc: mockRpc };
 
-    await expect(deepCloneTask('t1', null, 'instance', 'u1', {}, client)).rejects.toEqual({
-      message: 'RPC Failed',
+    await expect(deepCloneTask('t1', null, 'instance', 'u1', {}, client)).resolves.toEqual({
+      data: null,
+      error: { message: 'RPC Failed' },
     });
   });
 });
