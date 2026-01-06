@@ -732,8 +732,7 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Client (UI)**: Owns `days_from_start` calculation (in `useTaskOperations.js`). Relative offsets are business logic.
   - **Database (Trigger)**: Owns `parent rollup` (`trigger_calc_task_dates`). When a child moves, the DB ensures the Parent expands to contain it.
   - **Database (RPC)**: Owns `clone_project_template` dates. Atomic cloning must handle date shifting in the same transaction.
-- **Critical Rule**:
-  3. **Do NOT** rely on client-side re-fetch to sync dates (triggers update in-place).
+- **Critical Rule**: 3. **Do NOT** rely on client-side re-fetch to sync dates (triggers update in-place).
 
 ## [DB-035] Migration Safety via Conditional Logic
 
@@ -768,4 +767,16 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Date**: 2026-01-06
 - **Context & Problem**: Deep linking to a specific project (`/project/:id`) failed to update the Sidebar selection state because the selection logic was purely internal to the `TaskList` component state, initialized to `null`.
 - **Solution & Pattern**: Added a `useEffect` in `TaskList` that syncs `activeProjectId` with the URL's `useParams().projectId`. This ensures that navigating directly to a URL selects the correct project in the sidebar list.
-- **Critical Rule**: State that represents a URL resource (like "Current Project") must sync with the URL. Do not rely solely on internal React state if deep linking is required.
+
+---
+
+## [CSS-039] Full Screen Dashboard Layout Strategy
+
+- **Tags**: #css, #layout, #flexbox, #tailwind
+- **Date**: 2026-01-06
+- **Context & Problem**: Dashboards often suffer from "Double Scrollbars" (one for the browser window, one for the content) or the sidebar scrolling away with the page.
+- **Solution & Pattern**:
+  - **Root**: `h-screen w-screen overflow-hidden flex`. This locks the viewport.
+  - **Sidebar**: `flex-shrink-0 overflow-y-auto`. Static width on desktop.
+  - **Main**: `flex-1 overflow-y-auto`. Takes remaining space and handles its own scrolling.
+- **Critical Rule**: For application-like dashboards, lock the `body` (or root div) height to `100vh` and manage scrolling internally in the main content area.

@@ -20,8 +20,8 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-06
-**Commit**: c8b3f28
+**Last verified**: 2026-01-06 (Visual Overhaul)
+**Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
 
@@ -70,7 +70,42 @@ PlanterPlan is a project management tool tailored for church planting. It allows
 
 ### Environment Requirements
 
-**Required env vars**
+[{
+  "StartLine": 73,
+  "EndLine": 73,
+  "TargetContent": "**Required env vars**",
+  "ReplacementContent": "### Required env vars"
+}, {
+  "StartLine": 81,
+  "EndLine": 81,
+  "TargetContent": "**External dependencies**",
+  "ReplacementContent": "### External dependencies"
+}, {
+  "StartLine": 101,
+  "EndLine": 101,
+  "TargetContent": "**Repo evidence**",
+  "ReplacementContent": "#### Repo evidence"
+}, {
+  "StartLine": 117,
+  "EndLine": 117,
+  "TargetContent": "**Repo evidence**",
+  "ReplacementContent": "#### Repo evidence"
+}, {
+  "StartLine": 160,
+  "EndLine": 160,
+  "TargetContent": "**Relationships**",
+  "ReplacementContent": "#### Relationships"
+}, {
+  "StartLine": 167,
+  "EndLine": 167,
+  "TargetContent": "**Authentication**",
+  "ReplacementContent": "#### Authentication"
+}, {
+  "StartLine": 171,
+  "EndLine": 171,
+  "TargetContent": "**Data isolation**",
+  "ReplacementContent": "#### Data isolation"
+}]
 (Inferred from `src/supabaseClient.js`)
 
 ```text
@@ -188,6 +223,8 @@ flowchart LR
 - ✅ **Optimization**: Task trees fetched via `root_id` index instead of recursive calls (Ref: `fetchTaskChildren` in `taskService.js`).
 - ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `SideNav.jsx`).
 - ✅ **Adversarial Polish**: Battle-tested UI for mobile responsiveness, date handling, and layout density (Ref: `implementation_plan.md`).
+- ✅ **Visual Overhaul**: Redesigned Project Header with avatars, stats, and logical tabs (Ref: `ProjectHeader.jsx`).
+- ✅ **Responsive Dashboard**: Full-screen layout with proper scrolling and mobile-friendly side navigation (Ref: `DashboardLayout.jsx`).
 
 ### 5.2 Known Limitations
 
