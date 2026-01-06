@@ -27,7 +27,6 @@ const ProjectHeader = ({ project, onInviteMember }) => {
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Status Badge */}
           <span
             className={`px-4 py-1.5 rounded-full text-xs font-medium border
             ${
@@ -41,7 +40,6 @@ const ProjectHeader = ({ project, onInviteMember }) => {
             {project.status || 'Active'}
           </span>
 
-          {/* Member Avatars & Invite */}
           <div className="flex -space-x-2 mr-2">
             <div
               className="h-8 w-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-xs font-bold text-slate-600"
@@ -61,6 +59,19 @@ const ProjectHeader = ({ project, onInviteMember }) => {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex space-x-6 border-b border-slate-200 mb-6">
+        <button className="pb-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium text-sm">
+          Tasks
+        </button>
+        <a
+          href={`/report/${project.id}`}
+          className="pb-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 font-medium text-sm transition-colors"
+        >
+          Reports
+        </a>
       </div>
     </div>
   );
