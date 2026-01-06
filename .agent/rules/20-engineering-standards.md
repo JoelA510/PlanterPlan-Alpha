@@ -36,3 +36,12 @@ trigger: always_on
 
 - No premature optimization.
 - For known hotspots (N+1 queries, deep recursion, large lists), document the complexity and add a test/benchmark if feasible.
+
+
+## Architecture & Consistency Strings (Hard Constraints)
+
+- **No Recursive RLS**: Always check for root_id existence before writing policies.
+- **Client-Side IDs**: For bulk operations (Templates), generate UUIDs in JS.
+- **Optimistic Rollbacks**: Every optimistic UI update must have a catch block that force-refetches data.
+- **UTC Midnight**: Never save local timestamps for Project Start/End dates.
+- **Consistency Plan**: When affecting Schema/RLS or Optimistic Updates, explicitly state the consistency plan before coding.

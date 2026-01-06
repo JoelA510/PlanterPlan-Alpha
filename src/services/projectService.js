@@ -1,6 +1,30 @@
 import { supabase } from '../supabaseClient';
 import { ROLES } from '../constants';
 
+export const getUserProjects = async (userId, page = 1, pageSize = 10, client = supabase) => {
+  try {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    // Fetch root projects (tasks with origin='instance' and parent_task_id=null)
+    const { data, count, error } = await client
+      .from('tasks_with_primary_resource')
+      .select('*', { count: 'exact' })
+      .eq('creator', userId)
+      .eq('origin', 'instance')
+      .is('parent_task_id', null)
+      .order('updated_at', { ascending: false }) // Sort by recently updated
+      .range(from, to);
+
+    if (error) throw error;
+
+    return { data, count, error: null };
+  } catch (error) {
+    console.error('[projectService.getUserProjects] Error:', error);
+    return { data: null, count: 0, error };
+  }
+};
+
 export const getJoinedProjects = async (userId, client = supabase) => {
   try {
     // 1. Get project IDs where the user is a member

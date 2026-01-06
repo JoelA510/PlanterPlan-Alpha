@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { fetchTaskChildren } from '../../services/taskService';
+import { TASK_STATUS } from '../../constants';
 
 const ProjectReport = () => {
   const { projectId } = useParams();
@@ -61,12 +62,14 @@ const ProjectReport = () => {
 
         // 3. Calculate Stats
         const total = rawTasks.length;
-        const completed = rawTasks.filter((t) => t.status === 'completed' || t.is_complete).length;
+        const completed = rawTasks.filter(
+          (t) => t.status === TASK_STATUS.COMPLETED || t.is_complete
+        ).length;
         const overdue = rawTasks.filter((t) => {
           return (
             t.due_date &&
             new Date(t.due_date) < new Date() &&
-            t.status !== 'completed' &&
+            t.status !== TASK_STATUS.COMPLETED &&
             !t.is_complete
           );
         }).length;

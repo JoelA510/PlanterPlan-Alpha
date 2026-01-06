@@ -50,28 +50,37 @@ BEGIN
 END $$;
 
 -- -------------------------------------------------------------------------
--- 2. DROP LEGACY COLUMNS
+-- 2. DROP LEGACY COLUMNS (Conditional)
 -- -------------------------------------------------------------------------
--- We drop the view first because it depends on the columns we want to drop
--- (Provided schema.sql has already recreated it, this DROP IF EXISTS is safe)
-DROP VIEW IF EXISTS public.view_master_library CASCADE;
-DROP VIEW IF EXISTS public.tasks_with_primary_resource CASCADE;
--- Note: Views are recreated in schema.sql, or must be recreated here if dropped.
--- Ideally, schema.sql creates the views. We drop the OLD view here if it conflicts?
--- Actually, DROP CASCADE will drop dependent views.
--- If schema.sql has already run, the NEW views exist. 
--- Schema logic: legacy views depend on legacy columns. New views depend on new cols.
--- If we drop legacy columns, legacy views break.
--- So we must drop legacy columns here.
+DO $$
+DECLARE
+  col_exists boolean;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'tasks' AND column_name = 'resource_type'
+  ) INTO col_exists;
 
-ALTER TABLE public.tasks
-  DROP COLUMN IF EXISTS resource_type,
-  DROP COLUMN IF EXISTS resource_url,
-  DROP COLUMN IF EXISTS resources,
-  DROP COLUMN IF EXISTS resource_text,
-  DROP COLUMN IF EXISTS storage_path;
+  IF col_exists THEN
+     -- Only drop if legacy columns exist. 
+     -- This protects fresh installs (where schema.sql created views but no legacy cols)
+     -- from having their views destroyed.
+     
+     -- Drop views that depend on legacy columns
+     EXECUTE 'DROP VIEW IF EXISTS public.view_master_library CASCADE';
+     EXECUTE 'DROP VIEW IF EXISTS public.tasks_with_primary_resource CASCADE';
 
-DROP INDEX IF EXISTS idx_tasks_resource_type;
+     -- Drop columns
+     EXECUTE 'ALTER TABLE public.tasks 
+       DROP COLUMN IF EXISTS resource_type,
+       DROP COLUMN IF EXISTS resource_url,
+       DROP COLUMN IF EXISTS resources,
+       DROP COLUMN IF EXISTS resource_text,
+       DROP COLUMN IF EXISTS storage_path';
+
+     EXECUTE 'DROP INDEX IF EXISTS idx_tasks_resource_type';
+  END IF;
+END $$;
 
 -- -------------------------------------------------------------------------
 -- 3. Backfill root_id

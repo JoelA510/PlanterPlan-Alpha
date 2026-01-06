@@ -1,4 +1,4 @@
-import { getJoinedProjects, inviteMemberByEmail } from './projectService';
+import { getUserProjects, getJoinedProjects, inviteMemberByEmail } from './projectService';
 
 const createMockClient = (membershipsData, tasksData, memberError = null, taskError = null) => {
   const from = jest.fn((table) => {
@@ -24,6 +24,60 @@ const createMockClient = (membershipsData, tasksData, memberError = null, taskEr
 
   return { from };
 };
+
+describe('getUserProjects', () => {
+  it('returns paginated projects', async () => {
+    const mockData = [
+      { id: '1', title: 'Project 1' },
+      { id: '2', title: 'Project 2' },
+    ];
+
+    // Mock chain: from -> select -> eq -> eq -> is -> order -> range
+    const rangeMock = jest.fn().mockResolvedValue({ data: mockData, count: 5, error: null });
+    const orderMock = jest.fn().mockReturnValue({ range: rangeMock });
+    const isMock = jest.fn().mockReturnValue({ order: orderMock });
+    const eqOriginMock = jest.fn().mockReturnValue({ is: isMock });
+    const eqCreatorMock = jest.fn().mockReturnValue({ eq: eqOriginMock });
+    const selectMock = jest.fn().mockReturnValue({ eq: eqCreatorMock });
+
+    const client = {
+      from: jest.fn().mockReturnValue({ select: selectMock }),
+    };
+
+    const { data, count, error } = await getUserProjects('user1', 1, 2, client);
+
+    expect(error).toBeNull();
+    expect(data).toEqual(mockData);
+    expect(count).toBe(5);
+    expect(rangeMock).toHaveBeenCalledWith(0, 1); // page 1, size 2 -> 0 to 1
+  });
+
+  it('handles database errors', async () => {
+    const client = {
+      from: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              is: jest.fn().mockReturnValue({
+                order: jest.fn().mockReturnValue({
+                  range: jest
+                    .fn()
+                    .mockResolvedValue({ data: null, count: 0, error: { message: 'DB Error' } }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+
+    const { data, error } = await getUserProjects('user1', 1, 10, client);
+
+    expect(data).toBeNull();
+    expect(error).toBeTruthy();
+    expect(error.message).toBe('DB Error');
+  });
+});
 
 describe('getJoinedProjects', () => {
   it('returns joined projects with roles', async () => {

@@ -696,8 +696,52 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Critical Rule**: Do not treat "Dates" and "Timestamps" as the same data type. Branch parsing logic based on input format to preserve semantic correctness.
 
 ## [CSS-030] Manual Tailwind Emulation Pitfalls
+
 - **Tags**: #css #maintenance #gotcha
 - **Date**: 2026-01-04
 - **Context & Problem**: Layouts were failing (elements flushed to edges, no gaps) despite correct Tailwind classes in JSX (e.g., `p-6`, `gap-8`). The root cause was that these specific utilities were **missing** from the manually maintained `globals.css` file, which emulates Tailwind but isn't a full engine.
 - **Solution & Pattern**: When "standard" classes fail silently, grep `globals.css` immediately. We backfilled the missing classes.
 - **Critical Rule**: If a utility class isn't in `globals.css`, it doesn't exist. Don't assume full Tailwind support.
+
+## [REACT-031] The "God Hook" Facade Pattern
+
+- **Tags**: #react, #hooks, #refactoring, #architecture
+- **Date**: 2026-01-05
+- **Context & Problem**: `useTaskOperations` became a 450+ LOC "God Hook" handling fetching, state, pagination, and mutations. Splitting it indiscriminately would break ~15 consumer files.
+- **Solution & Pattern**:
+  1. **Split Logic**: Created `useTaskQuery` (read-only state) and `useTaskMutations` (write operations).
+  2. **Facade**: Rewrote the original `useTaskOperations` to import and compose these two new hooks, re-exporting the exact same API surface as before.
+- **Critical Rule**: When refactoring huge hooks, do not force consumers to change immediately. Use a Facade hook to maintain the API contract while cleaning up the internals.
+
+## [REACT-032] Controlled Tree Expansion (Race Conditions)
+
+- **Tags**: #react, #state-management, #recursion, #race-condition
+- **Date**: 2026-01-05
+- **Context & Problem**: The Master Library tree used manual state syncing (`setTreeData + setExpandedIds`) inside an async fetch callback. This caused a race condition where the expansion state would get overwritten by the data refresh, collapsing nodes immediately after opening.
+- **Solution & Pattern**:
+  - **Decouple**: Removed manual tree mutation from the toggle handler.
+  - **React**: Used a single `useEffect` that listens to `[expandedTaskIds, treeData]` to apply the specific `isExpanded` flag to the view model synchronously.
+- **Critical Rule**: Never manually mutate deep tree state inside an async callback. Use a reactive `useEffect` to merge "UI State" (expanded IDs) with "Data" (Task Nodes) whenever either changes.
+
+## [ARC-034] Date Calculation Ownership
+
+- **Tags**: #architecture, #dates, #database, #triggers
+- **Date**: 2026-01-05
+- **Context & Problem**: Confusion over who calculates `start_date` vs `days_from_start` led to conflicting updates between client and DB.
+- **Solution & Pattern**:
+  - **Client (UI)**: Owns `days_from_start` calculation (in `useTaskOperations.js`). Relative offsets are business logic.
+  - **Database (Trigger)**: Owns `parent rollup` (`trigger_calc_task_dates`). When a child moves, the DB ensures the Parent expands to contain it.
+  - **Database (RPC)**: Owns `clone_project_template` dates. Atomic cloning must handle date shifting in the same transaction.
+- **Critical Rule**:
+  3. **Do NOT** rely on client-side re-fetch to sync dates (triggers update in-place).
+
+## [DB-035] Migration Safety via Conditional Logic
+
+- **Tags**: #database, #migrations, #safety
+- **Date**: 2026-01-05
+- **Context & Problem**: A "One-Time Setup" script contained destructive `DROP COLUMN` commands intended to clean up legacy schema. However, when run on a fresh install (where those columns never existed), the script would fail or accidentally drop dependent views, breaking the installation.
+- **Solution & Pattern**:
+  - **Check Existence**: Wrap destructive logic in a `DO $$` block.
+  - **Conditional Execution**: Query `information_schema.columns` to see if the target column exists.
+  - **Dynamic SQL**: Use `EXECUTE` inside the `IF` block to run DDL statements conditionally.
+- **Critical Rule**: Setup scripts must be **idempotent and safe**. Never assume specific schema state; check for existence before dropping or modifying.
