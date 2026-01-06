@@ -745,3 +745,19 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Conditional Execution**: Query `information_schema.columns` to see if the target column exists.
   - **Dynamic SQL**: Use `EXECUTE` inside the `IF` block to run DDL statements conditionally.
 - **Critical Rule**: Setup scripts must be **idempotent and safe**. Never assume specific schema state; check for existence before dropping or modifying.
+
+## [CSS-036] Recharts Zero-Height Bug in Grid
+
+- **Tags**: #css, #recharts, #grid, #flexbox
+- **Date**: 2026-01-06
+- **Context & Problem**: `ResponsiveContainer` from Recharts failed to render (height=0) when placed inside a logical `grid` or `flex` child that didn't have an explicit height set. The library relies on parent container dimensions to calculate its SVG size.
+- **Solution & Pattern**: Added explicit inline styles (`style={{ width: 150, height: 150 }}`) to the wrapper `div` to enforce a bounding box.
+- **Critical Rule**: When using `ResponsiveContainer` inside a CSS Grid or Flex item, ensure the parent has measurable dimensions (min-height/width) or the chart will vanish.
+
+## [SVC-037] Service Response Destructuring
+
+- **Tags**: #javascript, #services, #pattern
+- **Date**: 2026-01-06
+- **Context & Problem**: The generic `fetchTaskChildren` service was updated to return a Supabase-style object `{ data, error }`. However, legacy usage assumed it returned `data` directly (an array), causing `TypeError: rawTasks.forEach is not a function`.
+- **Solution & Pattern**: Updated usage to destructure the response: `const { data: rawTasks } = await fetchTaskChildren(...)`.
+- **Critical Rule**: Always check service return signatures. If a service wraps Supabase, standardizing on `{ data, error }` is safer than returning raw data or throwing, but call sites must adapt.
