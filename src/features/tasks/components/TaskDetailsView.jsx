@@ -1,31 +1,9 @@
 import React from 'react';
-import TaskResources from '../molecules/TaskResources';
+import TaskResources from '@features/tasks/components/TaskResources';
+import { formatDisplayDate } from '@shared/lib/date-engine';
 
 const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated }) => {
-  // FIX: Robust date formatter that handles ISO timestamps AND YYYY-MM-DD
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'Not set';
 
-    let date;
-    // If it contains a 'T', it's an ISO timestamp (e.g. created_at) -> Parse as Local
-    // If it's short (YYYY-MM-DD), it's a manual date -> Parse as UTC to prevent "yesterday" bugs
-    if (dateStr.includes('T')) {
-      date = new Date(dateStr);
-    } else {
-      const [year, month, day] = dateStr.split('-');
-      date = new Date(Date.UTC(year, month - 1, day));
-    }
-
-    if (isNaN(date.getTime())) return 'Invalid Date';
-
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      timeZone: dateStr.includes('T') ? undefined : 'UTC',
-    });
-  };
 
   // Determine hierarchy level
   const getTaskLevel = () => {
@@ -153,7 +131,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
               Start Date
             </span>
             <span className="text-sm font-bold text-slate-800 tracking-tight">
-              {formatDate(task.start_date)}
+              {formatDisplayDate(task.start_date)}
             </span>
           </div>
           <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
@@ -161,7 +139,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
               Due Date
             </span>
             <span className="text-sm font-bold text-slate-800 tracking-tight">
-              {formatDate(task.due_date)}
+              {formatDisplayDate(task.due_date)}
             </span>
           </div>
         </div>
@@ -182,12 +160,12 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       <div className="pt-6 border-t border-slate-100 text-xs text-slate-400 flex flex-col gap-1">
         <div className="flex justify-between">
           <span>Created</span>
-          <span className="font-mono text-slate-500">{formatDate(task.created_at)}</span>
+          <span className="font-mono text-slate-500">{formatDisplayDate(task.created_at)}</span>
         </div>
         {task.updated_at && (
           <div className="flex justify-between">
             <span>Updated</span>
-            <span className="font-mono text-slate-500">{formatDate(task.updated_at)}</span>
+            <span className="font-mono text-slate-500">{formatDisplayDate(task.updated_at)}</span>
           </div>
         )}
         <div className="flex justify-between mt-2">

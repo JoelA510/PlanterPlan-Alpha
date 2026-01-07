@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import SideNav from '../organisms/SideNav';
-import ProjectHeader from '../molecules/ProjectHeader';
-import { useTaskBoard } from '../../hooks/useTaskBoard';
-import { supabase } from '../../supabaseClient';
+import SideNav from '@features/navigation/components/SideNav';
+import ProjectHeader from '@features/projects/components/ProjectHeader';
+import { useTaskBoard } from '@features/library/hooks/useTaskBoard';
+import { getProjectWithStats } from '@features/projects/services/projectService';
 
 const ProjectReport = () => {
   const { projectId } = useParams();
@@ -31,11 +31,7 @@ const ProjectReport = () => {
   useEffect(() => {
     const fetchProject = async () => {
       if (!projectId) return;
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*, children:tasks(*)') // recursive fetch if needed
-        .eq('id', projectId)
-        .single();
+      const { data, error } = await getProjectWithStats(projectId);
 
       if (data) setProject(data);
       else if (error) console.error('Error fetching project report:', error);

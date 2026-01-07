@@ -1,5 +1,5 @@
-import { supabase } from '../supabaseClient';
-import { ROLES } from '../constants';
+import { supabase } from '@app/supabaseClient';
+import { ROLES } from '@app/constants/index';
 
 export const getUserProjects = async (userId, page = 1, pageSize = 10, client = supabase) => {
   try {
@@ -127,6 +127,28 @@ export const inviteMemberByEmail = async (
   } catch (error) {
     console.error('[projectService.inviteMemberByEmail] Exception:', error);
     // Return the error object directly so the UI can extract .message
+    return { data: null, error };
+  }
+};
+
+/**
+ * Fetches a single project with its tasks for reporting.
+ * @param {string} projectId 
+ * @param {object} client 
+ * @returns {Promise<{data: any, error: any}>}
+ */
+export const getProjectWithStats = async (projectId, client = supabase) => {
+  try {
+    const { data, error } = await client
+      .from('tasks')
+      .select('*, children:tasks(*)') // recursive fetch if foreign key exists
+      .eq('id', projectId)
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('[projectService.getProjectWithStats] Error:', error);
     return { data: null, error };
   }
 };
