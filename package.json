@@ -16,7 +16,7 @@
     "react-error-boundary": "^6.0.0",
     "react-router-dom": "^6.8.0",
     "recharts": "^2.12.7",
-    "prop-types": "^15.8.1"
+    "prop-types": "^15.8.1",
     "tailwindcss": "^4.1.18"
   },
   "scripts": {
