@@ -180,12 +180,12 @@ flowchart LR
 
 ### 4.3 Component Responsibilities
 
-| Component/Module | Responsibility                                                   | Primary files                                                                                                                    |
-| ---------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **AuthContext**  | Manages user session (login/logout/user object).                 | [`src/app/contexts/AuthContext.jsx`](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/src/app/contexts/AuthContext.jsx) |
-| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [`src/features/tasks/services/taskService.js`](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/src/features/tasks/services/taskService.js) |
-| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [`src/features/tasks/components/organsims/TaskList.jsx`](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/src/features/tasks/components/organisms/TaskList.jsx) |
-| **SideNav**      | Persistent sidebar for project navigation.                       | [`src/features/projects/components/organisms/SideNav.jsx`](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/src/features/projects/components/organisms/SideNav.jsx) |
+| Component/Module | Responsibility                                                   | Primary files                                            |
+| ---------------- | ---------------------------------------------------------------- | -------------------------------------------------------- |
+| **AuthContext**  | Manages user session (login/logout/user object).                 | `src/app/contexts/AuthContext.jsx`                       |
+| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | `src/features/tasks/services/taskService.js`             |
+| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | `src/features/tasks/components/organisms/TaskList.jsx`   |
+| **SideNav**      | Persistent sidebar for project navigation.                       | `src/features/projects/components/organisms/SideNav.jsx` |
 
 ### 4.4 Database Schema
 
