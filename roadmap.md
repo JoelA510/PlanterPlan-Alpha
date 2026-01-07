@@ -1,6 +1,6 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated**: 2026-01-06 (Post-Visual Overhaul)
+**Last Updated**: 2026-01-07 (Infrastructure Migration)
 **Current Focus:** Release Candidate & Documentation
 
 ---
@@ -232,3 +232,25 @@ _Goal: System-wide visibility and admin tools._
 - **ID:** `P9-RBAC-ROLES`
 - **Goal**: Granular enforcement for 'Full User', 'Limited User', and 'Coach' permissions.
 - **Status**: 🚧 In Progress (Logic defined in RLS)
+
+### Phase 10: Infrastructure Modernization
+
+_Goal: Migrate from legacy CRA to modern Vite + Tailwind v4 stack._
+
+#### 10.1 Build System Migration
+
+- **ID:** `P10-VITE-MIGRATION`
+- **Goal**: Replace `react-scripts` with `vite`. usage of `VITE_` env vars.
+- **Status**: ✅ Done
+
+#### 10.2 Testing Migration
+
+- **ID:** `P10-TEST-MIGRATION`
+- **Goal**: Migrate Jest to Vitest. Replace `jest` globals with `vi`.
+- **Status**: ✅ Done
+
+#### 10.3 CSS Modernization
+
+- **ID:** `P10-TAILWIND-V4`
+- **Goal**: Adopt Tailwind v4 and remove manual CSS utilities.
+- **Status**: 🚧 In Progress

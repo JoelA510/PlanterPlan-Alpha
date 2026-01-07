@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-06 (Visual Overhaul)
+**Last verified**: 2026-01-07 (Vite Migration)
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
@@ -109,8 +109,8 @@ PlanterPlan is a project management tool tailored for church planting. It allows
 (Inferred from `src/supabaseClient.js`)
 
 ```text
-REACT_APP_SUPABASE_URL=Supabase API URL
-REACT_APP_SUPABASE_ANON_KEY=Supabase Anonymous Key
+VITE_SUPABASE_URL=Supabase API URL
+VITE_SUPABASE_ANON_KEY=Supabase Anonymous Key
 ```
 
 **External dependencies**
