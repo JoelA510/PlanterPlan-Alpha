@@ -1,3 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+    /* Brand Colors */
+    --color-brand-primary: #f1592a;
+    --color-brand-secondary: #222222;
+    --color-brand-soft: #fff3f0;
+
+    --color-brand-500: #f1592a;
+    --color-brand-600: #d94418;
+    --color-brand-50: #fff3f0;
+
+    /* Legacy Overrides */
+    --color-indigo-50: #fff3f0;
+    --color-indigo-500: #f1592a;
+    --color-indigo-600: #f1592a;
+    --color-indigo-700: #d94418;
+
+    /* Status Colors */
+    --color-status-complete-bg: #d1fae5;
+    --color-status-complete-text: #047857;
+    --color-status-complete-border: #a7f3d0;
+
+    --color-status-progress-bg: #dbeafe;
+    --color-status-progress-text: #1d4ed8;
+    --color-status-progress-border: #bfdbfe;
+
+    --color-status-blocked-bg: #ffe4e6;
+    --color-status-blocked-text: #be123c;
+    --color-status-blocked-border: #fecdd3;
+
+    --color-status-todo-bg: #f1f5f9;
+    --color-status-todo-text: #475569;
+    --color-status-todo-border: #e2e8f0;
+
+    /* Shadows */
+    --shadow-elevation-1: 0px 1px 2px rgba(0, 0, 0, 0.06), 0px 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-elevation-2: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-elevation-3: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* Animations */
+    --animate-fade-in: fadeIn 0.3s ease-out;
+    --animate-spin: spin 1s linear infinite;
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+}
+
+
 /* Main CSS Entry Point - Import all stylesheets */
 
 /* Import order matters - base styles first, then specifics */
