@@ -20,10 +20,10 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-04 (America/Los_Angeles)
-**Commit**: 442c3c1
+**Last verified**: 2026-01-05
+**Commit**: c834e71
 **Primary audience**: code reviewers, project managers
-**Related Docs**: [Engineering Knowledge Base](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/operations/ENGINEERING_KNOWLEDGE.md)
+**Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
 
 ---
 
@@ -49,7 +49,7 @@ PlanterPlan is a project management tool tailored for church planting. It allows
     │   ├── templates/      # Page layouts (TaskDetailsView)
     │   └── reports/        # Data visualization
     ├── contexts/           # Global state (Auth, Toast)
-    ├── hooks/              # Custom React hooks (useTaskOperations)
+    ├── hooks/              # Custom React hooks (useTaskOperations, useTreeState)
     ├── layouts/            # Page shells (DashboardLayout)
     ├── services/           # API interaction layer
     ├── styles/             # CSS modules and utilities

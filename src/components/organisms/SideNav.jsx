@@ -19,6 +19,10 @@ const SideNav = ({
   loading = false,
   error = null,
   onNavClick, // Injected by DashboardLayout
+  // Pagination
+  hasMore,
+  isFetchingMore,
+  onLoadMore,
 }) => {
   const { user, signOut } = useAuth();
   // Simple check for admin role (assuming user.role exists from DB/Auth)
@@ -90,6 +94,9 @@ const SideNav = ({
           tasks={instanceTasks}
           selectedTaskId={selectedTaskId}
           handleTaskClick={handleTaskClickWrapped}
+          hasMore={hasMore}
+          isFetchingMore={isFetchingMore}
+          onLoadMore={onLoadMore}
         />
 
         <div className="h-px bg-slate-100"></div>
@@ -144,6 +151,10 @@ SideNav.propTypes = {
   onNewProjectClick: PropTypes.func.isRequired,
   onNewTemplateClick: PropTypes.func.isRequired,
   onNavClick: PropTypes.func,
+  // Pagination
+  hasMore: PropTypes.bool,
+  isFetchingMore: PropTypes.bool,
+  onLoadMore: PropTypes.func,
 };
 
 export default SideNav;

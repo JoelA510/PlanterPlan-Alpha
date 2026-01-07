@@ -13,7 +13,6 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // console.log('[InviteMemberModal] Submitting invite for:', userId, 'Role:', role);
 
     if (!userId.trim()) {
       console.warn('[InviteMemberModal] User ID empty');
@@ -52,7 +51,6 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
       setError(msg || 'Failed to invite member (Unknown Error)');
       setIsSubmitting(false);
     } else {
-      // console.log('[InviteMemberModal] Invite Success!');
       setIsSubmitting(false);
       setSuccess(true);
       if (onInviteSuccess) onInviteSuccess();

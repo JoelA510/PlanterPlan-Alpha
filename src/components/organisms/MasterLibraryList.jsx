@@ -1,30 +1,15 @@
 // src/components/organisms/MasterLibraryList.jsx
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import useMasterLibraryTasks from '../../hooks/useMasterLibraryTasks';
+import { useTreeState } from '../../hooks/useTreeState';
 import TaskItem from '../molecules/TaskItem';
-import { fetchTaskChildren, updateTaskStatus } from '../../services/taskService';
 import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
-
-import {
-  mergeChildrenIntoTree,
-  updateTaskInTree,
-  buildTree,
-  mergeTaskUpdates,
-  updateTreeExpansion,
-} from '../../utils/treeHelpers';
 
 const PAGE_SIZE = 50;
 
 const MasterLibraryList = (props) => {
   const [page, setPage] = useState(0);
   const [resourceType, _setResourceType] = useState('all');
-
-  // Local state to store the tree with fetched children
-  const [treeData, setTreeData] = useState([]);
-  // Track which tasks are currently loading children
-  const [loadingNodes, setLoadingNodes] = useState({});
-  // Track expanded tasks to persist across refreshes
-  const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
 
   const {
     tasks: rootTasks,
@@ -37,83 +22,19 @@ const MasterLibraryList = (props) => {
     resourceType,
   });
 
-  // Effect 1: Handle data updates from hook
-  React.useEffect(() => {
-    if (rootTasks && rootTasks.length > 0) {
-      setTreeData((prevTree) => mergeTaskUpdates(prevTree, rootTasks));
-    } else if (rootTasks) {
-      setTreeData([]);
-    }
-  }, [rootTasks]);
-
-  // Effect 2: Sync persistent expansion state to tree UI
-  // Ensures UI reflects the Set of expanded IDs
-  React.useEffect(() => {
-    setTreeData((prevTree) => updateTreeExpansion(prevTree, expandedTaskIds));
-  }, [expandedTaskIds]);
-
-  const handleToggleExpand = useCallback(
-    async (task, expanded) => {
-      // 1. Update persistent state.
-      setExpandedTaskIds((prev) => {
-        const next = new Set(prev);
-        if (expanded) next.add(task.id);
-        else next.delete(task.id);
-        return next;
-      });
-
-      // 2. Fetch children if needed (Lazy Load) with race condition protection
-      if (expanded && (!task.children || task.children.length === 0) && !loadingNodes[task.id]) {
-        setLoadingNodes((prev) => ({ ...prev, [task.id]: true }));
-        try {
-          const children = await fetchTaskChildren(task.id);
-          const rawDescendants = children.filter((c) => c.id !== task.id);
-          const nestedChildren = buildTree(rawDescendants, task.id);
-
-          setTreeData((prev) => {
-            // Apply the new children
-            const withChildren = mergeChildrenIntoTree(prev, task.id, nestedChildren);
-            // CRITICAL FIX: Re-apply the *current* expansion state to ensure consistency,
-            // specifically for the newly added children or if state drifted.
-            // Note: We access the Set state inside the callback to be safe, but since
-            // setExpandedTaskIds is async, we can't easily get the *pending* state.
-            // However, since handleToggleExpand sets the state synchronously (scheduled),
-            // and fetch awaits, by the time we get here, expandedTaskIds *should* be updated
-            // if we used a ref. For now, we trust the Effect 2 will handle the visuals,
-            // but to prevent the "collapse immediately" bug, we ensure the tree update
-            // preserves the expanded=true we just set.
-            return updateTreeExpansion(withChildren, new Set([...expandedTaskIds, task.id]));
-          });
-        } catch (err) {
-          console.error('Failed to load children', err);
-        } finally {
-          setLoadingNodes((prev) => ({ ...prev, [task.id]: false }));
-        }
-      }
-    },
-    [loadingNodes, expandedTaskIds]
-  );
+  // Use the extracted hook for tree logic
+  const {
+    treeData,
+    loadingNodes,
+    toggleExpand,
+    handleStatusChange,
+  } = useTreeState(rootTasks);
 
   const handleTaskClick = (task) => {
     if (props.onTaskSelect) {
       props.onTaskSelect(task);
     }
   };
-
-  const handleStatusChange = useCallback(async (taskId, newStatus) => {
-    setTreeData((prev) => {
-      // Optimistic update: manually update the status in the tree
-      return updateTaskInTree(prev, taskId, { status: newStatus });
-    });
-
-    try {
-      await updateTaskStatus(taskId, newStatus);
-    } catch (err) {
-      console.error('Failed to update status', err);
-      // Revert could be implemented here by re-fetching or undoing the change,
-      // but for now we log the error. Ideally we would capture the previous status to revert.
-    }
-  }, []);
 
   const pageDescription = useMemo(() => {
     if (isLoading) return 'Loading master library tasks…';
@@ -167,9 +88,9 @@ const MasterLibraryList = (props) => {
                     level={0}
                     onTaskClick={handleTaskClick}
                     onStatusChange={handleStatusChange}
-                    onAddChildTask={() => {}}
+                    onAddChildTask={props.onAddChildTask}
                     forceShowChevron={true}
-                    onToggleExpand={handleToggleExpand}
+                    onToggleExpand={toggleExpand}
                   />
                   {loadingNodes[task.id] && (
                     <div className="absolute top-2 right-2 text-xs text-gray-500">

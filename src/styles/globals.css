@@ -1083,8 +1083,18 @@ input[type='text']:focus {
 }
 
 /* MISSING UTILITIES ADDED BY FIX */
-.p-6 { padding: 1.5rem; }
-.p-8 { padding: 2rem; }
-.gap-6 { gap: 1.5rem; }
-.gap-8 { gap: 2rem; }
-.mr-8 { margin-right: 2rem; }
+.p-6 {
+  padding: 1.5rem;
+}
+.p-8 {
+  padding: 2rem;
+}
+.gap-6 {
+  gap: 1.5rem;
+}
+.gap-8 {
+  gap: 2rem;
+}
+.mr-8 {
+  margin-right: 2rem;
+}

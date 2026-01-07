@@ -6,9 +6,14 @@ import '@testing-library/jest-dom';
 import MasterLibraryList from './MasterLibraryList';
 import { fetchTaskChildren, updateTaskStatus } from '../../services/taskService';
 import useMasterLibraryTasks from '../../hooks/useMasterLibraryTasks';
+import { TASK_STATUS } from '../../constants';
 
 // Mock child components to avoid cluttering the test
 jest.mock('../molecules/TaskItem', () => {
+  // Fix: jest.mock factory cannot access out-of-scope variables.
+  // We must require the actual constants inside the factory.
+  const { TASK_STATUS } = jest.requireActual('../../constants');
+
   return function MockTaskItem({ task, onToggleExpand, onStatusChange }) {
     return (
       <div data-testid={`task-item-${task.id}`}>
@@ -21,11 +26,11 @@ jest.mock('../molecules/TaskItem', () => {
         </button>
         <select
           data-testid={`status-select-${task.id}`}
-          value={task.status || 'todo'}
+          value={task.status || TASK_STATUS.TODO}
           onChange={(e) => onStatusChange(task.id, e.target.value)}
         >
-          <option value="todo">To Do</option>
-          <option value="in_progress">In Progress</option>
+          <option value={TASK_STATUS.TODO}>To Do</option>
+          <option value={TASK_STATUS.IN_PROGRESS}>In Progress</option>
         </select>
         {task.children && task.children.length > 0 && (
           <div data-testid={`children-${task.id}`}>
@@ -44,8 +49,8 @@ jest.mock('../../hooks/useMasterLibraryTasks');
 
 describe('MasterLibraryList', () => {
   const mockTasks = [
-    { id: '1', title: 'Task 1', status: 'todo', origin: 'template', children: [] },
-    { id: '2', title: 'Task 2', status: 'in_progress', origin: 'template', children: [] },
+    { id: '1', title: 'Task 1', status: TASK_STATUS.TODO, origin: 'template', children: [] },
+    { id: '2', title: 'Task 2', status: TASK_STATUS.IN_PROGRESS, origin: 'template', children: [] },
   ];
 
   beforeEach(() => {
@@ -94,15 +99,15 @@ describe('MasterLibraryList', () => {
     render(<MasterLibraryList />);
 
     const statusSelect = screen.getByTestId('status-select-1');
-    fireEvent.change(statusSelect, { target: { value: 'in_progress' } });
+    fireEvent.change(statusSelect, { target: { value: TASK_STATUS.IN_PROGRESS } });
 
     // Verify optimistic update (TaskItem mock reflects prop change immediately if parent re-renders with new data)
     // Actually, our mock TaskItem uses props. Since MasterLibraryList updates local treeData, it should re-render TaskItem with new status.
     // The select value in the mock is bound to task.status.
     await waitFor(() => {
-      expect(statusSelect).toHaveValue('in_progress');
+      expect(statusSelect).toHaveValue(TASK_STATUS.IN_PROGRESS);
     });
 
-    expect(updateTaskStatus).toHaveBeenCalledWith('1', 'in_progress');
+    expect(updateTaskStatus).toHaveBeenCalledWith('1', TASK_STATUS.IN_PROGRESS);
   });
 });

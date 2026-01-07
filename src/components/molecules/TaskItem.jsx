@@ -6,14 +6,15 @@ import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import '../../styles/components/task-card.css';
 import ErrorBoundary from '../atoms/ErrorBoundary';
+import { TASK_STATUS } from '../../constants';
 
 const getStatusStyle = (status) => {
   switch (status) {
-    case 'complete':
+    case TASK_STATUS.COMPLETED:
       return 'status-badge-complete';
-    case 'in_progress':
+    case TASK_STATUS.IN_PROGRESS:
       return 'status-badge-progress';
-    case 'blocked':
+    case TASK_STATUS.BLOCKED:
       return 'status-badge-blocked';
     default:
       return 'status-badge-todo';
@@ -196,14 +197,14 @@ const TaskItem = React.memo(
               <div className="relative group">
                 <select
                   className={`appearance-none cursor-pointer pl-4 pr-9 py-1.5 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-[var(--brand-primary)] focus:outline-none`}
-                  value={task.status || 'todo'}
+                  value={task.status || TASK_STATUS.TODO}
                   onClick={(e) => e.stopPropagation()}
                   onChange={handleStatusChangeClick}
                 >
-                  <option value="todo">To Do</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="complete">Complete</option>
+                  <option value={TASK_STATUS.TODO}>To Do</option>
+                  <option value={TASK_STATUS.IN_PROGRESS}>In Progress</option>
+                  <option value={TASK_STATUS.BLOCKED}>Blocked</option>
+                  <option value={TASK_STATUS.COMPLETED}>Complete</option>
                 </select>
               </div>
 

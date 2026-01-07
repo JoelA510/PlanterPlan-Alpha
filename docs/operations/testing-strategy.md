@@ -37,3 +37,26 @@ For features involving Drag-and-Drop:
 2. Drag an item in Window A.
 3. Verify it moves in Window B (Realtime/Refetch).
 4. Disconnect Network -> Drag -> Verify Rollback on Reconnect/Error.
+
+---
+
+## Appendix A: RAG Verification Profile (Phase 7)
+
+### 1. Security & Leakage (Automated/Manual)
+
+- **RLS Check**: Verify `rag_get_project_context` returns 0 rows for a user not in the project.
+- **Cross-Project Isolation**: Create two projects. Ensure search in Project A never returns chunks from Project B.
+- **Secret Injection**: Attempt to inject prompt overrides in task notes; verify system refuses to follow them.
+
+### 2. Retrieval Quality (Manual Eval)
+
+- Run the queries defined in `docs/ai/RAG_EVAL.md`.
+- **Pass Criteria**:
+  - "Summarize project": Returns valid JSON summary of tasks.
+  - "Unknown fact": Returns "Insufficient evidence" (no hallucination).
+  - Citations: Every answer must include `[source: task-id]` or `[source: resource-id]`.
+
+### 3. Performance
+
+- **Latency**: End-to-end answer generation < 5s (p90).
+- **Budget**: Max 24k chars retrieved context.

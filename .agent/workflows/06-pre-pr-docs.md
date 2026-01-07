@@ -48,7 +48,7 @@ If any non-trivial bugs were fixed or new patterns were established:
 ## Step 3: Update roadmap.md
 
 **File**: `roadmap.md`
-**Prompt Reference**: `docs/operations/ROADMAP-PROMPT.md`
+**Prompt Reference**: `.agent/prompts/ROADMAP-PROMPT.md`
 
 1. Update the **"Last Updated"** date at the top.
 2. Review roadmap items affected by this PR:
@@ -63,7 +63,7 @@ If any non-trivial bugs were fixed or new patterns were established:
 ## Step 4: Update README.md
 
 **File**: `README.md`
-**Prompt Reference**: `docs/operations/README-PROMPT.md`
+**Prompt Reference**: `.agent/prompts/README-PROMPT.md`
 
 1. Update the **"Last verified"** date and commit SHA.
 2. Review these sections for accuracy:
@@ -89,7 +89,7 @@ Generate the PR description using the template in PR-PROMPT.md:
 4. **Review Guide**: Categorize files by risk level (High/Medium/Low)
 5. **Verification Plan**: Step-by-step test instructions
 
-### Required Input Data:
+### Required Input Data
 
 - Git diff: `git diff main...HEAD --stat`
 - Changed files: `git diff main...HEAD --name-only`
@@ -103,6 +103,7 @@ Generate the PR description using the template in PR-PROMPT.md:
 2. **Check dates**: Confirm "Last Updated" dates are current
 3. **Check consistency**: Roadmap status matches README "Current State"
 4. **Commit documentation**:
+
    ```bash
    git add README.md roadmap.md docs/operations/ENGINEERING_KNOWLEDGE.md
    git commit -m "docs: update documentation for PR"
@@ -117,6 +118,6 @@ Generate the PR description using the template in PR-PROMPT.md:
 | Document                   | When to Update                 | Prompt File                           |
 | -------------------------- | ------------------------------ | ------------------------------------- |
 | `ENGINEERING_KNOWLEDGE.md` | Bugs fixed, patterns learned   | N/A (follow existing format)          |
-| `roadmap.md`               | Features completed/started     | `docs/operations/ROADMAP-PROMPT.md`   |
-| `README.md`                | Structure/architecture changes | `docs/operations/README-PROMPT.md`    |
+| `roadmap.md`               | Features completed/started     | `.agent/prompts/ROADMAP-PROMPT.md`   |
+| `README.md`                | Structure/architecture changes | `.agent/prompts/README-PROMPT.md`    |
 | `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `docs/git_documentation/PR-PROMPT.md` |
