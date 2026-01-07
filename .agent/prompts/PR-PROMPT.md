@@ -30,6 +30,7 @@ Generate the response in Markdown using **specifically** the following template.
 [Write a 2-3 sentence executive summary describing the overall goal of this PR. This should be user-facing language that a Product Owner can understand. Focus on the _why_ and _what_ of the changes, not the _how_.]
 
 **Example:**
+
 > This pull request focuses on a comprehensive 'Health & Hygiene' initiative to bolster the application's core resilience, streamline state management, and modernize development workflows. It involves significant architectural refactoring on both the frontend and backend, enhancing performance, security, and maintainability across the board.
 
 ## ✨ Highlights
@@ -91,11 +92,11 @@ graph TD
 ### 2. Manual Verification
 
 - **[Feature Area 1]:**
-    1. [Step-by-step instruction]
-    2. [Expected outcome]
+  1. [Step-by-step instruction]
+  2. [Expected outcome]
 - **[Feature Area 2]:**
-    1. [Step-by-step instruction]
-    2. [Expected outcome]
+  1. [Step-by-step instruction]
+  2. [Expected outcome]
 
 ### 3. Automated Tests
 

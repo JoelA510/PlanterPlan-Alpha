@@ -4,14 +4,17 @@ import InviteMemberModal from './InviteMemberModal';
 import '@testing-library/jest-dom';
 
 // Mock ReactDOM.createPortal to render children directly
-jest.mock('react-dom', () => ({
-  ...jest.requireActual('react-dom'),
-  createPortal: (node) => node,
-}));
+vi.mock('react-dom', async () => {
+  const actual = await vi.importActual('react-dom');
+  return {
+    ...actual,
+    createPortal: (node) => node,
+  };
+});
 
 describe('InviteMemberModal', () => {
   const mockProject = { id: 'test-project', title: 'Test Project' };
-  const mockOnClose = jest.fn();
+  const mockOnClose = vi.fn();
 
   it('renders correctly', () => {
     render(<InviteMemberModal project={mockProject} onClose={mockOnClose} />);

@@ -6,7 +6,7 @@ import ErrorBoundary from './ErrorBoundary';
 // Quiet console.error for these tests as we expect errors
 const originalConsoleError = console.error;
 beforeAll(() => {
-  console.error = jest.fn();
+  console.error = vi.fn();
 });
 
 afterAll(() => {

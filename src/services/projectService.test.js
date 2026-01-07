@@ -1,25 +1,25 @@
 import { getUserProjects, getJoinedProjects, inviteMemberByEmail } from './projectService';
 
 const createMockClient = (membershipsData, tasksData, memberError = null, taskError = null) => {
-  const from = jest.fn((table) => {
+  const from = vi.fn((table) => {
     if (table === 'project_members') {
       return {
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ data: membershipsData, error: memberError }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: membershipsData, error: memberError }),
         }),
       };
     }
     if (table === 'tasks') {
       const selectMock = {
-        in: jest.fn().mockReturnValue({
-          order: jest.fn().mockResolvedValue({ data: tasksData, error: taskError }),
+        in: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: tasksData, error: taskError }),
         }),
       };
       return {
-        select: jest.fn().mockReturnValue(selectMock),
+        select: vi.fn().mockReturnValue(selectMock),
       };
     }
-    return { select: jest.fn() };
+    return { select: vi.fn() };
   });
 
   return { from };
@@ -33,15 +33,15 @@ describe('getUserProjects', () => {
     ];
 
     // Mock chain: from -> select -> eq -> eq -> is -> order -> range
-    const rangeMock = jest.fn().mockResolvedValue({ data: mockData, count: 5, error: null });
-    const orderMock = jest.fn().mockReturnValue({ range: rangeMock });
-    const isMock = jest.fn().mockReturnValue({ order: orderMock });
-    const eqOriginMock = jest.fn().mockReturnValue({ is: isMock });
-    const eqCreatorMock = jest.fn().mockReturnValue({ eq: eqOriginMock });
-    const selectMock = jest.fn().mockReturnValue({ eq: eqCreatorMock });
+    const rangeMock = vi.fn().mockResolvedValue({ data: mockData, count: 5, error: null });
+    const orderMock = vi.fn().mockReturnValue({ range: rangeMock });
+    const isMock = vi.fn().mockReturnValue({ order: orderMock });
+    const eqOriginMock = vi.fn().mockReturnValue({ is: isMock });
+    const eqCreatorMock = vi.fn().mockReturnValue({ eq: eqOriginMock });
+    const selectMock = vi.fn().mockReturnValue({ eq: eqCreatorMock });
 
     const client = {
-      from: jest.fn().mockReturnValue({ select: selectMock }),
+      from: vi.fn().mockReturnValue({ select: selectMock }),
     };
 
     const { data, count, error } = await getUserProjects('user1', 1, 2, client);
@@ -54,13 +54,13 @@ describe('getUserProjects', () => {
 
   it('handles database errors', async () => {
     const client = {
-      from: jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              is: jest.fn().mockReturnValue({
-                order: jest.fn().mockReturnValue({
-                  range: jest
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              is: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi
                     .fn()
                     .mockResolvedValue({ data: null, count: 0, error: { message: 'DB Error' } }),
                 }),
@@ -125,7 +125,7 @@ describe('getJoinedProjects', () => {
 describe('inviteMemberByEmail', () => {
   // Import dynamically since it's not exported by default in the test file snippet above,
   it('calls the edge function successfully', async () => {
-    const invokeMock = jest.fn().mockResolvedValue({ data: { message: 'Success' }, error: null });
+    const invokeMock = vi.fn().mockResolvedValue({ data: { message: 'Success' }, error: null });
     const client = {
       functions: { invoke: invokeMock },
     };
@@ -140,7 +140,7 @@ describe('inviteMemberByEmail', () => {
   });
 
   it('handles function errors', async () => {
-    const invokeMock = jest
+    const invokeMock = vi
       .fn()
       .mockResolvedValue({ data: { error: 'User not found' }, error: null });
     const client = {
@@ -155,7 +155,7 @@ describe('inviteMemberByEmail', () => {
   });
 
   it('handles implementation errors', async () => {
-    const invokeMock = jest
+    const invokeMock = vi
       .fn()
       .mockResolvedValue({ data: null, error: new Error('Network Fail') });
     const client = {

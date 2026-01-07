@@ -1,0 +1,24 @@
+
+C:\Users\joel.abraham\PlanterPlan\PlanterPlan-Alpha\src\components\organisms\SideNav.jsx
+   20:29  error  'useAuth' is not defined             no-undef
+   24:34  error  'ROLES' is not defined               no-undef
+   49:10  error  'SidebarSkeleton' is not defined     react/jsx-no-undef
+  182:10  error  'InstanceList' is not defined        react/jsx-no-undef
+  193:10  error  'JoinedProjectsList' is not defined  react/jsx-no-undef
+  202:10  error  'TemplateList' is not defined        react/jsx-no-undef
+  233:19  error  'PropTypes' is not defined           no-undef
+  234:18  error  'PropTypes' is not defined           no-undef
+  235:18  error  'PropTypes' is not defined           no-undef
+  236:16  error  'PropTypes' is not defined           no-undef
+  237:10  error  'PropTypes' is not defined           no-undef
+  238:24  error  'PropTypes' is not defined           no-undef
+  239:19  error  'PropTypes' is not defined           no-undef
+  240:22  error  'PropTypes' is not defined           no-undef
+  241:23  error  'PropTypes' is not defined           no-undef
+  242:15  error  'PropTypes' is not defined           no-undef
+  244:12  error  'PropTypes' is not defined           no-undef
+  245:19  error  'PropTypes' is not defined           no-undef
+  246:15  error  'PropTypes' is not defined           no-undef
+
+Γ£û 19 problems (19 errors, 0 warnings)
+

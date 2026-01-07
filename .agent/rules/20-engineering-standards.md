@@ -37,7 +37,6 @@ trigger: always_on
 - No premature optimization.
 - For known hotspots (N+1 queries, deep recursion, large lists), document the complexity and add a test/benchmark if feasible.
 
-
 ## Architecture & Consistency Strings (Hard Constraints)
 
 - **No Recursive RLS**: Always check for root_id existence before writing policies.

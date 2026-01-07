@@ -1,29 +1,29 @@
 import { renderHook } from '@testing-library/react';
 import { useTaskOperations } from './useTaskOperations';
 
-jest.mock('../supabaseClient', () => ({
+vi.mock('../supabaseClient', () => ({
   supabase: {
     auth: {
-      getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'test-user' } } }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user' } } }),
     },
-    from: jest.fn(() => ({
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      is: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      range: jest.fn().mockResolvedValue({ data: [], count: 0 }),
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockResolvedValue({ data: [], count: 0 }),
     })),
   },
 }));
 
-jest.mock('../services/taskService', () => ({
-  fetchTaskChildren: jest.fn(),
-  deepCloneTask: jest.fn(),
+vi.mock('../services/taskService', () => ({
+  fetchTaskChildren: vi.fn(),
+  deepCloneTask: vi.fn(),
 }));
 
-jest.mock('../services/projectService', () => ({
-  getUserProjects: jest.fn().mockResolvedValue({ data: [], count: 0 }),
-  getJoinedProjects: jest.fn().mockResolvedValue({ data: [] }),
+vi.mock('../services/projectService', () => ({
+  getUserProjects: vi.fn().mockResolvedValue({ data: [], count: 0 }),
+  getJoinedProjects: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
 describe('useTaskOperations', () => {

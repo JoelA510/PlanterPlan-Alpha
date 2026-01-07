@@ -1,9 +1,9 @@
 // Mock must be before imports
 import { calculateNewPosition } from './positionService';
 
-jest.mock('../supabaseClient', () => ({
+vi.mock('../supabaseClient', () => ({
   supabase: {
-    from: jest.fn(),
+    from: vi.fn(),
   },
 }));
 

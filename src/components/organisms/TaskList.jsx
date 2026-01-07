@@ -88,8 +88,15 @@ const TaskList = () => {
       // We don't have a "clearSelection" exposed easily except handleSelectProject(null) which might crash if it expects object.
       // Let's modify handleSelectProject in useTaskBoard later if needed.
     }
-  }, [projectId, activeProjectId, loading, instanceTasks, templateTasks, joinedProjects, handleSelectProject]);
-
+  }, [
+    projectId,
+    activeProjectId,
+    loading,
+    instanceTasks,
+    templateTasks,
+    joinedProjects,
+    handleSelectProject,
+  ]);
 
   // --- Render Helpers ---
 

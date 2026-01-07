@@ -1,16 +1,16 @@
-import { fetchMasterLibraryTasks, searchMasterLibraryTasks } from './taskService';
+import { fetchMasterLibraryTasks, searchMasterLibraryTasks, deepCloneTask } from './taskService';
 
 const createMockClient = (response) => {
   const builder = {
-    select: jest.fn().mockReturnThis(),
-    or: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    range: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    is: jest.fn().mockReturnThis(),
-    in: jest.fn().mockReturnThis(),
-    abortSignal: jest.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    range: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    abortSignal: vi.fn().mockReturnThis(),
 
     then(resolve, reject) {
       return Promise.resolve(response).then(resolve, reject);
@@ -20,7 +20,7 @@ const createMockClient = (response) => {
     },
   };
 
-  const from = jest.fn().mockReturnValue(builder);
+  const from = vi.fn().mockReturnValue(builder);
 
   return { client: { from }, builder };
 };
@@ -89,7 +89,7 @@ describe('fetchMasterLibraryTasks', () => {
   });
 
   it('returns empty array when payload shape invalid', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
     const { client } = createMockClient({ data: [{ bad: 'record' }], error: null });
 
     const results = await fetchMasterLibraryTasks({}, client);
@@ -100,11 +100,10 @@ describe('fetchMasterLibraryTasks', () => {
 });
 
 describe('deepCloneTask', () => {
-  const { deepCloneTask } = require('./taskService');
 
   it('calls the RPC successfully with overrides', async () => {
     // Mock client.rpc
-    const mockRpc = jest.fn().mockResolvedValue({
+    const mockRpc = vi.fn().mockResolvedValue({
       data: {
         new_root_id: 'new-root-uuid',
         root_project_id: 'new-root-uuid',
@@ -148,7 +147,7 @@ describe('deepCloneTask', () => {
   });
 
   it('calls the RPC successfully without overrides', async () => {
-    const mockRpc = jest.fn().mockResolvedValue({ data: {}, error: null });
+    const mockRpc = vi.fn().mockResolvedValue({ data: {}, error: null });
     const client = { rpc: mockRpc };
 
     // Pass empty overrides - these should NOT be sent to the RPC
@@ -165,7 +164,7 @@ describe('deepCloneTask', () => {
   });
 
   it('handles error if RPC fails', async () => {
-    const mockRpc = jest.fn().mockResolvedValue({
+    const mockRpc = vi.fn().mockResolvedValue({
       data: null,
       error: { message: 'RPC Failed' },
     });

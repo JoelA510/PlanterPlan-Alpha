@@ -4,15 +4,15 @@ import '@testing-library/jest-dom';
 import NewTaskForm from './NewTaskForm';
 
 // Mock dependencies
-jest.mock('../../hooks/useTaskForm', () => ({
+vi.mock('../../hooks/useTaskForm', () => ({
   useTaskForm: (initialState) => ({
     formData: initialState,
-    setFormData: jest.fn(),
+    setFormData: vi.fn(),
     errors: {},
     isSubmitting: false,
     lastAppliedTaskTitle: null,
-    handleChange: jest.fn(),
-    handleApplyFromLibrary: jest.fn(),
+    handleChange: vi.fn(),
+    handleApplyFromLibrary: vi.fn(),
     handleSubmit: (e, onSubmit, onSuccess) => {
       e.preventDefault();
       onSubmit(initialState);
@@ -21,16 +21,16 @@ jest.mock('../../hooks/useTaskForm', () => ({
   }),
 }));
 
-jest.mock('../molecules/MasterLibrarySearch', () => () => (
-  <div data-testid="library-search">Library Search</div>
-));
+vi.mock('../molecules/MasterLibrarySearch', () => ({
+  default: () => <div data-testid="library-search">Library Search</div>,
+}));
 
 describe('NewTaskForm Pinning Test', () => {
-  const mockOnSubmit = jest.fn();
-  const mockOnCancel = jest.fn();
+  const mockOnSubmit = vi.fn();
+  const mockOnCancel = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders create mode correctly', () => {

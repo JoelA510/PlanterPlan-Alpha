@@ -115,9 +115,9 @@ Generate the PR description using the template in PR-PROMPT.md:
 
 ## Quick Reference
 
-| Document                   | When to Update                 | Prompt File                           |
-| -------------------------- | ------------------------------ | ------------------------------------- |
-| `ENGINEERING_KNOWLEDGE.md` | Bugs fixed, patterns learned   | N/A (follow existing format)          |
-| `roadmap.md`               | Features completed/started     | `.agent/prompts/ROADMAP-PROMPT.md`   |
-| `README.md`                | Structure/architecture changes | `.agent/prompts/README-PROMPT.md`    |
-| `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `.agent/prompts/PR-PROMPT.md` |
+| Document                   | When to Update                 | Prompt File                        |
+| -------------------------- | ------------------------------ | ---------------------------------- |
+| `ENGINEERING_KNOWLEDGE.md` | Bugs fixed, patterns learned   | N/A (follow existing format)       |
+| `roadmap.md`               | Features completed/started     | `.agent/prompts/ROADMAP-PROMPT.md` |
+| `README.md`                | Structure/architecture changes | `.agent/prompts/README-PROMPT.md`  |
+| `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `.agent/prompts/PR-PROMPT.md`      |

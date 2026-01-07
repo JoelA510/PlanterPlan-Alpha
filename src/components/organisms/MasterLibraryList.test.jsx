@@ -9,43 +9,45 @@ import useMasterLibraryTasks from '../../hooks/useMasterLibraryTasks';
 import { TASK_STATUS } from '../../constants';
 
 // Mock child components to avoid cluttering the test
-jest.mock('../molecules/TaskItem', () => {
-  // Fix: jest.mock factory cannot access out-of-scope variables.
+vi.mock('../molecules/TaskItem', async () => {
+  // Fix: vi.mock factory cannot access out-of-scope variables.
   // We must require the actual constants inside the factory.
-  const { TASK_STATUS } = jest.requireActual('../../constants');
+  const { TASK_STATUS } = await vi.importActual('../../constants');
 
-  return function MockTaskItem({ task, onToggleExpand, onStatusChange }) {
-    return (
-      <div data-testid={`task-item-${task.id}`}>
-        <span>{task.title}</span>
-        <button
-          data-testid={`expand-btn-${task.id}`}
-          onClick={() => onToggleExpand(task, !task.isExpanded)}
-        >
-          {task.isExpanded ? 'Collapse' : 'Expand'}
-        </button>
-        <select
-          data-testid={`status-select-${task.id}`}
-          value={task.status || TASK_STATUS.TODO}
-          onChange={(e) => onStatusChange(task.id, e.target.value)}
-        >
-          <option value={TASK_STATUS.TODO}>To Do</option>
-          <option value={TASK_STATUS.IN_PROGRESS}>In Progress</option>
-        </select>
-        {task.children && task.children.length > 0 && (
-          <div data-testid={`children-${task.id}`}>
-            {task.children.map((child) => (
-              <div key={child.id}>{child.title}</div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+  return {
+    default: function MockTaskItem({ task, onToggleExpand, onStatusChange }) {
+      return (
+        <div data-testid={`task-item-${task.id}`}>
+          <span>{task.title}</span>
+          <button
+            data-testid={`expand-btn-${task.id}`}
+            onClick={() => onToggleExpand(task, !task.isExpanded)}
+          >
+            {task.isExpanded ? 'Collapse' : 'Expand'}
+          </button>
+          <select
+            data-testid={`status-select-${task.id}`}
+            value={task.status || TASK_STATUS.TODO}
+            onChange={(e) => onStatusChange(task.id, e.target.value)}
+          >
+            <option value={TASK_STATUS.TODO}>To Do</option>
+            <option value={TASK_STATUS.IN_PROGRESS}>In Progress</option>
+          </select>
+          {task.children && task.children.length > 0 && (
+            <div data-testid={`children-${task.id}`}>
+              {task.children.map((child) => (
+                <div key={child.id}>{child.title}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    },
   };
 });
 
-jest.mock('../../services/taskService');
-jest.mock('../../hooks/useMasterLibraryTasks');
+vi.mock('../../services/taskService');
+vi.mock('../../hooks/useMasterLibraryTasks');
 
 describe('MasterLibraryList', () => {
   const mockTasks = [
@@ -58,14 +60,14 @@ describe('MasterLibraryList', () => {
       tasks: mockTasks,
       isLoading: false,
       hasMore: false,
-      refresh: jest.fn(),
+      refresh: vi.fn(),
     });
     fetchTaskChildren.mockResolvedValue([]);
     updateTaskStatus.mockResolvedValue({});
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders list of tasks', () => {
