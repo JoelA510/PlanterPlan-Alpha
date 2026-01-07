@@ -182,10 +182,10 @@ flowchart LR
 
 | Component/Module | Responsibility                                                   | Primary files                                                                                                                    |
 | ---------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **AuthContext**  | Manages user session (login/logout/user object).                 | [`src/app/contexts/AuthContext.jsx`](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/src/app/contexts/AuthContext.jsx) |
-| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [`src/features/tasks/services/taskService.js`](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/src/features/tasks/services/taskService.js) |
-| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [`src/features/tasks/components/organsims/TaskList.jsx`](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/src/features/tasks/components/organisms/TaskList.jsx) |
-| **SideNav**      | Persistent sidebar for project navigation.                       | [`src/features/projects/components/organisms/SideNav.jsx`](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/src/features/projects/components/organisms/SideNav.jsx) |
+| **AuthContext**  | Manages user session (login/logout/user object).                 | [`src/app/contexts/AuthContext.jsx`](src/app/contexts/AuthContext.jsx) |
+| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [`src/features/tasks/services/taskService.js`](src/features/tasks/services/taskService.js) |
+| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [`src/features/tasks/components/organisms/TaskList.jsx`](src/features/tasks/components/organisms/TaskList.jsx) |
+| **SideNav**      | Persistent sidebar for project navigation.                       | [`src/features/projects/components/organisms/SideNav.jsx`](src/features/projects/components/organisms/SideNav.jsx) |
 
 ### 4.4 Database Schema
 
@@ -198,19 +198,19 @@ flowchart LR
 
 #### Relationships
 
-- `parent_task_id` -> Self-reference (Hierarchy) (Ref: [schema.sql](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/docs/db/schema.sql#L8))
-- `root_id` -> Denormalized reference to the top-level project (Ref: [schema.sql](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/docs/db/schema.sql#L22))
+- `parent_task_id` -> Self-reference (Hierarchy) (Ref: [schema.sql](docs/db/schema.sql#L8))
+- `root_id` -> Denormalized reference to the top-level project (Ref: [schema.sql](docs/db/schema.sql#L22))
 
 ### 4.5 Security Model
 
 #### Authentication
 
-- Supabase Auth (JWT) implemented in [src/app/contexts/AuthContext.jsx](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/src/app/contexts/AuthContext.jsx).
+- Supabase Auth (JWT) implemented in [src/app/contexts/AuthContext.jsx](src/app/contexts/AuthContext.jsx).
 
 #### Data isolation
 
 - RLS (Row Level Security) is enabled on `public.tasks` and `public.project_members`.
-- Ref: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` in [docs/db/schema.sql](file:///c:/Users/joel.abraham/PlanterPlan/PlanterPlan-Alpha/docs/db/schema.sql#L111).
+- Ref: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` in [docs/db/schema.sql](docs/db/schema.sql#L111).
 
 ---
 
