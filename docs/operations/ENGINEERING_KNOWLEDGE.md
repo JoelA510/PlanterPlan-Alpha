@@ -732,8 +732,7 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Client (UI)**: Owns `days_from_start` calculation (in `useTaskOperations.js`). Relative offsets are business logic.
   - **Database (Trigger)**: Owns `parent rollup` (`trigger_calc_task_dates`). When a child moves, the DB ensures the Parent expands to contain it.
   - **Database (RPC)**: Owns `clone_project_template` dates. Atomic cloning must handle date shifting in the same transaction.
-- **Critical Rule**:
-  3. **Do NOT** rely on client-side re-fetch to sync dates (triggers update in-place).
+- **Critical Rule**: 3. **Do NOT** rely on client-side re-fetch to sync dates (triggers update in-place).
 
 ## [DB-035] Migration Safety via Conditional Logic
 
@@ -745,3 +744,39 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Conditional Execution**: Query `information_schema.columns` to see if the target column exists.
   - **Dynamic SQL**: Use `EXECUTE` inside the `IF` block to run DDL statements conditionally.
 - **Critical Rule**: Setup scripts must be **idempotent and safe**. Never assume specific schema state; check for existence before dropping or modifying.
+
+## [CSS-036] Recharts Zero-Height Bug in Grid
+
+- **Tags**: #css, #recharts, #grid, #flexbox
+- **Date**: 2026-01-06
+- **Context & Problem**: `ResponsiveContainer` from Recharts failed to render (height=0) when placed inside a logical `grid` or `flex` child that didn't have an explicit height set. The library relies on parent container dimensions to calculate its SVG size.
+- **Solution & Pattern**: Added explicit inline styles (`style={{ width: 150, height: 150 }}`) to the wrapper `div` to enforce a bounding box.
+- **Critical Rule**: When using `ResponsiveContainer` inside a CSS Grid or Flex item, ensure the parent has measurable dimensions (min-height/width) or the chart will vanish.
+
+## [SVC-037] Service Response Destructuring
+
+- **Tags**: #javascript, #services, #pattern
+- **Date**: 2026-01-06
+- **Context & Problem**: The generic `fetchTaskChildren` service was updated to return a Supabase-style object `{ data, error }`. However, legacy usage assumed it returned `data` directly (an array), causing `TypeError: rawTasks.forEach is not a function`.
+- **Solution & Pattern**: Updated usage to destructure the response: `const { data: rawTasks } = await fetchTaskChildren(...)`.
+- **Critical Rule**: Always check service return signatures. If a service wraps Supabase, standardizing on `{ data, error }` is safer than returning raw data or throwing, but call sites must adapt.
+
+## [UI-038] URL-Driven Sidebar Navigation
+
+- **Tags**: #ui, #navigation, #routing, #react-router
+- **Date**: 2026-01-06
+- **Context & Problem**: Deep linking to a specific project (`/project/:id`) failed to update the Sidebar selection state because the selection logic was purely internal to the `TaskList` component state, initialized to `null`.
+- **Solution & Pattern**: Added a `useEffect` in `TaskList` that syncs `activeProjectId` with the URL's `useParams().projectId`. This ensures that navigating directly to a URL selects the correct project in the sidebar list.
+
+---
+
+## [CSS-039] Full Screen Dashboard Layout Strategy
+
+- **Tags**: #css, #layout, #flexbox, #tailwind
+- **Date**: 2026-01-06
+- **Context & Problem**: Dashboards often suffer from "Double Scrollbars" (one for the browser window, one for the content) or the sidebar scrolling away with the page.
+- **Solution & Pattern**:
+  - **Root**: `h-screen w-screen overflow-hidden flex`. This locks the viewport.
+  - **Sidebar**: `flex-shrink-0 overflow-y-auto`. Static width on desktop.
+  - **Main**: `flex-1 overflow-y-auto`. Takes remaining space and handles its own scrolling.
+- **Critical Rule**: For application-like dashboards, lock the `body` (or root div) height to `100vh` and manage scrolling internally in the main content area.

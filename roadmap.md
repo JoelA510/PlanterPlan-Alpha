@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated**: 2026-01-05
-**Current Focus:** Feature Parity & Structural Refinement
+**Last Updated**: 2026-01-06 (Post-Visual Overhaul)
+**Current Focus:** Release Candidate & Documentation
 
 ---
 
@@ -9,25 +9,25 @@
 
 A chronological overview of the project's evolution from Day 1.
 
-| Era                      | Timeline     | Key Milestones & Context                                                                                                                                                 |
-| :----------------------- | :----------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Origins**              | ~Sep 2025    | **Initial Prototype**: Basic app structure, Supabase Auth integration, and fetching user tasks.                                                                          |
-| **The "Refactor"**       | Oct 2025     | **UI & Architecture Overhaul**: Unifying UI with blue accent scheme, implementing side panels, and separating "Instance" vs "Template" tasks.                            |
-| **Master Library**       | Oct 2025     | **Templating System**: Added `view_master_library` view, search services, and ability to copy template tasks.                                                            |
-| **Standards & Hygiene**  | Nov 2025     | **Codebase Maturation**: Enforced content-agnostic "shapes" (PropTypes), strict linting/formatting (Prettier/ESLint), and consolidated CSS.                              |
-| **Phase 2: Teams**       | Nov-Dec 2025 | **Simulated Multi-Tenancy**: Added RLS policies for `project_members`, "Joined Projects" view, and Invite logic.                                                         |
-| **Phase 4: The Engine**  | Dec 2025     | **Deep Copy & Drag-n-Drop**: Implemented recursive "Deep Clone" for templates and a robust `dnd-kit` implementation with database persistence and optimistic UI updates. |
-| **Tech Debt: Resources** | Dec 2025     | **Resource Migration**: Normalized `task_resources` into a dedicated table, migrated legacy data, and established extensive RLS policies.                                |
-| **Assessment Review**    | Dec 2025     | **Stability Audit**: Verified architectural integrity, identified optimistic update edge cases, and prioritized error boundaries over new features.                      |
-| **Stability Push**       | Dec 2025     | **Optimistic Rollback**: Implemented graceful UI rollback for drag-and-drop failures, preventing full page reloads.                                                      |
-| **Recovery & UI**        | Dec 2025     | **Data Recovery**: Restored lost task data via `supabase_importer.py` and implemented Recursive Tree View for Master Library.                                            |
-| **UI Modernization**     | Dec 2025     | **Atomic Design**: Refactored components into Atoms/Molecules/Organisms. Implemented semantic Elevation & Motion system.                                                 |
-| **Tree Optimization**    | Dec 2025     | **Performance & Stability**: Refactored `MasterLibraryList` with split effects and recursive state updates. Fixed deployment blockers.                                   |
-| **Workflow Audit**       | Jan 2026     | **Roadmap Alignment**: Caught up with `notion.md` requirements. Hardened RAG removal and modularized services.                                                           |
-| **Side Nav & Debt**      | Jan 2026     | **Navigation Overhaul**: Implemented persistent Side Navigation and refactored `TaskList` for modularity and performance.                                                |
-| **Mobile Polish**        | Jan 2026     | **Responsive UI**: Implemented mobile-responsive `DashboardLayout` with drawer navigation and light theme polish.                                                        |
-| **Feedback Sprint**      | Jan 2026     | **Logic & UI Polish**: Addressed 40+ feedback items including RBAC security, Timezone fixes, Printer styles, and form layout improvements.                               |
-| **Surgical Refactor**    | Jan 2026     | **Architecture Hardening**: Split monolithic hooks (`useTaskOperations`), Refactored `MasterLibraryList` to `useTreeState`, Consolidatd Documentation, and Updated Dependencies.         |
+| Era                      | Timeline     | Key Milestones & Context                                                                                                                                                         |
+| :----------------------- | :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Origins**              | ~Sep 2025    | **Initial Prototype**: Basic app structure, Supabase Auth integration, and fetching user tasks.                                                                                  |
+| **The "Refactor"**       | Oct 2025     | **UI & Architecture Overhaul**: Unifying UI with blue accent scheme, implementing side panels, and separating "Instance" vs "Template" tasks.                                    |
+| **Master Library**       | Oct 2025     | **Templating System**: Added `view_master_library` view, search services, and ability to copy template tasks.                                                                    |
+| **Standards & Hygiene**  | Nov 2025     | **Codebase Maturation**: Enforced content-agnostic "shapes" (PropTypes), strict linting/formatting (Prettier/ESLint), and consolidated CSS.                                      |
+| **Phase 2: Teams**       | Nov-Dec 2025 | **Simulated Multi-Tenancy**: Added RLS policies for `project_members`, "Joined Projects" view, and Invite logic.                                                                 |
+| **Phase 4: The Engine**  | Dec 2025     | **Deep Copy & Drag-n-Drop**: Implemented recursive "Deep Clone" for templates and a robust `dnd-kit` implementation with database persistence and optimistic UI updates.         |
+| **Tech Debt: Resources** | Dec 2025     | **Resource Migration**: Normalized `task_resources` into a dedicated table, migrated legacy data, and established extensive RLS policies.                                        |
+| **Assessment Review**    | Dec 2025     | **Stability Audit**: Verified architectural integrity, identified optimistic update edge cases, and prioritized error boundaries over new features.                              |
+| **Stability Push**       | Dec 2025     | **Optimistic Rollback**: Implemented graceful UI rollback for drag-and-drop failures, preventing full page reloads.                                                              |
+| **Recovery & UI**        | Dec 2025     | **Data Recovery**: Restored lost task data via `supabase_importer.py` and implemented Recursive Tree View for Master Library.                                                    |
+| **UI Modernization**     | Dec 2025     | **Atomic Design**: Refactored components into Atoms/Molecules/Organisms. Implemented semantic Elevation & Motion system.                                                         |
+| **Tree Optimization**    | Dec 2025     | **Performance & Stability**: Refactored `MasterLibraryList` with split effects and recursive state updates. Fixed deployment blockers.                                           |
+| **Workflow Audit**       | Jan 2026     | **Roadmap Alignment**: Caught up with `notion.md` requirements. Hardened RAG removal and modularized services.                                                                   |
+| **Side Nav & Debt**      | Jan 2026     | **Navigation Overhaul**: Implemented persistent Side Navigation and refactored `TaskList` for modularity and performance.                                                        |
+| **Mobile Polish**        | Jan 2026     | **Responsive UI**: Implemented mobile-responsive `DashboardLayout` with drawer navigation and light theme polish.                                                                |
+| **Feedback Sprint**      | Jan 2026     | **Logic & UI Polish**: Addressed 40+ feedback items including RBAC security, Timezone fixes, Printer styles, and form layout improvements.                                       |
+| **Surgical Refactor**    | Jan 2026     | **Architecture Hardening**: Split monolithic hooks (`useTaskOperations`), Refactored `MasterLibraryList` to `useTreeState`, Consolidatd Documentation, and Updated Dependencies. |
 
 ---
 
@@ -129,13 +129,13 @@ _Goal: Optimize for large trees and refine the dashboard interface._
 
 - **ID:** `P6-DASH-PAGINATION`
 - **Goal**: Implement server-side pagination for the main dashboard.
-- **Status**: 📅 Planned
+- **Status**: ✅ Done
 
 #### 6.2 Advanced Reporting UI
 
 - **ID:** `P6-ADV-REPORTING`
 - **Goal**: Implement donut charts, reporting month filters, and milestone trend analysis.
-- **Status**: 📅 Planned
+- **Status**: ✅ Done
 
 #### 6.3 Side Navigation Migration
 
@@ -149,9 +149,39 @@ _Goal: Optimize for large trees and refine the dashboard interface._
 - **Goal**: Implement Supabase Realtime subscriptions.
 - **Status**: 📅 Planned
 
+#### 6.5 Layout & Navigation Polish
+
+- **ID:** `P6.5-LAYOUT`
+- **Goal**: Resolve layout conflicts (CSS vs Tailwind), implement persist SideNav with global links, and standardize UI.
+- **Status**: ✅ Done
+
+#### 6.6 Visual Hierarchy & CSS Debt
+
+- **ID:** `P6.6-VISUAL`
+- **Goal**: Semantic color correction (`--brand-primary`), responsive side panel, and component hardening.
+- **Status**: ✅ Done
+
+#### 6.7 Layout Responsiveness
+
+- **ID:** `P6.7-RESPONSIVE`
+- **Goal**: Fix mobile layouts, sticky headers, and side panel overlay behavior.
+- **Status**: ✅ Done
+
+#### 6.8 Component Logic Polish
+
+- **ID:** `P6.8-LOGIC`
+- **Goal**: Hydration safety for dates and crash prevention for empty sortable contexts.
+- **Status**: ✅ Done
+
 ### Phase 7: Advanced Engine & Automation
 
 _Goal: Automate date inheritance and status tracking._
+
+#### 7.0 Visual Overhaul & Navigation Integration
+
+- **ID:** `P7-VISUAL-OVERHAUL`
+- **Goal**: Redesign Project Header, fix full-screen layout, and integrate Reports into the main dashboard navigation.
+- **Status**: ✅ Done
 
 #### 7.1 Date Inheritance
 

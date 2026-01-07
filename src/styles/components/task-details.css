@@ -16,7 +16,7 @@
 .detail-section-title {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--accent-blue-dark);
+  color: var(--color-action-hover);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: 0;
@@ -94,13 +94,13 @@
 
 .date-label {
   font-size: 0.813rem;
-  color: var(--accent-blue-dark);
+  color: var(--color-action-hover);
   font-weight: 500;
 }
 
 .date-value {
   font-size: 0.813rem;
-  color: var(--accent-blue);
+  color: var(--brand-primary);
   font-weight: 500;
 }
 
@@ -123,7 +123,7 @@
 }
 
 .metadata-value {
-  color: var(--accent-blue);
+  color: var(--brand-primary);
 }
 
 /* Selected Task Card Highlight */

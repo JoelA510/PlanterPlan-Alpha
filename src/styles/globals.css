@@ -5,25 +5,24 @@
    ===================================================== */
 
 :root {
-  /* Brand Colors (PlanterPlan.com) */
+  /* Core Brand */
   --brand-primary: #f1592a;
   /* Orange */
   --brand-secondary: #222222;
   /* Charcoal */
+  --brand-primary-soft: #fff3f0;
+  /* Soft Orange */
 
-  /* Mapping "Blue" legacy variables to new Brand Orange */
-  --accent-blue: #f1592a;
-  --accent-blue-dark: #d94418;
-  /* Darker orange for hover */
-  --accent-blue-soft: #fff3f0;
-  /* Very light orange for backgrounds */
+  /* Semantic Aliases */
+  --color-action: var(--brand-primary);
+  --color-action-hover: #d94418;
+  --color-text-main: var(--brand-secondary);
 
   /* Semantic Colors */
   --text-primary: #222222;
   --text-secondary: #4b5563;
   --bg-surface: #ffffff;
   --bg-background: #eeeeee;
-  /* Light Gray from brand */
 
   /* MASTERING DEPTH: ELEVATION SYSTEM */
   /* Level 1: Resting state */
@@ -362,17 +361,17 @@ input[type='text']:focus {
   background-color: #222222;
 }
 
-.bg-blue-50 {
+.bg-brand-50 {
   background-color: #fff3f0;
   /* Soft Orange */
 }
 
-.bg-blue-500 {
-  background-color: var(--accent-blue);
+.bg-brand-500 {
+  background-color: var(--brand-primary);
 }
 
-.bg-blue-600 {
-  background-color: var(--accent-blue-dark);
+.bg-brand-600 {
+  background-color: var(--color-action-hover);
 }
 
 .bg-indigo-50 {
@@ -435,12 +434,12 @@ input[type='text']:focus {
   color: #222222;
 }
 
-.text-blue-500 {
-  color: var(--accent-blue);
+.text-brand-500 {
+  color: var(--brand-primary);
 }
 
-.text-blue-600 {
-  color: var(--accent-blue-dark);
+.text-brand-600 {
+  color: var(--color-action-hover);
 }
 
 .text-indigo-600 {
@@ -1072,12 +1071,15 @@ input[type='text']:focus {
 .pt-8 {
   padding-top: 2rem;
 }
+
 .pb-6 {
   padding-bottom: 1.5rem;
 }
+
 .items-start {
   align-items: flex-start;
 }
+
 .gap-1 {
   gap: 0.25rem;
 }
@@ -1086,15 +1088,19 @@ input[type='text']:focus {
 .p-6 {
   padding: 1.5rem;
 }
+
 .p-8 {
   padding: 2rem;
 }
+
 .gap-6 {
   gap: 1.5rem;
 }
+
 .gap-8 {
   gap: 2rem;
 }
+
 .mr-8 {
   margin-right: 2rem;
 }

@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { DndContext, closestCorners } from '@dnd-kit/core';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import NewProjectForm from './NewProjectForm';
 import NewTaskForm from './NewTaskForm';
@@ -14,6 +15,9 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import { useTaskBoard } from '../../hooks/useTaskBoard';
 
 const TaskList = () => {
+  const { projectId } = useParams();
+  const navigate = useNavigate();
+
   const {
     // Data
     joinedProjects,
@@ -60,6 +64,33 @@ const TaskList = () => {
     handleDragEnd,
   } = useTaskBoard();
 
+  // Sync URL projectId with internal state
+  useEffect(() => {
+    if (projectId && projectId !== activeProjectId && !loading) {
+      // Find the project object
+      const project =
+        instanceTasks.find((p) => p.id === projectId) ||
+        templateTasks.find((p) => p.id === projectId) ||
+        joinedProjects.find((p) => p.id === projectId);
+
+      if (project) {
+        handleSelectProject(project);
+      }
+    } else if (!projectId && activeProjectId) {
+      // If navigating to root dashboard, clear selection?
+      // For now, let's allow state to persist or reset?
+      // Better to check if we conceptually "left" the project.
+      // If we are at /dashboard, activeProjectId should probably be null.
+      // But clearing it might flicker. Let's leave it unless explicit.
+      // Actually, if I click "Dashboard" link, I go to /dashboard.
+      // I expect "No Project Selected".
+      // But handleSelectProject is internal.
+      // We don't have a "clearSelection" exposed easily except handleSelectProject(null) which might crash if it expects object.
+      // Let's modify handleSelectProject in useTaskBoard later if needed.
+    }
+  }, [projectId, activeProjectId, loading, instanceTasks, templateTasks, joinedProjects, handleSelectProject]);
+
+
   // --- Render Helpers ---
 
   const parentTaskForForm = taskFormState?.parentId ? getTaskById(taskFormState.parentId) : null;
@@ -94,7 +125,10 @@ const TaskList = () => {
       templateTasks={templateTasks}
       joinedError={joinedError}
       error={error}
-      handleSelectProject={handleSelectProject}
+      handleSelectProject={(project) => {
+        handleSelectProject(project);
+        navigate(`/project/${project.id}`);
+      }}
       selectedTaskId={activeProjectId}
       loading={loading && instanceTasks.length === 0} // Show skeleton if loading initial data
       // Pagination props
@@ -107,6 +141,7 @@ const TaskList = () => {
         setShowForm(true);
         setSelectedTask(null);
         setTaskFormState(null);
+        navigate('/dashboard');
       }}
       onNewTemplateClick={() => {
         setTaskFormState({
@@ -116,6 +151,7 @@ const TaskList = () => {
         });
         setShowForm(false);
         setSelectedTask(null);
+        navigate('/dashboard');
       }}
     />
   );

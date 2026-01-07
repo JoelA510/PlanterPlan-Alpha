@@ -21,7 +21,7 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
 
   return (
     <div
-      className={`sidebar-nav-item ${isSelected ? 'selected' : ''}`}
+      className={`sidebar-nav-item group ${isSelected ? 'selected' : ''}`}
       onClick={handleClick}
       role="button"
       tabIndex={0}
@@ -36,11 +36,33 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
       <div className={statusClass}></div>
       <div className="flex-1 min-w-0 flex items-center justify-between">
         <span className="sidebar-nav-item-title truncate">{task.title}</span>
-        {showRole && task.membership_role && (
-          <div className="ml-2 flex-shrink-0">
-            <RoleIndicator role={task.membership_role} />
-          </div>
-        )}
+        <div className="flex items-center">
+          {/* Clone Button (Visible on Hover) */}
+          <button
+            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-blue-600 transition-all mr-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              // No-op for demo visual, or wire up if needed later
+              console.log('Clone clicked');
+            }}
+            title="Clone Template"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 01-2-2V5a2 2 0 012-2h4.586"
+              />
+            </svg>
+          </button>
+
+          {showRole && task.membership_role && (
+            <div className="flex-shrink-0">
+              <RoleIndicator role={task.membership_role} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

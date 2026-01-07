@@ -23,12 +23,7 @@ const MasterLibraryList = (props) => {
   });
 
   // Use the extracted hook for tree logic
-  const {
-    treeData,
-    loadingNodes,
-    toggleExpand,
-    handleStatusChange,
-  } = useTreeState(rootTasks);
+  const { treeData, loadingNodes, toggleExpand, handleStatusChange } = useTreeState(rootTasks);
 
   const handleTaskClick = (task) => {
     if (props.onTaskSelect) {
