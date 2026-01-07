@@ -257,4 +257,4 @@ _Goal: System-wide visibility and admin tools._
 
 - **ID:** `P10-TAILWIND-V4`
 - **Goal**: Adopt Tailwind v4 and remove manual CSS utilities.
-- **Status**: 🚧 In Progress
+- **Status**: ✅ Done
