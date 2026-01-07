@@ -222,7 +222,7 @@ Explicitly defined flex direction in Tailwind classes.
 
 ### Context & Problem
 
-Application failed to startup or connected to the wrong backend because `npm start` (React scripts) attempted to pick a random port when 3000 was busy, but the Supabase client was hardcoded to expect CORS from localhost:3000.
+Application failed to startup or connected to the wrong backend because the dev server attempted to pick a random port when 3000 was busy, but the Supabase client was hardcoded to expect CORS from localhost:3000.
 
 ### Solution & Pattern
 
@@ -801,4 +801,3 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **ESM Requirement**: ESM modules are objects with a **default** key for default exports. The mock factory must return **{ default: MockComponent }**.
   - **Async importActual**: **vi.requireActual** is synchronous and often fails in ESM. Use **await vi.importActual()** inside an **async** factory.
 - **Critical Rule**: When mocking default exports in Vitest, always return an object **{ default: ... }**. Use **async** factories if you need to import actual modules.
-

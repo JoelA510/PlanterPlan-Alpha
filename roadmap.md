@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated**: 2026-01-07 (Infrastructure Migration)
-**Current Focus:** Release Candidate & Documentation
+**Last Updated**: 2026-01-07
+**Current Focus**: Phase 10 (Post-Migration Verification)
 
 ---
 
@@ -233,9 +233,13 @@ _Goal: System-wide visibility and admin tools._
 - **Goal**: Granular enforcement for 'Full User', 'Limited User', and 'Coach' permissions.
 - **Status**: 🚧 In Progress (Logic defined in RLS)
 
-### Phase 10: Infrastructure Modernization
+### Phase 10: Infrastructure Modernization (`status:done`)
 
-_Goal: Migrate from legacy CRA to modern Vite + Tailwind v4 stack._
+- [x] Migrate from CRA to Vite (`status:done`)
+- [x] Replace Jest with Vitest (`status:done`)
+- [x] Implement Tailwind CSS v4 (`status:done`)
+- [x] Agentic Refactor: FSD Architecture (`status:done`)
+- [x] Documentation & Knowledge Transfer (`status:done`)
 
 #### 10.1 Build System Migration
 
