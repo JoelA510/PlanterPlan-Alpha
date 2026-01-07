@@ -6,7 +6,7 @@
 // - Clone operations: see taskCloneService.js
 // - Core CRUD operations: remain here
 
-import { supabase } from '../supabaseClient.js';
+import { supabase } from '../supabaseClient';
 
 // Re-export from specialized modules for backward compatibility
 export { fetchMasterLibraryTasks, searchMasterLibraryTasks } from './taskMasterLibraryService';
