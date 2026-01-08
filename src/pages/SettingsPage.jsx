@@ -7,9 +7,9 @@ import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 const SettingsPage = () => {
   const navigate = useNavigate();
   const {
-    joinedProjects,
-    instanceTasks,
-    templateTasks,
+    joinedProjects = [],
+    instanceTasks = [],
+    templateTasks = [],
     loading,
     error,
     joinedError,
