@@ -104,7 +104,7 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <div className='@app/App'>
+    <div className="App">
       <AuthProvider>
         <ToastProvider>
           <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>
