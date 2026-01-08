@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
-import { useTaskForm } from '../../hooks/useTaskForm';
-import CreateTaskForm from './CreateTaskForm';
-import EditTaskForm from './EditTaskForm';
+import { useTaskForm } from '@features/tasks/hooks/useTaskForm';
+import CreateTaskForm from '@features/tasks/components/CreateTaskForm';
+import EditTaskForm from '@features/tasks/components/EditTaskForm';
 
 const extractDateInput = (value) => {
   if (!value) return '';

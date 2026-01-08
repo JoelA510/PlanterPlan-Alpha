@@ -1,4 +1,4 @@
-import { getUserProjects, getJoinedProjects, inviteMemberByEmail } from './projectService';
+import { getUserProjects, getJoinedProjects, inviteMemberByEmail } from '@features/projects/services/projectService';
 
 const createMockClient = (membershipsData, tasksData, memberError = null, taskError = null) => {
   const from = vi.fn((table) => {

@@ -1,6 +1,6 @@
 import React from 'react';
-import MasterLibrarySearch from '../molecules/MasterLibrarySearch';
-import TaskFormFields from '../molecules/TaskFormFields';
+import MasterLibrarySearch from '@features/library/components/MasterLibrarySearch';
+import TaskFormFields from '@features/tasks/components/TaskFormFields';
 
 const CreateTaskForm = ({
   formData,

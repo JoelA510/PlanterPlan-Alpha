@@ -1,12 +1,12 @@
 // src/components/molecules/TaskItem.jsx
 import React, { useCallback } from 'react';
-import RoleIndicator from '../atoms/RoleIndicator';
+import RoleIndicator from '@shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
-import '../../styles/components/task-card.css';
-import ErrorBoundary from '../atoms/ErrorBoundary';
-import { TASK_STATUS } from '../../constants';
+import '../../../styles/components/task-card.css';
+import ErrorBoundary from '@shared/ui/ErrorBoundary';
+import { TASK_STATUS } from '@app/constants/index';
 
 const getStatusStyle = (status) => {
   switch (status) {

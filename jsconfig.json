@@ -13,6 +13,9 @@
             ],
             "@shared/*": [
                 "shared/*"
+            ],
+            "@layouts/*": [
+                "layouts/*"
             ]
         }
     },

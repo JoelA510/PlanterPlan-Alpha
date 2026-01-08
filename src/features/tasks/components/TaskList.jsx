@@ -2,17 +2,17 @@ import React, { useMemo, useEffect } from 'react';
 import { DndContext, closestCorners } from '@dnd-kit/core';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import NewProjectForm from './NewProjectForm';
-import NewTaskForm from './NewTaskForm';
-import TaskDetailsView from '../templates/TaskDetailsView';
-import InviteMemberModal from './InviteMemberModal';
-import ErrorBoundary from '../atoms/ErrorBoundary';
-import SideNav from './SideNav';
-import ProjectTasksView from '../molecules/ProjectTasksView';
-import DashboardLayout from '../../layouts/DashboardLayout';
+import NewProjectForm from '@features/projects/components/NewProjectForm';
+import NewTaskForm from '@features/tasks/components/NewTaskForm';
+import TaskDetailsView from '@features/tasks/components/TaskDetailsView';
+import InviteMemberModal from '@features/projects/components/InviteMemberModal';
+import ErrorBoundary from '@shared/ui/ErrorBoundary';
+import SideNav from '@features/navigation/components/SideNav';
+import ProjectTasksView from './ProjectTasksView';
+import DashboardLayout from '@layouts/DashboardLayout';
 
 // Hooks & Utils
-import { useTaskBoard } from '../../hooks/useTaskBoard';
+import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
 
 const TaskList = () => {
   const { projectId } = useParams();
@@ -301,7 +301,7 @@ const TaskList = () => {
 
 // Export wrapped component
 const TaskListWithErrorBoundary = (props) => (
-  <ErrorBoundary name="TaskList">
+  <ErrorBoundary name='@features/tasks/components/TaskList'>
     <TaskList {...props} />
   </ErrorBoundary>
 );

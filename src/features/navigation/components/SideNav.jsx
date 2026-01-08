@@ -1,12 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { ROLES } from '../../constants';
-import SidebarSkeleton from '../atoms/SidebarSkeleton';
-import InstanceList from '../molecules/InstanceList';
-import JoinedProjectsList from '../molecules/JoinedProjectsList';
-import TemplateList from '../molecules/TemplateList';
+import { useAuth } from '@app/contexts/AuthContext';
+import { ROLES } from '@app/constants/index';
+import SidebarSkeleton from '@features/navigation/components/SidebarSkeleton';
+import InstanceList from '@features/projects/components/InstanceList';
+import JoinedProjectsList from '@features/projects/components/JoinedProjectsList';
+import TemplateList from '@features/library/components/TemplateList';
 
 const SideNav = ({
   joinedProjects,

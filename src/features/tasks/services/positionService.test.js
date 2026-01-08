@@ -1,13 +1,13 @@
 // Mock must be before imports
-import { calculateNewPosition } from './positionService';
+import { calculateNewPosition } from '@features/tasks/services/positionService';
 
-vi.mock('../supabaseClient', () => ({
+vi.mock('@app/supabaseClient', () => ({
   supabase: {
     from: vi.fn(),
   },
 }));
 
-describe('positionService', () => {
+describe('@features/tasks/services/positionService', () => {
   describe('calculateNewPosition', () => {
     it('calculates midpoint correctly for standard gap', () => {
       const prev = 10000;

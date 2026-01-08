@@ -6,11 +6,11 @@
 // - Clone operations: see taskCloneService.js
 // - Core CRUD operations: remain here
 
-import { supabase } from '../supabaseClient.js';
+import { supabase } from '@app/supabaseClient.js';
 
 // Re-export from specialized modules for backward compatibility
-export { fetchMasterLibraryTasks, searchMasterLibraryTasks } from './taskMasterLibraryService';
-export { deepCloneTask } from './taskCloneService';
+export { fetchMasterLibraryTasks, searchMasterLibraryTasks } from '@features/library/services/taskMasterLibraryService';
+export { deepCloneTask } from '@features/tasks/services/taskCloneService';
 
 // ============================================================================
 // Hierarchy Operations

@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '../../layouts/DashboardLayout';
-import SideNav from '../organisms/SideNav';
-import { useTaskOperations } from '../../hooks/useTaskOperations';
+import DashboardLayout from '@layouts/DashboardLayout';
+import SideNav from '@features/navigation/components/SideNav';
+import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 
 const SettingsPage = () => {
   const navigate = useNavigate();

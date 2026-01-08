@@ -1,6 +1,6 @@
 // src/services/taskCloneService.js
 // Clone operations: deep clone tasks and subtrees via RPC
-import { supabase } from '../supabaseClient';
+import { supabase } from '@app/supabaseClient';
 
 /**
  * Deep clone a task and all its descendants using the clone_project_template RPC.

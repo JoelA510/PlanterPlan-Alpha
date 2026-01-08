@@ -1,4 +1,4 @@
-import { fetchMasterLibraryTasks, searchMasterLibraryTasks, deepCloneTask } from './taskService';
+import { fetchMasterLibraryTasks, searchMasterLibraryTasks, deepCloneTask } from '@features/tasks/services/taskService';
 
 const createMockClient = (response) => {
   const builder = {

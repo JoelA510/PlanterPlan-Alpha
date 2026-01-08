@@ -4,9 +4,9 @@ import {
   createTaskResource,
   deleteTaskResource,
   setPrimaryResource,
-} from '../../services/taskResourcesService';
-import { supabase } from '../../supabaseClient';
-import { STORAGE_BUCKETS } from '../../constants';
+} from '@features/tasks/services/taskResourcesService';
+import { supabase } from '@app/supabaseClient';
+import { STORAGE_BUCKETS } from '@app/constants/index';
 
 const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
   const [resources, setResources] = useState([]);

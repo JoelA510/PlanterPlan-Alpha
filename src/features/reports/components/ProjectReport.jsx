@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import DashboardLayout from '../../layouts/DashboardLayout';
+import DashboardLayout from '@layouts/DashboardLayout';
 import SideNav from '@features/navigation/components/SideNav';
 import ProjectHeader from '@features/projects/components/ProjectHeader';
-import { useTaskBoard } from '@features/library/hooks/useTaskBoard';
+import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
 import { getProjectWithStats } from '@features/projects/services/projectService';
 
 const ProjectReport = () => {

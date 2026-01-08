@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import { inviteMember, inviteMemberByEmail } from '../../services/projectService';
-import { ROLES } from '../../constants';
+import { inviteMember, inviteMemberByEmail } from '@features/projects/services/projectService';
+import { ROLES } from '@app/constants/index';
 
 const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
   const [userId, setUserId] = useState('');

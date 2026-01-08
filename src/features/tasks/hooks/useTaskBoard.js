@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useTaskOperations } from './useTaskOperations';
-import { useTaskDrag } from './useTaskDrag';
-import { useToast } from '../contexts/ToastContext';
-import { separateTasksByOrigin } from '../utils/viewHelpers';
-import { buildTree } from '../utils/treeHelpers';
-import { inviteMember } from '../services/projectService';
-import { ROLES } from '../constants';
+import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
+import { useTaskDrag } from '@features/tasks/hooks/useTaskDrag';
+import { useToast } from '@app/contexts/ToastContext';
+import { separateTasksByOrigin } from '@shared/lib/viewHelpers';
+import { buildTree } from '@shared/lib/treeHelpers';
+import { inviteMember } from '@features/projects/services/projectService';
+import { ROLES } from '@app/constants/index';
 
 export const useTaskBoard = () => {
   const {

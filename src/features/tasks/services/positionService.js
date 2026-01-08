@@ -1,5 +1,5 @@
-import { supabase } from '../supabaseClient';
-import { POSITION_STEP } from '../constants';
+import { supabase } from '@app/supabaseClient';
+import { POSITION_STEP } from '@app/constants/index';
 const MIN_GAP = 2; // Minimum gap before triggering renormalization
 
 /**

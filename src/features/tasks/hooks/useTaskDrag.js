@@ -5,7 +5,7 @@ import {
   calculateNewPosition,
   renormalizePositions,
   updateTaskPosition,
-} from '../services/positionService';
+} from '@features/tasks/services/positionService';
 
 // Internal Helper
 const calculateDropTarget = (allTasks, active, over, activeOrigin) => {

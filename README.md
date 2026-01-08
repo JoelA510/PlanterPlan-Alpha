@@ -33,8 +33,6 @@ PlanterPlan is a project management tool tailored for church planting. It allows
 
 ---
 
-## 2. Project Structure
-
 ## 2. Project Structure (Feature-Sliced Design)
 
 The codebase uses a modified **Feature-Sliced Design (FSD)** to enable Agentic reasoning and domain isolation.

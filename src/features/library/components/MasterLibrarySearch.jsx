@@ -1,6 +1,6 @@
 import React, { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
-import useMasterLibrarySearch from '../../hooks/useMasterLibrarySearch';
-import { getHighlightSegments } from '../../utils/highlightMatches';
+import useMasterLibrarySearch from '@features/library/hooks/useMasterLibrarySearch';
+import { getHighlightSegments } from '@shared/lib/highlightMatches';
 
 const SEARCH_MIN_LENGTH = 2;
 const DEBOUNCE_MS = 300;

@@ -1,5 +1,5 @@
-import { useTaskQuery } from './useTaskQuery';
-import { useTaskMutations } from './useTaskMutations';
+import { useTaskQuery } from '@features/tasks/hooks/useTaskQuery';
+import { useTaskMutations } from '@features/tasks/hooks/useTaskMutations';
 
 export const useTaskOperations = () => {
   const query = useTaskQuery();

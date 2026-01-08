@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchMasterLibraryTasks } from '../services/taskService';
+import { fetchMasterLibraryTasks } from '@features/tasks/services/taskService';
 
 const DEFAULT_LIMIT = 25;
 

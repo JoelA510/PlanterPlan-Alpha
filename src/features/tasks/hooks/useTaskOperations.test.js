@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react';
-import { useTaskOperations } from './useTaskOperations';
+import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 
-vi.mock('../supabaseClient', () => ({
+vi.mock('@app/supabaseClient', () => ({
   supabase: {
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user' } } }),
@@ -16,17 +16,17 @@ vi.mock('../supabaseClient', () => ({
   },
 }));
 
-vi.mock('../services/taskService', () => ({
+vi.mock('@features/tasks/services/taskService', () => ({
   fetchTaskChildren: vi.fn(),
   deepCloneTask: vi.fn(),
 }));
 
-vi.mock('../services/projectService', () => ({
+vi.mock('@features/projects/services/projectService', () => ({
   getUserProjects: vi.fn().mockResolvedValue({ data: [], count: 0 }),
   getJoinedProjects: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
-describe('useTaskOperations', () => {
+describe('@features/tasks/hooks/useTaskOperations', () => {
   it('renders without crashing', () => {
     const { result } = renderHook(() => useTaskOperations());
     expect(result.current).toBeDefined();

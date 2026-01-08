@@ -1,50 +1,65 @@
-# PR: Infrastructure Modernization (Vite + FSD Refactor)
+## Assumptions
+
+* This PR description will live in GitHub and should stay objective (avoid self-evaluative praise that reviewers may read as noise).
+* It is acceptable to include explicit intent/benefit statements (DX, build perf, maintainability, scalability) as long as they are framed as goals/outcomes, not opinions.
+
+# PR: Phase 10 - Frontend Infrastructure Modernization (Vite + Vitest + FSD + Date Engine)
 
 ## Summary
 
-This PR completes the "Phase 10: Infrastructure Modernization" roadmap item. It migrates the codebase from Create React App (CRA) to Vite, replaces Jest with Vitest, and re-architects the folder structure to follow Feature-Sliced Design (FSD). This creates a deterministic environment optimized for both human developers and AI agents.
+This PR completes **Phase 10: Infrastructure Modernization**. It upgrades the frontend toolchain and architecture to improve developer experience, build performance, and long-term maintainability by:
+
+* Migrating the build system from **Create React App (CRA)** to **Vite**
+* Migrating tests from **Jest** to **Vitest**
+* Refactoring the codebase to **Feature-Sliced Design (FSD)** for clearer domain isolation
+* Introducing a dedicated **Date Engine** to standardize date operations and reduce recurring date-related regressions
+* Upgrading to **Tailwind CSS v4 (alpha)** and removing legacy/manual CSS
+
+These changes aim to improve code quality and prepare the application for future growth.
 
 ## Highlights
 
-- **🚀 Vite Migration**: Dev server startup time reduced from ~15s to <300ms.
-- **🏗️ Feature-Sliced Design**: Codebase organized into `App`, `Features`, and `Shared` layers for clear domain isolation.
-- **⚡ Date Engine**: Centralized 100% of date logic into `src/shared/lib/date-engine`, eliminating 5+ regression risks.
-- **🧪 Test Suite**: All tests migrated to Vitest, fixing ESM mocking issues and achieving a 100% pass rate.
-- **🎨 Tailwind v4**: Upgrade to Tailwind v4 alpha, removing 600+ lines of manual CSS.
+* **🚀 Vite Migration**: Dev server startup time reduced from ~15s to <300ms (CRA -> Vite).
+* **🏗️ Feature-Sliced Design (FSD)**: Reorganized into `src/app`, `src/features`, and `src/shared` for scalable structure and clearer ownership boundaries.
+* **⚡ Date Engine**: Centralized date logic at `src/shared/lib/date-engine` with a strict constraint against direct component-level `new Date()` manipulation to prevent "date math" regressions.
+* **🧪 Vitest Migration**: Jest -> Vitest to reduce ESM mocking friction and restore a fully passing suite (**expect 33/33 passing**).
+* **🎨 Tailwind CSS v4 (alpha)**: Upgrade enabled removal of 600+ lines of manual CSS.
 
 ## Roadmap Progress
 
-| Item | Status | Notes |
-| :--- | :----- | :---- |
-| **P10.1 Build System** | ✅ Done | CRA -> Vite |
-| **P10.2 Testing** | ✅ Done | Jest -> Vitest |
-| **P10.3 CSS** | ✅ Done | Tailwind v4 Implemented |
-| **P10.4 Refactor** | ✅ Done | FSD Architecture |
+| Item                   | Status | Notes                                  |
+| :--------------------- | :----- | :------------------------------------- |
+| **P10.1 Build System** | ✅ Done | CRA -> Vite                            |
+| **P10.2 Testing**      | ✅ Done | Jest -> Vitest                         |
+| **P10.3 CSS**          | ✅ Done | Tailwind v4 implemented; CSS reduction |
+| **P10.4 Refactor**     | ✅ Done | FSD architecture adopted               |
 
 ## Architecture Decisions
 
-### Feature-Sliced Design
+### Feature-Sliced Design (FSD)
 
-We moved from a layer-based structure (`components/`, `hooks/`) to a domain-based structure:
+Refactored from a generic layer-based layout (e.g., `components/`, `hooks/`) into a domain-oriented structure:
 
-- `src/features/{domain}`: Contains all logic + UI for a feature (e.g., `tasks`, `projects`).
-- `src/shared`: Utilities and UI components with NO business logic.
-- `src/app`: Wiring, routing, and providers.
+* **`src/features/{domain}`** -> Feature UI + state + services for a domain (e.g., `tasks`, `projects`)
+* **`src/shared`** -> Reusable UI + utilities with **no business logic**
+* **`src/app`** -> Application wiring: routing, providers, composition
 
-### The Date Engine
+**Rationale**: Improves discoverability, reduces cross-domain coupling, and supports scalable growth as features expand.
 
-To prevent "Date Math" regressions, we extracted all logic into `src/shared/lib/date-engine`.
+### Date Engine
 
-- **Constraint**: No component is allowed to do direct `new Date()` manipulation.
-- **Benefit**: Pure functions are now tested in isolation with fast unit tests.
+Date handling is centralized under **`src/shared/lib/date-engine`**.
+
+* **Constraint**: Components should not perform direct date construction/manipulation (`new Date()` and ad-hoc "date math") outside the engine.
+* **Benefit**: Date logic becomes consistent and testable, reducing timezone/UTC drift and edge-case bugs.
 
 ## Review Guide
 
-| Risk | Files | What to look for |
-| :--- | :---- | :--------------- |
-| 🔴 **High** | `vite.config.js`, `src/features/tasks/services/taskService.js` | Ensure build settings and core task logic (TaskService) mimic legacy behavior exactly. |
-| 🟡 **Medium** | `src/shared/lib/date-engine/index.js` | Verify the extracted date logic covers all edge cases. |
-| 🟢 **Low** | `src/styles/globals.css`, `*/*.test.js` | CSS cleanup and test syntax updates. |
+| Risk          | Files                                                          | What to look for                                                                         |
+| :------------ | :------------------------------------------------------------- | :--------------------------------------------------------------------------------------- |
+| 🔴 **High**   | `vite.config.js`, `src/features/tasks/services/taskService.js` | Build config parity; core task logic remains behaviorally identical.                     |
+| 🟡 **Medium** | `src/shared/lib/date-engine/**`                                | Edge-case coverage (UTC/local, parsing/formatting, boundaries) and call-site compliance. |
+| 🟢 **Low**    | `src/styles/globals.css`, `**/*.test.*`                        | CSS cleanup and test syntax updates consistent with Vitest patterns.                     |
 
 ## Verification Plan
 
@@ -52,13 +67,18 @@ To prevent "Date Math" regressions, we extracted all logic into `src/shared/lib/
 
 ```bash
 npm install
-npm test # Expect 33/33 passed
-npm run build # Expect success
+npm test        # Expect 33/33 passed
+npm run build   # Expect success
 ```
 
 ### Manual Smoke Test
 
-1. **Startup**: Run `npm run dev`. Verify instant load.
-2. **Dashboard**: Navigate to a Project. Verify drag-and-drop works.
-3. **Dates**: Open a Task. Verify "Due Date" works and respects UTC.
-4. **Theme**: Verify brand colors (Orange) appear correctly.
+1. **Startup**: `npm run dev` -> verify near-instant load.
+2. **Dashboard**: Navigate to a Project -> verify drag-and-drop works.
+3. **Dates**: Open a Task -> verify "Due Date" behavior and UTC handling match prior UX.
+4. **Theme**: Verify brand colors (Orange) render correctly across key screens.
+
+## Notes / Risks
+
+* **Tailwind v4 alpha**: Higher upstream churn risk; pin versions and watch for breaking changes in future upgrades.
+* **Performance claims**: Startup-time improvement is meaningful but environment-dependent (machine + cache state).

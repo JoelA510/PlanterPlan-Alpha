@@ -2,15 +2,15 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import { ErrorBoundary } from 'react-error-boundary';
-import ErrorFallback from './components/atoms/ErrorFallback';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ToastProvider } from './contexts/ToastContext';
-import LoginForm from './components/molecules/LoginForm';
-import TaskList from './components/organisms/TaskList';
-import ProjectReport from './components/reports/ProjectReport';
-import TasksPage from './components/pages/TasksPage';
-import ReportsPage from './components/pages/ReportsPage';
-import SettingsPage from './components/pages/SettingsPage';
+import ErrorFallback from '@shared/ui/ErrorFallback';
+import { AuthProvider, useAuth } from '@app/contexts/AuthContext';
+import { ToastProvider } from '@app/contexts/ToastContext';
+import LoginForm from '@features/auth/components/LoginForm';
+import TaskList from '@features/tasks/components/TaskList';
+import ProjectReport from '@features/reports/components/ProjectReport';
+import TasksPage from '@pages/TasksPage';
+import ReportsPage from '@pages/ReportsPage';
+import SettingsPage from '@pages/SettingsPage';
 
 // Dashboard component with modern styling
 const Dashboard = () => {
@@ -104,7 +104,7 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <div className="App">
+    <div className='@app/App'>
       <AuthProvider>
         <ToastProvider>
           <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>

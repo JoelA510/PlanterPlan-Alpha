@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
-import { fetchTaskChildren } from '../services/taskService';
-import { getJoinedProjects, getUserProjects } from '../services/projectService';
+import { supabase } from '@app/supabaseClient';
+import { fetchTaskChildren } from '@features/tasks/services/taskService';
+import { getJoinedProjects, getUserProjects } from '@features/projects/services/projectService';
 
 const PAGE_SIZE = 20;
 

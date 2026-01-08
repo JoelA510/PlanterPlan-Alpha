@@ -1,6 +1,6 @@
 // src/services/taskMasterLibraryService.js
 // Master Library specific operations: fetch and search template tasks
-import { supabase } from '../supabaseClient';
+import { supabase } from '@app/supabaseClient';
 
 const MASTER_LIBRARY_VIEW = 'tasks_with_primary_resource';
 const DEFAULT_PAGE_SIZE = 25;

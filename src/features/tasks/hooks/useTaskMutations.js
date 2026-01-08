@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
-import { supabase } from '../supabaseClient';
-import { deepCloneTask } from '../services/taskService';
-import { calculateScheduleFromOffset, toIsoDate } from '../utils/dateUtils';
-import { POSITION_STEP } from '../constants';
+import { supabase } from '@app/supabaseClient';
+import { deepCloneTask } from '@features/tasks/services/taskService';
+import { calculateScheduleFromOffset, toIsoDate } from '@shared/lib/date-engine';
+import { POSITION_STEP } from '@app/constants/index';
 
 export const useTaskMutations = ({
   tasks,

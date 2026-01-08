@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import SidebarNavItem from '../atoms/SidebarNavItem';
+import SidebarNavItem from '@features/navigation/components/SidebarNavItem';
 
 const TemplateList = ({ tasks, selectedTaskId, handleTaskClick }) => {
   return (
