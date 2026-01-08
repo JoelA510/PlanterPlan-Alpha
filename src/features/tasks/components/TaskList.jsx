@@ -206,7 +206,7 @@ const TaskList = () => {
                     setShowForm(true);
                     setSelectedTask(null);
                   }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm font-medium"
+                  className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-sm font-medium"
                 >
                   Create New Project
                 </button>
@@ -229,7 +229,7 @@ const TaskList = () => {
 
           {/* Permanent Side Panel (Right) - Details / Forms */}
           {(showForm || selectedTask || taskFormState) && (
-            <div className="w-[600px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-2xl z-10 h-full overflow-hidden transition-all duration-300">
+            <div className="w-1/3 min-w-96 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-2xl z-10 h-full overflow-hidden transition-all duration-300">
               <div className="pt-8 px-6 pb-6 border-b border-slate-100 flex justify-between items-start bg-white sticky top-0 z-20">
                 <h2 className="font-bold text-xl text-slate-800 truncate pr-4">{panelTitle}</h2>
                 <button

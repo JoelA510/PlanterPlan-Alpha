@@ -796,8 +796,19 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 
 - **Tags**: #testing, #vitest, #esm, #mocking
 - **Date**: 2026-01-07
-- **Context & Problem**: In Vitest (ESM), **vi.mock('./Component', () => () => <div />)** failed with **mock is not returning an object**.
+- **Context & Problem**: In Vitest (ESM), `vi.mock('./Component', () => () => <div />)` failed with **mock is not returning an object**.
+- **Solution & Pattern**: Return a factory that returns a default export: `vi.mock('./Comp', () => ({ default: () => <div /> }))`.
+- **Critical Rule**: When mocking default exports in ESM, the mock factory must return an object with a `default` property, not the component function directly.
+
+## [CSS-042] Legacy CSS Variable Drift
+
+- **Tags**: #css, #refactoring, #design-system
+- **Date**: 2026-01-08
+- **Context & Problem**: During the Design System migration, we found that many components referenced `var(--accent-blue)` which was not defined in the new `index.css` theme, causing silent layout regressions (transparents backgrounds). Legacy "emulation" stylesheets assumed variables that no longer existed.
 - **Solution & Pattern**:
-  - **ESM Requirement**: ESM modules are objects with a **default** key for default exports. The mock factory must return **{ default: MockComponent }**.
+  - **Audit**: Grep for `var(--` usage across all CSS files.
+  - **Standardize**: Replaced all instances of ad-hoc `accent-blue` with the strict `brand-600` token.
+  - **Cleanup**: Deleted unused variables to prevent future drift.
+- **Critical Rule**: **No Phantom Variables.** If a CSS variable is used in a specific component stylesheet, it MUST be defined in `index.css` (global theme) or the component itself. Do not assume legacy variables persist across major theme refactors.  - **ESM Requirement**: ESM modules are objects with a **default** key for default exports. The mock factory must return **{ default: MockComponent }**.
   - **Async importActual**: **vi.requireActual** is synchronous and often fails in ESM. Use **await vi.importActual()** inside an **async** factory.
 - **Critical Rule**: When mocking default exports in Vitest, always return an object **{ default: ... }**. Use **async** factories if you need to import actual modules.

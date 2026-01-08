@@ -85,7 +85,7 @@ const ProjectTasksView = ({
             <div className="mb-6 flex space-x-2">
                 <button
                     onClick={() => handleAddChildTask(project)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center transition-all shadow-sm"
+                    className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm font-medium flex items-center transition-all shadow-sm"
                 >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />

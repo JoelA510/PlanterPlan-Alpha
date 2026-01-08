@@ -3,7 +3,7 @@
 * This PR description will live in GitHub and should stay objective (avoid self-evaluative praise that reviewers may read as noise).
 * It is acceptable to include explicit intent/benefit statements (DX, build perf, maintainability, scalability) as long as they are framed as goals/outcomes, not opinions.
 
-# PR: Phase 10 - Frontend Infrastructure Modernization (Vite + Vitest + FSD + Date Engine)
+# PR: Phase 10 + 7 - Infrastructure & Design System Migration
 
 ## Summary
 
@@ -14,6 +14,7 @@ This PR completes **Phase 10: Infrastructure Modernization**. It upgrades the fr
 * Refactoring the codebase to **Feature-Sliced Design (FSD)** for clearer domain isolation
 * Introducing a dedicated **Date Engine** to standardize date operations and reduce recurring date-related regressions
 * Upgrading to **Tailwind CSS v4 (alpha)** and removing legacy/manual CSS
+* **Design System Migration**: Enforcing strictly defined `brand-*` colors and removing 600+ lines of legacy/arbitrary CSS overrides.
 
 These changes aim to improve code quality and prepare the application for future growth.
 
@@ -23,7 +24,7 @@ These changes aim to improve code quality and prepare the application for future
 * **🏗️ Feature-Sliced Design (FSD)**: Reorganized into `src/app`, `src/features`, and `src/shared` for scalable structure and clearer ownership boundaries.
 * **⚡ Date Engine**: Centralized date logic at `src/shared/lib/date-engine` with a strict constraint against direct component-level `new Date()` manipulation to prevent "date math" regressions.
 * **🧪 Vitest Migration**: Jest -> Vitest to reduce ESM mocking friction and restore a fully passing suite (**expect 33/33 passing**).
-* **🎨 Tailwind CSS v4 (alpha)**: Upgrade enabled removal of 600+ lines of manual CSS.
+* **🎨 Design System**: Replaced inconsistent blues (`#3b82f6`) with semantic Brand Orange (`#f1592a`). Removed `ProjectTasksView` molecule in favor of organism-level composition.
 
 ## Roadmap Progress
 
@@ -33,6 +34,8 @@ These changes aim to improve code quality and prepare the application for future
 | **P10.2 Testing**      | ✅ Done | Jest -> Vitest                         |
 | **P10.3 CSS**          | ✅ Done | Tailwind v4 implemented; CSS reduction |
 | **P10.4 Refactor**     | ✅ Done | FSD architecture adopted               |
+| **P7.0 Visuals**       | ✅ Done | Brand identity enforcement             |
+| **P7.1 Cleanup**       | ✅ Done | Legacy CSS variables removed           |
 
 ## Architecture Decisions
 
@@ -60,6 +63,7 @@ Date handling is centralized under **`src/shared/lib/date-engine`**.
 | 🔴 **High**   | `vite.config.js`, `src/features/tasks/services/taskService.js` | Build config parity; core task logic remains behaviorally identical.                     |
 | 🟡 **Medium** | `src/shared/lib/date-engine/**`                                | Edge-case coverage (UTC/local, parsing/formatting, boundaries) and call-site compliance. |
 | 🟢 **Low**    | `src/styles/globals.css`, `**/*.test.*`                        | CSS cleanup and test syntax updates consistent with Vitest patterns.                     |
+| 🟢 **Low**    | `src/styles/components/*.css`                                  | Variable replacements (`--accent-blue` -> `--color-brand-600`).                          |
 
 ## Verification Plan
 

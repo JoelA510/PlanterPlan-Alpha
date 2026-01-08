@@ -134,7 +134,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
           <button
             type="button"
             onClick={() => setIsAdding(true)}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+            className="text-xs font-semibold text-brand-600 hover:text-brand-800 bg-brand-50 px-2 py-1 rounded hover:bg-brand-100 transition-colors"
           >
             + Add
           </button>
@@ -156,22 +156,20 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
           return (
             <div
               key={res.id}
-              className={`flex items-start justify-between p-3 rounded-lg border transition-all hover:shadow-sm ${
-                isPrimary ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200 bg-white'
-              }`}
+              className={`flex items-start justify-between p-3 rounded-lg border transition-all hover:shadow-sm ${isPrimary ? 'border-brand-200 bg-brand-50/50' : 'border-slate-200 bg-white'
+                }`}
             >
               <div className="flex-1 min-w-0 pr-4 flex flex-col gap-1">
                 <div className="flex items-center gap-3">
                   <span
                     className={`
                         text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border flex-shrink-0
-                        ${
-                          res.resource_type === 'url'
-                            ? 'bg-blue-100 text-blue-700 border-blue-200'
-                            : res.resource_type === 'pdf'
-                              ? 'bg-orange-100 text-orange-700 border-orange-200'
-                              : 'bg-slate-100 text-slate-600 border-slate-200'
-                        }
+                        ${res.resource_type === 'url'
+                        ? 'bg-brand-100 text-brand-700 border-brand-200'
+                        : res.resource_type === 'pdf'
+                          ? 'bg-orange-100 text-orange-700 border-orange-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }
                       `}
                   >
                     {res.resource_type}
@@ -189,18 +187,18 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
                     href={res.resource_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate block ml-[3.25rem]"
+                    className="text-xs text-brand-600 hover:text-brand-800 hover:underline truncate block ml-14"
                   >
                     {res.resource_url}
                   </a>
                 )}
                 {res.resource_type === 'text' && (
-                  <p className="text-xs text-slate-600 line-clamp-2 ml-[3.25rem]">
+                  <p className="text-xs text-slate-600 line-clamp-2 ml-14">
                     {res.resource_text}
                   </p>
                 )}
                 {res.resource_type === 'pdf' && (
-                  <span className="text-xs text-slate-500 ml-[3.25rem]">PDF Resource</span>
+                  <span className="text-xs text-slate-500 ml-14">PDF Resource</span>
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">

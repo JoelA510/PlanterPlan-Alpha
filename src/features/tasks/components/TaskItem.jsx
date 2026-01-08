@@ -149,8 +149,7 @@ const TaskItem = React.memo(
               {showChevron ? (
                 <button
                   onClick={handleToggleExpandClick}
-                  className="expand-button p-2 -m-2 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
-                  style={{ visibility: 'visible', minWidth: '32px', minHeight: '32px' }}
+                  className="expand-button p-2 -m-2 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors visible min-w-8 min-h-8"
                   aria-label={isExpanded ? 'Collapse' : 'Expand'}
                 >
                   <svg
@@ -184,7 +183,7 @@ const TaskItem = React.memo(
                   </span>
                 )}
                 {task.resource_type && (
-                  <span className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap flex-shrink-0">
+                  <span className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-brand-50 text-brand-600 border border-brand-100 whitespace-nowrap flex-shrink-0">
                     {task.resource_type}
                   </span>
                 )}

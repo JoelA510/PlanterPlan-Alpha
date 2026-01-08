@@ -72,11 +72,11 @@ const SideNav = ({
         tabIndex={0}
       >
         <div
-          className={`text-slate-400 group-hover:text-slate-600 ${isActive ? 'text-blue-600' : ''}`}
+          className={`text-slate-400 group-hover:text-slate-600 ${isActive ? 'text-brand-600' : ''}`}
         >
           {icon}
         </div>
-        <span className={`sidebar-nav-item-title ${isActive ? 'text-blue-700 font-semibold' : ''}`}>
+        <span className={`sidebar-nav-item-title ${isActive ? 'text-brand-700 font-semibold' : ''}`}>
           {label}
         </span>
       </div>
@@ -158,7 +158,7 @@ const SideNav = ({
         <div className="px-4 py-4 space-y-2 border-b border-slate-100">
           <button
             onClick={handleNewProject}
-            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
           >
             <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -172,7 +172,7 @@ const SideNav = ({
           </button>
           <button
             onClick={handleNewTemplate}
-            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
           >
             New Template
           </button>
@@ -217,7 +217,7 @@ const SideNav = ({
       {/* User Profile Section (Bottom) */}
       <div className="border-t border-slate-200 p-4 bg-slate-50">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border border-blue-200">
+          <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold border border-brand-200">
             {userInitial}
           </div>
           <div className="flex-1 min-w-0">

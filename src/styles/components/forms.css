@@ -15,13 +15,13 @@
   padding: 12px;
   background: #f3f4f6;
   border-radius: 6px;
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid var(--color-brand-600);
 }
 
 .parent-label {
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--accent-blue-dark);
+  color: var(--color-brand-700);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -29,7 +29,7 @@
 .parent-name {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--accent-blue);
+  color: var(--color-brand-600);
 }
 
 /* Form Group */
@@ -43,7 +43,7 @@
 .form-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--accent-blue-dark);
+  color: var(--color-brand-700);
 }
 
 .form-label .required {
@@ -66,8 +66,8 @@
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-brand-600);
+  box-shadow: 0 0 0 3px rgba(241, 89, 42, 0.1);
 }
 
 .form-input.error {

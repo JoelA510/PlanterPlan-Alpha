@@ -140,7 +140,7 @@ const MasterLibrarySearch = ({
         />
         {isLoading && (
           <div className="absolute inset-y-0 right-3 flex items-center">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
           </div>
         )}
       </div>
@@ -181,11 +181,10 @@ const MasterLibrarySearch = ({
                 aria-selected={isActive}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handleSelect(task)}
-                className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 focus:outline-none ${
-                  isActive || (hasResults && activeResultId === `${listboxId}-item-${task.id}`)
-                    ? 'bg-blue-50'
+                className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 focus:outline-none ${isActive || (hasResults && activeResultId === `${listboxId}-item-${task.id}`)
+                    ? 'bg-brand-50'
                     : 'bg-white'
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -205,7 +204,7 @@ const MasterLibrarySearch = ({
                   </span>
                 </div>
                 <div className="mt-2 text-right">
-                  <span className="text-xs font-medium text-blue-600">{renderActionLabel}</span>
+                  <span className="text-xs font-medium text-brand-600">{renderActionLabel}</span>
                 </div>
               </button>
             );
@@ -221,7 +220,7 @@ const MasterLibrarySearch = ({
           <button
             type="button"
             onClick={onCreateResource}
-            className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="inline-flex items-center rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
             Create new resource
           </button>

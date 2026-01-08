@@ -9,12 +9,17 @@
     --color-brand-500: #f1592a;
     --color-brand-600: #d94418;
     --color-brand-50: #fff3f0;
+    --color-brand-100: #ffe4dc;
+    --color-brand-200: #ffc9b8;
+    --color-brand-300: #ffa58f;
+    --color-brand-400: #ff7a5c;
+    --color-brand-500: #f1592a;
+    --color-brand-600: #d94418;
+    --color-brand-700: #b5320e;
+    --color-brand-800: #91270d;
+    --color-brand-900: #78230f;
+    --color-brand-950: #420f06;
 
-    /* Legacy Overrides */
-    --color-indigo-50: #fff3f0;
-    --color-indigo-500: #f1592a;
-    --color-indigo-600: #f1592a;
-    --color-indigo-700: #d94418;
 
     /* Status Colors */
     --color-status-complete-bg: #d1fae5;

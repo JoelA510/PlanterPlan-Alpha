@@ -53,8 +53,8 @@ const ProjectHeader = ({ project, onInviteMember }) => {
             </h1>
             <span
               className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${project.status === 'active'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-slate-100 text-slate-600 border-slate-200'
                 }`}
             >
               {project.status || 'Active'}
@@ -70,7 +70,7 @@ const ProjectHeader = ({ project, onInviteMember }) => {
           <div className="flex items-center -space-x-3">
             {/* Owner Avatar */}
             <div
-              className="h-9 w-9 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm ring-1 ring-slate-100"
+              className="h-9 w-9 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm ring-1 ring-slate-100"
               title="Project Owner"
             >
               {(project.owner_id || 'O').slice(0, 2).toUpperCase()}
@@ -79,7 +79,7 @@ const ProjectHeader = ({ project, onInviteMember }) => {
             {onInviteMember && (
               <button
                 onClick={onInviteMember}
-                className="h-9 w-9 rounded-full bg-slate-50 border-2 border-dashed border-slate-300 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 flex items-center justify-center transition-all z-10"
+                className="h-9 w-9 rounded-full bg-slate-50 border-2 border-dashed border-slate-300 text-slate-400 hover:text-brand-600 hover:border-brand-300 hover:bg-brand-50 flex items-center justify-center transition-all z-10"
                 title="Invite Member"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -126,8 +126,8 @@ const ProjectHeader = ({ project, onInviteMember }) => {
         <Link
           to={`/project/${project.id}`}
           className={`pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${!isReportView
-              ? 'border-brand-600 text-brand-600'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            ? 'border-brand-600 text-brand-600'
+            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -144,8 +144,8 @@ const ProjectHeader = ({ project, onInviteMember }) => {
         <Link
           to={`/report/${project.id}`}
           className={`pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${isReportView
-              ? 'border-brand-600 text-brand-600'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            ? 'border-brand-600 text-brand-600'
+            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

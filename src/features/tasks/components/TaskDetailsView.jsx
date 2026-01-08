@@ -25,7 +25,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
             <button
               type="button"
               onClick={() => onEditTask(task)}
-              className="flex-1 py-3 px-4 bg-white border border-blue-200 text-blue-600 rounded-lg shadow-sm hover:bg-blue-50 hover:shadow-md transition-all font-medium text-sm"
+              className="flex-1 py-3 px-4 bg-white border border-brand-200 text-brand-600 rounded-lg shadow-sm hover:bg-brand-50 hover:shadow-md transition-all font-medium text-sm"
             >
               Edit Task
             </button>
@@ -34,7 +34,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
             <button
               type="button"
               onClick={() => onDeleteTask(task)}
-              className="flex-1 py-3 px-4 bg-white border border-red-200 text-red-600 rounded-lg shadow-sm hover:bg-red-50 hover:shadow-md transition-all font-medium text-sm"
+              className="flex-1 py-3 px-4 bg-white border border-rose-200 text-rose-600 rounded-lg shadow-sm hover:bg-rose-50 hover:shadow-md transition-all font-medium text-sm"
             >
               Delete Task
             </button>
@@ -49,7 +49,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
               Type
             </span>
             <span
-              className={`task-type-badge inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border ${task.origin === 'instance' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-purple-50 text-purple-700 border-purple-100'}`}
+              className={`task-type-badge inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border ${task.origin === 'instance' ? 'bg-brand-50 text-brand-700 border-brand-100' : 'bg-purple-50 text-purple-700 border-purple-100'}`}
             >
               {task.origin === 'instance' ? 'Project Task' : 'Template'}
             </span>
@@ -150,7 +150,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           <button
             type="button"
             onClick={() => onAddChildTask(task)}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-all font-medium"
+            className="w-full py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-md transition-all font-medium"
           >
             + Add Child Task
           </button>

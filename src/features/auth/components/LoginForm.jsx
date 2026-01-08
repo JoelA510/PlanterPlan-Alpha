@@ -42,8 +42,8 @@ const LoginForm = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-blue-600">PlanterPlan</h2>
-          <p className="mt-2 text-center text-sm text-blue-500">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-brand-600">PlanterPlan</h2>
+          <p className="mt-2 text-center text-sm text-slate-600">
             {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </p>
         </div>
@@ -57,7 +57,7 @@ const LoginForm = () => {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-blue-500">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
                 Email address
               </label>
               <input
@@ -65,7 +65,7 @@ const LoginForm = () => {
                 name="email"
                 type="email"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-blue-600 rounded focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-400 text-slate-900 rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -73,7 +73,7 @@ const LoginForm = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-blue-500">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
                 Password
               </label>
               <input
@@ -81,7 +81,7 @@ const LoginForm = () => {
                 name="password"
                 type="password"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-blue-600 rounded focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-400 text-slate-900 rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -92,7 +92,7 @@ const LoginForm = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 transition-colors shadow-sm"
               >
                 {loading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Sign In'}
               </button>
@@ -101,7 +101,7 @@ const LoginForm = () => {
             <div className="text-center">
               <button
                 type="button"
-                className="text-sm text-indigo-600 hover:text-indigo-500"
+                className="text-sm text-brand-600 hover:text-brand-500 font-medium"
                 onClick={() => setIsSignUp(!isSignUp)}
               >
                 {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}

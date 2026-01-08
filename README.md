@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-07 (Infrastructure Modernization)
+**Last verified**: 2026-01-08 (Design System Migration)
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
@@ -67,7 +67,7 @@ src/
 [{
 "StartLine": 73,
 "EndLine": 73,
-"TargetContent": "**Required env vars**",
+"TargetContent": "### Required env vars",
 "ReplacementContent": "### Required env vars"
 }, {
 "StartLine": 81,
@@ -87,7 +87,7 @@ src/
 }, {
 "StartLine": 160,
 "EndLine": 160,
-"TargetContent": "**Relationships**",
+"TargetContent": "#### Relationships",
 "ReplacementContent": "#### Relationships"
 }, {
 "StartLine": 167,
@@ -97,7 +97,7 @@ src/
 }, {
 "StartLine": 171,
 "EndLine": 171,
-"TargetContent": "**Data isolation**",
+"TargetContent": "#### Data isolation",
 "ReplacementContent": "#### Data isolation"
 }]
 (Inferred from `src/supabaseClient.js`)
@@ -107,7 +107,7 @@ VITE_SUPABASE_URL=Supabase API URL
 VITE_SUPABASE_ANON_KEY=Supabase Anonymous Key
 ```
 
-**External dependencies**
+### External dependencies
 
 - **Supabase** -> Auth & Database (Ref: [src/supabaseClient.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/supabaseClient.js))
 - **dnd-kit** -> Drag and Drop interactions (Ref: [package.json](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/package.json))
@@ -127,7 +127,7 @@ graph TD
     Item --> SubItem["Sub-Task"]
 ```
 
-**Repo evidence**
+#### Evidence: Hierarchy
 
 - `public.tasks` table definition -> [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L6)
 - `maintain_task_root_id` trigger -> [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L30)
@@ -143,7 +143,7 @@ stateDiagram-v2
     Instance --> Active: User edits instance
 ```
 
-**Repo evidence**
+#### Evidence: Templates
 
 - `origin` column -> [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L12)
 - `deepCloneTask` function -> [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js#L216)

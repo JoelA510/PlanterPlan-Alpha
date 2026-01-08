@@ -12,7 +12,7 @@ const EmptyState = ({
     onSecondaryAction,
 }) => {
     return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center bg-white rounded-xl shadow-sm border border-slate-200">
+        <div className="flex flex-col items-center justify-center min-h-96 p-8 text-center bg-white rounded-xl shadow-sm border border-slate-200">
             <div className="w-16 h-16 mb-6 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
                 {icon || (
                     <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -33,7 +33,7 @@ const EmptyState = ({
                 {actionLabel && onAction && (
                     <button
                         onClick={onAction}
-                        className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                        className="px-4 py-2 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
                     >
                         {actionLabel}
                     </button>

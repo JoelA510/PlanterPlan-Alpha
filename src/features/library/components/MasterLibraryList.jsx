@@ -63,7 +63,7 @@ const MasterLibraryList = (props) => {
         <button
           type="button"
           onClick={() => refresh()}
-          className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md"
+          className="inline-flex items-center px-3 py-2 text-sm font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-md"
           disabled={isLoading}
         >
           Refresh
@@ -88,7 +88,7 @@ const MasterLibraryList = (props) => {
                     onToggleExpand={toggleExpand}
                   />
                   {loadingNodes[task.id] && (
-                    <div className="absolute top-2 right-2 text-xs text-gray-500">
+                    <div className="absolute top-2 right-2 text-xs text-slate-500">
                       Loading subtasks...
                     </div>
                   )}
@@ -99,7 +99,7 @@ const MasterLibraryList = (props) => {
         )}
 
         {!isLoading && treeData.length === 0 && (
-          <div className="text-center py-8 text-gray-500">No tasks found.</div>
+          <div className="text-center py-8 text-slate-500">No tasks found.</div>
         )}
 
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">

@@ -32,7 +32,7 @@ const InstanceList = ({
                         <button
                             onClick={onLoadMore}
                             disabled={isFetchingMore}
-                            className="w-full text-left px-3 py-2 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors mt-1 font-medium"
+                            className="w-full text-left px-3 py-2 text-xs text-brand-600 hover:text-brand-800 hover:bg-brand-50 rounded transition-colors mt-1 font-medium"
                         >
                             {isFetchingMore ? 'Loading...' : 'Load More Projects...'}
                         </button>
