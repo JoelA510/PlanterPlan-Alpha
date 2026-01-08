@@ -35,24 +35,27 @@ const ProjectHeader = ({ project, onInviteMember }) => {
           <div className="mb-2">
             <Link
               to="/dashboard"
-              className="text-xs font-medium text-slate-500 hover:text-brand-600 transition-colors"
+              className="text-sm font-medium text-slate-500 hover:text-brand-600 transition-colors flex items-center"
             >
-              ← Back to Dashboard
+              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Dashboard
             </Link>
-            <span className="mx-2 text-slate-300">/</span>
-            <span className="text-xs font-medium text-slate-700">{project.title}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-1 mb-1">
+            <span className="text-sm font-medium text-slate-400">Project /</span>
           </div>
 
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight leading-tight truncate">
               {project.title}
             </h1>
             <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${
-                project.status === 'active'
+              className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${project.status === 'active'
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : 'bg-slate-100 text-slate-600 border-slate-200'
-              }`}
+                }`}
             >
               {project.status || 'Active'}
             </span>
@@ -122,11 +125,10 @@ const ProjectHeader = ({ project, onInviteMember }) => {
       <div className="flex space-x-8">
         <Link
           to={`/project/${project.id}`}
-          className={`pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${
-            !isReportView
+          className={`pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${!isReportView
               ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-          }`}
+            }`}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -141,11 +143,10 @@ const ProjectHeader = ({ project, onInviteMember }) => {
 
         <Link
           to={`/report/${project.id}`}
-          className={`pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${
-            isReportView
+          className={`pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${isReportView
               ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-          }`}
+            }`}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
