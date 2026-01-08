@@ -141,7 +141,7 @@ export const getProjectWithStats = async (projectId, client = supabase) => {
   try {
     const { data, error } = await client
       .from('tasks')
-      .select('*, children:tasks(*)') // recursive fetch if foreign key exists
+      .select('*, children:tasks(*)') // fetch direct children via foreign key relationship
       .eq('id', projectId)
       .single();
 

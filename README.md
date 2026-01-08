@@ -64,42 +64,6 @@ src/
 
 ### Environment Requirements
 
-[{
-"StartLine": 73,
-"EndLine": 73,
-"TargetContent": "### Required env vars",
-"ReplacementContent": "### Required env vars"
-}, {
-"StartLine": 81,
-"EndLine": 81,
-"TargetContent": "**External dependencies**",
-"ReplacementContent": "### External dependencies"
-}, {
-"StartLine": 101,
-"EndLine": 101,
-"TargetContent": "**Repo evidence**",
-"ReplacementContent": "#### Repo evidence"
-}, {
-"StartLine": 117,
-"EndLine": 117,
-"TargetContent": "**Repo evidence**",
-"ReplacementContent": "#### Repo evidence"
-}, {
-"StartLine": 160,
-"EndLine": 160,
-"TargetContent": "#### Relationships",
-"ReplacementContent": "#### Relationships"
-}, {
-"StartLine": 167,
-"EndLine": 167,
-"TargetContent": "**Authentication**",
-"ReplacementContent": "#### Authentication"
-}, {
-"StartLine": 171,
-"EndLine": 171,
-"TargetContent": "#### Data isolation",
-"ReplacementContent": "#### Data isolation"
-}]
 (Inferred from `src/supabaseClient.js`)
 
 ```text

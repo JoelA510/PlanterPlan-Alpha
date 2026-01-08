@@ -254,10 +254,3 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
-
-/* Responsive Sidebar Failsafe */
-@media (max-width: 1024px) {
-  .desktop-sidebar {
-    display: none !important;
-  }
-}
