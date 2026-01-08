@@ -41,6 +41,17 @@ const TasksPage = () => {
     />
   );
 
+  if (loading) {
+    return (
+      <DashboardLayout sidebar={sidebar}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+          <div className="h-8 bg-slate-200 rounded w-1/4 mb-6"></div>
+          <div className="h-64 bg-slate-100 rounded-xl border border-slate-200"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout sidebar={sidebar}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -47,7 +47,7 @@ const DashboardLayout = ({ children, sidebar }) => {
       )}
 
       {/* FIX 2: Desktop Sidebar - Explicit width and border, remove conflicting CSS classes */}
-      <div className="hidden lg:flex lg:flex-shrink-0 w-64 flex-col border-r border-slate-200 bg-white h-full">
+      <div className="hidden lg:flex lg:flex-shrink-0 w-64 flex-col border-r border-slate-200 bg-white h-full desktop-sidebar">
         {/* Pass h-full to the content to ensure it stretches */}
         <div className="flex-1 flex flex-col h-full overflow-hidden">{sidebarWithProps}</div>
       </div>

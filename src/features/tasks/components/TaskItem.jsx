@@ -173,7 +173,7 @@ const TaskItem = React.memo(
 
               <div className="task-info flex items-center gap-3 flex-1 min-w-0 mr-4">
                 <span
-                  className="task-title truncate font-medium text-slate-800 text-sm"
+                  className="task-title font-medium text-slate-800 text-sm line-clamp-2"
                   title={task.title}
                 >
                   {task.title}
