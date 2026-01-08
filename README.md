@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-08 (Design System Migration)
+**Last verified**: 2026-01-08 (Infrastructure Migration v2: Vite + Vitest + Tailwind v4 + Golden Paths)
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)

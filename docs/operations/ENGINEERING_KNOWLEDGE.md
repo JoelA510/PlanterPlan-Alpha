@@ -802,6 +802,24 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Async importActual**: **vi.requireActual** is synchronous and often fails in ESM. Use **await vi.importActual()** inside an **async** factory.
 - **Critical Rule**: When mocking default exports in Vitest, always return an object **{ default: ... }**. Use **async** factories if you need to import actual modules.
 
+## [TEST-042] Mocking Custom Hooks in Integration Tests
+
+- **Tags**: #testing, #vitest, #hooks, #mocking
+- **Date**: 2026-01-08
+- **Context & Problem**: In functional integration tests (Golden Paths), components using complex data-fetching hooks (e.g., `useTaskOperations`) caused tests to hang or timeout. The hooks were attempting actual async operations or were in an infinite `useEffect` loop due to test environment conditions, preventing the UI from rendering the "success" state.
+- **Solution & Pattern**: Bypass the hook's internal logic entirely by mocking the hook module.
+
+  ```javascript
+  import * as hookModule from '../../hooks/useTaskOperations';
+  vi.spyOn(hookModule, 'useTaskOperations').mockReturnValue({
+      loading: false, // Force stable state
+      data: [],
+      // ... provide essential handlers as vi.fn()
+  });
+  ```
+
+- **Critical Rule**: For page-level integration tests focused on routing or layout (not data fetching verification), **mock the data provider hooks** to return immediate, stable data. Do not rely on internal hook state transitions.
+
 ## [CSS-042] Legacy CSS Variable Drift
 
 - **Tags**: #css, #refactoring, #design-system
