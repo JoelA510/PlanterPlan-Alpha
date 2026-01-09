@@ -40,7 +40,7 @@ const InstanceList = ({
                 </div>
             ) : (
                 <div className="text-sm text-slate-400 px-3 py-4">
-                    No projects yet. Click "New Project" to start.
+                    No projects yet. Click &quot;New Project&quot; to start.
                 </div>
             )}
         </div>

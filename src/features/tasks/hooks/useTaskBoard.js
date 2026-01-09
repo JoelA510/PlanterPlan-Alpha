@@ -21,6 +21,7 @@ export const useTaskBoard = () => {
     createProject,
     createTaskOrUpdate,
     deleteTask,
+    updateTask,
     fetchProjectDetails,
     refreshProjectDetails,
     findTask,
@@ -276,6 +277,7 @@ export const useTaskBoard = () => {
     handleTaskSubmit,
     getTaskById,
     fetchTasks, // Exposed for TaskDetailsView
+    updateTask,
 
     // DND
     sensors,

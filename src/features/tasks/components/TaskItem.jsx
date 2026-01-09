@@ -1,5 +1,5 @@
 // src/components/molecules/TaskItem.jsx
-import React, { useCallback } from 'react';
+import { useCallback, memo, forwardRef } from 'react';
 import RoleIndicator from '@shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -21,7 +21,7 @@ const getStatusStyle = (status) => {
   }
 };
 
-const TaskItem = React.memo(
+const TaskItem = memo(
   ({
     task,
     level = 0,
@@ -315,7 +315,7 @@ const TaskItem = React.memo(
   }
 );
 
-export const SortableTaskItem = React.memo(function SortableTaskItem({ task, level, ...props }) {
+export const SortableTaskItem = memo(function SortableTaskItem({ task, level, ...props }) {
   const {
     attributes,
     listeners,
@@ -358,5 +358,7 @@ export const SortableTaskItem = React.memo(function SortableTaskItem({ task, lev
     </div>
   );
 });
+
+TaskItem.displayName = 'TaskItem';
 
 export default TaskItem;

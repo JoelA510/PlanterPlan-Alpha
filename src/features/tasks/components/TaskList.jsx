@@ -58,6 +58,7 @@ const TaskList = () => {
     getTaskById,
     fetchTasks,
     onDeleteTaskWrapper,
+    updateTask,
 
     // DND
     sensors,
@@ -223,6 +224,7 @@ const TaskList = () => {
                 disableDrag={joinedProjects.some((jp) => jp.id === activeProjectId)}
                 hydrationError={hydrationError}
                 onInviteMember={() => handleOpenInvite(activeProject)}
+                onStatusChange={(taskId, status) => updateTask(taskId, { status })}
               />
             )}
           </div>

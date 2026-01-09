@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-08 (Infrastructure Migration v2: Vite + Vitest + Tailwind v4 + Golden Paths)
+**Last verified**: 2026-01-09 (Master Review Orchestrator Execution)
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
@@ -54,8 +54,8 @@ src/
 
 ### Where to Find Things
 
-| To change...         | Look in...                                                                                                                        |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| To change...         | Look in...                                                        |
+| -------------------- | ----------------------------------------------------------------- |
 | **Auth Logic**       | [src/contexts/AuthContext.jsx](./src/contexts/AuthContext.jsx)    |
 | **Task API**         | [src/services/taskService.js](./src/services/taskService.js)      |
 | **Database Schema**  | [docs/db/schema.sql](./docs/db/schema.sql)                        |
@@ -142,11 +142,11 @@ flowchart LR
 
 ### 4.3 Component Responsibilities
 
-| Component/Module | Responsibility                                                   | Primary files                                                                                                                    |
-| ---------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **AuthContext**  | Manages user session (login/logout/user object).                 | [`src/app/contexts/AuthContext.jsx`](src/app/contexts/AuthContext.jsx) |
-| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [`src/features/tasks/services/taskService.js`](src/features/tasks/services/taskService.js) |
-| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [`src/features/tasks/components/organisms/TaskList.jsx`](src/features/tasks/components/organisms/TaskList.jsx) |
+| Component/Module | Responsibility                                                   | Primary files                                                                                                      |
+| ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **AuthContext**  | Manages user session (login/logout/user object).                 | [`src/app/contexts/AuthContext.jsx`](src/app/contexts/AuthContext.jsx)                                             |
+| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [`src/features/tasks/services/taskService.js`](src/features/tasks/services/taskService.js)                         |
+| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [`src/features/tasks/components/organisms/TaskList.jsx`](src/features/tasks/components/organisms/TaskList.jsx)     |
 | **SideNav**      | Persistent sidebar for project navigation.                       | [`src/features/projects/components/organisms/SideNav.jsx`](src/features/projects/components/organisms/SideNav.jsx) |
 
 ### 4.4 Database Schema

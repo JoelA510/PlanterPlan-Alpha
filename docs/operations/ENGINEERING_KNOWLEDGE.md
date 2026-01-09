@@ -830,3 +830,29 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Standardize**: Replaced all instances of ad-hoc `accent-blue` with the strict `brand-600` token.
   - **Cleanup**: Deleted unused variables to prevent future drift.
 - **Critical Rule**: **No Phantom Variables.** If a CSS variable is used in a specific component stylesheet, it MUST be defined in `index.css` (global theme) or the component itself. Do not assume legacy variables persist across major theme refactors.
+
+## [REACT-042] Unescaped Entities in JSX
+
+- **Tags**: #react, #jsx, #security
+- **Date**: 2026-01-09
+- **Context & Problem**: Linter reported errors for unescaped quotes (`"`) in JSX text content. While often rendered correctly by browsers, this violates strict XML/JSX parsing rules and can lead to edge-case rendering issues or XSS vulnerabilities if data is interpolated insecurely.
+- **Solution & Pattern**: Use HTML entities regarding:
+  - `"` -> `&quot;`
+  - `'` -> `&apos;`
+- **Critical Rule**: Always escape special characters in JSX text nodes.
+
+## [REACT-043] Synchronous State in Effects
+
+- **Tags**: #react, #hooks, #performance, #bug
+- **Date**: 2026-01-09
+- **Context & Problem**: `MasterLibrarySearch` attempted to reset `activeIndex` state inside a `useEffect` that depended on `query` or `results`. This flags as "Synchronous setState in Effect" because it triggers an immediate re-render before the browser paints, potentially causing visual jank or infinite loops if dependencies are unstable.
+- **Solution & Pattern**: **Move Logic to Event Handlers**. Reset the `activeIndex` inside the `handleQueryChange` function directly.
+- **Critical Rule**: Avoid `useEffect` for state derived purely from user events. Update state in the event handler itself.
+
+## [REACT-044] Component Display Names
+
+- **Tags**: #react, #debugging, #lint
+- **Date**: 2026-01-09
+- **Context & Problem**: `React.memo` and `forwardRef` components lose their inferred names in DevTools (showing as `Anonymous`), and strict linting enforces `react/display-name`.
+- **Solution & Pattern**: Explicitly assign `Component.displayName = 'Component'` after definition, or use named functions inside the wrapper: `memo(function MyComp() { ... })`.
+- **Critical Rule**: Higher-Order Components (memo, forwardRef) require explicit naming or displayNames for proper debugging.

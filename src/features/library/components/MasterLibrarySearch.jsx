@@ -25,15 +25,14 @@ const MasterLibrarySearch = ({
     enabled: hasMinimumQuery,
   });
 
-  useEffect(() => {
-    setActiveIndex(results?.length > 0 ? 0 : -1);
-  }, [results]);
-
-  useEffect(() => {
-    if (!hasMinimumQuery) {
+  // Removed auto-selection logic to prevent render loops and improve UX
+  const handleQueryChange = (event) => {
+    const newQuery = event.target.value;
+    setQuery(newQuery);
+    if (newQuery.trim().length < SEARCH_MIN_LENGTH) {
       setActiveIndex(-1);
     }
-  }, [hasMinimumQuery]);
+  };
 
   const activeResultId = useMemo(() => {
     if (activeIndex < 0 || activeIndex >= results.length) {
@@ -129,7 +128,7 @@ const MasterLibrarySearch = ({
           className="form-input"
           placeholder={placeholder}
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={handleQueryChange}
           onKeyDown={handleKeyDown}
           aria-autocomplete="list"
           aria-controls={hasResults ? listboxId : undefined}
@@ -182,8 +181,8 @@ const MasterLibrarySearch = ({
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handleSelect(task)}
                 className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 focus:outline-none ${isActive || (hasResults && activeResultId === `${listboxId}-item-${task.id}`)
-                    ? 'bg-brand-50'
-                    : 'bg-white'
+                  ? 'bg-brand-50'
+                  : 'bg-white'
                   }`}
               >
                 <div className="flex items-start justify-between">

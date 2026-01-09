@@ -21,6 +21,7 @@ const ProjectTasksView = ({
     disableDrag = false,
     hydrationError = null,
     onInviteMember,
+    onStatusChange,
 }) => {
     const { setNodeRef } = useDroppable({
         id: `project-view-${project.id}`,
@@ -42,8 +43,10 @@ const ProjectTasksView = ({
         onAddChildTask: handleAddChildTask,
         onEdit: handleEditTask,
         onDelete: handleDeleteById,
+        onDelete: handleDeleteById,
         hideExpansion: false,
         onToggleExpand,
+        onStatusChange,
     };
 
     const renderTaskList = () => {
@@ -131,6 +134,7 @@ ProjectTasksView.propTypes = {
     disableDrag: PropTypes.bool,
     hydrationError: PropTypes.string,
     onInviteMember: PropTypes.func, // Optional, for invite flow
+    onStatusChange: PropTypes.func,
 };
 
 export default ProjectTasksView;

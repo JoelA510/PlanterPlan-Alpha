@@ -241,22 +241,56 @@ export const useTaskMutations = ({
   );
 
   const deleteTask = useCallback(
-    async (task) => {
+    async (taskOrId) => {
       try {
-        const { error: deleteError } = await supabase.from('tasks').delete().eq('id', task.id);
+        const taskId = typeof taskOrId === 'object' ? taskOrId.id : taskOrId;
+        const task = typeof taskOrId === 'object' ? taskOrId : findTask(taskId);
+
+        const { error: deleteError } = await supabase.from('tasks').delete().eq('id', taskId);
         if (deleteError) throw deleteError;
-        await fetchTasks();
+
+        if (task && (task.root_id || task.parent_task_id)) {
+          // If we have context, refresh the root
+          const root = task.root_id || (task.parent_task_id ? findTask(task.parent_task_id)?.root_id : null);
+          if (root) await refreshProjectDetails(root);
+          else await fetchTasks(); // Fallback
+        } else {
+          await fetchTasks();
+        }
       } catch (error) {
         console.error('Error deleting task:', error);
         throw error;
       }
     },
-    [fetchTasks]
+    [fetchTasks, findTask, refreshProjectDetails]
+  );
+
+  const updateTask = useCallback(
+    async (taskId, updates) => {
+      try {
+        const task = findTask(taskId);
+        const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
+        if (error) throw error;
+
+        if (task && (task.root_id || task.parent_task_id)) {
+          const root = task.root_id || (task.parent_task_id ? findTask(task.parent_task_id)?.root_id : null);
+          if (root) await refreshProjectDetails(root);
+          else await fetchTasks();
+        } else {
+          await fetchTasks();
+        }
+      } catch (error) {
+        console.error('Error updating task:', error);
+        throw error;
+      }
+    },
+    [fetchTasks, findTask, refreshProjectDetails]
   );
 
   return {
     createProject,
     createTaskOrUpdate,
     deleteTask,
+    updateTask,
   };
 };

@@ -42,7 +42,7 @@ export const ToastProvider = ({ children }) => {
               layout
               onClick={() => removeToast(toast.id)}
               className={`
-                pointer-events-auto cursor-pointer rounded-lg px-4 py-3 shadow-lg text-sm font-medium
+                pointer-events-auto cursor-pointer rounded-lg px-4 py-3 shadow-md text-sm font-medium
                 transform transition-all duration-300 hover:scale-105 active:scale-95
                 ${
                   toast.type === 'success'

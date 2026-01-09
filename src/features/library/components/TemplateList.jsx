@@ -24,7 +24,7 @@ const TemplateList = ({ tasks, selectedTaskId, handleTaskClick }) => {
         </div>
       ) : (
         <div className="text-sm text-slate-400 px-3 py-4">
-          No templates yet. Click "New Template" to start building.
+          No templates yet. Click &quot;New Template&quot; to start building.
         </div>
       )}
     </div>
