@@ -8,6 +8,31 @@ import InstanceList from '@features/projects/components/InstanceList';
 import JoinedProjectsList from '@features/projects/components/JoinedProjectsList';
 import TemplateList from '@features/library/components/TemplateList';
 
+const GlobalNavItem = ({ isActive, onClick, label, icon }) => (
+  <div
+    className={`sidebar-nav-item group ${isActive ? 'selected' : ''}`}
+    onClick={onClick}
+    role="button"
+    tabIndex={0}
+  >
+    <div
+      className={`text-slate-400 group-hover:text-slate-600 ${isActive ? 'text-brand-600' : ''}`}
+    >
+      {icon}
+    </div>
+    <span className={`sidebar-nav-item-title ${isActive ? 'text-brand-700 font-semibold' : ''}`}>
+      {label}
+    </span>
+  </div>
+);
+
+GlobalNavItem.propTypes = {
+  isActive: PropTypes.bool.isRequired,
+  onClick: PropTypes.func.isRequired,
+  label: PropTypes.string.isRequired,
+  icon: PropTypes.element.isRequired,
+};
+
 const SideNav = ({
   joinedProjects,
   instanceTasks,
@@ -62,34 +87,17 @@ const SideNav = ({
   // Safe access for user initials
   const userInitial = user?.email ? user.email[0].toUpperCase() : '?';
 
-  const GlobalNavItem = ({ path, label, icon }) => {
-    const isActive = location.pathname === path;
-    return (
-      <div
-        className={`sidebar-nav-item group ${isActive ? 'selected' : ''}`}
-        onClick={() => handleGlobalNav(path)}
-        role="button"
-        tabIndex={0}
-      >
-        <div
-          className={`text-slate-400 group-hover:text-slate-600 ${isActive ? 'text-brand-600' : ''}`}
-        >
-          {icon}
-        </div>
-        <span className={`sidebar-nav-item-title ${isActive ? 'text-brand-700 font-semibold' : ''}`}>
-          {label}
-        </span>
-      </div>
-    );
-  };
+  // GlobalNavItem is now defined outside or imported.
+  // We will prepare props for it below.
 
   return (
     <div className="flex flex-col h-full bg-white text-slate-700">
       {/* Global Navigation */}
       <div className="px-4 py-4 space-y-1">
         <GlobalNavItem
-          path="/dashboard"
           label="Dashboard"
+          isActive={location.pathname === '/dashboard'}
+          onClick={() => handleGlobalNav('/dashboard')}
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -102,22 +110,24 @@ const SideNav = ({
           }
         />
         <GlobalNavItem
-          path="/tasks"
           label="My Tasks"
+          isActive={location.pathname === '/tasks'}
+          onClick={() => handleGlobalNav('/tasks')}
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
               />
             </svg>
           }
         />
         <GlobalNavItem
-          path="/reports"
           label="Reports"
+          isActive={location.pathname === '/reports'}
+          onClick={() => handleGlobalNav('/reports')}
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -130,8 +140,9 @@ const SideNav = ({
           }
         />
         <GlobalNavItem
-          path="/settings"
           label="Settings"
+          isActive={location.pathname === '/settings'}
+          onClick={() => handleGlobalNav('/settings')}
           icon={
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -247,6 +258,7 @@ SideNav.propTypes = {
   selectedTaskId: PropTypes.string,
   onNewProjectClick: PropTypes.func.isRequired,
   onNewTemplateClick: PropTypes.func.isRequired,
+  loading: PropTypes.bool,
   onNavClick: PropTypes.func,
   // Pagination
   hasMore: PropTypes.bool,

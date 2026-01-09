@@ -56,11 +56,11 @@ src/
 
 | To change...         | Look in...                                                                                                                        |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth Logic**       | [src/contexts/AuthContext.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/contexts/AuthContext.jsx)    |
-| **Task API**         | [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js)      |
-| **Database Schema**  | [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql)                        |
-| **Task Routes**      | [src/App.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/App.jsx)                                      |
-| **Deep Clone Logic** | [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js#L216) |
+| **Auth Logic**       | [src/contexts/AuthContext.jsx](./src/contexts/AuthContext.jsx)    |
+| **Task API**         | [src/services/taskService.js](./src/services/taskService.js)      |
+| **Database Schema**  | [docs/db/schema.sql](./docs/db/schema.sql)                        |
+| **Task Routes**      | [src/App.jsx](./src/App.jsx)                                      |
+| **Deep Clone Logic** | [src/services/taskService.js](./src/services/taskService.js#L216) |
 
 ### Environment Requirements
 
@@ -73,8 +73,8 @@ VITE_SUPABASE_ANON_KEY=Supabase Anonymous Key
 
 ### External dependencies
 
-- **Supabase** -> Auth & Database (Ref: [src/supabaseClient.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/supabaseClient.js))
-- **dnd-kit** -> Drag and Drop interactions (Ref: [package.json](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/package.json))
+- **Supabase** -> Auth & Database (Ref: [src/supabaseClient.js](./src/supabaseClient.js))
+- **dnd-kit** -> Drag and Drop interactions (Ref: [package.json](./package.json))
 
 ---
 
@@ -93,8 +93,8 @@ graph TD
 
 #### Evidence: Hierarchy
 
-- `public.tasks` table definition -> [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L6)
-- `maintain_task_root_id` trigger -> [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L30)
+- `public.tasks` table definition -> [docs/db/schema.sql](./docs/db/schema.sql#L6)
+- `maintain_task_root_id` trigger -> [docs/db/schema.sql](./docs/db/schema.sql#L30)
 
 ### 3.2 Templates vs. Instances
 

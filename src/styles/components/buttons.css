@@ -36,7 +36,7 @@
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #eff6ff;
+  background: var(--color-slate-50, #f8fafc);
   border-color: var(--color-brand-700);
   color: var(--color-brand-700);
 }
@@ -63,7 +63,7 @@
 }
 
 .btn-new-item:hover {
-  background: #eff6ff;
+  background: var(--color-slate-50, #f8fafc);
   border-color: var(--color-brand-700);
   color: var(--color-brand-700);
 }

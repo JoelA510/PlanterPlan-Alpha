@@ -29,7 +29,7 @@
 }
 
 .panel-header-btn:hover {
-  background: #eff6ff;
+  background: var(--color-slate-50, #f8fafc);
   color: var(--color-brand-700);
   border-color: var(--color-brand-700);
 }
