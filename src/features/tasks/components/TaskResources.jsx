@@ -167,7 +167,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
                         ${res.resource_type === 'url'
                         ? 'bg-brand-100 text-brand-700 border-brand-200'
                         : res.resource_type === 'pdf'
-                          ? 'bg-orange-100 text-orange-700 border-orange-200'
+                          ? 'bg-amber-100 text-amber-700 border-amber-200'
                           : 'bg-slate-100 text-slate-600 border-slate-200'
                       }
                       `}
