@@ -43,7 +43,6 @@ const ProjectTasksView = ({
         onAddChildTask: handleAddChildTask,
         onEdit: handleEditTask,
         onDelete: handleDeleteById,
-        onDelete: handleDeleteById,
         hideExpansion: false,
         onToggleExpand,
         onStatusChange,
