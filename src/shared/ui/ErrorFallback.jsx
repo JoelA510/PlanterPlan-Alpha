@@ -13,7 +13,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }) => {
         </p>
         <button
           onClick={resetErrorBoundary}
-          className="bg-brand-600 text-white px-6 py-2 rounded hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+          className="bg-brand-600 text-white px-6 py-2 rounded hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors"
         >
           Try Again
         </button>

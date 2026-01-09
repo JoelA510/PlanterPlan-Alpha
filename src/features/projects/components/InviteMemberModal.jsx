@@ -94,7 +94,7 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
               id="userId"
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm form-input p-2 border"
+              className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 sm:text-sm form-input p-2 border"
               placeholder="user@example.com or UUID"
               required
             />
