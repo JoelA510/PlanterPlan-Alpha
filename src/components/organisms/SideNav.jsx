@@ -1,4 +1,12 @@
+import React from 'react';
+import PropTypes from 'prop-types';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { ROLES } from '../../constants';
+import SidebarSkeleton from '../atoms/SidebarSkeleton';
+import InstanceList from '../molecules/InstanceList';
+import JoinedProjectsList from '../molecules/JoinedProjectsList';
+import TemplateList from '../molecules/TemplateList';
 
 const SideNav = ({
   joinedProjects,
