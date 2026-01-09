@@ -14,6 +14,12 @@ trigger: always_on
   - Add error boundaries for user-facing shells/routes when appropriate.
   - Accessibility: ARIA labels where needed, keyboard navigation not broken.
 
+## Testing
+
+- **Framework**: Vitest for Unit/Integration tests.
+- **Pattern**: Colocate tests with components (e.g., `Component.test.jsx`).
+- **Mocking**: Use `vi` from Vitest for mocking; avoid global test pollution.
+
 ## CSS
 
 - Prioritize TailwindCSS utility classes.

@@ -65,7 +65,7 @@ Use the defined CSS variables or Tailwind utility aliases. Do not hardcode hex v
 - **Layout:** Default to `flex-col` on mobile, `md:flex-row` on desktop.
 - **Hidden UI:** Use `group-hover:opacity-100` patterns cautiously; ensure mobile users have an alternative way to access actions (e.g., specific "Edit" button visible on tap).
 
-## 6. Behavioral & Ethical Constraints (NotebookLM)
+## 6. Behavioral & Ethical Constraints
 
 ### Modals & Overlays
 

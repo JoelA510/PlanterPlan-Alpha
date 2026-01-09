@@ -13,18 +13,19 @@ Before writing anything, systematically review the codebase:
 1. **Map the file structure** — Identify all directories and their purposes
 2. **Identify entry points** — Find main/index files, routing, app initialization
 
-- **Frontend**: React 18, Vite, TailwindCSS, `dnd-kit`.
+- **Frontend**: React 18+, Vite, Tailwind CSS v4, `dnd-kit`.
+- **Testing**: Vitest (`npm test`).
 - **Backend**: Supabase (PostgreSQL 15+), Edge Functions.
 - **Database**:
   - Row Level Security (RLS) for multi-tenancy.
   - Recursive CTEs for hierarchy traversal.
   - **Strict PL/pgSQL**: No ambiguous column references allowed.
 
-3. **Trace data flow** — Follow how data moves from UI → state → persistence
-4. **Catalog components** — List every component/module and what it owns
-5. **Extract the domain model** — What are the core entities? How do they relate?
-6. **Review database/API layer** — What's the schema? What services exist?
-7. **Note security boundaries** — Auth, permissions, access control
+1. **Trace data flow** — Follow how data moves from UI → state → persistence
+2. **Catalog components** — List every component/module and what it owns
+3. **Extract the domain model** — What are the core entities? How do they relate?
+4. **Review database/API layer** — What's the schema? What services exist?
+5. **Note security boundaries** — Auth, permissions, access control
 
 ### Phase 2: Generate README
 
