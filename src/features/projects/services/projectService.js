@@ -141,7 +141,7 @@ export const getProjectWithStats = async (projectId, client = supabase) => {
   try {
     const { data, error } = await client
       .from('tasks')
-      .select('*, children:tasks(*)') // fetch direct children via foreign key relationship
+      .select('id, title, description, status, owner_id, children:tasks(id, is_complete)') // Explicitly select columns
       .eq('id', projectId)
       .single();
 

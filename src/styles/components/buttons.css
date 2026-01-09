@@ -77,13 +77,13 @@
   justify-content: center;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-white-alpha-80);
   cursor: pointer;
   border-radius: 4px;
 }
 
 .expand-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-white-alpha-10);
 }
 
 /* Dropdown Button */
@@ -95,13 +95,13 @@
   justify-content: center;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-white-alpha-80);
   cursor: pointer;
   border-radius: 4px;
 }
 
 .dropdown-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-white-alpha-10);
 }
 
 @media (max-width: 768px) {

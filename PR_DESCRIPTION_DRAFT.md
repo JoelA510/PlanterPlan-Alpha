@@ -61,6 +61,7 @@ Date handling is centralized under **`src/shared/lib/date-engine`**.
 | 🟡 **Medium** | `src/shared/lib/date-engine/**`                                | Edge-case coverage (UTC/local, parsing/formatting, boundaries) and call-site compliance. |
 | 🟢 **Low**    | `src/styles/globals.css`, `**/*.test.*`                        | CSS cleanup and test syntax updates consistent with Vitest patterns.                     |
 | 🟢 **Low**    | `src/styles/components/*.css`                                  | Token/variable replacements (e.g., `--accent-blue` -> `--color-brand-600`).              |
+| 🟢 **Low**    | `Gemini Code Review`                                           | Strict style guide enforcement: arbitrary Tailwind values fixed, hardcoded colors replaced, and over-fetching resolved. |
 
 ## Verification Plan
 

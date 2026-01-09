@@ -183,7 +183,7 @@ const TaskItem = React.memo(
                   </span>
                 )}
                 {task.resource_type && (
-                  <span className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-brand-50 text-brand-600 border border-brand-100 whitespace-nowrap flex-shrink-0">
+                  <span className="px-2.5 py-1 text-xs uppercase font-bold tracking-wider rounded bg-brand-50 text-brand-600 border border-brand-100 whitespace-nowrap flex-shrink-0">
                     {task.resource_type}
                   </span>
                 )}
@@ -195,7 +195,7 @@ const TaskItem = React.memo(
 
               <div className="relative group">
                 <select
-                  className={`appearance-none cursor-pointer pl-4 pr-9 py-1.5 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-[var(--brand-primary)] focus:outline-none`}
+                  className={`appearance-none cursor-pointer pl-4 pr-9 py-1.5 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-brand-500 focus:outline-none`}
                   value={task.status || TASK_STATUS.TODO}
                   onClick={(e) => e.stopPropagation()}
                   onChange={handleStatusChangeClick}
