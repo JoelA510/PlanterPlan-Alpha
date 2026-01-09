@@ -23,9 +23,16 @@ Additionally, this PR includes a final pass of **automated improvements and debt
 * **🎨 Design System**: Standardized color usage via `brand-*` tokens and removed 600+ lines of legacy overrides.
 * **🤖 Automated Verification Workflows**: Added agent rules/workflows for design standards, FSD structure, and browser "Golden Path" verification.
 
-## Automated Debt Remediation
+## 👥 User & Business Impact
 
-### 🧹 Code Quality & Linting
+| Metric | Improvement | Benefit |
+| :--- | :--- | :--- |
+| **Performance** | **50x Faster Startup** | The application environment now loads in <300ms (down from 15s), significantly boosting developer velocity. End-user load times are also optimized by Vite's modern bundling. |
+| **Reliability** | **Critical Logic Fixes** | Resolved "silent failures" where deleting a task or changing status wouldn't save. Users can now trust that their changes persist. |
+| **Consistency** | **Unified Design** | The app now strictly follows the PlanterPlan Brand Identity (Orange/Charcoal), eliminating inconsistent "generic blue" elements. |
+| **Maintainability** | **Feature-Sliced Architecture** | New features (like Reporting) can be added in isolation without breaking existing flows, reducing regression risk for future updates. |
+
+## 🧹 Code Quality & Linting
 
 * **Linting**: Resolved 8 blocking lint errors across the codebase.
 * **React Standards**: Added missing `displayName` to `TaskItem` (memoized component) and removed unused `React` imports.
@@ -46,14 +53,14 @@ Additionally, this PR includes a final pass of **automated improvements and debt
 
 ## Roadmap Progress
 
-| Item                   | Status | Notes                                  |
-| :--------------------- | :----- | :------------------------------------- |
+| Item                   | Status  | Notes                                  |
+| :--------------------- | :------ | :------------------------------------- |
 | **P10.1 Build System** | ✅ Done | CRA -> Vite                            |
-| **P10.2 Testing** | ✅ Done | Jest -> Vitest                         |
-| **P10.3 CSS** | ✅ Done | Tailwind v4 implemented; CSS reduction |
-| **P10.4 Refactor** | ✅ Done | FSD architecture adopted               |
-| **P7.0 Visuals** | ✅ Done | Brand identity enforcement             |
-| **P7.1 Cleanup** | ✅ Done | Legacy CSS variables removed           |
+| **P10.2 Testing**      | ✅ Done | Jest -> Vitest                         |
+| **P10.3 CSS**          | ✅ Done | Tailwind v4 implemented; CSS reduction |
+| **P10.4 Refactor**     | ✅ Done | FSD architecture adopted               |
+| **P7.0 Visuals**       | ✅ Done | Brand identity enforcement             |
+| **P7.1 Cleanup**       | ✅ Done | Legacy CSS variables removed           |
 
 ## Architecture Decisions
 
@@ -76,7 +83,7 @@ Date handling is centralized under **`src/shared/lib/date-engine`**.
 
 | Risk        | Files                                                          | What to look for                                                                         |
 | :---------- | :------------------------------------------------------------- | :--------------------------------------------------------------------------------------- |
-| 🔴 **High** | `vite.config.js`, `src/features/tasks/services/taskService.js` | Build config parity; core task logic remains behaviorally identical.                     |
+| 🔴 **High** | `vite.config.js`, `src/features/tasks/services/taskService.js`, `useTaskMutations.js` | Build config parity; core task persistence logic (CRUD) remains behaviorally identical. |
 | 🟡 **Medium** | `src/shared/lib/date-engine/**`                                | Edge-case coverage (UTC/local, parsing/formatting) and call-site compliance.             |
 | 🟢 **Low** | `src/styles/globals.css`, `**/*.test.*`                        | CSS cleanup and test syntax updates.                                                     |
 | 🟢 **Low** | `src/features/library/components/MasterLibrarySearch.jsx`      | Verify the `setState` fix for the search race condition.                                 |

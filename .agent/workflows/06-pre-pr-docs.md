@@ -21,6 +21,8 @@ Before making any updates, collect the information needed:
    git log --oneline -10
    ```
 
+   > **Critical**: To avoid recency bias, if you are working on a long-running branch or PR, verify against the full `.diff` or `.patch` (e.g., from the GitHub PR URL) to ensure you capture *all* changes, not just the recent ones.
+
 2. **Identify modified files and features** by reviewing the recent commits.
 
 3. **Note any lessons learned** during this work (bugs encountered, patterns discovered, gotchas to avoid).
@@ -94,6 +96,7 @@ Generate the PR description using the template in PR-PROMPT.md:
 - Git diff: `git diff main...HEAD --stat`
 - Changed files: `git diff main...HEAD --name-only`
 - Commit messages: `git log main...HEAD --oneline`
+- **Full Context**: The `.diff` or `.patch` file (if available) to ensure 100% coverage of changes.
 
 ---
 
