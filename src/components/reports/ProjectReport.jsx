@@ -1,163 +1,121 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { fetchTaskChildren } from '../../services/taskService';
-import { TASK_STATUS } from '../../constants';
+import { useParams, useNavigate } from 'react-router-dom';
+import DashboardLayout from '../../layouts/DashboardLayout';
+import SideNav from '../organisms/SideNav';
+import ProjectHeader from '../molecules/ProjectHeader';
+import { useTaskBoard } from '../../hooks/useTaskBoard';
+import { supabase } from '../../supabaseClient';
 
 const ProjectReport = () => {
   const { projectId } = useParams();
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total: 0, completed: 0, overdue: 0 });
+  const navigate = useNavigate();
+
+  // Reuse the main hook to get sidebar data
+  const {
+    joinedProjects,
+    instanceTasks,
+    templateTasks,
+    loading,
+    error,
+    joinedError,
+    hasMore,
+    isFetchingMore,
+    loadMoreProjects,
+    handleOpenInvite,
+    handleAddChildTask,
+  } = useTaskBoard();
+
+  // Fetch project details specifically for the report
+  const [project, setProject] = useState(null);
 
   useEffect(() => {
-    const loadReportData = async () => {
-      try {
-        // 1. Fetch the full optimized tree
-        const rawTasks = await fetchTaskChildren(projectId);
+    const fetchProject = async () => {
+      if (!projectId) return;
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*, children:tasks(*)') // recursive fetch if needed
+        .eq('id', projectId)
+        .single();
 
-        // 2. Data Processing & DFS Sorting
-        // Map children by parent_task_id for efficient traversal
-        const parentMap = {};
-        rawTasks.forEach((t) => {
-          const pid = t.parent_task_id; // Explicitly capture null
-          if (!parentMap[pid]) parentMap[pid] = [];
-          parentMap[pid].push(t);
-        });
-
-        // Sort helper: Position -> CreatedAt
-        // Sort helper: Position -> CreatedAt (Tie-breaker)
-        const sorter = (a, b) => {
-          const posA = a.position !== undefined && a.position !== null ? a.position : 0;
-          const posB = b.position !== undefined && b.position !== null ? b.position : 0;
-
-          if (posA !== posB) return posA - posB;
-
-          return new Date(a.created_at) - new Date(b.created_at);
-        };
-
-        const processedTasks = [];
-
-        // Recursive DFS traversal
-        const traverse = (currentId, depth) => {
-          const children = parentMap[currentId] || [];
-          children.sort(sorter);
-
-          children.forEach((child) => {
-            processedTasks.push({ ...child, depth });
-            traverse(child.id, depth + 1);
-          });
-        };
-
-        // Start with the Project Root
-        const rootTask = rawTasks.find((t) => t.id === projectId);
-        if (rootTask) {
-          processedTasks.push({ ...rootTask, depth: 0 });
-          traverse(rootTask.id, 1);
-        } else {
-          // Fallback: If no single root found (unlikely), valid children might exist if projectId is actually a subtree root?
-          // But fetchTaskChildren logic implies it returns the set.
-          // If main root is missing from array, check for orphans?
-          // For now, assume rootTask exists.
-        }
-
-        // 3. Calculate Stats
-        const total = rawTasks.length;
-        const completed = rawTasks.filter(
-          (t) => t.status === TASK_STATUS.COMPLETED || t.is_complete
-        ).length;
-        const overdue = rawTasks.filter((t) => {
-          return (
-            t.due_date &&
-            new Date(t.due_date) < new Date() &&
-            t.status !== TASK_STATUS.COMPLETED &&
-            !t.is_complete
-          );
-        }).length;
-
-        setTasks(processedTasks);
-        setStats({ total, completed, overdue });
-      } catch (error) {
-        console.error('Failed to load report', error);
-      } finally {
-        setLoading(false);
-      }
+      if (data) setProject(data);
+      else if (error) console.error('Error fetching project report:', error);
     };
-
-    if (projectId) loadReportData();
+    fetchProject();
   }, [projectId]);
 
-  if (loading) return <div>Generating Report...</div>;
+  // Handle sidebar navigation
+  const onSelectProject = (proj) => {
+    navigate(`/project/${proj.id}`);
+  };
+
+  const sidebar = (
+    <SideNav
+      joinedProjects={joinedProjects}
+      instanceTasks={instanceTasks}
+      templateTasks={templateTasks}
+      handleSelectProject={onSelectProject}
+      selectedTaskId={projectId} // Use projectId from URL as selected
+      loading={loading}
+      error={error}
+      joinedError={joinedError}
+      hasMore={hasMore}
+      isFetchingMore={isFetchingMore}
+      onLoadMore={loadMoreProjects}
+      handleOpenInvite={handleOpenInvite}
+      handleAddChildTask={handleAddChildTask}
+      onNewProjectClick={() => navigate('/dashboard')}
+      onNewTemplateClick={() => navigate('/dashboard')}
+    />
+  );
 
   return (
-    <div className="p-8 max-w-4xl mx-auto bg-white print:p-0">
-      {/* Header */}
-      <div className="mb-8 border-b pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">Project Status Report</h1>
-        <p className="text-gray-500">Generated on {new Date().toLocaleDateString()}</p>
-      </div>
+    <DashboardLayout sidebar={sidebar}>
+      <div className="project-view-container w-full h-full flex flex-col">
+        {project ? (
+          <>
+            <div className="bg-white px-8">
+              <ProjectHeader project={project} />
+            </div>
 
-      {/* High-Level Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="p-4 bg-gray-50 rounded-lg text-center border">
-          <div className="text-2xl font-bold">{stats.total}</div>
-          <div className="text-sm text-gray-500">Total Tasks</div>
-        </div>
-        <div className="p-4 bg-green-50 rounded-lg text-center border border-green-100">
-          <div className="text-2xl font-bold text-green-700">
-            {stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%
+            {/* Report Content */}
+            <div className="flex-1 px-8 pb-12 max-w-6xl w-full mx-auto overflow-x-visible pt-8">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+                <h2 className="text-xl font-semibold mb-4 text-slate-800">Project Performance</h2>
+                {/* Placeholder for actual charts/stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="text-slate-500 text-sm mb-1">Total Tasks</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                      {project.children?.length || 0}
+                    </div>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="text-slate-500 text-sm mb-1">Completed</div>
+                    <div className="text-2xl font-bold text-emerald-600">
+                      {project.children?.filter((t) => t.is_complete).length || 0}
+                    </div>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="text-slate-500 text-sm mb-1">Pending</div>
+                    <div className="text-2xl font-bold text-amber-600">
+                      {project.children?.filter((t) => !t.is_complete).length || 0}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-64 bg-slate-50 rounded-lg flex items-center justify-center border border-dashed border-slate-300 text-slate-400">
+                  Runs Chart Visualization (Coming Soon)
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-full text-slate-400">
+            Loading report...
           </div>
-          <div className="text-sm text-green-600">Completion</div>
-        </div>
-        <div className="p-4 bg-red-50 rounded-lg text-center border border-red-100">
-          <div className="text-2xl font-bold text-red-700">{stats.overdue}</div>
-          <div className="text-sm text-red-600">Overdue Items</div>
-        </div>
+        )}
       </div>
-
-      {/* Task List (Print Friendly) */}
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Task
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Due Date
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {tasks.map((task) => (
-            <tr
-              key={task.id}
-              className={
-                task.depth === 0
-                  ? 'bg-gray-100 font-bold'
-                  : task.depth === 1
-                    ? 'bg-gray-50 font-semibold'
-                    : 'bg-white'
-              }
-            >
-              <td
-                className="px-6 py-4 text-sm text-gray-900"
-                style={{ paddingLeft: `${(task.depth || 0) * 1.5 + 1}rem` }}
-              >
-                {task.title}
-              </td>
-              <td className="px-6 py-4 text-sm text-gray-500 capitalize">
-                {task.status || (task.is_complete ? 'Completed' : 'Todo')}
-              </td>
-              <td className="px-6 py-4 text-sm text-gray-500">
-                {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    </DashboardLayout>
   );
 };
 

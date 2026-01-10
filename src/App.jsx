@@ -4,10 +4,14 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from './components/atoms/ErrorFallback';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import LoginForm from './components/molecules/LoginForm';
 import TaskList from './components/organisms/TaskList';
 import ProjectReport from './components/reports/ProjectReport';
-import { ToastProvider } from './contexts/ToastContext';
+import TasksPage from './components/pages/TasksPage';
+import ReportsPage from './components/pages/ReportsPage';
+import SettingsPage from './components/pages/SettingsPage';
+
 // Dashboard component with modern styling
 const Dashboard = () => {
   // Layout logic moved to DashboardLayout (rendered by TaskList)
@@ -49,6 +53,38 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/project/:projectId"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks"
+        element={
+          <ProtectedRoute>
+            <TasksPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <ReportsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         }
       />
