@@ -13,26 +13,31 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
 import SideNav from '@features/navigation/components/SideNav';
 
+import { useAuth } from '@app/contexts/AuthContext';
 import { createProjectWithDefaults } from '@features/projects/services/projectService';
 
 export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user, loading: authLoading } = useAuth();
 
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['projects'],
     queryFn: () => planter.entities.Project.list('-created_date'),
+    enabled: !authLoading && !!user,
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks'],
     queryFn: () => planter.entities.Task.list(),
+    enabled: !authLoading && !!user,
   });
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['teamMembers'],
     queryFn: () => planter.entities.TeamMember.list(),
+    enabled: !authLoading && !!user,
   });
 
   const createProjectMutation = useMutation({

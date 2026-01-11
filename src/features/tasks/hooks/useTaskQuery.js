@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@app/supabaseClient';
+import { useAuth } from '@app/contexts/AuthContext';
 import { fetchTaskChildren } from '@features/tasks/services/taskService';
 import { getJoinedProjects, getUserProjects } from '@features/projects/services/projectService';
 
@@ -157,13 +158,19 @@ export const useTaskQuery = () => {
     [tasks, joinedProjects, hydratedProjects]
   );
 
+  // Check auth state
+  const { user: authUser, loading: authLoading } = useAuth();
+
   useEffect(() => {
     isMountedRef.current = true;
-    fetchProjects(1);
+    if (!authLoading && authUser) {
+      setCurrentUserId(authUser.id);
+      fetchProjects(1);
+    }
     return () => {
       isMountedRef.current = false;
     };
-  }, [fetchProjects]);
+  }, [fetchProjects, authLoading, authUser]);
 
   return {
     tasks,
