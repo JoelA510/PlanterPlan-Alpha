@@ -875,3 +875,15 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Inversion of Control**: The Page component (`Dashboard`) delegates layout responsibility to `DashboardLayout`.
   - **Prop Drilling**: `DashboardLayout` injects the `onNavClick` handler (for mobile closing) into the `sidebar` prop element via `React.cloneElement`.
 - **Critical Rule**: If a layout manages mobile state (open/close), the Page *must* use that layout wrapper to ensure the navigation component receives the state-closing handlers.
+
+## [CSS-044] Semantic Color System Migration
+
+- **Tags**: #css, #design-system, #tailwind, #maintenance
+- **Date**: 2026-01-11
+- **Context & Problem**: The codebase accumulated inconsistent color usage: `orange-*` for brand actions, `red-*`/`green-*` for status, and `blue-*`/`yellow-*` for misc states. This violates Rule 30 (Design Standards) and creates maintenance burden.
+- **Solution & Pattern**:
+  - **Brand Colors**: Replace `orange-*` with `brand-*` (mapped to CSS variables).
+  - **Status Colors**: `rose-*` (error/blocked), `emerald-*` (success/complete), `amber-*` (warning/in-progress), `sky-*` (info/planning).
+  - **Batch Migration**: Use `sed` for bulk replacements across feature directories, then verify with `grep` and lint.
+  - **Exceptions**: Code comments explaining hex values (e.g., Recharts config) are acceptable.
+- **Critical Rule**: Never use generic Tailwind colors (`red`, `green`, `blue`, `orange`) for semantic states. Always use the semantic palette (`rose`, `emerald`, `amber`, `sky`, `brand`).
