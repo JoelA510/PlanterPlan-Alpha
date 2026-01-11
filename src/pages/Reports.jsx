@@ -69,11 +69,19 @@ export default function Reports() {
 
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
+    // Semantic chart colors (from CSS theme)
+    const chartColors = {
+      slate: '#94a3b8', // slate-400
+      blue: '#3b82f6',  // blue-500 (in-progress)
+      red: '#ef4444',   // red-500 (blocked)
+      green: '#10b981', // emerald-500 (completed)
+    };
+
     const chartData = [
-      { name: 'To Do', count: todo, color: '#94a3b8' },
-      { name: 'In Progress', count: inProgress, color: '#3b82f6' },
-      { name: 'Blocked', count: blocked, color: '#ef4444' },
-      { name: 'Completed', count: completed, color: '#10b981' },
+      { name: 'To Do', count: todo, color: chartColors.slate },
+      { name: 'In Progress', count: inProgress, color: chartColors.blue },
+      { name: 'Blocked', count: blocked, color: chartColors.red },
+      { name: 'Completed', count: completed, color: chartColors.green },
     ];
 
     return { total, completed, completionRate, chartData };

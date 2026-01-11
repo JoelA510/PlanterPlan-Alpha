@@ -8,6 +8,14 @@ import { getProjectWithStats } from '@features/projects/services/projectService'
 import { Loader2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
+// Semantic chart colors (from CSS theme)
+const CHART_COLORS = {
+  slate: '#94a3b8', // slate-400 (todo)
+  blue: '#3b82f6',  // blue-500 (in-progress)
+  red: '#ef4444',   // red-500 (blocked)
+  green: '#10b981', // emerald-500 (completed)
+};
+
 const ProjectReport = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -108,10 +116,10 @@ const ProjectReport = () => {
                       <PieChart>
                         <Pie
                           data={[
-                            { name: 'To Do', count: project.children?.filter(t => t.status === 'todo').length || 0, fill: '#94a3b8' },
-                            { name: 'In Progress', count: project.children?.filter(t => t.status === 'in_progress').length || 0, fill: '#3b82f6' },
-                            { name: 'Blocked', count: project.children?.filter(t => t.status === 'blocked').length || 0, fill: '#ef4444' },
-                            { name: 'Completed', count: project.children?.filter(t => t.is_complete).length || 0, fill: '#10b981' },
+                            { name: 'To Do', count: project.children?.filter(t => t.status === 'todo').length || 0, fill: CHART_COLORS.slate },
+                            { name: 'In Progress', count: project.children?.filter(t => t.status === 'in_progress').length || 0, fill: CHART_COLORS.blue },
+                            { name: 'Blocked', count: project.children?.filter(t => t.status === 'blocked').length || 0, fill: CHART_COLORS.red },
+                            { name: 'Completed', count: project.children?.filter(t => t.is_complete).length || 0, fill: CHART_COLORS.green },
                           ]}
                           cx="50%"
                           cy="50%"
@@ -121,10 +129,10 @@ const ProjectReport = () => {
                           dataKey="count"
                         >
                           {[
-                            { fill: '#94a3b8' },
-                            { fill: '#3b82f6' },
-                            { fill: '#ef4444' },
-                            { fill: '#10b981' },
+                            { fill: CHART_COLORS.slate },
+                            { fill: CHART_COLORS.blue },
+                            { fill: CHART_COLORS.red },
+                            { fill: CHART_COLORS.green },
                           ].map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.fill} />
                           ))}
