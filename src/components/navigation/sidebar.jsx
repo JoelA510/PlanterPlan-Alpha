@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, onClose, currentProject }) {
                           className={cn(
                             'w-full justify-start gap-3 transition-all',
                             active
-                              ? 'bg-orange-50 text-orange-700 hover:bg-orange-100 font-medium'
+                              ? 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-medium'
                               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                           )}
                         >
@@ -108,7 +108,7 @@ export default function Sidebar({ isOpen, onClose, currentProject }) {
                     <Button
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-orange-600 hover:text-orange-700"
+                      className="h-auto p-0 text-brand-600 hover:text-brand-700"
                     >
                       View Project →
                     </Button>

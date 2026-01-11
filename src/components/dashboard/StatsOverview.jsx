@@ -25,9 +25,9 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       label: 'Completed Tasks',
       value: completedTasks,
       icon: CheckCircle2,
-      color: 'from-green-500 to-green-600',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-600',
+      color: 'from-emerald-500 to-emerald-600',
+      bgColor: 'bg-emerald-50',
+      textColor: 'text-emerald-600',
       suffix: `/ ${totalTasks}`,
     },
     {
@@ -57,7 +57,7 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
         >
-          <Card className="p-5 border border-slate-200 bg-white hover:shadow-lg hover:border-orange-200 transition-all duration-300">
+          <Card className="p-5 border border-slate-200 bg-white hover:shadow-lg hover:border-brand-200 transition-all duration-300">
             <div className="flex items-center gap-4">
               <div
                 className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center`}

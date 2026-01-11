@@ -152,7 +152,7 @@ export default function AddTaskModal({ open, onClose, onAdd, milestone, teamMemb
             <Button
               type="submit"
               disabled={!formData.title.trim() || loading}
-              className="bg-orange-500 hover:bg-orange-600"
+              className="bg-brand-500 hover:bg-brand-600"
             >
               {loading ? (
                 <>

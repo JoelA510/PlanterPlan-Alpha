@@ -15,9 +15,9 @@ const templateIcons = {
 };
 
 const statusColors = {
-  planning: 'bg-blue-100 text-blue-700',
-  in_progress: 'bg-orange-100 text-orange-700',
-  launched: 'bg-green-100 text-green-700',
+  planning: 'bg-sky-100 text-sky-700',
+  in_progress: 'bg-amber-100 text-amber-700',
+  launched: 'bg-emerald-100 text-emerald-700',
   paused: 'bg-slate-100 text-slate-700',
 };
 
@@ -31,14 +31,14 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
   return (
     <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
       <Link to={`/project/${project.id}`}>
-        <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-orange-300 cursor-pointer group bg-white">
+        <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-brand-300 cursor-pointer group bg-white">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
                 <Icon className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg text-slate-900 group-hover:text-orange-600 transition-colors">
+                <h3 className="font-semibold text-lg text-slate-900 group-hover:text-brand-600 transition-colors">
                   {project.name}
                 </h3>
                 <Badge
@@ -49,7 +49,7 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
                 </Badge>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-brand-500 group-hover:translate-x-1 transition-all" />
           </div>
 
           {project.description && (

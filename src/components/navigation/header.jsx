@@ -49,7 +49,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
             )}
 
             <Link to={createPageUrl('Home')} className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 bg-brand-500 rounded-lg flex items-center justify-center shadow-sm">
                 <CheckCircle2 className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-slate-900 text-lg">PlanterPlan</span>
@@ -76,7 +76,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                     <Avatar className="h-9 w-9 border-2 border-slate-200">
-                      <AvatarFallback className="bg-orange-100 text-orange-700 font-semibold text-sm">
+                      <AvatarFallback className="bg-brand-100 text-brand-700 font-semibold text-sm">
                         {getInitials(user.full_name || user.email)}
                       </AvatarFallback>
                     </Avatar>
@@ -101,7 +101,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                  <DropdownMenuItem onClick={handleLogout} className="text-rose-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>

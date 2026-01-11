@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { cn } from 'lib/utils';
 
 const phaseColors = {
-  1: { bg: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200' },
+  1: { bg: 'bg-sky-500', light: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200' },
   2: {
     bg: 'bg-purple-500',
     light: 'bg-purple-50',
@@ -21,16 +21,16 @@ const phaseColors = {
     border: 'border-brand-200',
   },
   4: {
-    bg: 'bg-green-500',
-    light: 'bg-green-50',
-    text: 'text-green-600',
-    border: 'border-green-200',
+    bg: 'bg-emerald-500',
+    light: 'bg-emerald-50',
+    text: 'text-emerald-600',
+    border: 'border-emerald-200',
   },
   5: {
-    bg: 'bg-yellow-500',
-    light: 'bg-yellow-50',
-    text: 'text-yellow-600',
-    border: 'border-yellow-200',
+    bg: 'bg-amber-500',
+    light: 'bg-amber-50',
+    text: 'text-amber-600',
+    border: 'border-amber-200',
   },
   6: { bg: 'bg-pink-500', light: 'bg-pink-50', text: 'text-pink-600', border: 'border-pink-200' },
 };

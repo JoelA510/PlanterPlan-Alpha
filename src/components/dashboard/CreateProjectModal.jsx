@@ -112,16 +112,16 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                   onClick={() => handleTemplateSelect(template.id)}
                   className={cn(
                     'flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left bg-white',
-                    'hover:border-orange-300 hover:bg-orange-50 hover:shadow-md',
+                    'hover:border-brand-300 hover:bg-brand-50 hover:shadow-md',
                     formData.template === template.id
-                      ? 'border-orange-500 bg-orange-50'
+                      ? 'border-brand-500 bg-brand-50'
                       : 'border-slate-200'
                   )}
                 >
                   <div
                     className={cn(
                       'w-12 h-12 rounded-xl flex items-center justify-center transition-colors',
-                      formData.template === template.id ? 'bg-orange-500' : 'bg-slate-100'
+                      formData.template === template.id ? 'bg-brand-500' : 'bg-slate-100'
                     )}
                   >
                     <template.icon
@@ -136,7 +136,7 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                     <p className="text-sm text-slate-500">{template.description}</p>
                   </div>
                   {formData.template === template.id && (
-                    <CheckCircle2 className="w-5 h-5 text-orange-500 ml-auto" />
+                    <CheckCircle2 className="w-5 h-5 text-brand-500 ml-auto" />
                   )}
                 </button>
               ))}
