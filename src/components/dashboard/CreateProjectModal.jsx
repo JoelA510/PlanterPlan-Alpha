@@ -85,7 +85,7 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg bg-white">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {step === 1 ? 'Choose a Template' : 'Project Details'}

@@ -61,7 +61,7 @@ export default function Dashboard() {
         </div>
         <Button
           onClick={() => setShowCreateModal(true)}
-          className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20"
+          className="bg-brand-500 hover:bg-brand-600 shadow-lg shadow-brand-500/20"
         >
           <Plus className="w-5 h-5 mr-2" />
           New Project
@@ -80,7 +80,7 @@ export default function Dashboard() {
 
       {loadingProjects ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
         </div>
       ) : projects.length === 0 ? (
         <motion.div
@@ -97,7 +97,7 @@ export default function Dashboard() {
           </p>
           <Button
             onClick={() => setShowCreateModal(true)}
-            className="bg-orange-500 hover:bg-orange-600"
+            className="bg-brand-500 hover:bg-brand-600"
           >
             <Plus className="w-5 h-5 mr-2" />
             Create Your First Project
