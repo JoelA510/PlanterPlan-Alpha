@@ -5,6 +5,8 @@ import { getProjectWithStats } from '@features/projects/services/projectService'
 import ProjectTasksView from '@features/tasks/components/ProjectTasksView';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@app/contexts/AuthContext';
+import DashboardLayout from '@layouts/DashboardLayout';
+import SideNav from '@features/navigation/components/SideNav';
 
 export default function Project() {
   const { id } = useParams();
@@ -45,7 +47,7 @@ export default function Project() {
   const handleDeleteById = (id) => console.log('Delete task:', id);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <DashboardLayout sidebar={<SideNav />}>
       <ProjectTasksView
         project={project}
         handleTaskClick={handleTaskClick}
@@ -58,6 +60,6 @@ export default function Project() {
         onInviteMember={() => console.log('Invite member')}
         onStatusChange={() => { }}
       />
-    </div>
+    </DashboardLayout>
   );
 }

@@ -43,11 +43,8 @@ const ProjectHeader = ({ project, onInviteMember }) => {
               Back to Dashboard
             </Link>
           </div>
-          <div className="flex-1 flex items-center gap-3 min-w-48 max-w-md ml-auto">
-            <span className="text-sm font-medium text-slate-400">Project /</span>
-          </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mt-1">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight leading-tight truncate">
               {project.title}
             </h1>
@@ -75,23 +72,6 @@ const ProjectHeader = ({ project, onInviteMember }) => {
             >
               {(project.owner_id || 'O').slice(0, 2).toUpperCase()}
             </div>
-            {/* Invite Button (Small Circle or Action) */}
-            {onInviteMember && (
-              <button
-                onClick={onInviteMember}
-                className="h-9 w-9 rounded-full bg-slate-50 border-2 border-dashed border-slate-300 text-slate-400 hover:text-brand-600 hover:border-brand-300 hover:bg-brand-50 flex items-center justify-center transition-all z-10"
-                title="Invite Member"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-              </button>
-            )}
           </div>
 
           {onInviteMember && (
