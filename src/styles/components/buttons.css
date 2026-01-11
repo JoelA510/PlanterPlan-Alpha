@@ -9,12 +9,12 @@
   border: none;
   cursor: pointer;
   transition: all 0.15s ease;
-  background: var(--accent-blue);
+  background: var(--color-brand-600);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-blue-dark);
+  background: var(--color-brand-700);
 }
 
 .btn-primary:disabled {
@@ -28,17 +28,17 @@
   font-size: 0.875rem;
   font-weight: 500;
   border-radius: 6px;
-  border: 1px solid var(--accent-blue);
+  border: 1px solid var(--color-brand-600);
   cursor: pointer;
   transition: all 0.15s ease;
   background: white;
-  color: var(--accent-blue);
+  color: var(--color-brand-600);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #eff6ff;
-  border-color: var(--accent-blue-dark);
-  color: var(--accent-blue-dark);
+  background: var(--color-slate-50, #f8fafc);
+  border-color: var(--color-brand-700);
+  color: var(--color-brand-700);
 }
 
 .btn-secondary:disabled {
@@ -54,18 +54,18 @@
   padding: 8px 16px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--accent-blue);
+  color: var(--color-brand-600);
   background: white;
-  border: 1px solid var(--accent-blue);
+  border: 1px solid var(--color-brand-600);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .btn-new-item:hover {
-  background: #eff6ff;
-  border-color: var(--accent-blue-dark);
-  color: var(--accent-blue-dark);
+  background: var(--color-slate-50, #f8fafc);
+  border-color: var(--color-brand-700);
+  color: var(--color-brand-700);
 }
 
 /* Expand Button (in task cards) */
@@ -77,13 +77,13 @@
   justify-content: center;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-white-alpha-80);
   cursor: pointer;
   border-radius: 4px;
 }
 
 .expand-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-white-alpha-10);
 }
 
 /* Dropdown Button */
@@ -95,13 +95,13 @@
   justify-content: center;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-white-alpha-80);
   cursor: pointer;
   border-radius: 4px;
 }
 
 .dropdown-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-white-alpha-10);
 }
 
 @media (max-width: 768px) {

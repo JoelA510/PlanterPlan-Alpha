@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-06 (Visual Overhaul)
+**Last verified**: 2026-01-10 (Master Review Orchestrator Execution)
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
@@ -33,90 +33,48 @@ PlanterPlan is a project management tool tailored for church planting. It allows
 
 ---
 
-## 2. Project Structure
+## 2. Project Structure (Feature-Sliced Design)
 
-### Directory Layout
+The codebase uses a modified **Feature-Sliced Design (FSD)** to enable Agentic reasoning and domain isolation.
 
 ```text
-/
-  docs/db/               # Database schemas and migrations
-  supabase/functions/    # Edge Functions (Deno/TS)
-  src/
-    ├── components/
-    │   ├── atoms/          # Basic building blocks (Buttons, Inputs, Breadcrumbs)
-    │   ├── molecules/      # Compound components (TaskItem, ProjectHeader)
-    │   ├── organisms/      # Complex sections (SideNav, TaskList)
-    │   ├── templates/      # Page layouts (TaskDetailsView)
-    │   └── reports/        # Data visualization
-    ├── contexts/           # Global state (Auth, Toast)
-    ├── hooks/              # Custom React hooks (useTaskOperations, useTreeState)
-    ├── layouts/            # Page shells (DashboardLayout)
-    ├── services/           # API interaction layer
-    ├── styles/             # CSS modules and utilities
-    └── utils/              # Helper functions
-    App.jsx              # Main routing and layout
-    supabaseClient.js    # Supabase initialization
+src/
+├── app/            # Global wiring (App.jsx, providers, router)
+├── features/       # Business domains (e.g. tasks, projects)
+│   ├── tasks/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── services/
+├── shared/         # Reusable code with NO business logic
+│   ├── lib/        # Pure functions (date-engine, formatters)
+│   └── ui/         # Dumb components (Button, Modal)
+├── pages/          # Route views composing features
+└── styles/         # Tailwind CSS v4 globals
 ```
 
 ### Where to Find Things
 
-| To change...         | Look in...                                                                                                                        |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth Logic**       | [src/contexts/AuthContext.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/contexts/AuthContext.jsx)    |
-| **Task API**         | [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js)      |
-| **Database Schema**  | [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql)                        |
-| **Task Routes**      | [src/App.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/App.jsx)                                      |
-| **Deep Clone Logic** | [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js#L216) |
+| To change...         | Look in...                                                        |
+| -------------------- | ----------------------------------------------------------------- |
+| **Auth Logic**       | [src/app/contexts/AuthContext.jsx](./src/app/contexts/AuthContext.jsx)    |
+| **Task API**         | [src/features/tasks/services/taskService.js](./src/features/tasks/services/taskService.js)      |
+| **Database Schema**  | [docs/db/schema.sql](./docs/db/schema.sql)                        |
+| **Task Routes**      | [src/app/App.jsx](./src/app/App.jsx)                                      |
+| **Deep Clone Logic** | [src/features/tasks/services/taskService.js](./src/features/tasks/services/taskService.js#L216) |
 
 ### Environment Requirements
 
-[{
-  "StartLine": 73,
-  "EndLine": 73,
-  "TargetContent": "**Required env vars**",
-  "ReplacementContent": "### Required env vars"
-}, {
-  "StartLine": 81,
-  "EndLine": 81,
-  "TargetContent": "**External dependencies**",
-  "ReplacementContent": "### External dependencies"
-}, {
-  "StartLine": 101,
-  "EndLine": 101,
-  "TargetContent": "**Repo evidence**",
-  "ReplacementContent": "#### Repo evidence"
-}, {
-  "StartLine": 117,
-  "EndLine": 117,
-  "TargetContent": "**Repo evidence**",
-  "ReplacementContent": "#### Repo evidence"
-}, {
-  "StartLine": 160,
-  "EndLine": 160,
-  "TargetContent": "**Relationships**",
-  "ReplacementContent": "#### Relationships"
-}, {
-  "StartLine": 167,
-  "EndLine": 167,
-  "TargetContent": "**Authentication**",
-  "ReplacementContent": "#### Authentication"
-}, {
-  "StartLine": 171,
-  "EndLine": 171,
-  "TargetContent": "**Data isolation**",
-  "ReplacementContent": "#### Data isolation"
-}]
 (Inferred from `src/supabaseClient.js`)
 
 ```text
-REACT_APP_SUPABASE_URL=Supabase API URL
-REACT_APP_SUPABASE_ANON_KEY=Supabase Anonymous Key
+VITE_SUPABASE_URL=Supabase API URL
+VITE_SUPABASE_ANON_KEY=Supabase Anonymous Key
 ```
 
-**External dependencies**
+### External dependencies
 
-- **Supabase** -> Auth & Database (Ref: [src/supabaseClient.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/supabaseClient.js))
-- **dnd-kit** -> Drag and Drop interactions (Ref: [package.json](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/package.json))
+- **Supabase** -> Auth & Database (Ref: [src/app/supabaseClient.js](./src/app/supabaseClient.js))
+- **dnd-kit** -> Drag and Drop interactions (Ref: [package.json](./package.json))
 
 ---
 
@@ -133,10 +91,10 @@ graph TD
     Item --> SubItem["Sub-Task"]
 ```
 
-**Repo evidence**
+#### Evidence: Hierarchy
 
-- `public.tasks` table definition -> [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L6)
-- `maintain_task_root_id` trigger -> [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L30)
+- `public.tasks` table definition -> [docs/db/schema.sql](./docs/db/schema.sql#L6)
+- `maintain_task_root_id` trigger -> [docs/db/schema.sql](./docs/db/schema.sql#L30)
 
 ### 3.2 Templates vs. Instances
 
@@ -149,7 +107,7 @@ stateDiagram-v2
     Instance --> Active: User edits instance
 ```
 
-**Repo evidence**
+#### Evidence: Templates
 
 - `origin` column -> [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L12)
 - `deepCloneTask` function -> [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js#L216)
@@ -159,7 +117,15 @@ stateDiagram-v2
 
 ## 4. Architecture
 
-### 4.1 Data Flow
+### 4.1 Tech Stack
+
+- **Frontend**: React 18, Vite, Tailwind CSS v4
+- **Testing**: Vitest, React Testing Library
+- **State**: React Context (Auth, Organization, Task)
+- **Database**: Supabase (Postgres) + Row Level Security (RLS) is enabled on `public.tasks` and `public.project_members`.
+- Ref: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` in [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L111).
+
+### 4.2 Data Flow
 
 The app interacts directly with Supabase via service modules. State is largely server-driven, with local React state for UI. Authentication is managed globally via Context.
 
@@ -174,16 +140,16 @@ flowchart LR
     Service --> App
 ```
 
-### 4.2 Component Responsibilities
+### 4.3 Component Responsibilities
 
-| Component/Module | Responsibility                                                   | Primary files                                                                                                                                    |
-| ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **AuthContext**  | Manages user session (login/logout/user object).                 | [src/contexts/AuthContext.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/contexts/AuthContext.jsx)                   |
-| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [src/services/taskService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js)                     |
-| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [src/components/organisms/TaskList.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/components/organisms/TaskList.jsx) |
-| **SideNav**      | Persistent sidebar for project navigation.                       | [src/components/organisms/SideNav.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/components/organisms/SideNav.jsx)   |
+| Component/Module | Responsibility                                                   | Primary files                                                                                                      |
+| ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **AuthContext**  | Manages user session (login/logout/user object).                 | [`src/app/contexts/AuthContext.jsx`](src/app/contexts/AuthContext.jsx)                                             |
+| **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [`src/features/tasks/services/taskService.js`](src/features/tasks/services/taskService.js)                         |
+| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [`src/features/tasks/components/organisms/TaskList.jsx`](src/features/tasks/components/organisms/TaskList.jsx)     |
+| **SideNav**      | Persistent sidebar for project navigation.                       | [`src/features/projects/components/organisms/SideNav.jsx`](src/features/projects/components/organisms/SideNav.jsx) |
 
-### 4.3 Database Schema
+### 4.4 Database Schema
 
 | Table/Collection      | Purpose                                        | Key fields                                                                    |
 | --------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -192,21 +158,21 @@ flowchart LR
 | `project_members`     | Manages permissions for shared projects.       | `project_id`, `user_id`, `role`                                               |
 | `view_master_library` | Filters tasks to show only root templates.     | `*` (from tasks)                                                              |
 
-**Relationships**
+#### Relationships
 
-- `parent_task_id` -> Self-reference (Hierarchy) (Ref: [schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L8))
-- `root_id` -> Denormalized reference to the top-level project (Ref: [schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L22))
+- `parent_task_id` -> Self-reference (Hierarchy) (Ref: [schema.sql](docs/db/schema.sql#L8))
+- `root_id` -> Denormalized reference to the top-level project (Ref: [schema.sql](docs/db/schema.sql#L22))
 
-### 4.4 Security Model
+### 4.5 Security Model
 
-**Authentication**
+#### Authentication
 
-- Supabase Auth (JWT) implemented in [src/contexts/AuthContext.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/contexts/AuthContext.jsx).
+- Supabase Auth (JWT) implemented in [src/app/contexts/AuthContext.jsx](src/app/contexts/AuthContext.jsx).
 
-**Data isolation**
+#### Data isolation
 
 - RLS (Row Level Security) is enabled on `public.tasks` and `public.project_members`.
-- Ref: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` in [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql#L111).
+- Ref: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` in [docs/db/schema.sql](docs/db/schema.sql#L111).
 
 ---
 

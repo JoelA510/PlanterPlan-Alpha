@@ -1,0 +1,20 @@
+have_fun: false
+memory_config:
+  disabled: false
+code_review:
+  disable: false
+  # Maximally critical: report even low severity issues to enforce strict standards.
+  comment_severity_threshold: LOW
+  # Unlimited comments to ensure thorough review.
+  max_review_comments: -1
+pull_request_opened:
+  help: false
+  summary: true
+  code_review: true
+  include_drafts: true
+ignore_patterns:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.log"
+  - "**/.git/**"
+  - "**/coverage/**"

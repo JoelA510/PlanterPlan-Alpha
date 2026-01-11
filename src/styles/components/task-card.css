@@ -162,9 +162,9 @@
   font-weight: 500;
   color: #374151;
   font-size: 0.95rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Multi-line truncation logic */
+  @apply line-clamp-2;
+  line-height: 1.4;
 }
 
 .task-duration {
