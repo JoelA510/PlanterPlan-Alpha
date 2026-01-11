@@ -153,7 +153,7 @@ export default function TaskItem({ task, onUpdate }) {
                 Blocked
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem className="text-rose-600">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>

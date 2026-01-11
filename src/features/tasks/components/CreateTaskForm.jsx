@@ -34,7 +34,7 @@ const CreateTaskForm = ({
           </div>
 
           {lastAppliedTaskTitle && (
-            <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               Copied details from <span className="font-semibold">{lastAppliedTaskTitle}</span>.
             </div>
           )}

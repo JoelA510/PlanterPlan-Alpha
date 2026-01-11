@@ -167,11 +167,11 @@ const TaskList = () => {
   if (error) {
     return (
       <DashboardLayout sidebar={sidebarContent}>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto mt-8">
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 max-w-2xl mx-auto mt-8">
           <div className="flex items-center">
-            <div className="text-red-600 font-semibold">Error loading projects</div>
+            <div className="text-rose-600 font-semibold">Error loading projects</div>
           </div>
-          <div className="text-red-700 text-sm mt-1">{error}</div>
+          <div className="text-rose-700 text-sm mt-1">{error}</div>
         </div>
       </DashboardLayout>
     );

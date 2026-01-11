@@ -102,7 +102,7 @@ const MasterLibrarySearch = ({
       segment.isMatch ? (
         <mark
           key={`${segment.text}-${index}`}
-          className="rounded bg-yellow-200 px-0.5 text-slate-900"
+          className="rounded bg-amber-200 px-0.5 text-slate-900"
         >
           {segment.text}
         </mark>
@@ -157,7 +157,7 @@ const MasterLibrarySearch = ({
         ) : null}
 
         {error ? (
-          <div className="px-4 py-3 text-sm text-red-600">
+          <div className="px-4 py-3 text-sm text-rose-600">
             Failed to load results. Please try again.
           </div>
         ) : null}

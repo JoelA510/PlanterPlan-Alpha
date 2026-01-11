@@ -141,7 +141,7 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
         )}
       </div>
 
-      {error && <div className="mb-2 text-xs text-red-600">{error}</div>}
+      {error && <div className="mb-2 text-xs text-rose-600">{error}</div>}
 
       {/* Resource List */}
       <div className="space-y-2 mb-4">
@@ -205,13 +205,13 @@ const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
                 <button
                   title={isPrimary ? 'Primary Resource' : 'Make Primary'}
                   onClick={() => handleSetPrimary(res)}
-                  className={`p-2 rounded-md transition-colors ${isPrimary ? 'text-yellow-500 bg-yellow-50' : 'text-slate-300 hover:text-yellow-500 hover:bg-slate-50'}`}
+                  className={`p-2 rounded-md transition-colors ${isPrimary ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-amber-500 hover:bg-slate-50'}`}
                 >
                   <span className="text-lg leading-none">★</span>
                 </button>
                 <button
                   onClick={() => handleDelete(res.id)}
-                  className="p-2 rounded-md text-slate-300 hover:text-red-600 hover:bg-slate-50 transition-colors"
+                  className="p-2 rounded-md text-slate-300 hover:text-rose-600 hover:bg-slate-50 transition-colors"
                   title="Delete"
                 >
                   <span className="text-lg leading-none">🗑</span>

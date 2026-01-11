@@ -101,7 +101,7 @@ const ProjectTasksView = ({
             </div>
 
             {hydrationError && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div className="mb-4 p-4 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-sm">
                     {hydrationError}
                 </div>
             )}

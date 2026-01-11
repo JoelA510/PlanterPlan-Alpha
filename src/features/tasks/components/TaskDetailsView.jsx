@@ -102,7 +102,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       {task.notes && (
         <div className="detail-section mb-6">
           <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Notes</h3>
-          <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-slate-700 text-sm italic">
+          <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-slate-700 text-sm italic">
             {task.notes}
           </div>
         </div>

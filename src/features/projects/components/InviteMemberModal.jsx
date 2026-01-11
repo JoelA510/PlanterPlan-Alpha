@@ -77,9 +77,9 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
           Invite a user to <strong>{project.title}</strong>
         </p>
 
-        {error && <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+        {error && <div className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-600">{error}</div>}
         {success && (
-          <div className="mt-4 rounded-md bg-green-50 p-3 text-sm text-green-600">
+          <div className="mt-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-600">
             Invitation sent successfully!
           </div>
         )}

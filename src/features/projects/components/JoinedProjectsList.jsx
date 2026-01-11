@@ -12,7 +12,7 @@ const JoinedProjectsList = ({ projects, error, handleTaskClick, selectedTaskId }
         </div>
       </div>
       {error ? (
-        <div className="text-sm text-red-400 px-3 py-4">{error}</div>
+        <div className="text-sm text-rose-400 px-3 py-4">{error}</div>
       ) : projects.length > 0 ? (
         <div className="sidebar-nav-list">
           {projects.map((project) => (

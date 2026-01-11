@@ -125,7 +125,7 @@ const SideNav = ({
       {/* Main Navigation Lists (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar">
         {error && (
-          <div className="p-3 mb-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          <div className="p-3 mb-2 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg">
             ⚠️ {error}
           </div>
         )}
@@ -169,7 +169,7 @@ const SideNav = ({
             </p>
             <button
               onClick={signOut}
-              className="text-xs text-slate-500 hover:text-red-600 hover:underline transition-colors flex items-center mt-0.5"
+              className="text-xs text-slate-500 hover:text-rose-600 hover:underline transition-colors flex items-center mt-0.5"
             >
               Sign Out
             </button>

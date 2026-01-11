@@ -9,7 +9,7 @@ export default function Team() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-slate-900">Team</h1>
-          <Button className="bg-orange-500 hover:bg-orange-600">
+          <Button className="bg-brand-500 hover:bg-brand-600">
             <Plus className="w-4 h-4 mr-2" />
             Add Member
           </Button>

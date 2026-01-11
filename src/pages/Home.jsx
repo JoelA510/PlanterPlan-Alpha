@@ -18,7 +18,7 @@ export default function Home() {
           >
             <h1 className="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight mb-6">
               Plant Your Church <br />
-              <span className="text-orange-600">With Confidence</span>
+              <span className="text-brand-600">With Confidence</span>
             </h1>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto mb-10">
               The all-in-one platform for church planters to plan, launch, and grow healthy
@@ -28,7 +28,7 @@ export default function Home() {
               <Link to="/dashboard">
                 <Button
                   size="lg"
-                  className="bg-orange-500 hover:bg-orange-600 h-14 px-8 text-lg shadow-xl shadow-orange-500/20"
+                  className="bg-brand-500 hover:bg-brand-600 h-14 px-8 text-lg shadow-xl shadow-brand-500/20"
                 >
                   Get Started
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -85,10 +85,10 @@ function FeatureCard({ icon: Icon, title, description }) {
   return (
     <motion.div
       whileHover={{ y: -5 }}
-      className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-orange-200 transition-all"
+      className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-brand-200 transition-all"
     >
-      <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-6">
-        <Icon className="w-6 h-6 text-orange-600" />
+      <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center mb-6">
+        <Icon className="w-6 h-6 text-brand-600" />
       </div>
       <h3 className="text-xl font-bold text-slate-900 mb-3">{title}</h3>
       <p className="text-slate-600 leading-relaxed">{description}</p>

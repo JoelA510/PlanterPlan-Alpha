@@ -51,7 +51,7 @@ const LoginForm = () => {
         <form className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit}>
           <div className="space-y-6">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded">
                 {error}
               </div>
             )}
