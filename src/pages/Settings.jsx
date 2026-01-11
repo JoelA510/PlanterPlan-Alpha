@@ -12,19 +12,24 @@ import {
 } from '@/components/ui/card';
 import DashboardLayout from '@layouts/DashboardLayout';
 import SideNav from '@features/navigation/components/SideNav';
-import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
+import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
+  const navigate = useNavigate();
+
   // Navigation Data
   const {
     instanceTasks,
     templateTasks,
     joinedProjects,
-    handleSelectProject,
-    handleNewProjectClick,
-    handleNewTemplateClick,
     loading: navLoading
   } = useTaskOperations();
+
+  // Handlers for SideNav
+  const handleSelectProject = (project) => navigate(`/project/${project.id}`);
+  const handleNewProjectClick = () => navigate('/dashboard');
+  const handleNewTemplateClick = () => { };
+
 
   return (
     <DashboardLayout sidebar={<SideNav
