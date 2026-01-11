@@ -69,19 +69,19 @@ export default function Reports() {
 
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    // Semantic chart colors (from CSS theme)
+    // Semantic chart colors (aligned with Rule 30 Design Standards)
     const chartColors = {
-      slate: '#94a3b8', // slate-400
-      blue: '#3b82f6',  // blue-500 (in-progress)
-      red: '#ef4444',   // red-500 (blocked)
-      green: '#10b981', // emerald-500 (completed)
+      slate: '#94a3b8',   // slate-400 (todo)
+      amber: '#f59e0b',   // amber-500 (in-progress)
+      rose: '#f43f5e',    // rose-500 (blocked)
+      emerald: '#10b981', // emerald-500 (completed)
     };
 
     const chartData = [
       { name: 'To Do', count: todo, color: chartColors.slate },
-      { name: 'In Progress', count: inProgress, color: chartColors.blue },
-      { name: 'Blocked', count: blocked, color: chartColors.red },
-      { name: 'Completed', count: completed, color: chartColors.green },
+      { name: 'In Progress', count: inProgress, color: chartColors.amber },
+      { name: 'Blocked', count: blocked, color: chartColors.rose },
+      { name: 'Completed', count: completed, color: chartColors.emerald },
     ];
 
     return { total, completed, completionRate, chartData };

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import TaskResources from '@features/tasks/components/TaskResources';
 import { formatDisplayDate } from '@shared/lib/date-engine';
 

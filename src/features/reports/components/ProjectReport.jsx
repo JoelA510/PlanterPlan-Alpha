@@ -8,12 +8,12 @@ import { getProjectWithStats } from '@features/projects/services/projectService'
 import { Loader2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
-// Semantic chart colors (from CSS theme)
+// Semantic chart colors (aligned with Rule 30 Design Standards)
 const CHART_COLORS = {
-  slate: '#94a3b8', // slate-400 (todo)
-  blue: '#3b82f6',  // blue-500 (in-progress)
-  red: '#ef4444',   // red-500 (blocked)
-  green: '#10b981', // emerald-500 (completed)
+  slate: '#94a3b8',   // slate-400 (todo)
+  amber: '#f59e0b',   // amber-500 (in-progress)
+  rose: '#f43f5e',    // rose-500 (blocked)
+  emerald: '#10b981', // emerald-500 (completed)
 };
 
 const ProjectReport = () => {
@@ -117,9 +117,9 @@ const ProjectReport = () => {
                         <Pie
                           data={[
                             { name: 'To Do', count: project.children?.filter(t => t.status === 'todo').length || 0, fill: CHART_COLORS.slate },
-                            { name: 'In Progress', count: project.children?.filter(t => t.status === 'in_progress').length || 0, fill: CHART_COLORS.blue },
-                            { name: 'Blocked', count: project.children?.filter(t => t.status === 'blocked').length || 0, fill: CHART_COLORS.red },
-                            { name: 'Completed', count: project.children?.filter(t => t.is_complete).length || 0, fill: CHART_COLORS.green },
+                            { name: 'In Progress', count: project.children?.filter(t => t.status === 'in_progress').length || 0, fill: CHART_COLORS.amber },
+                            { name: 'Blocked', count: project.children?.filter(t => t.status === 'blocked').length || 0, fill: CHART_COLORS.rose },
+                            { name: 'Completed', count: project.children?.filter(t => t.is_complete).length || 0, fill: CHART_COLORS.emerald },
                           ]}
                           cx="50%"
                           cy="50%"
@@ -130,9 +130,9 @@ const ProjectReport = () => {
                         >
                           {[
                             { fill: CHART_COLORS.slate },
-                            { fill: CHART_COLORS.blue },
-                            { fill: CHART_COLORS.red },
-                            { fill: CHART_COLORS.green },
+                            { fill: CHART_COLORS.amber },
+                            { fill: CHART_COLORS.rose },
+                            { fill: CHART_COLORS.emerald },
                           ].map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.fill} />
                           ))}

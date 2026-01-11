@@ -1,4 +1,4 @@
-import React from 'react';
+
 import PropTypes from 'prop-types';
 
 const GlobalNavItem = ({ isActive, onClick, label, icon }) => (
