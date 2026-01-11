@@ -856,3 +856,22 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Context & Problem**: `React.memo` and `forwardRef` components lose their inferred names in DevTools (showing as `Anonymous`), and strict linting enforces `react/display-name`.
 - **Solution & Pattern**: Explicitly assign `Component.displayName = 'Component'` after definition, or use named functions inside the wrapper: `memo(function MyComp() { ... })`.
 - **Critical Rule**: Higher-Order Components (memo, forwardRef) require explicit naming or displayNames for proper debugging.
+
+## [ARC-042] Agent-Induced Syntax Injection (The "Backtick" Bug)
+
+- **Tags**: #dx, #agent, #human-review
+- **Date**: 2026-01-10
+- **Context & Problem**: A critical production-blocking syntax error was introduced into `src/main.jsx`. The file contained markdown grouping backticks inside the source code, causing the build to fail silently (rendering a white screen).
+- **Solution & Pattern**:
+  - **Strict Tool Usage**: When using `write_to_file` or `replace_file_content`, ensure the content string *excludes* markdown formatting wrappers unless writing to a `.md` file.
+  - **Verification**: Always run an adversarial browser test or build check after "simple" file rewrites.
+- **Critical Rule**: Source code is not markdown. Double-check that code blocks strips formatting boundaries before writing to disk.
+
+## [UI-043] Layout-Driven Navigation State
+- **Tags**: #ui, #react, #navigation
+- **Date**: 2026-01-10
+- **Context & Problem**: The Sidebar vanished from the Dashboard after refactoring. The root cause was `Dashboard.jsx` rendering `SideNav` directly instead of using the wrapper `DashboardLayout`.
+- **Solution & Pattern**:
+  - **Inversion of Control**: The Page component (`Dashboard`) delegates layout responsibility to `DashboardLayout`.
+  - **Prop Drilling**: `DashboardLayout` injects the `onNavClick` handler (for mobile closing) into the `sidebar` prop element via `React.cloneElement`.
+- **Critical Rule**: If a layout manages mobile state (open/close), the Page *must* use that layout wrapper to ensure the navigation component receives the state-closing handlers.
