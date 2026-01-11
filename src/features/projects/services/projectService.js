@@ -1,4 +1,99 @@
-import { base44 } from 'api/base44Client';
+import { planter } from 'api/planterClient';
+import { supabase } from '@app/supabaseClient';
+
+// --- Membership ---
+
+export async function inviteMember(projectId, userId, role) {
+  return await planter.entities.Project.addMember(projectId, userId, role);
+}
+
+export async function inviteMemberByEmail(projectId, email, role) {
+  return await planter.entities.Project.addMemberByEmail(projectId, email, role);
+}
+
+// --- Projects (Queries) ---
+
+export async function getUserProjects(userId, page = 1, pageSize = 20) {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('owner_id', userId)
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (error) throw error;
+  return { data, error: null };
+}
+
+export async function getJoinedProjects(userId) {
+  const { data, error } = await supabase
+    .from('project_members')
+    .select('project:projects(*)')
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  // Flatten result and filter out nulls
+  return {
+    data: data.map(item => item.project).filter(p => p !== null),
+    error: null
+  };
+}
+
+export async function getProjectWithStats(projectId) {
+  // Fetch Project
+  const { data: project, error: projError } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('id', projectId)
+    .single();
+
+  if (projError) throw projError;
+
+  // Fetch Tasks for Stats (Naive count)
+  // Note: 'tasks' table should exist.
+  const { count: totalTasks, error: totalError } = await supabase
+    .from('tasks')
+    .select('id', { count: 'exact', head: true })
+    .eq('project_id', projectId);
+
+  const { count: completedTasks, error: completedError } = await supabase
+    .from('tasks')
+    .select('id', { count: 'exact', head: true })
+    .eq('project_id', projectId)
+    .eq('status', 'complete'); // Assuming 'complete' status
+
+  if (totalError || completedError) console.warn('Stats fetch error', totalError, completedError);
+
+  // Mock children for Report UI if real children fetching is complex here
+  // But ProjectReport.jsx accesses project.children.length.
+  // So we should probably fetch children?
+  // ProjectReprot.jsx Line 85: project.children?.length
+  // So we need to return 'children' array.
+
+  // Fetch ALL children? Might be heavy. But Report expects it.
+  const { data: children, error: childrenError } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('project_id', projectId);
+
+  return {
+    data: {
+      ...project,
+      children: children || [],
+      stats: {
+        totalTasks: totalTasks || 0,
+        completedTasks: completedTasks || 0,
+        progress: totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0
+      }
+    },
+    error: null // return { data, error } signature
+  };
+}
+
+// --- Projects (Mutations) ---
 
 /**
  * Creates a new project with default phases, milestones, and tasks.
@@ -6,7 +101,7 @@ import { base44 } from 'api/base44Client';
  * @returns {Promise<Object>} - The created project object
  */
 export async function createProjectWithDefaults(projectData) {
-  const project = await base44.entities.Project.create({
+  const project = await planter.entities.Project.create({
     ...projectData,
     launch_date: projectData.launch_date
       ? projectData.launch_date.toISOString().split('T')[0]
@@ -59,7 +154,7 @@ export async function createProjectWithDefaults(projectData) {
   ];
 
   for (const phase of defaultPhases) {
-    const createdPhase = await base44.entities.Phase.create({
+    const createdPhase = await planter.entities.Phase.create({
       ...phase,
       project_id: project.id,
     });
@@ -67,7 +162,7 @@ export async function createProjectWithDefaults(projectData) {
     // Create default milestones for each phase
     const milestones = getMilestonesForPhase(phase.order);
     for (const milestone of milestones) {
-      const createdMilestone = await base44.entities.Milestone.create({
+      const createdMilestone = await planter.entities.Milestone.create({
         ...milestone,
         phase_id: createdPhase.id,
         project_id: project.id,
@@ -76,7 +171,7 @@ export async function createProjectWithDefaults(projectData) {
       // Create default tasks for each milestone
       const tasks = getTasksForMilestone(milestone.order, phase.order);
       for (const task of tasks) {
-        await base44.entities.Task.create({
+        await planter.entities.Task.create({
           ...task,
           milestone_id: createdMilestone.id,
           phase_id: createdPhase.id,

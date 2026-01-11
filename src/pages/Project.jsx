@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from 'api/base44Client';
+import { planter } from 'api/planterClient';
 import { Card, CardContent, CardHeader, CardTitle } from 'components/ui/card';
 import { Badge } from 'components/ui/badge';
 import { Loader2, Calendar, MapPin } from 'lucide-react';
@@ -12,7 +12,7 @@ export default function Project() {
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', id],
-    queryFn: () => base44.entities.Project.get(id),
+    queryFn: () => planter.entities.Project.get(id),
     enabled: !!id,
   });
 

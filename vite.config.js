@@ -17,7 +17,7 @@ export default defineConfig({
             '@pages': path.resolve(__dirname, './src/pages'),
             '@shared': path.resolve(__dirname, './src/shared'),
             '@layouts': path.resolve(__dirname, './src/layouts'),
-            // Stashed aliases (for compatibility with new Base44 components)
+            // Stashed aliases (for compatibility with new Planter components)
             '@': path.resolve(__dirname, './src'),
             'components': path.resolve(__dirname, './src/components'),
             'pages': path.resolve(__dirname, './src/pages'),

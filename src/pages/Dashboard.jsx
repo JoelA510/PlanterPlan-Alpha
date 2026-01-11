@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from 'api/base44Client';
+import { planter } from 'api/planterClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from 'components/ui/button';
 import { Plus, FolderKanban, Loader2 } from 'lucide-react';
@@ -22,17 +22,17 @@ export default function Dashboard() {
 
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['projects'],
-    queryFn: () => base44.entities.Project.list('-created_date'),
+    queryFn: () => planter.entities.Project.list('-created_date'),
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks'],
-    queryFn: () => base44.entities.Task.list(),
+    queryFn: () => planter.entities.Task.list(),
   });
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['teamMembers'],
-    queryFn: () => base44.entities.TeamMember.list(),
+    queryFn: () => planter.entities.TeamMember.list(),
   });
 
   const createProjectMutation = useMutation({

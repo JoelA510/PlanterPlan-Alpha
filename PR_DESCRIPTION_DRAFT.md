@@ -2,11 +2,11 @@
 # 🚀 Feature: Vite & Tailwind v4 Infrastructure Migration
 
 ## 📋 Summary
-This PR executes a massive infrastructure modernization, migrating the entire codebase from Create React App (Webpack 5) to **Vite** and upgrading from Tailwind CSS v3 to **Tailwind CSS v4**. It also integrates the **Base44** feature set (Premium Dashboard, Projects, Reports) into the main application structure, hybridizing legacy features with new architectural patterns.
+This PR executes a massive infrastructure modernization, migrating the entire codebase from Create React App (Webpack 5) to **Vite** and upgrading from Tailwind CSS v3 to **Tailwind CSS v4**. It also integrates the **Planter** feature set (Premium Dashboard, Projects, Reports) into the main application structure, hybridizing legacy features with new architectural patterns.
 
 - **Fast Build Chain**: Replaced `react-scripts` with `vite` (dev start <300ms vs 30s).
 - **Modern Styling**: Adopted Tailwind v4 (CSS-first configuration via `@theme`) and standardized the Design System (Slate/Brand colors).
-- **Feature Convergence**: Merged "Session Work" (Base44 components) into the upstream `feature/infrastructure/vite-migration-v2` branch.
+- **Feature Convergence**: Merged "Session Work" (Planter components) into the upstream `feature/infrastructure/vite-migration-v2` branch.
 - **Quality Assurance**: Fixed critical regressions (Sidebar navigation, Layout wiring) and passed adversarial browser verification.
 
 > [!IMPORTANT]
@@ -18,7 +18,7 @@ This PR executes a massive infrastructure modernization, migrating the entire co
 | :--- | :--- | :--- | :--- |
 | ✅ | **INFRA-VITE** | Vite Migration | Migrate from CRA to Vite for faster HMR & Builds |
 | ✅ | **INFRA-TW4** | Tailwind v4 | Upgrade to Tailwind v4 with CSS-native config |
-| ✅ | **FE-BASE44** | Base44 Integration | Merge Premium features (Dashboard, Reports) |
+| ✅ | **FE-PLANTER** | Planter Integration | Merge Premium features (Dashboard, Reports) |
 | ✅ | **UX-NAV** | Responsive Navigation | Fix Sidebar mobile interactions and persistence |
 
 ## 🏗️ Architecture Decisions

@@ -11,20 +11,20 @@ import {
 } from 'components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from 'components/ui/avatar';
 import { CheckCircle2, Home, LayoutDashboard, User, Settings, LogOut, Menu } from 'lucide-react';
-import { base44 } from 'api/base44Client';
+import { planter } from 'api/planterClient';
 
 export default function Header({ onMenuToggle, showMenuButton = false }) {
   const [user, setUser] = React.useState(null);
 
   React.useEffect(() => {
-    base44.auth
+    planter.auth
       .me()
       .then(setUser)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleLogout = async () => {
-    await base44.auth.logout();
+    await planter.auth.logout();
   };
 
   const getInitials = (name) => {
