@@ -240,6 +240,26 @@ export const useTaskMutations = ({
     [tasks, joinedProjects, hydratedProjects, fetchProjects, refreshProjectDetails, findTask]
   );
 
+  /* Helper to refresh the appropriate context (Root Project or Global List) */
+  const _refreshTaskContext = useCallback(
+    async (task) => {
+      // If we have a task object, try to find its root project
+      if (task) {
+        const rootId =
+          task.root_id || (task.parent_task_id ? findTask(task.parent_task_id)?.root_id : null);
+
+        // If it belongs to a project tree, refresh that project's details
+        if (rootId) {
+          await refreshProjectDetails(rootId);
+          return;
+        }
+      }
+      // Fallback: Refresh the global/flat list if no root context found or if it's a root
+      await fetchTasks();
+    },
+    [findTask, refreshProjectDetails, fetchTasks]
+  );
+
   const deleteTask = useCallback(
     async (taskOrId) => {
       try {
@@ -249,20 +269,13 @@ export const useTaskMutations = ({
         const { error: deleteError } = await supabase.from('tasks').delete().eq('id', taskId);
         if (deleteError) throw deleteError;
 
-        if (task && (task.root_id || task.parent_task_id)) {
-          // If we have context, refresh the root
-          const root = task.root_id || (task.parent_task_id ? findTask(task.parent_task_id)?.root_id : null);
-          if (root) await refreshProjectDetails(root);
-          else await fetchTasks(); // Fallback
-        } else {
-          await fetchTasks();
-        }
+        await _refreshTaskContext(task);
       } catch (error) {
         console.error('Error deleting task:', error);
         throw error;
       }
     },
-    [fetchTasks, findTask, refreshProjectDetails]
+    [findTask, _refreshTaskContext]
   );
 
   const updateTask = useCallback(
@@ -272,19 +285,13 @@ export const useTaskMutations = ({
         const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
         if (error) throw error;
 
-        if (task && (task.root_id || task.parent_task_id)) {
-          const root = task.root_id || (task.parent_task_id ? findTask(task.parent_task_id)?.root_id : null);
-          if (root) await refreshProjectDetails(root);
-          else await fetchTasks();
-        } else {
-          await fetchTasks();
-        }
+        await _refreshTaskContext(task);
       } catch (error) {
         console.error('Error updating task:', error);
         throw error;
       }
     },
-    [fetchTasks, findTask, refreshProjectDetails]
+    [findTask, _refreshTaskContext]
   );
 
   return {

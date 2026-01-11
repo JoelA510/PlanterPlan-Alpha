@@ -1,154 +1,147 @@
-import { supabase } from '@app/supabaseClient';
-import { ROLES } from '@app/constants/index';
-
-export const getUserProjects = async (userId, page = 1, pageSize = 10, client = supabase) => {
-  try {
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    // Fetch root projects (tasks with origin='instance' and parent_task_id=null)
-    const { data, count, error } = await client
-      .from('tasks_with_primary_resource')
-      .select('*', { count: 'exact' })
-      .eq('creator', userId)
-      .eq('origin', 'instance')
-      .is('parent_task_id', null)
-      .order('updated_at', { ascending: false }) // Sort by recently updated
-      .range(from, to);
-
-    if (error) throw error;
-
-    return { data, count, error: null };
-  } catch (error) {
-    console.error('[projectService.getUserProjects] Error:', error);
-    return { data: null, count: 0, error };
-  }
-};
-
-export const getJoinedProjects = async (userId, client = supabase) => {
-  try {
-    // 1. Get project IDs where the user is a member
-    const { data: memberships, error: memberError } = await client
-      .from('project_members')
-      .select('project_id, role')
-      .eq('user_id', userId);
-
-    if (memberError) throw memberError;
-
-    if (!memberships || memberships.length === 0) {
-      return { data: [], error: null };
-    }
-
-    const projectIds = memberships.map((m) => m.project_id);
-
-    // 2. Fetch the actual project tasks
-    const { data: projects, error: projectError } = await client
-      .from('tasks')
-      .select('*')
-      .in('id', projectIds)
-      .order('updated_at', { ascending: false });
-
-    if (projectError) throw projectError;
-
-    // 3. Filter out projects created by the user (they appear in "My Projects")
-    //    This prevents duplicates when a user creates a project and is also a member.
-    const filteredProjects = projects.filter((project) => project.creator !== userId);
-
-    // 4. Merge role info into the project objects for UI display
-    const joinedProjects = filteredProjects.map((project) => {
-      const membership = memberships.find((m) => m.project_id === project.id);
-      return {
-        ...project,
-        membership_role: membership?.role || ROLES.VIEWER,
-      };
-    });
-
-    return { data: joinedProjects, error: null };
-  } catch (error) {
-    console.error('[projectService.getJoinedProjects] Error:', error);
-    return { data: null, error };
-  }
-};
-
-export const inviteMember = async (projectId, userId, role = ROLES.VIEWER, client = supabase) => {
-  try {
-    // Check if membership already exists?
-    // Depending on RLS and constraints, we might just upsert or insert.
-    // Let's assume insert.
-    // Fix SEC-05: Use upsert to handle duplicates idempotently
-    // Fix SEC-04: Remove client-side 'joined_at' (let DB default handle it)
-    const { data, error } = await client
-      .from('project_members')
-      .upsert(
-        {
-          project_id: projectId,
-          user_id: userId,
-          role,
-        },
-        { onConflict: 'project_id, user_id' }
-      )
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return { data, error: null };
-  } catch (error) {
-    console.error('[projectService.inviteMember] Error:', error);
-    return { data: null, error };
-  }
-};
-
-export const inviteMemberByEmail = async (
-  projectId,
-  email,
-  role = ROLES.VIEWER,
-  client = supabase
-) => {
-  try {
-    const { data, error } = await client.functions.invoke('invite-by-email', {
-      body: { projectId, email, role },
-      method: 'POST',
-    });
-
-    if (error) {
-      console.error('[projectService.inviteMemberByEmail] Edge Function Error:', error);
-      throw error;
-    }
-
-    // The edge function might return 200 OK but with { error: "..." } in the body
-    if (data && data.error) {
-      console.warn('[projectService.inviteMemberByEmail] Logical Error:', data.error);
-      const msg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
-      throw new Error(msg);
-    }
-
-    return { data, error: null };
-  } catch (error) {
-    console.error('[projectService.inviteMemberByEmail] Exception:', error);
-    // Return the error object directly so the UI can extract .message
-    return { data: null, error };
-  }
-};
+import { base44 } from 'api/base44Client';
 
 /**
- * Fetches a single project with its tasks for reporting.
- * @param {string} projectId 
- * @param {object} client 
- * @returns {Promise<{data: any, error: any}>}
+ * Creates a new project with default phases, milestones, and tasks.
+ * @param {Object} projectData - The project data (name, launch_date, etc.)
+ * @returns {Promise<Object>} - The created project object
  */
-export const getProjectWithStats = async (projectId, client = supabase) => {
-  try {
-    const { data, error } = await client
-      .from('tasks')
-      .select('id, title, description, status, owner_id, children:tasks(id, is_complete)') // Explicitly select columns
-      .eq('id', projectId)
-      .single();
+export async function createProjectWithDefaults(projectData) {
+  const project = await base44.entities.Project.create({
+    ...projectData,
+    launch_date: projectData.launch_date
+      ? projectData.launch_date.toISOString().split('T')[0]
+      : null,
+  });
 
-    if (error) throw error;
-    return { data, error: null };
-  } catch (error) {
-    console.error('[projectService.getProjectWithStats] Error:', error);
-    return { data: null, error };
+  // Create default phases for the project
+  const defaultPhases = [
+    {
+      name: 'Discovery',
+      description: 'Assess calling, gather resources, build foundation',
+      order: 1,
+      icon: 'compass',
+      color: 'blue',
+    },
+    {
+      name: 'Planning',
+      description: 'Develop strategy, vision, and initial team',
+      order: 2,
+      icon: 'map',
+      color: 'purple',
+    },
+    {
+      name: 'Preparation',
+      description: 'Build systems, recruit team, prepare for launch',
+      order: 3,
+      icon: 'wrench',
+      color: 'orange',
+    },
+    {
+      name: 'Pre-Launch',
+      description: 'Final preparations, preview services, marketing',
+      order: 4,
+      icon: 'rocket',
+      color: 'green',
+    },
+    {
+      name: 'Launch',
+      description: 'Grand opening and initial growth phase',
+      order: 5,
+      icon: 'yellow',
+    },
+    {
+      name: 'Growth',
+      description: 'Establish systems, develop leaders, expand reach',
+      order: 6,
+      icon: 'trending-up',
+      color: 'pink',
+    },
+  ];
+
+  for (const phase of defaultPhases) {
+    const createdPhase = await base44.entities.Phase.create({
+      ...phase,
+      project_id: project.id,
+    });
+
+    // Create default milestones for each phase
+    const milestones = getMilestonesForPhase(phase.order);
+    for (const milestone of milestones) {
+      const createdMilestone = await base44.entities.Milestone.create({
+        ...milestone,
+        phase_id: createdPhase.id,
+        project_id: project.id,
+      });
+
+      // Create default tasks for each milestone
+      const tasks = getTasksForMilestone(milestone.order, phase.order);
+      for (const task of tasks) {
+        await base44.entities.Task.create({
+          ...task,
+          milestone_id: createdMilestone.id,
+          phase_id: createdPhase.id,
+          project_id: project.id,
+        });
+      }
+    }
   }
-};
+
+  return project;
+}
+
+// Helper functions to generate default milestones and tasks
+function getMilestonesForPhase(phaseOrder) {
+  const milestonesMap = {
+    1: [
+      { name: 'Personal Assessment', order: 1, description: 'Evaluate your calling and readiness' },
+      { name: 'Family Preparation', order: 2, description: 'Prepare your family for the journey' },
+      {
+        name: 'Resource Gathering',
+        order: 3,
+        description: 'Identify available resources and support',
+      },
+    ],
+    2: [
+      { name: 'Vision Development', order: 1, description: 'Clarify your vision and mission' },
+      { name: 'Strategic Planning', order: 2, description: 'Develop your launch strategy' },
+      { name: 'Core Team Building', order: 3, description: 'Recruit and develop your core team' },
+    ],
+    3: [
+      { name: 'Systems Setup', order: 1, description: 'Establish operational systems' },
+      { name: 'Facility Planning', order: 2, description: 'Secure meeting location' },
+      { name: 'Ministry Development', order: 3, description: 'Develop key ministry areas' },
+    ],
+    4: [
+      { name: 'Preview Services', order: 1, description: 'Host preview gatherings' },
+      { name: 'Marketing Launch', order: 2, description: 'Begin community outreach' },
+      { name: 'Final Preparations', order: 3, description: 'Complete all launch requirements' },
+    ],
+    5: [
+      { name: 'Launch Week', order: 1, description: 'Execute your launch plan' },
+      { name: 'First Month', order: 2, description: 'Establish weekly rhythms' },
+      { name: 'Guest Follow-up', order: 3, description: 'Connect with visitors' },
+    ],
+    6: [
+      { name: 'Leadership Development', order: 1, description: 'Train and empower leaders' },
+      { name: 'Ministry Expansion', order: 2, description: 'Launch additional ministries' },
+      { name: 'Future Planning', order: 3, description: 'Plan for multiplication' },
+    ],
+  };
+  return milestonesMap[phaseOrder] || [];
+}
+
+function getTasksForMilestone(milestoneOrder, _phaseOrder) {
+  // Return a few sample tasks for each milestone
+  const taskTemplates = [
+    { title: 'Review and complete assessment', priority: 'high' },
+    { title: 'Schedule planning meeting', priority: 'medium' },
+    { title: 'Create action items list', priority: 'medium' },
+    { title: 'Follow up on pending items', priority: 'low' },
+  ];
+
+  return taskTemplates.slice(0, 2 + (milestoneOrder % 2)).map((task, index) => ({
+    ...task,
+    order: index + 1,
+    status: 'not_started',
+  }));
+}

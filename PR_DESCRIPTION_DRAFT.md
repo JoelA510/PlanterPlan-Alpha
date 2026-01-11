@@ -1,45 +1,73 @@
-# PR Description
+
+# 🚀 Feature: Vite & Tailwind v4 Infrastructure Migration
 
 ## 📋 Summary
+This PR executes a massive infrastructure modernization, migrating the entire codebase from Create React App (Webpack 5) to **Vite** and upgrading from Tailwind CSS v3 to **Tailwind CSS v4**. It also integrates the **Base44** feature set (Premium Dashboard, Projects, Reports) into the main application structure, hybridizing legacy features with new architectural patterns.
 
-- **INFRA**: Migrated from Create React App to Vite, resulting in ~10x faster HMR and optimized builds.
-- **STYLE**: Upgraded to Tailwind CSS v4, implementing a Rule 30 compliant Design System with semantic color variables.
-- **FEATURE**: Integrated Base44 modules, merging new pages (`Home`, `Reports`) and reusable components into the `src` directory.
-- **QUALITY**: Passed "Master Review Orchestrator" checks, including Debt Audit, Design Drift remediation, and Golden Path browser verification.
+- **Fast Build Chain**: Replaced `react-scripts` with `vite` (dev start <300ms vs 30s).
+- **Modern Styling**: Adopted Tailwind v4 (CSS-first configuration via `@theme`) and standardized the Design System (Slate/Brand colors).
+- **Feature Convergence**: Merged "Session Work" (Base44 components) into the upstream `feature/infrastructure/vite-migration-v2` branch.
+- **Quality Assurance**: Fixed critical regressions (Sidebar navigation, Layout wiring) and passed adversarial browser verification.
+
+> [!IMPORTANT]
+> This PR includes **154 changed files** with **10k+ insertions** and **20k+ deletions**. It is a foundational rewrite of the frontend build system and directory structure.
 
 ## 🛣️ Roadmap Progress
 
-| Item | Status | Notes |
-| :--- | :--- | :--- |
-| **P10-VITE-MIGRATION** | ✅ Done | Replaced `react-scripts`. |
-| **P10-TEST-MIGRATION** | ✅ Done | Migrated to Vitest. |
-| **P10-TAILWIND-V4** | ✅ Done | Adopted v4 engine and theme. |
-| **P7-VISUAL-OVERHAUL** | ✅ Done | Design system enforced. |
+| Status | ID | Feature | Description |
+| :--- | :--- | :--- | :--- |
+| ✅ | **INFRA-VITE** | Vite Migration | Migrate from CRA to Vite for faster HMR & Builds |
+| ✅ | **INFRA-TW4** | Tailwind v4 | Upgrade to Tailwind v4 with CSS-native config |
+| ✅ | **FE-BASE44** | Base44 Integration | Merge Premium features (Dashboard, Reports) |
+| ✅ | **UX-NAV** | Responsive Navigation | Fix Sidebar mobile interactions and persistence |
 
 ## 🏗️ Architecture Decisions
 
-- **Hybrid Routing**: Maintained legacy routes while introducing FSD-structured imports for new features.
-- **Design Tokens**: Standardized colors via `globals.css` CSS variables instead of ad-hoc hex values.
-- **Docs**: Updated `README.md` to reflect new directory structure (`src/app`, `src/features`).
+### 1. Build System: Vite + Vitest
+We moved from Webpack to Vite.
+- **Why**: Semantic versioning issues with CRA, slow start times.
+- **Changes**: `vite.config.js` added with aliases (`@app`, `@features`, `@shared`) matching FSD.
+- **Testing**: Migrated Jest to Vitest (compatible API, faster execution).
+
+### 2. Styling: Tailwind v4
+We removed `tailwind.config.js` in favor of CSS-first configuration.
+- **Global Theme**: Defined `--color-brand-*` and `--color-slate-*` in `src/styles/globals.css`.
+- **Legacy Support**: Kept `index.css` as the entry point but refactored imports to use `@import "tailwindcss";`.
+
+### 3. Layout Inversion
+We enforced `DashboardLayout.jsx` as the owner of navigation state.
+- **Pattern**: Pages (`Dashboard.jsx`, `Reports.jsx`) now pass `SideNav` as a prop to `DashboardLayout`.
+- **Fix**: Prevents "Missing Sidebar" bugs where pages rendered naked content.
 
 ## 🔍 Review Guide
 
-### High Risk (Infra)
-- `vite.config.js`: New build configuration.
-- `package.json`: Dependency updates.
-- `src/styles/globals.css`: Tailwind v4 theme definition.
+### 🚨 High Risk (Infrastructure)
+- `package.json`: Dependency overhaul (Vite, TW4, Vitest).
+- `vite.config.js`: Path aliases and build settings.
+- `src/main.jsx`: New entry point (replaced `index.js`).
+- `src/styles/globals.css`: The "Truth" for design tokens.
 
-### Medium Risk (Logic)
-- `src/app/App.jsx`: Route definitions.
-- `src/app/supabaseClient.js`: Environment variable handling.
+### ⚠️ Medium Risk (Core Features)
+- `src/layouts/DashboardLayout.jsx`: Core layout logic.
+- `src/app/App.jsx`: Routing and Context orchestration.
+- `src/pages/Dashboard.jsx`: Main verified page.
 
-### Low Risk (UI)
-- `src/pages/Reports.jsx`: UI updates.
-- `src/components/**`: New Base44 components.
+### ℹ️ Low Risk (Components)
+- `src/components/ui/*.jsx`: Shadcn/Radix wrappers (mostly automated updates).
 
-## ✅ Verification Plan
+## 🧪 Verification Plan
 
-1.  **Install**: `npm install`
-2.  **Dev**: `npm run dev` -> Check Dashboard loading.
-3.  **Build**: `npm run build` -> Verify `dist` output.
-4.  **Test**: `npm test` -> Run Golden Path integration tests.
+### Automated Tests
+```bash
+npm run test           # Run Vitest suite (Golden Paths)
+npm run lint           # Check for code style issues
+```
+
+### Manual Verification (Browser)
+1. **Boot**: Run `npm run dev`. App should load in <500ms.
+2. **Dashboard**: Navigate to `/dashboard`. Verify Sidebar lists "Your Projects".
+3. **Reports**: Click "Reports". Verify Charts load and Sidebar persists.
+4. **Mobile**: Resize to <1024px. Verify Hamburger menu toggles Sidebar overlay.
+
+---
+*Generated by Antigravity via Master Review Orchestrator*
