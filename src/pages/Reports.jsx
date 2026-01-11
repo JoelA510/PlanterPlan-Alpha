@@ -29,7 +29,7 @@ export default function Reports() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="tasks" fill="#f1592a" />
+                  <Bar dataKey="tasks" fill="var(--color-primary)" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -46,7 +46,7 @@ export default function Reports() {
                   <span className="text-sm text-slate-500">85% tasks completed</span>
                 </div>
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 w-[85%]" />
+                  <div className="h-full bg-brand-500 w-[85%]" />
                 </div>
               </div>
             </CardContent>

@@ -43,7 +43,7 @@ const ProjectHeader = ({ project, onInviteMember }) => {
               Back to Dashboard
             </Link>
           </div>
-          <div className="flex items-center gap-2 mt-1 mb-1">
+          <div className="flex-1 flex items-center gap-3 min-w-48 max-w-md ml-auto">
             <span className="text-sm font-medium text-slate-400">Project /</span>
           </div>
 

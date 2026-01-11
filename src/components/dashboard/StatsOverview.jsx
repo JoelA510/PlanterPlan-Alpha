@@ -17,9 +17,9 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       label: 'Total Projects',
       value: totalProjects,
       icon: FolderKanban,
-      color: 'from-blue-500 to-blue-600',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-600',
+      color: 'from-brand-500 to-brand-600',
+      bgColor: 'bg-brand-50',
+      textColor: 'text-brand-600',
     },
     {
       label: 'Completed Tasks',

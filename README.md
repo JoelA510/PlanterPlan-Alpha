@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-09 (Master Review Orchestrator Execution)
+**Last verified**: 2026-01-10 (Master Review Orchestrator Execution)
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
@@ -56,11 +56,11 @@ src/
 
 | To change...         | Look in...                                                        |
 | -------------------- | ----------------------------------------------------------------- |
-| **Auth Logic**       | [src/contexts/AuthContext.jsx](./src/contexts/AuthContext.jsx)    |
-| **Task API**         | [src/services/taskService.js](./src/services/taskService.js)      |
+| **Auth Logic**       | [src/app/contexts/AuthContext.jsx](./src/app/contexts/AuthContext.jsx)    |
+| **Task API**         | [src/features/tasks/services/taskService.js](./src/features/tasks/services/taskService.js)      |
 | **Database Schema**  | [docs/db/schema.sql](./docs/db/schema.sql)                        |
-| **Task Routes**      | [src/App.jsx](./src/App.jsx)                                      |
-| **Deep Clone Logic** | [src/services/taskService.js](./src/services/taskService.js#L216) |
+| **Task Routes**      | [src/app/App.jsx](./src/app/App.jsx)                                      |
+| **Deep Clone Logic** | [src/features/tasks/services/taskService.js](./src/features/tasks/services/taskService.js#L216) |
 
 ### Environment Requirements
 
@@ -73,7 +73,7 @@ VITE_SUPABASE_ANON_KEY=Supabase Anonymous Key
 
 ### External dependencies
 
-- **Supabase** -> Auth & Database (Ref: [src/supabaseClient.js](./src/supabaseClient.js))
+- **Supabase** -> Auth & Database (Ref: [src/app/supabaseClient.js](./src/app/supabaseClient.js))
 - **dnd-kit** -> Drag and Drop interactions (Ref: [package.json](./package.json))
 
 ---

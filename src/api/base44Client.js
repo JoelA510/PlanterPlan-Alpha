@@ -1,4 +1,4 @@
-import { supabase } from '../supabaseClient';
+import { supabase } from '@app/supabaseClient';
 
 // Base44 API Client Adapter
 // Maps the new "base44" API calls to our existing Supabase and Service layer.

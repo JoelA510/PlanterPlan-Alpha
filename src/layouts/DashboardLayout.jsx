@@ -61,13 +61,13 @@ const DashboardLayout = ({ children, sidebar }) => {
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden h-full">
         {/* Mobile Header (Unchanged) */}
-        <div className="lg:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
+        <div className="lg:hidden flex items-center justify-between bg-white border-b border-slate-200 px-4 py-3 flex-shrink-0">
           <div className="flex items-center">
             <span className="font-bold text-lg text-slate-800">PlanterPlan</span>
           </div>
           <button
             type="button"
-            className="-mr-3 h-12 w-12 inline-flex items-center justify-center text-gray-500"
+            className="-mr-3 h-12 w-12 inline-flex items-center justify-center text-slate-500"
             onClick={() => setSidebarOpen(true)}
           >
             <span className="sr-only">Open sidebar</span>

@@ -43,7 +43,7 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
             onClick={(e) => {
               e.stopPropagation();
               // No-op for demo visual, or wire up if needed later
-              console.log('Clone clicked');
+              // No-op for demo visual, or wire up if needed later
             }}
             title="Clone Template"
           >
