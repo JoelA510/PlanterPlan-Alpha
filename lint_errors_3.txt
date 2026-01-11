@@ -1,0 +1,17 @@
+
+> planter-plan@0.1.0 lint
+> eslint "src/**/*.{js,jsx}" --max-warnings=0 --quiet
+
+
+/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/navigation/components/SideNav.jsx
+   25:29  error  'useAuth' is not defined             no-undef
+   26:20  error  'useLocation' is not defined         no-undef
+   27:20  error  'useNavigate' is not defined         no-undef
+   29:34  error  'ROLES' is not defined               no-undef
+   54:10  error  'SidebarSkeleton' is not defined     react/jsx-no-undef
+  128:10  error  'InstanceList' is not defined        react/jsx-no-undef
+  139:10  error  'JoinedProjectsList' is not defined  react/jsx-no-undef
+  148:10  error  'TemplateList' is not defined        react/jsx-no-undef
+
+✖ 8 problems (8 errors, 0 warnings)
+

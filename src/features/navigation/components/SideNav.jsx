@@ -1,11 +1,68 @@
+import React from 'react';
+import PropTypes from 'prop-types';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@app/contexts/AuthContext';
+import { ROLES } from '@app/constants/index';
+import SidebarSkeleton from '@features/navigation/components/SidebarSkeleton';
+import InstanceList from '@features/projects/components/InstanceList';
+import JoinedProjectsList from '@features/projects/components/JoinedProjectsList';
+import TemplateList from '@features/library/components/TemplateList';
 import { LayoutDashboard, CheckSquare, BarChart, Settings } from 'lucide-react';
-
-// ... (existing imports)
+import GlobalNavItem from './GlobalNavItem';
 
 const SideNav = ({
-  // ... props
+  joinedProjects,
+  instanceTasks,
+  templateTasks,
+  joinedError,
+  handleSelectProject,
+  selectedTaskId,
+  onNewProjectClick,
+  onNewTemplateClick,
+  loading = false,
+  error = null,
+  onNavClick, // Injected by DashboardLayout
+  // Pagination
+  hasMore,
+  isFetchingMore,
+  onLoadMore,
 }) => {
-  // ... hooks
+  const { user, signOut } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Simple check for admin role (assuming user.role exists from DB/Auth)
+  const isAdmin = user?.role === ROLES.ADMIN;
+
+  const handleTaskClickWrapped = (task) => {
+    handleSelectProject(task);
+    if (onNavClick) onNavClick();
+  };
+
+  const handleNewProject = () => {
+    onNewProjectClick();
+    if (onNavClick) onNavClick();
+  };
+
+  const handleNewTemplate = () => {
+    onNewTemplateClick();
+    if (onNavClick) onNavClick();
+  };
+
+  const handleGlobalNav = (path) => {
+    navigate(path);
+    if (onNavClick) onNavClick();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full bg-white">
+        <SidebarSkeleton />
+      </div>
+    );
+  }
+
+  // Safe access for user initials
+  const userInitial = user?.email ? user.email[0].toUpperCase() : '?';
 
   return (
     <div className="flex flex-col h-full bg-white text-slate-700">

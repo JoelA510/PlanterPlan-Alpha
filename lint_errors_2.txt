@@ -1,0 +1,46 @@
+
+> planter-plan@0.1.0 lint
+> eslint "src/**/*.{js,jsx}" --max-warnings=0 --quiet
+
+
+/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/library/components/TemplateList.jsx
+  27:35  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  27:48  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/navigation/components/SideNav.jsx
+    6:18  error  Unexpected empty object pattern          no-empty-pattern
+   15:10  error  'GlobalNavItem' is not defined           react/jsx-no-undef
+   18:26  error  'handleGlobalNav' is not defined         no-undef
+   21:10  error  'GlobalNavItem' is not defined           react/jsx-no-undef
+   24:26  error  'handleGlobalNav' is not defined         no-undef
+   27:10  error  'GlobalNavItem' is not defined           react/jsx-no-undef
+   30:26  error  'handleGlobalNav' is not defined         no-undef
+   33:10  error  'GlobalNavItem' is not defined           react/jsx-no-undef
+   36:26  error  'handleGlobalNav' is not defined         no-undef
+   44:8   error  'isAdmin' is not defined                 no-undef
+   47:22  error  'handleNewProject' is not defined        no-undef
+   61:22  error  'handleNewTemplate' is not defined       no-undef
+   71:10  error  'error' is not defined                   no-undef
+   73:17  error  'error' is not defined                   no-undef
+   77:10  error  'InstanceList' is not defined            react/jsx-no-undef
+   78:18  error  'instanceTasks' is not defined           no-undef
+   79:27  error  'selectedTaskId' is not defined          no-undef
+   80:28  error  'handleTaskClickWrapped' is not defined  no-undef
+   81:20  error  'hasMore' is not defined                 no-undef
+   82:27  error  'isFetchingMore' is not defined          no-undef
+   83:23  error  'onLoadMore' is not defined              no-undef
+   88:10  error  'JoinedProjectsList' is not defined      react/jsx-no-undef
+   89:21  error  'joinedProjects' is not defined          no-undef
+   90:18  error  'joinedError' is not defined             no-undef
+   91:28  error  'handleTaskClickWrapped' is not defined  no-undef
+   92:27  error  'selectedTaskId' is not defined          no-undef
+   97:10  error  'TemplateList' is not defined            react/jsx-no-undef
+   98:18  error  'templateTasks' is not defined           no-undef
+   99:27  error  'selectedTaskId' is not defined          no-undef
+  100:28  error  'handleTaskClickWrapped' is not defined  no-undef
+  108:14  error  'userInitial' is not defined             no-undef
+  112:16  error  'user' is not defined                    no-undef
+  115:24  error  'signOut' is not defined                 no-undef
+
+✖ 35 problems (35 errors, 0 warnings)
+

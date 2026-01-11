@@ -70,15 +70,6 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/project"
-        /* Handling /project?id=123 via query params in the component */
-        element={
-          <ProtectedRoute>
-            <ProjectPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/project/:id"
         element={
           <ProtectedRoute>
@@ -146,7 +137,7 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <div className='@app/App'>
+    <div className="App">
       <AuthProvider>
         <ToastProvider>
           <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>
