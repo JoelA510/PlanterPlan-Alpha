@@ -18,22 +18,45 @@ export const planter = {
   entities: {
     Project: {
       list: async () => {
-        // Fetch projects
-        const { data, error } = await supabase.from('projects').select('*');
+        // Fetch projects (Root Tasks)
+        // Map 'title' -> 'name', 'due_date' -> 'launch_date'
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*, name:title, launch_date:due_date, owner_id:creator')
+          .is('parent_task_id', null)
+          .eq('origin', 'instance') // Ensure we don't fetch templates as projects
+          .order('created_at', { ascending: false });
+
         if (error) throw error;
         return data;
       },
       get: async (id) => {
-        const { data, error } = await supabase.from('projects').select('*').eq('id', id).single();
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*, name:title, launch_date:due_date, owner_id:creator')
+          .eq('id', id)
+          .single();
         if (error) throw error;
         return data;
       },
       create: async (projectData) => {
+        // Map incoming projectData to task columns
+        const taskPayload = {
+          title: projectData.name,
+          description: projectData.description,
+          due_date: projectData.launch_date, // Mapping launch_date to due_date
+          origin: 'instance',
+          parent_task_id: null, // Root task
+          status: 'planning', // Default status
+          // location? No standard column, maybe notes? Skipping for now to avoid schema violation.
+        };
+
         const { data, error } = await supabase
-          .from('projects')
-          .insert([projectData])
-          .select()
+          .from('tasks')
+          .insert([taskPayload])
+          .select('*, name:title, launch_date:due_date, owner_id:creator')
           .single();
+
         if (error) throw error;
         return data;
       },
@@ -47,14 +70,8 @@ export const planter = {
         return data;
       },
       addMemberByEmail: async (projectId, email, role) => {
-        // First try to find user by email
-        // Note: This relies on a 'profiles' or 'users' table being readable
-        // Or an RPC function. Falling back to RPC 'invite_user_by_email' if available,
-        // or just insert to project_invites if that schema exists.
-        // For now, attempting direct loose lookup via rpc or generic insert.
-
         // Strategy A: Check profiles
-        const { data: user, error: userError } = await supabase
+        const { data: user } = await supabase
           .from('profiles')
           .select('id')
           .eq('email', email)

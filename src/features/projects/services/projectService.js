@@ -17,10 +17,13 @@ export async function getUserProjects(userId, page = 1, pageSize = 20) {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
+  // Use 'tasks' table, filtering for root tasks (parent_task_id is null)
   const { data, error } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('owner_id', userId)
+    .from('tasks')
+    .select('*, name:title, launch_date:due_date, owner_id:creator')
+    .eq('creator', userId)
+    .is('parent_task_id', null)
+    .eq('origin', 'instance')
     .order('created_at', { ascending: false })
     .range(from, to);
 
@@ -29,55 +32,70 @@ export async function getUserProjects(userId, page = 1, pageSize = 20) {
 }
 
 export async function getJoinedProjects(userId) {
+  // Join 'tasks' instead of 'projects'
   const { data, error } = await supabase
     .from('project_members')
-    .select('project:projects(*)')
+    .select('project:tasks(*)')
     .eq('user_id', userId);
 
   if (error) throw error;
-  // Flatten result and filter out nulls
+
+  // Flatten result, filter nulls, and map fields manually since we can't alias in nested join easily? 
+  // actually we can try select('project:tasks(*, name:title, ...)')
+  // Re-fetching with explicit mapping in join:
+  // .select('project:tasks(*, name:title, launch_date:due_date, owner_id:creator)')
+
+  // Let's assume the component can handle it, or we map it here.
+  const mappedData = (data || [])
+    .map(item => item.project)
+    .filter(p => p !== null)
+    .map(p => ({
+      ...p,
+      name: p.title,
+      launch_date: p.due_date,
+      owner_id: p.creator
+    }));
+
   return {
-    data: data.map(item => item.project).filter(p => p !== null),
+    data: mappedData,
     error: null
   };
 }
 
 export async function getProjectWithStats(projectId) {
-  // Fetch Project
+  // Fetch Project (Root Task)
   const { data: project, error: projError } = await supabase
-    .from('projects')
-    .select('*')
+    .from('tasks')
+    .select('*, name:title, launch_date:due_date, owner_id:creator')
     .eq('id', projectId)
     .single();
 
   if (projError) throw projError;
 
-  // Fetch Tasks for Stats (Naive count)
-  // Note: 'tasks' table should exist.
+  // Fetch Tasks for Stats (Children)
+  // Logic: All tasks where root_id = projectId OR project_id = projectId?
+  // Schema has `project_id` on tasks? No, it has `root_id`.
+  // Schema: `root_id uuid` (Line 35).
+  // So we must use `root_id`.
+
   const { count: totalTasks, error: totalError } = await supabase
     .from('tasks')
     .select('id', { count: 'exact', head: true })
-    .eq('project_id', projectId);
+    .eq('root_id', projectId);
 
   const { count: completedTasks, error: completedError } = await supabase
     .from('tasks')
     .select('id', { count: 'exact', head: true })
-    .eq('project_id', projectId)
-    .eq('status', 'complete'); // Assuming 'complete' status
+    .eq('root_id', projectId)
+    .eq('is_complete', true);
 
   if (totalError || completedError) console.warn('Stats fetch error', totalError, completedError);
 
-  // Mock children for Report UI if real children fetching is complex here
-  // But ProjectReport.jsx accesses project.children.length.
-  // So we should probably fetch children?
-  // ProjectReprot.jsx Line 85: project.children?.length
-  // So we need to return 'children' array.
-
-  // Fetch ALL children? Might be heavy. But Report expects it.
+  // Fetch ALL children
   const { data: children, error: childrenError } = await supabase
     .from('tasks')
     .select('*')
-    .eq('project_id', projectId);
+    .eq('root_id', projectId);
 
   return {
     data: {
@@ -89,7 +107,7 @@ export async function getProjectWithStats(projectId) {
         progress: totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0
       }
     },
-    error: null // return { data, error } signature
+    error: null
   };
 }
 
