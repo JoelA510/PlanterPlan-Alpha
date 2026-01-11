@@ -7,10 +7,22 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@app/contexts/AuthContext';
 import DashboardLayout from '@layouts/DashboardLayout';
 import SideNav from '@features/navigation/components/SideNav';
+import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 
 export default function Project() {
   const { id } = useParams();
   const { user, loading: authLoading } = useAuth();
+
+  // Navigation Data
+  const {
+    instanceTasks,
+    templateTasks,
+    joinedProjects,
+    handleSelectProject,
+    handleNewProjectClick,
+    handleNewTemplateClick,
+    loading: navLoading
+  } = useTaskOperations();
 
   const { data: projectData, isLoading, error } = useQuery({
     queryKey: ['project', id],
@@ -30,31 +42,47 @@ export default function Project() {
 
   if (error || !project) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-slate-900">Project not found</h2>
-          <p className="text-slate-500 mt-2">{error?.message || "We couldn't locate this project."}</p>
+      <DashboardLayout sidebar={<SideNav
+        instanceTasks={instanceTasks}
+        templateTasks={templateTasks}
+        joinedProjects={joinedProjects}
+        handleSelectProject={handleSelectProject}
+        onNewProjectClick={handleNewProjectClick}
+        onNewTemplateClick={handleNewTemplateClick}
+        loading={navLoading}
+      />}>
+        <div className="flex items-center justify-center min-h-screen bg-slate-50">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-slate-900">Project not found</h2>
+            <p className="text-slate-500 mt-2">{error?.message || "We couldn't locate this project."}</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   // Handlers (Minimal implementation for View-Only / Basic Interaction)
-  // In a full implementation, these would connect to mutation hooks.
   const handleTaskClick = (task) => console.log('Task clicked:', task);
   const handleAddChildTask = (parent) => console.log('Add child to:', parent);
   const handleEditTask = (task) => console.log('Edit task:', task);
   const handleDeleteById = (id) => console.log('Delete task:', id);
 
   return (
-    <DashboardLayout sidebar={<SideNav />}>
+    <DashboardLayout sidebar={<SideNav
+      instanceTasks={instanceTasks}
+      templateTasks={templateTasks}
+      joinedProjects={joinedProjects}
+      handleSelectProject={handleSelectProject}
+      onNewProjectClick={handleNewProjectClick}
+      onNewTemplateClick={handleNewTemplateClick}
+      loading={navLoading}
+    />}>
       <ProjectTasksView
         project={project}
         handleTaskClick={handleTaskClick}
         handleAddChildTask={handleAddChildTask}
         handleEditTask={handleEditTask}
         handleDeleteById={handleDeleteById}
-        // Additional required props with no-ops
         selectedTaskId={null}
         onToggleExpand={() => { }}
         onInviteMember={() => console.log('Invite member')}

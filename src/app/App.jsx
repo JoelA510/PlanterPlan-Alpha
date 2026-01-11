@@ -53,12 +53,17 @@ const AppRoutes = () => {
       <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginForm />} />
 
       {/* New Premium Routes */}
+      {/* Public Routes with Auto-Redirect */}
       <Route
         path="/"
         element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
+          user ? <Navigate to="/dashboard" replace /> : <Home />
+        }
+      />
+      <Route
+        path="/about"
+        element={
+          user ? <Navigate to="/dashboard" replace /> : <Home />
         }
       />
       <Route
