@@ -88,6 +88,7 @@ export const planter = {
         return data;
       },
     },
-  };
+  },
+};
 
-  export default planter;
+export default planter;
