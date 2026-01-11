@@ -1,82 +1,63 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { planter } from 'api/planterClient';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Calendar, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
+import { getProjectWithStats } from '@features/projects/services/projectService';
+import ProjectTasksView from '@features/tasks/components/ProjectTasksView';
+import { Loader2 } from 'lucide-react';
+import { useAuth } from '@app/contexts/AuthContext';
 
 export default function Project() {
   const { id } = useParams();
+  const { user, loading: authLoading } = useAuth();
 
-  const { data: project, isLoading } = useQuery({
+  const { data: projectData, isLoading, error } = useQuery({
     queryKey: ['project', id],
-    queryFn: () => planter.entities.Project.get(id),
-    enabled: !!id,
+    queryFn: () => getProjectWithStats(id),
+    enabled: !authLoading && !!user && !!id,
   });
 
-  if (isLoading) {
+  const project = projectData?.data;
+
+  if (isLoading || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
       </div>
     );
   }
 
-  if (!project) {
-    return <div>Project not found</div>;
+  if (error || !project) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-slate-900">Project not found</h2>
+          <p className="text-slate-500 mt-2">{error?.message || "We couldn't locate this project."}</p>
+        </div>
+      </div>
+    );
   }
 
+  // Handlers (Minimal implementation for View-Only / Basic Interaction)
+  // In a full implementation, these would connect to mutation hooks.
+  const handleTaskClick = (task) => console.log('Task clicked:', task);
+  const handleAddChildTask = (parent) => console.log('Add child to:', parent);
+  const handleEditTask = (task) => console.log('Edit task:', task);
+  const handleDeleteById = (id) => console.log('Delete task:', id);
+
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">{project.name}</h1>
-            <p className="text-slate-600 mt-2">{project.description}</p>
-          </div>
-          <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200">
-            {project.status}
-          </Badge>
-        </div>
-
-        {/* Details Grid */}
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Launch Date</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {project.launch_date ? format(new Date(project.launch_date), 'PPP') : 'Not set'}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Location</CardTitle>
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{project.location || 'TBD'}</div>
-            </CardContent>
-          </Card>
-          {/* Add more cards for stats */}
-        </div>
-
-        {/* Content Area - Milestones/Tasks would go here */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Plan</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-slate-500">Milestone timeline implementation coming soon...</p>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="min-h-screen bg-slate-50">
+      <ProjectTasksView
+        project={project}
+        handleTaskClick={handleTaskClick}
+        handleAddChildTask={handleAddChildTask}
+        handleEditTask={handleEditTask}
+        handleDeleteById={handleDeleteById}
+        // Additional required props with no-ops
+        selectedTaskId={null}
+        onToggleExpand={() => { }}
+        onInviteMember={() => console.log('Invite member')}
+        onStatusChange={() => { }}
+      />
     </div>
   );
 }
