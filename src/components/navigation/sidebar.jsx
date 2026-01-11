@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from 'utils';
-import { Button } from 'components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from 'lib/utils';
 import {
   LayoutDashboard,

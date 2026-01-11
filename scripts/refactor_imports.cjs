@@ -106,16 +106,30 @@ files.forEach(file => {
 
     // 1. Replace Component Imports
     // Matches: from '.../Name' or " .../Name"
-    // Capture group 2 is the filename part, validating it matches a known component
     Object.keys(COMPONENT_MAP).forEach(componentName => {
         const newPath = COMPONENT_MAP[componentName];
-
-        // Regex to match imports ending with the component name (ignoring extension)
-        // e.g. from '../molecules/TaskItem' or from './TaskItem'
-        // We look for /ComponentsName['"] or /ComponentName.js['"]?
         const regex = new RegExp(`['"]([\\.\\/]*[\\w\\-\\/]*\\/)?${componentName}(\\.js|\\.jsx)?['"]`, 'g');
-
         content = content.replace(regex, `'${newPath}'`);
+    });
+
+    // 2. Replace Prefix Imports (Alias Consolidation)
+    // Matches imports starting with legacy aliases like 'pages/' or 'layouts/'
+    // We want to be careful not to replace 'some-pages/' so we look for start of string literal
+    const PREFIX_MAP = {
+        'pages/': '@pages/',
+        'layouts/': '@layouts/',
+        '@app/components/': '@/components/', // Fix previous error
+        'components/': '@/components/',      // Map legacy components to @/components
+    };
+
+    Object.keys(PREFIX_MAP).forEach(prefix => {
+        const newPrefix = PREFIX_MAP[prefix];
+        // Regex: from 'prefix/...'
+        // matches 'pages/Dashboard' -> '@pages/Dashboard'
+        // We use a simple replace for the refined prefix
+        // Look for ' or " followed by prefix
+        const regex = new RegExp(`(['"])(${prefix})`, 'g');
+        content = content.replace(regex, `$1${newPrefix}`);
     });
 
     if (content !== originalContent) {

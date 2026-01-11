@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from 'utils';
-import { Button } from 'components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from 'components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from 'components/ui/avatar';
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CheckCircle2, Home, LayoutDashboard, User, Settings, LogOut, Menu } from 'lucide-react';
 import { planter } from 'api/planterClient';
 

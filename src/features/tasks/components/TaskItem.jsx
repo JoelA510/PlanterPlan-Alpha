@@ -359,6 +359,6 @@ export const SortableTaskItem = memo(function SortableTaskItem({ task, level, ..
   );
 });
 
-TaskItem.displayName = 'TaskItem';
+TaskItem.displayName = '@features/tasks/components/TaskItem';
 
 export default TaskItem;

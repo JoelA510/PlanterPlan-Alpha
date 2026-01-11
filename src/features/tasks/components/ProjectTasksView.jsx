@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import TaskItem, { SortableTaskItem } from './TaskItem';
+import TaskItem, { SortableTaskItem } from '@features/tasks/components/TaskItem';
 import ProjectHeader from '@features/projects/components/ProjectHeader';
 
 /**

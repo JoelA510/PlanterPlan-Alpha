@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Card } from 'components/ui/card';
-import { Button } from 'components/ui/button';
-import { Badge } from 'components/ui/badge';
-import { Progress } from 'components/ui/progress';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   ChevronDown,
   ChevronRight,
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from 'lib/utils';
-import TaskItem from './TaskItem';
+import TaskItem from '@features/tasks/components/TaskItem';
 
 export default function MilestoneSection({
   milestone,

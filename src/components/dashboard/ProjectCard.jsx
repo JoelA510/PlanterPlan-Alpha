@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from 'utils';
-import { Card } from 'components/ui/card';
-import { Badge } from 'components/ui/badge';
-import { Progress } from 'components/ui/progress';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch } from 'lucide-react';
 import { motion } from 'framer-motion';

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Header from 'components/navigation/Header';
-import Sidebar from 'components/navigation/Sidebar';
+import Header from '@/components/navigation/Header';
+import Sidebar from '@/components/navigation/Sidebar';
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

@@ -2,20 +2,20 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { AuthContext } from '../../app/contexts/AuthContext';
-import { ToastProvider } from '../../app/contexts/ToastContext';
+import { AuthContext } from '@app/contexts/AuthContext';
+import { ToastProvider } from '@app/contexts/ToastContext';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import TasksPage from '../../pages/TasksPage';
 import ReportsPage from '../../pages/ReportsPage';
-import TaskList from '../../features/tasks/components/TaskList';
-import * as projectService from '../../features/projects/services/projectService';
-import * as taskService from '../../features/tasks/services/taskService';
-import * as taskOpsHook from '../../features/tasks/hooks/useTaskOperations';
+import TaskList from '@features/tasks/components/TaskList';
+import * as projectService from '@features/projects/services/projectService';
+import * as taskService from '@features/tasks/services/taskService';
+import * as taskOpsHook from '@features/tasks/hooks/useTaskOperations';
 
 // --- Mocks ---
 
 // Mock Supabase Client
-vi.mock('../../app/supabaseClient', () => {
+vi.mock('@app/supabaseClient', () => {
     const createBuilder = () => {
         const builder = {
             data: [],
@@ -57,14 +57,14 @@ vi.mock('../../app/supabaseClient', () => {
 });
 
 // Mock Project Service
-vi.mock('../../features/projects/services/projectService', () => ({
+vi.mock('@features/projects/services/projectService', () => ({
     getUserProjects: vi.fn(),
     getJoinedProjects: vi.fn(),
     createProject: vi.fn(),
 }));
 
 // Mock Task Service
-vi.mock('../../features/tasks/services/taskService', () => ({
+vi.mock('@features/tasks/services/taskService', () => ({
     fetchTasks: vi.fn(),
     fetchTaskChildren: vi.fn(),
     updateTask: vi.fn(),
@@ -167,12 +167,12 @@ describe('Browser Verification: Golden Paths', () => {
     describe('Path A: The "Planter" Journey (Dashboard)', () => {
         it('renders the dashboard with correct layout and design system compliance', async () => {
             // Setup
-            const projectService = await import('../../features/projects/services/projectService');
+            const projectService = await import('@features/projects/services/projectService');
             projectService.getUserProjects.mockResolvedValue({ data: mockProjects, error: null });
             projectService.getJoinedProjects.mockResolvedValue({ data: [], error: null });
 
             // Need to mock fetchTasks too as TaskList calls it for templates/instances
-            const taskService = await import('../../features/tasks/services/taskService');
+            const taskService = await import('@features/tasks/services/taskService');
             taskService.fetchTasks.mockResolvedValue({ data: [], error: null });
             taskService.fetchTaskChildren.mockResolvedValue({ data: [], error: null });
 
@@ -209,11 +209,11 @@ describe('Browser Verification: Golden Paths', () => {
         });
 
         it('handles empty states gracefully', async () => {
-            const projectService = await import('../../features/projects/services/projectService');
+            const projectService = await import('@features/projects/services/projectService');
             projectService.getUserProjects.mockResolvedValue({ data: [], error: null });
             projectService.getJoinedProjects.mockResolvedValue({ data: [], error: null });
 
-            const taskService = await import('../../features/tasks/services/taskService');
+            const taskService = await import('@features/tasks/services/taskService');
             taskService.fetchTasks.mockResolvedValue({ data: [], error: null });
             taskService.fetchTaskChildren.mockResolvedValue({ data: [], error: null });
 
@@ -233,13 +233,13 @@ describe('Browser Verification: Golden Paths', () => {
     // ==========================================
     describe('Path B: The "Task" Journey (Board)', () => {
         beforeEach(async () => {
-            const taskService = await import('../../features/tasks/services/taskService');
+            const taskService = await import('@features/tasks/services/taskService');
             // When loading a project, we fetch its tasks
             // We must mock fetchTaskChildren because hydration uses it!
             taskService.fetchTasks.mockResolvedValue({ data: mockTasks, error: null });
             taskService.fetchTaskChildren.mockResolvedValue({ data: mockTasks, error: null });
 
-            const projectService = await import('../../features/projects/services/projectService');
+            const projectService = await import('@features/projects/services/projectService');
             // We need projects to resolve the active project from ID
             projectService.getUserProjects.mockResolvedValue({ data: mockProjects, error: null });
             projectService.getJoinedProjects.mockResolvedValue({ data: [], error: null });
@@ -306,16 +306,16 @@ describe('Browser Verification: Golden Paths', () => {
     // ==========================================
     describe('Path C: The "Navigation" Journey', () => {
         it('navigates to reports and updates breadcrumbs', async () => {
-            const projectService = await import('../../features/projects/services/projectService');
+            const projectService = await import('@features/projects/services/projectService');
             projectService.getUserProjects.mockResolvedValue({ data: mockProjects, error: null });
             projectService.getJoinedProjects.mockResolvedValue({ data: [], error: null });
 
-            const taskService = await import('../../features/tasks/services/taskService');
+            const taskService = await import('@features/tasks/services/taskService');
             taskService.fetchTasks.mockResolvedValue({ data: [], error: null });
             taskService.fetchTaskChildren.mockResolvedValue({ data: [], error: null });
 
             // Mock useTaskOperations to return loading: false directly
-            vi.spyOn(taskOpsHook, 'useTaskOperations').mockReturnValue({
+            vi.spyOn(taskOpsHook, '@features/tasks/hooks/useTaskOperations').mockReturnValue({
                 loading: false,
                 tasks: [],
                 joinedProjects: [],

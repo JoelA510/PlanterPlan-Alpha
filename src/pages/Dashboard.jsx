@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { planter } from 'api/planterClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from 'components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Plus, FolderKanban, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-import ProjectCard from 'components/dashboard/ProjectCard';
-import CreateProjectModal from 'components/dashboard/CreateProjectModal';
-import StatsOverview from 'components/dashboard/StatsOverview';
+import ProjectCard from '@/components/dashboard/ProjectCard';
+import CreateProjectModal from '@/components/dashboard/CreateProjectModal';
+import StatsOverview from '@/components/dashboard/StatsOverview';
 
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
-import SideNav from '../features/navigation/components/SideNav';
+import SideNav from '@features/navigation/components/SideNav';
 
 import { createProjectWithDefaults } from '@features/projects/services/projectService';
 
