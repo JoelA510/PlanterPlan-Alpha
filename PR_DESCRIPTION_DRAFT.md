@@ -18,7 +18,7 @@ This PR executes a massive infrastructure modernization, migrating the entire co
 | :--- | :--- | :--- | :--- |
 | ✅ | **INFRA-VITE** | Vite Migration | Migrate from CRA to Vite for faster HMR & Builds |
 | ✅ | **INFRA-TW4** | Tailwind v4 | Upgrade to Tailwind v4 with CSS-native config |
-| ✅ | **FE-PLANTER** | Planter Integration | Merge Premium features (Dashboard, Reports) |
+| ✅ | **FE-PLANTER** | Planter Integration | Merge Premium features (Dashboard, Projects) |
 | ✅ | **UX-NAV** | Responsive Navigation | Fix Sidebar mobile interactions and persistence |
 
 ## 🏗️ Architecture Decisions
@@ -44,6 +44,7 @@ We enforced `DashboardLayout.jsx` as the owner of navigation state.
 - **Service Layer**: Decoupled Project Seeding logic into `src/features/projects/services/projectService.js`.
 - **Hook Optimization**: Deduplicated context-refresh logic in `useTaskMutations` hook.
 - **CSS Hygiene**: Enforced `globals.css` as Single Source of Truth by removing conflicting `@theme` tokens from `index.css`.
+
 
 ## 🔍 Review Guide
 
