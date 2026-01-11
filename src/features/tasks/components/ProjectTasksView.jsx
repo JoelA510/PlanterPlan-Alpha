@@ -80,7 +80,11 @@ const ProjectTasksView = ({
         <div className="project-view-container px-8 py-6 w-full max-w-5xl mx-auto overflow-x-auto min-w-0">
             {/* Replaces simple header with rich ProjectHeader */}
             <div className="mb-6">
-                <ProjectHeader project={project} onInviteMember={onInviteMember} />
+                <ProjectHeader
+                    project={project}
+                    onInviteMember={onInviteMember}
+                    onStatusChange={(newStatus) => onStatusChange(project.id, newStatus)}
+                />
             </div>
 
             {/* Action Bar (Below Header) */}

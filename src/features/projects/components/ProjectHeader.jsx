@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-const ProjectHeader = ({ project, onInviteMember }) => {
+const ProjectHeader = ({ project, onInviteMember, onStatusChange }) => {
   const location = useLocation();
   const isReportView = location.pathname.includes('/report/');
 
@@ -48,14 +48,24 @@ const ProjectHeader = ({ project, onInviteMember }) => {
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight leading-tight truncate">
               {project.title}
             </h1>
-            <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${project.status === 'active'
+            <select
+              value={project.status || 'active'}
+              onChange={(e) => {
+                if (onStatusChange) {
+                  onStatusChange(e.target.value);
+                }
+              }}
+              className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border appearance-none cursor-pointer ${project.status === 'active'
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : 'bg-slate-100 text-slate-600 border-slate-200'
                 }`}
+              disabled={!onStatusChange}
             >
-              {project.status || 'Active'}
-            </span>
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+              <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
+            </select>
           </div>
           <p className="text-slate-500 mt-2 text-base max-w-3xl leading-relaxed">
             {project.description}

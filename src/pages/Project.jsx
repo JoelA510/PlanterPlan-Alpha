@@ -28,6 +28,16 @@ export default function Project() {
   const handleNewProjectClick = () => navigate('/dashboard'); // Redirect to dashboard for creation
   const handleNewTemplateClick = () => { };
 
+  // Task/Project Mutation Handlers
+  const { updateTaskStatus } = useTaskOperations();
+
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      await updateTaskStatus.mutateAsync({ taskId, status: newStatus });
+    } catch (error) {
+      console.error("Failed to update status:", error);
+    }
+  };
 
   const { data: projectData, isLoading, error } = useQuery({
     queryKey: ['project', id],
@@ -91,7 +101,7 @@ export default function Project() {
         selectedTaskId={null}
         onToggleExpand={() => { }}
         onInviteMember={() => console.log('Invite member')}
-        onStatusChange={() => { }}
+        onStatusChange={handleStatusChange}
       />
     </DashboardLayout>
   );
