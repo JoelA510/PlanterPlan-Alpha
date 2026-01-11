@@ -19,7 +19,6 @@ export default defineConfig({
             '@layouts': path.resolve(__dirname, './src/layouts'),
             // Stashed aliases (for compatibility with new Planter components)
             '@': path.resolve(__dirname, './src'),
-            'utils': path.resolve(__dirname, './src/utils'),
             'lib': path.resolve(__dirname, './src/lib'),
             'api': path.resolve(__dirname, './src/api'),
             'entities': path.resolve(__dirname, './src/entities'),
