@@ -24,16 +24,16 @@ import { cn } from 'lib/utils';
 import { motion } from 'framer-motion';
 
 const priorityConfig = {
-  high: { color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle },
-  medium: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Flag },
-  low: { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Flag },
+  high: { color: 'bg-rose-100 text-rose-700 border-rose-200', icon: AlertTriangle },
+  medium: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Flag },
+  low: { color: 'bg-sky-100 text-sky-700 border-sky-200', icon: Flag }, // Using sky for a neutral 'low'
 };
 
 const statusConfig = {
   not_started: { color: 'bg-slate-100 text-slate-600', label: 'Not Started' },
-  in_progress: { color: 'bg-orange-100 text-orange-700', label: 'In Progress' },
-  completed: { color: 'bg-green-100 text-green-700', label: 'Completed' },
-  blocked: { color: 'bg-red-100 text-red-700', label: 'Blocked' },
+  in_progress: { color: 'bg-amber-100 text-amber-700', label: 'In Progress' },
+  completed: { color: 'bg-emerald-100 text-emerald-700', label: 'Completed' },
+  blocked: { color: 'bg-rose-100 text-rose-700', label: 'Blocked' },
 };
 
 export default function TaskItem({ task, onUpdate }) {
@@ -68,7 +68,7 @@ export default function TaskItem({ task, onUpdate }) {
         onCheckedChange={handleToggleComplete}
         className={cn(
           'mt-1 h-5 w-5 rounded-full border-2',
-          isCompleted ? 'border-green-500 bg-green-500' : 'border-slate-300'
+          isCompleted ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
         )}
       />
 
@@ -103,8 +103,8 @@ export default function TaskItem({ task, onUpdate }) {
                   variant="outline"
                   className={cn(
                     'text-xs flex items-center gap-1',
-                    isOverdue && 'bg-red-50 text-red-700 border-red-200',
-                    isDueToday && !isOverdue && 'bg-orange-50 text-orange-700 border-orange-200'
+                    isOverdue && 'bg-rose-50 text-rose-700 border-rose-200',
+                    isDueToday && !isOverdue && 'bg-amber-50 text-amber-700 border-amber-200'
                   )}
                 >
                   <Calendar className="w-3 h-3" />
@@ -141,15 +141,15 @@ export default function TaskItem({ task, onUpdate }) {
                 Not Started
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange('in_progress')}>
-                <Clock className="w-4 h-4 mr-2 text-orange-500" />
+                <Clock className="w-4 h-4 mr-2 text-amber-500" />
                 In Progress
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange('completed')}>
-                <Clock className="w-4 h-4 mr-2 text-green-500" />
+                <Clock className="w-4 h-4 mr-2 text-emerald-500" />
                 Completed
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange('blocked')}>
-                <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
+                <AlertTriangle className="w-4 h-4 mr-2 text-rose-500" />
                 Blocked
               </DropdownMenuItem>
               <DropdownMenuSeparator />

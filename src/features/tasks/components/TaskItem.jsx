@@ -183,7 +183,7 @@ const TaskItem = memo(
                   </span>
                 )}
                 {task.resource_type && (
-                  <span className="px-2.5 py-1 text-xs uppercase font-bold tracking-wider rounded bg-brand-50 text-brand-600 border border-brand-100 whitespace-nowrap flex-shrink-0">
+                  <span className="px-2.5 py-1 text-xs uppercase font-bold tracking-wider rounded bg-brand-50 text-brand-700 border border-brand-100 whitespace-nowrap flex-shrink-0">
                     {task.resource_type}
                   </span>
                 )}
