@@ -5,6 +5,8 @@ import SideNav from '@features/navigation/components/SideNav';
 import ProjectHeader from '@features/projects/components/ProjectHeader';
 import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
 import { getProjectWithStats } from '@features/projects/services/projectService';
+import { Loader2 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const ProjectReport = () => {
   const { projectId } = useParams();
@@ -99,15 +101,34 @@ const ProjectReport = () => {
                   </div>
                 </div>
 
-                <div className="h-64 bg-slate-50 rounded-lg flex items-center justify-center border border-dashed border-slate-300 text-slate-400">
-                  Runs Chart Visualization (Coming Soon)
+                <div className="h-[350px] bg-slate-50 rounded-lg p-6 border border-slate-100">
+                  <h3 className="text-sm font-semibold text-slate-500 mb-4 uppercase tracking-wider">Status Distribution</h3>
+                  <div className="w-full h-full pb-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={[
+                        { name: 'To Do', count: project.children?.filter(t => t.status === 'todo').length || 0, fill: '#94a3b8' },
+                        { name: 'In Progress', count: project.children?.filter(t => t.status === 'in_progress').length || 0, fill: '#3b82f6' },
+                        { name: 'Blocked', count: project.children?.filter(t => t.status === 'blocked').length || 0, fill: '#ef4444' },
+                        { name: 'Completed', count: project.children?.filter(t => t.is_complete).length || 0, fill: '#10b981' },
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                        <YAxis axisLine={false} tickLine={false} />
+                        <Tooltip
+                          cursor={{ fill: 'transparent' }}
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={60} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
             </div>
           </>
         ) : (
           <div className="flex items-center justify-center h-full text-slate-400">
-            Loading report...
+            <Loader2 className="animate-spin h-8 w-8 text-brand-500" />
           </div>
         )}
       </div>

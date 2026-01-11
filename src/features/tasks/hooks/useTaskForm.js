@@ -17,6 +17,7 @@ export const useTaskForm = (initialState, validateFn) => {
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
+    console.log('[useTaskForm] handleChange:', name, value);
     setFormData((prev) => ({
       ...prev,
       [name]: value,

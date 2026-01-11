@@ -3,8 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getProjectWithStats } from '@features/projects/services/projectService';
 import ProjectTasksView from '@features/tasks/components/ProjectTasksView';
-import CreateTaskForm from '@features/tasks/components/CreateTaskForm';
-import EditTaskForm from '@features/tasks/components/EditTaskForm';
+import NewTaskForm from '@features/tasks/components/NewTaskForm';
 import InviteMemberModal from '@features/projects/components/InviteMemberModal';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@app/contexts/AuthContext';
@@ -91,22 +90,63 @@ export default function Project() {
     );
   }
 
-  // Handlers
-  const handleAddChildTask = (parent) => {
+  // UI Handlers (Open Modals)
+  const openCreateTaskModal = (parent) => {
     setParentTask(parent);
     setActiveModal('create');
   };
 
-  const handleEditTask = (task) => {
+  const openEditTaskModal = (task) => {
     setSelectedTask(task);
     setActiveModal('edit');
   };
 
-  const handleDeleteById = async (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      try {
-        await deleteTask(taskId);
-      } catch (e) { console.error(e); }
+  const handleDeleteTask = async (taskId) => {
+    // Removed window.confirm for smoother agent interop and UX
+    try {
+      await deleteTask(taskId);
+    } catch (e) {
+      console.error("Delete failed:", e);
+      alert("Failed to delete task. Please try again.");
+    }
+  };
+
+  // Submission Handlers
+  const handleCreateSubmit = async (formData) => {
+    try {
+      // Determine Parent Logic
+      // If parentTask is present, use its ID. If not, we are adding to the project root, so use project.id.
+      // NEVER pass null here, or it becomes a new Project (Root Task).
+      const targetParentId = parentTask?.id || project.id;
+
+      await createTaskOrUpdate(formData, {
+        parentId: targetParentId,
+        origin: project.origin,
+        mode: 'create'
+      });
+
+      setActiveModal(null);
+    } catch (error) {
+      console.error("Create failed:", error);
+      throw error; // Let NewTaskForm handle the error state
+    }
+  };
+
+  const handleEditSubmit = async (formData) => {
+    try {
+      if (!selectedTask) return;
+
+      await createTaskOrUpdate(formData, {
+        taskId: selectedTask.id,
+        parentId: selectedTask.parent_task_id,
+        origin: project.origin,
+        mode: 'edit'
+      });
+
+      setActiveModal(null);
+    } catch (error) {
+      console.error("Edit failed:", error);
+      throw error;
     }
   };
 
@@ -122,10 +162,10 @@ export default function Project() {
     />}>
       <ProjectTasksView
         project={project}
-        handleTaskClick={handleEditTask} // Clicking a task opens edit
-        handleAddChildTask={handleAddChildTask}
-        handleEditTask={handleEditTask}
-        handleDeleteById={handleDeleteById}
+        handleTaskClick={openEditTaskModal} // Clicking a task opens edit
+        handleAddChildTask={openCreateTaskModal}
+        handleEditTask={openEditTaskModal}
+        handleDeleteById={handleDeleteTask}
         selectedTaskId={selectedTask?.id}
         onToggleExpand={() => { }}
         onInviteMember={() => setActiveModal('invite')}
@@ -134,23 +174,36 @@ export default function Project() {
 
       {/* Modals */}
       {activeModal === 'create' && (
-        <CreateTaskForm
-          open={true}
-          onClose={() => setActiveModal(null)}
-          parentId={parentTask?.id}
-          rootId={project.id}
-          origin={project.origin}
-          onSuccess={() => setActiveModal(null)}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-2xl">
+            <h2 className="mb-6 text-xl font-bold text-slate-900">
+              {parentTask && parentTask.id !== project.id ? `Add Subtask to "${parentTask.title}"` : 'Add New Task'}
+            </h2>
+            <NewTaskForm
+              parentTask={parentTask}
+              origin={project.origin}
+              onSubmit={handleCreateSubmit}
+              onCancel={() => setActiveModal(null)}
+              submitLabel="Create Task"
+            />
+          </div>
+        </div>
       )}
 
       {activeModal === 'edit' && selectedTask && (
-        <EditTaskForm
-          open={true}
-          onClose={() => setActiveModal(null)}
-          task={selectedTask}
-          onSuccess={() => setActiveModal(null)}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-2xl">
+            <h2 className="mb-6 text-xl font-bold text-slate-900">Edit Task</h2>
+            <NewTaskForm
+              initialTask={selectedTask}
+              parentTask={null} // We don't change parent during edit currently
+              origin={project.origin}
+              onSubmit={handleEditSubmit}
+              onCancel={() => setActiveModal(null)}
+              submitLabel="Save Changes"
+            />
+          </div>
+        </div>
       )}
 
       {activeModal === 'invite' && (

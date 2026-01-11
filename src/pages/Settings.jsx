@@ -71,8 +71,18 @@ export default function Settings() {
               <CardTitle>Notifications</CardTitle>
               <CardDescription>Configure how you want to be notified.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-500">Notification settings coming soon.</p>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <input type="checkbox" id="email-notifs" className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" defaultChecked />
+                <Label htmlFor="email-notifs" className="font-medium text-slate-700">Email Notifications</Label>
+              </div>
+              <p className="text-xs text-slate-500 pl-6">Receive updates when tasks are assigned to you.</p>
+
+              <div className="flex items-center space-x-2 mt-4">
+                <input type="checkbox" id="digest" className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" defaultChecked />
+                <Label htmlFor="digest" className="font-medium text-slate-700">Weekly Digest</Label>
+              </div>
+              <p className="text-xs text-slate-500 pl-6">Get a summary of your project progress every Monday.</p>
             </CardContent>
           </Card>
         </div>
