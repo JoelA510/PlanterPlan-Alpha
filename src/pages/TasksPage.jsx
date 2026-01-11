@@ -43,6 +43,7 @@ const TasksPage = () => {
     }
   };
 
+  // TODO: Replace window.confirm with custom Radix Dialog for consistent UX
   const handleDelete = async (taskId) => {
     if (window.confirm('Delete this task?')) {
       try { await deleteTask(taskId); } catch (e) { console.error(e); }

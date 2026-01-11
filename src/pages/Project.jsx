@@ -107,7 +107,7 @@ export default function Project() {
       await deleteTask(taskId);
     } catch (e) {
       console.error("Delete failed:", e);
-      alert("Failed to delete task. Please try again.");
+      // TODO: Replace with useToast notification for better UX
     }
   };
 
