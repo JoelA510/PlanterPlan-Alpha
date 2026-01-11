@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@layouts/DashboardLayout';
 import SideNav from '@features/navigation/components/SideNav';
 import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
-import EmptyState from '@shared/ui/EmptyState';
+import TaskItem from '@features/tasks/components/TaskItem';
+import EditTaskForm from '@features/tasks/components/EditTaskForm';
+import { Loader2 } from 'lucide-react';
 
 const TasksPage = () => {
   const navigate = useNavigate();
   const {
+    tasks = [],
     joinedProjects = [],
     instanceTasks = [],
     templateTasks = [],
@@ -17,12 +20,38 @@ const TasksPage = () => {
     loadMoreProjects,
     hasMore,
     isFetchingMore,
+    updateTask,
+    deleteTask
   } = useTaskOperations();
 
-  const handleSelectProject = (project) => {
-    // Navigate to project view
-    navigate(`/project/${project.id}`);
+  // Modal State
+  const [activeModal, setActiveModal] = useState(null); // 'edit'
+  const [selectedTask, setSelectedTask] = useState(null);
+
+  const handleSelectProject = (project) => navigate(`/project/${project.id}`);
+
+  const handleEditTask = (task) => {
+    setSelectedTask(task);
+    setActiveModal('edit');
   };
+
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      await updateTask(taskId, { status: newStatus });
+    } catch (error) {
+      console.error("Failed to update status:", error);
+    }
+  };
+
+  const handleDelete = async (taskId) => {
+    if (window.confirm('Delete this task?')) {
+      try { await deleteTask(taskId); } catch (e) { console.error(e); }
+    }
+  };
+
+  // Filter for leaf tasks (actual tasks, not projects)
+  // And generally tasks assigned to me? For now, we show ALL tasks in the system that are not roots.
+  const myTasks = tasks.filter(t => t.parent_task_id !== null && t.origin === 'instance');
 
   const sidebar = (
     <SideNav
@@ -44,29 +73,46 @@ const TasksPage = () => {
   if (loading) {
     return (
       <DashboardLayout sidebar={sidebar}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
-          <div className="h-8 bg-slate-200 rounded w-1/4 mb-6"></div>
-          <div className="h-64 bg-slate-100 rounded-xl border border-slate-200"></div>
-        </div>
+        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-brand-500" /></div>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout sidebar={sidebar}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-slate-900 mb-6">My Tasks</h1>
-        <EmptyState
-          title="Aggregated Tasks View"
-          description="We are building a unified view to see all your tasks across every project in one place. Stay tuned for updates!"
-          actionLabel="Go to Dashboard"
-          onAction={() => navigate('/dashboard')}
-          icon={
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-          }
-        />
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-2xl font-bold text-slate-900 mb-6">All Tasks</h1>
+
+        {myTasks.length === 0 ? (
+          <div className="text-center py-20 text-slate-500">
+            <p>No tasks found across your projects.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {myTasks.map(task => (
+              <div key={task.id} className="bg-white rounded-lg border border-slate-200">
+                <TaskItem
+                  task={task}
+                  level={0}
+                  hideExpansion={true}
+                  onEdit={handleEditTask}
+                  onDelete={handleDelete}
+                  onStatusChange={handleStatusChange}
+                // Disable DND features for this flat view
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeModal === 'edit' && selectedTask && (
+          <EditTaskForm
+            open={true}
+            onClose={() => setActiveModal(null)}
+            task={selectedTask}
+            onSuccess={() => setActiveModal(null)}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

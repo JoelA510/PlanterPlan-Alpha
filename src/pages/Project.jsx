@@ -3,6 +3,9 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getProjectWithStats } from '@features/projects/services/projectService';
 import ProjectTasksView from '@features/tasks/components/ProjectTasksView';
+import CreateTaskForm from '@features/tasks/components/CreateTaskForm';
+import EditTaskForm from '@features/tasks/components/EditTaskForm';
+import InviteMemberModal from '@features/projects/components/InviteMemberModal';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@app/contexts/AuthContext';
 import DashboardLayout from '@layouts/DashboardLayout';
@@ -20,7 +23,10 @@ export default function Project() {
     instanceTasks,
     templateTasks,
     joinedProjects,
-    loading: navLoading
+    loading: navLoading,
+    updateTask,
+    deleteTask,
+    createTaskOrUpdate
   } = useTaskOperations();
 
   // Handlers for SideNav
@@ -29,7 +35,11 @@ export default function Project() {
   const handleNewTemplateClick = () => { };
 
   // Task/Project Mutation Handlers
-  const { updateTask } = useTaskOperations();
+  // const { updateTask } = useTaskOperations(); // OLD
+  // We will access these in the return statement or merge them if needed. 
+  // Actually, let's just delete this line and let the render block handle it, 
+  // BUT handleStatusChange relies on it. 
+  // So let's consolidate.
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
@@ -46,6 +56,11 @@ export default function Project() {
   });
 
   const project = projectData?.data;
+
+  // Modal State
+  const [activeModal, setActiveModal] = React.useState(null); // 'create' | 'edit' | 'invite'
+  const [selectedTask, setSelectedTask] = React.useState(null);
+  const [parentTask, setParentTask] = React.useState(null);
 
   if (isLoading || authLoading) {
     return (
@@ -76,11 +91,24 @@ export default function Project() {
     );
   }
 
-  // Handlers (Minimal implementation for View-Only / Basic Interaction)
-  const handleTaskClick = (task) => console.log('Task clicked:', task);
-  const handleAddChildTask = (parent) => console.log('Add child to:', parent);
-  const handleEditTask = (task) => console.log('Edit task:', task);
-  const handleDeleteById = (id) => console.log('Delete task:', id);
+  // Handlers
+  const handleAddChildTask = (parent) => {
+    setParentTask(parent);
+    setActiveModal('create');
+  };
+
+  const handleEditTask = (task) => {
+    setSelectedTask(task);
+    setActiveModal('edit');
+  };
+
+  const handleDeleteById = async (taskId) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        await deleteTask(taskId);
+      } catch (e) { console.error(e); }
+    }
+  };
 
   return (
     <DashboardLayout sidebar={<SideNav
@@ -94,15 +122,44 @@ export default function Project() {
     />}>
       <ProjectTasksView
         project={project}
-        handleTaskClick={handleTaskClick}
+        handleTaskClick={handleEditTask} // Clicking a task opens edit
         handleAddChildTask={handleAddChildTask}
         handleEditTask={handleEditTask}
         handleDeleteById={handleDeleteById}
-        selectedTaskId={null}
+        selectedTaskId={selectedTask?.id}
         onToggleExpand={() => { }}
-        onInviteMember={() => console.log('Invite member')}
+        onInviteMember={() => setActiveModal('invite')}
         onStatusChange={handleStatusChange}
       />
+
+      {/* Modals */}
+      {activeModal === 'create' && (
+        <CreateTaskForm
+          open={true}
+          onClose={() => setActiveModal(null)}
+          parentId={parentTask?.id}
+          rootId={project.id}
+          origin={project.origin}
+          onSuccess={() => setActiveModal(null)}
+        />
+      )}
+
+      {activeModal === 'edit' && selectedTask && (
+        <EditTaskForm
+          open={true}
+          onClose={() => setActiveModal(null)}
+          task={selectedTask}
+          onSuccess={() => setActiveModal(null)}
+        />
+      )}
+
+      {activeModal === 'invite' && (
+        <InviteMemberModal
+          isOpen={true}
+          onClose={() => setActiveModal(null)}
+          project={project}
+        />
+      )}
     </DashboardLayout>
   );
 }

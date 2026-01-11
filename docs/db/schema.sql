@@ -544,6 +544,7 @@ GRANT EXECUTE ON FUNCTION public.is_active_member(uuid, uuid) TO authenticated, 
 GRANT EXECUTE ON FUNCTION public.has_project_role(uuid, uuid, text[]) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.check_project_ownership(uuid, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.clone_project_template(uuid, uuid, text, uuid, text, text, timestamptz, timestamptz) TO authenticated;
 
 -- Policies: Tasks
 DROP POLICY IF EXISTS tasks_select_policy ON public.tasks;
