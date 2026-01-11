@@ -119,7 +119,7 @@ const ProjectReport = () => {
                             { name: 'To Do', count: project.children?.filter(t => t.status === 'todo').length || 0, fill: CHART_COLORS.slate },
                             { name: 'In Progress', count: project.children?.filter(t => t.status === 'in_progress').length || 0, fill: CHART_COLORS.amber },
                             { name: 'Blocked', count: project.children?.filter(t => t.status === 'blocked').length || 0, fill: CHART_COLORS.rose },
-                            { name: 'Completed', count: project.children?.filter(t => t.is_complete).length || 0, fill: CHART_COLORS.emerald },
+                            { name: 'Completed', count: project.children?.filter(t => t.status === 'completed').length || 0, fill: CHART_COLORS.emerald },
                           ]}
                           cx="50%"
                           cy="50%"
