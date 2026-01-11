@@ -34,9 +34,9 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       label: 'Pending Tasks',
       value: pendingTasks,
       icon: Clock,
-      color: 'from-orange-500 to-orange-600',
-      bgColor: 'bg-orange-50',
-      textColor: 'text-orange-600',
+      color: 'from-brand-500 to-brand-600',
+      bgColor: 'bg-brand-50',
+      textColor: 'text-brand-600',
     },
     {
       label: 'Team Members',

@@ -217,7 +217,7 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                 <Button
                   onClick={handleCreate}
                   disabled={!formData.name || loading}
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-brand-500 hover:bg-brand-600"
                 >
                   {loading ? (
                     <>

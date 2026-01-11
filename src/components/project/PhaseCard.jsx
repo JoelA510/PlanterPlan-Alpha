@@ -15,10 +15,10 @@ const phaseColors = {
     border: 'border-purple-200',
   },
   3: {
-    bg: 'bg-orange-500',
-    light: 'bg-orange-50',
-    text: 'text-orange-600',
-    border: 'border-orange-200',
+    bg: 'bg-brand-500',
+    light: 'bg-brand-50',
+    text: 'text-brand-600',
+    border: 'border-brand-200',
   },
   4: {
     bg: 'bg-green-500',

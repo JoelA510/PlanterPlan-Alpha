@@ -1,6 +1,8 @@
+```javascript
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from 'utils';
+import { cn } from 'lib/utils';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -30,7 +32,7 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
 
   return (
     <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-      <Link to={createPageUrl(`Project?id=${project.id}`)}>
+      <Link to={createPageUrl(`Project ? id = ${ project.id } `)}>
         <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-orange-300 cursor-pointer group bg-white">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
@@ -43,7 +45,7 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
                 </h3>
                 <Badge
                   variant="secondary"
-                  className={`${statusColors[project.status]} text-xs mt-1`}
+                  className={`${ statusColors[project.status] } text - xs mt - 1`}
                 >
                   {project.status?.replace('_', ' ')}
                 </Badge>
