@@ -13,6 +13,7 @@ import {
 import DashboardLayout from '@layouts/DashboardLayout';
 import SideNav from '@features/navigation/components/SideNav';
 import { useNavigate } from 'react-router-dom';
+import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 
 export default function Settings() {
   const navigate = useNavigate();

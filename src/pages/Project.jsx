@@ -8,6 +8,7 @@ import { useAuth } from '@app/contexts/AuthContext';
 import DashboardLayout from '@layouts/DashboardLayout';
 import SideNav from '@features/navigation/components/SideNav';
 import { useNavigate } from 'react-router-dom';
+import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 
 export default function Project() {
   const { id } = useParams();
