@@ -39,6 +39,12 @@ We enforced `DashboardLayout.jsx` as the owner of navigation state.
 - **Pattern**: Pages (`Dashboard.jsx`, `Reports.jsx`) now pass `SideNav` as a prop to `DashboardLayout`.
 - **Fix**: Prevents "Missing Sidebar" bugs where pages rendered naked content.
 
+### 4. Code Quality Refactors
+- **Component Layout**: Extracted `GlobalNavItem` from `SideNav.jsx` for modularity.
+- **Service Layer**: Decoupled Project Seeding logic into `src/features/projects/services/projectService.js`.
+- **Hook Optimization**: Deduplicated context-refresh logic in `useTaskMutations` hook.
+- **CSS Hygiene**: Enforced `globals.css` as Single Source of Truth by removing conflicting `@theme` tokens from `index.css`.
+
 ## 🔍 Review Guide
 
 ### 🚨 High Risk (Infrastructure)
@@ -46,6 +52,7 @@ We enforced `DashboardLayout.jsx` as the owner of navigation state.
 - `vite.config.js`: Path aliases and build settings.
 - `src/main.jsx`: New entry point (replaced `index.js`).
 - `src/styles/globals.css`: The "Truth" for design tokens.
+
 
 ### ⚠️ Medium Risk (Core Features)
 - `src/layouts/DashboardLayout.jsx`: Core layout logic.
