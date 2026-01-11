@@ -29,11 +29,11 @@ export default function Project() {
   const handleNewTemplateClick = () => { };
 
   // Task/Project Mutation Handlers
-  const { updateTaskStatus } = useTaskOperations();
+  const { updateTask } = useTaskOperations();
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
-      await updateTaskStatus.mutateAsync({ taskId, status: newStatus });
+      await updateTask(taskId, { status: newStatus });
     } catch (error) {
       console.error("Failed to update status:", error);
     }
