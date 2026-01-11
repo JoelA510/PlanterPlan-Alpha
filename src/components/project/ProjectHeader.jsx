@@ -103,7 +103,7 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [] })
             </div>
           </div>
 
-          <div className="flex-1 flex items-center gap-3 min-w-[200px] max-w-md ml-auto">
+          <div className="flex-1 flex items-center gap-3 min-w-56 max-w-md ml-auto">
             <Progress value={progress} className="h-2 flex-1 bg-slate-100" />
             <span className="text-sm font-medium text-slate-700 whitespace-nowrap">
               {progress}% complete
