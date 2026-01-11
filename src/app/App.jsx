@@ -1,22 +1,25 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-
 import { ErrorBoundary } from 'react-error-boundary';
+
+// Upstream Infrastructure / Shared UI
 import ErrorFallback from '@shared/ui/ErrorFallback';
 import { AuthProvider, useAuth } from '@app/contexts/AuthContext';
 import { ToastProvider } from '@app/contexts/ToastContext';
+
+// Upstream/Legacy Feature Components
 import LoginForm from '@features/auth/components/LoginForm';
 import TaskList from '@features/tasks/components/TaskList';
 import ProjectReport from '@features/reports/components/ProjectReport';
 import TasksPage from '@pages/TasksPage';
-import ReportsPage from '@pages/ReportsPage';
-import SettingsPage from '@pages/SettingsPage';
 
-// Dashboard component with modern styling
-const Dashboard = () => {
-  // Layout logic moved to DashboardLayout (rendered by TaskList)
-  return <TaskList />;
-};
+// New Premium Pages (Stashed Work)
+import Home from '@pages/Home';
+import DashboardPage from '@pages/Dashboard';
+import ProjectPage from '@pages/Project';
+import ReportsPage from '@pages/Reports';
+import SettingsPage from '@pages/Settings';
+import TeamPage from '@pages/Team';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -33,7 +36,7 @@ const ProtectedRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
-// App Routes (inside AuthProvider)
+// App Routes
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
@@ -48,27 +51,38 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginForm />} />
+
+      {/* New Premium Routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <DashboardPage />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/project/:projectId"
+        path="/project"
+        /* Handling /project?id=123 via query params in the component */
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <ProjectPage />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/tasks"
+        path="/project/:id"
         element={
           <ProtectedRoute>
-            <TasksPage />
+            <ProjectPage />
           </ProtectedRoute>
         }
       />
@@ -89,6 +103,34 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/team"
+        element={
+          <ProtectedRoute>
+            <TeamPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Legacy/Upstream Routes */}
+      <Route
+        path="/tasks"
+        element={
+          <ProtectedRoute>
+            <TasksPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Retain /board for TaskList (Kanban) */}
+      <Route
+        path="/board"
+        element={
+          <ProtectedRoute>
+            <TaskList />
+          </ProtectedRoute>
+        }
+      />
+      {/* Legacy Report Route */}
+      <Route
         path="/report/:projectId"
         element={
           <ProtectedRoute>
@@ -96,7 +138,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} />} />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

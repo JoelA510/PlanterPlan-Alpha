@@ -40,7 +40,13 @@ const DashboardLayout = ({ children, sidebar }) => {
                 </svg>
               </button>
             </div>
-            <div className="flex-1 h-0 overflow-y-auto">{sidebarWithProps}</div>
+            {/* Mobile Sidebar Content */}
+            <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto side-nav-content">
+              {sidebarWithProps}
+            </div>
+          </div>
+          <div className="flex-shrink-0 w-14" aria-hidden="true">
+            {/* Force sidebar to shrink to fit close icon */}
           </div>
           <div className="flex-shrink-0 w-14" />
         </div>

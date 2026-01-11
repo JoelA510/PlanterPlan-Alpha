@@ -11,11 +11,25 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     resolve: {
         alias: {
+            // Upstream aliases
             '@app': path.resolve(__dirname, './src/app'),
             '@features': path.resolve(__dirname, './src/features'),
             '@pages': path.resolve(__dirname, './src/pages'),
             '@shared': path.resolve(__dirname, './src/shared'),
             '@layouts': path.resolve(__dirname, './src/layouts'),
+            // Stashed aliases (for compatibility with new Base44 components)
+            '@': path.resolve(__dirname, './src'),
+            'components': path.resolve(__dirname, './src/components'),
+            'pages': path.resolve(__dirname, './src/pages'),
+            'utils': path.resolve(__dirname, './src/utils'),
+            'lib': path.resolve(__dirname, './src/lib'),
+            'api': path.resolve(__dirname, './src/api'),
+            'layouts': path.resolve(__dirname, './src/layouts'),
+            'entities': path.resolve(__dirname, './src/entities'),
+            'hooks': path.resolve(__dirname, './src/hooks'),
+            'services': path.resolve(__dirname, './src/services'),
+            'contexts': path.resolve(__dirname, './src/contexts'),
+            'styles': path.resolve(__dirname, './src/styles'),
         },
     },
     build: {
