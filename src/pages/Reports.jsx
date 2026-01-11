@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import SideNav from '@features/navigation/components/SideNav';
@@ -121,17 +121,26 @@ export default function Reports() {
                 <div className="h-full flex items-center justify-center text-slate-400">No tasks found</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={metrics.chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip cursor={{ fill: 'transparent' }} />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  <PieChart>
+                    <Pie
+                      data={metrics.chartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={2}
+                      dataKey="count"
+                    >
                       {metrics.chartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
-                    </Bar>
-                  </BarChart>
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [value, name]}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
                 </ResponsiveContainer>
               )}
             </CardContent>
