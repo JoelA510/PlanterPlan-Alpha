@@ -163,6 +163,7 @@
   color: #374151;
   font-size: 0.95rem;
   /* Multi-line truncation logic */
+  @apply line-clamp-2;
   line-height: 1.4;
 }
 

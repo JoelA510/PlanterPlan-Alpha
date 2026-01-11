@@ -42,7 +42,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "lint": "eslint \"src/**/*.{js,jsx}\"",
+    "lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings=500",
     "format": "prettier --write ."
   },
   "browserslist": {

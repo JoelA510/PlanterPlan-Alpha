@@ -38,6 +38,8 @@
   --color-border: #e2e8f0;
   --color-input: #e2e8f0;
   --color-ring: #f97316;
+  --color-white-alpha-80: rgba(255, 255, 255, 0.8);
+  --color-white-alpha-10: rgba(255, 255, 255, 0.1);
 
   --radius-lg: 0.5rem;
   --radius-md: calc(0.5rem - 2px);
