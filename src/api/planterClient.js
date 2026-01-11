@@ -74,8 +74,20 @@ export const planter = {
         return data;
       },
     },
-    // Add other entities as needed based on usage
-  },
-};
+    Task: {
+      list: async () => {
+        const { data, error } = await supabase.from('tasks').select('*');
+        if (error) throw error;
+        return data;
+      },
+    },
+    TeamMember: {
+      list: async () => {
+        const { data, error } = await supabase.from('project_members').select('*');
+        if (error) throw error;
+        return data;
+      },
+    },
+  };
 
-export default planter;
+  export default planter;
