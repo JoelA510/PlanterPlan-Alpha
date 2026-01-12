@@ -22,6 +22,7 @@ export default function MilestoneSection({
     onTaskUpdate,
     onAddTask,
     phase,
+    onToggleExpand, // Add this
     phaseColor = 'orange'
 }) {
     const [isExpanded, setIsExpanded] = useState(true);
@@ -98,9 +99,10 @@ export default function MilestoneSection({
                                             <TaskItem
                                                 key={task.id}
                                                 task={task}
-                                                // onUpdate={onTaskUpdate} // NOTE: TaskItem uses onStatusChange or onEdit
                                                 onStatusChange={(id, status) => onTaskUpdate(id, { status })}
-                                            // phase={phase} // NOTE: Phase prop might not be used in src TaskItem but passing it doesn't hurt
+                                                onToggleExpand={onToggleExpand}
+                                                onAddChildTask={(t) => onAddTask(t)} // Assuming we can add child task same way? or different modal?
+                                            // We need onEdit for full functionality
                                             />
                                         ))}
                                     <Button

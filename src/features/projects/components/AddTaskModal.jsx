@@ -54,7 +54,7 @@ export default function AddTaskModal({ open, onClose, onAdd, milestone, teamMemb
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Add Task</DialogTitle>
                     {milestone && (

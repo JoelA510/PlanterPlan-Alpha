@@ -172,6 +172,10 @@ export async function createProjectWithDefaults(projectData) {
     },
   ];
 
+  // Get current user for attribution
+  const { data: { user } } = await supabase.auth.getUser();
+  const creatorId = user?.id || project.creator;
+
   for (const phase of defaultPhases) {
     const createdPhase = await planter.entities.Phase.create({
       title: phase.title,
@@ -179,6 +183,7 @@ export async function createProjectWithDefaults(projectData) {
       position: phase.order, // Map order to position
       root_id: project.id,
       parent_task_id: project.id, // Phase is child of Project
+      creator: creatorId, // Explicitly set creator
     });
 
     // Create default milestones for each phase
@@ -190,6 +195,7 @@ export async function createProjectWithDefaults(projectData) {
         position: milestone.order, // Map order to position
         parent_task_id: createdPhase.id, // Milestone child of Phase
         root_id: project.id,
+        creator: creatorId, // Explicitly set creator
       });
 
       // Create default tasks for each milestone
@@ -202,6 +208,7 @@ export async function createProjectWithDefaults(projectData) {
           position: task.order, // Map order to position
           parent_task_id: createdMilestone.id, // Task child of Milestone
           root_id: project.id,
+          creator: creatorId, // Explicitly set creator
         });
       }
     }

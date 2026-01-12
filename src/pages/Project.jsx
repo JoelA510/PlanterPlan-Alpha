@@ -15,6 +15,7 @@ export default function Project() {
 
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [addTaskModal, setAddTaskModal] = useState({ open: false, milestone: null });
+  const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
 
   const queryClient = useQueryClient();
 
@@ -73,6 +74,25 @@ export default function Project() {
   const handleTaskUpdate = (taskId, data) => {
     updateTaskMutation.mutate({ id: taskId, data });
   };
+
+  const handleToggleExpand = (task, isExpanded) => {
+    const newSet = new Set(expandedTaskIds);
+    if (isExpanded) {
+      newSet.add(task.id);
+    } else {
+      newSet.delete(task.id);
+    }
+    setExpandedTaskIds(newSet);
+  };
+
+  const mapTaskWithState = (task) => ({
+    ...task,
+    isExpanded: expandedTaskIds.has(task.id),
+    children: tasks
+      .filter(t => t.parent_task_id === task.id)
+      .map(mapTaskWithState)
+      .sort((a, b) => (a.position || 0) - (b.position || 0))
+  });
 
   const handleAddTask = async (taskData) => {
     try {
@@ -155,8 +175,9 @@ export default function Project() {
                   <MilestoneSection
                     key={milestone.id}
                     milestone={milestone}
-                    tasks={tasks}
+                    tasks={tasks.map(mapTaskWithState)} // Pass tasks with proper tree structure and state
                     onTaskUpdate={handleTaskUpdate}
+                    onToggleExpand={handleToggleExpand}
                     onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
                     phase={activePhase}
                   />
