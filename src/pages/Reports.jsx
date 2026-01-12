@@ -49,23 +49,25 @@ export default function Reports() {
     enabled: !!projectId
   });
 
-  const { data: phases = [] } = useQuery({
-    queryKey: ['phases', projectId],
-    queryFn: () => planter.entities.Phase.filter({ root_id: projectId }),
-    enabled: !!projectId
-  });
-
-  const { data: milestones = [] } = useQuery({
-    queryKey: ['milestones', projectId],
-    queryFn: () => planter.entities.Milestone.filter({ root_id: projectId }),
-    enabled: !!projectId
-  });
-
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks', projectId],
+  // SINGLE SOURCE OF TRUTH: Fetch all tasks for the project
+  const { data: projectHierarchy = [] } = useQuery({
+    queryKey: ['projectHierarchy', projectId],
     queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
     enabled: !!projectId
   });
+
+  // Derived State (In-Memory Filtering)
+  const phases = projectHierarchy.filter(t => t.parent_task_id === projectId);
+
+  const milestones = projectHierarchy.filter(t =>
+    phases.some(p => p.id === t.parent_task_id)
+  );
+
+  const tasks = projectHierarchy.filter(t =>
+    milestones.some(m => m.id === t.parent_task_id)
+  );
+
+  const isLoading = false; // Derived from query status if needed, or simplified
 
   // Calculate stats
   const tasksByStatus = {
@@ -82,10 +84,10 @@ export default function Reports() {
     { name: 'Blocked', value: tasksByStatus.blocked, color: '#ef4444' }
   ].filter(d => d.value > 0);
 
-  const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
+  const sortedPhases = [...phases].sort((a, b) => (a.position || 0) - (b.position || 0));
 
   const phaseData = sortedPhases.map(phase => {
-    const phaseTasks = tasks.filter(t => t.phase_id === phase.id);
+    const phaseTasks = tasks.filter(t => t.parent_task_id === phase.id || milestones.some(m => m.id === t.parent_task_id && m.parent_task_id === phase.id));
     const completed = phaseTasks.filter(t => t.status === 'completed').length;
     const total = phaseTasks.length;
     return {

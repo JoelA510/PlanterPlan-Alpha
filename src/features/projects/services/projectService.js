@@ -129,41 +129,42 @@ export async function createProjectWithDefaults(projectData) {
   // Create default phases for the project
   const defaultPhases = [
     {
-      name: 'Discovery',
-      description: 'Assess calling, gather resources, build foundation',
+      title: 'Discovery',
+      description: 'Assess calling, gather resources, foundation',
       order: 1,
       icon: 'compass',
       color: 'blue',
     },
     {
-      name: 'Planning',
+      title: 'Planning',
       description: 'Develop strategy, vision, and initial team',
       order: 2,
       icon: 'map',
       color: 'purple',
     },
     {
-      name: 'Preparation',
+      title: 'Preparation',
       description: 'Build systems, recruit team, prepare for launch',
       order: 3,
       icon: 'wrench',
       color: 'orange',
     },
     {
-      name: 'Pre-Launch',
+      title: 'Pre-Launch',
       description: 'Final preparations, preview services, marketing',
       order: 4,
       icon: 'rocket',
       color: 'green',
     },
     {
-      name: 'Launch',
+      title: 'Launch',
       description: 'Grand opening and initial growth phase',
       order: 5,
       icon: 'yellow',
+      color: 'yellow',
     },
     {
-      name: 'Growth',
+      title: 'Growth',
       description: 'Establish systems, develop leaders, expand reach',
       order: 6,
       icon: 'trending-up',
@@ -173,7 +174,9 @@ export async function createProjectWithDefaults(projectData) {
 
   for (const phase of defaultPhases) {
     const createdPhase = await planter.entities.Phase.create({
-      ...phase,
+      title: phase.title,
+      description: phase.description,
+      position: phase.order, // Map order to position
       root_id: project.id,
       parent_task_id: project.id, // Phase is child of Project
     });
@@ -182,7 +185,9 @@ export async function createProjectWithDefaults(projectData) {
     const milestones = getMilestonesForPhase(phase.order);
     for (const milestone of milestones) {
       const createdMilestone = await planter.entities.Milestone.create({
-        ...milestone,
+        title: milestone.title,
+        description: milestone.description,
+        position: milestone.order, // Map order to position
         parent_task_id: createdPhase.id, // Milestone child of Phase
         root_id: project.id,
       });
@@ -191,7 +196,10 @@ export async function createProjectWithDefaults(projectData) {
       const tasks = getTasksForMilestone(milestone.order, phase.order);
       for (const task of tasks) {
         await planter.entities.Task.create({
-          ...task,
+          title: task.title,
+          priority: task.priority,
+          status: 'not_started',
+          position: task.order, // Map order to position
           parent_task_id: createdMilestone.id, // Task child of Milestone
           root_id: project.id,
         });
@@ -206,41 +214,45 @@ export async function createProjectWithDefaults(projectData) {
 function getMilestonesForPhase(phaseOrder) {
   const milestonesMap = {
     1: [
-      { name: 'Personal Assessment', order: 1, description: 'Evaluate your calling and readiness' },
-      { name: 'Family Preparation', order: 2, description: 'Prepare your family for the journey' },
+      { title: 'Personal Assessment', order: 1, description: 'Evaluate your calling and readiness' },
+      { title: 'Family Preparation', order: 2, description: 'Prepare your family for the journey' },
       {
-        name: 'Resource Gathering',
+        title: 'Resource Gathering',
         order: 3,
         description: 'Identify available resources and support',
       },
     ],
     2: [
-      { name: 'Vision Development', order: 1, description: 'Clarify your vision and mission' },
-      { name: 'Strategic Planning', order: 2, description: 'Develop your launch strategy' },
-      { name: 'Core Team Building', order: 3, description: 'Recruit and develop your core team' },
+      { title: 'Vision Development', order: 1, description: 'Clarify your vision and mission' },
+      { title: 'Strategic Planning', order: 2, description: 'Develop your launch strategy' },
+      { title: 'Core Team Building', order: 3, description: 'Recruit and develop your core team' },
     ],
     3: [
-      { name: 'Systems Setup', order: 1, description: 'Establish operational systems' },
-      { name: 'Facility Planning', order: 2, description: 'Secure meeting location' },
-      { name: 'Ministry Development', order: 3, description: 'Develop key ministry areas' },
+      { title: 'Systems Setup', order: 1, description: 'Establish operational systems' },
+      { title: 'Facility Planning', order: 2, description: 'Secure meeting location' },
+      { title: 'Ministry Development', order: 3, description: 'Develop key ministry areas' },
     ],
     4: [
-      { name: 'Preview Services', order: 1, description: 'Host preview gatherings' },
-      { name: 'Marketing Launch', order: 2, description: 'Begin community outreach' },
-      { name: 'Final Preparations', order: 3, description: 'Complete all launch requirements' },
+      { title: 'Preview Services', order: 1, description: 'Host preview gatherings' },
+      { title: 'Marketing Launch', order: 2, description: 'Begin community outreach' },
+      { title: 'Final Preparations', order: 3, description: 'Complete all launch requirements' },
     ],
     5: [
-      { name: 'Launch Week', order: 1, description: 'Execute your launch plan' },
-      { name: 'First Month', order: 2, description: 'Establish weekly rhythms' },
-      { name: 'Guest Follow-up', order: 3, description: 'Connect with visitors' },
+      { title: 'Launch Week', order: 1, description: 'Execute your launch plan' },
+      { title: 'First Month', order: 2, description: 'Establish weekly rhythms' },
+      { title: 'Guest Follow-up', order: 3, description: 'Connect with visitors' },
     ],
     6: [
-      { name: 'Leadership Development', order: 1, description: 'Train and empower leaders' },
-      { name: 'Ministry Expansion', order: 2, description: 'Launch additional ministries' },
-      { name: 'Future Planning', order: 3, description: 'Plan for multiplication' },
+      { title: 'Leadership Development', order: 1, description: 'Train and empower leaders' },
+      { title: 'Ministry Expansion', order: 2, description: 'Launch additional ministries' },
+      { title: 'Future Planning', order: 3, description: 'Plan for multiplication' },
     ],
   };
-  return milestonesMap[phaseOrder] || [];
+  // Ensure we fallback to empty if generic phase
+  return milestonesMap[phaseOrder] || [
+    { title: 'Generic Milestone 1', order: 1, description: 'Default milestone' },
+    { title: 'Generic Milestone 2', order: 2, description: 'Default milestone' }
+  ];
 }
 
 function getTasksForMilestone(milestoneOrder, _phaseOrder) {

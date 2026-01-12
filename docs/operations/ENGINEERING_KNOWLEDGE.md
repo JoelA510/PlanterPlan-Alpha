@@ -900,11 +900,19 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Composition**: Entities like `Project` use `...createEntityClient()` to inherit base methods while overriding specific ones (like `create` for custom mapping).
 - **Critical Rule**: **Don't Repeat Data Access Logic.** Use a factory pattern for standard CRUD operations and only write custom code for business-logic-heavy entities.
 
-## [SVC-044] Schema Reality: Phases and Milestones are Tasks
+## [SVC-044] Schema Reality: Unified Tasks & Column Mismatches
 
-- **Tags**: #schema, #database, #api, #gotcha
+- **Tags**: #schema, #database, #api, #gotcha, #mapping
 - **Date**: 2026-01-12
-- **Context**: The `planterClient` refactor initially assumed `phases` and `milestones` tables existed.
-- **Problem**: The database uses a unified `tasks` table with hierarchy (`root_id`, `parent_task_id`). There are no separate tables.
-- **Solution**: The `createEntityClient` for Phase and Milestone must point to `tasks`.
-- **Critical Rule**: When querying for "Phases" via the generic client, you MUST filter by hierarchy (`root_id`) or custom metadata. The generic client `list()` will return ALL tasks if not filtered. **Always use specific filters** when using `planter.entities` on the `tasks` table.
+- **Context & Problem**:
+  1. The `planterClient` refactor initially assumed `phases` and `milestones` tables existed. (Reality: Everything is a `task`).
+  2. Frontend models used `name` and `order`, effectively "guessing" columns. (Reality: Backend uses `title` and `position`).
+  3. This caused **400 Bad Request** on bulk inserts.
+- **Solution**:
+  - **Table**: `createEntityClient` for Phase/Milestone points to `tasks`.
+  - **Mapping**: Explicitly map `name` -> `title` and `order` -> `position` in `projectService.js`.
+  - **Single Source**: Refactor UI queries to fetch ONE hierarchy and filter in-memory.
+- **Critical Rule**:
+  1. **One Table Rule**: Phases/Milestones/Tasks are all rows in `tasks`.
+  2. **Column Reality**: `tasks` table columns are `title`, `position`, `status`, `root_id`. **Do not attempt to insert** `name` or `order`.
+  3. **Filter Hierarchy**: Generic `list()` returns ALL tasks. Always filter by `root_id` and `parent_task_id`.

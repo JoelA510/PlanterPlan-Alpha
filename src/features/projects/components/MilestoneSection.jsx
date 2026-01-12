@@ -26,7 +26,7 @@ export default function MilestoneSection({
 }) {
     const [isExpanded, setIsExpanded] = useState(true);
 
-    const milestoneTasks = tasks.filter(t => t.milestone_id === milestone.id);
+    const milestoneTasks = tasks.filter(t => t.parent_task_id === milestone.id);
     const completedTasks = milestoneTasks.filter(t => t.status === 'completed').length;
     const totalTasks = milestoneTasks.length;
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -46,7 +46,7 @@ export default function MilestoneSection({
                     </motion.div>
 
                     <div className="text-left">
-                        <h4 className="font-semibold text-slate-900">{milestone.name}</h4>
+                        <h4 className="font-semibold text-slate-900">{milestone.title || milestone.name}</h4>
                         {milestone.description && (
                             <p className="text-sm text-slate-500 mt-0.5">{milestone.description}</p>
                         )}
@@ -93,7 +93,7 @@ export default function MilestoneSection({
                             ) : (
                                 <div className="space-y-2 pt-4">
                                     {milestoneTasks
-                                        .sort((a, b) => (a.order || 0) - (b.order || 0))
+                                        .sort((a, b) => (a.position || 0) - (b.position || 0))
                                         .map((task) => (
                                             <TaskItem
                                                 key={task.id}
