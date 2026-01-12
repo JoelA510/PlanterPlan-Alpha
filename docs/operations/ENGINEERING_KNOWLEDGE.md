@@ -864,18 +864,19 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Date**: 2026-01-10
 - **Context & Problem**: A critical production-blocking syntax error was introduced into `src/main.jsx`. The file contained markdown grouping backticks inside the source code, causing the build to fail silently (rendering a white screen).
 - **Solution & Pattern**:
-  - **Strict Tool Usage**: When using `write_to_file` or `replace_file_content`, ensure the content string *excludes* markdown formatting wrappers unless writing to a `.md` file.
+  - **Strict Tool Usage**: When using `write_to_file` or `replace_file_content`, ensure the content string _excludes_ markdown formatting wrappers unless writing to a `.md` file.
   - **Verification**: Always run an adversarial browser test or build check after "simple" file rewrites.
 - **Critical Rule**: Source code is not markdown. Double-check that code blocks strips formatting boundaries before writing to disk.
 
 ## [UI-043] Layout-Driven Navigation State
+
 - **Tags**: #ui, #react, #navigation
 - **Date**: 2026-01-10
 - **Context & Problem**: The Sidebar vanished from the Dashboard after refactoring. The root cause was `Dashboard.jsx` rendering `SideNav` directly instead of using the wrapper `DashboardLayout`.
 - **Solution & Pattern**:
   - **Inversion of Control**: The Page component (`Dashboard`) delegates layout responsibility to `DashboardLayout`.
   - **Prop Drilling**: `DashboardLayout` injects the `onNavClick` handler (for mobile closing) into the `sidebar` prop element via `React.cloneElement`.
-- **Critical Rule**: If a layout manages mobile state (open/close), the Page *must* use that layout wrapper to ensure the navigation component receives the state-closing handlers.
+- **Critical Rule**: If a layout manages mobile state (open/close), the Page _must_ use that layout wrapper to ensure the navigation component receives the state-closing handlers.
 
 ## [CSS-044] Semantic Color System Migration
 
@@ -888,3 +889,13 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Batch Migration**: Use `sed` for bulk replacements across feature directories, then verify with `grep` and lint.
   - **Exceptions**: Code comments explaining hex values (e.g., Recharts config) are acceptable.
 - **Critical Rule**: Never use generic Tailwind colors (`red`, `green`, `blue`, `orange`) for semantic states. Always use the semantic palette (`rose`, `emerald`, `amber`, `sky`, `brand`).
+
+## [SVC-043] Generic Entity Client Factory
+
+- **Tags**: #javascript, #services, #api, #refactoring
+- **Date**: 2026-01-12
+- **Context & Problem**: The `planterClient.js` had duplicated logic for `list` and `filter` methods across multiple entities (Task, Phase, Milestone), leading to maintenance overhead. Additionally, several entities were missing generic `create`/`delete` methods, causing runtime errors when new features tried to use them.
+- **Solution & Pattern**: Implemented a `createEntityClient(tableName, select)` factory function.
+  - **DRY**: Centralized `list`, `get`, `create`, `update`, `delete`, and `filter` logic.
+  - **Composition**: Entities like `Project` use `...createEntityClient()` to inherit base methods while overriding specific ones (like `create` for custom mapping).
+- **Critical Rule**: **Don't Repeat Data Access Logic.** Use a factory pattern for standard CRUD operations and only write custom code for business-logic-heavy entities.

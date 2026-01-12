@@ -3,6 +3,44 @@ import { supabase } from '@app/supabaseClient';
 // Planter API Client Adapter
 // Maps the new "planter" API calls to our existing Supabase and Service layer.
 
+// Helper factory for generic CRUD operations
+const createEntityClient = (tableName, select = '*') => ({
+  list: async () => {
+    const { data, error } = await supabase.from(tableName).select(select);
+    if (error) throw error;
+    return data;
+  },
+  get: async (id) => {
+    const { data, error } = await supabase.from(tableName).select(select).eq('id', id).single();
+    if (error) throw error;
+    return data;
+  },
+  create: async (payload) => {
+    const { data, error } = await supabase.from(tableName).insert([payload]).select(select).single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id, payload) => {
+    const { data, error } = await supabase.from(tableName).update(payload).eq('id', id).select(select).single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id) => {
+    const { error } = await supabase.from(tableName).delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+  filter: async (filters) => {
+    let query = supabase.from(tableName).select(select);
+    Object.keys(filters).forEach(key => {
+      query = query.eq(key, filters[key]);
+    });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  }
+});
+
 export const planter = {
   auth: {
     me: async () => {
@@ -17,38 +55,28 @@ export const planter = {
   },
   entities: {
     Project: {
+      ...createEntityClient('tasks', '*, name:title, launch_date:due_date, owner_id:creator'),
+      // Override list to filter for Root Tasks (Projects)
       list: async () => {
-        // Fetch projects (Root Tasks)
-        // Map 'title' -> 'name', 'due_date' -> 'launch_date'
         const { data, error } = await supabase
           .from('tasks')
           .select('*, name:title, launch_date:due_date, owner_id:creator')
           .is('parent_task_id', null)
-          .eq('origin', 'instance') // Ensure we don't fetch templates as projects
+          .eq('origin', 'instance')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
         return data;
       },
-      get: async (id) => {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('*, name:title, launch_date:due_date, owner_id:creator')
-          .eq('id', id)
-          .single();
-        if (error) throw error;
-        return data;
-      },
+      // Override create for specific mapping
       create: async (projectData) => {
-        // Map incoming projectData to task columns
         const taskPayload = {
           title: projectData.name,
           description: projectData.description,
-          due_date: projectData.launch_date, // Mapping launch_date to due_date
+          due_date: projectData.launch_date,
           origin: 'instance',
-          parent_task_id: null, // Root task
-          status: 'planning', // Default status
-          // location? No standard column, maybe notes? Skipping for now to avoid schema violation.
+          parent_task_id: null,
+          status: 'planning',
         };
 
         const { data, error } = await supabase
@@ -60,6 +88,21 @@ export const planter = {
         if (error) throw error;
         return data;
       },
+      // Override filter to ensure we only get projects
+      filter: async (filters) => {
+        let query = supabase.from('tasks')
+          .select('*, name:title, launch_date:due_date, owner_id:creator')
+          .is('parent_task_id', null)
+          .eq('origin', 'instance');
+
+        Object.keys(filters).forEach(key => {
+          query = query.eq(key, filters[key]);
+        });
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+      },
+      // Custom methods
       addMember: async (projectId, userId, role) => {
         const { data, error } = await supabase
           .from('project_members')
@@ -70,7 +113,6 @@ export const planter = {
         return data;
       },
       addMemberByEmail: async (projectId, email, role) => {
-        // Strategy A: Check profiles
         const { data: user } = await supabase
           .from('profiles')
           .select('id')
@@ -81,7 +123,6 @@ export const planter = {
           return await planter.entities.Project.addMember(projectId, user.id, role);
         }
 
-        // Strategy B: RPC
         const { data, error } = await supabase.rpc('invite_user_to_project', {
           p_project_id: projectId,
           p_email: email,
@@ -90,81 +131,11 @@ export const planter = {
         if (error) throw error;
         return data;
       },
-      filter: async (filters) => {
-        let query = supabase.from('tasks')
-          .select('*, name:title, launch_date:due_date, owner_id:creator')
-          .is('parent_task_id', null)
-          .eq('origin', 'instance');
-
-        Object.keys(filters).forEach(key => {
-          // Map id filter correctly considering mapped fields if needed, but 'id' is standard
-          query = query.eq(key, filters[key]);
-        });
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
-      }
     },
-    Task: {
-      list: async () => {
-        const { data, error } = await supabase.from('tasks').select('*');
-        if (error) throw error;
-        return data;
-      },
-      filter: async (filters) => {
-        let query = supabase.from('tasks').select('*');
-        Object.keys(filters).forEach(key => {
-          query = query.eq(key, filters[key]);
-        });
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
-      }
-    },
-    Phase: {
-      list: async () => {
-        const { data, error } = await supabase.from('phases').select('*');
-        if (error) throw error;
-        return data;
-      },
-      filter: async (filters) => {
-        let query = supabase.from('phases').select('*');
-        Object.keys(filters).forEach(key => {
-          query = query.eq(key, filters[key]);
-        });
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
-      },
-      get: async (id) => {
-        const { data, error } = await supabase.from('phases').select('*').eq('id', id).single();
-        if (error) throw error;
-        return data;
-      }
-    },
-    Milestone: {
-      list: async () => {
-        const { data, error } = await supabase.from('milestones').select('*');
-        if (error) throw error;
-        return data;
-      },
-      filter: async (filters) => {
-        let query = supabase.from('milestones').select('*');
-        Object.keys(filters).forEach(key => {
-          query = query.eq(key, filters[key]);
-        });
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
-      }
-    },
-    TeamMember: {
-      list: async () => {
-        const { data, error } = await supabase.from('project_members').select('*');
-        if (error) throw error;
-        return data;
-      },
-    },
+    Task: createEntityClient('tasks'),
+    Phase: createEntityClient('phases'),
+    Milestone: createEntityClient('milestones'),
+    TeamMember: createEntityClient('project_members'),
   },
 };
 

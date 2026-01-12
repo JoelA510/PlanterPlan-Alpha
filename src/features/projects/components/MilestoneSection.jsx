@@ -62,6 +62,7 @@ export default function MilestoneSection({
                             {progress}%
                         </span>
                     </div>
+                    {milestone.is_locked && <Badge variant="outline" className="text-xs px-1.5 h-5 bg-slate-50 text-slate-500 border-slate-200">Locked</Badge>}
                     <Badge variant="secondary" className="bg-slate-100 text-slate-600">
                         {completedTasks}/{totalTasks}
                     </Badge>
