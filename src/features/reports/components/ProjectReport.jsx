@@ -110,7 +110,7 @@ const ProjectReport = () => {
                   </div>
                 </div>
 
-                <div className="h-[350px] bg-slate-50 rounded-lg p-6 border border-slate-100">
+                <div className="h-80 bg-slate-50 rounded-lg p-6 border border-slate-100">
                   <h3 className="text-sm font-semibold text-slate-500 mb-4 uppercase tracking-wider">Status Distribution</h3>
                   <div className="w-full h-full pb-6">
                     <ResponsiveContainer width="100%" height="100%">

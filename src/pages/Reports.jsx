@@ -256,7 +256,7 @@ export default function Reports() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-slate-500">
+                <div className="h-72 flex items-center justify-center text-slate-500">
                   No tasks to display
                 </div>
               )}

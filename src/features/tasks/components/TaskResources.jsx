@@ -86,7 +86,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
         <Button
           size="sm"
           onClick={() => setShowAddModal(true)}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-brand-500 hover:bg-brand-600 text-white"
         >
           <Plus className="w-4 h-4 mr-1" />
           Add Resource
@@ -109,14 +109,14 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
                 className={cn(
                   "flex items-center justify-between p-3 rounded-lg border transition-all",
                   isPrimary
-                    ? "bg-orange-50 border-orange-300"
+                    ? "bg-brand-50 border-brand-300"
                     : "bg-white border-slate-200 hover:border-slate-300"
                 )}
               >
                 <div className="flex items-center gap-3 flex-1">
                   <div className={cn(
                     "w-9 h-9 rounded-lg flex items-center justify-center",
-                    isPrimary ? "bg-orange-500" : "bg-slate-100"
+                    isPrimary ? "bg-brand-500" : "bg-slate-100"
                   )}>
                     <Icon className={cn("w-4 h-4", isPrimary ? "text-white" : "text-slate-600")} />
                   </div>
@@ -147,10 +147,10 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
                     onClick={() => setPrimaryMutation.mutate(resource.id)}
                     className={cn(
                       "h-8 w-8",
-                      isPrimary && "text-orange-600 hover:text-orange-700"
+                      isPrimary && "text-brand-600 hover:text-brand-700"
                     )}
                   >
-                    <Star className={cn("w-4 h-4", isPrimary && "fill-orange-600")} />
+                    <Star className={cn("w-4 h-4", isPrimary && "fill-brand-600")} />
                   </Button>
                   <Button
                     size="icon"
@@ -232,7 +232,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
               <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button type="submit" className="bg-brand-500 hover:bg-brand-600 text-white">
                 Add Resource
               </Button>
             </div>
