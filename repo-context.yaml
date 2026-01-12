@@ -110,6 +110,26 @@ modules:
         capabilities: ["Deep hierarchy cloning", "Sequential date calculation", "License marking"]
         provides: "createProjectFromTemplate()"
 
+  # ==========================================
+  # DESIGN SYSTEM
+  # ==========================================
+  DesignSystem:
+    purpose: "Enforced UI consistency and modern aesthetic"
+    capabilities:
+      - "Standardized color palette (Slate/Brand)"
+      - "Consistent spacing & radius tokens"
+      - "Accessible focus & hover states"
+    dependencies: 
+      strong: [TailwindConfig, GlobalCSS]
+    exports:
+      tokens:
+        - "Brand: #f1592a (Primary)"
+        - "Canvas: bg-slate-50"
+        - "Surface: bg-white rounded-xl shadow-sm border-slate-200"
+      patterns:
+        - "Card: p-5 rounded-xl border-slate-200 shadow-sm"
+        - "Input: border-slate-300 focus:ring-brand-500/20"
+
   # UI COMPONENTS
   TaskManagementUI:
     purpose: "Task display and interaction layer"

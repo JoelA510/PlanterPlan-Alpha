@@ -222,7 +222,7 @@ Explicitly defined flex direction in Tailwind classes.
 
 ### Context & Problem
 
-Application failed to startup or connected to the wrong backend because `npm start` (React scripts) attempted to pick a random port when 3000 was busy, but the Supabase client was hardcoded to expect CORS from localhost:3000.
+Application failed to startup or connected to the wrong backend because the dev server attempted to pick a random port when 3000 was busy, but the Supabase client was hardcoded to expect CORS from localhost:3000.
 
 ### Solution & Pattern
 
@@ -780,3 +780,110 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Sidebar**: `flex-shrink-0 overflow-y-auto`. Static width on desktop.
   - **Main**: `flex-1 overflow-y-auto`. Takes remaining space and handles its own scrolling.
 - **Critical Rule**: For application-like dashboards, lock the `body` (or root div) height to `100vh` and manage scrolling internally in the main content area.
+
+## [TEST-040] Jest to Vitest Migration (Global Object)
+
+- **Tags**: #testing, #vitest, #jest, #migration
+- **Date**: 2026-01-07
+- **Context & Problem**: Migrating from Jest (CRA) to Vitest (Vite) caused **ReferenceError: jest is not defined**. Codebases often rely on the global **jest** object for **jest.fn()**, **jest.mock()**, etc.
+- **Solution & Pattern**:
+  - **Replace Globals**: Systematically replace **jest** with **vi** (Vitest's equivalent).
+  - **Shim (Temporary)**: If direct replacement is too large, you can shim **globalThis.jest = vi** in **setupTests.js**, but this fails for hoisted **jest.mock** calls.
+  - **Correction**: Direct migration is preferred. **vi.mock** is hoisted automatically by the Vitest compiler, whereas a shimmed **fakeJest.mock** is not.
+- **Critical Rule**: Do not try to shim **jest** for mocking. Replace **jest.mock** with **vi.mock** directly to ensure correct hoisting behavior.
+
+## [TEST-041] ESM Mocking Factories (Default Exports)
+
+- **Tags**: #testing, #vitest, #esm, #mocking
+- **Date**: 2026-01-07
+- **Context & Problem**: In Vitest (ESM), `vi.mock('./Component', () => () => <div />)` failed with **mock is not returning an object**.
+- **Solution & Pattern**: Return a factory that returns a default export: `vi.mock('./Comp', () => ({ default: () => <div /> }))`.
+  - **ESM Requirement**: ESM modules are objects with a **default** key for default exports. The mock factory must return **{ default: MockComponent }**.
+  - **Async importActual**: **vi.requireActual** is synchronous and often fails in ESM. Use **await vi.importActual()** inside an **async** factory.
+- **Critical Rule**: When mocking default exports in Vitest, always return an object **{ default: ... }**. Use **async** factories if you need to import actual modules.
+
+## [TEST-042] Mocking Custom Hooks in Integration Tests
+
+- **Tags**: #testing, #vitest, #hooks, #mocking
+- **Date**: 2026-01-08
+- **Context & Problem**: In functional integration tests (Golden Paths), components using complex data-fetching hooks (e.g., `useTaskOperations`) caused tests to hang or timeout. The hooks were attempting actual async operations or were in an infinite `useEffect` loop due to test environment conditions, preventing the UI from rendering the "success" state.
+- **Solution & Pattern**: Bypass the hook's internal logic entirely by mocking the hook module.
+
+  ```javascript
+  import * as hookModule from '../../hooks/useTaskOperations';
+  vi.spyOn(hookModule, 'useTaskOperations').mockReturnValue({
+      loading: false, // Force stable state
+      data: [],
+      // ... provide essential handlers as vi.fn()
+  });
+  ```
+
+- **Critical Rule**: For page-level integration tests focused on routing or layout (not data fetching verification), **mock the data provider hooks** to return immediate, stable data. Do not rely on internal hook state transitions.
+
+## [CSS-042] Legacy CSS Variable Drift
+
+- **Tags**: #css, #refactoring, #design-system
+- **Date**: 2026-01-08
+- **Context & Problem**: During the Design System migration, we found that many components referenced `var(--accent-blue)` which was not defined in the new `index.css` theme, causing silent layout regressions (transparents backgrounds). Legacy "emulation" stylesheets assumed variables that no longer existed.
+- **Solution & Pattern**:
+  - **Audit**: Grep for `var(--` usage across all CSS files.
+  - **Standardize**: Replaced all instances of ad-hoc `accent-blue` with the strict `brand-600` token.
+  - **Cleanup**: Deleted unused variables to prevent future drift.
+- **Critical Rule**: **No Phantom Variables.** If a CSS variable is used in a specific component stylesheet, it MUST be defined in `index.css` (global theme) or the component itself. Do not assume legacy variables persist across major theme refactors.
+
+## [REACT-042] Unescaped Entities in JSX
+
+- **Tags**: #react, #jsx, #security
+- **Date**: 2026-01-09
+- **Context & Problem**: Linter reported errors for unescaped quotes (`"`) in JSX text content. While often rendered correctly by browsers, this violates strict XML/JSX parsing rules and can lead to edge-case rendering issues or XSS vulnerabilities if data is interpolated insecurely.
+- **Solution & Pattern**: Use HTML entities regarding:
+  - `"` -> `&quot;`
+  - `'` -> `&apos;`
+- **Critical Rule**: Always escape special characters in JSX text nodes.
+
+## [REACT-043] Synchronous State in Effects
+
+- **Tags**: #react, #hooks, #performance, #bug
+- **Date**: 2026-01-09
+- **Context & Problem**: `MasterLibrarySearch` attempted to reset `activeIndex` state inside a `useEffect` that depended on `query` or `results`. This flags as "Synchronous setState in Effect" because it triggers an immediate re-render before the browser paints, potentially causing visual jank or infinite loops if dependencies are unstable.
+- **Solution & Pattern**: **Move Logic to Event Handlers**. Reset the `activeIndex` inside the `handleQueryChange` function directly.
+- **Critical Rule**: Avoid `useEffect` for state derived purely from user events. Update state in the event handler itself.
+
+## [REACT-044] Component Display Names
+
+- **Tags**: #react, #debugging, #lint
+- **Date**: 2026-01-09
+- **Context & Problem**: `React.memo` and `forwardRef` components lose their inferred names in DevTools (showing as `Anonymous`), and strict linting enforces `react/display-name`.
+- **Solution & Pattern**: Explicitly assign `Component.displayName = 'Component'` after definition, or use named functions inside the wrapper: `memo(function MyComp() { ... })`.
+- **Critical Rule**: Higher-Order Components (memo, forwardRef) require explicit naming or displayNames for proper debugging.
+
+## [ARC-042] Agent-Induced Syntax Injection (The "Backtick" Bug)
+
+- **Tags**: #dx, #agent, #human-review
+- **Date**: 2026-01-10
+- **Context & Problem**: A critical production-blocking syntax error was introduced into `src/main.jsx`. The file contained markdown grouping backticks inside the source code, causing the build to fail silently (rendering a white screen).
+- **Solution & Pattern**:
+  - **Strict Tool Usage**: When using `write_to_file` or `replace_file_content`, ensure the content string *excludes* markdown formatting wrappers unless writing to a `.md` file.
+  - **Verification**: Always run an adversarial browser test or build check after "simple" file rewrites.
+- **Critical Rule**: Source code is not markdown. Double-check that code blocks strips formatting boundaries before writing to disk.
+
+## [UI-043] Layout-Driven Navigation State
+- **Tags**: #ui, #react, #navigation
+- **Date**: 2026-01-10
+- **Context & Problem**: The Sidebar vanished from the Dashboard after refactoring. The root cause was `Dashboard.jsx` rendering `SideNav` directly instead of using the wrapper `DashboardLayout`.
+- **Solution & Pattern**:
+  - **Inversion of Control**: The Page component (`Dashboard`) delegates layout responsibility to `DashboardLayout`.
+  - **Prop Drilling**: `DashboardLayout` injects the `onNavClick` handler (for mobile closing) into the `sidebar` prop element via `React.cloneElement`.
+- **Critical Rule**: If a layout manages mobile state (open/close), the Page *must* use that layout wrapper to ensure the navigation component receives the state-closing handlers.
+
+## [CSS-044] Semantic Color System Migration
+
+- **Tags**: #css, #design-system, #tailwind, #maintenance
+- **Date**: 2026-01-11
+- **Context & Problem**: The codebase accumulated inconsistent color usage: `orange-*` for brand actions, `red-*`/`green-*` for status, and `blue-*`/`yellow-*` for misc states. This violates Rule 30 (Design Standards) and creates maintenance burden.
+- **Solution & Pattern**:
+  - **Brand Colors**: Replace `orange-*` with `brand-*` (mapped to CSS variables).
+  - **Status Colors**: `rose-*` (error/blocked), `emerald-*` (success/complete), `amber-*` (warning/in-progress), `sky-*` (info/planning).
+  - **Batch Migration**: Use `sed` for bulk replacements across feature directories, then verify with `grep` and lint.
+  - **Exceptions**: Code comments explaining hex values (e.g., Recharts config) are acceptable.
+- **Critical Rule**: Never use generic Tailwind colors (`red`, `green`, `blue`, `orange`) for semantic states. Always use the semantic palette (`rose`, `emerald`, `amber`, `sky`, `brand`).

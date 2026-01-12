@@ -49,3 +49,6 @@ scripts/recover_db.js
 feedback.md
 code_review_draft.md
 
+
+# Temporary Lint Logs
+lint_errors*.txt

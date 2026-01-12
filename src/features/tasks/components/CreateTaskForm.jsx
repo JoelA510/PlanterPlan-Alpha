@@ -1,0 +1,71 @@
+
+import MasterLibrarySearch from '@features/library/components/MasterLibrarySearch';
+import TaskFormFields from '@features/tasks/components/TaskFormFields';
+
+const CreateTaskForm = ({
+  formData,
+  errors,
+  isSubmitting,
+  lastAppliedTaskTitle,
+  handleChange,
+  handleApplyFromLibrary,
+  handleSubmit,
+  onCancel,
+  origin = 'instance',
+  submitLabel = 'Add New Task',
+  enableLibrarySearch = true,
+  parentTask,
+}) => {
+  return (
+    <form onSubmit={handleSubmit} className="project-form">
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {origin === 'template' ? 'Template Task' : 'Project Task'}
+      </div>
+
+      {enableLibrarySearch && (
+        <>
+          <div className="form-group">
+            <MasterLibrarySearch
+              mode="copy"
+              onSelect={handleApplyFromLibrary}
+              label="Search master library"
+              placeholder="Start typing to copy an existing template task"
+            />
+          </div>
+
+          {lastAppliedTaskTitle && (
+            <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              Copied details from <span className="font-semibold">{lastAppliedTaskTitle}</span>.
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Parent Task Info */}
+      {parentTask && (
+        <div className="mb-4 flex items-center gap-2 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+          <span className="font-semibold text-slate-500">Adding to:</span>
+          <span className="font-medium">{parentTask.title}</span>
+        </div>
+      )}
+
+      <TaskFormFields
+        formData={formData}
+        errors={errors}
+        handleChange={handleChange}
+        origin={origin}
+      />
+
+      <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">
+        <button type="button" onClick={onCancel} className="btn-secondary" disabled={isSubmitting}>
+          Cancel
+        </button>
+        <button type="submit" className="btn-primary" disabled={isSubmitting}>
+          {isSubmitting ? 'Saving...' : submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default CreateTaskForm;

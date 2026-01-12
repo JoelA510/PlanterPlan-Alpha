@@ -21,6 +21,8 @@ Before making any updates, collect the information needed:
    git log --oneline -10
    ```
 
+   > **Critical**: To avoid recency bias, if you are working on a long-running branch or PR, verify against the full `.diff` or `.patch` (e.g., from the GitHub PR URL) to ensure you capture *all* changes, not just the recent ones.
+
 2. **Identify modified files and features** by reviewing the recent commits.
 
 3. **Note any lessons learned** during this work (bugs encountered, patterns discovered, gotchas to avoid).
@@ -94,6 +96,7 @@ Generate the PR description using the template in PR-PROMPT.md:
 - Git diff: `git diff main...HEAD --stat`
 - Changed files: `git diff main...HEAD --name-only`
 - Commit messages: `git log main...HEAD --oneline`
+- **Full Context**: The `.diff` or `.patch` file (if available) to ensure 100% coverage of changes.
 
 ---
 
@@ -115,9 +118,9 @@ Generate the PR description using the template in PR-PROMPT.md:
 
 ## Quick Reference
 
-| Document                   | When to Update                 | Prompt File                           |
-| -------------------------- | ------------------------------ | ------------------------------------- |
-| `ENGINEERING_KNOWLEDGE.md` | Bugs fixed, patterns learned   | N/A (follow existing format)          |
-| `roadmap.md`               | Features completed/started     | `.agent/prompts/ROADMAP-PROMPT.md`   |
-| `README.md`                | Structure/architecture changes | `.agent/prompts/README-PROMPT.md`    |
-| `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `.agent/prompts/PR-PROMPT.md` |
+| Document                   | When to Update                 | Prompt File                        |
+| -------------------------- | ------------------------------ | ---------------------------------- |
+| `ENGINEERING_KNOWLEDGE.md` | Bugs fixed, patterns learned   | N/A (follow existing format)       |
+| `roadmap.md`               | Features completed/started     | `.agent/prompts/ROADMAP-PROMPT.md` |
+| `README.md`                | Structure/architecture changes | `.agent/prompts/README-PROMPT.md`  |
+| `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `.agent/prompts/PR-PROMPT.md`      |

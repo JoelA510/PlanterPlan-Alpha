@@ -1,7 +1,7 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated**: 2026-01-06 (Post-Visual Overhaul)
-**Current Focus:** Release Candidate & Documentation
+**Last Updated**: 2026-01-10 (Vite & Design System Migration Verified)
+**Current Focus**: Phase 7 (Design System Verification)
 
 ---
 
@@ -28,6 +28,8 @@ A chronological overview of the project's evolution from Day 1.
 | **Mobile Polish**        | Jan 2026     | **Responsive UI**: Implemented mobile-responsive `DashboardLayout` with drawer navigation and light theme polish.                                                                |
 | **Feedback Sprint**      | Jan 2026     | **Logic & UI Polish**: Addressed 40+ feedback items including RBAC security, Timezone fixes, Printer styles, and form layout improvements.                                       |
 | **Surgical Refactor**    | Jan 2026     | **Architecture Hardening**: Split monolithic hooks (`useTaskOperations`), Refactored `MasterLibraryList` to `useTreeState`, Consolidatd Documentation, and Updated Dependencies. |
+| **Master Audit**         | Jan 2026     | **Code Quality**: Automated Master Review Orchestrator execution. Fixed React patterns, enforced strict linting, and verified Golden Paths.                                      |
+| **Vite Migration** | Jan 2026 | **Infrastructure**: Moved to Vite, Vitest, and Tailwind v4. Integrated Planter modules. Verified via Golden Paths. |
 
 ---
 
@@ -181,7 +183,7 @@ _Goal: Automate date inheritance and status tracking._
 
 - **ID:** `P7-VISUAL-OVERHAUL`
 - **Goal**: Redesign Project Header, fix full-screen layout, and integrate Reports into the main dashboard navigation.
-- **Status**: ✅ Done
+- **Status**: ✅ Done (Design System Implemented)
 
 #### 7.1 Date Inheritance
 
@@ -232,3 +234,29 @@ _Goal: System-wide visibility and admin tools._
 - **ID:** `P9-RBAC-ROLES`
 - **Goal**: Granular enforcement for 'Full User', 'Limited User', and 'Coach' permissions.
 - **Status**: 🚧 In Progress (Logic defined in RLS)
+
+### Phase 10: Infrastructure Modernization (`status:done`)
+
+- [x] Migrate from CRA to Vite (`status:done`)
+- [x] Replace Jest with Vitest (`status:done`)
+- [x] Implement Tailwind CSS v4 (`status:done`)
+- [x] Agentic Refactor: FSD Architecture (`status:done`)
+- [x] Documentation & Knowledge Transfer (`status:done`)
+
+#### 10.1 Build System Migration
+
+- **ID:** `P10-VITE-MIGRATION`
+- **Goal**: Replace `react-scripts` with `vite`. usage of `VITE_` env vars.
+- **Status**: ✅ Done
+
+#### 10.2 Testing Migration
+
+- **ID:** `P10-TEST-MIGRATION`
+- **Goal**: Migrate Jest to Vitest. Replace `jest` globals with `vi`.
+- **Status**: ✅ Done
+
+#### 10.3 CSS Modernization
+
+- **ID:** `P10-TAILWIND-V4`
+- **Goal**: Adopt Tailwind v4 and remove manual CSS utilities.
+- **Status**: ✅ Done (Phase 3 Verified)
