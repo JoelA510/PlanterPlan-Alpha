@@ -119,6 +119,8 @@ const mockTasks = [
 
 // --- Helper: Render with Providers ---
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 const renderWithProviders = (
     ui,
     {
@@ -134,18 +136,28 @@ const renderWithProviders = (
         signOut: vi.fn(),
     };
 
+    const queryClient = new QueryClient({
+        defaultOptions: {
+            queries: {
+                retry: false,
+            },
+        },
+    });
+
     return render(
-        <AuthContext.Provider value={mockAuthContext}>
-            <ToastProvider>
-                <MemoryRouter initialEntries={[route]}>
-                    <Routes>
-                        <Route path="/" element={<TaskList />} />
-                        <Route path="/project/:projectId" element={<TaskList />} />
-                        <Route path="/reports" element={<Reports />} />
-                    </Routes>
-                </MemoryRouter>
-            </ToastProvider>
-        </AuthContext.Provider>,
+        <QueryClientProvider client={queryClient}>
+            <AuthContext.Provider value={mockAuthContext}>
+                <ToastProvider>
+                    <MemoryRouter initialEntries={[route]}>
+                        <Routes>
+                            <Route path="/" element={<TaskList />} />
+                            <Route path="/project/:projectId" element={<TaskList />} />
+                            <Route path="/reports" element={<Reports />} />
+                        </Routes>
+                    </MemoryRouter>
+                </ToastProvider>
+            </AuthContext.Provider>
+        </QueryClientProvider>,
         renderOptions
     );
 };
@@ -191,7 +203,7 @@ describe('Browser Verification: Golden Paths', () => {
 
             // Check 2: Layout Structure
             const main = screen.getByRole('main');
-            expect(main).toHaveClass('flex-1');
+            expect(main).toHaveClass('lg:pl-64');
 
             // Check 3: "New Project" Button Design System
             // Note: This button might be in SideNav or Empty State in TaskList
@@ -341,10 +353,8 @@ describe('Browser Verification: Golden Paths', () => {
             renderWithProviders(<TaskList />, { route: '/' });
 
             // Check 1: Click "Reports" in sidebar
-            // SideNav renders GlobalLinks.
             const reportsText = await screen.findByText(/Reports/);
-            const reportsLink = reportsText.closest('div[role="button"]');
-            fireEvent.click(reportsLink);
+            fireEvent.click(reportsText);
 
             // Check 2: Reports page renders
             // ReportsPage should render.

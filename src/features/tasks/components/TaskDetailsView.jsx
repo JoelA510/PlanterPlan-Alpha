@@ -86,19 +86,38 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       {task.description && (
         <div className="detail-section mb-6">
           <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
-            Description
+            Overview
           </h3>
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-slate-700 leading-7 text-sm">
+          <p className="text-slate-600 leading-relaxed text-sm">
             {task.description}
+          </p>
+        </div>
+      )}
+
+      {/* Purpose - The Why */}
+      {task.purpose && (
+        <div className="detail-section mb-6">
+          <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+            Purpose (The Why)
+          </h3>
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-slate-700 leading-relaxed text-sm">
+            {task.purpose}
           </div>
         </div>
       )}
-      {task.purpose && (
+
+      {/* Actions - The What */}
+      {task.actions && (
         <div className="detail-section mb-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Purpose</h3>
-          <p className="text-slate-600 leading-relaxed text-sm">{task.purpose}</p>
+          <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+            Action Steps (The What)
+          </h3>
+          <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
+            {task.actions}
+          </div>
         </div>
       )}
+
       {task.notes && (
         <div className="detail-section mb-6">
           <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Notes</h3>
@@ -107,14 +126,9 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           </div>
         </div>
       )}
-      {task.actions && (
-        <div className="detail-section mb-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Actions</h3>
-          <p className="text-slate-600 leading-relaxed text-sm">{task.actions}</p>
-        </div>
-      )}
+
       {/* 4. Resources Section */}
-      <div className="mb-6">
+      <div className="mb-6 pt-4 border-t border-slate-100">
         <TaskResources
           taskId={task.id}
           primaryResourceId={task.primary_resource_id}

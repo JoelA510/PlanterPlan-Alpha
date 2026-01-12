@@ -7,6 +7,17 @@ import TaskItem from '@features/tasks/components/TaskItem';
 import EditTaskForm from '@features/tasks/components/EditTaskForm';
 import { Loader2 } from 'lucide-react';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 const TasksPage = () => {
   const navigate = useNavigate();
   const {
@@ -27,6 +38,7 @@ const TasksPage = () => {
   // Modal State
   const [activeModal, setActiveModal] = useState(null); // 'edit'
   const [selectedTask, setSelectedTask] = useState(null);
+  const [taskToDelete, setTaskToDelete] = useState(null);
 
   const handleSelectProject = (project) => navigate(`/project/${project.id}`);
 
@@ -43,10 +55,14 @@ const TasksPage = () => {
     }
   };
 
-  // TODO: Replace window.confirm with custom Radix Dialog for consistent UX
-  const handleDelete = async (taskId) => {
-    if (window.confirm('Delete this task?')) {
-      try { await deleteTask(taskId); } catch (e) { console.error(e); }
+  const confirmDelete = async () => {
+    if (taskToDelete) {
+      try {
+        await deleteTask(taskToDelete.id);
+        setTaskToDelete(null);
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
@@ -97,7 +113,7 @@ const TasksPage = () => {
                   level={0}
                   hideExpansion={true}
                   onEdit={handleEditTask}
-                  onDelete={handleDelete}
+                  onDelete={() => setTaskToDelete(task)}
                   onStatusChange={handleStatusChange}
                 // Disable DND features for this flat view
                 />
@@ -114,6 +130,26 @@ const TasksPage = () => {
             onSuccess={() => setActiveModal(null)}
           />
         )}
+
+        <AlertDialog open={!!taskToDelete} onOpenChange={(open) => !open && setTaskToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Task?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this task? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

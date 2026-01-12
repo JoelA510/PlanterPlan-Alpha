@@ -781,15 +781,6 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Main**: `flex-1 overflow-y-auto`. Takes remaining space and handles its own scrolling.
 - **Critical Rule**: For application-like dashboards, lock the `body` (or root div) height to `100vh` and manage scrolling internally in the main content area.
 
-## [TEST-040] Jest to Vitest Migration (Global Object)
-
-- **Tags**: #testing, #vitest, #jest, #migration
-- **Date**: 2026-01-07
-- **Context & Problem**: Migrating from Jest (CRA) to Vitest (Vite) caused **ReferenceError: jest is not defined**. Codebases often rely on the global **jest** object for **jest.fn()**, **jest.mock()**, etc.
-- **Solution & Pattern**:
-  - **Replace Globals**: Systematically replace **jest** with **vi** (Vitest's equivalent).
-  - **Shim (Temporary)**: If direct replacement is too large, you can shim **globalThis.jest = vi** in **setupTests.js**, but this fails for hoisted **jest.mock** calls.
-  - **Correction**: Direct migration is preferred. **vi.mock** is hoisted automatically by the Vitest compiler, whereas a shimmed **fakeJest.mock** is not.
 - **Critical Rule**: Do not try to shim **jest** for mocking. Replace **jest.mock** with **vi.mock** directly to ensure correct hoisting behavior.
 
 ## [TEST-041] ESM Mocking Factories (Default Exports)
@@ -798,6 +789,16 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Date**: 2026-01-07
 - **Context & Problem**: In Vitest (ESM), `vi.mock('./Component', () => () => <div />)` failed with **mock is not returning an object**.
 - **Solution & Pattern**: Return a factory that returns a default export: `vi.mock('./Comp', () => ({ default: () => <div /> }))`.
+
+## [REACT-042] Layout Composition & Content Projection
+
+- **Tags**: #react, #layout, #architecture
+- **Date**: 2026-01-11
+- **Context & Problem**: The `DashboardLayout` was refactored significantly during a generic UI merge, hardcoding the `Sidebar` component to a static version. However, the `TaskList` feature relied on passing a dynamic `SideNav` (with project lists and context) via the `sidebar` prop. This caused the "My Projects" list to vanish from the UI and tests to fail.
+- **Solution & Pattern**:
+  - **Slot Pattern**: Restored the `sidebar` prop support in `DashboardLayout`.
+  - **Fallback**: Used `sidebar || <DefaultSidebar />` to support both complex features (TaskList) and simple static pages.
+- **Critical Rule**: Layout components should be **Containers**, not controllers. Always prefer Content Projection (Props/Slots) over hardcoded child components if the content needs to vary by feature.
   - **ESM Requirement**: ESM modules are objects with a **default** key for default exports. The mock factory must return **{ default: MockComponent }**.
   - **Async importActual**: **vi.requireActual** is synchronous and often fails in ESM. Use **await vi.importActual()** inside an **async** factory.
 - **Critical Rule**: When mocking default exports in Vitest, always return an object **{ default: ... }**. Use **async** factories if you need to import actual modules.

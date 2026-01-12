@@ -29,6 +29,16 @@ export default {
       type: 'string',
       description: 'City/location for the church plant',
     },
+    parent_project_id: {
+      type: 'string',
+      description: 'Reference to parent project (for secondary projects)',
+    },
+    project_type: {
+      type: 'string',
+      enum: ['primary', 'secondary'],
+      default: 'primary',
+      description: 'Type of project: primary or secondary',
+    },
   },
   required: ['name'],
 };

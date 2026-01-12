@@ -30,6 +30,7 @@ A chronological overview of the project's evolution from Day 1.
 | **Surgical Refactor**    | Jan 2026     | **Architecture Hardening**: Split monolithic hooks (`useTaskOperations`), Refactored `MasterLibraryList` to `useTreeState`, Consolidatd Documentation, and Updated Dependencies. |
 | **Master Audit**         | Jan 2026     | **Code Quality**: Automated Master Review Orchestrator execution. Fixed React patterns, enforced strict linting, and verified Golden Paths.                                      |
 | **Vite Migration** | Jan 2026 | **Infrastructure**: Moved to Vite, Vitest, and Tailwind v4. Integrated Planter modules. Verified via Golden Paths. |
+| **Debt Cleanup & Fixes** | Jan 2026 | **Stability**: Fixed `DashboardLayout` Sidebar injection, standardized chart colors using `TASK_STATUS` constants, and resolved critical test failures. |
 
 ---
 

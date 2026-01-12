@@ -42,7 +42,10 @@ export default function MilestoneSection({
           </motion.div>
 
           <div className="text-left">
-            <h4 className="font-semibold text-slate-900">{milestone.name}</h4>
+            <div className="flex items-center gap-2">
+              <h4 className="font-semibold text-slate-900">{milestone.name}</h4>
+              {milestone.is_locked && <Badge variant="outline" className="text-[10px] px-1.5 h-5 bg-slate-50 text-slate-500 border-slate-200">Locked</Badge>}
+            </div>
             {milestone.description && (
               <p className="text-sm text-slate-500 mt-0.5">{milestone.description}</p>
             )}
@@ -74,27 +77,31 @@ export default function MilestoneSection({
               {milestoneTasks.length === 0 ? (
                 <div className="py-8 text-center">
                   <p className="text-slate-500 mb-4">No tasks yet</p>
-                  <Button variant="outline" size="sm" onClick={() => onAddTask(milestone)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Task
-                  </Button>
+                  {!milestone.is_locked && (
+                    <Button variant="outline" size="sm" onClick={() => onAddTask(milestone)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Task
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2 pt-4">
                   {milestoneTasks
                     .sort((a, b) => (a.order || 0) - (b.order || 0))
                     .map((task) => (
-                      <TaskItem key={task.id} task={task} onUpdate={onTaskUpdate} />
+                      <TaskItem key={task.id} task={{ ...task, is_locked: milestone.is_locked }} onUpdate={onTaskUpdate} />
                     ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-slate-500 hover:text-slate-700 mt-2"
-                    onClick={() => onAddTask(milestone)}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Task
-                  </Button>
+                  {!milestone.is_locked && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-slate-500 hover:text-slate-700 mt-2"
+                      onClick={() => onAddTask(milestone)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Task
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

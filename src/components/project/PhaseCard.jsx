@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, CheckCircle2, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from 'lib/utils';
 
@@ -42,27 +42,30 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
   const totalTasks = phaseTasks.length;
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   const isComplete = progress === 100 && totalTasks > 0;
+  const isLocked = phase.is_locked;
 
   return (
-    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+    <motion.div whileHover={!isLocked ? { scale: 1.02 } : {}} whileTap={!isLocked ? { scale: 0.98 } : {}}>
       <Card
-        onClick={onClick}
+        onClick={!isLocked ? onClick : undefined}
         className={cn(
-          'p-5 cursor-pointer transition-all duration-300 border-2 bg-white',
+          'p-5 transition-all duration-300 border-2 bg-white',
           isActive
             ? `${colors.border} ${colors.light} shadow-lg`
-            : 'border-slate-200 hover:border-slate-300 hover:shadow-lg'
+            : isLocked
+              ? 'border-slate-100 bg-slate-50 opacity-70 cursor-not-allowed'
+              : 'border-slate-200 hover:border-slate-300 hover:shadow-lg cursor-pointer'
         )}
       >
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                'w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white',
-                colors.bg
+                'w-10 h-10 rounded-xl flex items-center justify-center font-bold',
+                isLocked ? 'bg-slate-200 text-slate-400' : `${colors.bg} text-white`
               )}
             >
-              {isComplete ? <CheckCircle2 className="w-5 h-5" /> : phase.order}
+              {isLocked ? <Lock className="w-5 h-5" /> : isComplete ? <CheckCircle2 className="w-5 h-5" /> : phase.order}
             </div>
             <div>
               <h3 className="font-semibold text-slate-900">{phase.name}</h3>

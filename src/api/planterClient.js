@@ -90,6 +90,20 @@ export const planter = {
         if (error) throw error;
         return data;
       },
+      filter: async (filters) => {
+        let query = supabase.from('tasks')
+          .select('*, name:title, launch_date:due_date, owner_id:creator')
+          .is('parent_task_id', null)
+          .eq('origin', 'instance');
+
+        Object.keys(filters).forEach(key => {
+          // Map id filter correctly considering mapped fields if needed, but 'id' is standard
+          query = query.eq(key, filters[key]);
+        });
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+      }
     },
     Task: {
       list: async () => {
@@ -97,6 +111,52 @@ export const planter = {
         if (error) throw error;
         return data;
       },
+      filter: async (filters) => {
+        let query = supabase.from('tasks').select('*');
+        Object.keys(filters).forEach(key => {
+          query = query.eq(key, filters[key]);
+        });
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+      }
+    },
+    Phase: {
+      list: async () => {
+        const { data, error } = await supabase.from('phases').select('*');
+        if (error) throw error;
+        return data;
+      },
+      filter: async (filters) => {
+        let query = supabase.from('phases').select('*');
+        Object.keys(filters).forEach(key => {
+          query = query.eq(key, filters[key]);
+        });
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+      },
+      get: async (id) => {
+        const { data, error } = await supabase.from('phases').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    Milestone: {
+      list: async () => {
+        const { data, error } = await supabase.from('milestones').select('*');
+        if (error) throw error;
+        return data;
+      },
+      filter: async (filters) => {
+        let query = supabase.from('milestones').select('*');
+        Object.keys(filters).forEach(key => {
+          query = query.eq(key, filters[key]);
+        });
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+      }
     },
     TeamMember: {
       list: async () => {

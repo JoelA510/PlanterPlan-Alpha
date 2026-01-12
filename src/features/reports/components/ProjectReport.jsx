@@ -7,13 +7,14 @@ import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
 import { getProjectWithStats } from '@features/projects/services/projectService';
 import { Loader2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { TASK_STATUS } from '@app/constants/index';
 
 // Semantic chart colors (aligned with Rule 30 Design Standards)
 const CHART_COLORS = {
-  slate: '#94a3b8',   // slate-400 (todo)
-  amber: '#f59e0b',   // amber-500 (in-progress)
-  rose: '#f43f5e',    // rose-500 (blocked)
-  emerald: '#10b981', // emerald-500 (completed)
+  [TASK_STATUS.TODO]: '#94a3b8',   // slate-400
+  [TASK_STATUS.IN_PROGRESS]: '#f59e0b',   // amber-500
+  [TASK_STATUS.BLOCKED]: '#f43f5e',    // rose-500
+  [TASK_STATUS.COMPLETED]: '#10b981', // emerald-500
 };
 
 const ProjectReport = () => {
@@ -116,10 +117,10 @@ const ProjectReport = () => {
                       <PieChart>
                         <Pie
                           data={[
-                            { name: 'To Do', count: project.children?.filter(t => t.status === 'todo').length || 0, fill: CHART_COLORS.slate },
-                            { name: 'In Progress', count: project.children?.filter(t => t.status === 'in_progress').length || 0, fill: CHART_COLORS.amber },
-                            { name: 'Blocked', count: project.children?.filter(t => t.status === 'blocked').length || 0, fill: CHART_COLORS.rose },
-                            { name: 'Completed', count: project.children?.filter(t => t.status === 'completed').length || 0, fill: CHART_COLORS.emerald },
+                            { name: 'To Do', count: project.children?.filter(t => t.status === TASK_STATUS.TODO || !t.status).length || 0, fill: CHART_COLORS[TASK_STATUS.TODO] },
+                            { name: 'In Progress', count: project.children?.filter(t => t.status === TASK_STATUS.IN_PROGRESS).length || 0, fill: CHART_COLORS[TASK_STATUS.IN_PROGRESS] },
+                            { name: 'Blocked', count: project.children?.filter(t => t.status === TASK_STATUS.BLOCKED).length || 0, fill: CHART_COLORS[TASK_STATUS.BLOCKED] },
+                            { name: 'Completed', count: project.children?.filter(t => t.status === TASK_STATUS.COMPLETED).length || 0, fill: CHART_COLORS[TASK_STATUS.COMPLETED] },
                           ]}
                           cx="50%"
                           cy="50%"
@@ -129,10 +130,10 @@ const ProjectReport = () => {
                           dataKey="count"
                         >
                           {[
-                            { fill: CHART_COLORS.slate },
-                            { fill: CHART_COLORS.amber },
-                            { fill: CHART_COLORS.rose },
-                            { fill: CHART_COLORS.emerald },
+                            { fill: CHART_COLORS[TASK_STATUS.TODO] },
+                            { fill: CHART_COLORS[TASK_STATUS.IN_PROGRESS] },
+                            { fill: CHART_COLORS[TASK_STATUS.BLOCKED] },
+                            { fill: CHART_COLORS[TASK_STATUS.COMPLETED] },
                           ].map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.fill} />
                           ))}

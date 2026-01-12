@@ -1,218 +1,169 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { getProjectWithStats } from '@features/projects/services/projectService';
-import ProjectTasksView from '@features/tasks/components/ProjectTasksView';
-import NewTaskForm from '@features/tasks/components/NewTaskForm';
-import InviteMemberModal from '@features/projects/components/InviteMemberModal';
+import React, { useState } from 'react';
+import { planter } from '@/api/planterClient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@app/contexts/AuthContext';
-import DashboardLayout from '@layouts/DashboardLayout';
-import SideNav from '@features/navigation/components/SideNav';
-import { useNavigate } from 'react-router-dom';
-import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
+import { motion } from 'framer-motion';
+import { useParams } from 'react-router-dom';
+
+import ProjectHeader from '@features/projects/components/ProjectHeader';
+import PhaseCard from '@features/projects/components/PhaseCard';
+import MilestoneSection from '@features/projects/components/MilestoneSection';
+import AddTaskModal from '@features/projects/components/AddTaskModal';
 
 export default function Project() {
-  const { id } = useParams();
-  const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const { id: projectId } = useParams();
 
-  // Navigation Data
-  const {
-    instanceTasks,
-    templateTasks,
-    joinedProjects,
-    loading: navLoading,
-    updateTask,
-    deleteTask,
-    createTaskOrUpdate
-  } = useTaskOperations();
+  const [selectedPhase, setSelectedPhase] = useState(null);
+  const [addTaskModal, setAddTaskModal] = useState({ open: false, milestone: null });
 
-  // Handlers for SideNav
-  const handleSelectProject = (project) => navigate(`/project/${project.id}`);
-  const handleNewProjectClick = () => navigate('/dashboard'); // Redirect to dashboard for creation
-  const handleNewTemplateClick = () => { };
+  const queryClient = useQueryClient();
 
-  // Task/Project Mutation Handlers
-  // const { updateTask } = useTaskOperations(); // OLD
-  // We will access these in the return statement or merge them if needed. 
-  // Actually, let's just delete this line and let the render block handle it, 
-  // BUT handleStatusChange relies on it. 
-  // So let's consolidate.
-
-  const handleStatusChange = async (taskId, newStatus) => {
-    try {
-      await updateTask(taskId, { status: newStatus });
-    } catch (error) {
-      console.error("Failed to update status:", error);
-    }
-  };
-
-  const { data: projectData, isLoading, error } = useQuery({
-    queryKey: ['project', id],
-    queryFn: () => getProjectWithStats(id),
-    enabled: !authLoading && !!user && !!id,
+  const { data: project, isLoading: loadingProject } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: () => planter.entities.Project.filter({ id: projectId }).then(res => res[0]),
+    enabled: !!projectId
   });
 
-  const project = projectData?.data;
+  const { data: phases = [] } = useQuery({
+    queryKey: ['phases', projectId],
+    queryFn: () => planter.entities.Phase.filter({ project_id: projectId }),
+    enabled: !!projectId
+  });
 
-  // Modal State
-  const [activeModal, setActiveModal] = React.useState(null); // 'create' | 'edit' | 'invite'
-  const [selectedTask, setSelectedTask] = React.useState(null);
-  const [parentTask, setParentTask] = React.useState(null);
+  const { data: milestones = [] } = useQuery({
+    queryKey: ['milestones', projectId],
+    queryFn: () => planter.entities.Milestone.filter({ project_id: projectId }),
+    enabled: !!projectId
+  });
 
-  if (isLoading || authLoading) {
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks', projectId],
+    queryFn: () => planter.entities.Task.filter({ project_id: projectId }),
+    enabled: !!projectId
+  });
+
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['teamMembers', projectId],
+    queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId }),
+    enabled: !!projectId
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, data }) => planter.entities.Task.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    }
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: (data) => planter.entities.Task.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    }
+  });
+
+  const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
+  const activePhase = selectedPhase || sortedPhases[0];
+  const phaseMilestones = milestones
+    .filter(m => m.phase_id === activePhase?.id)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  const handleTaskUpdate = (taskId, data) => {
+    updateTaskMutation.mutate({ id: taskId, data });
+  };
+
+  const handleAddTask = async (taskData) => {
+    await createTaskMutation.mutateAsync({
+      ...taskData,
+      milestone_id: addTaskModal.milestone.id,
+      phase_id: activePhase.id,
+      project_id: projectId,
+      status: 'not_started'
+    });
+  };
+
+  if (loadingProject || !project) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
       </div>
     );
   }
 
-  if (error || !project) {
-    return (
-      <DashboardLayout sidebar={<SideNav
-        instanceTasks={instanceTasks}
-        templateTasks={templateTasks}
-        joinedProjects={joinedProjects}
-        handleSelectProject={handleSelectProject}
-        onNewProjectClick={handleNewProjectClick}
-        onNewTemplateClick={handleNewTemplateClick}
-        loading={navLoading}
-      />}>
-        <div className="flex items-center justify-center min-h-screen bg-slate-50">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-slate-900">Project not found</h2>
-            <p className="text-slate-500 mt-2">{error?.message || "We couldn't locate this project."}</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // UI Handlers (Open Modals)
-  const openCreateTaskModal = (parent) => {
-    setParentTask(parent);
-    setActiveModal('create');
-  };
-
-  const openEditTaskModal = (task) => {
-    setSelectedTask(task);
-    setActiveModal('edit');
-  };
-
-  const handleDeleteTask = async (taskId) => {
-    // Removed window.confirm for smoother agent interop and UX
-    try {
-      await deleteTask(taskId);
-    } catch (e) {
-      console.error("Delete failed:", e);
-      // TODO: Replace with useToast notification for better UX
-    }
-  };
-
-  // Submission Handlers
-  const handleCreateSubmit = async (formData) => {
-    try {
-      // Determine Parent Logic
-      // If parentTask is present, use its ID. If not, we are adding to the project root, so use project.id.
-      // NEVER pass null here, or it becomes a new Project (Root Task).
-      const targetParentId = parentTask?.id || project.id;
-
-      await createTaskOrUpdate(formData, {
-        parentId: targetParentId,
-        origin: project.origin,
-        mode: 'create'
-      });
-
-      setActiveModal(null);
-    } catch (error) {
-      console.error("Create failed:", error);
-      throw error; // Let NewTaskForm handle the error state
-    }
-  };
-
-  const handleEditSubmit = async (formData) => {
-    try {
-      if (!selectedTask) return;
-
-      await createTaskOrUpdate(formData, {
-        taskId: selectedTask.id,
-        parentId: selectedTask.parent_task_id,
-        origin: project.origin,
-        mode: 'edit'
-      });
-
-      setActiveModal(null);
-    } catch (error) {
-      console.error("Edit failed:", error);
-      throw error;
-    }
-  };
-
   return (
-    <DashboardLayout sidebar={<SideNav
-      instanceTasks={instanceTasks}
-      templateTasks={templateTasks}
-      joinedProjects={joinedProjects}
-      handleSelectProject={handleSelectProject}
-      onNewProjectClick={handleNewProjectClick}
-      onNewTemplateClick={handleNewTemplateClick}
-      loading={navLoading}
-    />}>
-      <ProjectTasksView
+    <div className="min-h-screen bg-slate-50">
+      <ProjectHeader
         project={project}
-        handleTaskClick={openEditTaskModal} // Clicking a task opens edit
-        handleAddChildTask={openCreateTaskModal}
-        handleEditTask={openEditTaskModal}
-        handleDeleteById={handleDeleteTask}
-        selectedTaskId={selectedTask?.id}
-        onToggleExpand={() => { }}
-        onInviteMember={() => setActiveModal('invite')}
-        onStatusChange={handleStatusChange}
+        tasks={tasks}
+        teamMembers={teamMembers}
       />
 
-      {/* Modals */}
-      {activeModal === 'create' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-2xl">
-            <h2 className="mb-6 text-xl font-bold text-slate-900">
-              {parentTask && parentTask.id !== project.id ? `Add Subtask to "${parentTask.title}"` : 'Add New Task'}
-            </h2>
-            <NewTaskForm
-              parentTask={parentTask}
-              origin={project.origin}
-              onSubmit={handleCreateSubmit}
-              onCancel={() => setActiveModal(null)}
-              submitLabel="Create Task"
-            />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Phase Selection */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Phases</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {sortedPhases.map((phase) => (
+              <PhaseCard
+                key={phase.id}
+                phase={phase}
+                tasks={tasks}
+                milestones={milestones.filter(m => m.phase_id === phase.id)}
+                isActive={activePhase?.id === phase.id}
+                onClick={() => setSelectedPhase(phase)}
+              />
+            ))}
           </div>
         </div>
-      )}
 
-      {activeModal === 'edit' && selectedTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-2xl">
-            <h2 className="mb-6 text-xl font-bold text-slate-900">Edit Task</h2>
-            <NewTaskForm
-              initialTask={selectedTask}
-              parentTask={null} // We don't change parent during edit currently
-              origin={project.origin}
-              onSubmit={handleEditSubmit}
-              onCancel={() => setActiveModal(null)}
-              submitLabel="Save Changes"
-            />
-          </div>
-        </div>
-      )}
+        {/* Milestones & Tasks */}
+        {activePhase && (
+          <motion.div
+            key={activePhase.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Phase {activePhase.order}: {activePhase.name}
+                </h2>
+                {activePhase.description && (
+                  <p className="text-slate-600 mt-1">{activePhase.description}</p>
+                )}
+              </div>
+            </div>
 
-      {activeModal === 'invite' && (
-        <InviteMemberModal
-          isOpen={true}
-          onClose={() => setActiveModal(null)}
-          project={project}
-        />
-      )}
-    </DashboardLayout>
+            <div className="space-y-4">
+              {phaseMilestones.length === 0 ? (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
+                  <p className="text-slate-500">No milestones in this phase yet</p>
+                </div>
+              ) : (
+                phaseMilestones.map((milestone) => (
+                  <MilestoneSection
+                    key={milestone.id}
+                    milestone={milestone}
+                    tasks={tasks}
+                    onTaskUpdate={handleTaskUpdate}
+                    onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
+                    phase={activePhase}
+                  />
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      <AddTaskModal
+        open={addTaskModal.open}
+        onClose={() => setAddTaskModal({ open: false, milestone: null })}
+        onAdd={handleAddTask}
+        milestone={addTaskModal.milestone}
+        teamMembers={teamMembers}
+      />
+    </div>
   );
 }
