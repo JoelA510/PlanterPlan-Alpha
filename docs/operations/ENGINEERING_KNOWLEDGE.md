@@ -899,3 +899,12 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **DRY**: Centralized `list`, `get`, `create`, `update`, `delete`, and `filter` logic.
   - **Composition**: Entities like `Project` use `...createEntityClient()` to inherit base methods while overriding specific ones (like `create` for custom mapping).
 - **Critical Rule**: **Don't Repeat Data Access Logic.** Use a factory pattern for standard CRUD operations and only write custom code for business-logic-heavy entities.
+
+## [SVC-044] Schema Reality: Phases and Milestones are Tasks
+
+- **Tags**: #schema, #database, #api, #gotcha
+- **Date**: 2026-01-12
+- **Context**: The `planterClient` refactor initially assumed `phases` and `milestones` tables existed.
+- **Problem**: The database uses a unified `tasks` table with hierarchy (`root_id`, `parent_task_id`). There are no separate tables.
+- **Solution**: The `createEntityClient` for Phase and Milestone must point to `tasks`.
+- **Critical Rule**: When querying for "Phases" via the generic client, you MUST filter by hierarchy (`root_id`) or custom metadata. The generic client `list()` will return ALL tasks if not filtered. **Always use specific filters** when using `planter.entities` on the `tasks` table.

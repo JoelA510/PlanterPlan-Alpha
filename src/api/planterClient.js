@@ -70,6 +70,8 @@ export const planter = {
       },
       // Override create for specific mapping
       create: async (projectData) => {
+        const { data: { user } } = await supabase.auth.getUser();
+
         const taskPayload = {
           title: projectData.name,
           description: projectData.description,
@@ -77,6 +79,7 @@ export const planter = {
           origin: 'instance',
           parent_task_id: null,
           status: 'planning',
+          creator: user.id, // Required for RLS
         };
 
         const { data, error } = await supabase
@@ -133,8 +136,8 @@ export const planter = {
       },
     },
     Task: createEntityClient('tasks'),
-    Phase: createEntityClient('phases'),
-    Milestone: createEntityClient('milestones'),
+    Phase: createEntityClient('tasks'),
+    Milestone: createEntityClient('tasks'),
     TeamMember: createEntityClient('project_members'),
   },
 };

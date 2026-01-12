@@ -51,7 +51,7 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
                 <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-orange-300 cursor-pointer group bg-white">
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+                            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
                                 <Icon className="w-6 h-6 text-white" />
                             </div>
                             <div>

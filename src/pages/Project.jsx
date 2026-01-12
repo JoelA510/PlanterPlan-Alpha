@@ -26,19 +26,19 @@ export default function Project() {
 
   const { data: phases = [] } = useQuery({
     queryKey: ['phases', projectId],
-    queryFn: () => planter.entities.Phase.filter({ project_id: projectId }),
+    queryFn: () => planter.entities.Phase.filter({ root_id: projectId }),
     enabled: !!projectId
   });
 
   const { data: milestones = [] } = useQuery({
     queryKey: ['milestones', projectId],
-    queryFn: () => planter.entities.Milestone.filter({ project_id: projectId }),
+    queryFn: () => planter.entities.Milestone.filter({ root_id: projectId }),
     enabled: !!projectId
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks', projectId],
-    queryFn: () => planter.entities.Task.filter({ project_id: projectId }),
+    queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
     enabled: !!projectId
   });
 

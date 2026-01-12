@@ -63,7 +63,7 @@ export default function Team() {
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks', projectId],
-    queryFn: () => planter.entities.Task.filter({ project_id: projectId }),
+    queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
     enabled: !!projectId
   });
 

@@ -51,19 +51,19 @@ export default function Reports() {
 
   const { data: phases = [] } = useQuery({
     queryKey: ['phases', projectId],
-    queryFn: () => planter.entities.Phase.filter({ project_id: projectId }),
+    queryFn: () => planter.entities.Phase.filter({ root_id: projectId }),
     enabled: !!projectId
   });
 
   const { data: milestones = [] } = useQuery({
     queryKey: ['milestones', projectId],
-    queryFn: () => planter.entities.Milestone.filter({ project_id: projectId }),
+    queryFn: () => planter.entities.Milestone.filter({ root_id: projectId }),
     enabled: !!projectId
   });
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', projectId],
-    queryFn: () => planter.entities.Task.filter({ project_id: projectId }),
+    queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
     enabled: !!projectId
   });
 
@@ -300,7 +300,7 @@ export default function Reports() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-slate-500">
+                <div className="h-72 flex items-center justify-center text-slate-500">
                   No phases to display
                 </div>
               )}

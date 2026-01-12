@@ -174,7 +174,8 @@ export async function createProjectWithDefaults(projectData) {
   for (const phase of defaultPhases) {
     const createdPhase = await planter.entities.Phase.create({
       ...phase,
-      project_id: project.id,
+      root_id: project.id,
+      parent_task_id: project.id, // Phase is child of Project
     });
 
     // Create default milestones for each phase
@@ -182,8 +183,8 @@ export async function createProjectWithDefaults(projectData) {
     for (const milestone of milestones) {
       const createdMilestone = await planter.entities.Milestone.create({
         ...milestone,
-        phase_id: createdPhase.id,
-        project_id: project.id,
+        parent_task_id: createdPhase.id, // Milestone child of Phase
+        root_id: project.id,
       });
 
       // Create default tasks for each milestone
@@ -191,9 +192,8 @@ export async function createProjectWithDefaults(projectData) {
       for (const task of tasks) {
         await planter.entities.Task.create({
           ...task,
-          milestone_id: createdMilestone.id,
-          phase_id: createdPhase.id,
-          project_id: project.id,
+          parent_task_id: createdMilestone.id, // Task child of Milestone
+          root_id: project.id,
         });
       }
     }

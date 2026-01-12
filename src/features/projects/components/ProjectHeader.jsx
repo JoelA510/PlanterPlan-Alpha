@@ -51,7 +51,7 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [] })
             </Button>
           </Link>
           <div className="flex items-center gap-4 flex-1">
-            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
               <Icon className="w-7 h-7 text-white" />
             </div>
             <div>
