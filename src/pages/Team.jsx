@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@shared/lib/utils';
 import { planter } from '@shared/api/planterClient'; // UPDATED

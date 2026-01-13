@@ -1,6 +1,5 @@
 
-import React, { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -26,7 +25,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const queryClient = useQueryClient();
+
 
   const { data: user, isLoading } = useUser();
   const updateUserMutation = useUpdateUser();
@@ -66,7 +65,7 @@ export default function Settings() {
     email: user?.email || ''
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       setFormData({
         full_name: user.full_name || '',
@@ -75,19 +74,20 @@ export default function Settings() {
     }
   }, [user]);
 
-  React.useEffect(() => {
-    if (updateUserMutation.isSuccess) {
-      setSaved(true);
-      const timer = setTimeout(() => setSaved(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [updateUserMutation.isSuccess]);
+
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
-    await updateUserMutation.mutateAsync({ full_name: formData.full_name });
-    setSaving(false);
+    try {
+      await updateUserMutation.mutateAsync({ full_name: formData.full_name });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (isLoading) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { planter } from '@shared/api/planterClient'; // UPDATED
 import { useQuery } from '@tanstack/react-query';
 import {

@@ -31,7 +31,7 @@ vi.mock('@shared/ui/alert-dialog', () => ({
     AlertDialogFooter: ({ children }) => <div>{children}</div>,
     AlertDialogTitle: ({ children }) => <div>{children}</div>,
     AlertDialogDescription: ({ children }) => <div>{children}</div>,
-    AlertDialogAction: ({ children, onClick }) => <button onClick={onClick}>Confirm Delete</button>,
+    AlertDialogAction: ({ children, onClick }) => <button onClick={onClick}>{children}</button>,
     AlertDialogCancel: ({ children }) => <button>{children}</button>,
 }));
 

@@ -92,7 +92,7 @@ export async function getProjectWithStats(projectId) {
   if (totalError || completedError) console.warn('Stats fetch error', totalError, completedError);
 
   // Fetch ALL children
-  const { data: children, error: childrenError } = await supabase
+  const { data: children } = await supabase
     .from('tasks')
     .select('*')
     .eq('root_id', projectId);
@@ -199,7 +199,7 @@ export async function createProjectWithDefaults(projectData) {
       });
 
       // Create default tasks for each milestone
-      const tasks = getTasksForMilestone(milestone.order, phase.order);
+      const tasks = getTasksForMilestone(milestone.order);
       for (const task of tasks) {
         await planter.entities.Task.create({
           title: task.title,
@@ -262,7 +262,7 @@ function getMilestonesForPhase(phaseOrder) {
   ];
 }
 
-function getTasksForMilestone(milestoneOrder, _phaseOrder) {
+function getTasksForMilestone(milestoneOrder) {
   // Return a few sample tasks for each milestone
   const taskTemplates = [
     { title: 'Review and complete assessment', priority: 'high' },

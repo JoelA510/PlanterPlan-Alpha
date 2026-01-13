@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import { DndContext, closestCorners } from '@dnd-kit/core';
 import { useParams, useNavigate } from 'react-router-dom';
 

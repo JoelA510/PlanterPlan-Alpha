@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@layouts/DashboardLayout';
 import ProjectSidebar from '@features/navigation/components/ProjectSidebar';

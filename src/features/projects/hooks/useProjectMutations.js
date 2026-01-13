@@ -1,8 +1,5 @@
 import { useCallback } from 'react';
-import { useState } from 'react';
 import { supabase } from '@app/supabaseClient';
-import { useAuth } from '@app/contexts/AuthContext';
-import { useToast } from '@app/contexts/ToastContext';
 import { deepCloneTask } from '@features/tasks/services/taskService';
 import { toIsoDate } from '@shared/lib/date-engine';
 
@@ -10,8 +7,6 @@ export const useProjectMutations = ({
     tasks,
     fetchTasks,
 }) => {
-    const { user } = useAuth();
-    const { toast } = useToast();
     const createProject = useCallback(
         async (formData) => {
             try {
