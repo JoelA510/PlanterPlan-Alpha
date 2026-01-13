@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/lib/utils';
+import { createPageUrl } from '@shared/lib/utils';
 import { Button } from "@shared/ui/button";
 import {
     DropdownMenu,
@@ -19,8 +19,8 @@ import {
     LogOut,
     Menu
 } from 'lucide-react';
-import { planter } from '@/api/planterClient';
-import { useUser } from '@/hooks/useUser';
+import { planter } from '@shared/api/planterClient';
+import { useUser } from '@features/auth/hooks/useUser';
 
 export default function Header({ onMenuToggle, showMenuButton = false }) {
     const { data: user } = useUser();

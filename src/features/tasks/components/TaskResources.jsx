@@ -7,7 +7,7 @@ import { Textarea } from '@shared/ui/textarea';
 import { Label } from '@shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select';
 import { ExternalLink, FileText, StickyNote, Plus, Trash2, Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@shared/lib/utils';
 import {
   listTaskResources,
   createTaskResource,

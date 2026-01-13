@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/lib/utils';
+import { createPageUrl } from '@shared/lib/utils';
 import { Button } from "@shared/ui/button";
 import { Badge } from "@shared/ui/badge";
 import { Progress } from "@shared/ui/progress";

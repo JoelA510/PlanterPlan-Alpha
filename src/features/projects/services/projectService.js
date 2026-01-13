@@ -1,4 +1,4 @@
-import { planter } from 'api/planterClient';
+import { planter } from '@shared/api/planterClient';
 import { supabase } from '@app/supabaseClient';
 
 // --- Membership ---

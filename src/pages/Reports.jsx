@@ -1,7 +1,7 @@
 
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/lib/utils';
-import { planter } from '@/api/planterClient';
+import { createPageUrl } from '@shared/lib/utils';
+import { planter } from '@shared/api/planterClient';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from "@shared/ui/button";
 import { Card } from "@shared/ui/card";

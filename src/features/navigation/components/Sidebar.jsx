@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { createPageUrl } from '@/lib/utils';
+import { createPageUrl } from '@shared/lib/utils';
 import { Button } from "@shared/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@shared/lib/utils";
 import {
     LayoutDashboard,
     BarChart3,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { planter } from '@/api/planterClient';
+import { planter } from '@shared/api/planterClient';
 import { createProjectWithDefaults } from '@features/projects/services/projectService'; // Service import
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@shared/ui/button";

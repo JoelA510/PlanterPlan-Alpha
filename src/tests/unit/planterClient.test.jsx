@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { planter } from '@/api/planterClient';
+import { planter } from '@shared/api/planterClient';
 // We don't necessarily need to import supabase here if we mock it, but importing it allows spying if needed.
 // However, since we are mocking the module, the import will get the mock.
 

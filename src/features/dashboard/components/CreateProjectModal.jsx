@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { planter } from '@/api/planterClient'; // UPDATED
+import { planter } from '@shared/api/planterClient'; // UPDATED
 import { useQuery } from '@tanstack/react-query';
 import {
     Dialog,
@@ -24,7 +24,7 @@ import {
     Loader2,
     CheckCircle2
 } from 'lucide-react';
-import { cn } from "@/lib/utils";
+import { cn } from "@shared/lib/utils";
 import { motion, AnimatePresence } from 'framer-motion';
 
 const templates = [

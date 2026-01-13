@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { planter } from '@/api/planterClient';
+import { planter } from '@shared/api/planterClient';
 
 describe('Debug Query', () => {
     it('should fetch tasks by root_id without 400 error', async () => {

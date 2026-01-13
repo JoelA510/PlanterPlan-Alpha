@@ -4,7 +4,7 @@ import { Progress } from "@shared/ui/progress";
 import { Badge } from "@shared/ui/badge";
 import { ChevronRight, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from "@/lib/utils";
+import { cn } from "@shared/lib/utils";
 
 const phaseColors = {
     1: { bg: 'bg-brand-500', light: 'bg-brand-50', text: 'text-brand-600', border: 'border-brand-200' },

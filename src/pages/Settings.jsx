@@ -1,29 +1,65 @@
+
 import React, { useState } from 'react';
-import { planter } from '@/api/planterClient';
 import { useQueryClient } from '@tanstack/react-query';
-import { useUser, useUpdateUser } from '@/hooks/useUser';
-import { Card } from "@shared/ui/card";
-import { Button } from "@shared/ui/button";
-import { Input } from "@shared/ui/input";
-import { Label } from "@shared/ui/label";
-import { Separator } from "@shared/ui/separator";
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   User,
-
   Shield,
   Bell,
   Palette,
   Loader2,
   Check
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+
+import DashboardLayout from '@layouts/DashboardLayout';
+import SideNav from '@features/navigation/components/SideNav';
+import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
+import { useUser, useUpdateUser } from '@features/auth/hooks/useUser'; // Updated Import Path preemptively
+import { Card } from "@shared/ui/card";
+import { Button } from "@shared/ui/button";
+import { Input } from "@shared/ui/input";
+import { Label } from "@shared/ui/label";
+import { Separator } from "@shared/ui/separator";
 
 export default function Settings() {
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: user, isLoading } = useUser();
+  const updateUserMutation = useUpdateUser();
+
+  // Sidebar Logic
+  const {
+    joinedProjects = [],
+    instanceTasks = [],
+    templateTasks = [],
+    loading: tasksLoading,
+    error,
+    joinedError,
+    loadMoreProjects,
+    hasMore,
+    isFetchingMore,
+  } = useTaskOperations();
+
+  const sidebar = (
+    <SideNav
+      joinedProjects={joinedProjects}
+      instanceTasks={instanceTasks}
+      templateTasks={templateTasks}
+      loading={tasksLoading}
+      error={error}
+      joinedError={joinedError}
+      handleSelectProject={(p) => navigate(`/ project / ${p.id} `)}
+      onNewProjectClick={() => navigate('/dashboard')}
+      onNewTemplateClick={() => navigate('/dashboard')}
+      onLoadMore={loadMoreProjects}
+      hasMore={hasMore}
+      isFetchingMore={isFetchingMore}
+    />
+  );
 
   const [formData, setFormData] = useState({
     full_name: user?.full_name || '',
@@ -39,9 +75,6 @@ export default function Settings() {
     }
   }, [user]);
 
-  const updateUserMutation = useUpdateUser();
-  const [saveSuccess, setSaveSuccess] = useState(false); // Local state for success message
-
   React.useEffect(() => {
     if (updateUserMutation.isSuccess) {
       setSaved(true);
@@ -49,7 +82,6 @@ export default function Settings() {
       return () => clearTimeout(timer);
     }
   }, [updateUserMutation.isSuccess]);
-
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -60,9 +92,11 @@ export default function Settings() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-      </div>
+      <DashboardLayout sidebar={sidebar}>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        </div>
+      </DashboardLayout>
     );
   }
 
@@ -94,160 +128,163 @@ export default function Settings() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-          <p className="text-slate-600 mt-1">Manage your account and preferences</p>
-        </motion.div>
-
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Settings Navigation */}
+    <DashboardLayout sidebar={sidebar}>
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-1"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
           >
-            <Card className="p-4 border border-slate-200 bg-white shadow-sm">
-              <nav className="space-y-1">
-                {sections.map((section) => {
-                  const Icon = section.icon;
-                  return (
-                    <button
-                      key={section.id}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg transition-colors hover:bg-slate-50 text-slate-700 hover:text-slate-900"
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-sm font-medium">{section.title}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </Card>
+            <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
+            <p className="text-slate-600 mt-1">Manage your account and preferences</p>
           </motion.div>
 
-          {/* Settings Content */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-3"
-          >
-            <Card className="p-6 border border-slate-200 bg-white shadow-sm">
-              <div className="space-y-6">
-                {/* Profile Section */}
-                <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <User className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">Profile Information</h2>
-                      <p className="text-sm text-slate-500">Update your account details</p>
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleSave} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="full_name">Full Name</Label>
-                      <Input
-                        id="full_name"
-                        value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                        placeholder="Your name"
-                        className="max-w-md"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        disabled
-                        className="max-w-md bg-slate-50"
-                      />
-                      <p className="text-xs text-slate-500">Email cannot be changed</p>
-                    </div>
-
-                    {user?.role && (
-                      <div className="space-y-2">
-                        <Label>Role</Label>
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-slate-400" />
-                          <span className="text-sm font-medium text-slate-700 capitalize">
-                            {user.role}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-3 pt-4">
-                      <Button
-                        type="submit"
-                        disabled={saving}
-                        className="bg-orange-500 hover:bg-orange-600"
+          <div className="grid lg:grid-cols-4 gap-6">
+            {/* Settings Navigation */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="lg:col-span-1"
+            >
+              <Card className="p-4 border border-slate-200 bg-white shadow-sm">
+                <nav className="space-y-1">
+                  {sections.map((section) => {
+                    const Icon = section.icon;
+                    return (
+                      <button
+                        key={section.id}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg transition-colors hover:bg-slate-50 text-slate-700 hover:text-slate-900"
                       >
-                        {saving ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          'Save Changes'
-                        )}
-                      </Button>
-                      {saved && (
-                        <div className="flex items-center gap-2 text-green-600">
-                          <Check className="w-4 h-4" />
-                          <span className="text-sm">Saved!</span>
+                        <Icon className="w-5 h-5" />
+                        <span className="text-sm font-medium">{section.title}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </Card>
+            </motion.div>
+
+            {/* Settings Content */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="lg:col-span-3"
+            >
+              <Card className="p-6 border border-slate-200 bg-white shadow-sm">
+                <div className="space-y-6">
+                  {/* Profile Section */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <User className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-slate-900">Profile Information</h2>
+                        <p className="text-sm text-slate-500">Update your account details</p>
+                      </div>
+                    </div>
+
+                    <form onSubmit={handleSave} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="full_name">Full Name</Label>
+                        <Input
+                          id="full_name"
+                          value={formData.full_name}
+                          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                          placeholder="Your name"
+                          className="max-w-md"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          disabled
+                          className="max-w-md bg-slate-50"
+                        />
+                        <p className="text-xs text-slate-500">Email cannot be changed</p>
+                      </div>
+
+                      {user?.role && (
+                        <div className="space-y-2">
+                          <Label>Role</Label>
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-medium text-slate-700 capitalize">
+                              {user.role}
+                            </span>
+                          </div>
                         </div>
                       )}
-                    </div>
-                  </form>
-                </div>
 
-                <Separator />
-
-                {/* Notifications Section */}
-                <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <Bell className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">Notifications</h2>
-                      <p className="text-sm text-slate-500">Manage notification preferences</p>
-                    </div>
+                      <div className="flex items-center gap-3 pt-4">
+                        <Button
+                          type="submit"
+                          disabled={saving}
+                          className="bg-orange-500 hover:bg-orange-600"
+                        >
+                          {saving ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Save Changes'
+                          )}
+                        </Button>
+                        {saved && (
+                          <div className="flex items-center gap-2 text-green-600">
+                            <Check className="w-4 h-4" />
+                            <span className="text-sm">Saved!</span>
+                          </div>
+                        )}
+                      </div>
+                    </form>
                   </div>
-                  <p className="text-sm text-slate-600">Notification settings coming soon...</p>
-                </div>
 
-                <Separator />
+                  <Separator />
 
-                {/* Appearance Section */}
-                <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Palette className="w-5 h-5 text-purple-600" />
+                  {/* Notifications Section */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <Bell className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-slate-900">Notifications</h2>
+                        <p className="text-sm text-slate-500">Manage notification preferences</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">Appearance</h2>
-                      <p className="text-sm text-slate-500">Customize the look and feel</p>
-                    </div>
+                    <p className="text-sm text-slate-600">Notification settings coming soon...</p>
                   </div>
-                  <p className="text-sm text-slate-600">Theme options coming soon...</p>
+
+                  <Separator />
+
+                  {/* Appearance Section */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <Palette className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-slate-900">Appearance</h2>
+                        <p className="text-sm text-slate-500">Customize the look and feel</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600">Theme options coming soon...</p>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          </motion.div>
+              </Card>
+            </motion.div>
+          </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
+

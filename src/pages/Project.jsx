@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { planter } from '@/api/planterClient';
+import { planter } from '@shared/api/planterClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';

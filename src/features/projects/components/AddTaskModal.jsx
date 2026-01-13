@@ -20,7 +20,7 @@ import {
 } from "@shared/ui/select";
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
-import { cn } from "@/lib/utils";
+import { cn } from "@shared/lib/utils";
 
 export default function AddTaskModal({ open, onClose, onAdd, milestone, teamMembers = [] }) {
     const [loading, setLoading] = useState(false);

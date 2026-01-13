@@ -13,7 +13,7 @@ import {
     Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from "@/lib/utils";
+import { cn } from "@shared/lib/utils";
 import TaskItem from '@features/tasks/components/TaskItem'; // UPDATED
 
 export default function MilestoneSection({
