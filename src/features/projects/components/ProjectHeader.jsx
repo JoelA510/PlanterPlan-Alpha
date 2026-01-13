@@ -30,7 +30,7 @@ const statusColors = {
   [PROJECT_STATUS.PAUSED]: 'bg-slate-100 text-slate-700',
 };
 
-export default function ProjectHeader({ project, tasks = [], teamMembers = [] }) {
+export default function ProjectHeader({ project, tasks = [], teamMembers = [], onInviteMember }) {
   const Icon = templateIcons[project.template] || Rocket;
   const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
   const totalTasks = tasks.length;
@@ -77,6 +77,10 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [] })
                 Team
               </Button>
             </Link>
+            <Button variant="default" size="sm" onClick={onInviteMember} className="ml-2 bg-brand-600 hover:bg-brand-700 text-white">
+              <Users className="w-4 h-4 mr-2" />
+              Invite
+            </Button>
           </div>
         </div>
 
@@ -110,6 +114,6 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [] })
           </div>
         </div>
       </div>
-    </motion.div>
+    </motion.div >
   );
 }
