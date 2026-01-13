@@ -13,7 +13,7 @@ Before writing anything, systematically review the codebase:
 1. **Map the file structure** — Identify all directories and their purposes
 2. **Identify entry points** — Find main/index files, routing, app initialization
 
-- **Frontend**: React 18+, Vite, Tailwind CSS v4, `dnd-kit`.
+- **Frontend**: React 19, Vite, Tailwind CSS v4, `dnd-kit`.
 - **Testing**: Vitest (`npm test`).
 - **Backend**: Supabase (PostgreSQL 15+), Edge Functions.
 - **Database**:
