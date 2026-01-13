@@ -15,6 +15,7 @@ export default function Project() {
 
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [addTaskModal, setAddTaskModal] = useState({ open: false, milestone: null });
+  const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
 
   const queryClient = useQueryClient();
 
@@ -24,23 +25,25 @@ export default function Project() {
     enabled: !!projectId
   });
 
-  const { data: phases = [] } = useQuery({
-    queryKey: ['phases', projectId],
-    queryFn: () => planter.entities.Phase.filter({ root_id: projectId }),
-    enabled: !!projectId
-  });
-
-  const { data: milestones = [] } = useQuery({
-    queryKey: ['milestones', projectId],
-    queryFn: () => planter.entities.Milestone.filter({ root_id: projectId }),
-    enabled: !!projectId
-  });
-
-  const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks', projectId],
+  // SINGLE SOURCE OF TRUTH: Fetch all tasks for the project (Phases, Milestones, Tasks)
+  const { data: projectHierarchy = [] } = useQuery({
+    queryKey: ['projectHierarchy', projectId],
     queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
     enabled: !!projectId
   });
+
+  // Derived State (In-Memory Filtering)
+  const phases = projectHierarchy.filter(t => t.parent_task_id === projectId); // Phases are direct children of Project
+
+  // Milestones are children of Phases
+  const milestones = projectHierarchy.filter(t =>
+    phases.some(p => p.id === t.parent_task_id)
+  );
+
+  // Tasks are children of Milestones (or Phases directly in some templates, but assuming strict hierarchy here)
+  const tasks = projectHierarchy.filter(t =>
+    milestones.some(m => m.id === t.parent_task_id)
+  );
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['teamMembers', projectId],
@@ -51,35 +54,62 @@ export default function Project() {
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }) => planter.entities.Task.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
     }
   });
 
   const createTaskMutation = useMutation({
     mutationFn: (data) => planter.entities.Task.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
     }
   });
 
-  const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
+  const sortedPhases = [...phases].sort((a, b) => (a.position || 0) - (b.position || 0));
   const activePhase = selectedPhase || sortedPhases[0];
   const phaseMilestones = milestones
-    .filter(m => m.phase_id === activePhase?.id)
-    .sort((a, b) => (a.order || 0) - (b.order || 0));
+    .filter(m => m.parent_task_id === activePhase?.id) // Use parent_task_id for hierarchy
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
 
   const handleTaskUpdate = (taskId, data) => {
     updateTaskMutation.mutate({ id: taskId, data });
   };
 
+  const handleToggleExpand = (task, isExpanded) => {
+    const newSet = new Set(expandedTaskIds);
+    if (isExpanded) {
+      newSet.add(task.id);
+    } else {
+      newSet.delete(task.id);
+    }
+    setExpandedTaskIds(newSet);
+  };
+
+  const mapTaskWithState = (task) => ({
+    ...task,
+    isExpanded: expandedTaskIds.has(task.id),
+    children: tasks
+      .filter(t => t.parent_task_id === task.id)
+      .map(mapTaskWithState)
+      .sort((a, b) => (a.position || 0) - (b.position || 0))
+  });
+
   const handleAddTask = async (taskData) => {
-    await createTaskMutation.mutateAsync({
-      ...taskData,
-      milestone_id: addTaskModal.milestone.id,
-      phase_id: activePhase.id,
-      project_id: projectId,
-      status: 'not_started'
-    });
+    try {
+      if (!addTaskModal.milestone) return;
+
+      await createTaskMutation.mutateAsync({
+        ...taskData,
+        parent_task_id: addTaskModal.milestone.id, // Task is child of Milestone
+        root_id: projectId, // Project root
+        status: 'not_started'
+      });
+      setAddTaskModal({ open: false, milestone: null });
+      toast.success('Task created successfully');
+    } catch (error) {
+      toast.error('Failed to create task');
+      console.error(error);
+    }
   };
 
   if (loadingProject || !project) {
@@ -107,8 +137,8 @@ export default function Project() {
               <PhaseCard
                 key={phase.id}
                 phase={phase}
-                tasks={tasks}
-                milestones={milestones.filter(m => m.phase_id === phase.id)}
+                tasks={tasks} // PhaseCard filters its own tasks using hierarchy now
+                milestones={milestones.filter(m => m.parent_task_id === phase.id)}
                 isActive={activePhase?.id === phase.id}
                 onClick={() => setSelectedPhase(phase)}
               />
@@ -127,7 +157,7 @@ export default function Project() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-semibold text-slate-900">
-                  Phase {activePhase.order}: {activePhase.name}
+                  Phase {activePhase.position}: {activePhase.title || activePhase.name}
                 </h2>
                 {activePhase.description && (
                   <p className="text-slate-600 mt-1">{activePhase.description}</p>
@@ -145,8 +175,9 @@ export default function Project() {
                   <MilestoneSection
                     key={milestone.id}
                     milestone={milestone}
-                    tasks={tasks}
+                    tasks={tasks.map(mapTaskWithState)} // Pass tasks with proper tree structure and state
                     onTaskUpdate={handleTaskUpdate}
+                    onToggleExpand={handleToggleExpand}
                     onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
                     phase={activePhase}
                   />

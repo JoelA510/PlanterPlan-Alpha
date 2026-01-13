@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { planter } from '@/api/planterClient';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useUser, useUpdateUser } from '@/hooks/useUser';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +23,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const queryClient = useQueryClient();
 
-  // NOTE: planter.auth.me() needs to exist. Assuming yes based on planterClient structure.
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => planter.auth.me()
-  });
+  const { data: user, isLoading } = useUser();
 
   const [formData, setFormData] = useState({
     full_name: user?.full_name || '',
@@ -42,14 +39,17 @@ export default function Settings() {
     }
   }, [user]);
 
-  const updateUserMutation = useMutation({
-    mutationFn: (data) => planter.auth.updateMe(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+  const updateUserMutation = useUpdateUser();
+  const [saveSuccess, setSaveSuccess] = useState(false); // Local state for success message
+
+  React.useEffect(() => {
+    if (updateUserMutation.isSuccess) {
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      const timer = setTimeout(() => setSaved(false), 3000);
+      return () => clearTimeout(timer);
     }
-  });
+  }, [updateUserMutation.isSuccess]);
+
 
   const handleSave = async (e) => {
     e.preventDefault();

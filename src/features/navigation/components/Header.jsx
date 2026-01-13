@@ -20,13 +20,10 @@ import {
     Menu
 } from 'lucide-react';
 import { planter } from '@/api/planterClient';
+import { useUser } from '@/hooks/useUser';
 
 export default function Header({ onMenuToggle, showMenuButton = false }) {
-    const [user, setUser] = React.useState(null);
-
-    React.useEffect(() => {
-        planter.auth.me().then(setUser).catch(() => { });
-    }, []);
+    const { data: user } = useUser();
 
     const handleLogout = async () => {
         await planter.auth.signOut();

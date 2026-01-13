@@ -39,7 +39,7 @@ export default function MilestoneSection({
           <div className="text-left">
             <div className="flex items-center gap-2">
               <h4 className="font-semibold text-slate-900">{milestone.name}</h4>
-              {milestone.is_locked && <Badge variant="outline" className="text-[10px] px-1.5 h-5 bg-slate-50 text-slate-500 border-slate-200">Locked</Badge>}
+              {milestone.is_locked && <Badge variant="outline" className="text-xs px-1.5 h-5 bg-slate-50 text-slate-500 border-slate-200">Locked</Badge>}
             </div>
             {milestone.description && (
               <p className="text-sm text-slate-500 mt-0.5">{milestone.description}</p>

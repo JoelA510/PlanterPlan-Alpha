@@ -16,8 +16,14 @@ const phaseColors = {
 };
 
 export default function PhaseCard({ phase, tasks = [], milestones = [], isActive, onClick }) {
-    const colors = phaseColors[phase.order] || phaseColors[1];
-    const phaseTasks = tasks.filter(t => t.phase_id === phase.id);
+    const order = phase.position || phase.order;
+    const colors = phaseColors[order] || phaseColors[1];
+
+    // Filter tasks that belong to this phase (via milestones)
+    const phaseTasks = tasks.filter(t =>
+        milestones.some(m => m.id === t.parent_task_id && m.parent_task_id === phase.id)
+    );
+
     const completedTasks = phaseTasks.filter(t => t.status === 'completed').length;
     const totalTasks = phaseTasks.length;
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -46,11 +52,11 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
                             {isComplete ? (
                                 <CheckCircle2 className="w-5 h-5" />
                             ) : (
-                                phase.order
+                                order
                             )}
                         </div>
                         <div>
-                            <h3 className="font-semibold text-slate-900">{phase.name}</h3>
+                            <h3 className="font-semibold text-slate-900">{phase.title || phase.name}</h3>
                             <p className="text-sm text-slate-500">{milestones.length} milestones</p>
                         </div>
                     </div>

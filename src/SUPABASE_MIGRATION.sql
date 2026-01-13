@@ -13,23 +13,44 @@ ADD COLUMN IF NOT EXISTS prerequisite_phase_id uuid REFERENCES public.tasks(id);
 CREATE OR REPLACE FUNCTION public.check_phase_unlock()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-    v_all_complete boolean;
-    v_dependent_phase_id uuid;
+    v_milestone_id uuid;
+    v_phase_id uuid;
+    v_incomplete_exists boolean;
 BEGIN
-    -- Check if the parent phase of the updated task is now fully complete
-    -- Assuming NEW.parent_task_id is the Phase ID
+    -- Only process completions
+    IF NEW.is_complete = false THEN RETURN NULL; END IF;
     IF NEW.parent_task_id IS NULL THEN RETURN NULL; END IF;
 
-    -- Check if ALL tasks in this phase are complete
-    SELECT bool_and(is_complete) INTO v_all_complete
-    FROM public.tasks
-    WHERE parent_task_id = NEW.parent_task_id;
+    -- 1. Identify Phase ID
+    -- Assume we are at Task level (Parent is Milestone)
+    v_milestone_id := NEW.parent_task_id;
+    SELECT parent_task_id INTO v_phase_id 
+    FROM public.tasks 
+    WHERE id = v_milestone_id;
 
-    -- If yes, unlock the dependent phase
-    IF v_all_complete THEN
+    -- If parent of parent is usually NULL (e.g. if NEW was a Milestone), handle gracefully?
+    -- In PlanterPlan: Task -> Milestone -> Phase -> Project.
+    -- If NEW is Task, then v_milestone_id is Milestone, v_phase_id is Phase.
+    
+    IF v_phase_id IS NULL THEN
+        -- Fallback: Maybe NEW was a Milestone? Then parent is Phase.
+        v_phase_id := v_milestone_id;
+    END IF;
+
+    -- 2. Check if ANY incomplete tasks remain in this Phase (across all milestones)
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.tasks EndTask
+        JOIN public.tasks MidMilestone ON EndTask.parent_task_id = MidMilestone.id
+        WHERE MidMilestone.parent_task_id = v_phase_id
+          AND EndTask.is_complete = false
+    ) INTO v_incomplete_exists;
+
+    -- 3. If Phase Complete -> Unlock Dependent Phases
+    IF NOT v_incomplete_exists THEN
         UPDATE public.tasks
         SET is_locked = false
-        WHERE prerequisite_phase_id = NEW.parent_task_id;
+        WHERE prerequisite_phase_id = v_phase_id;
     END IF;
 
     RETURN NULL;
