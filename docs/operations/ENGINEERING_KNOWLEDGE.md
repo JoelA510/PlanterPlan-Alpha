@@ -957,3 +957,24 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   1. **One Table Rule**: Phases/Milestones/Tasks are all rows in `tasks`.
   2. **Column Reality**: `tasks` table columns are `title`, `position`, `status`, `root_id`. **Do not attempt to insert** `name` or `order`.
   3. **Filter Hierarchy**: Generic `list()` returns ALL tasks. Always filter by `root_id` and `parent_task_id`.
+
+---
+
+## [DEP-043] Toast Dependency Mismatch (Sonner vs use-toast)
+
+- **Tags**: #dependencies, #ui, #build-error
+- **Date**: 2026-01-12
+- **Context & Problem**: The generic components update introduced `sonner` (a toast library) imports into `Project.jsx`, likely from a Shadcn copy-paste. However, the project standard is a custom local `use-toast` hook. This caused a build error (`Failed to resolve import "sonner"`).
+- **Solution & Pattern**:
+  - **Audit Imports**: Always verify that "suggested" libraries from snippets are actually installed.
+  - **Standardize**: Replaced `sonner` usage with the existing `@shared/ui/use-toast` pattern.
+- **Critical Rule**: Do not mix toast libraries. Stick to the project's established notification system unless migrating fully.
+
+## [CSS-044] Recharts CSS Variable Support
+
+- **Tags**: #css, #recharts, #theming
+- **Date**: 2026-01-12
+- **Context & Problem**: We replaced hardcoded hex colors (`#FF5500`) with CSS variables (`var(--brand-primary)`) to enforce Design Rule 30. There was concern that Recharts might not support CSS variables in the `fill` prop.
+- **Solution & Pattern**:
+  - **Verification**: Browser verification confirmed that Recharts **does** correctly interpret CSS variables passed as strings to `fill` (e.g., `fill="var(--color-brand-500)"`), provided the variable is defined in the global scope.
+- **Critical Rule**: You can use CSS variables in Recharts props. No need to compute hex values in JS unless specific color manipulation (darkening/lightening) is required manually.

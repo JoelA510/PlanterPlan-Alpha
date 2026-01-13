@@ -57,6 +57,8 @@ classDiagram
 ### 2. Design System (Rule 30)
 - **Token Standardization**: Replaced arbitrary values (e.g., `h-[300px]`) with Tailwind utilities (e.g., `h-72`).
 - **Semantic Colors**: Replaced generic `blue-` and `orange-` with `brand-` (Primary) and `indigo-` (Thematic).
+- **Rule 30 Compliance**: Removed manual hex values (e.g., `#FF5500`) from CSS files and Recharts config, replacing them with CSS variables (`var(--color-brand-primary)`).
+- **Dependency Hygiene**: Fixed a critical build error by replacing `sonner` imports (from external snippet) with the project's standard `use-toast` hook.
 - **Visual Polish**: Standardized shadow elevation (`shadow-sm`) and overlay opacity (`bg-slate-900/50`).
 
 ### 3. Critical Fixes & Features
