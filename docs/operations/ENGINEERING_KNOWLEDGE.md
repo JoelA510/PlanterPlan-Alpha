@@ -978,3 +978,30 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Solution & Pattern**:
   - **Verification**: Browser verification confirmed that Recharts **does** correctly interpret CSS variables passed as strings to `fill` (e.g., `fill="var(--color-brand-500)"`), provided the variable is defined in the global scope.
 - **Critical Rule**: You can use CSS variables in Recharts props. No need to compute hex values in JS unless specific color manipulation (darkening/lightening) is required manually.
+---
+
+## [ENV-015] GitHub API "410 Issues Disabled" Error
+
+**Tags**: #github, #mcp, #permissions, #devops
+**Date**: 2026-01-12
+
+### Context & Problem
+
+During the setup of the GitHub MCP (Metaflow Control Plane) server, attempts to create issues via the `issue_write` tool failed with a `410 Issues has been disabled in this repository` error.
+
+This was confusing because:
+1. The GitHub Personal Access Token (PAT) had full `repo` scopes.
+2. The user was the repository owner.
+3. The repo was not archived.
+
+### Solution & Pattern
+
+The error is literal: **Repository-level features override API permissions.**
+
+1. **Verify Settings**: Go to GitHub Repository > Settings > General > Features.
+2. **Enable Issues**: Ensure the "Issues" checkbox is checked.
+3. **Propagation**: GitHub API state can take 1-2 minutes to propagate after the UI toggle.
+
+### Critical Rule
+
+> **Token Scopes are not Absolute.** Even a "Full Access" token cannot perform actions that are disabled in the repository's feature settings (Issues, Wiki, Projects, etc.). Always verify the repository's feature configuration when encountering 410 errors in the GitHub API.
