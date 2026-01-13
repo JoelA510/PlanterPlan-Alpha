@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useToast } from '@shared/ui/use-toast';
 
 import ProjectHeader from '@features/projects/components/ProjectHeader';
 import PhaseCard from '@features/projects/components/PhaseCard';
@@ -18,6 +18,7 @@ export default function Project() {
   const [addTaskModal, setAddTaskModal] = useState({ open: false, milestone: null });
   const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
 
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: project, isLoading: loadingProject } = useQuery({
@@ -106,9 +107,9 @@ export default function Project() {
         status: 'not_started'
       });
       setAddTaskModal({ open: false, milestone: null });
-      toast.success('Task created successfully');
+      toast({ title: 'Task created successfully', variant: 'default' });
     } catch (error) {
-      toast.error('Failed to create task');
+      toast({ title: 'Failed to create task', variant: 'destructive' });
       console.error(error);
     }
   };
