@@ -1,6 +1,6 @@
 import { ROLES } from '@app/constants/index';
 const RoleIndicator = ({ role }) => {
-  const normalizedRole = role ? role.toLowerCase() : 'viewer';
+  const normalizedRole = role ? role.toLowerCase() : ROLES.VIEWER;
   const roleColors = {
     [ROLES.OWNER]: 'bg-brand-50 text-brand-700 border-brand-200',
     [ROLES.ADMIN]: 'bg-purple-50 text-purple-700 border-purple-200',

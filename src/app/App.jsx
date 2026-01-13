@@ -53,18 +53,8 @@ const AppRoutes = () => {
 
       {/* New Premium Routes */}
       {/* Public Routes with Auto-Redirect */}
-      <Route
-        path="/"
-        element={
-          user ? <Navigate to="/dashboard" replace /> : <Home />
-        }
-      />
-      <Route
-        path="/about"
-        element={
-          user ? <Navigate to="/dashboard" replace /> : <Home />
-        }
-      />
+      <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
+      <Route path="/about" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
       <Route
         path="/dashboard"
         element={

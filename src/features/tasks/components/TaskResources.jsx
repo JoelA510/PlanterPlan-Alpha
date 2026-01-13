@@ -12,19 +12,19 @@ import {
   listTaskResources,
   createTaskResource,
   deleteTaskResource,
-  setPrimaryResource
+  setPrimaryResource,
 } from '@features/tasks/services/taskResourcesService';
 
 const resourceTypeIcons = {
   url: ExternalLink,
   pdf: FileText,
-  text: StickyNote
+  text: StickyNote,
 };
 
 const resourceTypeLabels = {
   url: 'External Link',
   pdf: 'Document',
-  text: 'Note'
+  text: 'Note',
 };
 
 export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
@@ -33,7 +33,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
     type: 'url',
     resource_url: '',
     resource_text: '',
-    storage_path: ''
+    storage_path: '',
   });
 
   const queryClient = useQueryClient();
@@ -41,22 +41,23 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
   const { data: resources = [] } = useQuery({
     queryKey: ['resources', taskId],
     queryFn: () => listTaskResources(taskId),
-    enabled: !!taskId
+    enabled: !!taskId,
   });
 
   const createResourceMutation = useMutation({
-    mutationFn: (data) => createTaskResource(taskId, {
-      type: data.type,
-      url: data.resource_url,
-      text_content: data.resource_text,
-      storage_path: data.storage_path
-    }),
+    mutationFn: (data) =>
+      createTaskResource(taskId, {
+        type: data.type,
+        url: data.resource_url,
+        text_content: data.resource_text,
+        storage_path: data.storage_path,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resources', taskId] });
       setShowAddModal(false);
       setFormData({ type: 'url', resource_url: '', resource_text: '', storage_path: '' });
       if (onUpdate) onUpdate();
-    }
+    },
   });
 
   const deleteResourceMutation = useMutation({
@@ -64,14 +65,14 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resources', taskId] });
       if (onUpdate) onUpdate();
-    }
+    },
   });
 
   const setPrimaryMutation = useMutation({
     mutationFn: (id) => setPrimaryResource(taskId, id === primaryResourceId ? null : id),
     onSuccess: () => {
       if (onUpdate) onUpdate();
-    }
+    },
   });
 
   const handleSubmit = (e) => {
@@ -107,18 +108,20 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
               <div
                 key={resource.id}
                 className={cn(
-                  "flex items-center justify-between p-3 rounded-lg border transition-all",
+                  'flex items-center justify-between p-3 rounded-lg border transition-all',
                   isPrimary
-                    ? "bg-brand-50 border-brand-300"
-                    : "bg-white border-slate-200 hover:border-slate-300"
+                    ? 'bg-brand-50 border-brand-300'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
                 )}
               >
                 <div className="flex items-center gap-3 flex-1">
-                  <div className={cn(
-                    "w-9 h-9 rounded-lg flex items-center justify-center",
-                    isPrimary ? "bg-brand-500" : "bg-slate-100"
-                  )}>
-                    <Icon className={cn("w-4 h-4", isPrimary ? "text-white" : "text-slate-600")} />
+                  <div
+                    className={cn(
+                      'w-9 h-9 rounded-lg flex items-center justify-center',
+                      isPrimary ? 'bg-brand-500' : 'bg-slate-100'
+                    )}
+                  >
+                    <Icon className={cn('w-4 h-4', isPrimary ? 'text-white' : 'text-slate-600')} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">
@@ -135,7 +138,9 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
                       </a>
                     )}
                     {type === 'text' && resource.resource_text && (
-                      <p className="text-xs text-slate-500 truncate">{resource.resource_text.substring(0, 50)}...</p>
+                      <p className="text-xs text-slate-500 truncate">
+                        {resource.resource_text.substring(0, 50)}...
+                      </p>
                     )}
                   </div>
                 </div>
@@ -145,12 +150,9 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
                     size="icon"
                     variant="ghost"
                     onClick={() => setPrimaryMutation.mutate(resource.id)}
-                    className={cn(
-                      "h-8 w-8",
-                      isPrimary && "text-brand-600 hover:text-brand-700"
-                    )}
+                    className={cn('h-8 w-8', isPrimary && 'text-brand-600 hover:text-brand-700')}
                   >
-                    <Star className={cn("w-4 h-4", isPrimary && "fill-brand-600")} />
+                    <Star className={cn('w-4 h-4', isPrimary && 'fill-brand-600')} />
                   </Button>
                   <Button
                     size="icon"

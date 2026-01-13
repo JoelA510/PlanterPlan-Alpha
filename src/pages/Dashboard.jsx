@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { planter } from '@shared/api/planterClient';
 import { createProjectWithDefaults } from '@features/projects/services/projectService'; // Service import
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from "@shared/ui/button";
+import { Button } from '@shared/ui/button';
 import { Plus, FolderKanban, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -10,23 +10,25 @@ import ProjectCard from '@features/dashboard/components/ProjectCard';
 import CreateProjectModal from '@features/dashboard/components/CreateProjectModal';
 import StatsOverview from '@features/dashboard/components/StatsOverview';
 
+import DashboardLayout from '@layouts/DashboardLayout';
+
 export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['projects'],
-    queryFn: () => planter.entities.Project.list('-created_date')
+    queryFn: () => planter.entities.Project.list('-created_date'),
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks'],
-    queryFn: () => planter.entities.Task.list()
+    queryFn: () => planter.entities.Task.list(),
   });
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['teamMembers'],
-    queryFn: () => planter.entities.TeamMember.list()
+    queryFn: () => planter.entities.TeamMember.list(),
   });
 
   const createProjectMutation = useMutation({
@@ -34,7 +36,7 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    }
+    },
   });
 
   const handleCreateProject = async (projectData) => {
@@ -43,14 +45,16 @@ export default function Dashboard() {
 
   if (loadingProjects) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-      </div>
+      <DashboardLayout>
+        <div className="flex justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -73,11 +77,7 @@ export default function Dashboard() {
 
         {/* Stats */}
         <div className="mb-8">
-          <StatsOverview
-            projects={projects}
-            tasks={tasks}
-            teamMembers={teamMembers}
-          />
+          <StatsOverview projects={projects} tasks={tasks} teamMembers={teamMembers} />
         </div>
 
         {/* Projects */}
@@ -108,29 +108,9 @@ export default function Dashboard() {
             <div className="mb-8">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Primary Projects</h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.filter(p => p.project_type === 'primary' || !p.project_type).map((project, index) => (
-                  <motion.div
-                    key={project.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <ProjectCard
-                      project={project}
-                      tasks={tasks.filter(t => t.project_id === project.id)}
-                      teamMembers={teamMembers.filter(m => m.project_id === project.id)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* Secondary Projects */}
-            {projects.filter(p => p.project_type === 'secondary').length > 0 && (
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900 mb-4">Secondary Projects</h2>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {projects.filter(p => p.project_type === 'secondary').map((project, index) => (
+                {projects
+                  .filter((p) => p.project_type === 'primary' || !p.project_type)
+                  .map((project, index) => (
                     <motion.div
                       key={project.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -139,26 +119,49 @@ export default function Dashboard() {
                     >
                       <ProjectCard
                         project={project}
-                        tasks={tasks.filter(t => t.project_id === project.id)}
-                        teamMembers={teamMembers.filter(m => m.project_id === project.id)}
+                        tasks={tasks.filter((t) => t.project_id === project.id)}
+                        teamMembers={teamMembers.filter((m) => m.project_id === project.id)}
                       />
                     </motion.div>
                   ))}
+              </div>
+            </div>
+
+            {/* Secondary Projects */}
+            {projects.filter((p) => p.project_type === 'secondary').length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900 mb-4">Secondary Projects</h2>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {projects
+                    .filter((p) => p.project_type === 'secondary')
+                    .map((project, index) => (
+                      <motion.div
+                        key={project.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <ProjectCard
+                          project={project}
+                          tasks={tasks.filter((t) => t.project_id === project.id)}
+                          teamMembers={teamMembers.filter((m) => m.project_id === project.id)}
+                        />
+                      </motion.div>
+                    ))}
                 </div>
               </div>
             )}
           </>
         )}
-      </div>
 
-      <CreateProjectModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreate={handleCreateProject}
-      />
-    </div>
+        <CreateProjectModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreate={handleCreateProject}
+        />
+      </div>
+    </DashboardLayout>
   );
 }
 
 // Helper functions to generate default milestones and tasks
-

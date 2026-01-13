@@ -1,39 +1,38 @@
-
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@shared/lib/utils';
-import { Button } from "@shared/ui/button";
-import { Badge } from "@shared/ui/badge";
-import { Progress } from "@shared/ui/progress";
+import { Button } from '@shared/ui/button';
+import { Badge } from '@shared/ui/badge';
+import { Progress } from '@shared/ui/progress';
 import { format } from 'date-fns';
 import {
   ArrowLeft,
   Calendar,
   MapPin,
   Users,
-
   BarChart2,
   Rocket,
   Building2,
-  GitBranch
+  GitBranch,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { TASK_STATUS, PROJECT_STATUS } from '@app/constants/index';
 
 const templateIcons = {
   launch_large: Rocket,
   multisite: Building2,
-  multiplication: GitBranch
+  multiplication: GitBranch,
 };
 
 const statusColors = {
-  planning: "bg-indigo-100 text-indigo-700",
-  in_progress: "bg-brand-100 text-brand-700",
-  launched: "bg-emerald-100 text-emerald-700",
-  paused: "bg-slate-100 text-slate-700"
+  [PROJECT_STATUS.PLANNING]: 'bg-indigo-100 text-indigo-700',
+  [PROJECT_STATUS.IN_PROGRESS]: 'bg-brand-100 text-brand-700',
+  [PROJECT_STATUS.LAUNCHED]: 'bg-emerald-100 text-emerald-700',
+  [PROJECT_STATUS.PAUSED]: 'bg-slate-100 text-slate-700',
 };
 
 export default function ProjectHeader({ project, tasks = [], teamMembers = [] }) {
   const Icon = templateIcons[project.template] || Rocket;
-  const completedTasks = tasks.filter(t => t.status === 'completed').length;
+  const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
@@ -61,9 +60,7 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [] })
                   {project.status?.replace('_', ' ')}
                 </Badge>
               </div>
-              {project.description && (
-                <p className="text-slate-600 mt-1">{project.description}</p>
-              )}
+              {project.description && <p className="text-slate-600 mt-1">{project.description}</p>}
             </div>
           </div>
 
@@ -99,7 +96,9 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [] })
             )}
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-slate-400" />
-              <span>{teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}</span>
+              <span>
+                {teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}
+              </span>
             </div>
           </div>
 

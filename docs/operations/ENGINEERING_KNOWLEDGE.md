@@ -813,9 +813,9 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   ```javascript
   import * as hookModule from '../../hooks/useTaskOperations';
   vi.spyOn(hookModule, 'useTaskOperations').mockReturnValue({
-      loading: false, // Force stable state
-      data: [],
-      // ... provide essential handlers as vi.fn()
+    loading: false, // Force stable state
+    data: [],
+    // ... provide essential handlers as vi.fn()
   });
   ```
 
@@ -904,7 +904,7 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 
 - **Tags**: #schema, #database, #api, #gotcha, #mapping
 - **Date**: 2026-01-12
-<<<<<<< HEAD
+  <<<<<<< HEAD
 - **Context**: The `planterClient` refactor initially assumed `phases` and `milestones` tables existed.
 - **Problem**: The database uses a unified `tasks` table with hierarchy (`root_id`, `parent_task_id`). There are no separate tables.
 - **Solution**: The `createEntityClient` for Phase and Milestone must point to `tasks`.
@@ -926,9 +926,9 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Date**: 2026-01-13
 - **Context & Problem**: Browser verification failed to find specific project names ("Sunday Launch") because the local development seed data differed from the test expectations.
 - **Solution & Pattern**:
-  - **Resilient Tests**: Tests should verify *classes* of behavior (e.g., "Any Project Card") rather than specific data instances, or strictly control the seed state before running.
+  - **Resilient Tests**: Tests should verify _classes_ of behavior (e.g., "Any Project Card") rather than specific data instances, or strictly control the seed state before running.
   - **Graceful degradation**: Verified that empty states ("No tasks to display") rendered correctly instead of crashing.
-- **Critical Rule**: Do not hardcode content expectations in manual verification plans unless you control the seed script. Verify *behavior*, not *strings*.
+- **Critical Rule**: Do not hardcode content expectations in manual verification plans unless you control the seed script. Verify _behavior_, not _strings_.
 
 ## [UI-044] Semantic Color System (The "Blue" Ban)
 
@@ -978,6 +978,7 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Solution & Pattern**:
   - **Verification**: Browser verification confirmed that Recharts **does** correctly interpret CSS variables passed as strings to `fill` (e.g., `fill="var(--color-brand-500)"`), provided the variable is defined in the global scope.
 - **Critical Rule**: You can use CSS variables in Recharts props. No need to compute hex values in JS unless specific color manipulation (darkening/lightening) is required manually.
+
 ---
 
 ## [ENV-015] GitHub API "410 Issues Disabled" Error
@@ -990,6 +991,7 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 During the setup of the GitHub MCP (Metaflow Control Plane) server, attempts to create issues via the `issue_write` tool failed with a `410 Issues has been disabled in this repository` error.
 
 This was confusing because:
+
 1. The GitHub Personal Access Token (PAT) had full `repo` scopes.
 2. The user was the repository owner.
 3. The repo was not archived.
@@ -1005,3 +1007,66 @@ The error is literal: **Repository-level features override API permissions.**
 ### Critical Rule
 
 > **Token Scopes are not Absolute.** Even a "Full Access" token cannot perform actions that are disabled in the repository's feature settings (Issues, Wiki, Projects, etc.). Always verify the repository's feature configuration when encountering 410 errors in the GitHub API.
+
+---
+
+## [FE-043] Centralized Sidebar Logic (Container Pattern)
+
+**Tags**: #react, #architecture, #navigation
+**Date**: 2026-01-13
+
+### Context & Problem
+
+Multiple pages (Tasks, Settings, Dashboard) were manually fetching project lists to populate the sidebar. This led to code duplication, inconsistent loading states, and breakage when data structures changed.
+
+### Solution & Pattern
+
+We implemented the **Layout Container Pattern**:
+1.  **Container Component**: Created `ProjectSidebarContainer.jsx` to encapsulate the `useTaskOperations` hook and data mapping for the sidebar.
+2.  **Default Slot**: Integrated this container as the default `sidebar` prop in `DashboardLayout`.
+3.  **Result**: Pages no longer need to know how to fetch their own navigation data; simply wrapping a page in the layout populates the sidebar.
+
+### Critical Rule
+
+> **Global UI belongs in Layout Containers.** Don't duplicate data fetching for global navigation in individual pages. Use specialized container components within your Layouts to provide stable data slots.
+
+---
+
+## [FE-044] Route-Level Layout Propagation
+
+**Tags**: #routing, #react-router, #architecture
+**Date**: 2026-01-13
+
+### Context & Problem
+
+The application had several "orphan" pages (e.g., Reports, Project Details) where the sidebar would vanish. The root cause was that `App.jsx` defined these routes as top-level children of `Routes` without wrapping them in the required layout shell.
+
+### Solution & Pattern
+
+Unified routing configuration in `App.jsx`:
+1.  **Protected Hub**: All authenticated views are grouped and wrapped in both `ProtectedRoute` and `DashboardLayout`.
+2.  **Breadcrumb Consistency**: Passing the current context (like `projectId`) down via the layout ensures that breadcrumbs and sidebar selection sync correctly with the URL.
+
+### Critical Rule
+
+> **Layouts are part of a Route's definition.** When adding new views, always explicitly check if they belong inside a `DashboardLayout` shell. Do not rely on pages to "opt-in" to the sidebar themselves.
+
+---
+
+## [DX-045] Import Path Consistency & Alias Fragility
+
+**Tags**: #dx, #verification, #imports
+**Date**: 2026-01-13
+
+### Context & Problem
+
+Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due to incorrect guesses for core-hook imports (e.g., trying to import `useToast` from `@shared/hooks/` when it actually lived in `@shared/ui/`).
+
+### Solution & Pattern
+
+1.  **Grep First**: Before typing a new import for a shared utility, grep the codebase for existing usages to find the established alias path.
+2.  **Standardize**: We updated all broken pages to follow the established project pattern: `@app/contexts/AuthContext` for `useAuth` and `@shared/ui/use-toast` for `useToast`.
+
+### Critical Rule
+
+> **Standardize Core Imports.** Avoid "guess-and-check" pathing when utilizing shared aliases. Document the location of high-volume hooks (`useAuth`, `useToast`, `useTaskOperations`) or use automated linting to enforce path consistency.

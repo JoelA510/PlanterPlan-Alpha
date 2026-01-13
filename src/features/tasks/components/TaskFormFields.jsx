@@ -1,5 +1,3 @@
-
-
 const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFields }) => {
   return (
     <>

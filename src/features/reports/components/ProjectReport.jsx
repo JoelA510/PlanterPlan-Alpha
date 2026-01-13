@@ -12,7 +12,6 @@ import { CHART_COLORS } from '@app/constants/colors';
 
 // Removed hardcoded CHART_COLORS
 
-
 const ProjectReport = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -107,16 +106,44 @@ const ProjectReport = () => {
                 </div>
 
                 <div className="h-80 bg-slate-50 rounded-lg p-6 border border-slate-100">
-                  <h3 className="text-sm font-semibold text-slate-500 mb-4 uppercase tracking-wider">Status Distribution</h3>
+                  <h3 className="text-sm font-semibold text-slate-500 mb-4 uppercase tracking-wider">
+                    Status Distribution
+                  </h3>
                   <div className="w-full h-full pb-6">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={[
-                            { name: 'To Do', count: project.children?.filter(t => t.status === TASK_STATUS.TODO || !t.status).length || 0, fill: CHART_COLORS[TASK_STATUS.TODO] },
-                            { name: 'In Progress', count: project.children?.filter(t => t.status === TASK_STATUS.IN_PROGRESS).length || 0, fill: CHART_COLORS[TASK_STATUS.IN_PROGRESS] },
-                            { name: 'Blocked', count: project.children?.filter(t => t.status === TASK_STATUS.BLOCKED).length || 0, fill: CHART_COLORS[TASK_STATUS.BLOCKED] },
-                            { name: 'Completed', count: project.children?.filter(t => t.status === TASK_STATUS.COMPLETED).length || 0, fill: CHART_COLORS[TASK_STATUS.COMPLETED] },
+                            {
+                              name: 'To Do',
+                              count:
+                                project.children?.filter(
+                                  (t) => t.status === TASK_STATUS.TODO || !t.status
+                                ).length || 0,
+                              fill: CHART_COLORS[TASK_STATUS.TODO],
+                            },
+                            {
+                              name: 'In Progress',
+                              count:
+                                project.children?.filter(
+                                  (t) => t.status === TASK_STATUS.IN_PROGRESS
+                                ).length || 0,
+                              fill: CHART_COLORS[TASK_STATUS.IN_PROGRESS],
+                            },
+                            {
+                              name: 'Blocked',
+                              count:
+                                project.children?.filter((t) => t.status === TASK_STATUS.BLOCKED)
+                                  .length || 0,
+                              fill: CHART_COLORS[TASK_STATUS.BLOCKED],
+                            },
+                            {
+                              name: 'Completed',
+                              count:
+                                project.children?.filter((t) => t.status === TASK_STATUS.COMPLETED)
+                                  .length || 0,
+                              fill: CHART_COLORS[TASK_STATUS.COMPLETED],
+                            },
                           ]}
                           cx="50%"
                           cy="50%"
@@ -136,7 +163,11 @@ const ProjectReport = () => {
                         </Pie>
                         <Tooltip
                           formatter={(value, name) => [value, name]}
-                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          contentStyle={{
+                            borderRadius: '8px',
+                            border: 'none',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                          }}
                         />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>

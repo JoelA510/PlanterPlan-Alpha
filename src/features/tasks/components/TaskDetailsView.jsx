@@ -1,10 +1,7 @@
-
 import TaskResources from '@features/tasks/components/TaskResources';
 import { formatDisplayDate } from '@shared/lib/date-engine';
 
 const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated }) => {
-
-
   // Determine hierarchy level
   const getTaskLevel = () => {
     if (!task.parent_task_id) return 0;
@@ -88,12 +85,9 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
             Overview
           </h3>
-          <p className="text-slate-600 leading-relaxed text-sm">
-            {task.description}
-          </p>
+          <p className="text-slate-600 leading-relaxed text-sm">{task.description}</p>
         </div>
       )}
-
       {/* Purpose - The Why */}
       {task.purpose && (
         <div className="detail-section mb-6">
@@ -105,7 +99,6 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           </div>
         </div>
       )}
-
       {/* Actions - The What */}
       {task.actions && (
         <div className="detail-section mb-6">
@@ -117,7 +110,6 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           </div>
         </div>
       )}
-
       {task.notes && (
         <div className="detail-section mb-6">
           <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Notes</h3>
@@ -126,7 +118,6 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           </div>
         </div>
       )}
-
       {/* 4. Resources Section */}
       <div className="mb-6 pt-4 border-t border-slate-100">
         <TaskResources

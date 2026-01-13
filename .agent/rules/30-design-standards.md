@@ -43,14 +43,14 @@ trigger: always_on
 
 Use the defined CSS variables or Tailwind utility aliases. Do not hardcode hex values.
 
-| Semantic Role | Tailwind Class | Context |
-|:---|:---|:---|
+| Semantic Role     | Tailwind Class                    | Context                                     |
+| :---------------- | :-------------------------------- | :------------------------------------------ |
 | **Primary Brand** | `text-brand-600` / `bg-brand-500` | Main actions, active states, key highlights |
-| **Surface** | `bg-slate-50` | Page background (canvas) |
-| **Panel** | `bg-white` | Cards, sidebars, modals |
-| **Success** | `bg-emerald-50 text-emerald-700` | Completion, valid states |
-| **Warning** | `bg-amber-50 text-amber-700` | Non-blocking alerts |
-| **Error** | `bg-rose-50 text-rose-700` | Destructive actions, errors |
+| **Surface**       | `bg-slate-50`                     | Page background (canvas)                    |
+| **Panel**         | `bg-white`                        | Cards, sidebars, modals                     |
+| **Success**       | `bg-emerald-50 text-emerald-700`  | Completion, valid states                    |
+| **Warning**       | `bg-amber-50 text-amber-700`      | Non-blocking alerts                         |
+| **Error**         | `bg-rose-50 text-rose-700`        | Destructive actions, errors                 |
 
 ## 4. Interaction & Micro-interactions
 

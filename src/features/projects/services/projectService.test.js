@@ -1,4 +1,8 @@
-import { getUserProjects, getJoinedProjects, inviteMemberByEmail } from '@features/projects/services/projectService';
+import {
+  getUserProjects,
+  getJoinedProjects,
+  inviteMemberByEmail,
+} from '@features/projects/services/projectService';
 
 const createMockClient = (membershipsData, tasksData, memberError = null, taskError = null) => {
   const from = vi.fn((table) => {
@@ -155,9 +159,7 @@ describe('inviteMemberByEmail', () => {
   });
 
   it('handles implementation errors', async () => {
-    const invokeMock = vi
-      .fn()
-      .mockResolvedValue({ data: null, error: new Error('Network Fail') });
+    const invokeMock = vi.fn().mockResolvedValue({ data: null, error: new Error('Network Fail') });
     const client = {
       functions: { invoke: invokeMock },
     };

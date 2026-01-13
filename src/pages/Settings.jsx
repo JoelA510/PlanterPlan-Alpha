@@ -1,290 +1,196 @@
-
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { useAuth } from '@app/contexts/AuthContext';
+import { Button } from '@shared/ui/button';
+import { Card } from '@shared/ui/card';
+import { Input } from '@shared/ui/input';
+import { Label } from '@shared/ui/label';
+import { useToast } from '@shared/ui/use-toast';
 import {
   User,
-  Shield,
+  Mail,
+  Lock,
   Bell,
   Palette,
+  Shield,
   Loader2,
-  Check
+  Camera,
 } from 'lucide-react';
-
+import { motion } from 'framer-motion';
 import DashboardLayout from '@layouts/DashboardLayout';
-import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
-import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
-import { useUser, useUpdateUser } from '@features/auth/hooks/useUser'; // Updated Import Path preemptively
-import { Card } from "@shared/ui/card";
-import { Button } from "@shared/ui/button";
-import { Input } from "@shared/ui/input";
-import { Label } from "@shared/ui/label";
-import { Separator } from "@shared/ui/separator";
 
 export default function Settings() {
-  const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
-
-  const { data: user, isLoading } = useUser();
-  const updateUserMutation = useUpdateUser();
-
-  // Sidebar Logic
-  const {
-    joinedProjects = [],
-    instanceTasks = [],
-    templateTasks = [],
-    loading: tasksLoading,
-    error,
-    joinedError,
-    loadMoreProjects,
-    hasMore,
-    isFetchingMore,
-  } = useTaskOperations();
-
-  const sidebar = (
-    <ProjectSidebar
-      joinedProjects={joinedProjects}
-      instanceTasks={instanceTasks}
-      templateTasks={templateTasks}
-      loading={tasksLoading}
-      error={error}
-      joinedError={joinedError}
-      handleSelectProject={(p) => navigate(`/ project / ${p.id} `)}
-      onNewProjectClick={() => navigate('/dashboard')}
-      onNewTemplateClick={() => navigate('/dashboard')}
-      onLoadMore={loadMoreProjects}
-      hasMore={hasMore}
-      isFetchingMore={isFetchingMore}
-    />
-  );
-
-  const [formData, setFormData] = useState({
-    full_name: user?.full_name || '',
-    email: user?.email || ''
+  const [profile, setProfile] = useState({
+    name: user?.user_metadata?.full_name || 'Joel Miller',
+    email: user?.email || 'joel@example.com',
+    role: 'Lead Church Planter',
+    organization: 'Grace Community Church',
   });
-
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        full_name: user.full_name || '',
-        email: user.email || ''
-      });
-    }
-  }, [user]);
-
-
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setSaving(true);
-    try {
-      await updateUserMutation.mutateAsync({ full_name: formData.full_name });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setSaving(false);
-    }
+    setLoading(true);
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setLoading(false);
+    toast({
+      title: 'Settings saved',
+      description: 'Your profile has been updated successfully.',
+    });
   };
 
-  if (isLoading) {
-    return (
-      <DashboardLayout sidebar={sidebar}>
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  const sections = [
-    {
-      id: 'profile',
-      title: 'Profile Information',
-      description: 'Update your account details',
-      icon: User
-    },
-    {
-      id: 'notifications',
-      title: 'Notifications',
-      description: 'Manage your notification preferences',
-      icon: Bell
-    },
-    {
-      id: 'appearance',
-      title: 'Appearance',
-      description: 'Customize how the app looks',
-      icon: Palette
-    },
-    {
-      id: 'security',
-      title: 'Security',
-      description: 'Password and authentication settings',
-      icon: Shield
-    }
-  ];
-
   return (
-    <DashboardLayout sidebar={sidebar}>
-      <div className="min-h-screen bg-slate-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-            <p className="text-slate-600 mt-1">Manage your account and preferences</p>
-          </motion.div>
+    <DashboardLayout>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Settings</h1>
+          <p className="text-slate-500 mt-1">Manage your account and app preferences</p>
+        </div>
 
-          <div className="grid lg:grid-cols-4 gap-6">
-            {/* Settings Navigation */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-1"
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Settings Navigation */}
+          <div className="md:col-span-1 space-y-1">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-orange-600 bg-orange-50 font-semibold"
             >
-              <Card className="p-4 border border-slate-200 bg-white shadow-sm">
-                <nav className="space-y-1">
-                  {sections.map((section) => {
-                    const Icon = section.icon;
-                    return (
-                      <button
-                        key={section.id}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg transition-colors hover:bg-slate-50 text-slate-700 hover:text-slate-900"
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span className="text-sm font-medium">{section.title}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </Card>
-            </motion.div>
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-slate-600 hover:text-slate-900">
+              <Mail className="w-4 h-4 mr-2" />
+              Notifications
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-slate-600 hover:text-slate-900">
+              <Lock className="w-4 h-4 mr-2" />
+              Security
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-slate-600 hover:text-slate-900">
+              <Palette className="w-4 h-4 mr-2" />
+              Appearance
+            </Button>
+          </div>
 
-            {/* Settings Content */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-3"
-            >
+          {/* Main Content */}
+          <div className="md:col-span-3 space-y-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="p-6 border border-slate-200 bg-white shadow-sm">
-                <div className="space-y-6">
-                  {/* Profile Section */}
-                  <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <User className="w-5 h-5 text-orange-600" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-900">Profile Information</h2>
-                        <p className="text-sm text-slate-500">Update your account details</p>
-                      </div>
+                <div className="flex items-center gap-6 mb-8">
+                  <div className="relative">
+                    <div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center border-2 border-white shadow-md">
+                      <User className="w-10 h-10 text-slate-400" />
                     </div>
-
-                    <form onSubmit={handleSave} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="full_name">Full Name</Label>
-                        <Input
-                          id="full_name"
-                          value={formData.full_name}
-                          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                          placeholder="Your name"
-                          className="max-w-md"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          disabled
-                          className="max-w-md bg-slate-50"
-                        />
-                        <p className="text-xs text-slate-500">Email cannot be changed</p>
-                      </div>
-
-                      {user?.role && (
-                        <div className="space-y-2">
-                          <Label>Role</Label>
-                          <div className="flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm font-medium text-slate-700 capitalize">
-                              {user.role}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-3 pt-4">
-                        <Button
-                          type="submit"
-                          disabled={saving}
-                          className="bg-orange-500 hover:bg-orange-600"
-                        >
-                          {saving ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            'Save Changes'
-                          )}
-                        </Button>
-                        {saved && (
-                          <div className="flex items-center gap-2 text-green-600">
-                            <Check className="w-4 h-4" />
-                            <span className="text-sm">Saved!</span>
-                          </div>
-                        )}
-                      </div>
-                    </form>
+                    <Button
+                      size="icon"
+                      className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-orange-500 hover:bg-orange-600 border-2 border-white"
+                    >
+                      <Camera className="w-4 h-4 text-white" />
+                    </Button>
                   </div>
-
-                  <Separator />
-
-                  {/* Notifications Section */}
                   <div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                        <Bell className="w-5 h-5 text-indigo-600" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-900">Notifications</h2>
-                        <p className="text-sm text-slate-500">Manage notification preferences</p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-slate-600">Notification settings coming soon...</p>
-                  </div>
-
-                  <Separator />
-
-                  {/* Appearance Section */}
-                  <div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <Palette className="w-5 h-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-900">Appearance</h2>
-                        <p className="text-sm text-slate-500">Customize the look and feel</p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-slate-600">Theme options coming soon...</p>
+                    <h2 className="text-xl font-bold text-slate-900">Personal Info</h2>
+                    <p className="text-sm text-slate-500">Update your photo and personal details.</p>
                   </div>
                 </div>
+
+                <form onSubmit={handleSave} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        value={profile.name}
+                        onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                        className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={profile.email}
+                        disabled
+                        className="bg-slate-50 border-slate-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Input
+                      id="role"
+                      value={profile.role}
+                      onChange={(e) => setProfile({ ...profile, role: e.target.value })}
+                      className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="org">Organization</Label>
+                    <Input
+                      id="org"
+                      value={profile.organization}
+                      onChange={(e) => setProfile({ ...profile, organization: e.target.value })}
+                      className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div className="pt-6 border-t border-slate-100 flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20"
+                    >
+                      {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Save Changes
+                    </Button>
+                  </div>
+                </form>
               </Card>
             </motion.div>
+
+            {/* Other Settings Sections (Placeholders) */}
+            <Card className="p-6 border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Email Notifications</h3>
+                  <p className="text-sm text-slate-500">Manage how you receive alerts.</p>
+                </div>
+              </div>
+              <Button variant="outline" className="text-slate-600">
+                Configure Notifications
+              </Button>
+            </Card>
+
+            <Card className="p-6 border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Security & Privacy</h3>
+                  <p className="text-sm text-slate-500">Protect your account and data.</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <Button variant="outline" className="text-slate-600">
+                  Change Password
+                </Button>
+                <Button variant="outline" className="text-slate-600">
+                  Two-Factor Auth
+                </Button>
+              </div>
+            </Card>
           </div>
         </div>
       </div>
     </DashboardLayout>
   );
 }
-

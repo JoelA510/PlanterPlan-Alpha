@@ -1,5 +1,6 @@
 import { planter } from '@shared/api/planterClient';
 import { supabase } from '@app/supabaseClient';
+import { TASK_STATUS } from '@app/constants/index';
 
 // --- Membership ---
 
@@ -40,25 +41,25 @@ export async function getJoinedProjects(userId) {
 
   if (error) throw error;
 
-  // Flatten result, filter nulls, and map fields manually since we can't alias in nested join easily? 
+  // Flatten result, filter nulls, and map fields manually since we can't alias in nested join easily?
   // actually we can try select('project:tasks(*, name:title, ...)')
   // Re-fetching with explicit mapping in join:
   // .select('project:tasks(*, name:title, launch_date:due_date, owner_id:creator)')
 
   // Let's assume the component can handle it, or we map it here.
   const mappedData = (data || [])
-    .map(item => item.project)
-    .filter(p => p !== null)
-    .map(p => ({
+    .map((item) => item.project)
+    .filter((p) => p !== null)
+    .map((p) => ({
       ...p,
       name: p.title,
       launch_date: p.due_date,
-      owner_id: p.creator
+      owner_id: p.creator,
     }));
 
   return {
     data: mappedData,
-    error: null
+    error: null,
   };
 }
 
@@ -92,10 +93,7 @@ export async function getProjectWithStats(projectId) {
   if (totalError || completedError) console.warn('Stats fetch error', totalError, completedError);
 
   // Fetch ALL children
-  const { data: children } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('root_id', projectId);
+  const { data: children } = await supabase.from('tasks').select('*').eq('root_id', projectId);
 
   return {
     data: {
@@ -104,10 +102,10 @@ export async function getProjectWithStats(projectId) {
       stats: {
         totalTasks: totalTasks || 0,
         completedTasks: completedTasks || 0,
-        progress: totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0
-      }
+        progress: totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0,
+      },
     },
-    error: null
+    error: null,
   };
 }
 
@@ -173,7 +171,9 @@ export async function createProjectWithDefaults(projectData) {
   ];
 
   // Get current user for attribution
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const creatorId = user?.id || project.creator;
 
   for (const phase of defaultPhases) {
@@ -204,7 +204,7 @@ export async function createProjectWithDefaults(projectData) {
         await planter.entities.Task.create({
           title: task.title,
           priority: task.priority,
-          status: 'not_started',
+          status: TASK_STATUS.TODO,
           position: task.order, // Map order to position
           parent_task_id: createdMilestone.id, // Task child of Milestone
           root_id: project.id,
@@ -221,7 +221,11 @@ export async function createProjectWithDefaults(projectData) {
 function getMilestonesForPhase(phaseOrder) {
   const milestonesMap = {
     1: [
-      { title: 'Personal Assessment', order: 1, description: 'Evaluate your calling and readiness' },
+      {
+        title: 'Personal Assessment',
+        order: 1,
+        description: 'Evaluate your calling and readiness',
+      },
       { title: 'Family Preparation', order: 2, description: 'Prepare your family for the journey' },
       {
         title: 'Resource Gathering',
@@ -256,10 +260,12 @@ function getMilestonesForPhase(phaseOrder) {
     ],
   };
   // Ensure we fallback to empty if generic phase
-  return milestonesMap[phaseOrder] || [
-    { title: 'Generic Milestone 1', order: 1, description: 'Default milestone' },
-    { title: 'Generic Milestone 2', order: 2, description: 'Default milestone' }
-  ];
+  return (
+    milestonesMap[phaseOrder] || [
+      { title: 'Generic Milestone 1', order: 1, description: 'Default milestone' },
+      { title: 'Generic Milestone 2', order: 2, description: 'Default milestone' },
+    ]
+  );
 }
 
 function getTasksForMilestone(milestoneOrder) {

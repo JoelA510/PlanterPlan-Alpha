@@ -54,22 +54,17 @@ src/
 
 ### Where to Find Things
 
-| To change...         | Look in...                                                        |
-| -------------------- | ----------------------------------------------------------------- |
-| **Auth Logic**       | [src/app/contexts/AuthContext.jsx](./src/app/contexts/AuthContext.jsx)    |
+| To change...         | Look in...                                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| **Auth Logic**       | [src/app/contexts/AuthContext.jsx](./src/app/contexts/AuthContext.jsx)                          |
 | **Task API**         | [src/features/tasks/services/taskService.js](./src/features/tasks/services/taskService.js)      |
-| **Database Schema**  | [docs/db/schema.sql](./docs/db/schema.sql)                        |
-| **Task Routes**      | [src/app/App.jsx](./src/app/App.jsx)                                      |
+| **Database Schema**  | [docs/db/schema.sql](./docs/db/schema.sql)                                                      |
+| **Task Routes**      | [src/app/App.jsx](./src/app/App.jsx)                                                            |
 | **Deep Clone Logic** | [src/features/tasks/services/taskService.js](./src/features/tasks/services/taskService.js#L216) |
 
-### Environment Requirements
+### Quick Start
 
-(Inferred from `src/supabaseClient.js`)
-
-```text
-VITE_SUPABASE_URL=Supabase API URL
-VITE_SUPABASE_ANON_KEY=Supabase Anonymous Key
-```
+To set up the project locally, please refer to the **[Local Development Guide](./docs/operations/local_development.md)**.
 
 ### External dependencies
 

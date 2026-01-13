@@ -12,7 +12,7 @@
   border: 1px solid var(--color-border);
 }
 
-.task-card:hover { 
+.task-card:hover {
   border-color: var(--color-brand-300);
 }
 
@@ -22,20 +22,51 @@
   box-shadow: 0 0 0 3px var(--color-brand-100);
 }
 
-.task-card.level-0 { border-left: 4px solid var(--color-blue-600); }
-.task-card.level-1::before { background-color: var(--color-blue-400); }
-.task-card.level-2::before { background-color: var(--color-purple-400); }
-.task-card.level-3::before { background-color: var(--color-pink-400); }
+.task-card.level-0 {
+  border-left: 4px solid var(--color-blue-600);
+}
+.task-card.level-1::before {
+  background-color: var(--color-blue-400);
+}
+.task-card.level-2::before {
+  background-color: var(--color-purple-400);
+}
+.task-card.level-3::before {
+  background-color: var(--color-pink-400);
+}
 
-.drag-handle-btn { color: var(--color-slate-400); }
-.drag-handle-btn:hover { background-color: var(--color-slate-100); color: var(--color-slate-600); }
+.drag-handle-btn {
+  color: var(--color-slate-400);
+}
+.drag-handle-btn:hover {
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-600);
+}
 
-.expand-button { color: var(--color-slate-500); }
-.expand-button:hover { background-color: var(--color-slate-100); color: var(--color-slate-900); }
+.expand-button {
+  color: var(--color-slate-500);
+}
+.expand-button:hover {
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-900);
+}
 
-.task-title { color: var(--color-slate-700); }
-.task-duration { color: var(--color-slate-500); background-color: var(--color-slate-100); }
+.task-title {
+  color: var(--color-slate-700);
+}
+.task-duration {
+  color: var(--color-slate-500);
+  background-color: var(--color-slate-100);
+}
 
-.action-btn { color: var(--color-slate-400); }
-.action-btn:hover { color: var(--color-slate-600); background-color: var(--color-slate-100); }
-.action-btn.delete:hover { color: var(--color-rose-600); background-color: var(--color-rose-50); }
+.action-btn {
+  color: var(--color-slate-400);
+}
+.action-btn:hover {
+  color: var(--color-slate-600);
+  background-color: var(--color-slate-100);
+}
+.action-btn.delete:hover {
+  color: var(--color-rose-600);
+  background-color: var(--color-rose-50);
+}

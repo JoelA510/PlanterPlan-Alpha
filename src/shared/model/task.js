@@ -24,8 +24,8 @@ export default {
     },
     status: {
       type: 'string',
-      enum: ['not_started', 'in_progress', 'completed', 'blocked'],
-      default: 'not_started',
+      enum: ['todo', 'in_progress', 'completed', 'blocked'],
+      default: 'todo',
     },
     priority: {
       type: 'string',

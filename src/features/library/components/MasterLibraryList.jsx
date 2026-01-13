@@ -9,7 +9,7 @@ const PAGE_SIZE = 50;
 
 const MasterLibraryList = (props) => {
   const [page, setPage] = useState(0);
-  const [resourceType, _setResourceType] = useState('all');
+  const [resourceType] = useState('all');
 
   const {
     tasks: rootTasks,

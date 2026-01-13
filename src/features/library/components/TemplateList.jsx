@@ -1,4 +1,3 @@
-
 import PropTypes from 'prop-types';
 import SidebarNavItem from '@features/navigation/components/SidebarNavItem';
 

@@ -2,29 +2,39 @@
 
 ## Prerequisites
 
-- Node.js (v18+)
-- npm (v9+)
-- Supabase CLI (optional, for local DB)
+- **Node.js**: v20+ (LTS recommended)
+- **npm**: v10+
+- **Supabase Account**: For API keys and database.
 
 ## Setup
 
-1. Clone the repository.
-2. Install dependencies:
+1. **Clone the repository**:
+
+   ```bash
+   git clone https://github.com/JoelA510/PlanterPlan-Alpha.git
+   cd PlanterPlan-Alpha
+   ```
+
+2. **Install dependencies**:
 
    ```bash
    npm install
    ```
 
-3. Set up environment variables:
-   - Copy `.env.example` to `.env` (if available) or ask the team for the `.env` file.
-   - Required variables:
-     - `REACT_APP_SUPABASE_URL`
-     - `REACT_APP_SUPABASE_ANON_KEY`
-     - `TEST_USER_PASSWORD` (for running connection tests)
+3. **Set up environment variables**:
+   Create a `.env` file in the root directory and add:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+   > [!NOTE]
+   > For integration tests, you may also need `TEST_USER_PASSWORD` and `TEST_USER_EMAIL`.
 
 ## Running the App
 
 ```bash
+npm run dev
+# or
 npm start
 ```
 
@@ -34,15 +44,16 @@ Runs the app in development mode at [http://localhost:3000](http://localhost:300
 
 We use ESLint and Prettier to maintain code quality.
 
-- **Lint**: `npm run lint` (if script exists) or `npx eslint src`
-- **Format**: `npx prettier --write src`
+- **Lint**: `npm run lint`
+- **Format**: `npm run format`
 
 ## Testing
 
-We use Jest for unit tests.
+We use Vitest for automated testing.
 
 - **Run all tests**: `npm test`
-- **Watch mode**: `npm test -- --watch`
+- **UI Mode**: `npx vitest --ui`
+- **Integration Tests**: `npm test src/tests/integration/golden-paths.test.jsx`
 
 ## Testing Membership Features Locally
 
@@ -63,7 +74,7 @@ To test "Joined Projects" and membership roles locally without a full backend UI
 
 ## Application Architecture
 
-- **Frontend**: React (Create React App), TailwindCSS.
+- **Frontend**: React (Vite), TailwindCSS v4.
 - **Backend Service**: Supabase (Postgres).
 - **Edge Functions**: Used for secure logic like "Invite by Email".
   - To test Edge Functions locally, you need the **Supabase CLI** and Docker.

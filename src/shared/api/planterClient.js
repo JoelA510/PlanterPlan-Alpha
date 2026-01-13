@@ -16,12 +16,21 @@ const createEntityClient = (tableName, select = '*') => ({
     return data;
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from(tableName).insert([payload]).select(select).single();
+    const { data, error } = await supabase
+      .from(tableName)
+      .insert([payload])
+      .select(select)
+      .single();
     if (error) throw error;
     return data;
   },
   update: async (id, payload) => {
-    const { data, error } = await supabase.from(tableName).update(payload).eq('id', id).select(select).single();
+    const { data, error } = await supabase
+      .from(tableName)
+      .update(payload)
+      .eq('id', id)
+      .select(select)
+      .single();
     if (error) throw error;
     return data;
   },
@@ -32,13 +41,13 @@ const createEntityClient = (tableName, select = '*') => ({
   },
   filter: async (filters) => {
     let query = supabase.from(tableName).select(select);
-    Object.keys(filters).forEach(key => {
+    Object.keys(filters).forEach((key) => {
       query = query.eq(key, filters[key]);
     });
     const { data, error } = await query;
     if (error) throw error;
     return data;
-  }
+  },
 });
 
 export const planter = {
@@ -70,7 +79,9 @@ export const planter = {
       },
       // Override create for specific mapping
       create: async (projectData) => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
         const taskPayload = {
           title: projectData.name,
@@ -93,12 +104,13 @@ export const planter = {
       },
       // Override filter to ensure we only get projects
       filter: async (filters) => {
-        let query = supabase.from('tasks')
+        let query = supabase
+          .from('tasks')
           .select('*, name:title, launch_date:due_date, owner_id:creator')
           .is('parent_task_id', null)
           .eq('origin', 'instance');
 
-        Object.keys(filters).forEach(key => {
+        Object.keys(filters).forEach((key) => {
           query = query.eq(key, filters[key]);
         });
         const { data, error } = await query;
@@ -129,7 +141,7 @@ export const planter = {
         const { data, error } = await supabase.rpc('invite_user_to_project', {
           p_project_id: projectId,
           p_email: email,
-          p_role: role
+          p_role: role,
         });
         if (error) throw error;
         return data;

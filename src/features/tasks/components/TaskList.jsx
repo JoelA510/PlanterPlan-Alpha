@@ -303,7 +303,7 @@ const TaskList = () => {
 
 // Export wrapped component
 const TaskListWithErrorBoundary = (props) => (
-  <ErrorBoundary name='@features/tasks/components/TaskList'>
+  <ErrorBoundary name="@features/tasks/components/TaskList">
     <TaskList {...props} />
   </ErrorBoundary>
 );

@@ -13,8 +13,6 @@ export const useTaskMutations = ({
   joinedProjects,
   hydratedProjects,
 }) => {
-
-
   const createTaskOrUpdate = useCallback(
     async (formData, formState) => {
       try {
@@ -232,7 +230,6 @@ export const useTaskMutations = ({
   );
 
   return {
-
     createTaskOrUpdate,
     deleteTask,
     updateTask,

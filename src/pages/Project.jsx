@@ -5,11 +5,14 @@ import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
 import { useToast } from '@shared/ui/use-toast';
+import { TASK_STATUS } from '@app/constants/index';
 
 import ProjectHeader from '@features/projects/components/ProjectHeader';
 import PhaseCard from '@features/projects/components/PhaseCard';
 import MilestoneSection from '@features/projects/components/MilestoneSection';
 import AddTaskModal from '@features/projects/components/AddTaskModal';
+
+import DashboardLayout from '@layouts/DashboardLayout';
 
 export default function Project() {
   const { id: projectId } = useParams();
@@ -23,54 +26,50 @@ export default function Project() {
 
   const { data: project, isLoading: loadingProject } = useQuery({
     queryKey: ['project', projectId],
-    queryFn: () => planter.entities.Project.filter({ id: projectId }).then(res => res[0]),
-    enabled: !!projectId
+    queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res) => res[0]),
+    enabled: !!projectId,
   });
 
   // SINGLE SOURCE OF TRUTH: Fetch all tasks for the project (Phases, Milestones, Tasks)
   const { data: projectHierarchy = [] } = useQuery({
     queryKey: ['projectHierarchy', projectId],
     queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
-    enabled: !!projectId
+    enabled: !!projectId,
   });
 
   // Derived State (In-Memory Filtering)
-  const phases = projectHierarchy.filter(t => t.parent_task_id === projectId); // Phases are direct children of Project
+  const phases = projectHierarchy.filter((t) => t.parent_task_id === projectId); // Phases are direct children of Project
 
   // Milestones are children of Phases
-  const milestones = projectHierarchy.filter(t =>
-    phases.some(p => p.id === t.parent_task_id)
-  );
+  const milestones = projectHierarchy.filter((t) => phases.some((p) => p.id === t.parent_task_id));
 
   // Tasks are children of Milestones (or Phases directly in some templates, but assuming strict hierarchy here)
-  const tasks = projectHierarchy.filter(t =>
-    milestones.some(m => m.id === t.parent_task_id)
-  );
+  const tasks = projectHierarchy.filter((t) => milestones.some((m) => m.id === t.parent_task_id));
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['teamMembers', projectId],
     queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId }),
-    enabled: !!projectId
+    enabled: !!projectId,
   });
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }) => planter.entities.Task.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
-    }
+    },
   });
 
   const createTaskMutation = useMutation({
     mutationFn: (data) => planter.entities.Task.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
-    }
+    },
   });
 
   const sortedPhases = [...phases].sort((a, b) => (a.position || 0) - (b.position || 0));
   const activePhase = selectedPhase || sortedPhases[0];
   const phaseMilestones = milestones
-    .filter(m => m.parent_task_id === activePhase?.id) // Use parent_task_id for hierarchy
+    .filter((m) => m.parent_task_id === activePhase?.id) // Use parent_task_id for hierarchy
     .sort((a, b) => (a.position || 0) - (b.position || 0));
 
   const handleTaskUpdate = (taskId, data) => {
@@ -91,9 +90,9 @@ export default function Project() {
     ...task,
     isExpanded: expandedTaskIds.has(task.id),
     children: tasks
-      .filter(t => t.parent_task_id === task.id)
+      .filter((t) => t.parent_task_id === task.id)
       .map(mapTaskWithState)
-      .sort((a, b) => (a.position || 0) - (b.position || 0))
+      .sort((a, b) => (a.position || 0) - (b.position || 0)),
   });
 
   const handleAddTask = async (taskData) => {
@@ -104,7 +103,7 @@ export default function Project() {
         ...taskData,
         parent_task_id: addTaskModal.milestone.id, // Task is child of Milestone
         root_id: projectId, // Project root
-        status: 'not_started'
+        status: TASK_STATUS.TODO,
       });
       setAddTaskModal({ open: false, milestone: null });
       toast({ title: 'Task created successfully', variant: 'default' });
@@ -116,19 +115,17 @@ export default function Project() {
 
   if (loadingProject || !project) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-      </div>
+      <DashboardLayout>
+        <div className="flex justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <ProjectHeader
-        project={project}
-        tasks={tasks}
-        teamMembers={teamMembers}
-      />
+    <DashboardLayout selectedTaskId={projectId}>
+      <ProjectHeader project={project} tasks={tasks} teamMembers={teamMembers} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Phase Selection */}
@@ -140,7 +137,7 @@ export default function Project() {
                 key={phase.id}
                 phase={phase}
                 tasks={tasks} // PhaseCard filters its own tasks using hierarchy now
-                milestones={milestones.filter(m => m.parent_task_id === phase.id)}
+                milestones={milestones.filter((m) => m.parent_task_id === phase.id)}
                 isActive={activePhase?.id === phase.id}
                 onClick={() => setSelectedPhase(phase)}
               />
@@ -197,6 +194,6 @@ export default function Project() {
         milestone={addTaskModal.milestone}
         teamMembers={teamMembers}
       />
-    </div>
+    </DashboardLayout>
   );
 }

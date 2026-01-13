@@ -1,29 +1,26 @@
 import { useState } from 'react';
 import Header from '@features/navigation/components/Header';
-import AppSidebar from '@features/navigation/components/AppSidebar';
+import ProjectSidebarContainer from '@features/navigation/components/ProjectSidebarContainer';
 
 // Replaced Layout logic to match merge aesthetics
-export default function DashboardLayout({ children, currentProject, sidebar }) {
+export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header
-        onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-        showMenuButton={true}
-      />
+      <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} showMenuButton={true} />
 
-      <div className={`fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-slate-200 z-40 transition-transform duration-300 lg:translate-x-0 shadow-lg lg:shadow-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <div
+        className={`fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-slate-200 z-40 transition-transform duration-300 lg:translate-x-0 shadow-lg lg:shadow-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
         {sidebar ? (
           // If custom sidebar passed (e.g. ProjectSidebar with logic), render it
           sidebar
         ) : (
           // Default Sidebar for static pages
-          <AppSidebar
-            isOpen={true} // Wrapper handles visibility now
-            onClose={() => setSidebarOpen(false)}
-            currentProject={currentProject}
-            className="static w-full h-full border-none shadow-none transform-none"
+          <ProjectSidebarContainer
+            onNavClick={() => setSidebarOpen(false)}
+            selectedTaskId={selectedTaskId}
           />
         )}
       </div>
@@ -35,9 +32,7 @@ export default function DashboardLayout({ children, currentProject, sidebar }) {
         />
       )}
 
-      <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)]">
-        {children}
-      </main>
+      <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)]">{children}</main>
     </div>
   );
 }

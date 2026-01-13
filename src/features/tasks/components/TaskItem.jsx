@@ -9,8 +9,6 @@ import ErrorBoundary from '@shared/ui/ErrorBoundary';
 import { TASK_STATUS } from '@app/constants/index';
 import { Lock, Link as LinkIcon } from 'lucide-react';
 
-
-
 const getStatusStyle = (status) => {
   switch (status) {
     case TASK_STATUS.COMPLETED:
@@ -125,8 +123,6 @@ const TaskItem = memo(
         origin: task.origin,
       },
     });
-
-
 
     const isLocked = task.is_locked || false; // Or derive from phase if props available, but task entity has is_locked now
 
