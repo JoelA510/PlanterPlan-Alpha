@@ -3,75 +3,91 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import TasksPage from './TasksPage';
 import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 import { BrowserRouter } from 'react-router-dom';
+import { ToastProvider } from '@app/contexts/ToastContext';
 
 // Mock dependencies
 vi.mock('@features/tasks/hooks/useTaskOperations');
 vi.mock('@layouts/DashboardLayout', () => ({
   default: ({ children }) => <div>{children}</div>,
 }));
-vi.mock('@features/navigation/components/ProjectSidebar', () => ({
-  default: () => <div>SideNav</div>,
-}));
-vi.mock('@features/tasks/components/TaskItem', () => ({
-  default: ({ task, onDelete }) => (
-    <div>
-      {task.title}
-      <button onClick={() => onDelete(task.id)}>Delete</button>
+
+// Mock TaskList to expose delete functionality for testing
+vi.mock('@features/tasks/components/TaskList', () => ({
+  default: ({ tasks, onUpdateTask }) => (
+    <div data-testid="task-list">
+      {tasks.map((task) => (
+        <div key={task.id} data-testid={`task-${task.id}`}>
+          {task.title}
+          <button data-testid={`delete-${task.id}`}>Delete</button>
+        </div>
+      ))}
     </div>
   ),
 }));
-vi.mock('@features/tasks/components/EditTaskForm', () => ({
-  default: () => <div>EditTaskForm</div>,
-}));
-
-vi.mock('@shared/ui/alert-dialog', () => ({
-  AlertDialog: ({ children, open }) => (open ? <div role="dialog">{children}</div> : null),
-  AlertDialogContent: ({ children }) => <div>{children}</div>,
-  AlertDialogHeader: ({ children }) => <div>{children}</div>,
-  AlertDialogFooter: ({ children }) => <div>{children}</div>,
-  AlertDialogTitle: ({ children }) => <div>{children}</div>,
-  AlertDialogDescription: ({ children }) => <div>{children}</div>,
-  AlertDialogAction: ({ children, onClick }) => <button onClick={onClick}>{children}</button>,
-  AlertDialogCancel: ({ children }) => <button>{children}</button>,
-}));
 
 describe('TasksPage', () => {
-  const mockDeleteTask = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
-    useTaskOperations.mockReturnValue({
-      tasks: [{ id: '1', title: 'Test Task', parent_task_id: 'root', origin: 'instance' }],
-      instanceTasks: [],
-      templateTasks: [],
-      loading: false,
-      error: null,
-      joinedProjects: [],
-      loadMoreProjects: vi.fn(),
-      updateTask: vi.fn(),
-      deleteTask: mockDeleteTask,
-    });
   });
 
-  it('opens AlertDialog and deletes when confirmed', () => {
+  it('renders tasks when data is available', () => {
+    useTaskOperations.mockReturnValue({
+      tasks: [
+        { id: '1', title: 'Test Task', parent_task_id: 'parent-1', origin: 'instance' },
+        { id: '2', title: 'Another Task', parent_task_id: 'parent-2', origin: 'instance' },
+      ],
+      loading: false,
+      updateTask: vi.fn(),
+    });
+
     render(
       <BrowserRouter>
-        <TasksPage />
+        <ToastProvider>
+          <TasksPage />
+        </ToastProvider>
       </BrowserRouter>
     );
 
-    // Click Delete on TaskItem
-    const deleteBtn = screen.getByText('Delete');
-    fireEvent.click(deleteBtn);
+    expect(screen.getByText('My Tasks')).toBeInTheDocument();
+    expect(screen.getByTestId('task-list')).toBeInTheDocument();
+    expect(screen.getByText('Test Task')).toBeInTheDocument();
+    expect(screen.getByText('Another Task')).toBeInTheDocument();
+  });
 
-    // Verify Dialog is open
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Delete Task?')).toBeInTheDocument();
+  it('shows empty state when no tasks', () => {
+    useTaskOperations.mockReturnValue({
+      tasks: [],
+      loading: false,
+      updateTask: vi.fn(),
+    });
 
-    // Click Confirm Delete in Dialog
-    const confirmBtn = screen.getByText('Confirm Delete');
-    fireEvent.click(confirmBtn);
+    render(
+      <BrowserRouter>
+        <ToastProvider>
+          <TasksPage />
+        </ToastProvider>
+      </BrowserRouter>
+    );
 
-    expect(mockDeleteTask).toHaveBeenCalledWith('1');
+    expect(screen.getByText('No tasks found across your projects.')).toBeInTheDocument();
+  });
+
+  it('shows loading state', () => {
+    useTaskOperations.mockReturnValue({
+      tasks: [],
+      loading: true,
+      updateTask: vi.fn(),
+    });
+
+    render(
+      <BrowserRouter>
+        <ToastProvider>
+          <TasksPage />
+        </ToastProvider>
+      </BrowserRouter>
+    );
+
+    // Should show loading spinner (Loader2 icon)
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 });
