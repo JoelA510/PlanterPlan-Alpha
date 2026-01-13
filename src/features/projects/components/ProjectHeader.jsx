@@ -1,9 +1,9 @@
 
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/lib/utils';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@shared/ui/button";
+import { Badge } from "@shared/ui/badge";
+import { Progress } from "@shared/ui/progress";
 import { format } from 'date-fns';
 import {
   ArrowLeft,

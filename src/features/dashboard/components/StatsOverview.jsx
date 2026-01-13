@@ -1,5 +1,5 @@
 
-import { Card } from "@/components/ui/card";
+import { Card } from "@shared/ui/card";
 import {
     FolderKanban,
     CheckCircle2,

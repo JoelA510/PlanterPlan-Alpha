@@ -4,20 +4,20 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+} from "@shared/ui/dialog";
+import { Button } from "@shared/ui/button";
+import { Input } from "@shared/ui/input";
+import { Textarea } from "@shared/ui/textarea";
+import { Label } from "@shared/ui/label";
+import { Calendar } from "@shared/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@shared/ui/popover";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from "@shared/ui/select";
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from "@/lib/utils";

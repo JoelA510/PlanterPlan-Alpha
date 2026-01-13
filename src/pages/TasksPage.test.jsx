@@ -24,7 +24,7 @@ vi.mock('@features/tasks/components/EditTaskForm', () => ({
     default: () => <div>EditTaskForm</div>
 }));
 
-vi.mock('@/components/ui/alert-dialog', () => ({
+vi.mock('@shared/ui/alert-dialog', () => ({
     AlertDialog: ({ children, open }) => open ? <div role="dialog">{children}</div> : null,
     AlertDialogContent: ({ children }) => <div>{children}</div>,
     AlertDialogHeader: ({ children }) => <div>{children}</div>,

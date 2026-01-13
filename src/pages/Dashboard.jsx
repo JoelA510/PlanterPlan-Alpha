@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { planter } from '@/api/planterClient';
 import { createProjectWithDefaults } from '@features/projects/services/projectService'; // Service import
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from "@/components/ui/button";
+import { Button } from "@shared/ui/button";
 import { Plus, FolderKanban, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 

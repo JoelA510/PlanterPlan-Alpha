@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/lib/utils';
 import { planter } from '@/api/planterClient';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@shared/ui/button";
+import { Card } from "@shared/ui/card";
+import { Progress } from "@shared/ui/progress";
 import {
   ArrowLeft,
   Loader2,

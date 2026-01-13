@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { planter } from '@/api/planterClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUser, useUpdateUser } from '@/hooks/useUser';
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Card } from "@shared/ui/card";
+import { Button } from "@shared/ui/button";
+import { Input } from "@shared/ui/input";
+import { Label } from "@shared/ui/label";
+import { Separator } from "@shared/ui/separator";
 import {
   User,
 

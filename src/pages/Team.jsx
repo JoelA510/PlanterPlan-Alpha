@@ -3,23 +3,23 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/lib/utils';
 import { planter } from '@/api/planterClient'; // UPDATED
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@shared/ui/button";
+import { Card } from "@shared/ui/card";
+import { Input } from "@shared/ui/input";
+import { Label } from "@shared/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@shared/ui/avatar";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@shared/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@shared/ui/dropdown-menu";
 import {
   ArrowLeft,
   Plus,

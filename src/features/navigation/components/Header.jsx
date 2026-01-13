@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/lib/utils';
-import { Button } from "@/components/ui/button";
+import { Button } from "@shared/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+} from "@shared/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@shared/ui/avatar";
 import {
     CheckCircle2,
     Home,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/lib/utils';
-import { Button } from "@/components/ui/button";
+import { Button } from "@shared/ui/button";
 import { motion } from 'framer-motion';
 import {
   CheckCircle2,

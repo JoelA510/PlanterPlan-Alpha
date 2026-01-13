@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@shared/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@shared/ui/dialog';
+import { Input } from '@shared/ui/input';
+import { Textarea } from '@shared/ui/textarea';
+import { Label } from '@shared/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select';
 import { ExternalLink, FileText, StickyNote, Plus, Trash2, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
