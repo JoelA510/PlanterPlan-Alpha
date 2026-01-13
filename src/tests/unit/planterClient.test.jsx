@@ -1,56 +1,59 @@
 import { describe, it, expect, vi } from 'vitest';
 import { planter } from '@shared/api/planterClient';
-// We don't necessarily need to import supabase here if we mock it, but importing it allows spying if needed.
-// However, since we are mocking the module, the import will get the mock.
 
-vi.mock('@app/supabaseClient', () => ({
+vi.mock('@app/supabaseClient', () => {
+  const chain = {
+    select: vi.fn(() => chain),
+    insert: vi.fn(() => chain),
+    update: vi.fn(() => chain),
+    delete: vi.fn(() => chain),
+    eq: vi.fn(() => chain),
+    is: vi.fn(() => chain),
+    order: vi.fn(() => chain),
+    single: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+    then: vi.fn((resolve) => resolve({ data: [], error: null })),
+  };
+
+  return {
     supabase: {
-        from: vi.fn(() => ({
-            select: vi.fn(() => ({
-                eq: vi.fn(() => ({
-                    then: vi.fn(resolve => resolve({ data: [], error: null })),
-                    // Mock promise chain for various scenarios
-                    single: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-                    order: vi.fn(() => Promise.resolve({ data: [], error: null }))
-                })),
-                insert: vi.fn(() => ({
-                    select: vi.fn(() => ({
-                        single: vi.fn(() => Promise.resolve({ data: {}, error: null }))
-                    }))
-                })),
-                is: vi.fn(() => ({
-                    eq: vi.fn(() => ({
-                        order: vi.fn(() => Promise.resolve({ data: [], error: null }))
-                    }))
-                }))
-            }))
-        }))
-    }
-}));
+      auth: {
+        getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'u123' } }, error: null })),
+      },
+      from: vi.fn(() => chain),
+    },
+  };
+});
 
-import { supabase } from '@app/supabaseClient'; // Import after mock definition
+import { supabase } from '@app/supabaseClient';
 
 describe('Planter Client', () => {
-    it('Task.filter should construct correct query', async () => {
-        const fromSpy = supabase.from;
-        // We need to capture the mocks returned by the factory
-        // Since we defined the mock factory above, accessing supabase.from directly gives us the verifyable mock function?
-        // vitest vi.mock hoisted the factory.
+  it('Task.filter should construct correct query', async () => {
+    const fromSpy = supabase.from;
+    await planter.entities.Task.filter({ root_id: '123' });
+    expect(fromSpy).toHaveBeenCalledWith('tasks');
+  });
 
-        await planter.entities.Task.filter({ root_id: '123' });
+  it('Project.list should filter for root instance tasks', async () => {
+    const fromSpy = supabase.from;
+    await planter.entities.Project.list();
+    expect(fromSpy).toHaveBeenCalledWith('tasks');
+  });
 
-        // Verify calls
-        // planter.entities.Task uses createEntityClient('tasks', undefined) -> default select '*'
+  it('Project.create should map payload to tasks table', async () => {
+    const fromSpy = supabase.from;
+    await planter.entities.Project.create({ name: 'New Project', description: 'desc' });
+    expect(fromSpy).toHaveBeenCalledWith('tasks');
+  });
 
-        // 1. from('tasks')
-        expect(fromSpy).toHaveBeenCalledWith('tasks');
+  it('TeamMember.filter should use project_members table', async () => {
+    const fromSpy = supabase.from;
+    await planter.entities.TeamMember.filter({ project_id: 'p123' });
+    expect(fromSpy).toHaveBeenCalledWith('project_members');
+  });
 
-        // 2. select('*')
-        const selectMock = fromSpy.mock.results[0].value.select;
-        expect(selectMock).toHaveBeenCalledWith('*');
-
-        // 3. eq('root_id', '123')
-        const eqMock = selectMock.mock.results[0].value.eq;
-        expect(eqMock).toHaveBeenCalledWith('root_id', '123');
-    });
+  it('Generic delete should call supabase delete', async () => {
+    const fromSpy = supabase.from;
+    await planter.entities.Task.delete('t123');
+    expect(fromSpy).toHaveBeenCalledWith('tasks');
+  });
 });

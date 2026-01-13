@@ -1,5 +1,3 @@
-
-
 const ErrorFallback = ({ error, resetErrorBoundary }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
@@ -21,5 +19,4 @@ const ErrorFallback = ({ error, resetErrorBoundary }) => {
     </div>
   );
 };
-
 export default ErrorFallback;
