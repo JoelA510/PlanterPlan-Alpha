@@ -1,18 +1,13 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from 'utils';
 import { Button } from '@/components/ui/button';
 import { cn } from 'lib/utils';
 import {
   LayoutDashboard,
-  FolderKanban,
   BarChart3,
-  Users,
   Settings,
-  HelpCircle,
   ChevronLeft,
-  Home,
-  FileText,
+  HelpCircle
 } from 'lucide-react';
 
 const navigationItems = [

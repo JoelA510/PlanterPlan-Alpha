@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -129,7 +129,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
                         href={resource.resource_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline truncate block"
+                        className="text-xs text-brand-600 hover:underline truncate block"
                       >
                         {resource.resource_url}
                       </a>

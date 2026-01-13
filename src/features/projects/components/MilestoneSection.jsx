@@ -98,9 +98,7 @@ export default function MilestoneSection({
                                             <TaskItem
                                                 key={task.id}
                                                 task={task}
-                                                // onUpdate={onTaskUpdate} // NOTE: TaskItem uses onStatusChange or onEdit
                                                 onStatusChange={(id, status) => onTaskUpdate(id, { status })}
-                                            // phase={phase} // NOTE: Phase prop might not be used in src TaskItem but passing it doesn't hurt
                                             />
                                         ))}
                                     <Button

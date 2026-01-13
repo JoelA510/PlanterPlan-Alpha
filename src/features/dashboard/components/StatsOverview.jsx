@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Card } from "@/components/ui/card";
 import {
     FolderKanban,
@@ -21,9 +21,9 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
             label: 'Total Projects',
             value: totalProjects,
             icon: FolderKanban,
-            color: 'from-blue-500 to-blue-600',
-            bgColor: 'bg-blue-50',
-            textColor: 'text-blue-600'
+            color: 'from-indigo-500 to-indigo-600',
+            bgColor: 'bg-indigo-50',
+            textColor: 'text-indigo-600'
         },
         {
             label: 'Completed Tasks',

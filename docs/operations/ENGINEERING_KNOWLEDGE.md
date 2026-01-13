@@ -908,3 +908,34 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Problem**: The database uses a unified `tasks` table with hierarchy (`root_id`, `parent_task_id`). There are no separate tables.
 - **Solution**: The `createEntityClient` for Phase and Milestone must point to `tasks`.
 - **Critical Rule**: When querying for "Phases" via the generic client, you MUST filter by hierarchy (`root_id`) or custom metadata. The generic client `list()` will return ALL tasks if not filtered. **Always use specific filters** when using `planter.entities` on the `tasks` table.
+
+## [RPC-038] Function Signature Parity
+
+- **Tags**: #database, #rpc, #api, #bugs
+- **Date**: 2026-01-13
+- **Context & Problem**: The API client called `supabase.rpc('invite_user_to_project', ...)` but the function did not exist in the database schema. This led to persistent runtime errors ("function not found") despite the client code looking correct.
+- **Solution & Pattern**:
+  - **Audit**: Always verify that every `supabase.rpc` call maps to an existing SQL function.
+  - **Migration**: Created `20260112_add_invites.sql` to define the missing function and its underlying table `project_invites`.
+- **Critical Rule**: Client-side RPC calls must be backed by a Migration defining the function. Never write the client code without the SQL definition.
+
+## [ENV-043] Testing Data Resilience
+
+- **Tags**: #testing, #seeds, #dev-environment
+- **Date**: 2026-01-13
+- **Context & Problem**: Browser verification failed to find specific project names ("Sunday Launch") because the local development seed data differed from the test expectations.
+- **Solution & Pattern**:
+  - **Resilient Tests**: Tests should verify *classes* of behavior (e.g., "Any Project Card") rather than specific data instances, or strictly control the seed state before running.
+  - **Graceful degradation**: Verified that empty states ("No tasks to display") rendered correctly instead of crashing.
+- **Critical Rule**: Do not hardcode content expectations in manual verification plans unless you control the seed script. Verify *behavior*, not *strings*.
+
+## [UI-044] Semantic Color System (The "Blue" Ban)
+
+- **Tags**: #ui, #design-system, #css
+- **Date**: 2026-01-13
+- **Context & Problem**: A design audit found mixed usage of "Generic Blue" (`blue-500`, `text-blue-600`) vs "Brand Orange" (`brand-500`). This diluted the brand identity.
+- **Solution & Pattern**:
+  - **Standardization**: Systematically replaced all `blue-` utility classes with either:
+    - **Brand**: `brand-` (Orange) for primary actions/links.
+    - **Thematic**: `indigo-` or `sky-` for specific status indicators (e.g., "Planning" phase) to distinguish from the primary brand.
+- **Critical Rule**: **Rule 30**. Never use generic `blue`, `red`, `green` for primary UI elements. Use semantic aliases (`brand`, `destructive`, `success`) or curated palette choices (`indigo`, `rose`, `emerald`).

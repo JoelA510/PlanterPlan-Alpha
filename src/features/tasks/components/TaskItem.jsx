@@ -1,5 +1,5 @@
 // src/components/molecules/TaskItem.jsx
-import { useCallback, memo, forwardRef } from 'react';
+import { useCallback, memo } from 'react';
 import RoleIndicator from '@shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -8,6 +8,8 @@ import '../../../styles/components/task-card.css';
 import ErrorBoundary from '@shared/ui/ErrorBoundary';
 import { TASK_STATUS } from '@app/constants/index';
 import { Lock, Link as LinkIcon } from 'lucide-react';
+
+
 
 const getStatusStyle = (status) => {
   switch (status) {

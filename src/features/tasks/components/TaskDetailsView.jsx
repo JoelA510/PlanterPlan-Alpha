@@ -100,7 +100,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
             Purpose (The Why)
           </h3>
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-slate-700 leading-relaxed text-sm">
+          <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-slate-700 leading-relaxed text-sm">
             {task.purpose}
           </div>
         </div>

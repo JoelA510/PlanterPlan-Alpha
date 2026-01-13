@@ -8,14 +8,10 @@ import { getProjectWithStats } from '@features/projects/services/projectService'
 import { Loader2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { TASK_STATUS } from '@app/constants/index';
+import { CHART_COLORS } from '@app/constants/colors';
 
-// Semantic chart colors (aligned with Rule 30 Design Standards)
-const CHART_COLORS = {
-  [TASK_STATUS.TODO]: '#94a3b8',   // slate-400
-  [TASK_STATUS.IN_PROGRESS]: '#f59e0b',   // amber-500
-  [TASK_STATUS.BLOCKED]: '#f43f5e',    // rose-500
-  [TASK_STATUS.COMPLETED]: '#10b981', // emerald-500
-};
+// Removed hardcoded CHART_COLORS
+
 
 const ProjectReport = () => {
   const { projectId } = useParams();

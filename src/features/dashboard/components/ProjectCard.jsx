@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/lib/utils';
 import { Card } from "@/components/ui/card";
@@ -29,7 +29,7 @@ const templateLabels = {
 };
 
 const statusColors = {
-    planning: "bg-blue-100 text-blue-700",
+    planning: "bg-indigo-100 text-indigo-700",
     in_progress: "bg-orange-100 text-orange-700",
     launched: "bg-green-100 text-green-700",
     paused: "bg-slate-100 text-slate-700"

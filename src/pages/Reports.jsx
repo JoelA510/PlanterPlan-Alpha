@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/lib/utils';
 import { planter } from '@/api/planterClient';
@@ -30,14 +30,9 @@ import {
   Legend
 } from 'recharts';
 
-const COLORS = ['#22c55e', '#f97316', '#3b82f6', '#ef4444'];
 
-const statusLabels = {
-  not_started: 'Not Started',
-  in_progress: 'In Progress',
-  completed: 'Completed',
-  blocked: 'Blocked'
-};
+
+
 
 export default function Reports() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -55,11 +50,7 @@ export default function Reports() {
     enabled: !!projectId
   });
 
-  const { data: milestones = [] } = useQuery({
-    queryKey: ['milestones', projectId],
-    queryFn: () => planter.entities.Milestone.filter({ root_id: projectId }),
-    enabled: !!projectId
-  });
+
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', projectId],
@@ -78,7 +69,7 @@ export default function Reports() {
   const pieData = [
     { name: 'Completed', value: tasksByStatus.completed, color: '#22c55e' },
     { name: 'In Progress', value: tasksByStatus.in_progress, color: '#f97316' },
-    { name: 'Not Started', value: tasksByStatus.not_started, color: '#3b82f6' },
+    { name: 'Not Started', value: tasksByStatus.not_started, color: '#6366f1' },
     { name: 'Blocked', value: tasksByStatus.blocked, color: '#ef4444' }
   ].filter(d => d.value > 0);
 
@@ -173,14 +164,14 @@ export default function Reports() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card className="p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-300 group">
+            <Card className="p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all duration-300 group">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Not Started</p>
                   <p className="text-3xl font-bold text-slate-900">{tasksByStatus.not_started}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-500 transition-colors">
-                  <Circle className="w-6 h-6 text-blue-600 group-hover:text-white transition-colors" />
+                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:bg-indigo-500 transition-colors">
+                  <Circle className="w-6 h-6 text-indigo-600 group-hover:text-white transition-colors" />
                 </div>
               </div>
             </Card>

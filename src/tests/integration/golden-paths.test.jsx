@@ -1,5 +1,5 @@
-
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { TASK_STATUS } from '@app/constants/index';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthContext } from '@app/contexts/AuthContext';
@@ -7,8 +7,7 @@ import { ToastProvider } from '@app/contexts/ToastContext';
 import Reports from '../../pages/Reports';
 import * as taskOpsHook from '@features/tasks/hooks/useTaskOperations';
 import TaskList from '@features/tasks/components/TaskList';
-import * as projectService from '@features/projects/services/projectService';
-import * as taskService from '@features/tasks/services/taskService';
+
 
 // --- Mocks ---
 
@@ -102,7 +101,7 @@ const mockTasks = [
     {
         id: 'task-1',
         title: 'Secure Venue',
-        status: 'todo',
+        status: TASK_STATUS.TODO,
         position: 1000,
         project_id: 'proj-1',
         parent_task_id: 'proj-1',
@@ -275,7 +274,7 @@ describe('Browser Verification: Golden Paths', () => {
             const taskCard = screen.getByText('Secure Venue');
             // The card wrapper usually handles the styling.
             // In TaskItem.jsx: <div className="task-card ...">
-            const cardContainer = taskCard.closest('.task-card');
+
 
             expect(taskCard).toBeVisible();
 

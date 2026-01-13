@@ -4,12 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
-  ChevronDown,
   ChevronRight,
-  CheckCircle2,
-  Circle,
-  Clock,
-  AlertCircle,
   Plus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
