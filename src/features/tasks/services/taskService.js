@@ -9,7 +9,10 @@
 import { supabase } from '@app/supabaseClient.js';
 
 // Re-export from specialized modules for backward compatibility
-export { fetchMasterLibraryTasks, searchMasterLibraryTasks } from '@features/library/services/taskMasterLibraryService';
+export {
+  fetchMasterLibraryTasks,
+  searchMasterLibraryTasks,
+} from '@features/library/services/taskMasterLibraryService';
 export { deepCloneTask } from '@features/tasks/services/taskCloneService';
 
 // ============================================================================

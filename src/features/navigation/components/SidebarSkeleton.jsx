@@ -1,5 +1,3 @@
-
-
 const SidebarSkeleton = () => {
   return (
     <div className="animate-pulse px-3 py-4 space-y-4">

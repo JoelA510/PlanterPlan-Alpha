@@ -781,15 +781,6 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Main**: `flex-1 overflow-y-auto`. Takes remaining space and handles its own scrolling.
 - **Critical Rule**: For application-like dashboards, lock the `body` (or root div) height to `100vh` and manage scrolling internally in the main content area.
 
-## [TEST-040] Jest to Vitest Migration (Global Object)
-
-- **Tags**: #testing, #vitest, #jest, #migration
-- **Date**: 2026-01-07
-- **Context & Problem**: Migrating from Jest (CRA) to Vitest (Vite) caused **ReferenceError: jest is not defined**. Codebases often rely on the global **jest** object for **jest.fn()**, **jest.mock()**, etc.
-- **Solution & Pattern**:
-  - **Replace Globals**: Systematically replace **jest** with **vi** (Vitest's equivalent).
-  - **Shim (Temporary)**: If direct replacement is too large, you can shim **globalThis.jest = vi** in **setupTests.js**, but this fails for hoisted **jest.mock** calls.
-  - **Correction**: Direct migration is preferred. **vi.mock** is hoisted automatically by the Vitest compiler, whereas a shimmed **fakeJest.mock** is not.
 - **Critical Rule**: Do not try to shim **jest** for mocking. Replace **jest.mock** with **vi.mock** directly to ensure correct hoisting behavior.
 
 ## [TEST-041] ESM Mocking Factories (Default Exports)
@@ -798,6 +789,16 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Date**: 2026-01-07
 - **Context & Problem**: In Vitest (ESM), `vi.mock('./Component', () => () => <div />)` failed with **mock is not returning an object**.
 - **Solution & Pattern**: Return a factory that returns a default export: `vi.mock('./Comp', () => ({ default: () => <div /> }))`.
+
+## [REACT-042] Layout Composition & Content Projection
+
+- **Tags**: #react, #layout, #architecture
+- **Date**: 2026-01-11
+- **Context & Problem**: The `DashboardLayout` was refactored significantly during a generic UI merge, hardcoding the `Sidebar` component to a static version. However, the `TaskList` feature relied on passing a dynamic `SideNav` (with project lists and context) via the `sidebar` prop. This caused the "My Projects" list to vanish from the UI and tests to fail.
+- **Solution & Pattern**:
+  - **Slot Pattern**: Restored the `sidebar` prop support in `DashboardLayout`.
+  - **Fallback**: Used `sidebar || <DefaultSidebar />` to support both complex features (TaskList) and simple static pages.
+- **Critical Rule**: Layout components should be **Containers**, not controllers. Always prefer Content Projection (Props/Slots) over hardcoded child components if the content needs to vary by feature.
   - **ESM Requirement**: ESM modules are objects with a **default** key for default exports. The mock factory must return **{ default: MockComponent }**.
   - **Async importActual**: **vi.requireActual** is synchronous and often fails in ESM. Use **await vi.importActual()** inside an **async** factory.
 - **Critical Rule**: When mocking default exports in Vitest, always return an object **{ default: ... }**. Use **async** factories if you need to import actual modules.
@@ -812,9 +813,9 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   ```javascript
   import * as hookModule from '../../hooks/useTaskOperations';
   vi.spyOn(hookModule, 'useTaskOperations').mockReturnValue({
-      loading: false, // Force stable state
-      data: [],
-      // ... provide essential handlers as vi.fn()
+    loading: false, // Force stable state
+    data: [],
+    // ... provide essential handlers as vi.fn()
   });
   ```
 
@@ -863,18 +864,19 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 - **Date**: 2026-01-10
 - **Context & Problem**: A critical production-blocking syntax error was introduced into `src/main.jsx`. The file contained markdown grouping backticks inside the source code, causing the build to fail silently (rendering a white screen).
 - **Solution & Pattern**:
-  - **Strict Tool Usage**: When using `write_to_file` or `replace_file_content`, ensure the content string *excludes* markdown formatting wrappers unless writing to a `.md` file.
+  - **Strict Tool Usage**: When using `write_to_file` or `replace_file_content`, ensure the content string _excludes_ markdown formatting wrappers unless writing to a `.md` file.
   - **Verification**: Always run an adversarial browser test or build check after "simple" file rewrites.
 - **Critical Rule**: Source code is not markdown. Double-check that code blocks strips formatting boundaries before writing to disk.
 
 ## [UI-043] Layout-Driven Navigation State
+
 - **Tags**: #ui, #react, #navigation
 - **Date**: 2026-01-10
 - **Context & Problem**: The Sidebar vanished from the Dashboard after refactoring. The root cause was `Dashboard.jsx` rendering `SideNav` directly instead of using the wrapper `DashboardLayout`.
 - **Solution & Pattern**:
   - **Inversion of Control**: The Page component (`Dashboard`) delegates layout responsibility to `DashboardLayout`.
   - **Prop Drilling**: `DashboardLayout` injects the `onNavClick` handler (for mobile closing) into the `sidebar` prop element via `React.cloneElement`.
-- **Critical Rule**: If a layout manages mobile state (open/close), the Page *must* use that layout wrapper to ensure the navigation component receives the state-closing handlers.
+- **Critical Rule**: If a layout manages mobile state (open/close), the Page _must_ use that layout wrapper to ensure the navigation component receives the state-closing handlers.
 
 ## [CSS-044] Semantic Color System Migration
 
@@ -887,3 +889,184 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
   - **Batch Migration**: Use `sed` for bulk replacements across feature directories, then verify with `grep` and lint.
   - **Exceptions**: Code comments explaining hex values (e.g., Recharts config) are acceptable.
 - **Critical Rule**: Never use generic Tailwind colors (`red`, `green`, `blue`, `orange`) for semantic states. Always use the semantic palette (`rose`, `emerald`, `amber`, `sky`, `brand`).
+
+## [SVC-043] Generic Entity Client Factory
+
+- **Tags**: #javascript, #services, #api, #refactoring
+- **Date**: 2026-01-12
+- **Context & Problem**: The `planterClient.js` had duplicated logic for `list` and `filter` methods across multiple entities (Task, Phase, Milestone), leading to maintenance overhead. Additionally, several entities were missing generic `create`/`delete` methods, causing runtime errors when new features tried to use them.
+- **Solution & Pattern**: Implemented a `createEntityClient(tableName, select)` factory function.
+  - **DRY**: Centralized `list`, `get`, `create`, `update`, `delete`, and `filter` logic.
+  - **Composition**: Entities like `Project` use `...createEntityClient()` to inherit base methods while overriding specific ones (like `create` for custom mapping).
+- **Critical Rule**: **Don't Repeat Data Access Logic.** Use a factory pattern for standard CRUD operations and only write custom code for business-logic-heavy entities.
+
+## [SVC-044] Schema Reality: Unified Tasks & Column Mismatches
+
+- **Tags**: #schema, #database, #api, #gotcha, #mapping
+- **Date**: 2026-01-12
+  <<<<<<< HEAD
+- **Context**: The `planterClient` refactor initially assumed `phases` and `milestones` tables existed.
+- **Problem**: The database uses a unified `tasks` table with hierarchy (`root_id`, `parent_task_id`). There are no separate tables.
+- **Solution**: The `createEntityClient` for Phase and Milestone must point to `tasks`.
+- **Critical Rule**: When querying for "Phases" via the generic client, you MUST filter by hierarchy (`root_id`) or custom metadata. The generic client `list()` will return ALL tasks if not filtered. **Always use specific filters** when using `planter.entities` on the `tasks` table.
+
+## [RPC-038] Function Signature Parity
+
+- **Tags**: #database, #rpc, #api, #bugs
+- **Date**: 2026-01-13
+- **Context & Problem**: The API client called `supabase.rpc('invite_user_to_project', ...)` but the function did not exist in the database schema. This led to persistent runtime errors ("function not found") despite the client code looking correct.
+- **Solution & Pattern**:
+  - **Audit**: Always verify that every `supabase.rpc` call maps to an existing SQL function.
+  - **Migration**: Created `20260112_add_invites.sql` to define the missing function and its underlying table `project_invites`.
+- **Critical Rule**: Client-side RPC calls must be backed by a Migration defining the function. Never write the client code without the SQL definition.
+
+## [ENV-043] Testing Data Resilience
+
+- **Tags**: #testing, #seeds, #dev-environment
+- **Date**: 2026-01-13
+- **Context & Problem**: Browser verification failed to find specific project names ("Sunday Launch") because the local development seed data differed from the test expectations.
+- **Solution & Pattern**:
+  - **Resilient Tests**: Tests should verify _classes_ of behavior (e.g., "Any Project Card") rather than specific data instances, or strictly control the seed state before running.
+  - **Graceful degradation**: Verified that empty states ("No tasks to display") rendered correctly instead of crashing.
+- **Critical Rule**: Do not hardcode content expectations in manual verification plans unless you control the seed script. Verify _behavior_, not _strings_.
+
+## [UI-044] Semantic Color System (The "Blue" Ban)
+
+- **Tags**: #ui, #design-system, #css
+- **Date**: 2026-01-13
+- **Context & Problem**: A design audit found mixed usage of "Generic Blue" (`blue-500`, `text-blue-600`) vs "Brand Orange" (`brand-500`). This diluted the brand identity.
+- **Solution & Pattern**:
+  - **Standardization**: Systematically replaced all `blue-` utility classes with either:
+    - **Brand**: `brand-` (Orange) for primary actions/links.
+    - **Thematic**: `indigo-` or `sky-` for specific status indicators (e.g., "Planning" phase) to distinguish from the primary brand.
+- **Critical Rule**: **Rule 30**. Never use generic `blue`, `red`, `green` for primary UI elements. Use semantic aliases (`brand`, `destructive`, `success`) or curated palette choices (`indigo`, `rose`, `emerald`).
+
+## [API-045] Schema Reality: Column Mapping
+
+- **Tags**: #schema, #database, #api, #gotcha
+- **Date**: 2026-01-13
+- **Context & Problem**:
+  1. The `planterClient` refactor initially assumed `phases` and `milestones` tables existed. (Reality: Everything is a `task`).
+  2. Frontend models used `name` and `order`, effectively "guessing" columns. (Reality: Backend uses `title` and `position`).
+  3. This caused **400 Bad Request** on bulk inserts.
+- **Solution**:
+  - **Table**: `createEntityClient` for Phase/Milestone points to `tasks`.
+  - **Mapping**: Explicitly map `name` -> `title` and `order` -> `position` in `projectService.js`.
+  - **Single Source**: Refactor UI queries to fetch ONE hierarchy and filter in-memory.
+- **Critical Rule**:
+  1. **One Table Rule**: Phases/Milestones/Tasks are all rows in `tasks`.
+  2. **Column Reality**: `tasks` table columns are `title`, `position`, `status`, `root_id`. **Do not attempt to insert** `name` or `order`.
+  3. **Filter Hierarchy**: Generic `list()` returns ALL tasks. Always filter by `root_id` and `parent_task_id`.
+
+---
+
+## [DEP-043] Toast Dependency Mismatch (Sonner vs use-toast)
+
+- **Tags**: #dependencies, #ui, #build-error
+- **Date**: 2026-01-12
+- **Context & Problem**: The generic components update introduced `sonner` (a toast library) imports into `Project.jsx`, likely from a Shadcn copy-paste. However, the project standard is a custom local `use-toast` hook. This caused a build error (`Failed to resolve import "sonner"`).
+- **Solution & Pattern**:
+  - **Audit Imports**: Always verify that "suggested" libraries from snippets are actually installed.
+  - **Standardize**: Replaced `sonner` usage with the existing `@shared/ui/use-toast` pattern.
+- **Critical Rule**: Do not mix toast libraries. Stick to the project's established notification system unless migrating fully.
+
+## [CSS-044] Recharts CSS Variable Support
+
+- **Tags**: #css, #recharts, #theming
+- **Date**: 2026-01-12
+- **Context & Problem**: We replaced hardcoded hex colors (`#FF5500`) with CSS variables (`var(--brand-primary)`) to enforce Design Rule 30. There was concern that Recharts might not support CSS variables in the `fill` prop.
+- **Solution & Pattern**:
+  - **Verification**: Browser verification confirmed that Recharts **does** correctly interpret CSS variables passed as strings to `fill` (e.g., `fill="var(--color-brand-500)"`), provided the variable is defined in the global scope.
+- **Critical Rule**: You can use CSS variables in Recharts props. No need to compute hex values in JS unless specific color manipulation (darkening/lightening) is required manually.
+
+---
+
+## [ENV-015] GitHub API "410 Issues Disabled" Error
+
+**Tags**: #github, #mcp, #permissions, #devops
+**Date**: 2026-01-12
+
+### Context & Problem
+
+During the setup of the GitHub MCP (Metaflow Control Plane) server, attempts to create issues via the `issue_write` tool failed with a `410 Issues has been disabled in this repository` error.
+
+This was confusing because:
+
+1. The GitHub Personal Access Token (PAT) had full `repo` scopes.
+2. The user was the repository owner.
+3. The repo was not archived.
+
+### Solution & Pattern
+
+The error is literal: **Repository-level features override API permissions.**
+
+1. **Verify Settings**: Go to GitHub Repository > Settings > General > Features.
+2. **Enable Issues**: Ensure the "Issues" checkbox is checked.
+3. **Propagation**: GitHub API state can take 1-2 minutes to propagate after the UI toggle.
+
+### Critical Rule
+
+> **Token Scopes are not Absolute.** Even a "Full Access" token cannot perform actions that are disabled in the repository's feature settings (Issues, Wiki, Projects, etc.). Always verify the repository's feature configuration when encountering 410 errors in the GitHub API.
+
+---
+
+## [FE-043] Centralized Sidebar Logic (Container Pattern)
+
+**Tags**: #react, #architecture, #navigation
+**Date**: 2026-01-13
+
+### Context & Problem
+
+Multiple pages (Tasks, Settings, Dashboard) were manually fetching project lists to populate the sidebar. This led to code duplication, inconsistent loading states, and breakage when data structures changed.
+
+### Solution & Pattern
+
+We implemented the **Layout Container Pattern**:
+1.  **Container Component**: Created `ProjectSidebarContainer.jsx` to encapsulate the `useTaskOperations` hook and data mapping for the sidebar.
+2.  **Default Slot**: Integrated this container as the default `sidebar` prop in `DashboardLayout`.
+3.  **Result**: Pages no longer need to know how to fetch their own navigation data; simply wrapping a page in the layout populates the sidebar.
+
+### Critical Rule
+
+> **Global UI belongs in Layout Containers.** Don't duplicate data fetching for global navigation in individual pages. Use specialized container components within your Layouts to provide stable data slots.
+
+---
+
+## [FE-044] Route-Level Layout Propagation
+
+**Tags**: #routing, #react-router, #architecture
+**Date**: 2026-01-13
+
+### Context & Problem
+
+The application had several "orphan" pages (e.g., Reports, Project Details) where the sidebar would vanish. The root cause was that `App.jsx` defined these routes as top-level children of `Routes` without wrapping them in the required layout shell.
+
+### Solution & Pattern
+
+Unified routing configuration in `App.jsx`:
+1.  **Protected Hub**: All authenticated views are grouped and wrapped in both `ProtectedRoute` and `DashboardLayout`.
+2.  **Breadcrumb Consistency**: Passing the current context (like `projectId`) down via the layout ensures that breadcrumbs and sidebar selection sync correctly with the URL.
+
+### Critical Rule
+
+> **Layouts are part of a Route's definition.** When adding new views, always explicitly check if they belong inside a `DashboardLayout` shell. Do not rely on pages to "opt-in" to the sidebar themselves.
+
+---
+
+## [DX-045] Import Path Consistency & Alias Fragility
+
+**Tags**: #dx, #verification, #imports
+**Date**: 2026-01-13
+
+### Context & Problem
+
+Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due to incorrect guesses for core-hook imports (e.g., trying to import `useToast` from `@shared/hooks/` when it actually lived in `@shared/ui/`).
+
+### Solution & Pattern
+
+1.  **Grep First**: Before typing a new import for a shared utility, grep the codebase for existing usages to find the established alias path.
+2.  **Standardize**: We updated all broken pages to follow the established project pattern: `@app/contexts/AuthContext` for `useAuth` and `@shared/ui/use-toast` for `useToast`.
+
+### Critical Rule
+
+> **Standardize Core Imports.** Avoid "guess-and-check" pathing when utilizing shared aliases. Document the location of high-volume hooks (`useAuth`, `useToast`, `useTaskOperations`) or use automated linting to enforce path consistency.

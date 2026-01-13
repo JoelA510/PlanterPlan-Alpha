@@ -5,205 +5,68 @@
    - Added Elevation-1 (Ambient + Key light)
    - Reduced Padding for density
 */
+/* Standardized Colors */
 .task-card {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  margin-bottom: 10px;
-  border-radius: 10px;
-  background-color: var(--bg-surface, #ffffff);
-  border: 1px solid rgba(229, 231, 235, 0.8);
-  color: var(--text-primary, #1f2937);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-
-  /* Enhanced Shadow (Elevation-1) */
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.04);
+  background-color: var(--color-card);
+  color: var(--color-card-foreground);
+  border: 1px solid var(--color-border);
 }
 
-/* Hover State (Elevation-2) */
 .task-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(241, 89, 42, 0.3);
-  box-shadow:
-    0 8px 16px -4px rgba(0, 0, 0, 0.1),
-    0 4px 8px -2px rgba(0, 0, 0, 0.06);
-  z-index: 1;
+  border-color: var(--color-brand-300);
 }
 
-/* Selected State */
 .task-card.selected {
-  background-color: #fff7ed;
-  border-color: var(--brand-primary, #f1592a);
-  box-shadow: 0 0 0 3px rgba(241, 89, 42, 0.15);
+  background-color: var(--color-brand-50);
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px var(--color-brand-100);
 }
 
-/* HIERARCHY INDICATORS (Replaces the ugly full-bg colors) */
-.task-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 4px;
-  border-radius: 0 4px 4px 0;
-  background-color: transparent;
-  transition: background-color 0.2s ease;
-}
-
-/* Project Level (0) */
 .task-card.level-0 {
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid var(--color-blue-600);
 }
-
-.task-card.level-0::before {
-  display: none;
-}
-
-/* Use border instead */
-
-/* Nested Levels - Visual Guides */
 .task-card.level-1::before {
-  background-color: #60a5fa;
+  background-color: var(--color-blue-400);
 }
-
 .task-card.level-2::before {
-  background-color: #a78bfa;
+  background-color: var(--color-purple-400);
 }
-
 .task-card.level-3::before {
-  background-color: #f472b6;
+  background-color: var(--color-pink-400);
 }
 
-/* CONTENT LAYOUT */
-.task-card-content {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 12px;
-}
-
-.task-card-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-  /* Text truncation fix */
-}
-
-/* DRAG HANDLE - Subtle dot grid */
 .drag-handle-btn {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-  border: none;
-  background: transparent;
-  cursor: grab;
-  border-radius: 4px;
-  opacity: 0;
-  /* Hide until hover */
-  transition:
-    opacity 0.2s ease,
-    background-color 0.15s ease;
+  color: var(--color-slate-400);
 }
-
-.task-card:hover .drag-handle-btn {
-  opacity: 1;
-}
-
 .drag-handle-btn:hover {
-  background-color: #f3f4f6;
-  color: #4b5563;
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-600);
 }
 
-/* EXPAND BUTTON - The "Chevron" */
 .expand-button {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: #6b7280;
-  transition: all 0.2s ease;
-  cursor: pointer;
+  color: var(--color-slate-500);
 }
-
 .expand-button:hover {
-  background-color: #f3f4f6;
-  color: #111827;
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-900);
 }
 
-.expand-spacer {
-  width: 24px;
-  /* Matches button width */
-}
-
-.expand-icon {
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  /* Default: Right pointing chevron */
-}
-
-.expand-icon.expanded {
-  transform: rotate(90deg);
-  /* Down pointing */
-}
-
-/* TYPOGRAPHY */
 .task-title {
-  font-weight: 500;
-  color: #374151;
-  font-size: 0.95rem;
-  /* Multi-line truncation logic */
-  @apply line-clamp-2;
-  line-height: 1.4;
+  color: var(--color-slate-700);
 }
-
 .task-duration {
-  font-size: 0.75rem;
-  color: #6b7280;
-  background-color: #f3f4f6;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
+  color: var(--color-slate-500);
+  background-color: var(--color-slate-100);
 }
 
-/* RIGHT CONTROLS */
-.task-card-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-/* ACTION BUTTONS (Edit/Delete) */
 .action-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  color: #9ca3af;
-  transition: all 0.15s ease;
-  background: transparent;
-  border: none;
+  color: var(--color-slate-400);
 }
-
 .action-btn:hover {
-  color: #4b5563;
-  background-color: #f3f4f6;
+  color: var(--color-slate-600);
+  background-color: var(--color-slate-100);
 }
-
 .action-btn.delete:hover {
-  color: #ef4444;
-  background-color: #fef2f2;
+  color: var(--color-rose-600);
+  background-color: var(--color-rose-50);
 }

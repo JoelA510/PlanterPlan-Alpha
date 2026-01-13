@@ -35,17 +35,17 @@ Contains **Global Wiring**.
 ## Critical Constraints
 
 1. **Dependency Direction**:
-    - `features` can import from `shared`.
-    - `features` can import from *other* `features` (pragmatic relaxation of strict FSD).
-    - `shared` **CANNOT** import from `features`.
+   - `features` can import from `shared`.
+   - `features` can import from _other_ `features` (pragmatic relaxation of strict FSD).
+   - `shared` **CANNOT** import from `features`.
 
 2. **No Direct API Calls in Components**:
-    - UI components must use **Hooks** (`useTaskQuery`) or **Services**.
-    - Never write `supabase.from(...)` inside a `.jsx` file.
+   - UI components must use **Hooks** (`useTaskQuery`) or **Services**.
+   - Never write `supabase.from(...)` inside a `.jsx` file.
 
 3. **Date Logic Safety**:
-    - **Never** perform raw date math (e.g., `date.setDate(date.getDate() + 5)`).
-    - **Always** use `src/shared/lib/date-engine`.
+   - **Never** perform raw date math (e.g., `date.setDate(date.getDate() + 5)`).
+   - **Always** use `src/shared/lib/date-engine`.
 
 4. **Strict Typing (JSDoc)**:
-    - All new functions in `services` and `lib` must have JSDoc `@param` and `@returns`.
+   - All new functions in `services` and `lib` must have JSDoc `@param` and `@returns`.

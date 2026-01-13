@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --color-primary: #f97316;
@@ -50,21 +50,21 @@
 
   @keyframes accordion-down {
     from {
-      height: 0
+      height: 0;
     }
 
     to {
-      height: var(--radix-accordion-content-height)
+      height: var(--radix-accordion-content-height);
     }
   }
 
   @keyframes accordion-up {
     from {
-      height: var(--radix-accordion-content-height)
+      height: var(--radix-accordion-content-height);
     }
 
     to {
-      height: 0
+      height: 0;
     }
   }
 }

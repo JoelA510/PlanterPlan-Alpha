@@ -69,8 +69,8 @@ The agent must verify these paths exists in `src/tests/integration/golden-paths.
 
 1. **Start Server**: Ensure app is running (`npm run dev`).
 2. **Launch Agent**:
-    - **Task**: "Act as a new user. Log in (if needed), navigate to the Dashboard, create a project, move a task. Report any visual glitches, confusing UI, or errors."
-    - **Focus**: Look for overlapping text, broken z-indices, unclickable buttons, or "jank".
+   - **Task**: "Act as a new user. Log in (if needed), navigate to the Dashboard, create a project, move a task. Report any visual glitches, confusing UI, or errors."
+   - **Focus**: Look for overlapping text, broken z-indices, unclickable buttons, or "jank".
 3. **Record**: Capture the session and note any "Human Experience" failures.
 
 ## Phase 5: Design Regression Check (Static Analysis)

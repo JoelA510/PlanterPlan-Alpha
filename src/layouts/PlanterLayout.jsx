@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import Header from '@/components/navigation/Header';
-import Sidebar from '@/components/navigation/Sidebar';
+import { useState } from 'react';
+import Header from '@features/navigation/components/Header';
+import AppSidebar from '@features/navigation/components/AppSidebar';
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -17,7 +17,7 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen bg-slate-50">
       <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} showMenuButton={isDashboardPage} />
 
-      {isDashboardPage && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
+      {isDashboardPage && <AppSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
 
       <main className={isDashboardPage ? 'lg:pl-64' : ''}>{children}</main>
     </div>

@@ -1,325 +1,246 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@shared/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@shared/ui/dialog';
+import { Input } from '@shared/ui/input';
+import { Textarea } from '@shared/ui/textarea';
+import { Label } from '@shared/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select';
+import { ExternalLink, FileText, StickyNote, Plus, Trash2, Star } from 'lucide-react';
+import { cn } from '@shared/lib/utils';
 import {
   listTaskResources,
   createTaskResource,
   deleteTaskResource,
   setPrimaryResource,
 } from '@features/tasks/services/taskResourcesService';
-import { supabase } from '@app/supabaseClient';
-import { STORAGE_BUCKETS } from '@app/constants/index';
 
-const TaskResources = ({ taskId, primaryResourceId, onUpdate }) => {
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Form state
-  const [type, setType] = useState('url'); // 'url', 'text', 'pdf'
-  const [urlData, setUrlData] = useState('');
-  const [textData, setTextData] = useState('');
-  const [fileData, setFileData] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const fileInputRef = useRef(null);
-
-  // Stabilized fetch hook
-  const fetchResources = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await listTaskResources(taskId);
-      setResources(data || []);
-    } catch (e) {
-      console.error('Failed to load resources', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [taskId]);
-
-  useEffect(() => {
-    fetchResources();
-  }, [fetchResources]);
-
-  const resetForm = () => {
-    setType('url');
-    setUrlData('');
-    setTextData('');
-    setFileData(null);
-    setError(null);
-    setIsAdding(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleSubmit = React.useCallback(
-    async (e) => {
-      e.preventDefault();
-      setSubmitting(true);
-      setError(null);
-
-      try {
-        let storage_path = null;
-        if (type === 'pdf') {
-          if (!fileData) throw new Error('Please select a PDF file');
-
-          // Simple bucket assumption. Make sure 'resources' bucket exists in Supabase.
-          const fileExt = fileData.name.split('.').pop();
-          const fileName = `${taskId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from(STORAGE_BUCKETS.RESOURCES)
-            .upload(fileName, fileData);
-
-          if (uploadError) throw uploadError;
-          storage_path = fileName;
-        } else if (type === 'url') {
-          if (!urlData) throw new Error('Please enter a URL');
-        } else if (type === 'text') {
-          if (!textData) throw new Error('Please enter text content');
-        }
-
-        await createTaskResource(taskId, {
-          type,
-          url: type === 'url' ? urlData : null,
-          text_content: type === 'text' ? textData : null,
-          storage_path,
-        });
-
-        resetForm();
-        fetchResources();
-        if (onUpdate) onUpdate();
-      } catch (e) {
-        setError(e.message || 'Failed to create resource');
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [type, fileData, taskId, urlData, textData, fetchResources, onUpdate]
-  );
-
-  const handleDelete = React.useCallback(
-    async (id) => {
-      if (!window.confirm('Are you sure you want to delete this resource?')) return;
-      try {
-        await deleteTaskResource(id);
-        fetchResources();
-        if (onUpdate) onUpdate();
-      } catch (e) {
-        console.error('Failed to delete resource', e);
-        setError('Failed to delete resource');
-      }
-    },
-    [fetchResources, onUpdate]
-  );
-
-  const handleSetPrimary = React.useCallback(
-    async (resource) => {
-      try {
-        const newPrimaryId = resource.id === primaryResourceId ? null : resource.id;
-        await setPrimaryResource(taskId, newPrimaryId);
-        if (onUpdate) onUpdate();
-      } catch (e) {
-        console.error('Failed to set primary resource', e);
-        setError('Failed to set primary resource');
-      }
-    },
-    [primaryResourceId, taskId, onUpdate]
-  );
-
-  return (
-    <div className="detail-section">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Resources</h3>
-        {!isAdding && (
-          <button
-            type="button"
-            onClick={() => setIsAdding(true)}
-            className="text-xs font-semibold text-brand-600 hover:text-brand-800 bg-brand-50 px-2 py-1 rounded hover:bg-brand-100 transition-colors"
-          >
-            + Add
-          </button>
-        )}
-      </div>
-
-      {error && <div className="mb-2 text-xs text-rose-600">{error}</div>}
-
-      {/* Resource List */}
-      <div className="space-y-2 mb-4">
-        {!loading && resources.length === 0 && !isAdding && (
-          <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-            <p className="text-xs text-slate-400 mb-2">No resources yet.</p>
-          </div>
-        )}
-
-        {resources.map((res) => {
-          const isPrimary = res.id === primaryResourceId;
-          return (
-            <div
-              key={res.id}
-              className={`flex items-start justify-between p-3 rounded-lg border transition-all hover:shadow-sm ${isPrimary ? 'border-brand-200 bg-brand-50/50' : 'border-slate-200 bg-white'
-                }`}
-            >
-              <div className="flex-1 min-w-0 pr-4 flex flex-col gap-1">
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`
-                        text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border flex-shrink-0
-                        ${res.resource_type === 'url'
-                        ? 'bg-brand-100 text-brand-700 border-brand-200'
-                        : res.resource_type === 'pdf'
-                          ? 'bg-amber-100 text-amber-700 border-amber-200'
-                          : 'bg-slate-100 text-slate-600 border-slate-200'
-                      }
-                      `}
-                  >
-                    {res.resource_type}
-                  </span>
-                  <span className="text-sm font-semibold truncate text-slate-800">
-                    {res.resource_type === 'url'
-                      ? 'External Link'
-                      : res.resource_type === 'pdf'
-                        ? 'Document'
-                        : 'Note'}
-                  </span>
-                </div>
-                {res.resource_type === 'url' && (
-                  <a
-                    href={res.resource_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-brand-600 hover:text-brand-800 hover:underline truncate block ml-14"
-                  >
-                    {res.resource_url}
-                  </a>
-                )}
-                {res.resource_type === 'text' && (
-                  <p className="text-xs text-slate-600 line-clamp-2 ml-14">
-                    {res.resource_text}
-                  </p>
-                )}
-                {res.resource_type === 'pdf' && (
-                  <span className="text-xs text-slate-500 ml-14">PDF Resource</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  title={isPrimary ? 'Primary Resource' : 'Make Primary'}
-                  onClick={() => handleSetPrimary(res)}
-                  className={`p-2 rounded-md transition-colors ${isPrimary ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-amber-500 hover:bg-slate-50'}`}
-                >
-                  <span className="text-lg leading-none">★</span>
-                </button>
-                <button
-                  onClick={() => handleDelete(res.id)}
-                  className="p-2 rounded-md text-slate-300 hover:text-rose-600 hover:bg-slate-50 transition-colors"
-                  title="Delete"
-                >
-                  <span className="text-lg leading-none">🗑</span>
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Add Form */}
-      {isAdding && (
-        <form onSubmit={handleSubmit} className="p-3 bg-slate-50 rounded border border-slate-200">
-          <div className="mb-3">
-            <label className="block text-xs font-medium text-slate-700 mb-1">Type</label>
-            <div className="flex gap-4">
-              <label className="inline-flex items-center text-sm">
-                <input
-                  type="radio"
-                  value="url"
-                  checked={type === 'url'}
-                  onChange={(e) => setType(e.target.value)}
-                  className="mr-1"
-                />{' '}
-                URL
-              </label>
-              <label className="inline-flex items-center text-sm">
-                <input
-                  type="radio"
-                  value="text"
-                  checked={type === 'text'}
-                  onChange={(e) => setType(e.target.value)}
-                  className="mr-1"
-                />{' '}
-                Text
-              </label>
-              <label className="inline-flex items-center text-sm">
-                <input
-                  type="radio"
-                  value="pdf"
-                  checked={type === 'pdf'}
-                  onChange={(e) => setType(e.target.value)}
-                  className="mr-1"
-                />{' '}
-                PDF
-              </label>
-            </div>
-          </div>
-
-          {type === 'url' && (
-            <div className="mb-3">
-              <label className="block text-xs font-medium text-slate-700 mb-1">URL</label>
-              <input
-                type="url"
-                required
-                className="form-input text-sm"
-                value={urlData}
-                onChange={(e) => setUrlData(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-          )}
-
-          {type === 'text' && (
-            <div className="mb-3">
-              <label className="block text-xs font-medium text-slate-700 mb-1">Content</label>
-              <textarea
-                required
-                className="form-textarea text-sm"
-                rows="3"
-                value={textData}
-                onChange={(e) => setTextData(e.target.value)}
-                placeholder="Enter details..."
-              />
-            </div>
-          )}
-
-          {type === 'pdf' && (
-            <div className="mb-3">
-              <label className="block text-xs font-medium text-slate-700 mb-1">File</label>
-              <input
-                type="file"
-                ref={fileInputRef}
-                required
-                accept="application/pdf"
-                className="text-sm"
-                onChange={(e) => setFileData(e.currentTarget.files?.[0] ?? null)}
-              />
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={resetForm}
-              className="btn-secondary text-xs px-2 py-1"
-              disabled={submitting}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="btn-primary text-xs px-2 py-1" disabled={submitting}>
-              {submitting ? 'Saving...' : 'Add'}
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
-  );
+const resourceTypeIcons = {
+  url: ExternalLink,
+  pdf: FileText,
+  text: StickyNote,
 };
 
-export default TaskResources;
+const resourceTypeLabels = {
+  url: 'External Link',
+  pdf: 'Document',
+  text: 'Note',
+};
+
+export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [formData, setFormData] = useState({
+    type: 'url',
+    resource_url: '',
+    resource_text: '',
+    storage_path: '',
+  });
+
+  const queryClient = useQueryClient();
+
+  const { data: resources = [] } = useQuery({
+    queryKey: ['resources', taskId],
+    queryFn: () => listTaskResources(taskId),
+    enabled: !!taskId,
+  });
+
+  const createResourceMutation = useMutation({
+    mutationFn: (data) =>
+      createTaskResource(taskId, {
+        type: data.type,
+        url: data.resource_url,
+        text_content: data.resource_text,
+        storage_path: data.storage_path,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resources', taskId] });
+      setShowAddModal(false);
+      setFormData({ type: 'url', resource_url: '', resource_text: '', storage_path: '' });
+      if (onUpdate) onUpdate();
+    },
+  });
+
+  const deleteResourceMutation = useMutation({
+    mutationFn: (id) => deleteTaskResource(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resources', taskId] });
+      if (onUpdate) onUpdate();
+    },
+  });
+
+  const setPrimaryMutation = useMutation({
+    mutationFn: (id) => setPrimaryResource(taskId, id === primaryResourceId ? null : id),
+    onSuccess: () => {
+      if (onUpdate) onUpdate();
+    },
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    createResourceMutation.mutate(formData);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">Resources</h4>
+        <Button
+          size="sm"
+          onClick={() => setShowAddModal(true)}
+          className="bg-brand-500 hover:bg-brand-600 text-white"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Add Resource
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        {resources.length === 0 ? (
+          <p className="text-sm text-slate-500 py-4 text-center">No resources yet</p>
+        ) : (
+          resources.map((resource) => {
+            // Adapted logic: check both 'type' and 'resource_type' to be safe, defaulting to resource_type from service
+            const type = resource.resource_type || resource.type;
+            const Icon = resourceTypeIcons[type] || FileText;
+            const isPrimary = primaryResourceId === resource.id;
+
+            return (
+              <div
+                key={resource.id}
+                className={cn(
+                  'flex items-center justify-between p-3 rounded-lg border transition-all',
+                  isPrimary
+                    ? 'bg-brand-50 border-brand-300'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
+                )}
+              >
+                <div className="flex items-center gap-3 flex-1">
+                  <div
+                    className={cn(
+                      'w-9 h-9 rounded-lg flex items-center justify-center',
+                      isPrimary ? 'bg-brand-500' : 'bg-slate-100'
+                    )}
+                  >
+                    <Icon className={cn('w-4 h-4', isPrimary ? 'text-white' : 'text-slate-600')} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">
+                      {resourceTypeLabels[type] || type}
+                    </p>
+                    {type === 'url' && resource.resource_url && (
+                      <a
+                        href={resource.resource_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-brand-600 hover:underline truncate block"
+                      >
+                        {resource.resource_url}
+                      </a>
+                    )}
+                    {type === 'text' && resource.resource_text && (
+                      <p className="text-xs text-slate-500 truncate">
+                        {resource.resource_text.substring(0, 50)}...
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setPrimaryMutation.mutate(resource.id)}
+                    className={cn('h-8 w-8', isPrimary && 'text-brand-600 hover:text-brand-700')}
+                  >
+                    <Star className={cn('w-4 h-4', isPrimary && 'fill-brand-600')} />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => deleteResourceMutation.mutate(resource.id)}
+                    className="h-8 w-8 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="sm:max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle>Add Resource</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Resource Type</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => setFormData({ ...formData, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="url">External Link</SelectItem>
+                  <SelectItem value="text">Note</SelectItem>
+                  <SelectItem value="pdf">Document</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.type === 'url' && (
+              <div>
+                <Label>URL</Label>
+                <Input
+                  type="url"
+                  value={formData.resource_url}
+                  onChange={(e) => setFormData({ ...formData, resource_url: e.target.value })}
+                  placeholder="https://example.com"
+                  required
+                />
+              </div>
+            )}
+
+            {formData.type === 'text' && (
+              <div>
+                <Label>Content</Label>
+                <Textarea
+                  value={formData.resource_text}
+                  onChange={(e) => setFormData({ ...formData, resource_text: e.target.value })}
+                  placeholder="Enter your note..."
+                  rows={4}
+                  required
+                />
+              </div>
+            )}
+
+            {formData.type === 'pdf' && (
+              <div>
+                <Label>Storage Path</Label>
+                <Input
+                  value={formData.storage_path}
+                  onChange={(e) => setFormData({ ...formData, storage_path: e.target.value })}
+                  placeholder="path/to/document.pdf"
+                  required
+                />
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-brand-500 hover:bg-brand-600 text-white">
+                Add Resource
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

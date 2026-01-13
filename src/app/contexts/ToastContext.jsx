@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ToastContext = createContext();
@@ -44,11 +44,12 @@ export const ToastProvider = ({ children }) => {
               className={`
                 pointer-events-auto cursor-pointer rounded-lg px-4 py-3 shadow-md text-sm font-medium
                 transform transition-all duration-300 hover:scale-105 active:scale-95
-                ${toast.type === 'success'
-                  ? 'bg-green-500 text-white'
-                  : toast.type === 'error'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-slate-800 text-white'
+                ${
+                  toast.type === 'success'
+                    ? 'bg-green-500 text-white'
+                    : toast.type === 'error'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-slate-800 text-white'
                 }
               `}
             >

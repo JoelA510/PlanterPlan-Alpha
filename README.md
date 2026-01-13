@@ -20,8 +20,8 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-10 (Master Review Orchestrator Execution)
-**Commit**: HEAD
+**Last verified**: 2026-01-12 (Master Review Orchestrator - PR Review Fixes)
+**Commit**: fb2554f8-634f-4087-baba-cafed68a2402
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
 
@@ -54,22 +54,17 @@ src/
 
 ### Where to Find Things
 
-| To change...         | Look in...                                                        |
-| -------------------- | ----------------------------------------------------------------- |
-| **Auth Logic**       | [src/app/contexts/AuthContext.jsx](./src/app/contexts/AuthContext.jsx)    |
+| To change...         | Look in...                                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| **Auth Logic**       | [src/app/contexts/AuthContext.jsx](./src/app/contexts/AuthContext.jsx)                          |
 | **Task API**         | [src/features/tasks/services/taskService.js](./src/features/tasks/services/taskService.js)      |
-| **Database Schema**  | [docs/db/schema.sql](./docs/db/schema.sql)                        |
-| **Task Routes**      | [src/app/App.jsx](./src/app/App.jsx)                                      |
+| **Database Schema**  | [docs/db/schema.sql](./docs/db/schema.sql)                                                      |
+| **Task Routes**      | [src/app/App.jsx](./src/app/App.jsx)                                                            |
 | **Deep Clone Logic** | [src/features/tasks/services/taskService.js](./src/features/tasks/services/taskService.js#L216) |
 
-### Environment Requirements
+### Quick Start
 
-(Inferred from `src/supabaseClient.js`)
-
-```text
-VITE_SUPABASE_URL=Supabase API URL
-VITE_SUPABASE_ANON_KEY=Supabase Anonymous Key
-```
+To set up the project locally, please refer to the **[Local Development Guide](./docs/operations/local_development.md)**.
 
 ### External dependencies
 
@@ -188,9 +183,8 @@ flowchart LR
 - ✅ **Master Library Tree View**: Recursive display of template hierarchies with on-demand loading (Ref: `MasterLibraryList.jsx`).
 - ✅ **Optimization**: Task trees fetched via `root_id` index instead of recursive calls (Ref: `fetchTaskChildren` in `taskService.js`).
 - ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `SideNav.jsx`).
-- ✅ **Adversarial Polish**: Battle-tested UI for mobile responsiveness, date handling, and layout density (Ref: `implementation_plan.md`).
-- ✅ **Visual Overhaul**: Redesigned Project Header with avatars, stats, and logical tabs (Ref: `ProjectHeader.jsx`).
-- ✅ **Responsive Dashboard**: Full-screen layout with proper scrolling and mobile-friendly side navigation (Ref: `DashboardLayout.jsx`).
+- ✅ **Responsive Dashboard**: Full-screen layout. `DashboardLayout.jsx` supports both static `Sidebar` and dynamic `SideNav`.
+- ✅ **Robust Verification**: Golden Paths tested for Dashboard, Board, and Navigation flows (Ref: `golden-paths.test.jsx`).
 
 ### 5.2 Known Limitations
 
@@ -199,4 +193,7 @@ flowchart LR
 
 ### 5.3 Technical Debt (Brutal Honesty)
 
-- **No major items identified at this time.** (Previous item regarding `root_id` mismatch was resolved).
+- **Debt Cleanup Phase Completed** (2026-01-11):
+  - `window.confirm` replaced with proper UI.
+  - Colors constants standardized.
+  - Layout architecture verified.

@@ -14,7 +14,14 @@ export const TASK_STATUS = {
   TODO: 'todo',
   IN_PROGRESS: 'in_progress',
   BLOCKED: 'blocked',
-  COMPLETED: 'complete',
+  COMPLETED: 'completed',
+};
+
+export const PROJECT_STATUS = {
+  PLANNING: 'planning',
+  IN_PROGRESS: 'in_progress',
+  LAUNCHED: 'launched',
+  PAUSED: 'paused',
 };
 
 export const STORAGE_BUCKETS = {

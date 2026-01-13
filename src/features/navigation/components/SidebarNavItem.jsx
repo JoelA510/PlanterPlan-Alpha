@@ -1,4 +1,3 @@
-
 import { TASK_STATUS } from '@app/constants/index';
 import PropTypes from 'prop-types';
 import RoleIndicator from '@shared/ui/RoleIndicator';
