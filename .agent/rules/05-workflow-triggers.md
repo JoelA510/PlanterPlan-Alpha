@@ -10,7 +10,7 @@ trigger: always_on
 | :--- | :--- | :--- |
 | **New Task / Roadmap**<br>User says "What's next?" or finishes a task. | /00-auto-roadmap | Enforces roadmap priority; prevents "cherry-picking". |
 | **New Feature Request**<br>User asks to "Add X" or "Implement Y". | /01-feature-injection | Ensures architecture constraints are checked *before* coding. |
-| **High Risk Change**<br>Task involves Auth, RLS, Migrations, or c:\Users\joel.abraham\PlanterPlan\PlanterPlan-Alpha$ logic. | /02-test-plan | "Measure twice, cut once" for critical systems. |
+| **High Risk Change**<br>Task involves Auth, RLS, Migrations, or Payment logic. | /02-test-plan | "Measure twice, cut once" for critical systems. |
 | **"Clean up the mess"**<br>User notes quality issues or requests a health check. | /03-debt-audit | Separates discovery (Audit) from action (Fix). |
 | **Fixing a Debt Item**<br>Addressing a specific line from DEBT_REPORT.md. | /04-surgical-refactor | Keeps refactors atomic and reversible. |
 | **Persistent Failure**<br>A test or build command fails 2+ times in a row. | /05-debug-loop-5 | Prevents infinite context loops/hallucinations. |
