@@ -67,10 +67,10 @@ export default function Reports() {
   };
 
   const pieData = [
-    { name: 'Completed', value: tasksByStatus.completed, color: '#22c55e' },
-    { name: 'In Progress', value: tasksByStatus.in_progress, color: '#f97316' },
-    { name: 'Not Started', value: tasksByStatus.not_started, color: '#6366f1' },
-    { name: 'Blocked', value: tasksByStatus.blocked, color: '#ef4444' }
+    { name: 'Completed', value: tasksByStatus.completed, color: 'var(--color-emerald-500)' },
+    { name: 'In Progress', value: tasksByStatus.in_progress, color: 'var(--color-orange-500)' },
+    { name: 'Not Started', value: tasksByStatus.not_started, color: 'var(--color-indigo-500)' },
+    { name: 'Blocked', value: tasksByStatus.blocked, color: 'var(--color-rose-500)' }
   ].filter(d => d.value > 0);
 
   const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
@@ -286,8 +286,8 @@ export default function Reports() {
                         return null;
                       }}
                     />
-                    <Bar dataKey="completed" stackId="a" fill="#22c55e" name="Completed" />
-                    <Bar dataKey="remaining" stackId="a" fill="#e2e8f0" name="Remaining" />
+                    <Bar dataKey="completed" stackId="a" fill="var(--color-emerald-500)" name="Completed" />
+                    <Bar dataKey="remaining" stackId="a" fill="var(--color-slate-200)" name="Remaining" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (

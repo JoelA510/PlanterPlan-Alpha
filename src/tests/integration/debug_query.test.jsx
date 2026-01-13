@@ -8,7 +8,7 @@ describe('Debug Query', () => {
 
         try {
             const data = await planter.entities.Task.filter({ root_id: testId });
-            console.log('Query Success:', data);
+
             expect(Array.isArray(data)).toBe(true);
         } catch (error) {
             console.error('Query Failed:', error);
@@ -19,7 +19,7 @@ describe('Debug Query', () => {
     it('should list projects without error', async () => {
         try {
             const data = await planter.entities.Project.list();
-            console.log('Project List Success:', data.length);
+
         } catch (error) {
             console.error('Project List Failed:', error);
             throw error;
