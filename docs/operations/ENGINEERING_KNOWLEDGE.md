@@ -1070,3 +1070,15 @@ Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due t
 ### Critical Rule
 
 > **Standardize Core Imports.** Avoid "guess-and-check" pathing when utilizing shared aliases. Document the location of high-volume hooks (`useAuth`, `useToast`, `useTaskOperations`) or use automated linting to enforce path consistency.
+
+## 5. Security & RBAC
+
+### Role Definitions
+
+| Role | Permissions |
+| :--- | :--- |
+| **Owner** | Full access. Can delete project and manage members. |
+| **Editor** | Can read/write tasks. Cannot manage members. |
+| **Coach** | Can view tasks and add comments. Cannot edit task properties. |
+| **Viewer** | Read-only access to the project. |
+| **Limited** | Restricted. Likely assigned-task only visibility (Implementation TBD). |

@@ -235,7 +235,7 @@ _Goal: System-wide visibility and admin tools._
 
 - **ID:** `P9-RBAC-ROLES`
 - **Goal**: Granular enforcement for 'Full User', 'Limited User', and 'Coach' permissions.
-- **Status**: 🚧 In Progress (Logic defined in RLS)
+- **Status**: ✅ Done (Coach/Limited roles added)
 
 ### Phase 10: Infrastructure Modernization (`status:done`)
 
