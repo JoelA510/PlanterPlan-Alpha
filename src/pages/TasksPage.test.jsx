@@ -9,7 +9,7 @@ vi.mock('@features/tasks/hooks/useTaskOperations');
 vi.mock('@layouts/DashboardLayout', () => ({
     default: ({ children }) => <div>{children}</div>
 }));
-vi.mock('@features/navigation/components/SideNav', () => ({
+vi.mock('@features/navigation/components/ProjectSidebar', () => ({
     default: () => <div>SideNav</div>
 }));
 vi.mock('@features/tasks/components/TaskItem', () => ({

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Header from '@features/navigation/components/Header';
-import Sidebar from '@features/navigation/components/Sidebar';
+import AppSidebar from '@features/navigation/components/AppSidebar';
 
 // Replaced Layout logic to match merge aesthetics
 export default function DashboardLayout({ children, currentProject, sidebar }) {
@@ -15,11 +15,11 @@ export default function DashboardLayout({ children, currentProject, sidebar }) {
 
       <div className={`fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-slate-200 z-40 transition-transform duration-300 lg:translate-x-0 shadow-lg lg:shadow-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         {sidebar ? (
-          // If custom sidebar passed (e.g. SideNav with logic), render it
+          // If custom sidebar passed (e.g. ProjectSidebar with logic), render it
           sidebar
         ) : (
           // Default Sidebar for static pages
-          <Sidebar
+          <AppSidebar
             isOpen={true} // Wrapper handles visibility now
             onClose={() => setSidebarOpen(false)}
             currentProject={currentProject}

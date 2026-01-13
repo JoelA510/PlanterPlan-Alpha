@@ -16,8 +16,8 @@
 - **Issue**: Coexistence of `Sidebar.jsx` and `SideNav.jsx`.
     - `Sidebar.jsx` contains layout logic + "Current Project" rendering.
     - `SideNav.jsx` (used in Settings) appears to be a "smart" list.
-- **Impact**: Duplication of navigation logic; potential for UI desync.
-- **Fix**: Merge into a single `AppSidebar` component or strictly define `Sidebar` as the Shell and `SideNav` as the content.
+- **Status**: [x] Completed (2026-01-12)
+- **Fix**: Merged into `AppSidebar` (Static) and `ProjectSidebar` (Dynamic).
 
 ### Lint Warnings (54)
 - **Location**: Global

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@layouts/DashboardLayout';
-import SideNav from '@features/navigation/components/SideNav';
+import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
 import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 import { useUser, useUpdateUser } from '@features/auth/hooks/useUser'; // Updated Import Path preemptively
 import { Card } from "@shared/ui/card";
@@ -45,7 +45,7 @@ export default function Settings() {
   } = useTaskOperations();
 
   const sidebar = (
-    <SideNav
+    <ProjectSidebar
       joinedProjects={joinedProjects}
       instanceTasks={instanceTasks}
       templateTasks={templateTasks}

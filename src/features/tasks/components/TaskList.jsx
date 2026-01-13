@@ -7,7 +7,7 @@ import NewTaskForm from '@features/tasks/components/NewTaskForm';
 import TaskDetailsView from '@features/tasks/components/TaskDetailsView';
 import InviteMemberModal from '@features/projects/components/InviteMemberModal';
 import ErrorBoundary from '@shared/ui/ErrorBoundary';
-import SideNav from '@features/navigation/components/SideNav';
+import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@layouts/DashboardLayout';
 
@@ -127,7 +127,7 @@ const TaskList = () => {
 
   // Define sidebar to pass to layout
   const sidebarContent = (
-    <SideNav
+    <ProjectSidebar
       joinedProjects={joinedProjects}
       instanceTasks={instanceTasks}
       templateTasks={templateTasks}

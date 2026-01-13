@@ -10,7 +10,7 @@ import TemplateList from '@features/library/components/TemplateList';
 import { LayoutDashboard, CheckSquare, BarChart, Settings } from 'lucide-react';
 import GlobalNavItem from './GlobalNavItem';
 
-const SideNav = ({
+const ProjectSidebar = ({
   joinedProjects,
   instanceTasks,
   templateTasks,
@@ -180,7 +180,7 @@ const SideNav = ({
   );
 };
 
-SideNav.propTypes = {
+ProjectSidebar.propTypes = {
   joinedProjects: PropTypes.array.isRequired,
   instanceTasks: PropTypes.array.isRequired,
   templateTasks: PropTypes.array.isRequired,
@@ -198,4 +198,4 @@ SideNav.propTypes = {
   onLoadMore: PropTypes.func,
 };
 
-export default SideNav;
+export default ProjectSidebar;

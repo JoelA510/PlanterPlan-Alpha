@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@layouts/DashboardLayout';
-import SideNav from '@features/navigation/components/SideNav';
+import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
 import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 import TaskItem from '@features/tasks/components/TaskItem';
 import EditTaskForm from '@features/tasks/components/EditTaskForm';
@@ -71,7 +71,7 @@ const TasksPage = () => {
   const myTasks = tasks.filter(t => t.parent_task_id !== null && t.origin === 'instance');
 
   const sidebar = (
-    <SideNav
+    <ProjectSidebar
       joinedProjects={joinedProjects}
       instanceTasks={instanceTasks}
       templateTasks={templateTasks}
