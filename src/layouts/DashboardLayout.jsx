@@ -23,6 +23,7 @@ export default function DashboardLayout({ children, currentProject, sidebar }) {
             isOpen={true} // Wrapper handles visibility now
             onClose={() => setSidebarOpen(false)}
             currentProject={currentProject}
+            className="static w-full h-full border-none shadow-none transform-none"
           />
         )}
       </div>

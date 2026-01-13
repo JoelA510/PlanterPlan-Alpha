@@ -24,7 +24,7 @@ const navigationItems = [
   },
 ];
 
-export default function Sidebar({ isOpen, onClose, currentProject }) {
+export default function Sidebar({ isOpen, onClose, currentProject, className }) {
   const location = useLocation();
 
   const isActive = (path) => {
@@ -40,7 +40,8 @@ export default function Sidebar({ isOpen, onClose, currentProject }) {
       <aside
         className={cn(
           'fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-slate-200 z-40 transition-transform duration-300 lg:translate-x-0 shadow-lg lg:shadow-none',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          isOpen ? 'translate-x-0' : '-translate-x-full',
+          className
         )}
       >
         <div className="flex flex-col h-full">
