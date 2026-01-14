@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import TasksPage from './TasksPage';
 import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 import { BrowserRouter } from 'react-router-dom';
@@ -13,7 +13,7 @@ vi.mock('@layouts/DashboardLayout', () => ({
 
 // Mock TaskList to expose delete functionality for testing
 vi.mock('@features/tasks/components/TaskList', () => ({
-  default: ({ tasks, onUpdateTask }) => (
+  default: ({ tasks }) => (
     <div data-testid="task-list">
       {tasks.map((task) => (
         <div key={task.id} data-testid={`task-${task.id}`}>

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // These tests are currently skipped because:
 // 1. The service functions use the global supabase client, not an injectable client
