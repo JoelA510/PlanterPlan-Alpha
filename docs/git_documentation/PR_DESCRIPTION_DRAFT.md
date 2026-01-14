@@ -307,6 +307,28 @@ ed982a1 merge: consolidate v2 branch
 
 ---
 
+## 6. New Features & UX Improvements
+ 
+ ### 6.1 Kanban Board View
+ Implemented a full Kanban Board view alongside the existing list view.
+ - **Drag & Drop**: Tasks can be moved between columns (`Todo` -> `In Progress`) to update status.
+ - **View Switcher**: Toggle between List and Board view in Project Tasks.
+ - **Components**: Added `BoardTaskCard`, `BoardColumn`, and `ProjectBoardView` (FSD compliant).
+ 
+ ### 6.2 Date Inheritance (Bottom-Up)
+ Implemented automatic date aggregation for Milestones and Phases.
+ - **Logic**: Parent task dates (`start_date`, `due_date`) are automatically calculated bounds of their children.
+ - **Recursive**: Updates propagate up the tree (Child -> Parent -> Root).
+ - **Triggers**: Creating, Updating, or Deleting a task triggers inheritance.
+ 
+ ### 6.3 UX Polish
+ - **Drag Handles**: Added `GripVertical` handle for clear affordance in List View.
+ - **Modals**: Fixed transparent backgrounds by enforcing `bg-white`.
+ - **New Project**: Aligned Template Cards with Dashboard aesthetics (Orange Gradients + Hover scaling).
+ - **Noise Reduction**: Eliminated console warnings and lint errors.
+
+---
+
 ## Reviewers Checklist
 
 - [ ] Verify constants usage in any custom components

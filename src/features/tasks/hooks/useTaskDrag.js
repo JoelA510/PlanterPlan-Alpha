@@ -102,7 +102,7 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
   return { isValid: true, newPos, newParentId };
 };
 
-export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId }) => {
+export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId, updateTaskStatus }) => {
   const [moveError, setMoveError] = useState(null);
 
   useEffect(() => {
@@ -135,7 +135,42 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId }) => {
         const activeTask = tasks.find((t) => t.id === active.id);
         if (!activeTask) return;
 
-        // Attempt 1: Calculate Position
+        // --- Status Change Logic (Cross-Column) ---
+        const overData = over.data?.current || {};
+        let newStatus = null;
+
+        // Check if dropped explicitly on a Column or a Task with a different status
+        if (overData.isColumn) {
+          newStatus = overData.status;
+        } else if (overData.status) {
+          newStatus = overData.status;
+        }
+
+        const isStatusChange = newStatus && newStatus !== activeTask.status;
+
+        // If status changed, we optimistic update that first
+        if (isStatusChange && updateTaskStatus) {
+          const prevStatus = activeTask.status;
+
+          // Optimistic Update Status
+          setTasks(prev => prev.map(t =>
+            t.id === active.id ? { ...t, status: newStatus } : t
+          ));
+
+          try {
+            await updateTaskStatus(active.id, newStatus);
+          } catch (e) {
+            console.error("Failed to update status", e);
+            setTasks(prev => prev.map(t =>
+              t.id === active.id ? { ...t, status: prevStatus } : t
+            ));
+            return; // Stop here on error
+          }
+        }
+
+        // --- Position Logic (Reordering) ---
+        // Even if status changed, we still want to put it in the right spot
+
         let result = calculateDropTarget(tasks, active, over, activeTask.origin);
 
         if (!result.isValid) {
@@ -218,7 +253,7 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId }) => {
         fetchTasks();
       }
     },
-    [tasks, fetchTasks, currentUserId, setTasks]
+    [tasks, fetchTasks, currentUserId, setTasks, updateTaskStatus]
   );
 
   return { sensors, handleDragEnd, moveError, setMoveError };

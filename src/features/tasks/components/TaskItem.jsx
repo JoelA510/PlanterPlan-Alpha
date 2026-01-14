@@ -7,7 +7,7 @@ import { useDroppable } from '@dnd-kit/core';
 import '../../../styles/components/task-card.css';
 import ErrorBoundary from '@shared/ui/ErrorBoundary';
 import { TASK_STATUS } from '@app/constants/index';
-import { Lock, Link as LinkIcon } from 'lucide-react';
+import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
 
 const getStatusStyle = (status) => {
   switch (status) {
@@ -146,12 +146,7 @@ const TaskItem = memo(
                 {isLocked ? (
                   <Lock className="w-3 h-3 text-slate-400" />
                 ) : (
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                    <path
-                      d="M4 4h2v2H4V4zm6 0h2v2h-2V4zM4 10h2v2H4v-2zm6 0h2v2h-2v-2z"
-                      opacity="0.6"
-                    />
-                  </svg>
+                  <GripVertical className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
                 )}
               </button>
 

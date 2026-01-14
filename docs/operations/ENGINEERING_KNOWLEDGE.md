@@ -1082,3 +1082,12 @@ Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due t
 | **Coach** | Can view tasks and add comments. Cannot edit task properties. |
 | **Viewer** | Read-only access to the project. |
 | **Limited** | Restricted. Likely assigned-task only visibility (Implementation TBD). |
+## Fix: Missing Card Backgrounds (Design System Mismatch)
+**Date**: Tue Jan 13 08:00:35 PM PST 2026
+**Issue**: User reported 'backgrounds not loading' for Template Cards in New Project Modal.
+**Root Cause**: The cards utilized flat, dull colors ('bg-slate-100') which clashed with the 'Premium' aesthetic of the Dashboard's gradient cards, appearing broken or unstyled by comparison.
+**Fix**:
+1.  Applied 'bg-gradient-to-br from-orange-500 to-orange-600' to selected template icons.
+2.  Added 'group-hover' states to animate icons and borders ('scale-105', 'text-orange-600') for immediate visual feedback.
+3.  Ensured 'bg-white' is explicit on the card container to prevent transparency issues.
+**Verification**: Confirmed visually via Browser Agent and Code Review.

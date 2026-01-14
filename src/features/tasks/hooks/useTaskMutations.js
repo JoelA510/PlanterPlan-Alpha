@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@app/supabaseClient';
-import { deepCloneTask } from '@features/tasks/services/taskService';
+import { deepCloneTask, updateParentDates } from '@features/tasks/services/taskService';
 import { calculateScheduleFromOffset, toIsoDate } from '@shared/lib/date-engine';
 import { POSITION_STEP } from '@app/constants/index';
 
@@ -13,6 +13,26 @@ export const useTaskMutations = ({
   joinedProjects,
   hydratedProjects,
 }) => {
+  /* Helper to refresh the appropriate context (Root Project or Global List) */
+  const _refreshTaskContext = useCallback(
+    async (task) => {
+      // If we have a task object, try to find its root project
+      if (task) {
+        const rootId =
+          task.root_id || (task.parent_task_id ? findTask(task.parent_task_id)?.root_id : null);
+
+        // If it belongs to a project tree, refresh that project's details
+        if (rootId) {
+          await refreshProjectDetails(rootId);
+          return;
+        }
+      }
+      // Fallback: Refresh the global/flat list if no root context found or if it's a root
+      await fetchTasks();
+    },
+    [findTask, refreshProjectDetails, fetchTasks]
+  );
+
   const createTaskOrUpdate = useCallback(
     async (formData, formState) => {
       try {
@@ -93,6 +113,13 @@ export const useTaskMutations = ({
 
           if (rootId) await refreshProjectDetails(rootId);
           else await fetchProjects(1); // Refresh list if root updated
+
+          // Trigger Date Inheritance
+          if (parentId && origin === 'instance') {
+            await updateParentDates(parentId);
+            // Re-refresh to show parent updates?
+            if (rootId) await refreshProjectDetails(rootId);
+          }
           return;
         }
 
@@ -167,6 +194,13 @@ export const useTaskMutations = ({
 
         if (rootId) await refreshProjectDetails(rootId);
         else await fetchProjects(1); // Refresh roots if new project
+
+        // Trigger Date Inheritance
+        if (parentId && origin === 'instance') {
+          await updateParentDates(parentId);
+          if (rootId) await refreshProjectDetails(rootId);
+        }
+
       } catch (error) {
         console.error('Error saving task:', error);
         throw error;
@@ -175,36 +209,24 @@ export const useTaskMutations = ({
     [tasks, joinedProjects, hydratedProjects, fetchProjects, refreshProjectDetails, findTask]
   );
 
-  /* Helper to refresh the appropriate context (Root Project or Global List) */
-  const _refreshTaskContext = useCallback(
-    async (task) => {
-      // If we have a task object, try to find its root project
-      if (task) {
-        const rootId =
-          task.root_id || (task.parent_task_id ? findTask(task.parent_task_id)?.root_id : null);
-
-        // If it belongs to a project tree, refresh that project's details
-        if (rootId) {
-          await refreshProjectDetails(rootId);
-          return;
-        }
-      }
-      // Fallback: Refresh the global/flat list if no root context found or if it's a root
-      await fetchTasks();
-    },
-    [findTask, refreshProjectDetails, fetchTasks]
-  );
-
   const deleteTask = useCallback(
     async (taskOrId) => {
       try {
         const taskId = typeof taskOrId === 'object' ? taskOrId.id : taskOrId;
         const task = typeof taskOrId === 'object' ? taskOrId : findTask(taskId);
+        const parentId = task ? task.parent_task_id : null;
 
         const { error: deleteError } = await supabase.from('tasks').delete().eq('id', taskId);
         if (deleteError) throw deleteError;
 
         await _refreshTaskContext(task);
+
+        // Trigger Date Inheritance
+        if (parentId && task && task.origin === 'instance') {
+          await updateParentDates(parentId);
+          await _refreshTaskContext(findTask(parentId));
+        }
+
       } catch (error) {
         console.error('Error deleting task:', error);
         throw error;
@@ -217,10 +239,27 @@ export const useTaskMutations = ({
     async (taskId, updates) => {
       try {
         const task = findTask(taskId);
+        const oldParentId = task ? task.parent_task_id : null;
+
         const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
         if (error) throw error;
 
         await _refreshTaskContext(task);
+
+        // Trigger Date Inheritance
+        if (task && task.origin === 'instance') {
+          // 1. If date changed, update parent
+          if (updates.start_date !== undefined || updates.due_date !== undefined) {
+            if (task.parent_task_id) await updateParentDates(task.parent_task_id);
+          }
+          // 2. If parent changed, update OLD and NEW parent
+          if (updates.parent_task_id !== undefined && updates.parent_task_id !== oldParentId) {
+            if (oldParentId) await updateParentDates(oldParentId);
+            if (updates.parent_task_id) await updateParentDates(updates.parent_task_id);
+          }
+          // Refresh to show recursive changes
+          await _refreshTaskContext(task);
+        }
       } catch (error) {
         console.error('Error updating task:', error);
         throw error;
