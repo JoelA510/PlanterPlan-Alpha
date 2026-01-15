@@ -1,5 +1,5 @@
 // src/components/molecules/TaskItem.jsx
-import { useCallback, memo, forwardRef } from 'react';
+import { useCallback, memo } from 'react';
 import RoleIndicator from '@shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -7,6 +7,7 @@ import { useDroppable } from '@dnd-kit/core';
 import '../../../styles/components/task-card.css';
 import ErrorBoundary from '@shared/ui/ErrorBoundary';
 import { TASK_STATUS } from '@app/constants/index';
+import { Lock, Link as LinkIcon } from 'lucide-react';
 
 const getStatusStyle = (status) => {
   switch (status) {
@@ -16,6 +17,7 @@ const getStatusStyle = (status) => {
       return 'status-badge-progress';
     case TASK_STATUS.BLOCKED:
       return 'status-badge-blocked';
+    case TASK_STATUS.TODO:
     default:
       return 'status-badge-todo';
   }
@@ -122,28 +124,35 @@ const TaskItem = memo(
       },
     });
 
+    const isLocked = task.is_locked || false; // Or derive from phase if props available, but task entity has is_locked now
+
     return (
       <>
         <div
-          className={`task-card level-${level} ${isSelected ? 'selected' : ''} py-4 px-5 mb-3`}
+          className={`task-card level-${level} ${isSelected ? 'selected' : ''} py-4 px-5 mb-3 ${isLocked ? 'opacity-70 bg-slate-50' : ''}`}
           style={{ marginLeft: `${indentWidth}px` }}
-          onClick={handleCardClick}
+          onClick={!isLocked ? handleCardClick : undefined}
         >
           <div className="task-card-content">
             <div className="task-card-left flex-1 min-w-0 mr-4">
               <button
-                className="drag-handle-btn mr-2"
+                className={`drag-handle-btn mr-2 ${isLocked ? 'cursor-not-allowed opacity-30' : ''}`}
                 type="button"
                 aria-label="Reorder task"
-                ref={dragHandleProps?.ref}
-                {...dragHandleProps}
+                ref={!isLocked ? dragHandleProps?.ref : undefined}
+                {...(!isLocked ? dragHandleProps : {})}
+                disabled={isLocked}
               >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                  <path
-                    d="M4 4h2v2H4V4zm6 0h2v2h-2V4zM4 10h2v2H4v-2zm6 0h2v2h-2v-2z"
-                    opacity="0.6"
-                  />
-                </svg>
+                {isLocked ? (
+                  <Lock className="w-3 h-3 text-slate-400" />
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                    <path
+                      d="M4 4h2v2H4V4zm6 0h2v2h-2V4zM4 10h2v2H4v-2zm6 0h2v2h-2v-2z"
+                      opacity="0.6"
+                    />
+                  </svg>
+                )}
               </button>
 
               {showChevron ? (
@@ -183,7 +192,8 @@ const TaskItem = memo(
                   </span>
                 )}
                 {task.resource_type && (
-                  <span className="px-2.5 py-1 text-xs uppercase font-bold tracking-wider rounded bg-brand-50 text-brand-700 border border-brand-100 whitespace-nowrap flex-shrink-0">
+                  <span className="px-2.5 py-1 text-xs uppercase font-bold tracking-wider rounded bg-brand-50 text-brand-700 border border-brand-100 whitespace-nowrap flex-shrink-0 flex items-center gap-1">
+                    <LinkIcon className="w-3 h-3" />
                     {task.resource_type}
                   </span>
                 )}
@@ -340,7 +350,7 @@ export const SortableTaskItem = memo(function SortableTaskItem({ task, level, ..
     position: 'relative',
     zIndex: isDragging ? 999 : 'auto',
     boxShadow: isDragging
-      ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+      ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' // equivalent to shadow-xl
       : 'none',
     scale: isDragging ? 1.02 : 1,
   };

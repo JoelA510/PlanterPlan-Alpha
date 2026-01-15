@@ -1,4 +1,8 @@
-import { fetchMasterLibraryTasks, searchMasterLibraryTasks, deepCloneTask } from '@features/tasks/services/taskService';
+import {
+  fetchMasterLibraryTasks,
+  searchMasterLibraryTasks,
+  deepCloneTask,
+} from '@features/tasks/services/taskService';
 
 const createMockClient = (response) => {
   const builder = {
@@ -89,7 +93,7 @@ describe('fetchMasterLibraryTasks', () => {
   });
 
   it('returns empty array when payload shape invalid', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { client } = createMockClient({ data: [{ bad: 'record' }], error: null });
 
     const results = await fetchMasterLibraryTasks({}, client);
@@ -100,7 +104,6 @@ describe('fetchMasterLibraryTasks', () => {
 });
 
 describe('deepCloneTask', () => {
-
   it('calls the RPC successfully with overrides', async () => {
     // Mock client.rpc
     const mockRpc = vi.fn().mockResolvedValue({

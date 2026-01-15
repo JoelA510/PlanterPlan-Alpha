@@ -145,112 +145,17 @@
 }
 
 .status-dot.todo {
-  background-color: #cbd5e1;
+  background-color: var(--color-slate-300);
   /* Slate 300 - Keep specific color or map to var */
-}
-
-.status-dot.in_progress {
-  background-color: var(--status-progress-text);
-  /* Blue 500 */
-}
-
-.status-dot.blocked {
-  background-color: var(--status-blocked-text);
-  /* Red 500 */
-}
-
-.status-dot.complete {
-  background-color: var(--status-complete-text);
-  /* Green 500 */
-}
-
-/* Project View Container */
-.project-view-area {
-  flex: 1;
-  overflow-y: auto;
-  /* padding handled by Tailwind in DashboardLayout */
-}
-
-/* Project Header Area */
-.project-header {
-  margin-bottom: 32px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--status-todo-border);
-}
-
-.project-header h1 {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 8px 0;
-  letter-spacing: -0.025em;
-}
-
-.project-header .meta {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-
-/* Welcome/Empty State Enhancement */
-.welcome-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  height: 100%;
-  padding: 40px;
-  color: var(--text-secondary);
-}
-
-.welcome-state h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
-/* Right side - Permanent panel (Details) */
-/* Note: Consider moving width to Tailwind if possible, but keeping here for consistency */
-.permanent-side-panel {
-  width: 400px;
-  background: var(--bg-surface);
-  border-left: 1px solid var(--status-todo-border);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  height: 100%;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.02);
-}
-
-/* Responsive - Stack on mobile */
-@media (max-width: 1024px) {
-  .permanent-side-panel {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid var(--status-todo-border);
-  }
-}
-
-/* Custom Scrollbar for Light Mode */
-.side-nav-content::-webkit-scrollbar,
-.custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-.side-nav-content::-webkit-scrollbar-track,
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
 }
 
 .side-nav-content::-webkit-scrollbar-thumb,
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-slate-300);
   border-radius: 3px;
 }
 
 .side-nav-content::-webkit-scrollbar-thumb:hover,
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-slate-400);
 }

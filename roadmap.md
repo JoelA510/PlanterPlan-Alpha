@@ -1,6 +1,6 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated**: 2026-01-10 (Vite & Design System Migration Verified)
+**Last Updated**: 2026-01-12 (Master Review & PR Fixes)
 **Current Focus**: Phase 7 (Design System Verification)
 
 ---
@@ -29,7 +29,9 @@ A chronological overview of the project's evolution from Day 1.
 | **Feedback Sprint**      | Jan 2026     | **Logic & UI Polish**: Addressed 40+ feedback items including RBAC security, Timezone fixes, Printer styles, and form layout improvements.                                       |
 | **Surgical Refactor**    | Jan 2026     | **Architecture Hardening**: Split monolithic hooks (`useTaskOperations`), Refactored `MasterLibraryList` to `useTreeState`, Consolidatd Documentation, and Updated Dependencies. |
 | **Master Audit**         | Jan 2026     | **Code Quality**: Automated Master Review Orchestrator execution. Fixed React patterns, enforced strict linting, and verified Golden Paths.                                      |
-| **Vite Migration** | Jan 2026 | **Infrastructure**: Moved to Vite, Vitest, and Tailwind v4. Integrated Planter modules. Verified via Golden Paths. |
+| **Vite Migration**       | Jan 2026     | **Infrastructure**: Moved to Vite, Vitest, and Tailwind v4. Integrated Planter modules. Verified via Golden Paths.                                                               |
+| **Debt Cleanup & Fixes** | Jan 2026     | **Stability**: Fixed `DashboardLayout` Sidebar injection, standardized chart colors using `TASK_STATUS` constants, and resolved critical test failures.                          |
+| **PR Review Fixes**      | Jan 2026     | **Review**: Integrated fixes from Codex/Gemini: Generic Entity Client, Design System corrections (Colors, Arbitrary Values).                                                     |
 
 ---
 
@@ -260,3 +262,9 @@ _Goal: System-wide visibility and admin tools._
 - **ID:** `P10-TAILWIND-V4`
 - **Goal**: Adopt Tailwind v4 and remove manual CSS utilities.
 - **Status**: ✅ Done (Phase 3 Verified)
+
+#### 10.4 Quality Convergence (Master Review Ph 2)
+
+- **ID:** `P10-QUALITY-CONVERGE`
+- **Goal**: Standardize Design System (Rule 30) and Verify Golden Paths.
+- **Status**: ✅ Done (Jan 2026)

@@ -1,98 +1,38 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import Header from '@features/navigation/components/Header';
+import ProjectSidebarContainer from '@features/navigation/components/ProjectSidebarContainer';
 
-const DashboardLayout = ({ children, sidebar }) => {
+// Replaced Layout logic to match merge aesthetics
+export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Inject props into sidebar to handle mobile closing
-  const sidebarWithProps = React.isValidElement(sidebar)
-    ? React.cloneElement(sidebar, { onNavClick: () => setSidebarOpen(false) })
-    : sidebar;
-
   return (
-    // FIX 1: h-screen and overflow-hidden on the outermost container
-    <div className="flex h-screen w-screen bg-slate-50 overflow-hidden">
-      {/* Mobile Sidebar Overlay (Unchanged) */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
-          <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
+    <div className="min-h-screen bg-slate-50">
+      <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} showMenuButton={true} />
+
+      <div
+        className={`fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-slate-200 z-40 transition-transform duration-300 lg:translate-x-0 shadow-lg lg:shadow-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        {sidebar ? (
+          // If custom sidebar passed (e.g. ProjectSidebar with logic), render it
+          sidebar
+        ) : (
+          // Default Sidebar for static pages
+          <ProjectSidebarContainer
+            onNavClick={() => setSidebarOpen(false)}
+            selectedTaskId={selectedTaskId}
           />
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-xl">
-            <div className="absolute top-0 right-0 -mr-12 pt-2">
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-              >
-                <span className="sr-only">Close sidebar</span>
-                <svg
-                  className="h-6 w-6 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            {/* Mobile Sidebar Content */}
-            <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto side-nav-content">
-              {sidebarWithProps}
-            </div>
-          </div>
-          <div className="flex-shrink-0 w-14" aria-hidden="true">
-            {/* Force sidebar to shrink to fit close icon */}
-          </div>
-          <div className="flex-shrink-0 w-14" />
-        </div>
+        )}
+      </div>
+      {/* Mobile Overlay for Sidebar */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
-      {/* FIX 2: Desktop Sidebar - Explicit width and border, remove conflicting CSS classes */}
-      <div className="hidden lg:flex lg:flex-shrink-0 w-64 flex-col border-r border-slate-200 bg-white h-full">
-        {/* Pass h-full to the content to ensure it stretches */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden">{sidebarWithProps}</div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden h-full">
-        {/* Mobile Header (Unchanged) */}
-        <div className="lg:hidden flex items-center justify-between bg-white border-b border-slate-200 px-4 py-3 flex-shrink-0">
-          <div className="flex items-center">
-            <span className="font-bold text-lg text-slate-800">PlanterPlan</span>
-          </div>
-          <button
-            type="button"
-            className="-mr-3 h-12 w-12 inline-flex items-center justify-center text-slate-500"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <span className="sr-only">Open sidebar</span>
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* FIX 3: Main Scroll Area - Ensure it takes remaining height */}
-        <main className="flex-1 overflow-y-auto focus:outline-none relative bg-slate-50">
-          <div className="min-h-full flex flex-col">
-            {/* Removed fixed padding here to allow header to span full width if desired, 
-                 ProjectTasksView adds its own padding. */}
-            {children}
-          </div>
-        </main>
-      </div>
+      <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)]">{children}</main>
     </div>
   );
-};
-
-export default DashboardLayout;
+}

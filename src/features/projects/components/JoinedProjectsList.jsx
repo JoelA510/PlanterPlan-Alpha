@@ -1,4 +1,3 @@
-
 import PropTypes from 'prop-types';
 import SidebarNavItem from '@features/navigation/components/SidebarNavItem';
 
@@ -26,7 +25,9 @@ const JoinedProjectsList = ({ projects, error, handleTaskClick, selectedTaskId }
           ))}
         </div>
       ) : (
-        <div className="text-sm text-slate-400 px-3 py-4">You haven&apos;t joined any projects yet.</div>
+        <div className="text-sm text-slate-400 px-3 py-4">
+          You haven&apos;t joined any projects yet.
+        </div>
       )}
     </div>
   );

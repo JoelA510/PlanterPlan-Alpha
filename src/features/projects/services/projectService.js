@@ -1,5 +1,6 @@
-import { planter } from 'api/planterClient';
+import { planter } from '@shared/api/planterClient';
 import { supabase } from '@app/supabaseClient';
+import { TASK_STATUS } from '@app/constants/index';
 
 // --- Membership ---
 
@@ -40,25 +41,25 @@ export async function getJoinedProjects(userId) {
 
   if (error) throw error;
 
-  // Flatten result, filter nulls, and map fields manually since we can't alias in nested join easily? 
+  // Flatten result, filter nulls, and map fields manually since we can't alias in nested join easily?
   // actually we can try select('project:tasks(*, name:title, ...)')
   // Re-fetching with explicit mapping in join:
   // .select('project:tasks(*, name:title, launch_date:due_date, owner_id:creator)')
 
   // Let's assume the component can handle it, or we map it here.
   const mappedData = (data || [])
-    .map(item => item.project)
-    .filter(p => p !== null)
-    .map(p => ({
+    .map((item) => item.project)
+    .filter((p) => p !== null)
+    .map((p) => ({
       ...p,
       name: p.title,
       launch_date: p.due_date,
-      owner_id: p.creator
+      owner_id: p.creator,
     }));
 
   return {
     data: mappedData,
-    error: null
+    error: null,
   };
 }
 
@@ -92,10 +93,7 @@ export async function getProjectWithStats(projectId) {
   if (totalError || completedError) console.warn('Stats fetch error', totalError, completedError);
 
   // Fetch ALL children
-  const { data: children, error: childrenError } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('root_id', projectId);
+  const { data: children } = await supabase.from('tasks').select('*').eq('root_id', projectId);
 
   return {
     data: {
@@ -104,10 +102,10 @@ export async function getProjectWithStats(projectId) {
       stats: {
         totalTasks: totalTasks || 0,
         completedTasks: completedTasks || 0,
-        progress: totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0
-      }
+        progress: totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0,
+      },
     },
-    error: null
+    error: null,
   };
 }
 
@@ -129,41 +127,42 @@ export async function createProjectWithDefaults(projectData) {
   // Create default phases for the project
   const defaultPhases = [
     {
-      name: 'Discovery',
-      description: 'Assess calling, gather resources, build foundation',
+      title: 'Discovery',
+      description: 'Assess calling, gather resources, foundation',
       order: 1,
       icon: 'compass',
       color: 'blue',
     },
     {
-      name: 'Planning',
+      title: 'Planning',
       description: 'Develop strategy, vision, and initial team',
       order: 2,
       icon: 'map',
       color: 'purple',
     },
     {
-      name: 'Preparation',
+      title: 'Preparation',
       description: 'Build systems, recruit team, prepare for launch',
       order: 3,
       icon: 'wrench',
       color: 'orange',
     },
     {
-      name: 'Pre-Launch',
+      title: 'Pre-Launch',
       description: 'Final preparations, preview services, marketing',
       order: 4,
       icon: 'rocket',
       color: 'green',
     },
     {
-      name: 'Launch',
+      title: 'Launch',
       description: 'Grand opening and initial growth phase',
       order: 5,
       icon: 'yellow',
+      color: 'yellow',
     },
     {
-      name: 'Growth',
+      title: 'Growth',
       description: 'Establish systems, develop leaders, expand reach',
       order: 6,
       icon: 'trending-up',
@@ -171,29 +170,45 @@ export async function createProjectWithDefaults(projectData) {
     },
   ];
 
+  // Get current user for attribution
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const creatorId = user?.id || project.creator;
+
   for (const phase of defaultPhases) {
     const createdPhase = await planter.entities.Phase.create({
-      ...phase,
-      project_id: project.id,
+      title: phase.title,
+      description: phase.description,
+      position: phase.order, // Map order to position
+      root_id: project.id,
+      parent_task_id: project.id, // Phase is child of Project
+      creator: creatorId, // Explicitly set creator
     });
 
     // Create default milestones for each phase
     const milestones = getMilestonesForPhase(phase.order);
     for (const milestone of milestones) {
       const createdMilestone = await planter.entities.Milestone.create({
-        ...milestone,
-        phase_id: createdPhase.id,
-        project_id: project.id,
+        title: milestone.title,
+        description: milestone.description,
+        position: milestone.order, // Map order to position
+        parent_task_id: createdPhase.id, // Milestone child of Phase
+        root_id: project.id,
+        creator: creatorId, // Explicitly set creator
       });
 
       // Create default tasks for each milestone
-      const tasks = getTasksForMilestone(milestone.order, phase.order);
+      const tasks = getTasksForMilestone(milestone.order);
       for (const task of tasks) {
         await planter.entities.Task.create({
-          ...task,
-          milestone_id: createdMilestone.id,
-          phase_id: createdPhase.id,
-          project_id: project.id,
+          title: task.title,
+          priority: task.priority,
+          status: TASK_STATUS.TODO,
+          position: task.order, // Map order to position
+          parent_task_id: createdMilestone.id, // Task child of Milestone
+          root_id: project.id,
+          creator: creatorId, // Explicitly set creator
         });
       }
     }
@@ -206,44 +221,54 @@ export async function createProjectWithDefaults(projectData) {
 function getMilestonesForPhase(phaseOrder) {
   const milestonesMap = {
     1: [
-      { name: 'Personal Assessment', order: 1, description: 'Evaluate your calling and readiness' },
-      { name: 'Family Preparation', order: 2, description: 'Prepare your family for the journey' },
       {
-        name: 'Resource Gathering',
+        title: 'Personal Assessment',
+        order: 1,
+        description: 'Evaluate your calling and readiness',
+      },
+      { title: 'Family Preparation', order: 2, description: 'Prepare your family for the journey' },
+      {
+        title: 'Resource Gathering',
         order: 3,
         description: 'Identify available resources and support',
       },
     ],
     2: [
-      { name: 'Vision Development', order: 1, description: 'Clarify your vision and mission' },
-      { name: 'Strategic Planning', order: 2, description: 'Develop your launch strategy' },
-      { name: 'Core Team Building', order: 3, description: 'Recruit and develop your core team' },
+      { title: 'Vision Development', order: 1, description: 'Clarify your vision and mission' },
+      { title: 'Strategic Planning', order: 2, description: 'Develop your launch strategy' },
+      { title: 'Core Team Building', order: 3, description: 'Recruit and develop your core team' },
     ],
     3: [
-      { name: 'Systems Setup', order: 1, description: 'Establish operational systems' },
-      { name: 'Facility Planning', order: 2, description: 'Secure meeting location' },
-      { name: 'Ministry Development', order: 3, description: 'Develop key ministry areas' },
+      { title: 'Systems Setup', order: 1, description: 'Establish operational systems' },
+      { title: 'Facility Planning', order: 2, description: 'Secure meeting location' },
+      { title: 'Ministry Development', order: 3, description: 'Develop key ministry areas' },
     ],
     4: [
-      { name: 'Preview Services', order: 1, description: 'Host preview gatherings' },
-      { name: 'Marketing Launch', order: 2, description: 'Begin community outreach' },
-      { name: 'Final Preparations', order: 3, description: 'Complete all launch requirements' },
+      { title: 'Preview Services', order: 1, description: 'Host preview gatherings' },
+      { title: 'Marketing Launch', order: 2, description: 'Begin community outreach' },
+      { title: 'Final Preparations', order: 3, description: 'Complete all launch requirements' },
     ],
     5: [
-      { name: 'Launch Week', order: 1, description: 'Execute your launch plan' },
-      { name: 'First Month', order: 2, description: 'Establish weekly rhythms' },
-      { name: 'Guest Follow-up', order: 3, description: 'Connect with visitors' },
+      { title: 'Launch Week', order: 1, description: 'Execute your launch plan' },
+      { title: 'First Month', order: 2, description: 'Establish weekly rhythms' },
+      { title: 'Guest Follow-up', order: 3, description: 'Connect with visitors' },
     ],
     6: [
-      { name: 'Leadership Development', order: 1, description: 'Train and empower leaders' },
-      { name: 'Ministry Expansion', order: 2, description: 'Launch additional ministries' },
-      { name: 'Future Planning', order: 3, description: 'Plan for multiplication' },
+      { title: 'Leadership Development', order: 1, description: 'Train and empower leaders' },
+      { title: 'Ministry Expansion', order: 2, description: 'Launch additional ministries' },
+      { title: 'Future Planning', order: 3, description: 'Plan for multiplication' },
     ],
   };
-  return milestonesMap[phaseOrder] || [];
+  // Ensure we fallback to empty if generic phase
+  return (
+    milestonesMap[phaseOrder] || [
+      { title: 'Generic Milestone 1', order: 1, description: 'Default milestone' },
+      { title: 'Generic Milestone 2', order: 2, description: 'Default milestone' },
+    ]
+  );
 }
 
-function getTasksForMilestone(milestoneOrder, _phaseOrder) {
+function getTasksForMilestone(milestoneOrder) {
   // Return a few sample tasks for each milestone
   const taskTemplates = [
     { title: 'Review and complete assessment', priority: 'high' },

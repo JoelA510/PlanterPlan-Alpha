@@ -1,90 +1,194 @@
-
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState } from 'react';
+import { useAuth } from '@app/contexts/AuthContext';
+import { Button } from '@shared/ui/button';
+import { Card } from '@shared/ui/card';
+import { Input } from '@shared/ui/input';
+import { Label } from '@shared/ui/label';
+import { useToast } from '@shared/ui/use-toast';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  User,
+  Mail,
+  Lock,
+  Bell,
+  Palette,
+  Shield,
+  Loader2,
+  Camera,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 import DashboardLayout from '@layouts/DashboardLayout';
-import SideNav from '@features/navigation/components/SideNav';
-import { useNavigate } from 'react-router-dom';
-import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 
 export default function Settings() {
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
-  // Navigation Data
-  const {
-    instanceTasks,
-    templateTasks,
-    joinedProjects,
-    loading: navLoading
-  } = useTaskOperations();
+  const [profile, setProfile] = useState({
+    name: user?.user_metadata?.full_name || 'Joel Miller',
+    email: user?.email || 'joel@example.com',
+    role: 'Lead Church Planter',
+    organization: 'Grace Community Church',
+  });
 
-  // Handlers for SideNav
-  const handleSelectProject = (project) => navigate(`/project/${project.id}`);
-  const handleNewProjectClick = () => navigate('/dashboard');
-  const handleNewTemplateClick = () => { };
-
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setLoading(false);
+    toast({
+      title: 'Settings saved',
+      description: 'Your profile has been updated successfully.',
+    });
+  };
 
   return (
-    <DashboardLayout sidebar={<SideNav
-      instanceTasks={instanceTasks}
-      templateTasks={templateTasks}
-      joinedProjects={joinedProjects}
-      handleSelectProject={handleSelectProject}
-      onNewProjectClick={handleNewProjectClick}
-      onNewTemplateClick={handleNewTemplateClick}
-      loading={navLoading}
-    />}>
-      <div className="min-h-screen bg-slate-50 p-8">
-        <div className="max-w-3xl mx-auto space-y-8">
-          <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
+    <DashboardLayout>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Settings</h1>
+          <p className="text-slate-500 mt-1">Manage your account and app preferences</p>
+        </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Settings</CardTitle>
-              <CardDescription>Manage your account settings and preferences.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" placeholder="Your name" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="Your email" />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button className="bg-brand-500 hover:bg-brand-600">Save Changes</Button>
-            </CardFooter>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Settings Navigation */}
+          <div className="md:col-span-1 space-y-1">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-orange-600 bg-orange-50 font-semibold"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-slate-600 hover:text-slate-900">
+              <Mail className="w-4 h-4 mr-2" />
+              Notifications
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-slate-600 hover:text-slate-900">
+              <Lock className="w-4 h-4 mr-2" />
+              Security
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-slate-600 hover:text-slate-900">
+              <Palette className="w-4 h-4 mr-2" />
+              Appearance
+            </Button>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>Configure how you want to be notified.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <input type="checkbox" id="email-notifs" className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" defaultChecked />
-                <Label htmlFor="email-notifs" className="font-medium text-slate-700">Email Notifications</Label>
-              </div>
-              <p className="text-xs text-slate-500 pl-6">Receive updates when tasks are assigned to you.</p>
+          {/* Main Content */}
+          <div className="md:col-span-3 space-y-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <Card className="p-6 border border-slate-200 bg-white shadow-sm">
+                <div className="flex items-center gap-6 mb-8">
+                  <div className="relative">
+                    <div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center border-2 border-white shadow-md">
+                      <User className="w-10 h-10 text-slate-400" />
+                    </div>
+                    <Button
+                      size="icon"
+                      className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-orange-500 hover:bg-orange-600 border-2 border-white"
+                    >
+                      <Camera className="w-4 h-4 text-white" />
+                    </Button>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">Personal Info</h2>
+                    <p className="text-sm text-slate-500">Update your photo and personal details.</p>
+                  </div>
+                </div>
 
-              <div className="flex items-center space-x-2 mt-4">
-                <input type="checkbox" id="digest" className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" defaultChecked />
-                <Label htmlFor="digest" className="font-medium text-slate-700">Weekly Digest</Label>
+                <form onSubmit={handleSave} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        value={profile.name}
+                        onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                        className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={profile.email}
+                        disabled
+                        className="bg-slate-50 border-slate-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Input
+                      id="role"
+                      value={profile.role}
+                      onChange={(e) => setProfile({ ...profile, role: e.target.value })}
+                      className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="org">Organization</Label>
+                    <Input
+                      id="org"
+                      value={profile.organization}
+                      onChange={(e) => setProfile({ ...profile, organization: e.target.value })}
+                      className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div className="pt-6 border-t border-slate-100 flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20"
+                    >
+                      {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Save Changes
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+            </motion.div>
+
+            {/* Other Settings Sections (Placeholders) */}
+            <Card className="p-6 border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Email Notifications</h3>
+                  <p className="text-sm text-slate-500">Manage how you receive alerts.</p>
+                </div>
               </div>
-              <p className="text-xs text-slate-500 pl-6">Get a summary of your project progress every Monday.</p>
-            </CardContent>
-          </Card>
+              <Button variant="outline" className="text-slate-600">
+                Configure Notifications
+              </Button>
+            </Card>
+
+            <Card className="p-6 border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Security & Privacy</h3>
+                  <p className="text-sm text-slate-500">Protect your account and data.</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <Button variant="outline" className="text-slate-600">
+                  Change Password
+                </Button>
+                <Button variant="outline" className="text-slate-600">
+                  Two-Factor Auth
+                </Button>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
     </DashboardLayout>

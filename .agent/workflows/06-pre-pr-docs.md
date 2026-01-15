@@ -21,7 +21,7 @@ Before making any updates, collect the information needed:
    git log --oneline -10
    ```
 
-   > **Critical**: To avoid recency bias, if you are working on a long-running branch or PR, verify against the full `.diff` or `.patch` (e.g., from the GitHub PR URL) to ensure you capture *all* changes, not just the recent ones.
+   > **Critical**: To avoid recency bias, if you are working on a long-running branch or PR, verify against the full `.diff` or `.patch` (e.g., from the GitHub PR URL) to ensure you capture _all_ changes, not just the recent ones.
 
 2. **Identify modified files and features** by reviewing the recent commits.
 

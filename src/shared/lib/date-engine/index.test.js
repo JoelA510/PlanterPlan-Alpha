@@ -49,4 +49,3 @@ describe('formatDisplayDate', () => {
     expect(formatDisplayDate('')).toBe('Not set');
   });
 });
-

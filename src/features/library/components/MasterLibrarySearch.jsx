@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Fragment, useId, useMemo, useRef, useState } from 'react';
 import useMasterLibrarySearch from '@features/library/hooks/useMasterLibrarySearch';
 import { getHighlightSegments } from '@shared/lib/highlightMatches';
 
@@ -181,8 +181,8 @@ const MasterLibrarySearch = ({
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handleSelect(task)}
                 className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 focus:outline-none ${isActive || (hasResults && activeResultId === `${listboxId}-item-${task.id}`)
-                  ? 'bg-brand-50'
-                  : 'bg-white'
+                    ? 'bg-brand-50'
+                    : 'bg-white'
                   }`}
               >
                 <div className="flex items-start justify-between">
