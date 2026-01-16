@@ -3,16 +3,17 @@ import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestC
 import { SortableContext, horizontalListSortingStrategy, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
 import { PROJECT_STATUS } from '@app/constants/index';
+import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
 import ProjectCard from '@features/dashboard/components/ProjectCard';
 import BoardColumn from '@features/tasks/components/board/BoardColumn'; // Reusing generic column layout if possible, or creating new
 // Actually, BoardColumn expects specific task props. Let's make a ProjectBoardColumn or custom generic layout.
 // For speed, let's create a local column component or generic one.
 
 const COLUMNS = [
-    { id: PROJECT_STATUS.PLANNING, title: 'Planning', color: 'bg-blue-50 border-blue-100 text-blue-700' },
-    { id: PROJECT_STATUS.IN_PROGRESS, title: 'In Progress', color: 'bg-orange-50 border-orange-100 text-orange-700' },
-    { id: PROJECT_STATUS.LAUNCHED, title: 'Launched', color: 'bg-green-50 border-green-100 text-green-700' },
-    { id: PROJECT_STATUS.PAUSED, title: 'Paused', color: 'bg-slate-50 border-slate-100 text-slate-700' },
+    { id: PROJECT_STATUS.PLANNING, title: 'Planning', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING] },
+    { id: PROJECT_STATUS.IN_PROGRESS, title: 'In Progress', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.IN_PROGRESS] },
+    { id: PROJECT_STATUS.LAUNCHED, title: 'Launched', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.LAUNCHED] },
+    { id: PROJECT_STATUS.PAUSED, title: 'Paused', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PAUSED] },
 ];
 
 export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onStatusChange }) {
@@ -128,9 +129,9 @@ function PipelineColumn({ column, tasks, teamMembers }) {
     return (
         <div ref={setNodeRef} className="flex-1 flex flex-col min-w-[300px] h-full rounded-xl bg-slate-50/50 border border-slate-200/60">
             {/* Header */}
-            <div className={`p-4 border-b ${column.color.replace('bg-', 'border-').split(' ')[1]} bg-white rounded-t-xl`}>
+            <div className={`p-4 border-b ${column.border} bg-white rounded-t-xl`}>
                 <div className="flex items-center justify-between">
-                    <h3 className={`font-semibold text-sm uppercase tracking-wider ${column.color.split(' ').pop()}`}>
+                    <h3 className={`font-semibold text-sm uppercase tracking-wider ${column.text}`}>
                         {column.title}
                     </h3>
                     <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">

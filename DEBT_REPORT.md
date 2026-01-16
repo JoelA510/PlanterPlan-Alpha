@@ -9,21 +9,16 @@
 ## 1. Critical (0)
 *None.*
 
-## 2. Correctness Risks (1)
-
-### TASK_STATUS Leaks in Tests
-*   **Location:** `src/tests/integration/golden-paths.test.jsx`
-*   **Issue:** [#90](https://github.com/JoelA510/PlanterPlan-Alpha/issues/90)
-*   **Violation:** Hardcoded strings in tests instead of using `TASK_STATUS` constants.
-*   **Fix:** Audit `golden-paths.test.jsx` and replace strings with `TASK_STATUS` imports.
+## 2. Correctness Risks (0)
+*None.*
 
 ## 3. Maintainability (1)
 
-### Redundant Constants
-*   **Location:** `src/app/constants/index.js`
-*   **Issue:** [#91](https://github.com/JoelA510/PlanterPlan-Alpha/issues/91)
-*   **Violation:** `TASK_STATUS` and other constants might be duplicated in feature folders.
-*   **Fix:** Ensure `src/app/constants/index.js` is the Single Source of Truths (SSOT) and remove feature-level duplicates if any.
+### Hardcoded Color Values
+*   **Location:** `src/styles/pages/dashboard.css`
+*   **Issue:** [Rule 30 Violation]
+*   **Violation:** Hardcoded `#1e293b` used instead of design token.
+*   **Fix:** Replace with `text-slate-900` or equivalent CSS variable.
 
 ## 4. Documentation Debt (2)
 
@@ -43,8 +38,7 @@
 ## 5. Remediation Plan
 
 ### Phase 1: Code Remediation (Immediate)
-- [ ] Fix `TASK_STATUS` in `golden-paths.test.jsx`. ([#90])
-- [ ] Verify/Fix `src/app/constants/index.js`. ([#91])
+- [ ] Fix hex color in `dashboard.css`.
 
 ### Phase 2: Documentation Hygiene
 - [ ] Consolidate `feature_kanban_board.md`.

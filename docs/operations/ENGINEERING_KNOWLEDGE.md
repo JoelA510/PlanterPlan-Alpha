@@ -1101,3 +1101,13 @@ Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due t
   1. **Identify Dependencies**: If a migration modifies a table, wrap the modification in a `DO $$ ... IF EXISTS ... END $$` block unless you are 100% certain of the schema state.
   2. **Idempotency**: Ensure the script can be run multiple times without failure (e.g., using IF NOT EXISTS for creation, or explicit checks for alteration).
 - **Critical Rule**: Migrations should be robust against partial schema states. Use DO blocks to conditionally check for object existence before altering them.
+
+## [DS-046] Design System Color Centralization (SSOT)
+
+- **Tags**: #design-system, #refactor, #constants
+- **Date**: 2026-01-16
+- **Context & Problem**: The `ProjectPipelineBoard` contained hardcoded Tailwind color strings (e.g., `'bg-blue-50 text-blue-700'`) for project statuses. This violated **Rule 30** (No arbitrary colors) and created a maintenance risk where changing the "Planning" color required edits across multiple files.
+- **Solution & Pattern**:
+  1. **Centralize**: Defined `PROJECT_STATUS_COLORS` in `src/app/constants/colors.js`.
+  2. **Consume**: Refactored components to look up styles by status key (`PROJECT_STATUS_COLORS[status]`).
+- **Critical Rule**: Never hardcode status colors in components. Always use the centralized `colors.js` registry to ensure theming consistency across the app.
