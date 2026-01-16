@@ -12,6 +12,27 @@ const COLUMNS = [
 const ProjectBoardView = ({ project, childrenTasks, handleTaskClick }) => {
     // Categorize tasks
     const columns = useMemo(() => {
+        // Create a map for quick lookup to build breadcrumbs
+        const taskMap = new Map(childrenTasks.map(t => [t.id, t]));
+
+        // Helper to get breadcrumbs
+        const getBreadcrumbs = (task) => {
+            const crumbs = [];
+            let current = task;
+            let depth = 0;
+            while (current && current.parent_task_id && depth < 5) {
+                const parent = taskMap.get(current.parent_task_id);
+                if (parent) {
+                    crumbs.unshift(parent.title);
+                    current = parent;
+                } else {
+                    break;
+                }
+                depth++;
+            }
+            return crumbs.join(' > ');
+        };
+
         const cols = {
             [TASK_STATUS.TODO]: [],
             [TASK_STATUS.IN_PROGRESS]: [],
@@ -21,10 +42,17 @@ const ProjectBoardView = ({ project, childrenTasks, handleTaskClick }) => {
 
         childrenTasks.forEach(task => {
             const status = task.status || TASK_STATUS.TODO;
+            // Enrich task with breadcrumbs for display
+            // We create a shallow copy to avoid mutating the original prop objects if they are frozen
+            const enrichedTask = {
+                ...task,
+                breadcrumbs: getBreadcrumbs(task)
+            };
+
             if (cols[status]) {
-                cols[status].push(task);
+                cols[status].push(enrichedTask);
             } else {
-                cols[TASK_STATUS.TODO].push(task); // Fallback
+                cols[TASK_STATUS.TODO].push(enrichedTask); // Fallback
             }
         });
 

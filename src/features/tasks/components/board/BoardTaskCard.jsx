@@ -28,6 +28,14 @@ const BoardTaskCard = memo(({ task, onClick, dragHandleProps, style, isDragging 
                             </span>
                         )}
                     </div>
+
+                    {/* Breadcrumbs - Hierarchy Context */}
+                    {task.breadcrumbs && (
+                        <div className="mb-0.5 text-xs text-slate-400 font-medium truncate" title={task.breadcrumbs}>
+                            {task.breadcrumbs}
+                        </div>
+                    )}
+
                     <h4 className="text-sm font-medium text-slate-800 line-clamp-3 leading-snug">
                         {task.title}
                     </h4>
