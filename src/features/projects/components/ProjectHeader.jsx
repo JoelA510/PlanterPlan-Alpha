@@ -77,7 +77,7 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
                 Team
               </Button>
             </Link>
-            <Button variant="default" size="sm" onClick={onInviteMember} className="ml-2 bg-brand-600 hover:bg-brand-700 text-white">
+            <Button variant="default" size="sm" onClick={onInviteMember} className="ml-2 bg-brand-500 hover:bg-brand-600 text-white">
               <Users className="w-4 h-4 mr-2" />
               Invite
             </Button>
@@ -114,6 +114,6 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
           </div>
         </div>
       </div>
-    </motion.div >
+    </motion.div>
   );
 }
