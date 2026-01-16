@@ -1,12 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TasksPage from './TasksPage';
-import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
 import { BrowserRouter } from 'react-router-dom';
 import { ToastProvider } from '@app/contexts/ToastContext';
 
 // Mock dependencies
-vi.mock('@features/tasks/hooks/useTaskOperations');
+import { planter } from '@shared/api/planterClient';
+import { useTaskMutations } from '@features/tasks/hooks/useTaskMutations';
+
+vi.mock('@shared/api/planterClient', () => ({
+  planter: {
+    entities: {
+      Task: {
+        list: vi.fn(),
+      },
+    },
+  },
+}));
+
+vi.mock('@features/tasks/hooks/useTaskMutations', () => ({
+  useTaskMutations: vi.fn(),
+}));
+
 vi.mock('@layouts/DashboardLayout', () => ({
   default: ({ children }) => <div>{children}</div>,
 }));
@@ -18,7 +34,6 @@ vi.mock('@features/tasks/components/TaskList', () => ({
       {tasks.map((task) => (
         <div key={task.id} data-testid={`task-${task.id}`}>
           {task.title}
-          <button data-testid={`delete-${task.id}`}>Delete</button>
         </div>
       ))}
     </div>
@@ -28,63 +43,70 @@ vi.mock('@features/tasks/components/TaskList', () => ({
 describe('TasksPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('renders tasks when data is available', () => {
-    useTaskOperations.mockReturnValue({
-      tasks: [
-        { id: '1', title: 'Test Task', parent_task_id: 'parent-1', origin: 'instance' },
-        { id: '2', title: 'Another Task', parent_task_id: 'parent-2', origin: 'instance' },
-      ],
-      loading: false,
+    useTaskMutations.mockReturnValue({
       updateTask: vi.fn(),
     });
+  });
+
+  const createTestQueryClient = () => new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  it('renders tasks when data is available', async () => {
+    planter.entities.Task.list.mockResolvedValue([
+      { id: '1', title: 'Test Task', parent_task_id: 'parent-1', origin: 'instance' },
+      { id: '2', title: 'Another Task', parent_task_id: 'parent-2', origin: 'instance' },
+    ]);
 
     render(
-      <BrowserRouter>
-        <ToastProvider>
-          <TasksPage />
-        </ToastProvider>
-      </BrowserRouter>
+      <QueryClientProvider client={createTestQueryClient()}>
+        <BrowserRouter>
+          <ToastProvider>
+            <TasksPage />
+          </ToastProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
-    expect(screen.getByText('My Tasks')).toBeInTheDocument();
-    expect(screen.getByTestId('task-list')).toBeInTheDocument();
-    expect(screen.getByText('Test Task')).toBeInTheDocument();
-    expect(screen.getByText('Another Task')).toBeInTheDocument();
+    // Wait for data to load
+    expect(await screen.findByText('My Tasks')).toBeInTheDocument();
+    // Check specific tasks
+    expect(await screen.findByText('Test Task')).toBeInTheDocument();
+    expect(await screen.findByText('Another Task')).toBeInTheDocument();
   });
 
-  it('shows empty state when no tasks', () => {
-    useTaskOperations.mockReturnValue({
-      tasks: [],
-      loading: false,
-      updateTask: vi.fn(),
-    });
+  it('shows empty state when no tasks', async () => {
+    planter.entities.Task.list.mockResolvedValue([]);
 
     render(
-      <BrowserRouter>
-        <ToastProvider>
-          <TasksPage />
-        </ToastProvider>
-      </BrowserRouter>
+      <QueryClientProvider client={createTestQueryClient()}>
+        <BrowserRouter>
+          <ToastProvider>
+            <TasksPage />
+          </ToastProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
-    expect(screen.getByText('No tasks found across your projects.')).toBeInTheDocument();
+    expect(await screen.findByText('No tasks found across your projects.')).toBeInTheDocument();
   });
 
-  it('shows loading state', () => {
-    useTaskOperations.mockReturnValue({
-      tasks: [],
-      loading: true,
-      updateTask: vi.fn(),
-    });
+  it('shows loading state initially', () => {
+    // Return a promise that never resolves immediately to test loading state
+    planter.entities.Task.list.mockReturnValue(new Promise(() => { }));
 
     render(
-      <BrowserRouter>
-        <ToastProvider>
-          <TasksPage />
-        </ToastProvider>
-      </BrowserRouter>
+      <QueryClientProvider client={createTestQueryClient()}>
+        <BrowserRouter>
+          <ToastProvider>
+            <TasksPage />
+          </ToastProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
     // Should show loading spinner (Loader2 icon)
