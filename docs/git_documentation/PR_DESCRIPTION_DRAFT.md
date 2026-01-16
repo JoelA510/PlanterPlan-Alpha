@@ -12,7 +12,7 @@ This PR represents a comprehensive **Master Audit** of the PlanterPlan codebase,
 
 ```mermaid
 mindmap
-  root((PR #88))
+  root((PR #98))
     Architecture
       planterClient Factory Pattern
       Hook Splitting
@@ -325,6 +325,7 @@ ed982a1 merge: consolidate v2 branch
  - **Drag Handles**: Added `GripVertical` handle for clear affordance in List View.
  - **Modals**: Fixed transparent backgrounds by enforcing `bg-white`.
  - **New Project**: Aligned Template Cards with Dashboard aesthetics (Orange Gradients + Hover scaling).
+ - **Hierarchy Breadcrumbs**: Added context trails (e.g., "Phase > Milestone") to Kanban cards.
  - **Noise Reduction**: Eliminated console warnings and lint errors.
 
 ---
@@ -338,4 +339,4 @@ ed982a1 merge: consolidate v2 branch
 
 ---
 
-**Related Issues**: Closes #90, #91, #92, #93, #94, #95, #96
+**Related Issues**: Closes #90, #91, #92, #93, #94, #95, #96, #98

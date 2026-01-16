@@ -109,6 +109,18 @@ export async function getProjectWithStats(projectId) {
   };
 }
 
+export async function updateProjectStatus(projectId, status) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ status })
+    .eq('id', projectId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { data, error: null };
+}
+
 // --- Projects (Mutations) ---
 
 /**

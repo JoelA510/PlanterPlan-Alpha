@@ -38,6 +38,7 @@ const TaskItem = memo(
     onEdit = null,
     onDelete = null,
     hideExpansion = false,
+    disableDrag = false,
   }) => {
     const hasChildren = task.children && task.children.length > 0;
     const indentWidth = level * 20;
@@ -135,20 +136,22 @@ const TaskItem = memo(
         >
           <div className="task-card-content">
             <div className="task-card-left flex-1 min-w-0 mr-4">
-              <button
-                className={`drag-handle-btn mr-2 ${isLocked ? 'cursor-not-allowed opacity-30' : ''}`}
-                type="button"
-                aria-label="Reorder task"
-                ref={!isLocked ? dragHandleProps?.ref : undefined}
-                {...(!isLocked ? dragHandleProps : {})}
-                disabled={isLocked}
-              >
-                {isLocked ? (
-                  <Lock className="w-3 h-3 text-slate-400" />
-                ) : (
-                  <GripVertical className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
-                )}
-              </button>
+              {!disableDrag && (
+                <button
+                  className={`drag-handle-btn mr-2 ${isLocked ? 'cursor-not-allowed opacity-30' : ''}`}
+                  type="button"
+                  aria-label="Reorder task"
+                  ref={!isLocked ? dragHandleProps?.ref : undefined}
+                  {...(!isLocked ? dragHandleProps : {})}
+                  disabled={isLocked}
+                >
+                  {isLocked ? (
+                    <Lock className="w-3 h-3 text-slate-400" />
+                  ) : (
+                    <GripVertical className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                  )}
+                </button>
+              )}
 
               {showChevron ? (
                 <button

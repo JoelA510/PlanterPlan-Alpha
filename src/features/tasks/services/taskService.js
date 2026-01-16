@@ -118,6 +118,31 @@ export const updateTaskStatus = async (taskId, status, client = supabase) => {
 };
 
 /**
+ * Update a task's position and optionally its parent (reparenting).
+ */
+export const updateTaskPosition = async (taskId, newPosition, parentId = undefined, client = supabase) => {
+  try {
+    const updates = { position: newPosition };
+    if (parentId !== undefined) {
+      updates.parent_task_id = parentId;
+    }
+
+    const { data, error } = await client
+      .from('tasks')
+      .update(updates)
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('[taskService.updateTaskPosition] Error:', error);
+    return { data: null, error };
+  }
+};
+
+/**
  * Recursively updates a parent task's dates based on its children.
  * Bottom-Up Aggregation.
  */
