@@ -92,8 +92,8 @@ const mockUser = {
 };
 
 const mockProjects = [
-  { id: 'proj-1', title: 'Sunday Launch', status: PROJECT_STATUS.IN_PROGRESS, origin: TASK_ORIGIN.INSTANCE },
-  { id: 'proj-2', title: 'Outreach Event', status: PROJECT_STATUS.PLANNING, origin: TASK_ORIGIN.INSTANCE },
+  { id: 'proj-1', title: 'Sunday Launch', name: 'Sunday Launch', status: PROJECT_STATUS.IN_PROGRESS, origin: TASK_ORIGIN.INSTANCE },
+  { id: 'proj-2', title: 'Outreach Event', name: 'Outreach Event', status: PROJECT_STATUS.PLANNING, origin: TASK_ORIGIN.INSTANCE },
 ];
 
 const mockTasks = [
@@ -359,6 +359,53 @@ describe('Browser Verification: Golden Paths', () => {
       expect(await screen.findByTestId('reports-page')).toBeInTheDocument();
 
       // Check 3: Route update (implied)
+    });
+
+    it('opens Invite Member modal and shows new role options', async () => {
+      // Override useTaskOperations to return projects for this test
+      const taskOpsHook = await import('@features/tasks/hooks/useTaskOperations');
+      vi.spyOn(taskOpsHook, 'useTaskOperations').mockReturnValue({
+        tasks: mockProjects,
+        setTasks: vi.fn(),
+        joinedProjects: [],
+        hydratedProjects: {},
+        loading: false,
+        error: null,
+        joinedError: null,
+        currentUserId: 'user-1',
+        fetchTasks: vi.fn(),
+        createProject: vi.fn(),
+        createTaskOrUpdate: vi.fn(),
+        deleteTask: vi.fn(),
+        updateTask: vi.fn(),
+        fetchProjectDetails: vi.fn(),
+        refreshProjectDetails: vi.fn(),
+        findTask: vi.fn(),
+        hasMore: false,
+        isFetchingMore: false,
+        loadMoreProjects: vi.fn(),
+      });
+
+      // Setup: ensure we are on a project page
+      const projectService = await import('@features/projects/services/projectService');
+      projectService.getUserProjects.mockResolvedValue({ data: mockProjects, error: null });
+
+      renderWithProviders(<TaskList />, { route: '/project/proj-1' });
+
+      // Find and click the "Invite" button in ProjectHeader
+      const inviteBtn = await screen.findByRole('button', { name: /invite/i });
+      fireEvent.click(inviteBtn);
+
+      // Check Modal Opens
+      expect(await screen.findByText(/Invite Member/i)).toBeInTheDocument();
+
+      // Check Role Options
+      const roleSelect = screen.getByLabelText(/Role/i);
+      expect(roleSelect).toBeInTheDocument();
+
+      // Select options usually render as children in standard select
+      expect(screen.getByText(/Coach/i)).toBeInTheDocument();
+      expect(screen.getByText(/Limited/i)).toBeInTheDocument();
     });
   });
 });

@@ -1,53 +1,57 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { updateProjectStatus } from './projectService';
+import { supabase } from '@app/supabaseClient';
 
-// These tests are currently skipped because:
-// 1. The service functions use the global supabase client, not an injectable client
-// 2. They require a real Supabase connection to run
-// 3. The test mocking structure doesn't match the actual function signatures
-// 
-// TODO: Refactor service functions to accept an optional client parameter for testability
-describe.skip('getUserProjects', () => {
-  it('returns paginated projects', async () => {
-    // Skipped - requires refactor for testability
-    expect(true).toBe(true);
+// Mock Supabase client
+vi.mock('@app/supabaseClient', () => ({
+  supabase: {
+    from: vi.fn(),
+  },
+}));
+
+describe('projectService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('handles database errors', async () => {
-    // Skipped - requires refactor for testability
-    expect(true).toBe(true);
-  });
-});
+  describe('updateProjectStatus', () => {
+    it('should update project status successfully', async () => {
+      const projectId = 'proj-123';
+      const newStatus = 'in_progress';
+      const mockData = { id: projectId, status: newStatus };
 
-describe.skip('getJoinedProjects', () => {
-  it('returns joined projects with roles', async () => {
-    // Skipped - requires refactor for testability
-    expect(true).toBe(true);
-  });
+      const updateBuilder = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      };
 
-  it('returns error when membership fetch fails', async () => {
-    // Skipped - requires refactor for testability
-    expect(true).toBe(true);
-  });
+      supabase.from.mockReturnValue(updateBuilder);
 
-  it('returns empty list when no memberships', async () => {
-    // Skipped - requires refactor for testability
-    expect(true).toBe(true);
-  });
-});
+      const result = await updateProjectStatus(projectId, newStatus);
 
-describe.skip('inviteMemberByEmail', () => {
-  it('calls the edge function successfully', async () => {
-    // Skipped - requires refactor for testability
-    expect(true).toBe(true);
-  });
+      expect(supabase.from).toHaveBeenCalledWith('tasks');
+      expect(updateBuilder.update).toHaveBeenCalledWith({ status: newStatus });
+      expect(updateBuilder.eq).toHaveBeenCalledWith('id', projectId);
+      expect(result).toEqual({ data: mockData, error: null });
+    });
 
-  it('handles function errors', async () => {
-    // Skipped - requires refactor for testability
-    expect(true).toBe(true);
-  });
+    it('should throw error if update fails', async () => {
+      const projectId = 'proj-err';
+      const newStatus = 'planning';
+      const mockError = { message: 'DB Error' };
 
-  it('handles implementation errors', async () => {
-    // Skipped - requires refactor for testability
-    expect(true).toBe(true);
+      const updateBuilder = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: mockError }),
+      };
+
+      supabase.from.mockReturnValue(updateBuilder);
+
+      await expect(updateProjectStatus(projectId, newStatus)).rejects.toEqual(mockError);
+    });
   });
 });

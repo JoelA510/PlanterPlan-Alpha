@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import useMasterLibraryTasks from '@features/library/hooks/useMasterLibraryTasks';
 import { useTreeState } from '@features/library/hooks/useTreeState';
 import TaskItem from '@features/tasks/components/TaskItem';
-import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { DndContext, useSensor, useSensors, PointerSensor, closestCorners } from '@dnd-kit/core';
 
 const PAGE_SIZE = 50;
 
@@ -23,7 +23,7 @@ const MasterLibraryList = (props) => {
   });
 
   // Use the extracted hook for tree logic
-  const { treeData, loadingNodes, toggleExpand, handleStatusChange } = useTreeState(rootTasks);
+  const { treeData, loadingNodes, toggleExpand, handleStatusChange, handleReorder } = useTreeState(rootTasks);
 
   const handleTaskClick = (task) => {
     if (props.onTaskSelect) {
@@ -49,7 +49,20 @@ const MasterLibraryList = (props) => {
     setPage((prev) => prev + 1);
   };
 
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      handleReorder(active.id, over.id);
+    }
+  };
 
   return (
     <section className="mt-10">
@@ -75,7 +88,11 @@ const MasterLibraryList = (props) => {
           <div className="text-center py-8">Loading...</div>
         ) : (
           <div className="space-y-2">
-            <DndContext sensors={sensors}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragEnd={handleDragEnd}
+            >
               {treeData.map((task) => (
                 <div key={task.id} className="relative">
                   <TaskItem

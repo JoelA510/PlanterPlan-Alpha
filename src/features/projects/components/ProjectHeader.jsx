@@ -30,7 +30,7 @@ const statusColors = {
   [PROJECT_STATUS.PAUSED]: 'bg-slate-100 text-slate-700',
 };
 
-export default function ProjectHeader({ project, tasks = [], teamMembers = [] }) {
+export default function ProjectHeader({ project, tasks = [], teamMembers = [], onInviteMember }) {
   const Icon = templateIcons[project.template] || Rocket;
   const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
   const totalTasks = tasks.length;
@@ -77,6 +77,10 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [] })
                 Team
               </Button>
             </Link>
+            <Button variant="default" size="sm" onClick={onInviteMember} className="ml-2 bg-brand-500 hover:bg-brand-600 text-white">
+              <Users className="w-4 h-4 mr-2" />
+              Invite
+            </Button>
           </div>
         </div>
 
@@ -94,12 +98,22 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [] })
                 <span>Launch: {format(new Date(project.launch_date), 'MMM d, yyyy')}</span>
               </div>
             )}
-            <div className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-slate-400" />
-              <span>
-                {teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}
-              </span>
-            </div>
+            <Users className="w-4 h-4 text-slate-400" />
+            <span>
+              {teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* Draggable Avatars */}
+          <div className="flex items-center -space-x-2 overflow-hidden py-1 pl-1">
+            {teamMembers.slice(0, 5).map(member => (
+              <DraggableAvatar key={member.id} member={member} />
+            ))}
+            {teamMembers.length > 5 && (
+              <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-white bg-slate-100 text-xs font-medium text-slate-500 z-0">
+                +{teamMembers.length - 5}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 flex items-center gap-3 min-w-52 max-w-md ml-auto">
@@ -111,5 +125,43 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [] })
         </div>
       </div>
     </motion.div>
+  );
+}
+
+import { useDraggable } from '@dnd-kit/core';
+import { User } from 'lucide-react';
+
+function DraggableAvatar({ member }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `member-${member.id}`, // Unique ID
+    data: {
+      type: 'User',
+      member,
+    },
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  // Initials
+  const initials = (member.first_name?.[0] || '') + (member.last_name?.[0] || '') || '?';
+  const displayName = member.first_name ? `${member.first_name} ${member.last_name}` : member.email;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-white bg-slate-200 text-xs font-medium text-slate-600 cursor-grab active:cursor-grabbing hover:z-10 transition-transform ${isDragging ? 'opacity-50 z-50' : ''}`}
+      title={`Drag to assign ${displayName}`}
+    >
+      {member.avatar_url ? (
+        <img src={member.avatar_url} alt={displayName} className="w-full h-full rounded-full object-cover" />
+      ) : (
+        <span>{initials}</span>
+      )}
+    </div>
   );
 }

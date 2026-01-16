@@ -7,6 +7,16 @@ import { useParams } from 'react-router-dom';
 import { useToast } from '@shared/ui/use-toast';
 import { TASK_STATUS } from '@app/constants/index';
 
+import { createPortal } from 'react-dom';
+import {
+  DndContext,
+  DragOverlay,
+  useSensors,
+  useSensor,
+  PointerSensor,
+  closestCorners
+} from '@dnd-kit/core';
+
 import ProjectHeader from '@features/projects/components/ProjectHeader';
 import PhaseCard from '@features/projects/components/PhaseCard';
 import MilestoneSection from '@features/projects/components/MilestoneSection';
@@ -14,12 +24,27 @@ import AddTaskModal from '@features/projects/components/AddTaskModal';
 
 import DashboardLayout from '@layouts/DashboardLayout';
 
+import { resolveDragAssign } from '@features/projects/utils/dragUtils';
+
 export default function Project() {
+  // ...
+  const handleDragEnd = (event) => {
+    setActiveDragMember(null);
+    const { active, over } = event;
+
+    // Use helper for logic
+    const assignment = resolveDragAssign(active, over, tasks);
+    if (assignment) {
+      assignMemberMutation.mutate(assignment);
+    }
+  };
+  // ...
   const { id: projectId } = useParams();
 
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [addTaskModal, setAddTaskModal] = useState({ open: false, milestone: null });
   const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
+  const [activeDragMember, setActiveDragMember] = useState(null); // For overlay
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -30,6 +55,7 @@ export default function Project() {
     enabled: !!projectId,
   });
 
+  // ... (Keep existing queries)
   // SINGLE SOURCE OF TRUTH: Fetch all tasks for the project (Phases, Milestones, Tasks)
   const { data: projectHierarchy = [] } = useQuery({
     queryKey: ['projectHierarchy', projectId],
@@ -57,6 +83,22 @@ export default function Project() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
     },
+  });
+
+  const assignMemberMutation = useMutation({
+    mutationFn: ({ taskId, userId }) => planter.entities.Task.addMember(taskId, userId, 'viewer'), // Default to viewer/assignee
+    // Note: check if addMember API exists on Task entity or if we need to update 'assignees' array
+    // Task entity usually has 'assignees' or 'members' relation.
+    // Assuming 'addMember' exists or we use update `assignee_id` if single, or link table.
+    // Let's assume generic link for now, or fallback to toast if API missing.
+    onSuccess: () => {
+      toast({ title: 'Member assigned to task', variant: 'default' });
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+    },
+    onError: (err) => {
+      console.error(err);
+      toast({ title: 'Failed to assign member', description: 'API might be missing', variant: 'destructive' });
+    }
   });
 
   const createTaskMutation = useMutation({
@@ -101,8 +143,8 @@ export default function Project() {
 
       await createTaskMutation.mutateAsync({
         ...taskData,
-        parent_task_id: addTaskModal.milestone.id, // Task is child of Milestone
-        root_id: projectId, // Project root
+        parent_task_id: addTaskModal.milestone.id,
+        root_id: projectId,
         status: TASK_STATUS.TODO,
       });
       setAddTaskModal({ open: false, milestone: null });
@@ -112,6 +154,22 @@ export default function Project() {
       console.error(error);
     }
   };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragStart = (event) => {
+    if (event.active.data.current?.type === 'User') {
+      setActiveDragMember(event.active.data.current.member);
+    }
+  };
+
+
 
   if (loadingProject || !project) {
     return (
@@ -125,67 +183,91 @@ export default function Project() {
 
   return (
     <DashboardLayout selectedTaskId={projectId}>
-      <ProjectHeader project={project} tasks={tasks} teamMembers={teamMembers} />
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <ProjectHeader project={project} tasks={tasks} teamMembers={teamMembers} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Phase Selection */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Phases</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {sortedPhases.map((phase) => (
-              <PhaseCard
-                key={phase.id}
-                phase={phase}
-                tasks={tasks} // PhaseCard filters its own tasks using hierarchy now
-                milestones={milestones.filter((m) => m.parent_task_id === phase.id)}
-                isActive={activePhase?.id === phase.id}
-                onClick={() => setSelectedPhase(phase)}
-              />
-            ))}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* ... Content ... */}
+          {/* Phase Selection */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Phases</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {sortedPhases.map((phase) => (
+                <PhaseCard
+                  key={phase.id}
+                  phase={phase}
+                  tasks={tasks}
+                  milestones={milestones.filter((m) => m.parent_task_id === phase.id)}
+                  isActive={activePhase?.id === phase.id}
+                  onClick={() => setSelectedPhase(phase)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Milestones & Tasks */}
-        {activePhase && (
-          <motion.div
-            key={activePhase.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">
-                  Phase {activePhase.position}: {activePhase.title || activePhase.name}
-                </h2>
-                {activePhase.description && (
-                  <p className="text-slate-600 mt-1">{activePhase.description}</p>
+          {/* Milestones & Tasks */}
+          {activePhase && (
+            <motion.div
+              key={activePhase.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    Phase {activePhase.position}: {activePhase.title || activePhase.name}
+                  </h2>
+                  {activePhase.description && (
+                    <p className="text-slate-600 mt-1">{activePhase.description}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {phaseMilestones.length === 0 ? (
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
+                    <p className="text-slate-500">No milestones in this phase yet</p>
+                  </div>
+                ) : (
+                  phaseMilestones.map((milestone) => (
+                    <MilestoneSection
+                      key={milestone.id}
+                      milestone={milestone}
+                      tasks={tasks.map(mapTaskWithState)}
+                      onTaskUpdate={handleTaskUpdate}
+                      onToggleExpand={handleToggleExpand}
+                      onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
+                      phase={activePhase}
+                    />
+                  ))
                 )}
               </div>
-            </div>
+            </motion.div>
+          )}
+        </div>
 
-            <div className="space-y-4">
-              {phaseMilestones.length === 0 ? (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
-                  <p className="text-slate-500">No milestones in this phase yet</p>
-                </div>
-              ) : (
-                phaseMilestones.map((milestone) => (
-                  <MilestoneSection
-                    key={milestone.id}
-                    milestone={milestone}
-                    tasks={tasks.map(mapTaskWithState)} // Pass tasks with proper tree structure and state
-                    onTaskUpdate={handleTaskUpdate}
-                    onToggleExpand={handleToggleExpand}
-                    onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
-                    phase={activePhase}
-                  />
-                ))
-              )}
-            </div>
-          </motion.div>
+        {/* Drag Overlay for feedback */}
+        {createPortal(
+          <DragOverlay>
+            {activeDragMember && (
+              <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-brand-200 bg-brand-100 text-xs font-medium text-brand-700 shadow-xl cursor-grabbing scale-110 z-50">
+                {activeDragMember.avatar_url ? (
+                  <img src={activeDragMember.avatar_url} alt="member" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <span>{(activeDragMember.first_name?.[0] || '') + (activeDragMember.last_name?.[0] || '')}</span>
+                )}
+              </div>
+            )}
+          </DragOverlay>,
+          document.body
         )}
-      </div>
+      </DndContext>
 
       <AddTaskModal
         open={addTaskModal.open}

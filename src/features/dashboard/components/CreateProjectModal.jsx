@@ -125,23 +125,27 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                   key={template.id}
                   onClick={() => handleTemplateSelect(template.id)}
                   className={cn(
-                    'flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left bg-white',
-                    'hover:border-orange-300 hover:bg-orange-50 hover:shadow-md',
+                    'flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left bg-white group',
+                    'hover:border-orange-300 hover:bg-orange-50/50 hover:shadow-md cursor-pointer',
                     formData.template === template.id
-                      ? 'border-orange-500 bg-orange-50'
+                      ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500/20'
                       : 'border-slate-200'
                   )}
                 >
                   <div
                     className={cn(
-                      'w-12 h-12 rounded-xl flex items-center justify-center transition-colors',
-                      formData.template === template.id ? 'bg-orange-500' : 'bg-slate-100'
+                      'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
+                      formData.template === template.id
+                        ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-md shadow-orange-500/20 scale-110'
+                        : 'bg-slate-100 group-hover:bg-orange-100 group-hover:scale-105'
                     )}
                   >
                     <template.icon
                       className={cn(
                         'w-6 h-6',
-                        formData.template === template.id ? 'text-white' : 'text-slate-600'
+                        formData.template === template.id
+                          ? 'text-white'
+                          : 'text-slate-600 group-hover:text-orange-600'
                       )}
                     />
                   </div>
@@ -149,9 +153,11 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                     <h4 className="font-semibold text-slate-900">{template.name}</h4>
                     <p className="text-sm text-slate-500">{template.description}</p>
                   </div>
-                  {formData.template === template.id && (
-                    <CheckCircle2 className="w-5 h-5 text-orange-500 ml-auto" />
-                  )}
+                  {
+                    formData.template === template.id && (
+                      <CheckCircle2 className="w-5 h-5 text-orange-500 ml-auto" />
+                    )
+                  }
                 </button>
               ))}
             </motion.div>
@@ -294,6 +300,6 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
           )}
         </AnimatePresence>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 }

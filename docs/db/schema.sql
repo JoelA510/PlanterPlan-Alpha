@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS public.project_members (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role text NOT NULL DEFAULT 'viewer' CHECK (role IN ('owner','editor','viewer')),
+  role text NOT NULL DEFAULT 'viewer' CHECK (role IN ('owner','editor','coach','viewer','limited')),
   joined_at timestamptz DEFAULT now(),
   UNIQUE (project_id, user_id)
 );

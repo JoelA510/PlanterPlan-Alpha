@@ -112,3 +112,45 @@ export const formatDisplayDate = (dateStr) => {
     timeZone: dateStr.includes('T') ? undefined : 'UTC',
   });
 };
+/**
+ * Calculates the bounding box (Min Start, Max Due) for a list of tasks.
+ * Used for bottom-up date inheritance.
+ *
+ * @param {Array} children - List of child tasks
+ * @returns {Object} { start_date: string|null, due_date: string|null } (YYYY-MM-DD)
+ */
+export const calculateMinMaxDates = (children) => {
+  if (!children || children.length === 0) {
+    return { start_date: null, due_date: null };
+  }
+
+  let minStart = null;
+  let maxDue = null;
+
+  children.forEach((child) => {
+    // Handle Start Date
+    if (child.start_date) {
+      const childStart = toIsoDate(child.start_date); // Normalizes
+      if (childStart) {
+        if (!minStart || childStart < minStart) {
+          minStart = childStart;
+        }
+      }
+    }
+
+    // Handle Due Date
+    if (child.due_date) {
+      const childDue = toIsoDate(child.due_date);
+      if (childDue) {
+        if (!maxDue || childDue > maxDue) {
+          maxDue = childDue;
+        }
+      }
+    }
+  });
+
+  return {
+    start_date: minStart,
+    due_date: maxDue,
+  };
+};

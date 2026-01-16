@@ -191,7 +191,7 @@ _Goal: Automate date inheritance and status tracking._
 
 - **ID:** `P7-DATE-INHERIT`
 - **Goal**: Milestone/Phase dates automatically calculate based on child task bounds.
-- **Status**: 📅 Planned
+- **Status**: ✅ Done (Jan 2026)
 
 #### 7.2 Nightly Sync
 
@@ -235,7 +235,7 @@ _Goal: System-wide visibility and admin tools._
 
 - **ID:** `P9-RBAC-ROLES`
 - **Goal**: Granular enforcement for 'Full User', 'Limited User', and 'Coach' permissions.
-- **Status**: 🚧 In Progress (Logic defined in RLS)
+- **Status**: ✅ Done (Coach/Limited roles added)
 
 ### Phase 10: Infrastructure Modernization (`status:done`)
 
@@ -268,3 +268,60 @@ _Goal: System-wide visibility and admin tools._
 - **ID:** `P10-QUALITY-CONVERGE`
 - **Goal**: Standardize Design System (Rule 30) and Verify Golden Paths.
 - **Status**: ✅ Done (Jan 2026)
+
+---
+
+## 4. Feature Parity Checklist (Notion Import 1/8)
+
+*Reconciled against "PlanterPlan Feature Checklist".*
+
+### ✅ Implemented Features
+
+**Project & Task Management**
+- [x] Create/Delete Custom Tasks (`status:done`)
+- [x] Add Tasks from Master Library (`status:done`)
+- [x] Phase/Milestone Hierarchy (`status:done`)
+- [x] Drag & Drop Reordering (`status:done`)
+- [x] Project Progress Donut Chart (`status:done`)
+- [x] Basic Task Details (Start/Due dates, Purpose, Desc) (`status:done`)
+
+**Team Management** (Updated Jan 13 - `feat/advanced-rbac`)
+- [x] Invite Users to Project (`status:done`)
+- [x] Manage Project Users (`status:done`)
+- [x] Permission Levels:
+    - [x] Project Owner (Admin)
+    - [x] Full User (Editor)
+    - [x] Limited User (Assignee Only)
+    - [x] Coach (Comment/Review Only)
+
+**Reporting**
+- [x] Project Status Report (Printable) (`status:done`)
+- [x] Reporting Month Selection (`status:done`)
+- [x] Milestone completion lists (`status:done`)
+
+### 🚧 Partially Implemented / In Progress
+
+**Due Date Engine**
+- [x] Project Start/End Date Input (`status:done`)
+- [x] Cascade date logic (Inheritance) -> See `P7-DATE-INHERIT` (`status:done`)
+- [ ] Nightly status updates -> See `P7-NIGHTLY-SYNC`
+
+**Task Details & Views**
+- [x] Task Priority/Status Views (Filters) (`status:done`)
+- [ ] "Related tasks" dropdown (`status:pending`)
+- [ ] Email task details button (`status:pending`)
+- [ ] Auto-mark children complete (`status:pending`)
+
+### 📅 Planned / Missing (Backlog)
+
+**Admin & White Label**
+- [ ] White Label Org Administration
+- [ ] User License Management
+- [ ] Discount Codes
+- [ ] Publish/Unpublish Templates
+
+**Advanced Logic**
+- [ ] Checkpoint/Unlock System -> See `P8-CHECKPOINTS`
+- [ ] Supervisor Auto-Emails
+- [ ] Strategy Template Task Type
+
