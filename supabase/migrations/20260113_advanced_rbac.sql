@@ -20,14 +20,19 @@ CHECK (role IN ('owner', 'editor', 'coach', 'viewer', 'limited'));
 -- Postgres usually names it `{table}_{column}_check`. So `project_invites_role_check`.
 -- If the previous migration defined it inline: `role text NOT NULL CHECK (role IN (...))`
 -- We need to drop that constraint.
-ALTER TABLE public.project_invites
-DROP CONSTRAINT IF EXISTS project_invites_role_check;
-
--- If the name is unknown, we can try to add the new one.
--- Let's assume standard naming or explicitly recreate the check.
-ALTER TABLE public.project_invites
-ADD CONSTRAINT project_invites_role_check
-CHECK (role IN ('owner', 'editor', 'coach', 'viewer', 'limited'));
+-- 2b. Add new check constraints for project_invites (safely)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'project_invites') THEN
+        -- Safely drop if exists (redundant with above but good for isolation)
+        ALTER TABLE public.project_invites DROP CONSTRAINT IF EXISTS project_invites_role_check;
+        
+        -- Add valid constraint
+        ALTER TABLE public.project_invites
+        ADD CONSTRAINT project_invites_role_check
+        CHECK (role IN ('owner', 'editor', 'coach', 'viewer', 'limited'));
+    END IF;
+END $$;
 
 
 -- 3. Update RLS Policies for granular access
