@@ -7,8 +7,7 @@ BEGIN;
 ALTER TABLE public.project_members
 DROP CONSTRAINT IF EXISTS project_members_role_check;
 
-ALTER TABLE public.project_invites
-DROP CONSTRAINT IF EXISTS project_invites_role_check;
+
 
 -- 2. Add new check constraints with expanded roles
 ALTER TABLE public.project_members
