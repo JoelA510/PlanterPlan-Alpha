@@ -1070,3 +1070,34 @@ Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due t
 ### Critical Rule
 
 > **Standardize Core Imports.** Avoid "guess-and-check" pathing when utilizing shared aliases. Document the location of high-volume hooks (`useAuth`, `useToast`, `useTaskOperations`) or use automated linting to enforce path consistency.
+
+## 5. Security & RBAC
+
+### Role Definitions
+
+| Role | Permissions |
+| :--- | :--- |
+| **Owner** | Full access. Can delete project and manage members. |
+| **Editor** | Can read/write tasks. Cannot manage members. |
+| **Coach** | Can view tasks and add comments. Cannot edit task properties. |
+| **Viewer** | Read-only access to the project. |
+| **Limited** | Restricted. Likely assigned-task only visibility (Implementation TBD). |
+## Fix: Missing Card Backgrounds (Design System Mismatch)
+**Date**: Tue Jan 13 08:00:35 PM PST 2026
+**Issue**: User reported 'backgrounds not loading' for Template Cards in New Project Modal.
+**Root Cause**: The cards utilized flat, dull colors ('bg-slate-100') which clashed with the 'Premium' aesthetic of the Dashboard's gradient cards, appearing broken or unstyled by comparison.
+**Fix**:
+1.  Applied 'bg-gradient-to-br from-orange-500 to-orange-600' to selected template icons.
+2.  Added 'group-hover' states to animate icons and borders ('scale-105', 'text-orange-600') for immediate visual feedback.
+3.  Ensured 'bg-white' is explicit on the card container to prevent transparency issues.
+**Verification**: Confirmed visually via Browser Agent and Code Review.
+
+## [DB-043] Defensive Schema Migrations
+
+- **Tags**: #database, #migrations, #resilience, #postgres
+- **Date**: 2026-01-14
+- **Context & Problem**: A migration script (`20260113_advanced_rbac.sql`) failed with "relation project_invites does not exist" when run on a fresh environment where previous migrations hadn't fully applied or were skipped. The script contained an unconditional ALTER TABLE statement.
+- **Solution & Pattern**: 
+  1. **Identify Dependencies**: If a migration modifies a table, wrap the modification in a `DO $$ ... IF EXISTS ... END $$` block unless you are 100% certain of the schema state.
+  2. **Idempotency**: Ensure the script can be run multiple times without failure (e.g., using IF NOT EXISTS for creation, or explicit checks for alteration).
+- **Critical Rule**: Migrations should be robust against partial schema states. Use DO blocks to conditionally check for object existence before altering them.

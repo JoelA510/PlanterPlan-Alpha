@@ -38,6 +38,7 @@ export const useTaskBoard = () => {
     setTasks,
     fetchTasks,
     currentUserId,
+    updateTaskStatus: (taskId, status) => updateTask(taskId, { status }),
   });
 
   // UI State

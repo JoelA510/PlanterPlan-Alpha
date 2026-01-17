@@ -20,8 +20,8 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-12 (Master Review Orchestrator - PR Review Fixes)
-**Commit**: fb2554f8-634f-4087-baba-cafed68a2402
+**Last verified**: 2026-01-14 (Master Review Orchestrator - Phase 3)
+**Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
 
@@ -141,8 +141,9 @@ flowchart LR
 | ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | **AuthContext**  | Manages user session (login/logout/user object).                 | [`src/app/contexts/AuthContext.jsx`](src/app/contexts/AuthContext.jsx)                                             |
 | **taskService**  | Encapsulates all DB operations for tasks (fetch, search, clone). | [`src/features/tasks/services/taskService.js`](src/features/tasks/services/taskService.js)                         |
-| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [`src/features/tasks/components/organisms/TaskList.jsx`](src/features/tasks/components/organisms/TaskList.jsx)     |
-| **SideNav**      | Persistent sidebar for project navigation.                       | [`src/features/projects/components/organisms/SideNav.jsx`](src/features/projects/components/organisms/SideNav.jsx) |
+| **TaskList**     | Main dashboard layout; manages drag-and-drop context.            | [`src/features/tasks/components/TaskList.jsx`](src/features/tasks/components/TaskList.jsx)                                         |
+| **AppSidebar**   | Persistent sidebar for app navigation.                           | [`src/features/navigation/components/AppSidebar.jsx`](src/features/navigation/components/AppSidebar.jsx)                           |
+| **ProjectSidebar**| Project-specific navigation context.                            | [`src/features/navigation/components/ProjectSidebar.jsx`](src/features/navigation/components/ProjectSidebar.jsx)                   |
 
 ### 4.4 Database Schema
 
@@ -182,8 +183,8 @@ flowchart LR
 - ✅ **Project Reporting**: Read-only print view with completion stats (Ref: `ProjectReport.jsx`).
 - ✅ **Master Library Tree View**: Recursive display of template hierarchies with on-demand loading (Ref: `MasterLibraryList.jsx`).
 - ✅ **Optimization**: Task trees fetched via `root_id` index instead of recursive calls (Ref: `fetchTaskChildren` in `taskService.js`).
-- ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `SideNav.jsx`).
-- ✅ **Responsive Dashboard**: Full-screen layout. `DashboardLayout.jsx` supports both static `Sidebar` and dynamic `SideNav`.
+- ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `ProjectSidebar.jsx`).
+- ✅ **Responsive Dashboard**: Full-screen layout. `DashboardLayout.jsx` supports both static `AppSidebar` and dynamic `ProjectSidebar`.
 - ✅ **Robust Verification**: Golden Paths tested for Dashboard, Board, and Navigation flows (Ref: `golden-paths.test.jsx`).
 
 ### 5.2 Known Limitations

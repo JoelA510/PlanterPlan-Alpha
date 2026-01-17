@@ -1,7 +1,9 @@
 export const ROLES = {
   OWNER: 'owner',
   EDITOR: 'editor',
+  COACH: 'coach',
   VIEWER: 'viewer',
+  LIMITED: 'limited',
   ADMIN: 'admin',
 };
 

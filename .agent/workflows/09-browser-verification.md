@@ -69,8 +69,9 @@ The agent must verify these paths exists in `src/tests/integration/golden-paths.
 
 1. **Start Server**: Ensure app is running (`npm run dev`).
 2. **Launch Agent**:
-   - **Task**: "Act as a new user. Log in (if needed), navigate to the Dashboard, create a project, move a task. Report any visual glitches, confusing UI, or errors."
+   - **Task**: "Execute the test cases defined in `<appDataDir>/brain/<conversation-id>/TEST_SCRIPT.md`. If that file does not exist, fall back to: Act as a new user, navigate to Dashboard, create a project, and move a task."
    - **Focus**: Look for overlapping text, broken z-indices, unclickable buttons, or "jank".
+   - **Script Execution**: The agent should methodically go through the high-priority flows in the script (Auth, Feature, RBAC) as requested by the user.
 3. **Record**: Capture the session and note any "Human Experience" failures.
 
 ## Phase 5: Design Regression Check (Static Analysis)

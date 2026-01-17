@@ -114,7 +114,9 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
               className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm form-select p-2 border"
             >
               <option value={ROLES.VIEWER}>Viewer (Read-only)</option>
+              <option value={ROLES.COACH}>Coach (Comment & Review)</option>
               <option value={ROLES.EDITOR}>Editor (Can edit tasks)</option>
+              <option value={ROLES.LIMITED}>Limited (Assigned tasks only)</option>
             </select>
           </div>
 

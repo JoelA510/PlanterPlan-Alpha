@@ -116,3 +116,76 @@ export const updateTaskStatus = async (taskId, status, client = supabase) => {
     return { data: null, error };
   }
 };
+
+/**
+ * Update a task's position and optionally its parent (reparenting).
+ */
+export const updateTaskPosition = async (taskId, newPosition, parentId = undefined, client = supabase) => {
+  try {
+    const updates = { position: newPosition };
+    if (parentId !== undefined) {
+      updates.parent_task_id = parentId;
+    }
+
+    const { data, error } = await client
+      .from('tasks')
+      .update(updates)
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('[taskService.updateTaskPosition] Error:', error);
+    return { data: null, error };
+  }
+};
+
+/**
+ * Recursively updates a parent task's dates based on its children.
+ * Bottom-Up Aggregation.
+ */
+import { calculateMinMaxDates } from '@shared/lib/date-engine';
+
+export const updateParentDates = async (parentId, client = supabase) => {
+  if (!parentId) return;
+
+  try {
+    // 1. Fetch all direct children
+    const { data: children, error: fetchError } = await client
+      .from('tasks')
+      .select('start_date, due_date')
+      .eq('parent_task_id', parentId);
+
+    if (fetchError) throw fetchError;
+
+    // 2. Calculate New Bounds
+    const { start_date, due_date } = calculateMinMaxDates(children);
+
+    // 3. Update Parent
+    // We only update if values changed to minimize db writes (optimization)
+    // But for simplicity/robustness we'll just update. Supabase is fast.
+    const { data: parent, error: updateError } = await client
+      .from('tasks')
+      .update({
+        start_date,
+        due_date,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', parentId)
+      .select('parent_task_id')
+      .single();
+
+    if (updateError) throw updateError;
+
+    // 4. Recurse Up
+    if (parent && parent.parent_task_id) {
+      await updateParentDates(parent.parent_task_id, client);
+    }
+  } catch (error) {
+    console.error('[taskService.updateParentDates] Error:', error);
+    // Suppress error to not block the main mutation?
+    // Better to log and continue, as this is a background consistency job.
+  }
+};
