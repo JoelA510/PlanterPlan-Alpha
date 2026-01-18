@@ -1,7 +1,7 @@
 import { Card } from '@shared/ui/card';
 import { Progress } from '@shared/ui/progress';
 
-import { ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, CheckCircle2, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@shared/lib/utils';
 import { TASK_STATUS } from '@app/constants/index';
@@ -43,6 +43,7 @@ const phaseColors = {
 export default function PhaseCard({ phase, tasks = [], milestones = [], isActive, onClick }) {
   const order = phase.position || phase.order;
   const colors = phaseColors[order] || phaseColors[1];
+  const isLocked = phase.is_locked;
 
   // Filter tasks that belong to this phase (via milestones)
   const phaseTasks = tasks.filter((t) =>
@@ -55,14 +56,19 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
   const isComplete = progress === 100 && totalTasks > 0;
 
   return (
-    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+    <motion.div whileHover={{ scale: isLocked ? 1 : 1.02 }} whileTap={{ scale: isLocked ? 1 : 0.98 }}>
       <Card
-        onClick={onClick}
+        onClick={isLocked ? undefined : onClick}
         className={cn(
-          'p-5 cursor-pointer transition-all duration-300 border-2 bg-white',
-          isActive
-            ? `${colors.border} ${colors.light} shadow-lg`
-            : 'border-slate-200 hover:border-slate-300 hover:shadow-lg'
+          'p-5 transition-all duration-300 border-2 bg-white',
+          isLocked
+            ? 'opacity-75 cursor-not-allowed border-slate-200 bg-slate-50'
+            : cn(
+              'cursor-pointer',
+              isActive
+                ? `${colors.border} ${colors.light} shadow-lg`
+                : 'border-slate-200 hover:border-slate-300 hover:shadow-lg'
+            )
         )}
       >
         <div className="flex items-start justify-between mb-4">
@@ -70,18 +76,29 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
             <div
               className={cn(
                 'w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white',
-                colors.bg
+                isLocked ? 'bg-slate-400' : colors.bg
               )}
             >
-              {isComplete ? <CheckCircle2 className="w-5 h-5" /> : order}
+              {isLocked ? (
+                <Lock className="w-5 h-5" />
+              ) : isComplete ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : (
+                order
+              )}
             </div>
             <div>
-              <h3 className="font-semibold text-slate-900">{phase.title || phase.name}</h3>
+              <h3 className={cn('font-semibold', isLocked ? 'text-slate-500' : 'text-slate-900')}>
+                {phase.title || phase.name}
+              </h3>
               <p className="text-sm text-slate-500">{milestones.length} milestones</p>
             </div>
           </div>
           <ChevronRight
-            className={cn('w-5 h-5 transition-colors', isActive ? colors.text : 'text-slate-400')}
+            className={cn(
+              'w-5 h-5 transition-colors',
+              isActive && !isLocked ? colors.text : 'text-slate-400'
+            )}
           />
         </div>
 
@@ -90,14 +107,23 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
         )}
 
         <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Progress</span>
-            <span className={cn('font-medium', colors.text)}>{progress}%</span>
-          </div>
-          <Progress value={progress} className={cn('h-2', colors.light)} />
-          <p className="text-xs text-slate-500">
-            {completedTasks} of {totalTasks} tasks
-          </p>
+          {isLocked ? (
+            <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-100 p-2 rounded justify-center">
+              <Lock className="w-3 h-3" />
+              <span>Complete Phase {order - 1} to unlock</span>
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Progress</span>
+                <span className={cn('font-medium', colors.text)}>{progress}%</span>
+              </div>
+              <Progress value={progress} className={cn('h-2', colors.light)} />
+              <p className="text-xs text-slate-500">
+                {completedTasks} of {totalTasks} tasks
+              </p>
+            </>
+          )}
         </div>
       </Card>
     </motion.div>

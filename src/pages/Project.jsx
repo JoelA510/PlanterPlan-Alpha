@@ -19,6 +19,7 @@ import {
 import ProjectHeader from '@features/projects/components/ProjectHeader';
 import BudgetWidget from '@features/budget/components/BudgetWidget';
 import PeopleList from '@features/people/components/PeopleList';
+import AssetList from '@features/inventory/components/AssetList';
 import DashboardLayout from '@layouts/DashboardLayout';
 import PhaseCard from '@features/projects/components/PhaseCard';
 import MilestoneSection from '@features/projects/components/MilestoneSection';
@@ -181,30 +182,43 @@ export default function Project() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+          import AssetList from '@features/inventory/components/AssetList';
+
+          // ... (existing imports)
+
+          // ... inside component component render ...
+
           {/* Tabs */}
-          <div className="flex items-center space-x-1 border-b border-slate-200 mb-6">
+          <div className="flex items-center space-x-1 border-b border-slate-200 mb-6 overflow-x-auto">
             <button
               onClick={() => setActiveTab('board')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'board' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'board' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
             >
               Task Board
             </button>
             <button
               onClick={() => setActiveTab('people')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'people' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'people' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
             >
               People & Team
             </button>
             <button
               onClick={() => setActiveTab('budget')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'budget' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'budget' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
             >
               Budget
+            </button>
+            <button
+              onClick={() => setActiveTab('assets')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'assets' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            >
+              Assets
             </button>
           </div>
 
           {/* Board Tab */}
           {activeTab === 'board' && (
+            // ... board content ...
             <>
               {/* Phase Selection */}
               <div className="mb-8">
@@ -226,7 +240,7 @@ export default function Project() {
               {/* Milestones & Tasks */}
               {activePhase && (
                 <motion.div
-                  key={activePhase.id}
+                  // ... (rest of board content)
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
@@ -276,6 +290,11 @@ export default function Project() {
             <div className="max-w-xl">
               <BudgetWidget projectId={projectId} />
             </div>
+          )}
+
+          {/* Assets Tab */}
+          {activeTab === 'assets' && (
+            <AssetList projectId={projectId} />
           )}
         </div>
 

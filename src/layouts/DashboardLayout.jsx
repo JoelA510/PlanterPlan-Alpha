@@ -4,6 +4,7 @@ import ProjectSidebarContainer from '@features/navigation/components/ProjectSide
 import { CommandPalette } from '@shared/ui/CommandPalette';
 import { useUserProjects } from '@features/projects/hooks/useUserProjects';
 import { useAuth } from '@app/contexts/AuthContext'; // Assuming this exists or similar
+import MobileFAB from '@features/mobile/MobileFAB';
 
 export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -38,6 +39,7 @@ export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
       )}
 
       <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)]">{children}</main>
+      <MobileFAB onAddTask={() => {/* Handler logic to open modal if global */ }} />
     </div>
   );
 }

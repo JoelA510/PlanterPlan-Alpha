@@ -12,6 +12,7 @@ import StatsOverview from '@features/dashboard/components/StatsOverview';
 import ProjectPipelineBoard from '@features/dashboard/components/ProjectPipelineBoard';
 import OnboardingWizard from '@features/onboarding/components/OnboardingWizard';
 import GettingStartedWidget from '@features/onboarding/components/GettingStartedWidget';
+import MobileAgenda from '@features/mobile/MobileAgenda';
 
 import DashboardLayout from '@layouts/DashboardLayout';
 
@@ -120,6 +121,7 @@ export default function Dashboard() {
                 onDismiss={() => { }}
               />
             )}
+            <MobileAgenda tasks={tasks} />
             <StatsOverview projects={projects} tasks={tasks} teamMembers={teamMembers} />
           </div>
         )}

@@ -190,6 +190,9 @@ flowchart LR
 - ✅ **Responsive Dashboard**: Full-screen layout. `DashboardLayout.jsx` supports both static `AppSidebar` and dynamic `ProjectSidebar`.
 - ✅ **Robust Verification**: Golden Paths tested for Dashboard, Board, and Navigation flows (Ref: `golden-paths.test.jsx`).
 - ✅ **People/CRM Lite**: Manage team members, roles, and statuses via specialized `PeopleList` view (Ref: `peopleService.js`).
+- ✅ **Checkpoints**: Gated phases requiring completion of previous phase to unlock (Ref: `PhaseCard.jsx`).
+- ✅ **Inventory/Assets**: Track physical items and location (Ref: `assetService.js`).
+- ✅ **Mobile Field Mode**: Quick-action FAB and "Today's Agenda" for on-the-go focus.
 
 ### 5.2 Known Limitations
 

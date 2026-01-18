@@ -1137,3 +1137,24 @@ Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due t
   - **Role-Based Queries**: Use `getByRole('button', { name: /add person/i })` and `getByRole('heading', { name: /add person/i })` to disambiguate.
   - **Scope**: Narrow the scope if necessary, but semantic roles are preferred.
 - **Critical Rule**: Avoid `getByText` for common labels. Use `getByRole` to target specific interactive elements or headings.
+
+## [TEST-045] Handling Multiple Matches in RTL
+
+- **Tags**: #testing, #react-testing-library
+- **Date**: 2026-01-18
+- **Context & Problem**: `PhaseCard` test failed because `getByTestId` found two lock icons (one in the header, one in the body).
+- **Solution & Pattern**:
+  - Use `getAllByTestId` when multiple elements are expected.
+  - Assert on `toHaveLength(n)` to ensure exact count.
+  - Alternatively, use `within(container)` to narrow scope if specific lock is needed.
+- **Critical Rule**: Always verify how many times a component renders an element before asserting.
+
+## [TEST-046] Vitest Mocking with ImportActual
+
+- **Tags**: #testing, #vitest, #mocking
+- **Date**: 2026-01-18
+- **Context & Problem**: `AssetList` tests failed with `useQuery.mockReturnValue is not a function` because the mock wasn't set up to expose the mock instance.
+- **Solution & Pattern**:
+  - **Pattern**: `const actual = await vi.importActual('module');` inside `vi.mock`.
+  - **Usage**: Import the mocked function in the test file (`import { useQuery } ...`) to access `.mockReturnValue()`.
+- **Critical Rule**: When partial mocking modules, ensure you export `vi.fn()` instances that you can import and control in your tests.
