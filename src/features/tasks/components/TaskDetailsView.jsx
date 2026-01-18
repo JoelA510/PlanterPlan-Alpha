@@ -16,29 +16,41 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       {' '}
       {/* Added padding bottom/x */}
       {/* 1. Header Actions - Made larger */}
-      <div className="detail-section mb-6">
-        <div className="flex gap-4">
-          {onEditTask && (
-            <button
-              type="button"
-              onClick={() => onEditTask(task)}
-              className="flex-1 py-3 px-4 bg-white border border-brand-200 text-brand-600 rounded-lg shadow-sm hover:bg-brand-50 hover:shadow-md transition-all font-medium text-sm"
-            >
-              Edit Task
-            </button>
-          )}
-          {onDeleteTask && (
-            <button
-              type="button"
-              onClick={() => onDeleteTask(task)}
-              className="flex-1 py-3 px-4 bg-white border border-rose-200 text-rose-600 rounded-lg shadow-sm hover:bg-rose-50 hover:shadow-md transition-all font-medium text-sm"
-            >
-              Delete Task
-            </button>
-          )}
-        </div>
+      <div className="flex gap-4">
+        <button
+          type="button"
+          onClick={() => {
+            const subject = encodeURIComponent(`Task: ${task.title}`);
+            const body = encodeURIComponent(
+              `Status: ${task.status}\nDue: ${formatDisplayDate(task.due_date)}\n\n${task.description || ''}\n\nActions:\n${task.actions || ''}`
+            );
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+          }}
+          className="flex-1 py-3 px-4 bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:bg-slate-50 hover:shadow-md transition-all font-medium text-sm"
+        >
+          Email Task
+        </button>
+        {onEditTask && (
+          <button
+            type="button"
+            onClick={() => onEditTask(task)}
+            className="flex-1 py-3 px-4 bg-white border border-brand-200 text-brand-600 rounded-lg shadow-sm hover:bg-brand-50 hover:shadow-md transition-all font-medium text-sm"
+          >
+            Edit Task
+          </button>
+        )}
+        {onDeleteTask && (
+          <button
+            type="button"
+            onClick={() => onDeleteTask(task)}
+            className="flex-1 py-3 px-4 bg-white border border-rose-200 text-rose-600 rounded-lg shadow-sm hover:bg-rose-50 hover:shadow-md transition-all font-medium text-sm"
+          >
+            Delete Task
+          </button>
+        )}
       </div>
-      {/* 2. Meta Data Pills - Increased padding/size */}
+    </div>
+      {/* 2. Meta Data Pills - Increased padding/size */ }
       <div className="detail-section mb-6">
         <div className="flex flex-wrap gap-4">
           <div className="flex flex-col gap-1">
@@ -79,46 +91,54 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
         </div>
       </div>
       <div className="h-px bg-slate-100 my-4"></div>
-      {/* 3. Main Content - Increased Line Height & Padding */}
-      {task.description && (
-        <div className="detail-section mb-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
-            Overview
-          </h3>
-          <p className="text-slate-600 leading-relaxed text-sm">{task.description}</p>
+  {/* 3. Main Content - Increased Line Height & Padding */ }
+  {
+    task.description && (
+      <div className="detail-section mb-6">
+        <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+          Overview
+        </h3>
+        <p className="text-slate-600 leading-relaxed text-sm">{task.description}</p>
+      </div>
+    )
+  }
+  {/* Purpose - The Why */ }
+  {
+    task.purpose && (
+      <div className="detail-section mb-6">
+        <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+          Purpose (The Why)
+        </h3>
+        <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-slate-700 leading-relaxed text-sm">
+          {task.purpose}
         </div>
-      )}
-      {/* Purpose - The Why */}
-      {task.purpose && (
-        <div className="detail-section mb-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
-            Purpose (The Why)
-          </h3>
-          <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-slate-700 leading-relaxed text-sm">
-            {task.purpose}
-          </div>
+      </div>
+    )
+  }
+  {/* Actions - The What */ }
+  {
+    task.actions && (
+      <div className="detail-section mb-6">
+        <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+          Action Steps (The What)
+        </h3>
+        <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
+          {task.actions}
         </div>
-      )}
-      {/* Actions - The What */}
-      {task.actions && (
-        <div className="detail-section mb-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
-            Action Steps (The What)
-          </h3>
-          <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
-            {task.actions}
-          </div>
+      </div>
+    )
+  }
+  {
+    task.notes && (
+      <div className="detail-section mb-6">
+        <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Notes</h3>
+        <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-slate-700 text-sm italic">
+          {task.notes}
         </div>
-      )}
-      {task.notes && (
-        <div className="detail-section mb-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Notes</h3>
-          <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-slate-700 text-sm italic">
-            {task.notes}
-          </div>
-        </div>
-      )}
-      {/* 4. Resources Section */}
+      </div>
+    )
+  }
+  {/* 4. Resources Section */ }
       <div className="mb-6 pt-4 border-t border-slate-100">
         <TaskResources
           taskId={task.id}
@@ -127,58 +147,60 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
         />
       </div>
       <div className="h-px bg-slate-100 my-4"></div>
-      {/* 5. Dates Grid */}
-      <div className="detail-section mb-6">
-        <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Schedule</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
-            <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
-              Start Date
-            </span>
-            <span className="text-sm font-bold text-slate-800 tracking-tight">
-              {formatDisplayDate(task.start_date)}
-            </span>
-          </div>
-          <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
-            <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
-              Due Date
-            </span>
-            <span className="text-sm font-bold text-slate-800 tracking-tight">
-              {formatDisplayDate(task.due_date)}
-            </span>
-          </div>
-        </div>
+  {/* 5. Dates Grid */ }
+  <div className="detail-section mb-6">
+    <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Schedule</h3>
+    <div className="grid grid-cols-2 gap-3">
+      <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
+        <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+          Start Date
+        </span>
+        <span className="text-sm font-bold text-slate-800 tracking-tight">
+          {formatDisplayDate(task.start_date)}
+        </span>
       </div>
-      {/* 6. Child Task Button */}
-      {onAddChildTask && canHaveChildren && (
-        <div className="detail-section mb-8">
-          <button
-            type="button"
-            onClick={() => onAddChildTask(task)}
-            className="w-full py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-md transition-all font-medium"
-          >
-            + Add Child Task
-          </button>
-        </div>
-      )}
-      {/* 7. Footer Metadata */}
-      <div className="pt-6 border-t border-slate-100 text-xs text-slate-400 flex flex-col gap-1">
-        <div className="flex justify-between">
-          <span>Created</span>
-          <span className="font-mono text-slate-500">{formatDisplayDate(task.created_at)}</span>
-        </div>
-        {task.updated_at && (
-          <div className="flex justify-between">
-            <span>Updated</span>
-            <span className="font-mono text-slate-500">{formatDisplayDate(task.updated_at)}</span>
-          </div>
-        )}
-        <div className="flex justify-between mt-2">
-          <span>ID</span>
-          <span className="font-mono opacity-50">{task.id.slice(0, 8)}...</span>
-        </div>
+      <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
+        <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+          Due Date
+        </span>
+        <span className="text-sm font-bold text-slate-800 tracking-tight">
+          {formatDisplayDate(task.due_date)}
+        </span>
       </div>
     </div>
+  </div>
+  {/* 6. Child Task Button */ }
+  {
+    onAddChildTask && canHaveChildren && (
+      <div className="detail-section mb-8">
+        <button
+          type="button"
+          onClick={() => onAddChildTask(task)}
+          className="w-full py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-md transition-all font-medium"
+        >
+          + Add Child Task
+        </button>
+      </div>
+    )
+  }
+  {/* 7. Footer Metadata */ }
+  <div className="pt-6 border-t border-slate-100 text-xs text-slate-400 flex flex-col gap-1">
+    <div className="flex justify-between">
+      <span>Created</span>
+      <span className="font-mono text-slate-500">{formatDisplayDate(task.created_at)}</span>
+    </div>
+    {task.updated_at && (
+      <div className="flex justify-between">
+        <span>Updated</span>
+        <span className="font-mono text-slate-500">{formatDisplayDate(task.updated_at)}</span>
+      </div>
+    )}
+    <div className="flex justify-between mt-2">
+      <span>ID</span>
+      <span className="font-mono opacity-50">{task.id.slice(0, 8)}...</span>
+    </div>
+  </div>
+    </div >
   );
 };
 

@@ -100,6 +100,11 @@ export const getTasksForUser = async (userId, client = supabase) => {
 /**
  * Update a task's status.
  */
+/**
+ * Update a task's status.
+ * RECURSIVE: If status is 'completed' (or whatever the done state is), mark all children as same?
+ * User asked for "Auto-mark children complete".
+ */
 export const updateTaskStatus = async (taskId, status, client = supabase) => {
   try {
     const { data, error } = await client
@@ -110,6 +115,25 @@ export const updateTaskStatus = async (taskId, status, client = supabase) => {
       .single();
 
     if (error) throw error;
+
+    // Auto-mark children logic
+    // If we are marking as DONE, maybe mark all children as DONE?
+    // Let's implement Top-Down completion.
+    if (status === 'completed') {
+      // Fetch children IDs
+      const { data: children } = await client
+        .from('tasks')
+        .select('id')
+        .eq('parent_task_id', taskId);
+
+      if (children && children.length > 0) {
+        // Parallel update for speed
+        await Promise.all(
+          children.map((child) => updateTaskStatus(child.id, 'completed', client))
+        );
+      }
+    }
+
     return { data, error: null };
   } catch (error) {
     console.error('[taskService.updateTaskStatus] Error:', error);
