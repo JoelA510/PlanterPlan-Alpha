@@ -64,6 +64,7 @@ The core user journeys identified in the codebase and their current operational 
 | **CRUD Operations**   | ✅ **Working** | Create, Read, Update, Delete (with cascade).                                    |
 | **Reordering (DnD)**  | ✅ **Working** | Drag-and-drop tasks within/across phases. Persists to DB via `position`.        |
 | **View Filters**      | 📅 **Planned** | Priority, Status-based, Organization, and Personal views via search/filter bar. |
+| **CRM Lite**          | ✅ **Done**    | People List, Add Person Modal, and Project Tabs.                            |
 | **Checkpoint System** | 📅 **Planned** | Sequential phase unlocking logic (Phase N+1 unlocks when Phase N is complete).  |
 
 ### 📊 Reporting & Analytics

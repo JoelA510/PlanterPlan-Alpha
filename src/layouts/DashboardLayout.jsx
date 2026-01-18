@@ -3,7 +3,7 @@ import Header from '@features/navigation/components/Header';
 import ProjectSidebarContainer from '@features/navigation/components/ProjectSidebarContainer';
 import { CommandPalette } from '@shared/ui/CommandPalette';
 import { useUserProjects } from '@features/projects/hooks/useUserProjects';
-import { useAuth } from '@features/auth/context/AuthContext'; // Assuming this exists or similar
+import { useAuth } from '@app/contexts/AuthContext'; // Assuming this exists or similar
 
 export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

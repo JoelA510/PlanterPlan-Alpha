@@ -1117,3 +1117,23 @@ Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due t
   1. **Centralize**: Defined `PROJECT_STATUS_COLORS` in `src/app/constants/colors.js`.
   2. **Consume**: Refactored components to look up styles by status key (`PROJECT_STATUS_COLORS[status]`).
 - **Critical Rule**: Never hardcode status colors in components. Always use the centralized `colors.js` registry to ensure theming consistency across the app.
+
+## [REACT-043] Component Refactoring Hazards (Missing Imports)
+
+- **Tags**: #react, #refactoring, #build-error
+- **Date**: 2026-01-18
+- **Context & Problem**: When moving `BudgetWidget` and `PeopleList` into a tabbed `Project.jsx`, the build failed multiple times because imports (`MilestoneSection`, `AuthContext`) were either missing or pointing to invalid relative paths (`../../` vs absolute aliases).
+- **Solution & Pattern**:
+  - **Absolute Imports**: Always use absolute aliases (`@features/...`, `@app/...`) instead of relative paths to make code portable.
+  - **Verification**: Run `npm run build` immediately after moving any component, even if local dev server seems fine (HMR can be forgiving).
+- **Critical Rule**: precise dependency verification is required when refactoring. Assume all relative paths will break.
+
+## [TEST-044] Ambiguous Text Matchers in Testing Library
+
+- **Tags**: #testing, #react-testing-library, #a11y
+- **Date**: 2026-01-18
+- **Context & Problem**: `PeopleList.test.jsx` failed because `screen.getByText('Add Person')` found multiple elements (The Button, the Modal Title, and the Submit Button).
+- **Solution & Pattern**:
+  - **Role-Based Queries**: Use `getByRole('button', { name: /add person/i })` and `getByRole('heading', { name: /add person/i })` to disambiguate.
+  - **Scope**: Narrow the scope if necessary, but semantic roles are preferred.
+- **Critical Rule**: Avoid `getByText` for common labels. Use `getByRole` to target specific interactive elements or headings.

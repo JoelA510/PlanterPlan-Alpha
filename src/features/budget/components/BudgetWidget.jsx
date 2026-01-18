@@ -92,7 +92,7 @@ export default function BudgetWidget({ projectId }) {
                             <p className="text-sm text-slate-500">{items.length} items tracked</p>
                         </div>
                     </div>
-                    <Button size="icon" variant="ghost" className="text-slate-400 group-hover:text-slate-600">
+                    <Button size="icon" variant="ghost" className="text-slate-400 group-hover:text-slate-600" aria-label="Add Budget Item">
                         <Plus className="w-5 h-5" />
                     </Button>
                 </div>

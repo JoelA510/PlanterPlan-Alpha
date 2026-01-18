@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-18 (Audit Implementation)
+**Last verified**: 2026-01-18 (People/CRM Lite & Audit)
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
@@ -189,6 +189,7 @@ flowchart LR
 - ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `ProjectSidebar.jsx`).
 - ✅ **Responsive Dashboard**: Full-screen layout. `DashboardLayout.jsx` supports both static `AppSidebar` and dynamic `ProjectSidebar`.
 - ✅ **Robust Verification**: Golden Paths tested for Dashboard, Board, and Navigation flows (Ref: `golden-paths.test.jsx`).
+- ✅ **People/CRM Lite**: Manage team members, roles, and statuses via specialized `PeopleList` view (Ref: `peopleService.js`).
 
 ### 5.2 Known Limitations
 
