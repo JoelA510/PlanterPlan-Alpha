@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { calculateScheduleFromOffset, toIsoDate, formatDisplayDate } from './index';
+import {
+  calculateScheduleFromOffset,
+  toIsoDate,
+  formatDisplayDate,
+  recalculateProjectDates
+} from './index';
 
 describe('date-engine', () => {
   describe('toIsoDate', () => {
@@ -15,10 +20,37 @@ describe('date-engine', () => {
   });
 
   describe('calculateScheduleFromOffset', () => {
-    // ... (mocking task list structure would be needed here if complex logic is tested)
-    // Since we extracted pure logic, we can test it purely.
     it('returns empty object if inputs missing', () => {
       expect(calculateScheduleFromOffset([], null, 0)).toEqual({});
+    });
+  });
+
+  describe('recalculateProjectDates', () => {
+    it('shifts incomplete tasks by delta', () => {
+      const oldStart = '2024-01-01';
+      const newStart = '2024-01-11'; // +10 days
+      const tasks = [
+        { id: 1, start_date: '2024-01-05', due_date: '2024-01-10', is_complete: false },
+        { id: 2, start_date: '2024-01-01', is_complete: true }, // Should skip
+      ];
+
+      const updates = recalculateProjectDates(tasks, newStart, oldStart);
+
+      expect(updates).toHaveLength(1);
+      expect(updates[0].id).toBe(1);
+      expect(updates[0].start_date).toContain('2024-01-15');
+      expect(updates[0].due_date).toContain('2024-01-20');
+    });
+
+    it('handles negative time shifts', () => {
+      const oldStart = '2024-01-10';
+      const newStart = '2024-01-05'; // -5 days
+      const tasks = [
+        { id: 1, start_date: '2024-01-20', due_date: '2024-01-25', is_complete: false }
+      ];
+      const updates = recalculateProjectDates(tasks, newStart, oldStart);
+      expect(updates[0].start_date).toContain('2024-01-15');
+      expect(updates[0].due_date).toContain('2024-01-20');
     });
   });
 });

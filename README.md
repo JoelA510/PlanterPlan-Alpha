@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-14 (Master Review Orchestrator - Phase 3)
+**Last verified**: 2026-01-18 (Audit Implementation)
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
@@ -40,11 +40,14 @@ The codebase uses a modified **Feature-Sliced Design (FSD)** to enable Agentic r
 ```text
 src/
 ├── app/            # Global wiring (App.jsx, providers, router)
-├── features/       # Business domains (e.g. tasks, projects)
+├── features/       # Business domains
+│   ├── budget/     # [NEW] Budgeting Lite
+│   ├── onboarding/ # [NEW] Wizard & Checklist
 │   ├── tasks/
 │   │   ├── components/
 │   │   ├── hooks/
 │   │   └── services/
+│   └── projects/
 ├── shared/         # Reusable code with NO business logic
 │   ├── lib/        # Pure functions (date-engine, formatters)
 │   └── ui/         # Dumb components (Button, Modal)

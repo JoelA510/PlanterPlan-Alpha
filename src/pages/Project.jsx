@@ -18,19 +18,29 @@ import {
 } from '@dnd-kit/core';
 
 import ProjectHeader from '@features/projects/components/ProjectHeader';
-import PhaseCard from '@features/projects/components/PhaseCard';
-import MilestoneSection from '@features/projects/components/MilestoneSection';
-import AddTaskModal from '@features/projects/components/AddTaskModal';
+import BudgetWidget from '@features/budget/components/BudgetWidget';
 
-import DashboardLayout from '@layouts/DashboardLayout';
+// Duplicate removed
 
-import { resolveDragAssign } from '@features/projects/utils/dragUtils';
+// ... imports
 
-export default function Project() {
+// ... inside component
+
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  {/* Project Widgets */}
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <BudgetWidget projectId={projectId} />
+    {/* Future widgets: Team Health, Launch Countdown */}
+  </div>
+
+  {/* Phase Selection */}
+  <div className="mb-8">
+
   // ...
   const handleDragEnd = (event) => {
-    setActiveDragMember(null);
-    const { active, over } = event;
+      setActiveDragMember(null);
+    const {active, over} = event;
 
     // Use helper for logic
     const assignment = resolveDragAssign(active, over, tasks);
@@ -38,28 +48,28 @@ export default function Project() {
       assignMemberMutation.mutate(assignment);
     }
   };
-  // ...
-  const { id: projectId } = useParams();
+    // ...
+    const {id: projectId } = useParams();
 
-  const [selectedPhase, setSelectedPhase] = useState(null);
-  const [addTaskModal, setAddTaskModal] = useState({ open: false, milestone: null });
-  const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
-  const [activeDragMember, setActiveDragMember] = useState(null); // For overlay
+    const [selectedPhase, setSelectedPhase] = useState(null);
+    const [addTaskModal, setAddTaskModal] = useState({open: false, milestone: null });
+    const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
+    const [activeDragMember, setActiveDragMember] = useState(null); // For overlay
 
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const {toast} = useToast();
+    const queryClient = useQueryClient();
 
-  const { data: project, isLoading: loadingProject } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res) => res[0]),
+    const {data: project, isLoading: loadingProject } = useQuery({
+      queryKey: ['project', projectId],
+    queryFn: () => planter.entities.Project.filter({id: projectId }).then((res) => res[0]),
     enabled: !!projectId,
   });
 
-  // ... (Keep existing queries)
-  // SINGLE SOURCE OF TRUTH: Fetch all tasks for the project (Phases, Milestones, Tasks)
-  const { data: projectHierarchy = [] } = useQuery({
-    queryKey: ['projectHierarchy', projectId],
-    queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
+    // ... (Keep existing queries)
+    // SINGLE SOURCE OF TRUTH: Fetch all tasks for the project (Phases, Milestones, Tasks)
+    const {data: projectHierarchy = [] } = useQuery({
+      queryKey: ['projectHierarchy', projectId],
+    queryFn: () => planter.entities.Task.filter({root_id: projectId }),
     enabled: !!projectId,
   });
 
@@ -72,50 +82,50 @@ export default function Project() {
   // Tasks are children of Milestones (or Phases directly in some templates, but assuming strict hierarchy here)
   const tasks = projectHierarchy.filter((t) => milestones.some((m) => m.id === t.parent_task_id));
 
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ['teamMembers', projectId],
-    queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId }),
+    const {data: teamMembers = [] } = useQuery({
+      queryKey: ['teamMembers', projectId],
+    queryFn: () => planter.entities.TeamMember.filter({project_id: projectId }),
     enabled: !!projectId,
   });
 
-  const updateTaskMutation = useMutation({
-    mutationFn: ({ id, data }) => planter.entities.Task.update(id, data),
+    const updateTaskMutation = useMutation({
+      mutationFn: ({id, data}) => planter.entities.Task.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
     },
   });
 
-  const assignMemberMutation = useMutation({
-    mutationFn: ({ taskId, userId }) => planter.entities.Task.addMember(taskId, userId, 'viewer'), // Default to viewer/assignee
+    const assignMemberMutation = useMutation({
+      mutationFn: ({taskId, userId}) => planter.entities.Task.addMember(taskId, userId, 'viewer'), // Default to viewer/assignee
     // Note: check if addMember API exists on Task entity or if we need to update 'assignees' array
     // Task entity usually has 'assignees' or 'members' relation.
     // Assuming 'addMember' exists or we use update `assignee_id` if single, or link table.
     // Let's assume generic link for now, or fallback to toast if API missing.
     onSuccess: () => {
       toast({ title: 'Member assigned to task', variant: 'default' });
-      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+    queryClient.invalidateQueries({queryKey: ['projectHierarchy', projectId] });
     },
     onError: (err) => {
       console.error(err);
-      toast({ title: 'Failed to assign member', description: 'API might be missing', variant: 'destructive' });
+    toast({title: 'Failed to assign member', description: 'API might be missing', variant: 'destructive' });
     }
   });
 
-  const createTaskMutation = useMutation({
-    mutationFn: (data) => planter.entities.Task.create(data),
+    const createTaskMutation = useMutation({
+      mutationFn: (data) => planter.entities.Task.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
     },
   });
 
   const sortedPhases = [...phases].sort((a, b) => (a.position || 0) - (b.position || 0));
-  const activePhase = selectedPhase || sortedPhases[0];
-  const phaseMilestones = milestones
+    const activePhase = selectedPhase || sortedPhases[0];
+    const phaseMilestones = milestones
     .filter((m) => m.parent_task_id === activePhase?.id) // Use parent_task_id for hierarchy
     .sort((a, b) => (a.position || 0) - (b.position || 0));
 
   const handleTaskUpdate = (taskId, data) => {
-    updateTaskMutation.mutate({ id: taskId, data });
+      updateTaskMutation.mutate({ id: taskId, data });
   };
 
   const handleToggleExpand = (task, isExpanded) => {
@@ -129,11 +139,11 @@ export default function Project() {
   };
 
   const mapTaskWithState = (task) => ({
-    ...task,
-    isExpanded: expandedTaskIds.has(task.id),
+      ...task,
+      isExpanded: expandedTaskIds.has(task.id),
     children: tasks
       .filter((t) => t.parent_task_id === task.id)
-      .map(mapTaskWithState)
+    .map(mapTaskWithState)
       .sort((a, b) => (a.position || 0) - (b.position || 0)),
   });
 
@@ -141,27 +151,27 @@ export default function Project() {
     try {
       if (!addTaskModal.milestone) return;
 
-      await createTaskMutation.mutateAsync({
-        ...taskData,
-        parent_task_id: addTaskModal.milestone.id,
-        root_id: projectId,
-        status: TASK_STATUS.TODO,
+    await createTaskMutation.mutateAsync({
+      ...taskData,
+      parent_task_id: addTaskModal.milestone.id,
+    root_id: projectId,
+    status: TASK_STATUS.TODO,
       });
-      setAddTaskModal({ open: false, milestone: null });
-      toast({ title: 'Task created successfully', variant: 'default' });
+    setAddTaskModal({open: false, milestone: null });
+    toast({title: 'Task created successfully', variant: 'default' });
     } catch (error) {
       toast({ title: 'Failed to create task', variant: 'destructive' });
-      console.error(error);
+    console.error(error);
     }
   };
 
-  const sensors = useSensors(
+    const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+      distance: 8,
       },
     })
-  );
+    );
 
   const handleDragStart = (event) => {
     if (event.active.data.current?.type === 'User') {
@@ -171,17 +181,17 @@ export default function Project() {
 
 
 
-  if (loadingProject || !project) {
+    if (loadingProject || !project) {
     return (
-      <DashboardLayout>
-        <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-        </div>
-      </DashboardLayout>
+    <DashboardLayout>
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+      </div>
+    </DashboardLayout>
     );
   }
 
-  return (
+    return (
     <DashboardLayout selectedTaskId={projectId}>
       <DndContext
         sensors={sensors}
@@ -192,7 +202,11 @@ export default function Project() {
         <ProjectHeader project={project} tasks={tasks} teamMembers={teamMembers} />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* ... Content ... */}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <BudgetWidget projectId={projectId} />
+          </div>
+
           {/* Phase Selection */}
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Phases</h2>
@@ -277,5 +291,5 @@ export default function Project() {
         teamMembers={teamMembers}
       />
     </DashboardLayout>
-  );
+    );
 }

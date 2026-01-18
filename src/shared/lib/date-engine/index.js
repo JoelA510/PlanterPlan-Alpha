@@ -154,3 +154,62 @@ export const calculateMinMaxDates = (children) => {
     due_date: maxDue,
   };
 };
+
+/**
+ * Recalculates start/due dates for a project's tasks when the project start date changes.
+ * Only affects incomplete tasks.
+ *
+ * @param {Array} projectTasks - Listing of all tasks in the project
+ * @param {string} newStartDateStr - New Project Start Date (YYYY-MM-DD or ISO)
+ * @param {string} oldStartDateStr - Old Project Start Date (YYYY-MM-DD or ISO)
+ * @returns {Array} List of update objects { id, start_date, due_date }
+ */
+export const recalculateProjectDates = (projectTasks, newStartDateStr, oldStartDateStr) => {
+  if (!projectTasks || !newStartDateStr || !oldStartDateStr) return [];
+
+  const oldStart = new Date(toIsoDate(oldStartDateStr));
+  const newStart = new Date(toIsoDate(newStartDateStr));
+
+  if (isNaN(oldStart.getTime()) || isNaN(newStart.getTime())) return [];
+
+  // Calculate delta in milliseconds
+  const diffTime = newStart.getTime() - oldStart.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return [];
+
+  const updates = [];
+
+  projectTasks.forEach((task) => {
+    // Skip if task is completed (preserve history)
+    if (task.is_complete) return;
+
+    // Skip if task has no dates
+    if (!task.start_date) return;
+
+    const taskStart = new Date(toIsoDate(task.start_date));
+    let taskDue = task.due_date ? new Date(toIsoDate(task.due_date)) : null;
+
+    if (isNaN(taskStart.getTime())) return;
+
+    // Shift Start Date
+    taskStart.setUTCDate(taskStart.getUTCDate() + diffDays);
+    const newStartISO = taskStart.toISOString();
+
+    // Shift Due Date (if exists)
+    let newDueISO = null;
+    if (taskDue && !isNaN(taskDue.getTime())) {
+      taskDue.setUTCDate(taskDue.getUTCDate() + diffDays);
+      newDueISO = taskDue.toISOString();
+    }
+
+    updates.push({
+      id: task.id,
+      start_date: newStartISO,
+      due_date: newDueISO || newStartISO, // Fallback to start if due matches/missing logic
+      updated_at: new Date().toISOString(),
+    });
+  });
+
+  return updates;
+};

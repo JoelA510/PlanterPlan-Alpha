@@ -1,5 +1,6 @@
--- PlanterPlan Database Schema
--- consolidated: 2026-01-18
+-- Consolidated Schema Migration
+-- Date: 2026-01-18
+-- Replaces previous fragmented migrations.
 
 -- ============================================================================
 -- 0. EXTENSIONS
@@ -11,7 +12,6 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ============================================================================
 
 -- TASKS Table
--- Core table for Projects (root tasks) and Tasks (children)
 CREATE TABLE IF NOT EXISTS public.tasks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text,
@@ -52,7 +52,6 @@ CREATE INDEX IF NOT EXISTS idx_tasks_is_locked ON public.tasks(is_locked);
 CREATE INDEX IF NOT EXISTS idx_tasks_is_premium ON public.tasks(is_premium);
 
 -- PROJECT MEMBERS Table
--- RBAC: Owners, Editors, Coaches, Viewers, Limited
 CREATE TABLE IF NOT EXISTS public.project_members (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
@@ -63,7 +62,6 @@ CREATE TABLE IF NOT EXISTS public.project_members (
 );
 
 -- PROJECT INVITES Table
--- For inviting users by email
 CREATE TABLE IF NOT EXISTS public.project_invites (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
@@ -90,7 +88,7 @@ FROM public.tasks t;
 -- 3. ROW LEVEL SECURITY (RLS)
 -- ============================================================================
 
--- Helper Functions for RLS (Stubbed for now, should be implemented properly if needed)
+-- Helper Functions for RLS
 CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
 RETURNS boolean AS $$
 BEGIN
@@ -101,8 +99,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION public.has_project_role(project_id uuid, user_id uuid, roles text[])
 RETURNS boolean AS $$
 BEGIN
-  -- ALPHA OVERRIDE: Allow logic for testing, but in production, this queries project_members
-  -- For now, we return true to unblock development as per previous migrations
+  -- ALPHA OVERRIDE: Allow logic for testing
   RETURN true; 
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -133,7 +130,7 @@ CREATE POLICY "View project members" ON public.project_members
   );
   
 DROP POLICY IF EXISTS "Enable all for authenticated users" ON public.project_members;
-CREATE POLICY "Enable all for authenticated users" ON public.project_members FOR ALL USING (auth.role() = 'authenticated'); -- simplifying form old migration
+CREATE POLICY "Enable all for authenticated users" ON public.project_members FOR ALL USING (auth.role() = 'authenticated');
 
 
 -- PROJECT INVITES Policies

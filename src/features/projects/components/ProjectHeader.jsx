@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@shared/lib/utils';
 import { Button } from '@shared/ui/button';
@@ -13,9 +14,14 @@ import {
   Rocket,
   Building2,
   GitBranch,
+  Settings,
+  Download,
+  Search,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TASK_STATUS, PROJECT_STATUS } from '@app/constants/index';
+import EditProjectModal from './EditProjectModal';
+import { exportProjectToCSV } from '@shared/lib/export-utils';
 
 const templateIcons = {
   launch_large: Rocket,
@@ -31,6 +37,7 @@ const statusColors = {
 };
 
 export default function ProjectHeader({ project, tasks = [], teamMembers = [], onInviteMember }) {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const Icon = templateIcons[project.template] || Rocket;
   const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
   const totalTasks = tasks.length;
@@ -65,6 +72,19 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
           </div>
 
           <div className="hidden md:flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}>
+              <Search className="w-4 h-4 mr-2 text-slate-400" />
+              <span className="lg:hidden">Search</span>
+              <span className="hidden lg:inline text-slate-400 text-xs">⌘K</span>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setIsEditModalOpen(true)}>
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => exportProjectToCSV(project, tasks)}>
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
             <Link to={createPageUrl(`reports?project=${project.id}`)}>
               <Button variant="outline" size="sm">
                 <BarChart2 className="w-4 h-4 mr-2" />
@@ -124,12 +144,19 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
           </div>
         </div>
       </div>
+
+      {isEditModalOpen && (
+        <EditProjectModal
+          project={project}
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+        />
+      )}
     </motion.div>
   );
 }
 
 import { useDraggable } from '@dnd-kit/core';
-import { User } from 'lucide-react';
 
 function DraggableAvatar({ member }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({

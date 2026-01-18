@@ -311,6 +311,9 @@ _Goal: Structured progress flows and commerce._
 
 **Admin & White Label**
 - [ ] White Label Org Administration
+**User Management**
+- [x] Onboarding Wizard (First Run) (`status:done`)
+- [x] Budgeting Lite (`status:done`)
 - [ ] User License Management
 - [ ] Discount Codes
 - [ ] Publish/Unpublish Templates

@@ -17,6 +17,12 @@
 We initially defined a Row Level Security (RLS) policy that allowed users to view tasks if they were a member of the project (root task).
 The policy looked up the task's `parent_task_id` recursively to find the root.
 **Result**: Postgres infinite recursion error (`infinite recursion detected in policy for relation "tasks"`). Database crashed on simple SELECTs.
+## [DB-004] Migration Consolidation
+- **Tags**: #database #supabase #migrations
+- **Date**: 2026-01-18
+- **Context & Problem**: Migration files were becoming fragmented and hard to manage (redundant policies, partial rollbacks).
+- **Solution & Pattern**: Consolidated all schema checks, RLS policies, and triggers into a single idempotent `20260118_consolidated_schema.sql`.
+- **Critical Rule**: Always use `IF EXISTS` checks and consolidate migrations periodically to keep the schema source of truth clean.
 
 ### Solution & Pattern
 

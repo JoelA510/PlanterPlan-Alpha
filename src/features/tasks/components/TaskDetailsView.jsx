@@ -11,6 +11,9 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
   const level = getTaskLevel();
   const canHaveChildren = level < 3;
 
+  const hasLicense = false; // Mock - Replace with real subscription check
+  const isLocked = task.is_premium && !hasLicense;
+
   return (
     <div className="task-details px-4 pb-10">
       {' '}
@@ -49,9 +52,9 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           </button>
         )}
       </div>
-    </div>
-      {/* 2. Meta Data Pills - Increased padding/size */ }
-      <div className="detail-section mb-6">
+
+      {/* 2. Meta Data Pills - Increased padding/size */}
+      <div className="detail-section mb-6 mt-6">
         <div className="flex flex-wrap gap-4">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -88,118 +91,148 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
               </span>
             )}
           </div>
+
+          {task.is_premium && (
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Access
+              </span>
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border bg-purple-50 text-purple-700 border-purple-100">
+                Premium
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <div className="h-px bg-slate-100 my-4"></div>
-  {/* 3. Main Content - Increased Line Height & Padding */ }
-  {
-    task.description && (
-      <div className="detail-section mb-6">
-        <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
-          Overview
-        </h3>
-        <p className="text-slate-600 leading-relaxed text-sm">{task.description}</p>
-      </div>
-    )
-  }
-  {/* Purpose - The Why */ }
-  {
-    task.purpose && (
-      <div className="detail-section mb-6">
-        <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
-          Purpose (The Why)
-        </h3>
-        <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-slate-700 leading-relaxed text-sm">
-          {task.purpose}
+
+      {isLocked ? (
+        <div className="p-8 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl my-6">
+          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 mb-2">Premium Content Locked</h3>
+          <p className="text-slate-600 mb-6 max-w-sm mx-auto">
+            This content is part of the Premium PlanterPlan curriculum. Upgrade to unlock full access to detailed guides, resources, and templates.
+          </p>
+          <button className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm transition-colors">
+            Upgrade to Premium
+          </button>
         </div>
-      </div>
-    )
-  }
-  {/* Actions - The What */ }
-  {
-    task.actions && (
-      <div className="detail-section mb-6">
-        <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
-          Action Steps (The What)
-        </h3>
-        <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
-          {task.actions}
-        </div>
-      </div>
-    )
-  }
-  {
-    task.notes && (
-      <div className="detail-section mb-6">
-        <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Notes</h3>
-        <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-slate-700 text-sm italic">
-          {task.notes}
-        </div>
-      </div>
-    )
-  }
-  {/* 4. Resources Section */ }
-      <div className="mb-6 pt-4 border-t border-slate-100">
-        <TaskResources
-          taskId={task.id}
-          primaryResourceId={task.primary_resource_id}
-          onUpdate={onTaskUpdated}
-        />
-      </div>
+      ) : (
+        <>
+          {/* 3. Main Content - Increased Line Height & Padding */}
+          {
+            task.description && (
+              <div className="detail-section mb-6">
+                <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+                  Overview
+                </h3>
+                <p className="text-slate-600 leading-relaxed text-sm">{task.description}</p>
+              </div>
+            )
+          }
+          {/* Purpose - The Why */}
+          {
+            task.purpose && (
+              <div className="detail-section mb-6">
+                <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+                  Purpose (The Why)
+                </h3>
+                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-slate-700 leading-relaxed text-sm">
+                  {task.purpose}
+                </div>
+              </div>
+            )
+          }
+          {/* Actions - The What */}
+          {
+            task.actions && (
+              <div className="detail-section mb-6">
+                <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+                  Action Steps (The What)
+                </h3>
+                <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
+                  {task.actions}
+                </div>
+              </div>
+            )
+          }
+          {
+            task.notes && (
+              <div className="detail-section mb-6">
+                <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Notes</h3>
+                <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-slate-700 text-sm italic">
+                  {task.notes}
+                </div>
+              </div>
+            )
+          }
+          {/* 4. Resources Section */}
+          <div className="mb-6 pt-4 border-t border-slate-100">
+            <TaskResources
+              taskId={task.id}
+              primaryResourceId={task.primary_resource_id}
+              onUpdate={onTaskUpdated}
+            />
+          </div>
+        </>
+      )}
+
       <div className="h-px bg-slate-100 my-4"></div>
-  {/* 5. Dates Grid */ }
-  <div className="detail-section mb-6">
-    <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Schedule</h3>
-    <div className="grid grid-cols-2 gap-3">
-      <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
-        <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
-          Start Date
-        </span>
-        <span className="text-sm font-bold text-slate-800 tracking-tight">
-          {formatDisplayDate(task.start_date)}
-        </span>
+      {/* 5. Dates Grid */}
+      <div className="detail-section mb-6">
+        <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Schedule</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
+            <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+              Start Date
+            </span>
+            <span className="text-sm font-bold text-slate-800 tracking-tight">
+              {formatDisplayDate(task.start_date)}
+            </span>
+          </div>
+          <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
+            <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+              Due Date
+            </span>
+            <span className="text-sm font-bold text-slate-800 tracking-tight">
+              {formatDisplayDate(task.due_date)}
+            </span>
+          </div>
+        </div>
       </div>
-      <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
-        <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
-          Due Date
-        </span>
-        <span className="text-sm font-bold text-slate-800 tracking-tight">
-          {formatDisplayDate(task.due_date)}
-        </span>
+      {/* 6. Child Task Button */}
+      {
+        onAddChildTask && canHaveChildren && (
+          <div className="detail-section mb-8">
+            <button
+              type="button"
+              onClick={() => onAddChildTask(task)}
+              className="w-full py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-md transition-all font-medium"
+            >
+              + Add Child Task
+            </button>
+          </div>
+        )
+      }
+      {/* 7. Footer Metadata */}
+      <div className="pt-6 border-t border-slate-100 text-xs text-slate-400 flex flex-col gap-1">
+        <div className="flex justify-between">
+          <span>Created</span>
+          <span className="font-mono text-slate-500">{formatDisplayDate(task.created_at)}</span>
+        </div>
+        {task.updated_at && (
+          <div className="flex justify-between">
+            <span>Updated</span>
+            <span className="font-mono text-slate-500">{formatDisplayDate(task.updated_at)}</span>
+          </div>
+        )}
+        <div className="flex justify-between mt-2">
+          <span>ID</span>
+          <span className="font-mono opacity-50">{task.id.slice(0, 8)}...</span>
+        </div>
       </div>
-    </div>
-  </div>
-  {/* 6. Child Task Button */ }
-  {
-    onAddChildTask && canHaveChildren && (
-      <div className="detail-section mb-8">
-        <button
-          type="button"
-          onClick={() => onAddChildTask(task)}
-          className="w-full py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-md transition-all font-medium"
-        >
-          + Add Child Task
-        </button>
-      </div>
-    )
-  }
-  {/* 7. Footer Metadata */ }
-  <div className="pt-6 border-t border-slate-100 text-xs text-slate-400 flex flex-col gap-1">
-    <div className="flex justify-between">
-      <span>Created</span>
-      <span className="font-mono text-slate-500">{formatDisplayDate(task.created_at)}</span>
-    </div>
-    {task.updated_at && (
-      <div className="flex justify-between">
-        <span>Updated</span>
-        <span className="font-mono text-slate-500">{formatDisplayDate(task.updated_at)}</span>
-      </div>
-    )}
-    <div className="flex justify-between mt-2">
-      <span>ID</span>
-      <span className="font-mono opacity-50">{task.id.slice(0, 8)}...</span>
-    </div>
-  </div>
     </div >
   );
 };
