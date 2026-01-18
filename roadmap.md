@@ -197,23 +197,7 @@ _Goal: Automate date inheritance and status tracking._
 
 - **ID:** `P7-NIGHTLY-SYNC`
 - **Goal**: Background jobs to update task statuses and overdue flags nightly.
-- **Status**: 📅 Planned
-
-### Phase 8: Checkpoints & Commerce
-
-_Goal: Monetization and structured progress flows._
-
-#### 8.1 Checkpoint System
-
-- **ID:** `P8-CHECKPOINTS`
-- **Goal**: Unlocking Phases sequentially when previous ones are 100% complete.
-- **Status**: 📅 Planned
-
-#### 8.2 Stripe Integration
-
-- **ID:** `P8-STRIPE`
-- **Goal**: Secure license purchasing integrated into account settings.
-- **Status**: 📅 Planned
+- **Status**: ✅ Done (Jan 2026)
 
 ### Phase 9: Administration & Alerts
 
@@ -223,12 +207,6 @@ _Goal: System-wide visibility and admin tools._
 
 - **ID:** `P9-ADMIN-ALERTS`
 - **Goal**: Automated email alerts to System Admin for new project creation.
-- **Status**: 📅 Planned
-
-#### 9.2 Secondary Projects
-
-- **ID:** `P9-SECONDARY-PROJ`
-- **Goal**: Support for creating and managing child/secondary projects under a master project.
 - **Status**: 📅 Planned
 
 #### 9.3 Advanced RBAC
@@ -269,6 +247,22 @@ _Goal: System-wide visibility and admin tools._
 - **Goal**: Standardize Design System (Rule 30) and Verify Golden Paths.
 - **Status**: ✅ Done (Jan 2026)
 
+### Phase 11: Monetization & Progression (Post-Testing)
+
+_Goal: Structured progress flows and commerce._
+
+#### 11.1 Checkpoint System
+
+- **ID:** `P8-CHECKPOINTS`
+- **Goal**: Unlocking Phases sequentially when previous ones are 100% complete.
+- **Status**: ✅ Done (Backend Logic), UI Pending User Testing
+
+#### 11.2 Stripe Integration
+
+- **ID:** `P8-STRIPE`
+- **Goal**: Secure license purchasing integrated into account settings.
+- **Status**: 📅 Planned
+
 ---
 
 ## 4. Feature Parity Checklist (Notion Import 1/8)
@@ -284,6 +278,7 @@ _Goal: System-wide visibility and admin tools._
 - [x] Drag & Drop Reordering (`status:done`)
 - [x] Project Progress Donut Chart (`status:done`)
 - [x] Basic Task Details (Start/Due dates, Purpose, Desc) (`status:done`)
+- [x] Multiple Projects per User (Secondary Projects) (`status:done`)
 
 **Team Management** (Updated Jan 13 - `feat/advanced-rbac`)
 - [x] Invite Users to Project (`status:done`)
@@ -304,13 +299,13 @@ _Goal: System-wide visibility and admin tools._
 **Due Date Engine**
 - [x] Project Start/End Date Input (`status:done`)
 - [x] Cascade date logic (Inheritance) -> See `P7-DATE-INHERIT` (`status:done`)
-- [ ] Nightly status updates -> See `P7-NIGHTLY-SYNC`
+- [x] Nightly status updates -> See `P7-NIGHTLY-SYNC` (`status:done`)
 
 **Task Details & Views**
 - [x] Task Priority/Status Views (Filters) (`status:done`)
 - [ ] "Related tasks" dropdown (`status:pending`)
-- [ ] Email task details button (`status:pending`)
-- [ ] Auto-mark children complete (`status:pending`)
+- [x] Email task details button (`status:done`)
+- [x] Auto-mark children complete (`status:done`)
 
 ### 📅 Planned / Missing (Backlog)
 
