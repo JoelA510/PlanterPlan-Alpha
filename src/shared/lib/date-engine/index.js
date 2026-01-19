@@ -59,8 +59,8 @@ export const calculateScheduleFromOffset = (tasks, parentId, daysOffset) => {
   const iso = start.toISOString();
 
   return {
-    start_date: iso,
-    due_date: iso,
+    start_date: iso.split('T')[0],
+    due_date: iso.split('T')[0],
   };
 };
 
@@ -72,14 +72,25 @@ export const calculateScheduleFromOffset = (tasks, parentId, daysOffset) => {
 export const toIsoDate = (value) => {
   if (!value) return null;
 
-  const base = value.includes('T') ? value : `${value}T00:00:00.000Z`;
-  const parsed = new Date(base);
+  // Handle Date objects directly
+  if (value instanceof Date) {
+    return value.toISOString().split('T')[0];
+  }
 
-  if (Number.isNaN(parsed.getTime())) return null;
+  // Handle strings
+  if (typeof value === 'string') {
+    // If it's already YYYY-MM-DD, return it
+    if (value.match(/^\d{4}-\d{2}-\d{2}$/)) return value;
 
-  // Use UTC Midnight effectively
-  parsed.setUTCHours(0, 0, 0, 0);
-  return parsed.toISOString().split('T')[0];
+    const base = value.includes('T') ? value : `${value}T00:00:00.000Z`;
+    const parsed = new Date(base);
+    if (Number.isNaN(parsed.getTime())) return null;
+
+    parsed.setUTCHours(0, 0, 0, 0);
+    return parsed.toISOString().split('T')[0];
+  }
+
+  return null;
 };
 
 /**

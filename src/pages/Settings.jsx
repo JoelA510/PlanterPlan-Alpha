@@ -12,10 +12,7 @@ import {
   Mail,
   Lock,
   Bell,
-  Palette,
-  Shield,
   Loader2,
-  Camera,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@layouts/DashboardLayout';
@@ -91,21 +88,23 @@ export default function Settings() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Settings Navigation */}
           <div className="md:col-span-1 space-y-1">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-orange-600 bg-orange-50 font-semibold"
-            >
-              <User className="w-4 h-4 mr-2" />
-              Profile
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-slate-600 hover:text-slate-900">
-              <Mail className="w-4 h-4 mr-2" />
-              Notifications
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-slate-600 hover:text-slate-900">
-              <Lock className="w-4 h-4 mr-2" />
-              Security
-            </Button>
+            {[
+              { label: 'Profile', icon: User, active: true },
+              { label: 'Notifications', icon: Mail },
+              { label: 'Security', icon: Lock },
+            ].map((item) => (
+              <Button
+                key={item.label}
+                variant="ghost"
+                className={`w-full justify-start ${item.active
+                    ? 'text-orange-600 bg-orange-50 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                  }`}
+              >
+                <item.icon className="w-4 h-4 mr-2" />
+                {item.label}
+              </Button>
+            ))}
           </div>
 
           {/* Main Content */}

@@ -33,3 +33,17 @@ const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
 ));
 CardFooter.displayName = 'CardFooter';
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+
+import PropTypes from 'prop-types';
+
+const commonPropTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node
+};
+
+Card.propTypes = commonPropTypes;
+CardHeader.propTypes = commonPropTypes;
+CardFooter.propTypes = commonPropTypes;
+CardTitle.propTypes = commonPropTypes;
+CardDescription.propTypes = commonPropTypes;
+CardContent.propTypes = commonPropTypes;
