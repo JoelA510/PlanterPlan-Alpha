@@ -1,20 +1,38 @@
 import { supabase } from '@app/supabaseClient';
 
-// Planter API Client Adapter
-// Maps the new "planter" API calls to our existing Supabase and Service layer.
+/**
+ * Planter API Client Adapter
+ * Maps the new "planter" API calls to our existing Supabase and Service layer.
+ * This adapter pattern decouples the UI from direct Supabase calls, allowing for
+ * easier testing and potential backend swaps.
+ */
 
 // Helper factory for generic CRUD operations
 const createEntityClient = (tableName, select = '*') => ({
+  /**
+   * List all records
+   * @returns {Promise<Array>}
+   */
   list: async () => {
     const { data, error } = await supabase.from(tableName).select(select);
     if (error) throw error;
     return data;
   },
+  /**
+   * Get a single record by ID
+   * @param {string} id
+   * @returns {Promise<Object>}
+   */
   get: async (id) => {
     const { data, error } = await supabase.from(tableName).select(select).eq('id', id).single();
     if (error) throw error;
     return data;
   },
+  /**
+   * Create a new record
+   * @param {Object} payload
+   * @returns {Promise<Object>}
+   */
   create: async (payload) => {
     const { data, error } = await supabase
       .from(tableName)
@@ -24,6 +42,12 @@ const createEntityClient = (tableName, select = '*') => ({
     if (error) throw error;
     return data;
   },
+  /**
+   * Update a record
+   * @param {string} id
+   * @param {Object} payload
+   * @returns {Promise<Object>}
+   */
   update: async (id, payload) => {
     const { data, error } = await supabase
       .from(tableName)
@@ -34,11 +58,21 @@ const createEntityClient = (tableName, select = '*') => ({
     if (error) throw error;
     return data;
   },
+  /**
+   * Delete a record
+   * @param {string} id
+   * @returns {Promise<boolean>}
+   */
   delete: async (id) => {
     const { error } = await supabase.from(tableName).delete().eq('id', id);
     if (error) throw error;
     return true;
   },
+  /**
+   * Filter records by key-value pairs
+   * @param {Object} filters
+   * @returns {Promise<Array>}
+   */
   filter: async (filters) => {
     let query = supabase.from(tableName).select(select);
     Object.keys(filters).forEach((key) => {
@@ -89,7 +123,7 @@ export const planter = {
           due_date: projectData.launch_date,
           origin: 'instance',
           parent_task_id: null,
-          status: 'planning',
+          status: projectData.status || 'planning', // Fixed: Respect provided status
           creator: user.id, // Required for RLS
         };
 

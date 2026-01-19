@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import Header from '@features/navigation/components/Header';
 import ProjectSidebarContainer from '@features/navigation/components/ProjectSidebarContainer';
+import { CommandPalette } from '@shared/ui/CommandPalette';
+import { useUserProjects } from '@features/projects/hooks/useUserProjects';
+import { useAuth } from '@app/contexts/AuthContext'; // Assuming this exists or similar
+import MobileFAB from '@features/mobile/MobileFAB';
 
-// Replaced Layout logic to match merge aesthetics
 export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useAuth();
+  const { projects } = useUserProjects(user?.id);
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <CommandPalette projects={projects || []} />
       <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} showMenuButton={true} />
 
       <div
@@ -33,6 +39,7 @@ export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
       )}
 
       <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)]">{children}</main>
+      <MobileFAB onAddTask={() => {/* Handler logic to open modal if global */ }} />
     </div>
   );
 }

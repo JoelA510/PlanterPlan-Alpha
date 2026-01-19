@@ -10,6 +10,8 @@ import ErrorBoundary from '@shared/ui/ErrorBoundary';
 import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@layouts/DashboardLayout';
+import TaskDetailsPanel from '@features/tasks/components/TaskDetailsPanel';
+import EmptyProjectState from '@features/tasks/components/EmptyProjectState';
 
 // Hooks & Utils
 import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
@@ -184,34 +186,12 @@ const TaskList = () => {
           {/* Project View Area - Flex 1 to take remaining space */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {!activeProject ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500 py-20">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <svg
-                    className="w-8 h-8 text-slate-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-semibold mb-2 text-slate-700">No Project Selected</h2>
-                <p className="max-w-md text-center mb-6">Select a project to view tasks.</p>
-                <button
-                  onClick={() => {
-                    setShowForm(true);
-                    setSelectedTask(null);
-                  }}
-                  className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-sm font-medium"
-                >
-                  Create New Project
-                </button>
-              </div>
+              <EmptyProjectState
+                onCreateProject={() => {
+                  setShowForm(true);
+                  setSelectedTask(null);
+                }}
+              />
             ) : (
               <ProjectTasksView
                 project={activeProject}
@@ -231,55 +211,25 @@ const TaskList = () => {
 
           {/* Permanent Side Panel (Right) - Details / Forms */}
           {(showForm || selectedTask || taskFormState) && (
-            <div className="w-1/3 min-w-96 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-2xl z-10 h-full overflow-hidden transition-all duration-300">
-              <div className="pt-8 px-6 pb-6 border-b border-slate-100 flex justify-between items-start bg-white sticky top-0 z-20">
-                <h2 className="font-bold text-xl text-slate-800 truncate pr-4">{panelTitle}</h2>
-                <button
-                  onClick={() => {
-                    setShowForm(false);
-                    setTaskFormState(null);
-                    setSelectedTask(null);
-                  }}
-                  className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors"
-                  aria-label="Close panel"
-                >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white">
-                {showForm ? (
-                  <NewProjectForm
-                    onSubmit={handleProjectSubmit}
-                    onCancel={() => setShowForm(false)}
-                  />
-                ) : isTaskFormOpen ? (
-                  <NewTaskForm
-                    parentTask={parentTaskForForm}
-                    initialTask={taskBeingEdited}
-                    origin={taskFormState?.origin}
-                    enableLibrarySearch={taskFormState?.mode !== 'edit'}
-                    submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
-                    onSubmit={handleTaskSubmit}
-                    onCancel={() => setTaskFormState(null)}
-                  />
-                ) : selectedTask ? (
-                  <TaskDetailsView
-                    task={selectedTask}
-                    onAddChildTask={handleAddChildTask}
-                    onEditTask={handleEditTask}
-                    onDeleteTask={onDeleteTaskWrapper}
-                    onTaskUpdated={fetchTasks}
-                  />
-                ) : null}
-              </div>
-            </div>
+            <TaskDetailsPanel
+              showForm={showForm}
+              taskFormState={taskFormState}
+              selectedTask={selectedTask}
+              taskBeingEdited={taskBeingEdited}
+              parentTaskForForm={parentTaskForForm}
+              onClose={() => {
+                setShowForm(false);
+                setTaskFormState(null);
+                setSelectedTask(null);
+              }}
+              handleProjectSubmit={handleProjectSubmit}
+              handleTaskSubmit={handleTaskSubmit}
+              setTaskFormState={setTaskFormState}
+              handleAddChildTask={handleAddChildTask}
+              handleEditTask={handleEditTask}
+              onDeleteTaskWrapper={onDeleteTaskWrapper}
+              fetchTasks={fetchTasks}
+            />
           )}
         </div>
 

@@ -32,6 +32,7 @@ A chronological overview of the project's evolution from Day 1.
 | **Vite Migration**       | Jan 2026     | **Infrastructure**: Moved to Vite, Vitest, and Tailwind v4. Integrated Planter modules. Verified via Golden Paths.                                                               |
 | **Debt Cleanup & Fixes** | Jan 2026     | **Stability**: Fixed `DashboardLayout` Sidebar injection, standardized chart colors using `TASK_STATUS` constants, and resolved critical test failures.                          |
 | **PR Review Fixes**      | Jan 2026     | **Review**: Integrated fixes from Codex/Gemini: Generic Entity Client, Design System corrections (Colors, Arbitrary Values).                                                     |
+| **Exhaustive Audit**     | Jan 2026     | **Security & Hygiene**: Locked down RLS (Creator/Member access only), fixed License checks, extracted Charts, and removed 900+ lines of dead CSS.                                |
 
 ---
 
@@ -64,6 +65,7 @@ The core user journeys identified in the codebase and their current operational 
 | **CRUD Operations**   | ✅ **Working** | Create, Read, Update, Delete (with cascade).                                    |
 | **Reordering (DnD)**  | ✅ **Working** | Drag-and-drop tasks within/across phases. Persists to DB via `position`.        |
 | **View Filters**      | 📅 **Planned** | Priority, Status-based, Organization, and Personal views via search/filter bar. |
+| **CRM Lite**          | ✅ **Done**    | People List, Add Person Modal, and Project Tabs.                            |
 | **Checkpoint System** | 📅 **Planned** | Sequential phase unlocking logic (Phase N+1 unlocks when Phase N is complete).  |
 
 ### 📊 Reporting & Analytics
@@ -197,23 +199,7 @@ _Goal: Automate date inheritance and status tracking._
 
 - **ID:** `P7-NIGHTLY-SYNC`
 - **Goal**: Background jobs to update task statuses and overdue flags nightly.
-- **Status**: 📅 Planned
-
-### Phase 8: Checkpoints & Commerce
-
-_Goal: Monetization and structured progress flows._
-
-#### 8.1 Checkpoint System
-
-- **ID:** `P8-CHECKPOINTS`
-- **Goal**: Unlocking Phases sequentially when previous ones are 100% complete.
-- **Status**: 📅 Planned
-
-#### 8.2 Stripe Integration
-
-- **ID:** `P8-STRIPE`
-- **Goal**: Secure license purchasing integrated into account settings.
-- **Status**: 📅 Planned
+- **Status**: ✅ Done (Jan 2026)
 
 ### Phase 9: Administration & Alerts
 
@@ -223,12 +209,6 @@ _Goal: System-wide visibility and admin tools._
 
 - **ID:** `P9-ADMIN-ALERTS`
 - **Goal**: Automated email alerts to System Admin for new project creation.
-- **Status**: 📅 Planned
-
-#### 9.2 Secondary Projects
-
-- **ID:** `P9-SECONDARY-PROJ`
-- **Goal**: Support for creating and managing child/secondary projects under a master project.
 - **Status**: 📅 Planned
 
 #### 9.3 Advanced RBAC
@@ -269,6 +249,22 @@ _Goal: System-wide visibility and admin tools._
 - **Goal**: Standardize Design System (Rule 30) and Verify Golden Paths.
 - **Status**: ✅ Done (Jan 2026)
 
+### Phase 11: Monetization & Progression (Post-Testing)
+
+_Goal: Structured progress flows and commerce._
+
+#### 11.1 Checkpoint System
+
+- **ID:** `P8-CHECKPOINTS`
+- **Goal**: Unlocking Phases sequentially when previous ones are 100% complete.
+- **Status**: ✅ Done (Backend Logic), UI Pending User Testing
+
+#### 11.2 Stripe Integration
+
+- **ID:** `P8-STRIPE`
+- **Goal**: Secure license purchasing integrated into account settings.
+- **Status**: 📅 Planned
+
 ---
 
 ## 4. Feature Parity Checklist (Notion Import 1/8)
@@ -284,6 +280,7 @@ _Goal: System-wide visibility and admin tools._
 - [x] Drag & Drop Reordering (`status:done`)
 - [x] Project Progress Donut Chart (`status:done`)
 - [x] Basic Task Details (Start/Due dates, Purpose, Desc) (`status:done`)
+- [x] Multiple Projects per User (Secondary Projects) (`status:done`)
 
 **Team Management** (Updated Jan 13 - `feat/advanced-rbac`)
 - [x] Invite Users to Project (`status:done`)
@@ -304,18 +301,21 @@ _Goal: System-wide visibility and admin tools._
 **Due Date Engine**
 - [x] Project Start/End Date Input (`status:done`)
 - [x] Cascade date logic (Inheritance) -> See `P7-DATE-INHERIT` (`status:done`)
-- [ ] Nightly status updates -> See `P7-NIGHTLY-SYNC`
+- [x] Nightly status updates -> See `P7-NIGHTLY-SYNC` (`status:done`)
 
 **Task Details & Views**
 - [x] Task Priority/Status Views (Filters) (`status:done`)
 - [ ] "Related tasks" dropdown (`status:pending`)
-- [ ] Email task details button (`status:pending`)
-- [ ] Auto-mark children complete (`status:pending`)
+- [x] Email task details button (`status:done`)
+- [x] Auto-mark children complete (`status:done`)
 
 ### 📅 Planned / Missing (Backlog)
 
 **Admin & White Label**
 - [ ] White Label Org Administration
+**User Management**
+- [x] Onboarding Wizard (First Run) (`status:done`)
+- [x] Budgeting Lite (`status:done`)
 - [ ] User License Management
 - [ ] Discount Codes
 - [ ] Publish/Unpublish Templates

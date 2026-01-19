@@ -11,11 +11,7 @@
 @import './layout.css';
 
 /* 3. Component styles */
-@import './components/buttons.css';
-@import './components/forms.css';
 @import './components/task-card.css';
-@import './components/task-details.css';
-@import './components/panels.css';
 
 /* 4. Page-specific styles */
 @import './pages/dashboard.css';

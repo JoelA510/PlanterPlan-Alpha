@@ -10,6 +10,9 @@ import ProjectCard from '@features/dashboard/components/ProjectCard';
 import CreateProjectModal from '@features/dashboard/components/CreateProjectModal';
 import StatsOverview from '@features/dashboard/components/StatsOverview';
 import ProjectPipelineBoard from '@features/dashboard/components/ProjectPipelineBoard';
+import OnboardingWizard from '@features/onboarding/components/OnboardingWizard';
+import GettingStartedWidget from '@features/onboarding/components/GettingStartedWidget';
+import MobileAgenda from '@features/mobile/MobileAgenda';
 
 import DashboardLayout from '@layouts/DashboardLayout';
 
@@ -112,6 +115,14 @@ export default function Dashboard() {
         {/* Stats */}
         {viewMode === 'grid' && (
           <div className="mb-8 flex-shrink-0">
+            {projects.length > 0 && (
+              <GettingStartedWidget
+                project={projects[0]} // Primary/First project
+                teamMembers={teamMembers.filter(m => m.project_id === projects[0].id)}
+                onDismiss={() => { }}
+              />
+            )}
+            <MobileAgenda tasks={tasks} />
             <StatsOverview projects={projects} tasks={tasks} teamMembers={teamMembers} />
           </div>
         )}
@@ -203,6 +214,11 @@ export default function Dashboard() {
           open={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateProject}
+        />
+
+        <OnboardingWizard
+          open={!loadingProjects && projects.length === 0}
+          onCreateProject={handleCreateProject}
         />
       </div>
     </DashboardLayout>

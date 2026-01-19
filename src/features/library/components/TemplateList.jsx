@@ -18,6 +18,7 @@ const TemplateList = ({ tasks, selectedTaskId, handleTaskClick }) => {
               task={template}
               isSelected={selectedTaskId === template.id}
               onClick={handleTaskClick}
+              to={`/project/${template.id}`}
             />
           ))}
         </div>

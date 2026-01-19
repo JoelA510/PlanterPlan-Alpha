@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { supabase } from '@app/supabaseClient';
 import { deepCloneTask } from '@features/tasks/services/taskService';
-import { toIsoDate } from '@shared/lib/date-engine';
+import { toIsoDate, recalculateProjectDates } from '@shared/lib/date-engine';
 
 export const useProjectMutations = ({ tasks, fetchTasks }) => {
   const createProject = useCallback(
@@ -69,7 +69,60 @@ export const useProjectMutations = ({ tasks, fetchTasks }) => {
     [tasks, fetchTasks]
   );
 
+  const updateProject = useCallback(
+    async (projectId, updates, oldStartDate) => {
+      try {
+        const { start_date: newStartDateStr } = updates;
+
+        // 1. Prepare standard updates
+        const dbUpdates = {
+          title: updates.title,
+          description: updates.description,
+          due_date: updates.launch_date, // Map launch_date -> due_date
+          start_date: updates.start_date,
+          updated_at: new Date().toISOString(),
+          location: updates.location,
+        };
+
+        // 2. Perform Top-Down Date Recalculation if Start Date changed
+        let batchUpdates = [];
+        if (newStartDateStr && oldStartDate && newStartDateStr !== oldStartDate) {
+          // Get all project tasks to calculate shifts
+          const { data: projectTasks } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('root_id', projectId);
+
+          batchUpdates = recalculateProjectDates(projectTasks || [], newStartDateStr, oldStartDate);
+        }
+
+        // 3. Update Project Root
+        const { error } = await supabase
+          .from('tasks')
+          .update(dbUpdates)
+          .eq('id', projectId);
+        if (error) throw error;
+
+        // 4. Execute Batch Updates (if any)
+        if (batchUpdates.length > 0) {
+          const { error: batchError } = await supabase
+            .from('tasks')
+            .upsert(batchUpdates);
+          if (batchError) console.error("Date recalc error", batchError);
+        }
+
+        await fetchTasks();
+        return true;
+      } catch (error) {
+        console.error('Error updating project:', error);
+        throw error;
+      }
+    },
+    [fetchTasks]
+  );
+
   return {
     createProject,
+    updateProject
   };
 };

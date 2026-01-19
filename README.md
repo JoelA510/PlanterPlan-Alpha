@@ -20,7 +20,7 @@ Update discipline:
 
 # PlanterPlan
 
-**Last verified**: 2026-01-14 (Master Review Orchestrator - Phase 3)
+**Last verified**: 2026-01-19 (Exhaustive Audit & Security Round)
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
@@ -40,11 +40,14 @@ The codebase uses a modified **Feature-Sliced Design (FSD)** to enable Agentic r
 ```text
 src/
 ├── app/            # Global wiring (App.jsx, providers, router)
-├── features/       # Business domains (e.g. tasks, projects)
+├── features/       # Business domains
+│   ├── budget/     # [NEW] Budgeting Lite
+│   ├── onboarding/ # [NEW] Wizard & Checklist
 │   ├── tasks/
 │   │   ├── components/
 │   │   ├── hooks/
 │   │   └── services/
+│   └── projects/
 ├── shared/         # Reusable code with NO business logic
 │   ├── lib/        # Pure functions (date-engine, formatters)
 │   └── ui/         # Dumb components (Button, Modal)
@@ -111,6 +114,8 @@ stateDiagram-v2
 ---
 
 ## 4. Architecture
+
+For detailed Component Diagrams and Data Flow visualizations, please see the **[Architecture Documentation](./docs/ARCHITECTURE.md)**.
 
 ### 4.1 Tech Stack
 
@@ -186,6 +191,10 @@ flowchart LR
 - ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `ProjectSidebar.jsx`).
 - ✅ **Responsive Dashboard**: Full-screen layout. `DashboardLayout.jsx` supports both static `AppSidebar` and dynamic `ProjectSidebar`.
 - ✅ **Robust Verification**: Golden Paths tested for Dashboard, Board, and Navigation flows (Ref: `golden-paths.test.jsx`).
+- ✅ **People/CRM Lite**: Manage team members, roles, and statuses via specialized `PeopleList` view (Ref: `peopleService.js`).
+- ✅ **Checkpoints**: Gated phases requiring completion of previous phase to unlock (Ref: `PhaseCard.jsx`).
+- ✅ **Inventory/Assets**: Track physical items and location (Ref: `assetService.js`).
+- ✅ **Mobile Field Mode**: Quick-action FAB and "Today's Agenda" for on-the-go focus.
 
 ### 5.2 Known Limitations
 

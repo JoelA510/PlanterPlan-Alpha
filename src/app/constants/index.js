@@ -17,6 +17,7 @@ export const TASK_STATUS = {
   IN_PROGRESS: 'in_progress',
   BLOCKED: 'blocked',
   COMPLETED: 'completed',
+  OVERDUE: 'overdue',
 };
 
 export const PROJECT_STATUS = {

@@ -100,6 +100,11 @@ export const getTasksForUser = async (userId, client = supabase) => {
 /**
  * Update a task's status.
  */
+/**
+ * Update a task's status.
+ * RECURSIVE: If status is 'completed' (or whatever the done state is), mark all children as same?
+ * User asked for "Auto-mark children complete".
+ */
 export const updateTaskStatus = async (taskId, status, client = supabase) => {
   try {
     const { data, error } = await client
@@ -110,6 +115,25 @@ export const updateTaskStatus = async (taskId, status, client = supabase) => {
       .single();
 
     if (error) throw error;
+
+    // Auto-mark children logic
+    // If we are marking as DONE, maybe mark all children as DONE?
+    // Let's implement Top-Down completion.
+    if (status === 'completed') {
+      // Fetch children IDs
+      const { data: children } = await client
+        .from('tasks')
+        .select('id')
+        .eq('parent_task_id', taskId);
+
+      if (children && children.length > 0) {
+        // Parallel update for speed
+        await Promise.all(
+          children.map((child) => updateTaskStatus(child.id, 'completed', client))
+        );
+      }
+    }
+
     return { data, error: null };
   } catch (error) {
     console.error('[taskService.updateTaskStatus] Error:', error);
@@ -187,5 +211,64 @@ export const updateParentDates = async (parentId, client = supabase) => {
     console.error('[taskService.updateParentDates] Error:', error);
     // Suppress error to not block the main mutation?
     // Better to log and continue, as this is a background consistency job.
+  }
+};
+
+// ============================================================================
+// Relationship Operations
+// ============================================================================
+
+export const getTaskRelationships = async (taskId, client = supabase) => {
+  try {
+    const { data, error } = await client
+      .from('task_relationships')
+      .select(`
+        *,
+        from_task:from_task_id(id, title, status),
+        to_task:to_task_id(id, title, status)
+      `)
+      .or(`from_task_id.eq.${taskId},to_task_id.eq.${taskId}`);
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('[taskService.getTaskRelationships] Error:', error);
+    return { data: null, error };
+  }
+};
+
+export const addRelationship = async ({ fromId, toId, type = 'relates_to', projectId }, client = supabase) => {
+  try {
+    const { data, error } = await client
+      .from('task_relationships')
+      .insert({
+        project_id: projectId,
+        from_task_id: fromId,
+        to_task_id: toId,
+        type
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('[taskService.addRelationship] Error:', error);
+    return { data: null, error };
+  }
+};
+
+export const removeRelationship = async (relationshipId, client = supabase) => {
+  try {
+    const { error } = await client
+      .from('task_relationships')
+      .delete()
+      .eq('id', relationshipId);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('[taskService.removeRelationship] Error:', error);
+    return { error };
   }
 };

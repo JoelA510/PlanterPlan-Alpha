@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { TASK_STATUS } from '@app/constants/index';
 import PropTypes from 'prop-types';
 import RoleIndicator from '@shared/ui/RoleIndicator';
@@ -5,33 +6,22 @@ import RoleIndicator from '@shared/ui/RoleIndicator';
 /**
  * SidebarNavItem - Lightweight navigation item for sidebar
  *
- * Unlike TaskItem, this component only handles navigation,
- * without status controls, drag-and-drop, or action buttons.
+ * Checks for `to` prop to render as a semantic Link.
  */
-const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
+const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => {
   const handleClick = (e) => {
-    e.preventDefault();
+    // If it's a Link, let the browser handle navigation unless prevented
+    // But we still want to fire 'onClick' for side effects (like closing mobile menu)
     if (onClick) {
       onClick(task);
     }
   };
 
   const statusClass = task.status ? `status-dot ${task.status}` : `status-dot ${TASK_STATUS.TODO}`;
+  const commonClasses = `sidebar-nav-item group ${isSelected ? 'selected' : ''}`;
 
-  return (
-    <div
-      className={`sidebar-nav-item group ${isSelected ? 'selected' : ''}`}
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          if (onClick) onClick(task);
-        }
-      }}
-      title={task.title}
-    >
+  const content = (
+    <>
       <div className={statusClass}></div>
       <div className="flex-1 min-w-0 flex items-center justify-between">
         <span className="sidebar-nav-item-title truncate">{task.title}</span>
@@ -40,9 +30,9 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
           <button
             className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-brand-600 transition-all mr-2"
             onClick={(e) => {
+              e.preventDefault(); // Prevent navigation
               e.stopPropagation();
-              // No-op for demo visual, or wire up if needed later
-              // No-op for demo visual, or wire up if needed later
+              // No-op for demo visual
             }}
             title="Clone Template"
           >
@@ -63,6 +53,40 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false }) => {
           )}
         </div>
       </div>
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className={commonClasses}
+        onClick={handleClick}
+        title={task.title}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      className={commonClasses}
+      onClick={(e) => {
+        e.preventDefault();
+        handleClick(e);
+      }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick(e);
+        }
+      }}
+      title={task.title}
+    >
+      {content}
     </div>
   );
 };
@@ -76,6 +100,7 @@ SidebarNavItem.propTypes = {
   isSelected: PropTypes.bool,
   onClick: PropTypes.func.isRequired,
   showRole: PropTypes.bool,
+  to: PropTypes.string,
 };
 
 export default SidebarNavItem;

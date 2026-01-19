@@ -21,6 +21,7 @@ const JoinedProjectsList = ({ projects, error, handleTaskClick, selectedTaskId }
               isSelected={selectedTaskId === project.id}
               onClick={handleTaskClick}
               showRole={true}
+              to={`/project/${project.id}`}
             />
           ))}
         </div>
