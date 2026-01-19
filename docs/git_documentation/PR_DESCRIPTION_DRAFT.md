@@ -1,43 +1,42 @@
-# PR Description: People/CRM Lite & Project Tabs
+# Feature: Time Management, Task Dependencies & Architecture Refactor
 
 ## Summary
-- **Implemented People CRM**: Added full CRUD capabilities for managing project team members and "People" entities distinct from Auth users (volunteers, contacts).
-- **Tabbed Project View**: Refactored `Project.jsx` to support "Task Board", "People", and "Budget" tabs, reducing clutter.
-- **Missing Hooks**: Added `useUserProjects` to aggregate owned and joined projects properly.
-- **Implemented Checkpoints**: Tasks now have an `is_locked` visual state.
-- **Inventory Tracker**: Added `assets` table and management UI.
-- **Mobile Field Mode**: Added FAB for quick actions and Mobile Agenda widget.
-- **Master Review**: Ran Debt Audit, fixed `GettingStartedWidget` logic, and resolved UI regression in `Project.jsx`.
-- **Test Coverage**: Added unit tests for `PhaseCard` (Checkpoints), `AssetList` (Inventory), and `MobileAgenda` (Mobile).
+This release introduces comprehensive time management capabilities, including task dependencies and project-level configurations, while significantly hardening the codebase through extensive refactoring and standardization.
 
-## Roadmap Progress
+## Key Features
 
-| Feature | Status | Notes |
-| :--- | :--- | :--- |
-| **People/CRM Lite** | ✅ Done | Full service + UI flow. |
-| **Budgeting Lite** | ✅ Done | Integrated into Budget Tab. |
-| **Project Nav** | ✅ Done | Tabbed interface implemented. |
-| **Checkpoints** | ✅ Done | UI Logic + Test Coverage. |
-| **Inventory** | ✅ Done | Assets Tab + Service. |
-| **Mobile Mode** | ✅ Done | FAB + Agenda Widget. |
+### 1. Time Management & Dependencies
+- **Task Dependencies**: Implemented blocking and relational dependencies (`blocks`, `relates_to`) with a new `task_relationships` table.
+- **Date Logic**: Enhanced date inheritance engine to better handle project start/end date cascades.
+- **Project Settings**: Added "Due Soon" thresholds and Location settings via a JSONB `settings` column.
 
-## Architecture Decisions
-- **Checkpoints**: Relying on db trigger for logic, UI for feedback.
-- **Inventory**: New `assets` table with RLS linked to `project_members`.
-- **Mobile**: Conditional rendering in Layout (`md:hidden`) to avoid desktop clutter.
-- **Imports**: Fixed several relative import issues by enforcing absolute aliases (`@features/`, `@app/`).
-- **Context**: Ensured `AuthContext` is correctly consumed in new hooks.
+### 2. Architecture & Performance
+- **Data Hook Pattern**: Migrated `Project.jsx` to use a dedicated `useProjectData` hook, decoupling view logic from data fetching.
+- **Component Decomposition**:
+  - Split `TaskItem.jsx` (previously huge) into modular `TaskStatusSelect` and `TaskControlButtons`.
+  - Refactored `Reports.jsx` to use reusable chart components (`StatusPieChart`, `PhaseBarChart`).
+  - Refactored `Settings.jsx` to use configuration-driven UI generation.
+- **Real-time Optimization**: Fixed query invalidation strategies in `useTaskSubscription` to prevent over-fetching.
 
-## Review Guide
-- **High Risk**: `src/pages/Project.jsx` (Major refactor of layout/logic).
-- **Medium Risk**: `src/features/people/services/peopleService.js` (New service).
-- **Low Risk**: `src/features/budget/*` (Component tweak).
+### 3. Code Quality & Standards
+- **Type Safety**: Enforced `PropTypes` across 10+ core Shared UI components (`Button`, `Input`, `Dialog`, etc.) and key feature components.
+- **Error Handling**: Standardized error reporting in `LoginForm` and `Settings` using the Toast system.
+- **Documentation**: Added JSDoc to critical utilities including `planterClient`, `date-engine`, and `export-utils`.
+- **Testing**: Added unit test coverage for complex date logic (`date-engine`) and API adapters (`planterClient`).
+- **Hygiene**: Achieved zero lint errors and removed all production console logging.
 
-## Verification Plan
-1. **Automated**:
-   - `npm run build` (Passed)
-   - `npm test src/features/people/components/PeopleList.test.jsx` (Passed)
-   - `npm test src/features/budget/components/BudgetWidget.test.jsx` (Passed)
-2. **Manual**:
-   - Go to Project -> Click "People" tab -> Add Person -> Verify list updates.
-   - Go to Project -> Click "Budget" tab -> Add Expense -> Verify widget updates.
+## Database Changes
+- **New Tables**: `task_relationships`
+- **New Columns**: 
+  - `tasks`: `assignee_id` (UUID), `priority` (Text), `is_premium` (Boolean)
+  - `projects`: `settings` (JSONB)
+- **Fixes**: Applied schema repairs to ensure local and remote environments match.
+
+## Verification
+- **Automated Tests**: Passed `npm test` for new logic.
+- **Linting**: Passed `npm run lint` with 0 errors.
+- **Manual QA**: verified Project Creation, Task Dependency UI, and Settings persistence.
+
+## Dependencies
+- `@tanstack/react-query` (Optimization)
+- `lucide-react` (Icon standardization)
