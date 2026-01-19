@@ -24,6 +24,8 @@ This release introduces comprehensive time management capabilities, including ta
 - **Documentation**: Added JSDoc to critical utilities including `planterClient`, `date-engine`, and `export-utils`.
 - **Testing**: Added unit test coverage for complex date logic (`date-engine`) and API adapters (`planterClient`).
 - **Hygiene**: Achieved zero lint errors and removed all production console logging.
+- **Optimization**: Deleted 4 dead CSS files (`buttons.css`, `forms.css`, etc.) to reduce codebase bloat.
+- **Agentic Readiness**: Added `docs/AGENT_CONTEXT.md` to accelerate future AI-driven development.
 
 ## Database Changes
 - **New Tables**: `task_relationships`
