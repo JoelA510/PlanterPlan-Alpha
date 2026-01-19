@@ -12,7 +12,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
   const level = getTaskLevel();
   const canHaveChildren = level < 3;
 
-  const hasLicense = false; // Mock - Replace with real subscription check
+  const hasLicense = false; // TODO: Replace with real subscription check from auth/user context
   const isLocked = task.is_premium && !hasLicense;
 
   return (

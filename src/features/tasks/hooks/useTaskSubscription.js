@@ -45,7 +45,7 @@ export const useTaskSubscription = ({
                     if (isRelevant) {
                         // console.log('[Realtime] Task change detected, invalidating queries...', payload.eventType);
                         // Invalidate specific project queries
-                        queryClient.invalidateQueries({ queryKey: ['projectTasks', projectId] });
+                        queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
 
                         // If it changed metadata that affects the header (name, dates), refresh project too
                         if (record.id === projectId || !record.root_id) {

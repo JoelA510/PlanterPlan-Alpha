@@ -1,5 +1,10 @@
 import { formatDisplayDate } from './date-engine';
 
+/**
+ * Exports project tasks to a CSV file.
+ * @param {Object} project - Project metadata object (must have name).
+ * @param {Array} tasks - List of task objects to export.
+ */
 export const exportProjectToCSV = (project, tasks) => {
     if (!tasks || tasks.length === 0) return;
 
