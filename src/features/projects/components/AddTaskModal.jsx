@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@shared/lib/utils';
 
-export default function AddTaskModal({ open, onClose, onAdd, milestone, teamMembers = [] }) {
+export default function AddTaskModal({ open, onClose, onAdd, milestone, parentTask, teamMembers = [] }) {
   const [loading, setLoading] = useState(false);
   const initialState = {
     title: '',
@@ -51,8 +51,9 @@ export default function AddTaskModal({ open, onClose, onAdd, milestone, teamMemb
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Task</DialogTitle>
-          {milestone && <p className="text-sm text-slate-500">Adding to: {milestone.name}</p>}
+          <DialogTitle>Add {parentTask ? 'Subtask' : 'Task'}</DialogTitle>
+          {milestone && !parentTask && <p className="text-sm text-slate-500">Adding to: {milestone.title || milestone.name}</p>}
+          {parentTask && <p className="text-sm text-slate-500">Subtask of: {parentTask.title}</p>}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-4">

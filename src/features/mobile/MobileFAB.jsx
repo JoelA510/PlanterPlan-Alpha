@@ -18,6 +18,7 @@ export default function MobileFAB({ onAddTask }) {
                     <Button
                         size="icon"
                         className="w-14 h-14 rounded-full shadow-xl bg-brand-600 hover:bg-brand-700 text-white"
+                        aria-label="Add Task"
                     >
                         <Plus className="w-8 h-8" />
                     </Button>

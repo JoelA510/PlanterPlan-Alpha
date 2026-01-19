@@ -2,6 +2,8 @@ import TaskResources from '@features/tasks/components/TaskResources';
 import TaskDependencies from '@features/tasks/components/TaskDependencies';
 import { formatDisplayDate } from '@shared/lib/date-engine';
 
+import { useAuth } from '@app/contexts/AuthContext';
+
 const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated, ...props }) => {
   // Determine hierarchy level
   const getTaskLevel = () => {
@@ -12,7 +14,10 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
   const level = getTaskLevel();
   const canHaveChildren = level < 3;
 
-  const hasLicense = false; // TODO: Replace with real subscription check from auth/user context
+  const { user } = useAuth();
+  // Check valid subscription or override for local dev/admin if needed. 
+  // For now, strict check on subscription_status.
+  const hasLicense = user?.subscription_status === 'active' || user?.subscription_status === 'trialing';
   const isLocked = task.is_premium && !hasLicense;
 
   return (
@@ -208,6 +213,28 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
 
       {/* 5.5 Dependencies */}
       <TaskDependencies task={task} allProjectTasks={props.allProjectTasks || []} />
+
+      {/* 5.6 Subtasks List */}
+      {task.children && task.children.length > 0 && (
+        <div className="detail-section mb-6">
+          <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Subtasks</h3>
+          <div className="space-y-2">
+            {task.children.map((child) => (
+              <div key={child.id} className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${child.is_complete ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
+                  <span className={`text-sm font-medium ${child.is_complete ? 'text-slate-500 line-through' : 'text-slate-700'}`}>
+                    {child.title}
+                  </span>
+                </div>
+                {/* Reuse onEditTask to open child details if needed, or recursive details? 
+                      For now just basic display. 
+                  */}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 6. Child Task Button */} {
         onAddChildTask && canHaveChildren && (

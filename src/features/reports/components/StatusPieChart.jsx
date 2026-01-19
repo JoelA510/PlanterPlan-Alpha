@@ -1,56 +1,69 @@
-import React, { memo } from 'react';
+import { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import {
-    PieChart,
-    Pie,
-    Cell,
-    Tooltip,
-    ResponsiveContainer,
-    Legend,
-} from 'recharts';
-import { Card } from '@shared/ui/card';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { TASK_STATUS } from '@app/constants/index';
+import { CHART_COLORS } from '@app/constants/colors';
 
-const StatusPieChart = memo(function StatusPieChart({ data }) {
+const StatusPieChart = ({ tasks }) => {
+    const data = useMemo(() => {
+        return [
+            {
+                name: 'To Do',
+                count: tasks.filter((t) => t.status === TASK_STATUS.TODO || !t.status).length,
+                fill: CHART_COLORS[TASK_STATUS.TODO],
+            },
+            {
+                name: 'In Progress',
+                count: tasks.filter((t) => t.status === TASK_STATUS.IN_PROGRESS).length,
+                fill: CHART_COLORS[TASK_STATUS.IN_PROGRESS],
+            },
+            {
+                name: 'Blocked',
+                count: tasks.filter((t) => t.status === TASK_STATUS.BLOCKED).length,
+                fill: CHART_COLORS[TASK_STATUS.BLOCKED],
+            },
+            {
+                name: 'Completed',
+                count: tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length,
+                fill: CHART_COLORS[TASK_STATUS.COMPLETED],
+            },
+        ];
+    }, [tasks]);
+
     return (
-        <Card className="p-8 border border-slate-200 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <h3 className="text-xl font-bold text-slate-900 mb-8">Task Distribution</h3>
-            {data.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                        <Pie
-                            data={data}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={5}
-                            dataKey="value"
-                        >
-                            {data.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                    </PieChart>
-                </ResponsiveContainer>
-            ) : (
-                <div className="h-72 flex items-center justify-center text-slate-500">
-                    No tasks to display
-                </div>
-            )}
-        </Card>
+        <div className="w-full h-full pb-6">
+            <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                    <Pie
+                        data={data}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={2}
+                        dataKey="count"
+                    >
+                        {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                    </Pie>
+                    <Tooltip
+                        formatter={(value, name) => [value, name]}
+                        contentStyle={{
+                            borderRadius: '8px',
+                            border: 'none',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                        }}
+                    />
+                    <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+            </ResponsiveContainer>
+        </div>
     );
-});
+};
 
 StatusPieChart.propTypes = {
-    data: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string.isRequired,
-            value: PropTypes.number.isRequired,
-            color: PropTypes.string.isRequired,
-        })
-    ).isRequired,
+    tasks: PropTypes.array.isRequired,
 };
 
 export default StatusPieChart;

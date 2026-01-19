@@ -32,7 +32,14 @@ export function useProjectData(projectId) {
     // Derived State
     const phases = projectHierarchy.filter((t) => t.parent_task_id === projectId);
     const milestones = projectHierarchy.filter((t) => phases.some((p) => p.id === t.parent_task_id));
-    const tasks = projectHierarchy.filter((t) => milestones.some((m) => m.id === t.parent_task_id));
+
+    // Tasks are any items that are below the milestone level (Root Tasks + Subtasks)
+    // We filter out phases and milestones to get everything else.
+    const tasks = projectHierarchy.filter((t) =>
+        !phases.some(p => p.id === t.id) &&
+        !milestones.some(m => m.id === t.id) &&
+        t.parent_task_id !== projectId // Exclude phases again just in case, though first check handles it
+    );
 
     // 3. Fetch Team Members
     const { data: teamMembers = [] } = useQuery({
@@ -40,6 +47,7 @@ export function useProjectData(projectId) {
         queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId }),
         enabled: !!projectId,
     });
+
 
     return {
         project,

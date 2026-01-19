@@ -6,11 +6,10 @@ import ProjectHeader from '@features/projects/components/ProjectHeader';
 import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
 import { getProjectWithStats } from '@features/projects/services/projectService';
 import { Loader2 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+// PieChart logic moved to StatusPieChart
 import { TASK_STATUS } from '@app/constants/index';
-import { CHART_COLORS } from '@app/constants/colors';
-
 // Removed hardcoded CHART_COLORS
+import StatusPieChart from '@features/reports/components/StatusPieChart';
 
 const ProjectReport = () => {
   const { projectId } = useParams();
@@ -110,68 +109,7 @@ const ProjectReport = () => {
                     Status Distribution
                   </h3>
                   <div className="w-full h-full pb-6">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            {
-                              name: 'To Do',
-                              count:
-                                project.children?.filter(
-                                  (t) => t.status === TASK_STATUS.TODO || !t.status
-                                ).length || 0,
-                              fill: CHART_COLORS[TASK_STATUS.TODO],
-                            },
-                            {
-                              name: 'In Progress',
-                              count:
-                                project.children?.filter(
-                                  (t) => t.status === TASK_STATUS.IN_PROGRESS
-                                ).length || 0,
-                              fill: CHART_COLORS[TASK_STATUS.IN_PROGRESS],
-                            },
-                            {
-                              name: 'Blocked',
-                              count:
-                                project.children?.filter((t) => t.status === TASK_STATUS.BLOCKED)
-                                  .length || 0,
-                              fill: CHART_COLORS[TASK_STATUS.BLOCKED],
-                            },
-                            {
-                              name: 'Completed',
-                              count:
-                                project.children?.filter((t) => t.status === TASK_STATUS.COMPLETED)
-                                  .length || 0,
-                              fill: CHART_COLORS[TASK_STATUS.COMPLETED],
-                            },
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={90}
-                          paddingAngle={2}
-                          dataKey="count"
-                        >
-                          {[
-                            { fill: CHART_COLORS[TASK_STATUS.TODO] },
-                            { fill: CHART_COLORS[TASK_STATUS.IN_PROGRESS] },
-                            { fill: CHART_COLORS[TASK_STATUS.BLOCKED] },
-                            { fill: CHART_COLORS[TASK_STATUS.COMPLETED] },
-                          ].map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value, name) => [value, name]}
-                          contentStyle={{
-                            borderRadius: '8px',
-                            border: 'none',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                          }}
-                        />
-                        <Legend verticalAlign="bottom" height={36} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <StatusPieChart tasks={project.children || []} />
                   </div>
                 </div>
               </div>

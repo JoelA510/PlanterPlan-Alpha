@@ -232,9 +232,19 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Note: Uses p_task_id to match existing DB signature
 CREATE OR REPLACE FUNCTION public.has_project_role(p_task_id uuid, p_user_id uuid, p_allowed_roles text[])
 RETURNS boolean AS $$
+DECLARE
+    v_role text;
 BEGIN
-  -- ALPHA OVERRIDE: Allow logic for testing
-  RETURN true; 
+    SELECT role INTO v_role 
+    FROM public.project_members 
+    WHERE project_id = p_project_id 
+    AND user_id = p_user_id;
+
+    IF v_role IS NOT NULL AND v_role = ANY(p_allowed_roles) THEN
+        RETURN true;
+    END IF;
+
+    RETURN false;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -327,7 +337,12 @@ EXECUTE FUNCTION public.handle_phase_completion();
 -- TASKS Policies
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Enable read access for all users" ON public.tasks;
-CREATE POLICY "Enable read access for all users" ON public.tasks FOR SELECT USING (true);
+CREATE POLICY "Enable read access for all users" ON public.tasks 
+FOR SELECT USING (
+    creator = auth.uid()
+    OR 
+    public.has_project_role(COALESCE(root_id, id), auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited'])
+);
 
 DROP POLICY IF EXISTS "Enable insert for authenticated users within project" ON public.tasks;
 CREATE POLICY "Enable insert for authenticated users within project" ON public.tasks FOR INSERT WITH CHECK (auth.role() = 'authenticated');

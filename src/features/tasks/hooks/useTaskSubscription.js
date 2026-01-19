@@ -12,7 +12,6 @@ export const useTaskSubscription = ({
     useEffect(() => {
         if (!projectId) return;
 
-        // console.log(`[Realtime] Subscribing to tasks for project: ${projectId}`);
 
         const channel = supabase
             .channel(`project-tasks:${projectId}`)
@@ -43,7 +42,6 @@ export const useTaskSubscription = ({
                         record.parent_task_id === projectId; // Direct child
 
                     if (isRelevant) {
-                        // console.log('[Realtime] Task change detected, invalidating queries...', payload.eventType);
                         // Invalidate specific project queries
                         queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
 

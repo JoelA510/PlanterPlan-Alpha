@@ -71,6 +71,7 @@ vi.mock('@features/tasks/services/taskService', () => ({
   updateTask: vi.fn(),
   createTask: vi.fn(),
   deleteTask: vi.fn(),
+  removeRelationship: vi.fn(),
 }));
 
 // Mock ResizeObserver for Layout tests

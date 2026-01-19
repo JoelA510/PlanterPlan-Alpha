@@ -32,6 +32,7 @@ A chronological overview of the project's evolution from Day 1.
 | **Vite Migration**       | Jan 2026     | **Infrastructure**: Moved to Vite, Vitest, and Tailwind v4. Integrated Planter modules. Verified via Golden Paths.                                                               |
 | **Debt Cleanup & Fixes** | Jan 2026     | **Stability**: Fixed `DashboardLayout` Sidebar injection, standardized chart colors using `TASK_STATUS` constants, and resolved critical test failures.                          |
 | **PR Review Fixes**      | Jan 2026     | **Review**: Integrated fixes from Codex/Gemini: Generic Entity Client, Design System corrections (Colors, Arbitrary Values).                                                     |
+| **Exhaustive Audit**     | Jan 2026     | **Security & Hygiene**: Locked down RLS (Creator/Member access only), fixed License checks, extracted Charts, and removed 900+ lines of dead CSS.                                |
 
 ---
 

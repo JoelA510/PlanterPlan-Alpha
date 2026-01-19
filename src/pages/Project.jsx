@@ -133,14 +133,26 @@ export default function Project() {
     try {
       if (!addTaskModal.milestone) return;
 
-      const { milestone, ...payload } = taskData;
+      const { milestone: _unused, ...payload } = taskData;
+      const parentId = addTaskModal.parentTask?.id || addTaskModal.milestone?.id;
+
       await createTaskMutation.mutateAsync({
         ...payload,
-        parent_task_id: addTaskModal.milestone.id,
         root_id: projectId,
         status: TASK_STATUS.TODO,
+        parent_task_id: parentId,
       });
-      setAddTaskModal({ open: false, milestone: null });
+
+      // Auto-expand parent if adding a subtask
+      if (addTaskModal.parentTask) {
+        setExpandedTaskIds((prev) => {
+          const next = new Set(prev);
+          next.add(addTaskModal.parentTask.id);
+          return next;
+        });
+      }
+
+      setAddTaskModal({ open: false, milestone: null, parentTask: null });
       toast({ title: 'Task created successfully', variant: 'default' });
     } catch (error) {
       toast({ title: 'Failed to create task', variant: 'destructive' });
@@ -253,6 +265,7 @@ export default function Project() {
                           onTaskUpdate={handleTaskUpdate}
                           onToggleExpand={handleToggleExpand}
                           onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
+                          onAddChildTask={(parent) => setAddTaskModal({ open: true, milestone: null, parentTask: parent })}
                           onTaskClick={handleTaskClick}
                           phase={activePhase}
                         />
@@ -301,9 +314,10 @@ export default function Project() {
 
       <AddTaskModal
         open={addTaskModal.open}
-        onClose={() => setAddTaskModal({ open: false, milestone: null })}
+        onClose={() => setAddTaskModal({ open: false, milestone: null, parentTask: null })}
         onAdd={handleAddTask}
         milestone={addTaskModal.milestone}
+        parentTask={addTaskModal.parentTask}
         teamMembers={teamMembers}
       />
 

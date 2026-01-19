@@ -141,6 +141,10 @@ export const useTaskMutations = ({
           parent_task_id: parentId,
           position: maxPosition + POSITION_STEP,
           is_complete: false,
+          root_id: rootId,
+          milestone_id: parentId
+            ? (findTask(parentId)?.milestone_id || parentId)
+            : null,
         };
 
         if (origin === 'instance') {

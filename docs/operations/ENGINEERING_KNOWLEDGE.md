@@ -789,6 +789,15 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 
 - **Critical Rule**: Do not try to shim **jest** for mocking. Replace **jest.mock** with **vi.mock** directly to ensure correct hoisting behavior.
 
+## [SEC-043] RLS Recursion and Creator Check
+- **Tags**: #security, #rls, #postgres, #recursion
+- **Date**: 2026-01-19
+- **Context & Problem**: Implementing RLS for `tasks` led to recursion errors when checking `project_members`, or accidental public access when `USING (true)` was left.
+- **Solution & Pattern**:
+  1. **Strict separation**: `has_project_role` checks ONLY `project_members`.
+  2. **Policy Logic**: Tasks policy checks `creator = auth.uid()` inline first (fast path), OR calls the function.
+- **Critical Rule**: Never make an RLS function query the table it protects. Always denormalize checks or use strict directed queries to distinct tables.
+
 ## [TEST-041] ESM Mocking Factories (Default Exports)
 
 - **Tags**: #testing, #vitest, #esm, #mocking

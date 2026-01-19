@@ -90,12 +90,6 @@ export default function Reports() {
     },
   ];
 
-  const pieData = [
-    { name: 'Completed', value: tasksByStatus.completed, color: 'var(--color-emerald-500)' },
-    { name: 'In Progress', value: tasksByStatus.in_progress, color: 'var(--color-orange-500)' },
-    { name: 'Not Started', value: tasksByStatus.not_started, color: 'var(--color-indigo-500)' },
-    { name: 'Blocked', value: tasksByStatus.blocked, color: 'var(--color-rose-500)' },
-  ].filter((d) => d.value > 0);
 
   const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
 
@@ -205,7 +199,7 @@ export default function Reports() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <StatusPieChart data={pieData} />
+              <StatusPieChart tasks={tasks} />
             </motion.div>
 
             {/* Phase Progress Bar Chart */}
