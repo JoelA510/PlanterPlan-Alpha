@@ -6,22 +6,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import '../../../styles/components/task-card.css';
 import ErrorBoundary from '@shared/ui/ErrorBoundary';
-import { TASK_STATUS } from '@app/constants/index';
 import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
-
-const getStatusStyle = (status) => {
-  switch (status) {
-    case TASK_STATUS.COMPLETED:
-      return 'status-badge-complete';
-    case TASK_STATUS.IN_PROGRESS:
-      return 'status-badge-progress';
-    case TASK_STATUS.BLOCKED:
-      return 'status-badge-blocked';
-    case TASK_STATUS.TODO:
-    default:
-      return 'status-badge-todo';
-  }
-};
+import TaskStatusSelect from './TaskStatusSelect';
+import TaskControlButtons from './TaskControlButtons';
 
 const TaskItem = memo(
   ({
@@ -64,40 +51,6 @@ const TaskItem = memo(
       [onTaskClick, task]
     );
 
-    const handleAddChild = useCallback(
-      (e) => {
-        e.stopPropagation();
-        if (onAddChildTask) {
-          onAddChildTask(task);
-        }
-      },
-      [onAddChildTask, task]
-    );
-
-    const handleEdit = useCallback(
-      (e) => {
-        e.stopPropagation();
-        if (onEdit) onEdit(task);
-      },
-      [onEdit, task]
-    );
-
-    const handleDelete = useCallback(
-      (e) => {
-        e.stopPropagation();
-        if (onDelete) onDelete(task.id);
-      },
-      [onDelete, task.id]
-    );
-
-    const handleInvite = useCallback(
-      (e) => {
-        e.stopPropagation();
-        if (onInviteMember) onInviteMember(task);
-      },
-      [onInviteMember, task]
-    );
-
     const handleToggleExpandClick = useCallback(
       (e) => {
         e.stopPropagation();
@@ -106,14 +59,6 @@ const TaskItem = memo(
         }
       },
       [onToggleExpand, task, isExpanded]
-    );
-
-    const handleStatusChangeClick = useCallback(
-      (e) => {
-        e.stopPropagation();
-        if (onStatusChange) onStatusChange(task.id, e.target.value);
-      },
-      [onStatusChange, task.id]
     );
 
     const { setNodeRef: setDroppableNodeRef } = useDroppable({
@@ -125,7 +70,7 @@ const TaskItem = memo(
       },
     });
 
-    const isLocked = task.is_locked || false; // Or derive from phase if props available, but task entity has is_locked now
+    const isLocked = task.is_locked || false;
 
     return (
       <>
@@ -201,93 +146,20 @@ const TaskItem = memo(
             <div className="task-card-right">
               {task.membership_role && <RoleIndicator role={task.membership_role} />}
 
-              <div className="relative group">
-                <select
-                  className={`appearance-none cursor-pointer pl-4 pr-9 py-1.5 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(task.status)} focus:ring-2 focus:ring-offset-1 focus:ring-brand-500 focus:outline-none`}
-                  value={task.status || TASK_STATUS.TODO}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={handleStatusChangeClick}
-                >
-                  <option value={TASK_STATUS.TODO}>To Do</option>
-                  <option value={TASK_STATUS.IN_PROGRESS}>In Progress</option>
-                  <option value={TASK_STATUS.BLOCKED}>Blocked</option>
-                  <option value={TASK_STATUS.COMPLETED}>Complete</option>
-                </select>
-              </div>
+              <TaskStatusSelect
+                status={task.status}
+                taskId={task.id}
+                onStatusChange={onStatusChange}
+              />
 
-              {onEdit && (
-                <button className="action-btn" onClick={handleEdit} title="Edit Task">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                  </svg>
-                </button>
-              )}
-
-              {canHaveChildren && onAddChildTask && (
-                <button className="action-btn" onClick={handleAddChild} title="Add Subtask">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                </button>
-              )}
-
-              {onInviteMember && (
-                <button className="action-btn" onClick={handleInvite} title="Invite Member">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="8.5" cy="7" r="4" />
-                    <line x1="20" y1="8" x2="20" y2="14" />
-                    <line x1="23" y1="11" x2="17" y2="11" />
-                  </svg>
-                </button>
-              )}
-
-              {onDelete && (
-                <button className="action-btn delete" onClick={handleDelete} title="Delete Task">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                </button>
-              )}
+              <TaskControlButtons
+                task={task}
+                onEdit={onEdit}
+                onAddChild={onAddChildTask}
+                onInvite={onInviteMember}
+                onDelete={onDelete}
+                canHaveChildren={canHaveChildren}
+              />
             </div>
           </div>
         </div>

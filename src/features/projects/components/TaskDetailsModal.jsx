@@ -1,0 +1,38 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@shared/ui/dialog';
+import TaskDetailsView from '@features/tasks/components/TaskDetailsView';
+
+export default function TaskDetailsModal({
+    task,
+    isOpen,
+    onClose,
+    onAddChildTask,
+    onEditTask,
+    onDeleteTask,
+    onTaskUpdated,
+    allProjectTasks = []
+}) {
+    if (!task) return null;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0 gap-0">
+                <DialogHeader className="px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
+                    <DialogTitle className="text-lg font-bold text-slate-800 leading-snug pr-8">
+                        {task.title}
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div className="pt-2">
+                    <TaskDetailsView
+                        task={task}
+                        onAddChildTask={onAddChildTask}
+                        onEditTask={onEditTask}
+                        onDeleteTask={onDeleteTask}
+                        onTaskUpdated={onTaskUpdated}
+                        allProjectTasks={allProjectTasks} // Pass through for dependencies
+                    />
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}

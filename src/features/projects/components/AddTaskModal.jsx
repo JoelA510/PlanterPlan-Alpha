@@ -13,32 +13,38 @@ import { cn } from '@shared/lib/utils';
 
 export default function AddTaskModal({ open, onClose, onAdd, milestone, teamMembers = [] }) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const initialState = {
     title: '',
     description: '',
     priority: 'medium',
     due_date: null,
-    assigned_to: '',
-  });
+    assignee_id: null,
+  };
+  const [formData, setFormData] = useState(initialState);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
 
     setLoading(true);
-    await onAdd({
-      ...formData,
-      due_date: formData.due_date ? format(formData.due_date, 'yyyy-MM-dd') : null,
-    });
-    setLoading(false);
-    setFormData({
-      title: '',
-      description: '',
-      priority: 'medium',
-      due_date: null,
-      assigned_to: '',
-    });
-    onClose();
+    try {
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        due_date: formData.due_date ? format(formData.due_date, 'yyyy-MM-dd') : null,
+        // Only include assignee_id if it's set
+        assignee_id: formData.assignee_id || null
+      };
+
+      await onAdd({ ...payload, milestone });
+      setFormData(initialState);
+      onClose();
+    } catch (error) {
+      console.error("Failed to create task", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -121,17 +127,17 @@ export default function AddTaskModal({ open, onClose, onAdd, milestone, teamMemb
             <div className="space-y-2">
               <Label>Assign To</Label>
               <Select
-                value={formData.assigned_to}
-                onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
+                value={formData.assignee_id || "unassigned"}
+                onValueChange={(value) => setFormData({ ...formData, assignee_id: value === "unassigned" ? null : value })}
               >
                 <SelectTrigger className="h-11">
                   <SelectValue placeholder="Select team member" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {teamMembers.map((member) => (
-                    <SelectItem key={member.id} value={member.email}>
-                      {member.name}
+                    <SelectItem key={member.id} value={member.user_id || member.id}>
+                      {member.name || member.email || "Unknown Member"}
                     </SelectItem>
                   ))}
                 </SelectContent>

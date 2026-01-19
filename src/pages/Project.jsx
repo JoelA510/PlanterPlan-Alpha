@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { planter } from '@shared/api/planterClient';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
@@ -17,13 +17,17 @@ import {
 } from '@dnd-kit/core';
 
 import ProjectHeader from '@features/projects/components/ProjectHeader';
+import ProjectTabs from '@features/projects/components/ProjectTabs';
 import BudgetWidget from '@features/budget/components/BudgetWidget';
+import { useProjectData } from '@features/projects/hooks/useProjectData';
 import PeopleList from '@features/people/components/PeopleList';
 import AssetList from '@features/inventory/components/AssetList';
 import DashboardLayout from '@layouts/DashboardLayout';
 import PhaseCard from '@features/projects/components/PhaseCard';
 import MilestoneSection from '@features/projects/components/MilestoneSection';
 import AddTaskModal from '@features/projects/components/AddTaskModal';
+import TaskDetailsModal from '@features/projects/components/TaskDetailsModal';
+import { useTaskSubscription } from '@features/tasks/hooks/useTaskSubscription';
 import { resolveDragAssign } from '@features/projects/utils/dragUtils';
 
 export default function Project() {
@@ -31,6 +35,7 @@ export default function Project() {
 
   const [activeTab, setActiveTab] = useState('board');
   const [selectedPhase, setSelectedPhase] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null); // For Task Details Modal
   const [addTaskModal, setAddTaskModal] = useState({ open: false, milestone: null });
   const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
   const [activeDragMember, setActiveDragMember] = useState(null);
@@ -38,36 +43,37 @@ export default function Project() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // 1. Fetch Project Metadata
-  const { data: project, isLoading: loadingProject } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res) => res[0]),
-    enabled: !!projectId,
+  // Realtime Subscription
+  useTaskSubscription({
+    projectId,
+    refreshProjectDetails: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+    }
   });
 
-  // 2. Fetch Project Hierarchy (Phases, Milestones, Tasks)
-  const { data: projectHierarchy = [] } = useQuery({
-    queryKey: ['projectHierarchy', projectId],
-    queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
-    enabled: !!projectId,
-  });
-
-  // Derived State
-  const phases = projectHierarchy.filter((t) => t.parent_task_id === projectId);
-  const milestones = projectHierarchy.filter((t) => phases.some((p) => p.id === t.parent_task_id));
-  const tasks = projectHierarchy.filter((t) => milestones.some((m) => m.id === t.parent_task_id));
-
-  // 3. Fetch Team Members
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ['teamMembers', projectId],
-    queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId }),
-    enabled: !!projectId,
-  });
+  // Data Fetching via Hook
+  const {
+    project,
+    loadingProject,
+    phases,
+    milestones,
+    tasks,
+    teamMembers,
+  } = useProjectData(projectId);
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }) => planter.entities.Task.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: (id) => planter.entities.Task.delete(id),
+    onSuccess: () => {
+      setSelectedTask(null);
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+      toast({ title: 'Task deleted', variant: 'default' });
     },
   });
 
@@ -100,6 +106,10 @@ export default function Project() {
     updateTaskMutation.mutate({ id: taskId, data });
   };
 
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+  };
+
   const handleToggleExpand = (task, isExpanded) => {
     const newSet = new Set(expandedTaskIds);
     if (isExpanded) {
@@ -123,8 +133,9 @@ export default function Project() {
     try {
       if (!addTaskModal.milestone) return;
 
+      const { milestone, ...payload } = taskData;
       await createTaskMutation.mutateAsync({
-        ...taskData,
+        ...payload,
         parent_task_id: addTaskModal.milestone.id,
         root_id: projectId,
         status: TASK_STATUS.TODO,
@@ -182,39 +193,11 @@ export default function Project() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-          import AssetList from '@features/inventory/components/AssetList';
 
-          // ... (existing imports)
-
-          // ... inside component component render ...
 
           {/* Tabs */}
-          <div className="flex items-center space-x-1 border-b border-slate-200 mb-6 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('board')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'board' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-            >
-              Task Board
-            </button>
-            <button
-              onClick={() => setActiveTab('people')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'people' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-            >
-              People & Team
-            </button>
-            <button
-              onClick={() => setActiveTab('budget')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'budget' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-            >
-              Budget
-            </button>
-            <button
-              onClick={() => setActiveTab('assets')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'assets' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-            >
-              Assets
-            </button>
-          </div>
+          {/* Tabs */}
+          <ProjectTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
           {/* Board Tab */}
           {activeTab === 'board' && (
@@ -270,6 +253,7 @@ export default function Project() {
                           onTaskUpdate={handleTaskUpdate}
                           onToggleExpand={handleToggleExpand}
                           onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
+                          onTaskClick={handleTaskClick}
                           phase={activePhase}
                         />
                       ))
@@ -321,6 +305,17 @@ export default function Project() {
         onAdd={handleAddTask}
         milestone={addTaskModal.milestone}
         teamMembers={teamMembers}
+      />
+
+      <TaskDetailsModal
+        task={selectedTask}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onAddChildTask={() => { }} // Not implemented yet inside details
+        onEditTask={() => { }} // Managed inside details view logic or parent
+        onDeleteTask={(t) => deleteTaskMutation.mutate(t.id)}
+        onTaskUpdated={(id, data) => updateTaskMutation.mutate({ id, data })}
+        allProjectTasks={tasks}
       />
     </DashboardLayout>
   );

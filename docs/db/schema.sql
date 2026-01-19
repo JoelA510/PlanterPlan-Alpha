@@ -1,5 +1,6 @@
 -- PlanterPlan Database Schema
--- consolidated: 2026-01-18
+-- Consolidated: 2026-01-18
+-- Includes: Core, Budget, People, Inventory, and Phase 3 features.
 
 -- ============================================================================
 -- 0. EXTENSIONS
@@ -10,8 +11,10 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- 1. TABLES & TYPES
 -- ============================================================================
 
+-- ----------------------------------------------------------------------------
 -- TASKS Table
 -- Core table for Projects (root tasks) and Tasks (children)
+-- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.tasks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text,
@@ -28,9 +31,11 @@ CREATE TABLE IF NOT EXISTS public.tasks (
   
   -- Feature Flags & Metadata
   is_premium boolean DEFAULT false, 
-  is_locked boolean DEFAULT false, -- Checkpoints feature
+  is_locked boolean DEFAULT false, -- Checkpoints
   is_complete boolean DEFAULT false,
-  
+  settings JSONB DEFAULT '{}'::jsonb, -- Phase 3 Project Settings
+  priority text DEFAULT 'medium',
+
   -- Ownership & Assignment
   creator uuid REFERENCES auth.users(id),
   assignee_id uuid REFERENCES auth.users(id),
@@ -41,9 +46,27 @@ CREATE TABLE IF NOT EXISTS public.tasks (
   days_from_start integer,
   location text,
   
+  -- Legacy / View Support
+  primary_resource_id uuid,
+
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
+
+-- Idempotent Column Additions (For patching existing databases)
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS is_premium boolean DEFAULT false;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS is_locked boolean DEFAULT false;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS is_complete boolean DEFAULT false;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS priority text DEFAULT 'medium';
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS assignee_id uuid REFERENCES auth.users(id);
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS start_date timestamptz;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS due_date timestamptz;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS days_from_start integer;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS location text;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS primary_resource_id uuid;
+
+COMMENT ON COLUMN public.tasks.settings IS 'Project-level settings (e.g., due_soon_threshold, location_defaults)';
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_tasks_root_id ON public.tasks(root_id);
@@ -51,8 +74,10 @@ CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON public.tasks(parent_task_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_is_locked ON public.tasks(is_locked);
 CREATE INDEX IF NOT EXISTS idx_tasks_is_premium ON public.tasks(is_premium);
 
+-- ----------------------------------------------------------------------------
 -- PROJECT MEMBERS Table
 -- RBAC: Owners, Editors, Coaches, Viewers, Limited
+-- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.project_members (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
@@ -62,8 +87,9 @@ CREATE TABLE IF NOT EXISTS public.project_members (
   CONSTRAINT unique_project_member UNIQUE (project_id, user_id)
 );
 
+-- ----------------------------------------------------------------------------
 -- PROJECT INVITES Table
--- For inviting users by email
+-- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.project_invites (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
@@ -75,93 +101,142 @@ CREATE TABLE IF NOT EXISTS public.project_invites (
   CONSTRAINT unique_invite_per_project UNIQUE (project_id, email)
 );
 
+-- ----------------------------------------------------------------------------
+-- TASK RELATIONSHIPS (Phase 3)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.task_relationships (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+    from_task_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+    to_task_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+    type text CHECK (type IN ('blocks', 'relates_to', 'duplicates')) DEFAULT 'relates_to',
+    created_at timestamptz DEFAULT now(),
+    CONSTRAINT unique_relationship UNIQUE (from_task_id, to_task_id, type)
+);
+
+-- ----------------------------------------------------------------------------
+-- BUDGET ITEMS (Phase 3 Feature)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.budget_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  category text CHECK (category IN ('Equipment', 'Marketing', 'Venue', 'Kids', 'Operations', 'Other')),
+  description text NOT NULL,
+  planned_amount numeric(10, 2) DEFAULT 0,
+  actual_amount numeric(10, 2) DEFAULT 0,
+  status text CHECK (status IN ('planned', 'purchased')) DEFAULT 'planned',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_budget_items_project_id ON public.budget_items(project_id);
+
+-- ----------------------------------------------------------------------------
+-- PEOPLE (CRM Lite)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.people (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  first_name text NOT NULL,
+  last_name text,
+  email text,
+  phone text,
+  role text DEFAULT 'Volunteer',
+  status text CHECK (status IN ('New', 'Contacted', 'Meeting Scheduled', 'Joined', 'Not Interested')) DEFAULT 'New',
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_people_project_id ON public.people(project_id);
+
+-- ----------------------------------------------------------------------------
+-- ASSETS (Inventory)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.assets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  category text CHECK (category IN ('equipment', 'venue', 'marketing', 'kids', 'other')),
+  status text NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'in_use', 'maintenance', 'lost', 'retired')),
+  location text,
+  value numeric DEFAULT 0,
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
 -- ============================================================================
 -- 2. VIEWS
 -- ============================================================================
 
--- DUMMY View for tasks_with_primary_resource
+-- Adapter View for Legacy Support
+DROP VIEW IF EXISTS public.tasks_with_primary_resource CASCADE;
 CREATE OR REPLACE VIEW public.tasks_with_primary_resource AS
 SELECT 
-  t.*,
-  NULL::uuid as primary_resource_id
+    t.*,
+    -- Add missing legacy columns required by view_master_library as NULLs
+    NULL::uuid as resource_id,
+    NULL::text as resource_type,
+    NULL::text as resource_url,
+    NULL::text as resource_text,
+    NULL::text as storage_path,
+    NULL::text as resource_name
 FROM public.tasks t;
 
+-- MASTER LIBRARY View
+CREATE OR REPLACE VIEW public.view_master_library AS
+SELECT 
+    t.id,
+    t.parent_task_id,
+    t.title,
+    t.description,
+    t.status,
+    t.origin,
+    t.creator,
+    t.root_id,
+    t.notes,
+    t.days_from_start,
+    t.start_date,
+    t.due_date,
+    t.position,
+    t.created_at,
+    t.updated_at,
+    t.purpose,
+    t.actions,
+    t.is_complete,
+    t.primary_resource_id,
+    t.resource_id,
+    t.resource_type,
+    t.resource_url,
+    t.resource_text,
+    t.storage_path,
+    t.resource_name
+FROM public.tasks_with_primary_resource t
+WHERE 
+    t.origin = 'template' 
+    AND t.parent_task_id IS NULL;
+
 -- ============================================================================
--- 3. ROW LEVEL SECURITY (RLS)
+-- 3. FUNCTIONS & TRIGGERS
 -- ============================================================================
 
--- Helper Functions for RLS (Stubbed for now, should be implemented properly if needed)
-CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
+-- RLS Helper: is_admin
+-- Note: Uses p_user_id to match existing DB signature
+CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
 RETURNS boolean AS $$
 BEGIN
   RETURN false; -- Default to false for Alpha
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION public.has_project_role(project_id uuid, user_id uuid, roles text[])
+-- RLS Helper: has_project_role
+-- Note: Uses p_task_id to match existing DB signature
+CREATE OR REPLACE FUNCTION public.has_project_role(p_task_id uuid, p_user_id uuid, p_allowed_roles text[])
 RETURNS boolean AS $$
 BEGIN
-  -- ALPHA OVERRIDE: Allow logic for testing, but in production, this queries project_members
-  -- For now, we return true to unblock development as per previous migrations
+  -- ALPHA OVERRIDE: Allow logic for testing
   RETURN true; 
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
--- TASKS Policies
-ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Enable read access for all users" ON public.tasks;
-CREATE POLICY "Enable read access for all users" ON public.tasks FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Enable insert for authenticated users within project" ON public.tasks;
-CREATE POLICY "Enable insert for authenticated users within project" ON public.tasks FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
-DROP POLICY IF EXISTS "Enable update for users" ON public.tasks;
-CREATE POLICY "Enable update for users" ON public.tasks FOR UPDATE USING (auth.role() = 'authenticated');
-
-DROP POLICY IF EXISTS "Enable delete for users" ON public.tasks;
-CREATE POLICY "Enable delete for users" ON public.tasks FOR DELETE USING (auth.role() = 'authenticated');
-
-
--- PROJECT MEMBERS Policies
-ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "View project members" ON public.project_members;
-CREATE POLICY "View project members" ON public.project_members
-  FOR SELECT USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
-    public.is_admin(auth.uid())
-  );
-  
-DROP POLICY IF EXISTS "Enable all for authenticated users" ON public.project_members;
-CREATE POLICY "Enable all for authenticated users" ON public.project_members FOR ALL USING (auth.role() = 'authenticated'); -- simplifying form old migration
-
-
--- PROJECT INVITES Policies
-ALTER TABLE public.project_invites ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "View invites for project members" ON public.project_invites;
-CREATE POLICY "View invites for project members" ON public.project_invites
-  FOR SELECT USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
-    public.is_admin(auth.uid())
-  );
-
-DROP POLICY IF EXISTS "Create invites for project members" ON public.project_invites;
-CREATE POLICY "Create invites for project members" ON public.project_invites
-  FOR INSERT WITH CHECK (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
-    public.is_admin(auth.uid())
-  );
-
-DROP POLICY IF EXISTS "Delete invites for project members" ON public.project_invites;
-CREATE POLICY "Delete invites for project members" ON public.project_invites
-  FOR DELETE USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
-    public.is_admin(auth.uid())
-  );
-
--- ============================================================================
--- 4. LOGIC FUNCTIONS & TRIGGERS
--- ============================================================================
 
 -- Invite User RPC
 CREATE OR REPLACE FUNCTION public.invite_user_to_project(
@@ -211,7 +286,7 @@ BEGIN
 END;
 $$;
 
--- Checkpoints: Unlock Next Phase Trigger Logic
+-- Phase Completion Trigger
 CREATE OR REPLACE FUNCTION public.handle_phase_completion()
 RETURNS TRIGGER 
 LANGUAGE plpgsql
@@ -239,9 +314,134 @@ BEGIN
 END;
 $$;
 
--- Create Trigger
 DROP TRIGGER IF EXISTS trg_unlock_next_phase ON public.tasks;
 CREATE TRIGGER trg_unlock_next_phase
 AFTER UPDATE OF status ON public.tasks
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_phase_completion();
+
+-- ============================================================================
+-- 4. ROW LEVEL SECURITY (RLS)
+-- ============================================================================
+
+-- TASKS Policies
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.tasks;
+CREATE POLICY "Enable read access for all users" ON public.tasks FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Enable insert for authenticated users within project" ON public.tasks;
+CREATE POLICY "Enable insert for authenticated users within project" ON public.tasks FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Enable update for users" ON public.tasks;
+CREATE POLICY "Enable update for users" ON public.tasks FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Enable delete for users" ON public.tasks;
+CREATE POLICY "Enable delete for users" ON public.tasks FOR DELETE USING (auth.role() = 'authenticated');
+
+-- PROJECT MEMBERS Policies
+ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View project members" ON public.project_members;
+CREATE POLICY "View project members" ON public.project_members
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin(auth.uid())
+  );
+  
+DROP POLICY IF EXISTS "Enable all for authenticated users" ON public.project_members;
+CREATE POLICY "Enable all for authenticated users" ON public.project_members FOR ALL USING (auth.role() = 'authenticated');
+
+-- PROJECT INVITES Policies
+ALTER TABLE public.project_invites ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View invites for project members" ON public.project_invites;
+CREATE POLICY "View invites for project members" ON public.project_invites
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
+
+DROP POLICY IF EXISTS "Create invites for project members" ON public.project_invites;
+CREATE POLICY "Create invites for project members" ON public.project_invites
+  FOR INSERT WITH CHECK (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
+
+DROP POLICY IF EXISTS "Delete invites for project members" ON public.project_invites;
+CREATE POLICY "Delete invites for project members" ON public.project_invites
+  FOR DELETE USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
+
+-- BUDGET ITEMS Policies
+ALTER TABLE public.budget_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View budget items for project members" ON public.budget_items;
+CREATE POLICY "View budget items for project members" ON public.budget_items
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin(auth.uid())
+  );
+
+DROP POLICY IF EXISTS "Manage budget items for owners and editors" ON public.budget_items;
+CREATE POLICY "Manage budget items for owners and editors" ON public.budget_items
+  FOR ALL USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
+
+-- PEOPLE Policies
+ALTER TABLE public.people ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View people for project members" ON public.people;
+CREATE POLICY "View people for project members" ON public.people
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin(auth.uid())
+  );
+
+DROP POLICY IF EXISTS "Manage people for owners and editors" ON public.people;
+CREATE POLICY "Manage people for owners and editors" ON public.people
+  FOR ALL USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
+
+-- ASSETS Policies
+ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View assets" ON public.assets;
+CREATE POLICY "View assets" ON public.assets
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin(auth.uid())
+  );
+
+DROP POLICY IF EXISTS "Manage assets" ON public.assets;
+CREATE POLICY "Manage assets" ON public.assets
+  FOR ALL USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
+
+-- TASK RELATIONSHIPS Policies
+ALTER TABLE public.task_relationships ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View relationships" ON public.task_relationships;
+CREATE POLICY "View relationships" ON public.task_relationships
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.project_members
+            WHERE project_members.project_id = task_relationships.project_id
+            AND project_members.user_id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Manage relationships" ON public.task_relationships;
+CREATE POLICY "Manage relationships" ON public.task_relationships
+    FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.project_members
+            WHERE project_members.project_id = task_relationships.project_id
+            AND project_members.user_id = auth.uid()
+            AND project_members.role IN ('owner', 'editor')
+        )
+    );

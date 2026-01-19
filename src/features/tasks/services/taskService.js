@@ -213,3 +213,62 @@ export const updateParentDates = async (parentId, client = supabase) => {
     // Better to log and continue, as this is a background consistency job.
   }
 };
+
+// ============================================================================
+// Relationship Operations
+// ============================================================================
+
+export const getTaskRelationships = async (taskId, client = supabase) => {
+  try {
+    const { data, error } = await client
+      .from('task_relationships')
+      .select(`
+        *,
+        from_task:from_task_id(id, title, status),
+        to_task:to_task_id(id, title, status)
+      `)
+      .or(`from_task_id.eq.${taskId},to_task_id.eq.${taskId}`);
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('[taskService.getTaskRelationships] Error:', error);
+    return { data: null, error };
+  }
+};
+
+export const addRelationship = async ({ fromId, toId, type = 'relates_to', projectId }, client = supabase) => {
+  try {
+    const { data, error } = await client
+      .from('task_relationships')
+      .insert({
+        project_id: projectId,
+        from_task_id: fromId,
+        to_task_id: toId,
+        type
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('[taskService.addRelationship] Error:', error);
+    return { data: null, error };
+  }
+};
+
+export const removeRelationship = async (relationshipId, client = supabase) => {
+  try {
+    const { error } = await client
+      .from('task_relationships')
+      .delete()
+      .eq('id', relationshipId);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('[taskService.removeRelationship] Error:', error);
+    return { error };
+  }
+};

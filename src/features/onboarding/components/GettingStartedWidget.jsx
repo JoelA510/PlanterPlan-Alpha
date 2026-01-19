@@ -5,13 +5,13 @@ import { Button } from '@shared/ui/button';
 import { CheckCircle2, Circle, ArrowRight } from 'lucide-react';
 import { createPageUrl } from '@shared/lib/utils';
 
-export default function GettingStartedWidget({ project, onDismiss }) {
+export default function GettingStartedWidget({ project, teamMembers, onDismiss }) {
     if (!project) return null;
 
     const steps = [
         { label: 'Create your Project', completed: true },
         { label: 'Set a Launch Date', completed: !!project.launch_date, action: 'Settings', link: `/project/${project.id}/settings` },
-        { label: 'Invite a Team Member', completed: false, action: 'Invite', link: `/project/${project.id}/team` }, // TODO: Check member count
+        { label: 'Invite a Team Member', completed: teamMembers && teamMembers.length > 0, action: 'Invite', link: `/project/${project.id}/team` },
         { label: 'Explore Phases', completed: false, action: 'View', link: `/project/${project.id}` }
     ];
 

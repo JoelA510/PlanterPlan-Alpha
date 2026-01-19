@@ -1,7 +1,8 @@
 import TaskResources from '@features/tasks/components/TaskResources';
+import TaskDependencies from '@features/tasks/components/TaskDependencies';
 import { formatDisplayDate } from '@shared/lib/date-engine';
 
-const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated }) => {
+const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated, ...props }) => {
   // Determine hierarchy level
   const getTaskLevel = () => {
     if (!task.parent_task_id) return 0;
@@ -202,8 +203,13 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           </div>
         </div>
       </div>
-      {/* 6. Child Task Button */}
-      {
+
+      <div className="h-px bg-slate-100 my-4"></div>
+
+      {/* 5.5 Dependencies */}
+      <TaskDependencies task={task} allProjectTasks={props.allProjectTasks || []} />
+
+      {/* 6. Child Task Button */} {
         onAddChildTask && canHaveChildren && (
           <div className="detail-section mb-8">
             <button

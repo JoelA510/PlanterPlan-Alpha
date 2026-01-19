@@ -7,6 +7,7 @@
 - **Implemented Checkpoints**: Tasks now have an `is_locked` visual state.
 - **Inventory Tracker**: Added `assets` table and management UI.
 - **Mobile Field Mode**: Added FAB for quick actions and Mobile Agenda widget.
+- **Master Review**: Ran Debt Audit, fixed `GettingStartedWidget` logic, and resolved UI regression in `Project.jsx`.
 - **Test Coverage**: Added unit tests for `PhaseCard` (Checkpoints), `AssetList` (Inventory), and `MobileAgenda` (Mobile).
 
 ## Roadmap Progress

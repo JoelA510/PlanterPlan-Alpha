@@ -115,6 +115,8 @@ stateDiagram-v2
 
 ## 4. Architecture
 
+For detailed Component Diagrams and Data Flow visualizations, please see the **[Architecture Documentation](./docs/ARCHITECTURE.md)**.
+
 ### 4.1 Tech Stack
 
 - **Frontend**: React 18, Vite, Tailwind CSS v4

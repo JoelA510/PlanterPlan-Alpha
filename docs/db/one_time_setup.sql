@@ -2,5 +2,8 @@
 -- Use this file for scripts that should run only once and are NOT idempotent schema definitions.
 -- Examples: Data patches, destructive renames, or initialization of static data that shouldn't be re-seeded.
 
--- Currently empty as all schema definitions have been consolidated into schema.sql
--- and specific seed data is in supabase/seeds/.
+-- CURRENT STATUS:
+-- All schema definitions (Tables, Views, Functions, Policies) are consolidated in `docs/db/schema.sql`.
+-- Initial data seeding is handled by `supabase/seeds/`.
+
+-- If you need to run specific data patches, add them here.

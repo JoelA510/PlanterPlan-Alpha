@@ -1,20 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@app/supabaseClient';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useTaskSubscription = ({
+    projectId,
     refreshProjectDetails,
-    fetchProjects,
-    findTask,
-    currentUserId,
 }) => {
-    // Use a ref to debounce updates or track last update time if needed.
-    // For now, strict invalidation.
+    const queryClient = useQueryClient();
+    const lastUpdateRef = useRef(0);
 
     useEffect(() => {
-        if (!currentUserId) return;
+        if (!projectId) return;
+
+        // console.log(`[Realtime] Subscribing to tasks for project: ${projectId}`);
 
         const channel = supabase
-            .channel('public:tasks')
+            .channel(`project-tasks:${projectId}`)
             .on(
                 'postgres_changes',
                 {
@@ -22,48 +23,35 @@ export const useTaskSubscription = ({
                     schema: 'public',
                     table: 'tasks',
                 },
-                async (payload) => {
-                    // console.log('Realtime Event:', payload);
-                    const { eventType, new: newRecord, old: oldRecord } = payload;
+                (payload) => {
+                    const now = Date.now();
+                    // Debounce bursts (e.g. cascade updates)
+                    if (now - lastUpdateRef.current < 500) return;
+                    lastUpdateRef.current = now;
 
-                    // Determine which project this affects.
-                    // 1. Root Project Updates (No parent)
-                    const record = newRecord || oldRecord;
-                    const parentId = record?.parent_task_id;
+                    const record = payload.new || payload.old;
 
-                    if (!parentId) {
-                        // It's a root project or template
-                        // We should refresh the main project list
-                        fetchProjects(1); // Refresh page 1 for now (simplest)
-                        if (record?.id) {
-                            // Also refresh details if we happen to be viewing it?
-                            refreshProjectDetails(record.id);
+                    // Logic to check if this task is relevant to the *current* project
+                    // We only care if:
+                    // 1. It IS the project itself
+                    // 2. Its root_id matches the project
+                    // 3. It belongs to a template being used (less common in this view)
+
+                    const isRelevant =
+                        record.id === projectId ||
+                        record.root_id === projectId ||
+                        record.parent_task_id === projectId; // Direct child
+
+                    if (isRelevant) {
+                        // console.log('[Realtime] Task change detected, invalidating queries...', payload.eventType);
+                        // Invalidate specific project queries
+                        queryClient.invalidateQueries({ queryKey: ['projectTasks', projectId] });
+
+                        // If it changed metadata that affects the header (name, dates), refresh project too
+                        if (record.id === projectId || !record.root_id) {
+                            queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+                            if (refreshProjectDetails) refreshProjectDetails(projectId);
                         }
-                        return;
-                    }
-
-                    // 2. Child Task Updates
-                    // We need to find the root_id to refresh the correct container.
-                    // We try to find the parent in our local cache to get the lineage.
-                    // If we can't find it, we might be stale, so maybe refresh global?
-
-                    // Try to find the *parent* to get the root. 
-                    // Note: findTask searchs instanceTasks, templateTasks, and hydratedProjects.
-                    const parent = findTask(parentId);
-                    const rootId = parent?.root_id || parent?.id;
-
-                    if (rootId) {
-                        // It belongs to a loaded project
-                        // Debounce usage in production, but here we just call it.
-                        refreshProjectDetails(rootId);
-                    } else {
-                        // If we can't find the context, it might be a new task in a project we haven't loaded,
-                        // or we are just missing data.
-                        // If it's a collaborative app, maybe we should fetchProjects?
-                        // But if we are looking at Project A, and someone edits Project B, we don't care (unless we are looking at list).
-
-                        // If we are looking at the list, fetchProjects is relevant.
-                        fetchProjects(1);
                     }
                 }
             )
@@ -72,5 +60,5 @@ export const useTaskSubscription = ({
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentUserId, fetchProjects, refreshProjectDetails, findTask]);
+    }, [projectId, queryClient, refreshProjectDetails]);
 };

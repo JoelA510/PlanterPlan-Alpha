@@ -118,6 +118,7 @@ export default function Dashboard() {
             {projects.length > 0 && (
               <GettingStartedWidget
                 project={projects[0]} // Primary/First project
+                teamMembers={teamMembers.filter(m => m.project_id === projects[0].id)}
                 onDismiss={() => { }}
               />
             )}

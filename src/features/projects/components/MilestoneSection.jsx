@@ -12,6 +12,7 @@ export default function MilestoneSection({
   tasks = [],
   onTaskUpdate,
   onAddTask,
+  onTaskClick,
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -85,6 +86,7 @@ export default function MilestoneSection({
                       <TaskItem
                         key={task.id}
                         task={task}
+                        onTaskClick={onTaskClick}
                         onStatusChange={(id, status) => onTaskUpdate(id, { status })}
                       />
                     ))}
