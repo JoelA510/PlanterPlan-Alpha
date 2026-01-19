@@ -102,6 +102,17 @@ export const fetchMasterLibraryTasks = async (
 /**
  * Search template tasks by title/description with optional resource type filter.
  */
+/**
+ * Search template tasks by title/description with optional resource type filter.
+ * 
+ * @param {Object} params - Search parameters.
+ * @param {string} params.query - The semantic search query string.
+ * @param {number} [params.limit=20] - Maximum number of results to return.
+ * @param {string|null} [params.resourceType=null] - Resource type filter.
+ * @param {AbortSignal} [params.signal] - Abort signal.
+ * @param {SupabaseClient} [client=supabase] - Supabase client instance.
+ * @returns {Promise<Object>} Object containing { data, error }.
+ */
 export const searchMasterLibraryTasks = async (
   { query, limit = DEFAULT_SEARCH_LIMIT, resourceType = null, signal } = {},
   client = supabase

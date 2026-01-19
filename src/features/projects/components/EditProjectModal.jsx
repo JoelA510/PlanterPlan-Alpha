@@ -103,7 +103,7 @@ export default function EditProjectModal({ project, isOpen, onClose }) {
                     <div className="space-y-4">
                         <Label className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Configuration</Label>
                         <div className="grid gap-2">
-                            <Label htmlFor="due_soon_threshold">"Due Soon" Threshold (Days)</Label>
+                            <Label htmlFor="due_soon_threshold">&quot;Due Soon&quot; Threshold (Days)</Label>
                             <Input
                                 type="number"
                                 id="due_soon_threshold"

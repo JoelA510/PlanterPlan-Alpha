@@ -85,7 +85,7 @@ export default function OnboardingWizard({ open, onCreateProject }) {
                                     value={formData.launchDate}
                                     onChange={(e) => setFormData({ ...formData, launchDate: e.target.value })}
                                 />
-                                <p className="text-xs text-slate-500">Don't worry, you can change this later.</p>
+                                <p className="text-xs text-slate-500">Don&apos;t worry, you can change this later.</p>
                             </div>
                         </div>
                     )}

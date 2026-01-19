@@ -1,6 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { planter } from '@shared/api/planterClient';
 
+/**
+ * Hook to fetch project metadata, hierarchy (phases/milestones/tasks), and team members.
+ * 
+ * @param {string} projectId - UUID of the project to fetch.
+ * @returns {Object} Data object containing:
+ *  - project: {Object|null} Project metadata.
+ *  - loadingProject: {boolean} Loading state for project metadata.
+ *  - projectHierarchy: {Array} Flat array of all tasks/phases/milestones.
+ *  - phases: {Array} Filtered list of Phase tasks.
+ *  - milestones: {Array} Filtered list of Milestone tasks.
+ *  - tasks: {Array} Filtered list of leaf Tasks.
+ *  - teamMembers: {Array} List of project members.
+ */
 export function useProjectData(projectId) {
     // 1. Fetch Project Metadata
     const { data: project, isLoading: loadingProject } = useQuery({

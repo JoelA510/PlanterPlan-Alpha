@@ -1,3 +1,5 @@
+import React, { memo } from 'react';
+import PropTypes from 'prop-types';
 import {
     BarChart,
     Bar,
@@ -9,7 +11,7 @@ import {
 } from 'recharts';
 import { Card } from '@shared/ui/card';
 
-export default function PhaseBarChart({ data }) {
+const PhaseBarChart = memo(function PhaseBarChart({ data }) {
     return (
         <Card className="p-8 border border-slate-200 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
             <h3 className="text-xl font-bold text-slate-900 mb-8">Progress by Phase</h3>
@@ -22,19 +24,19 @@ export default function PhaseBarChart({ data }) {
                         <Tooltip
                             content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
-                                    const data = payload[0].payload;
+                                    const itemData = payload[0].payload;
                                     return (
                                         <div className="bg-white p-4 rounded-xl shadow-xl border-2 border-orange-200">
-                                            <p className="font-bold text-slate-900 mb-2">{data.fullName}</p>
+                                            <p className="font-bold text-slate-900 mb-2">{itemData.fullName}</p>
                                             <div className="space-y-1">
                                                 <p className="text-sm text-green-600 font-medium">
-                                                    Completed: {data.completed}
+                                                    Completed: {itemData.completed}
                                                 </p>
                                                 <p className="text-sm text-slate-500">
-                                                    Remaining: {data.remaining}
+                                                    Remaining: {itemData.remaining}
                                                 </p>
                                                 <p className="text-sm font-bold text-orange-600 mt-2">
-                                                    Progress: {data.progress}%
+                                                    Progress: {itemData.progress}%
                                                 </p>
                                             </div>
                                         </div>
@@ -64,4 +66,18 @@ export default function PhaseBarChart({ data }) {
             )}
         </Card>
     );
-}
+});
+
+PhaseBarChart.propTypes = {
+    data: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string.isRequired,
+            fullName: PropTypes.string,
+            completed: PropTypes.number.isRequired,
+            remaining: PropTypes.number.isRequired,
+            progress: PropTypes.number,
+        })
+    ).isRequired,
+};
+
+export default PhaseBarChart;

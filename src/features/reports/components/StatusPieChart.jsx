@@ -1,3 +1,5 @@
+import React, { memo } from 'react';
+import PropTypes from 'prop-types';
 import {
     PieChart,
     Pie,
@@ -8,7 +10,7 @@ import {
 } from 'recharts';
 import { Card } from '@shared/ui/card';
 
-export default function StatusPieChart({ data }) {
+const StatusPieChart = memo(function StatusPieChart({ data }) {
     return (
         <Card className="p-8 border border-slate-200 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
             <h3 className="text-xl font-bold text-slate-900 mb-8">Task Distribution</h3>
@@ -39,4 +41,16 @@ export default function StatusPieChart({ data }) {
             )}
         </Card>
     );
-}
+});
+
+StatusPieChart.propTypes = {
+    data: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string.isRequired,
+            value: PropTypes.number.isRequired,
+            color: PropTypes.string.isRequired,
+        })
+    ).isRequired,
+};
+
+export default StatusPieChart;

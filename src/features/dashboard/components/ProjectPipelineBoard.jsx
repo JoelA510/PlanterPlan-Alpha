@@ -1,13 +1,10 @@
 import { useState, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners } from '@dnd-kit/core';
-import { SortableContext, horizontalListSortingStrategy, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
 import { PROJECT_STATUS } from '@app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
 import ProjectCard from '@features/dashboard/components/ProjectCard';
-import BoardColumn from '@features/tasks/components/board/BoardColumn'; // Reusing generic column layout if possible, or creating new
-// Actually, BoardColumn expects specific task props. Let's make a ProjectBoardColumn or custom generic layout.
-// For speed, let's create a local column component or generic one.
 
 const COLUMNS = [
     { id: PROJECT_STATUS.PLANNING, title: 'Planning', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING] },
@@ -20,11 +17,10 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
     const [activeProject, setActiveProject] = useState(null);
 
     const columns = useMemo(() => {
-        const cols = COLUMNS.map(c => ({
+        return COLUMNS.map(c => ({
             ...c,
             projects: projects.filter(p => (p.status || PROJECT_STATUS.PLANNING) === c.id)
         }));
-        return cols;
     }, [projects]);
 
     const sensors = useSensors(
@@ -48,15 +44,6 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
         if (!over) return;
 
         const projectId = active.id;
-        // Find dropped column
-        // The drop target could be a column OR another project in that column.
-
-        // We assume the over.id is either a column ID or a project ID.
-        // However, clean dnd-kit usage usually has column droppables.
-
-        // Let's check if over.data.current has generic data if we added it?
-        // Or just find generic id match.
-
         let newStatus = null;
 
         if (Object.values(PROJECT_STATUS).includes(over.id)) {
@@ -85,6 +72,11 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
                 collisionDetection={closestCorners}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
+                accessibility={{
+                    screenReaderInstructions: {
+                        draggable: "To pick up a project, press space or enter. Use arrow keys to move between columns."
+                    }
+                }}
             >
                 <div className="flex gap-6 h-full min-w-[1000px]">
                     {columns.map((column) => (
@@ -117,7 +109,13 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
     );
 }
 
-// Sub-component for Column
+ProjectPipelineBoard.propTypes = {
+    projects: PropTypes.array.isRequired,
+    tasks: PropTypes.array.isRequired,
+    teamMembers: PropTypes.array.isRequired,
+    onStatusChange: PropTypes.func.isRequired
+};
+
 import { useDroppable } from '@dnd-kit/core';
 
 function PipelineColumn({ column, tasks, teamMembers }) {
@@ -160,6 +158,12 @@ function PipelineColumn({ column, tasks, teamMembers }) {
     );
 }
 
+PipelineColumn.propTypes = {
+    column: PropTypes.object.isRequired,
+    tasks: PropTypes.array.isRequired,
+    teamMembers: PropTypes.array.isRequired
+};
+
 import { useDraggable } from '@dnd-kit/core';
 
 function DraggableProjectCard({ project, tasks, teamMembers }) {
@@ -185,7 +189,7 @@ function DraggableProjectCard({ project, tasks, teamMembers }) {
     }
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing touch-none">
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing touch-none focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-xl" aria-label={`Move project ${project.name}`}>
             <ProjectCard
                 project={project}
                 tasks={tasks.filter(t => t.project_id === project.id)}
@@ -194,3 +198,9 @@ function DraggableProjectCard({ project, tasks, teamMembers }) {
         </div>
     );
 }
+
+DraggableProjectCard.propTypes = {
+    project: PropTypes.object.isRequired,
+    tasks: PropTypes.array.isRequired,
+    teamMembers: PropTypes.array.isRequired
+};

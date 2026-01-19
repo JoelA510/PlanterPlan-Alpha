@@ -11,7 +11,7 @@ import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@layouts/DashboardLayout';
 import TaskDetailsPanel from '@features/tasks/components/TaskDetailsPanel';
-import NoProjectSelected from '@features/tasks/components/NoProjectSelected';
+import EmptyProjectState from '@features/tasks/components/EmptyProjectState';
 
 // Hooks & Utils
 import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
@@ -186,7 +186,7 @@ const TaskList = () => {
           {/* Project View Area - Flex 1 to take remaining space */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {!activeProject ? (
-              <NoProjectSelected
+              <EmptyProjectState
                 onCreateProject={() => {
                   setShowForm(true);
                   setSelectedTask(null);

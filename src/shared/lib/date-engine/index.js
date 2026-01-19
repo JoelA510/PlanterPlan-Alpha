@@ -17,10 +17,10 @@ const findTaskById = (tasks, id) => {
  * Calculates start/due dates based on a parent's date and an offset.
  * Handles extensive ancestor traversal to find the root project start date.
  *
- * @param {Array} tasks - List of all tasks (context)
+ * @param {Array<Object>} tasks - List of all tasks (context)
  * @param {string} parentId - Direct parent ID
  * @param {number} daysOffset - Days to add/subtract from base date
- * @returns {Object} { start_date: ISOString, due_date: ISOString } or {}
+ * @returns {{start_date?: string, due_date?: string}} Object with ISOString dates or empty
  */
 export const calculateScheduleFromOffset = (tasks, parentId, daysOffset) => {
   if (parentId === null || parentId === undefined) return {};

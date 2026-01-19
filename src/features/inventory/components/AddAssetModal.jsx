@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { assetService } from '../services/assetService';
 import { useToast } from '@shared/ui/use-toast';
@@ -26,31 +26,16 @@ const STATUSES = ['available', 'in_use', 'maintenance', 'lost', 'retired'];
 
 export default function AddAssetModal({ open, onClose, projectId, assetToEdit = null }) {
     const [formData, setFormData] = useState({
-        name: '',
-        category: 'equipment',
-        status: 'available',
-        location: '',
-        value: 0,
-        notes: '',
+        name: assetToEdit?.name || '',
+        category: assetToEdit?.category || 'equipment',
+        status: assetToEdit?.status || 'available',
+        location: assetToEdit?.location || '',
+        value: assetToEdit?.value || 0,
+        notes: assetToEdit?.notes || '',
     });
 
     const { toast } = useToast();
     const queryClient = useQueryClient();
-
-    useEffect(() => {
-        if (assetToEdit) {
-            setFormData(assetToEdit);
-        } else {
-            setFormData({
-                name: '',
-                category: 'equipment',
-                status: 'available',
-                location: '',
-                value: 0,
-                notes: '',
-            });
-        }
-    }, [assetToEdit, open]);
 
     const mutation = useMutation({
         mutationFn: (data) => {

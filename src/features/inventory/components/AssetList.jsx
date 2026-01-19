@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { assetService } from '../services/assetService';
 import { useToast } from '@shared/ui/use-toast';
@@ -15,6 +16,14 @@ import { Input } from '@shared/ui/input';
 import { Badge } from '@shared/ui/badge';
 import { Plus, Search, Edit2, Trash2, Loader2, Package } from 'lucide-react';
 import AddAssetModal from './AddAssetModal';
+
+const STATUS_COLORS = {
+    available: 'bg-emerald-100 text-emerald-800',
+    in_use: 'bg-blue-100 text-blue-800',
+    maintenance: 'bg-amber-100 text-amber-800',
+    lost: 'bg-rose-100 text-rose-800',
+    retired: 'bg-slate-100 text-slate-800',
+};
 
 export default function AssetList({ projectId }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -36,17 +45,22 @@ export default function AssetList({ projectId }) {
             queryClient.invalidateQueries({ queryKey: ['assets', projectId] });
             toast({ title: 'Asset deleted' });
         },
+        onError: () => {
+            toast({ title: 'Error deleting asset', variant: 'destructive' });
+        }
     });
 
     // Filter logic
-    const filteredAssets = assets.filter((asset) => {
-        const term = searchTerm.toLowerCase();
-        return (
-            asset.name.toLowerCase().includes(term) ||
-            asset.category.toLowerCase().includes(term) ||
-            (asset.location && asset.location.toLowerCase().includes(term))
-        );
-    });
+    const filteredAssets = useMemo(() => {
+        return assets.filter((asset) => {
+            const term = searchTerm.toLowerCase();
+            return (
+                asset.name.toLowerCase().includes(term) ||
+                asset.category.toLowerCase().includes(term) ||
+                (asset.location && asset.location.toLowerCase().includes(term))
+            );
+        });
+    }, [assets, searchTerm]);
 
     const handleEdit = (asset) => {
         setEditingAsset(asset);
@@ -58,15 +72,11 @@ export default function AssetList({ projectId }) {
         setIsModalOpen(false);
     };
 
-    const statusColors = {
-        available: 'bg-emerald-100 text-emerald-800',
-        in_use: 'bg-blue-100 text-blue-800',
-        maintenance: 'bg-amber-100 text-amber-800',
-        lost: 'bg-rose-100 text-rose-800',
-        retired: 'bg-slate-100 text-slate-800',
-    };
-
-    if (isLoading) return <Loader2 className="w-8 h-8 animate-spin text-brand-500 mx-auto" />;
+    if (isLoading) return (
+        <div className="flex justify-center p-8">
+            <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+        </div>
+    );
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200">
@@ -89,6 +99,7 @@ export default function AssetList({ projectId }) {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-9 bg-white"
+                        aria-label="Search assets"
                     />
                 </div>
             </div>
@@ -121,7 +132,7 @@ export default function AssetList({ projectId }) {
                                     <TableCell className="font-medium">{asset.name}</TableCell>
                                     <TableCell className="capitalize">{asset.category}</TableCell>
                                     <TableCell>
-                                        <Badge className={statusColors[asset.status] || 'bg-slate-100 text-slate-800'} variant="secondary">
+                                        <Badge className={STATUS_COLORS[asset.status] || 'bg-slate-100 text-slate-800'} variant="secondary">
                                             {asset.status.replace('_', ' ')}
                                         </Badge>
                                     </TableCell>
@@ -131,16 +142,17 @@ export default function AssetList({ projectId }) {
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex justify-end gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(asset)} title="Edit">
+                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(asset)} title="Edit" aria-label={`Edit ${asset.name}`}>
                                                 <Edit2 className="w-4 h-4 text-slate-500" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => {
-                                                    if (confirm('Delete this asset?')) deleteMutation.mutate(asset.id);
+                                                    if (window.confirm('Delete this asset?')) deleteMutation.mutate(asset.id);
                                                 }}
                                                 title="Delete"
+                                                aria-label={`Delete ${asset.name}`}
                                             >
                                                 <Trash2 className="w-4 h-4 text-rose-500" />
                                             </Button>
@@ -154,6 +166,7 @@ export default function AssetList({ projectId }) {
             </div>
 
             <AddAssetModal
+                key={editingAsset ? editingAsset.id : 'new'}
                 open={isModalOpen}
                 onClose={handleClose}
                 projectId={projectId}
@@ -162,3 +175,7 @@ export default function AssetList({ projectId }) {
         </div>
     );
 }
+
+AssetList.propTypes = {
+    projectId: PropTypes.string.isRequired,
+};

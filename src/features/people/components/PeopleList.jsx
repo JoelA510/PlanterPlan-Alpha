@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { Card } from '@shared/ui/card';
 import { Button } from '@shared/ui/button';
 import { Input } from '@shared/ui/input';
 import { Badge } from '@shared/ui/badge';
-import { Plus, Search, Mail, Phone, MoreHorizontal, User } from 'lucide-react';
+import { Plus, Search, Mail, Phone, MoreHorizontal, Loader2 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import AddPersonModal from './AddPersonModal';
 import { useToast } from '@shared/ui/use-toast';
@@ -14,6 +15,15 @@ import {
     DropdownMenuTrigger,
 } from '@shared/ui/dropdown-menu';
 
+const STATUS_OPTS = {
+    'New': 'bg-blue-100 text-blue-700',
+    'Contacted': 'bg-indigo-100 text-indigo-700',
+    'Meeting Scheduled': 'bg-purple-100 text-purple-700',
+    'Joined': 'bg-emerald-100 text-emerald-700',
+    'Not Interested': 'bg-slate-100 text-slate-500',
+    'default': 'bg-slate-100 text-slate-700'
+};
+
 export default function PeopleList({ projectId }) {
     const [people, setPeople] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -22,11 +32,7 @@ export default function PeopleList({ projectId }) {
     const [editingPerson, setEditingPerson] = useState(null);
     const { toast } = useToast();
 
-    useEffect(() => {
-        loadPeople();
-    }, [projectId]);
-
-    const loadPeople = async () => {
+    const loadPeople = useCallback(async () => {
         try {
             const data = await peopleService.getPeople(projectId);
             setPeople(data);
@@ -36,7 +42,11 @@ export default function PeopleList({ projectId }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [projectId, toast]);
+
+    useEffect(() => {
+        loadPeople();
+    }, [loadPeople]);
 
     const handleSave = async (personData) => {
         try {
@@ -66,23 +76,18 @@ export default function PeopleList({ projectId }) {
         }
     };
 
-    const filteredPeople = people.filter(p =>
-        (p.first_name + ' ' + p.last_name).toLowerCase().includes(search.toLowerCase()) ||
-        p.email?.toLowerCase().includes(search.toLowerCase())
+    const filteredPeople = useMemo(() => {
+        return people.filter(p =>
+            (p.first_name + ' ' + p.last_name).toLowerCase().includes(search.toLowerCase()) ||
+            p.email?.toLowerCase().includes(search.toLowerCase())
+        );
+    }, [people, search]);
+
+    if (loading) return (
+        <div className="flex justify-center p-8">
+            <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+        </div>
     );
-
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'New': return 'bg-blue-100 text-blue-700';
-            case 'Contacted': return 'bg-indigo-100 text-indigo-700';
-            case 'Meeting Scheduled': return 'bg-purple-100 text-purple-700';
-            case 'Joined': return 'bg-emerald-100 text-emerald-700';
-            case 'Not Interested': return 'bg-slate-100 text-slate-500';
-            default: return 'bg-slate-100 text-slate-700';
-        }
-    };
-
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading people...</div>;
 
     return (
         <div className="space-y-4">
@@ -94,6 +99,7 @@ export default function PeopleList({ projectId }) {
                         className="pl-9"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        aria-label="Search people"
                     />
                 </div>
                 <Button onClick={() => { setEditingPerson(null); setIsAddModalOpen(true); }} className="bg-brand-600 hover:bg-brand-700 text-white">
@@ -133,7 +139,7 @@ export default function PeopleList({ projectId }) {
                                     </td>
                                     <td className="px-4 py-3 text-slate-600">{person.role}</td>
                                     <td className="px-4 py-3">
-                                        <Badge className={`hover:bg-opacity-80 border-0 ${getStatusColor(person.status)}`}>
+                                        <Badge className={`hover:bg-opacity-80 border-0 ${STATUS_OPTS[person.status] || STATUS_OPTS.default}`}>
                                             {person.status}
                                         </Badge>
                                     </td>
@@ -146,7 +152,7 @@ export default function PeopleList({ projectId }) {
                                     <td className="px-4 py-3 text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100" aria-label="Open menu">
                                                     <MoreHorizontal className="w-4 h-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
@@ -178,3 +184,7 @@ export default function PeopleList({ projectId }) {
         </div>
     );
 }
+
+PeopleList.propTypes = {
+    projectId: PropTypes.string.isRequired,
+};

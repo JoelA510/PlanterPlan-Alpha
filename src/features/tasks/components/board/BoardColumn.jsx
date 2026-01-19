@@ -50,4 +50,15 @@ const BoardColumn = ({ id, title, tasks, onTaskClick, className, parentId }) => 
     );
 };
 
+import PropTypes from 'prop-types';
+
+BoardColumn.propTypes = {
+    id: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    tasks: PropTypes.array.isRequired,
+    onTaskClick: PropTypes.func.isRequired,
+    className: PropTypes.string,
+    parentId: PropTypes.string
+};
+
 export default BoardColumn;

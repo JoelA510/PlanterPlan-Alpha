@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { createPageUrl } from '@shared/lib/utils';
 import { Button } from '@shared/ui/button';
 import { Badge } from '@shared/ui/badge';
@@ -156,6 +157,21 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
   );
 }
 
+ProjectHeader.propTypes = {
+  project: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    template: PropTypes.string,
+    location: PropTypes.string,
+    launch_date: PropTypes.string,
+  }).isRequired,
+  tasks: PropTypes.arrayOf(PropTypes.object),
+  teamMembers: PropTypes.arrayOf(PropTypes.object),
+  onInviteMember: PropTypes.func, // Optional, sometimes undefined if not passed
+};
+
 import { useDraggable } from '@dnd-kit/core';
 
 function DraggableAvatar({ member }) {
@@ -192,3 +208,13 @@ function DraggableAvatar({ member }) {
     </div>
   );
 }
+
+DraggableAvatar.propTypes = {
+  member: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    first_name: PropTypes.string,
+    last_name: PropTypes.string,
+    email: PropTypes.string,
+    avatar_url: PropTypes.string,
+  }).isRequired,
+};
