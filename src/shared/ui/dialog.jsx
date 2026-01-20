@@ -76,3 +76,17 @@ export {
   DialogTitle,
   DialogDescription,
 };
+
+import PropTypes from 'prop-types';
+
+const commonPropTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+};
+
+DialogOverlay.propTypes = commonPropTypes;
+DialogContent.propTypes = commonPropTypes;
+DialogHeader.propTypes = commonPropTypes;
+DialogFooter.propTypes = commonPropTypes;
+DialogTitle.propTypes = commonPropTypes;
+DialogDescription.propTypes = commonPropTypes;

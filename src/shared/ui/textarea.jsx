@@ -13,4 +13,11 @@ const Textarea = React.forwardRef(({ className, ...props }, ref) => {
   );
 });
 Textarea.displayName = 'Textarea';
+
+import PropTypes from 'prop-types';
+
+Textarea.propTypes = {
+  className: PropTypes.string
+};
+
 export { Textarea };

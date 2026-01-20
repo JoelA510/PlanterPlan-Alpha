@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTaskQuery } from '@features/tasks/hooks/useTaskQuery';
 import { useTaskMutations } from '@features/tasks/hooks/useTaskMutations';
 import { useProjectMutations } from '@features/projects/hooks/useProjectMutations';
+import { useTaskSubscription } from '@features/tasks/hooks/useTaskSubscription';
 import { separateTasksByOrigin } from '@shared/lib/viewHelpers';
 
 export const useTaskOperations = () => {
@@ -20,6 +21,13 @@ export const useTaskOperations = () => {
     findTask: query.findTask,
     joinedProjects: query.joinedProjects,
     hydratedProjects: query.hydratedProjects,
+  });
+
+  useTaskSubscription({
+    refreshProjectDetails: query.refreshProjectDetails,
+    fetchProjects: query.fetchProjects,
+    findTask: query.findTask,
+    currentUserId: query.currentUserId,
   });
 
   const projectMutations = useProjectMutations({

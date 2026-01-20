@@ -12,10 +12,12 @@ export default function MilestoneSection({
   tasks = [],
   onTaskUpdate,
   onAddTask,
+  onAddChildTask,
+  onTaskClick,
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const milestoneTasks = tasks.filter((t) => t.milestone_id === milestone.id);
+  const milestoneTasks = tasks.filter((t) => t.parent_task_id === milestone.id);
   const completedTasks = milestoneTasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
   const totalTasks = milestoneTasks.length;
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -32,7 +34,7 @@ export default function MilestoneSection({
           </motion.div>
 
           <div className="text-left">
-            <h4 className="font-semibold text-slate-900">{milestone.name}</h4>
+            <h4 className="font-semibold text-slate-900">{milestone.title || milestone.name}</h4>
             {milestone.description && (
               <p className="text-sm text-slate-500 mt-0.5">{milestone.description}</p>
             )}
@@ -85,7 +87,9 @@ export default function MilestoneSection({
                       <TaskItem
                         key={task.id}
                         task={task}
+                        onTaskClick={onTaskClick}
                         onStatusChange={(id, status) => onTaskUpdate(id, { status })}
+                        onAddChildTask={onAddChildTask}
                       />
                     ))}
                   <Button

@@ -14,4 +14,12 @@ const Input = React.forwardRef(({ className, type, ...props }, ref) => {
   );
 });
 Input.displayName = 'Input';
+
+import PropTypes from 'prop-types';
+
+Input.propTypes = {
+  className: PropTypes.string,
+  type: PropTypes.string
+};
+
 export { Input };

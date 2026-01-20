@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Card } from '@shared/ui/card';
 import { FolderKanban, CheckCircle2, Clock, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -5,7 +6,6 @@ import { TASK_STATUS } from '@app/constants/index';
 
 export default function StatsOverview({ projects, tasks, teamMembers }) {
   const totalProjects = projects.length;
-  // const activeProjects = projects.filter(p => p.status === 'in_progress').length;
   const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
   const totalTasks = tasks.length;
   const pendingTasks = tasks.filter(
@@ -80,3 +80,9 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
     </div>
   );
 }
+
+StatsOverview.propTypes = {
+  projects: PropTypes.array.isRequired,
+  tasks: PropTypes.array.isRequired,
+  teamMembers: PropTypes.array.isRequired
+};

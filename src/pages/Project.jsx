@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { planter } from '@shared/api/planterClient';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
 import { useToast } from '@shared/ui/use-toast';
 import { TASK_STATUS } from '@app/constants/index';
-
 import { createPortal } from 'react-dom';
 import {
   DndContext,
@@ -18,65 +17,49 @@ import {
 } from '@dnd-kit/core';
 
 import ProjectHeader from '@features/projects/components/ProjectHeader';
+import ProjectTabs from '@features/projects/components/ProjectTabs';
+import BudgetWidget from '@features/budget/components/BudgetWidget';
+import { useProjectData } from '@features/projects/hooks/useProjectData';
+import PeopleList from '@features/people/components/PeopleList';
+import AssetList from '@features/inventory/components/AssetList';
+import DashboardLayout from '@layouts/DashboardLayout';
 import PhaseCard from '@features/projects/components/PhaseCard';
 import MilestoneSection from '@features/projects/components/MilestoneSection';
 import AddTaskModal from '@features/projects/components/AddTaskModal';
-
-import DashboardLayout from '@layouts/DashboardLayout';
-
+import TaskDetailsModal from '@features/projects/components/TaskDetailsModal';
+import { useTaskSubscription } from '@features/tasks/hooks/useTaskSubscription';
 import { resolveDragAssign } from '@features/projects/utils/dragUtils';
 
 export default function Project() {
-  // ...
-  const handleDragEnd = (event) => {
-    setActiveDragMember(null);
-    const { active, over } = event;
-
-    // Use helper for logic
-    const assignment = resolveDragAssign(active, over, tasks);
-    if (assignment) {
-      assignMemberMutation.mutate(assignment);
-    }
-  };
-  // ...
   const { id: projectId } = useParams();
 
+  const [activeTab, setActiveTab] = useState('board');
   const [selectedPhase, setSelectedPhase] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null); // For Task Details Modal
   const [addTaskModal, setAddTaskModal] = useState({ open: false, milestone: null });
   const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
-  const [activeDragMember, setActiveDragMember] = useState(null); // For overlay
+  const [activeDragMember, setActiveDragMember] = useState(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: project, isLoading: loadingProject } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res) => res[0]),
-    enabled: !!projectId,
+  // Realtime Subscription
+  useTaskSubscription({
+    projectId,
+    refreshProjectDetails: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+    }
   });
 
-  // ... (Keep existing queries)
-  // SINGLE SOURCE OF TRUTH: Fetch all tasks for the project (Phases, Milestones, Tasks)
-  const { data: projectHierarchy = [] } = useQuery({
-    queryKey: ['projectHierarchy', projectId],
-    queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
-    enabled: !!projectId,
-  });
-
-  // Derived State (In-Memory Filtering)
-  const phases = projectHierarchy.filter((t) => t.parent_task_id === projectId); // Phases are direct children of Project
-
-  // Milestones are children of Phases
-  const milestones = projectHierarchy.filter((t) => phases.some((p) => p.id === t.parent_task_id));
-
-  // Tasks are children of Milestones (or Phases directly in some templates, but assuming strict hierarchy here)
-  const tasks = projectHierarchy.filter((t) => milestones.some((m) => m.id === t.parent_task_id));
-
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ['teamMembers', projectId],
-    queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId }),
-    enabled: !!projectId,
-  });
+  // Data Fetching via Hook
+  const {
+    project,
+    loadingProject,
+    phases,
+    milestones,
+    tasks,
+    teamMembers,
+  } = useProjectData(projectId);
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }) => planter.entities.Task.update(id, data),
@@ -85,12 +68,17 @@ export default function Project() {
     },
   });
 
+  const deleteTaskMutation = useMutation({
+    mutationFn: (id) => planter.entities.Task.delete(id),
+    onSuccess: () => {
+      setSelectedTask(null);
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+      toast({ title: 'Task deleted', variant: 'default' });
+    },
+  });
+
   const assignMemberMutation = useMutation({
-    mutationFn: ({ taskId, userId }) => planter.entities.Task.addMember(taskId, userId, 'viewer'), // Default to viewer/assignee
-    // Note: check if addMember API exists on Task entity or if we need to update 'assignees' array
-    // Task entity usually has 'assignees' or 'members' relation.
-    // Assuming 'addMember' exists or we use update `assignee_id` if single, or link table.
-    // Let's assume generic link for now, or fallback to toast if API missing.
+    mutationFn: ({ taskId, userId }) => planter.entities.Task.addMember(taskId, userId, 'viewer'),
     onSuccess: () => {
       toast({ title: 'Member assigned to task', variant: 'default' });
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
@@ -111,11 +99,15 @@ export default function Project() {
   const sortedPhases = [...phases].sort((a, b) => (a.position || 0) - (b.position || 0));
   const activePhase = selectedPhase || sortedPhases[0];
   const phaseMilestones = milestones
-    .filter((m) => m.parent_task_id === activePhase?.id) // Use parent_task_id for hierarchy
+    .filter((m) => m.parent_task_id === activePhase?.id)
     .sort((a, b) => (a.position || 0) - (b.position || 0));
 
   const handleTaskUpdate = (taskId, data) => {
     updateTaskMutation.mutate({ id: taskId, data });
+  };
+
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
   };
 
   const handleToggleExpand = (task, isExpanded) => {
@@ -141,13 +133,26 @@ export default function Project() {
     try {
       if (!addTaskModal.milestone) return;
 
+      const { milestone: _unused, ...payload } = taskData;
+      const parentId = addTaskModal.parentTask?.id || addTaskModal.milestone?.id;
+
       await createTaskMutation.mutateAsync({
-        ...taskData,
-        parent_task_id: addTaskModal.milestone.id,
+        ...payload,
         root_id: projectId,
         status: TASK_STATUS.TODO,
+        parent_task_id: parentId,
       });
-      setAddTaskModal({ open: false, milestone: null });
+
+      // Auto-expand parent if adding a subtask
+      if (addTaskModal.parentTask) {
+        setExpandedTaskIds((prev) => {
+          const next = new Set(prev);
+          next.add(addTaskModal.parentTask.id);
+          return next;
+        });
+      }
+
+      setAddTaskModal({ open: false, milestone: null, parentTask: null });
       toast({ title: 'Task created successfully', variant: 'default' });
     } catch (error) {
       toast({ title: 'Failed to create task', variant: 'destructive' });
@@ -169,7 +174,14 @@ export default function Project() {
     }
   };
 
-
+  const handleDragEnd = (event) => {
+    setActiveDragMember(null);
+    const { active, over } = event;
+    const assignment = resolveDragAssign(active, over, tasks);
+    if (assignment) {
+      assignMemberMutation.mutate(assignment);
+    }
+  };
 
   if (loadingProject || !project) {
     return (
@@ -192,63 +204,94 @@ export default function Project() {
         <ProjectHeader project={project} tasks={tasks} teamMembers={teamMembers} />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* ... Content ... */}
-          {/* Phase Selection */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Phases</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {sortedPhases.map((phase) => (
-                <PhaseCard
-                  key={phase.id}
-                  phase={phase}
-                  tasks={tasks}
-                  milestones={milestones.filter((m) => m.parent_task_id === phase.id)}
-                  isActive={activePhase?.id === phase.id}
-                  onClick={() => setSelectedPhase(phase)}
-                />
-              ))}
-            </div>
-          </div>
 
-          {/* Milestones & Tasks */}
-          {activePhase && (
-            <motion.div
-              key={activePhase.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    Phase {activePhase.position}: {activePhase.title || activePhase.name}
-                  </h2>
-                  {activePhase.description && (
-                    <p className="text-slate-600 mt-1">{activePhase.description}</p>
-                  )}
+
+
+          {/* Tabs */}
+          {/* Tabs */}
+          <ProjectTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+          {/* Board Tab */}
+          {activeTab === 'board' && (
+            // ... board content ...
+            <>
+              {/* Phase Selection */}
+              <div className="mb-8">
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">Phases</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {sortedPhases.map((phase) => (
+                    <PhaseCard
+                      key={phase.id}
+                      phase={phase}
+                      tasks={tasks}
+                      milestones={milestones.filter((m) => m.parent_task_id === phase.id)}
+                      isActive={activePhase?.id === phase.id}
+                      onClick={() => setSelectedPhase(phase)}
+                    />
+                  ))}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                {phaseMilestones.length === 0 ? (
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
-                    <p className="text-slate-500">No milestones in this phase yet</p>
+              {/* Milestones & Tasks */}
+              {activePhase && (
+                <motion.div
+                  // ... (rest of board content)
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900">
+                        Phase {activePhase.position}: {activePhase.title || activePhase.name}
+                      </h2>
+                      {activePhase.description && (
+                        <p className="text-slate-600 mt-1">{activePhase.description}</p>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  phaseMilestones.map((milestone) => (
-                    <MilestoneSection
-                      key={milestone.id}
-                      milestone={milestone}
-                      tasks={tasks.map(mapTaskWithState)}
-                      onTaskUpdate={handleTaskUpdate}
-                      onToggleExpand={handleToggleExpand}
-                      onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
-                      phase={activePhase}
-                    />
-                  ))
-                )}
-              </div>
-            </motion.div>
+
+                  <div className="space-y-4">
+                    {phaseMilestones.length === 0 ? (
+                      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
+                        <p className="text-slate-500">No milestones in this phase yet</p>
+                      </div>
+                    ) : (
+                      phaseMilestones.map((milestone) => (
+                        <MilestoneSection
+                          key={milestone.id}
+                          milestone={milestone}
+                          tasks={tasks.map(mapTaskWithState)}
+                          onTaskUpdate={handleTaskUpdate}
+                          onToggleExpand={handleToggleExpand}
+                          onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
+                          onAddChildTask={(parent) => setAddTaskModal({ open: true, milestone: null, parentTask: parent })}
+                          onTaskClick={handleTaskClick}
+                          phase={activePhase}
+                        />
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </>
+          )}
+
+          {/* People Tab */}
+          {activeTab === 'people' && (
+            <PeopleList projectId={projectId} />
+          )}
+
+          {/* Budget Tab */}
+          {activeTab === 'budget' && (
+            <div className="max-w-xl">
+              <BudgetWidget projectId={projectId} />
+            </div>
+          )}
+
+          {/* Assets Tab */}
+          {activeTab === 'assets' && (
+            <AssetList projectId={projectId} />
           )}
         </div>
 
@@ -271,10 +314,22 @@ export default function Project() {
 
       <AddTaskModal
         open={addTaskModal.open}
-        onClose={() => setAddTaskModal({ open: false, milestone: null })}
+        onClose={() => setAddTaskModal({ open: false, milestone: null, parentTask: null })}
         onAdd={handleAddTask}
         milestone={addTaskModal.milestone}
+        parentTask={addTaskModal.parentTask}
         teamMembers={teamMembers}
+      />
+
+      <TaskDetailsModal
+        task={selectedTask}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onAddChildTask={() => { }} // Not implemented yet inside details
+        onEditTask={() => { }} // Managed inside details view logic or parent
+        onDeleteTask={(t) => deleteTaskMutation.mutate(t.id)}
+        onTaskUpdated={(id, data) => updateTaskMutation.mutate({ id, data })}
+        allProjectTasks={tasks}
       />
     </DashboardLayout>
   );

@@ -1,21 +1,23 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useAuth } from '@app/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@shared/ui/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       let result;
@@ -26,13 +28,16 @@ const LoginForm = () => {
       }
 
       if (result.error) {
-        setError(result.error.message);
+        throw result.error;
       } else {
         navigate('/dashboard');
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setError(err.message || 'An unexpected error occurred');
+      toast({
+        title: isSignUp ? 'Sign up failed' : 'Login failed',
+        description: err.message || 'An unexpected error occurred',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -50,12 +55,6 @@ const LoginForm = () => {
 
         <form className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit}>
           <div className="space-y-6">
-            {error && (
-              <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded">
-                {error}
-              </div>
-            )}
-
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700">
                 Email address
@@ -94,7 +93,7 @@ const LoginForm = () => {
                 disabled={loading}
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500/20 disabled:opacity-50 transition-colors shadow-sm"
               >
-                {loading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Sign In'}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? 'Sign Up' : 'Sign In')}
               </button>
             </div>
 
@@ -112,6 +111,10 @@ const LoginForm = () => {
       </div>
     </div>
   );
+};
+
+LoginForm.propTypes = {
+  // No props currently, but adding the object satisfies linting for future
 };
 
 export default LoginForm;

@@ -15,19 +15,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
+import StatusPieChart from '@features/reports/components/StatusPieChart';
+import PhaseBarChart from '@features/reports/components/PhaseBarChart';
 
 import DashboardLayout from '@layouts/DashboardLayout';
 import { TASK_STATUS } from '@app/constants/index';
@@ -62,12 +51,45 @@ export default function Reports() {
     blocked: tasks.filter((t) => t.status === TASK_STATUS.BLOCKED).length,
   };
 
-  const pieData = [
-    { name: 'Completed', value: tasksByStatus.completed, color: 'var(--color-emerald-500)' },
-    { name: 'In Progress', value: tasksByStatus.in_progress, color: 'var(--color-orange-500)' },
-    { name: 'Not Started', value: tasksByStatus.not_started, color: 'var(--color-indigo-500)' },
-    { name: 'Blocked', value: tasksByStatus.blocked, color: 'var(--color-rose-500)' },
-  ].filter((d) => d.value > 0);
+  const statsConfig = [
+    {
+      label: 'Completed',
+      value: tasksByStatus.completed,
+      icon: CheckCircle2,
+      borderClass: 'border-green-200',
+      bgClass: 'bg-green-100',
+      hoverBgClass: 'bg-green-500',
+      textClass: 'text-green-600',
+    },
+    {
+      label: 'In Progress',
+      value: tasksByStatus.in_progress,
+      icon: Clock,
+      borderClass: 'border-orange-200',
+      bgClass: 'bg-orange-100',
+      hoverBgClass: 'bg-orange-500',
+      textClass: 'text-orange-600',
+    },
+    {
+      label: 'Not Started',
+      value: tasksByStatus.not_started,
+      icon: Circle,
+      borderClass: 'border-indigo-200',
+      bgClass: 'bg-indigo-100',
+      hoverBgClass: 'bg-indigo-500',
+      textClass: 'text-indigo-600',
+    },
+    {
+      label: 'Blocked',
+      value: tasksByStatus.blocked,
+      icon: AlertTriangle,
+      borderClass: 'border-red-200',
+      bgClass: 'bg-red-100',
+      hoverBgClass: 'bg-red-500',
+      textClass: 'text-red-600',
+    },
+  ];
+
 
   const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
 
@@ -123,81 +145,28 @@ export default function Reports() {
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Overview Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg hover:border-green-200 transition-all duration-300 group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                      Completed
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900">{tasksByStatus.completed}</p>
+            {statsConfig.map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className={`p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 group hover:${stat.borderClass}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                        {stat.label}
+                      </p>
+                      <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                    </div>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${stat.bgClass} group-hover:${stat.hoverBgClass}`}>
+                      <stat.icon className={`w-6 h-6 transition-colors ${stat.textClass} group-hover:text-white`} />
+                    </div>
                   </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-500 transition-colors">
-                    <CheckCircle2 className="w-6 h-6 text-green-600 group-hover:text-white transition-colors" />
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card className="p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg hover:border-orange-200 transition-all duration-300 group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                      In Progress
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900">{tasksByStatus.in_progress}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-500 transition-colors">
-                    <Clock className="w-6 h-6 text-orange-600 group-hover:text-white transition-colors" />
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card className="p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all duration-300 group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                      Not Started
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900">{tasksByStatus.not_started}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:bg-indigo-500 transition-colors">
-                    <Circle className="w-6 h-6 text-indigo-600 group-hover:text-white transition-colors" />
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg hover:border-red-200 transition-all duration-300 group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                      Blocked
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900">{tasksByStatus.blocked}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center group-hover:bg-red-500 transition-colors">
-                    <AlertTriangle className="w-6 h-6 text-red-600 group-hover:text-white transition-colors" />
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
+                </Card>
+              </motion.div>
+            ))}
           </div>
 
           {/* Overall Progress */}
@@ -230,34 +199,7 @@ export default function Reports() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <Card className="p-8 border border-slate-200 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <h3 className="text-xl font-bold text-slate-900 mb-8">Task Distribution</h3>
-                {pieData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-72 flex items-center justify-center text-slate-500">
-                    No tasks to display
-                  </div>
-                )}
-              </Card>
+              <StatusPieChart tasks={tasks} />
             </motion.div>
 
             {/* Phase Progress Bar Chart */}
@@ -266,58 +208,7 @@ export default function Reports() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <Card className="p-8 border border-slate-200 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <h3 className="text-xl font-bold text-slate-900 mb-8">Progress by Phase</h3>
-                {phaseData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={phaseData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis type="number" domain={[0, 'dataMax']} />
-                      <YAxis type="category" dataKey="name" width={80} />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            return (
-                              <div className="bg-white p-4 rounded-xl shadow-xl border-2 border-orange-200">
-                                <p className="font-bold text-slate-900 mb-2">{data.fullName}</p>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-green-600 font-medium">
-                                    Completed: {data.completed}
-                                  </p>
-                                  <p className="text-sm text-slate-500">
-                                    Remaining: {data.remaining}
-                                  </p>
-                                  <p className="text-sm font-bold text-orange-600 mt-2">
-                                    Progress: {data.progress}%
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar
-                        dataKey="completed"
-                        stackId="a"
-                        fill="var(--color-emerald-500)"
-                        name="Completed"
-                      />
-                      <Bar
-                        dataKey="remaining"
-                        stackId="a"
-                        fill="var(--color-slate-200)"
-                        name="Remaining"
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-72 flex items-center justify-center text-slate-500">
-                    No phases to display
-                  </div>
-                )}
-              </Card>
+              <PhaseBarChart data={phaseData} />
             </motion.div>
           </div>
 

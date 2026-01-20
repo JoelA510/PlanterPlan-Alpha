@@ -1,641 +1,462 @@
--- schema.sql
--- PlanterPlan Combined Schema (Idempotent)
--- Tables, indexes, views, functions, triggers, RLS policies, grants.
+-- PlanterPlan Database Schema
+-- Consolidated: 2026-01-18
+-- Includes: Core, Budget, People, Inventory, and Phase 3 features.
 
-BEGIN;
-
--- Extensions
+-- ============================================================================
+-- 0. EXTENSIONS
+-- ============================================================================
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- -------------------------------------------------------------------------
+-- ============================================================================
 -- 1. TABLES & TYPES
--- -------------------------------------------------------------------------
+-- ============================================================================
 
--- 1.1 Enum: task_resource_type (Idempotent)
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_resource_type') THEN
-    CREATE TYPE public.task_resource_type AS ENUM ('pdf','url','text');
-  END IF;
-END$$;
-
--- 1.2 tasks (Core table)
--- Note: primary_resource_id is added later to resolve circular dependency with task_resources
+-- ----------------------------------------------------------------------------
+-- TASKS Table
+-- Core table for Projects (root tasks) and Tasks (children)
+-- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.tasks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  parent_task_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
-
-  title text NOT NULL,
+  title text,
   description text,
-  status text DEFAULT 'todo',
-  origin text DEFAULT 'instance', -- 'template' or 'instance'
-  creator uuid REFERENCES auth.users(id),
-
-  -- Denormalized root pointer (project id)
-  root_id uuid,
-
-  -- Features
-  notes text,
   purpose text,
   actions text,
+  notes text,
+  origin text CHECK (origin IN ('instance', 'template')),
+  status text DEFAULT 'not_started',
+  template text,
+  position integer,
+  parent_task_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  root_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  
+  -- Feature Flags & Metadata
+  is_premium boolean DEFAULT false, 
+  is_locked boolean DEFAULT false, -- Checkpoints
   is_complete boolean DEFAULT false,
-  days_from_start integer DEFAULT 0,
+  settings JSONB DEFAULT '{}'::jsonb, -- Phase 3 Project Settings
+  priority text DEFAULT 'medium',
+
+  -- Ownership & Assignment
+  creator uuid REFERENCES auth.users(id),
+  assignee_id uuid REFERENCES auth.users(id),
+  
+  -- Scheduling
   start_date timestamptz,
   due_date timestamptz,
-
-  -- Ordering
-  position bigint DEFAULT 0,
+  days_from_start integer,
+  location text,
+  
+  -- Legacy / View Support
+  primary_resource_id uuid,
 
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
 
--- Upgrade older installs
-ALTER TABLE public.tasks
-  ADD COLUMN IF NOT EXISTS root_id uuid,
-  ADD COLUMN IF NOT EXISTS notes text,
-  ADD COLUMN IF NOT EXISTS days_from_start integer,
-  ADD COLUMN IF NOT EXISTS start_date timestamptz,
-  ADD COLUMN IF NOT EXISTS due_date timestamptz,
-  ADD COLUMN IF NOT EXISTS position bigint,
-  ADD COLUMN IF NOT EXISTS created_at timestamptz,
-  ADD COLUMN IF NOT EXISTS updated_at timestamptz,
-  ADD COLUMN IF NOT EXISTS purpose text,
-  ADD COLUMN IF NOT EXISTS actions text,
-  ADD COLUMN IF NOT EXISTS is_complete boolean DEFAULT false;
+-- Idempotent Column Additions (For patching existing databases)
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS is_premium boolean DEFAULT false;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS is_locked boolean DEFAULT false;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS is_complete boolean DEFAULT false;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS priority text DEFAULT 'medium';
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS assignee_id uuid REFERENCES auth.users(id);
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS start_date timestamptz;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS due_date timestamptz;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS days_from_start integer;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS location text;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS primary_resource_id uuid;
 
--- Ensure defaults
-ALTER TABLE public.tasks
-  ALTER COLUMN created_at SET DEFAULT now(),
-  ALTER COLUMN updated_at SET DEFAULT now(),
-  ALTER COLUMN position SET DEFAULT 0,
-  ALTER COLUMN days_from_start SET DEFAULT 0,
-  ALTER COLUMN origin SET DEFAULT 'instance',
-  ALTER COLUMN status SET DEFAULT 'todo';
+COMMENT ON COLUMN public.tasks.settings IS 'Project-level settings (e.g., due_soon_threshold, location_defaults)';
 
--- Add/ensure FK on root_id
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'tasks_root_id_fkey' AND conrelid = 'public.tasks'::regclass
-  ) THEN
-    ALTER TABLE public.tasks
-      ADD CONSTRAINT tasks_root_id_fkey
-      FOREIGN KEY (root_id) REFERENCES public.tasks(id) ON DELETE CASCADE;
-  END IF;
-END $$;
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_tasks_root_id ON public.tasks(root_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON public.tasks(parent_task_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_is_locked ON public.tasks(is_locked);
+CREATE INDEX IF NOT EXISTS idx_tasks_is_premium ON public.tasks(is_premium);
 
--- 1.3 task_resources (New Resource Model)
-CREATE TABLE IF NOT EXISTS public.task_resources (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  task_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
-  resource_type public.task_resource_type NOT NULL,
-  
-  -- payloads
-  resource_url text,
-  resource_text text,
-  
-  -- storage
-  storage_bucket text,
-  storage_path text,
-
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-
-  CONSTRAINT task_resources_type_payload_check
-  CHECK (
-    (resource_type = 'url'  AND resource_url IS NOT NULL AND resource_text IS NULL AND storage_path IS NULL)
-    OR
-    (resource_type = 'text' AND resource_text IS NOT NULL AND resource_url IS NULL AND storage_path IS NULL)
-    OR
-    (resource_type = 'pdf'  AND storage_path IS NOT NULL AND resource_url IS NULL AND resource_text IS NULL)
-  )
-);
-
--- 1.4 Add primary_resource_id to tasks (Circular ref)
-ALTER TABLE public.tasks
-  ADD COLUMN IF NOT EXISTS primary_resource_id uuid REFERENCES public.task_resources(id) ON DELETE SET NULL;
-
--- 1.5 project_members
+-- ----------------------------------------------------------------------------
+-- PROJECT MEMBERS Table
+-- RBAC: Owners, Editors, Coaches, Viewers, Limited
+-- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.project_members (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role text NOT NULL DEFAULT 'viewer' CHECK (role IN ('owner','editor','coach','viewer','limited')),
-  joined_at timestamptz DEFAULT now(),
-  UNIQUE (project_id, user_id)
+  project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  role text CHECK (role IN ('owner', 'editor', 'coach', 'viewer', 'limited')),
+  created_at timestamptz DEFAULT now(),
+  CONSTRAINT unique_project_member UNIQUE (project_id, user_id)
 );
 
--- Upgrade project_members
-ALTER TABLE public.project_members
-  ADD COLUMN IF NOT EXISTS joined_at timestamptz,
-  ADD COLUMN IF NOT EXISTS role text DEFAULT 'viewer';
+-- ----------------------------------------------------------------------------
+-- PROJECT INVITES Table
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.project_invites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  role text NOT NULL CHECK (role IN ('owner', 'editor', 'coach', 'viewer', 'limited')),
+  token uuid DEFAULT gen_random_uuid(),
+  created_at timestamptz DEFAULT now(),
+  expires_at timestamptz DEFAULT (now() + interval '7 days'),
+  CONSTRAINT unique_invite_per_project UNIQUE (project_id, email)
+);
 
-UPDATE public.project_members SET role = 'viewer' WHERE role IS NULL;
-ALTER TABLE public.project_members ALTER COLUMN role SET NOT NULL;
-ALTER TABLE public.project_members ALTER COLUMN joined_at SET DEFAULT now();
+-- ----------------------------------------------------------------------------
+-- TASK RELATIONSHIPS (Phase 3)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.task_relationships (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+    from_task_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+    to_task_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+    type text CHECK (type IN ('blocks', 'relates_to', 'duplicates')) DEFAULT 'relates_to',
+    created_at timestamptz DEFAULT now(),
+    CONSTRAINT unique_relationship UNIQUE (from_task_id, to_task_id, type)
+);
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'project_members_project_id_user_id_key' AND conrelid = 'public.project_members'::regclass
-  ) THEN
-    ALTER TABLE public.project_members
-      ADD CONSTRAINT project_members_project_id_user_id_key UNIQUE (project_id, user_id);
-  END IF;
-END $$;
+-- ----------------------------------------------------------------------------
+-- BUDGET ITEMS (Phase 3 Feature)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.budget_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  category text CHECK (category IN ('Equipment', 'Marketing', 'Venue', 'Kids', 'Operations', 'Other')),
+  description text NOT NULL,
+  planned_amount numeric(10, 2) DEFAULT 0,
+  actual_amount numeric(10, 2) DEFAULT 0,
+  status text CHECK (status IN ('planned', 'purchased')) DEFAULT 'planned',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_budget_items_project_id ON public.budget_items(project_id);
 
--- 1.6 Storage Buckets (Idempotent)
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('resources', 'resources', true)
-ON CONFLICT (id) DO NOTHING;
+-- ----------------------------------------------------------------------------
+-- PEOPLE (CRM Lite)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.people (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  first_name text NOT NULL,
+  last_name text,
+  email text,
+  phone text,
+  role text DEFAULT 'Volunteer',
+  status text CHECK (status IN ('New', 'Contacted', 'Meeting Scheduled', 'Joined', 'Not Interested')) DEFAULT 'New',
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_people_project_id ON public.people(project_id);
 
--- -------------------------------------------------------------------------
--- 2. INDEXES
--- -------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
+-- ASSETS (Inventory)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.assets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  category text CHECK (category IN ('equipment', 'venue', 'marketing', 'kids', 'other')),
+  status text NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'in_use', 'maintenance', 'lost', 'retired')),
+  location text,
+  value numeric DEFAULT 0,
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 
-CREATE INDEX IF NOT EXISTS idx_tasks_root ON public.tasks(root_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_parent ON public.tasks(parent_task_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_creator ON public.tasks(creator);
-CREATE INDEX IF NOT EXISTS idx_tasks_is_complete ON public.tasks(is_complete);
-CREATE INDEX IF NOT EXISTS idx_tasks_creator_origin_parent_position ON public.tasks(creator, origin, parent_task_id, position);
+-- ============================================================================
+-- 2. VIEWS
+-- ============================================================================
 
--- Resource indexes
-CREATE INDEX IF NOT EXISTS idx_task_resources_task_id ON public.task_resources(task_id);
-CREATE INDEX IF NOT EXISTS idx_task_resources_type ON public.task_resources(resource_type);
-
-
-CREATE INDEX IF NOT EXISTS idx_members_user ON public.project_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_members_project ON public.project_members(project_id);
-
--- -------------------------------------------------------------------------
--- 3. VIEWS
--- -------------------------------------------------------------------------
-
--- 3.1 tasks_with_primary_resource
+-- Adapter View for Legacy Support
+DROP VIEW IF EXISTS public.tasks_with_primary_resource CASCADE;
 CREATE OR REPLACE VIEW public.tasks_with_primary_resource AS
-SELECT
-  t.*,
-  COALESCE(tr_primary.id, tr_newest.id) as resource_id,
-  COALESCE(tr_primary.resource_type, tr_newest.resource_type) as resource_type,
-  COALESCE(tr_primary.resource_url, tr_newest.resource_url) as resource_url,
-  COALESCE(tr_primary.resource_text, tr_newest.resource_text) as resource_text,
-  COALESCE(tr_primary.storage_path, tr_newest.storage_path) as storage_path,
-  CAST(NULL as text) as resource_name
-FROM public.tasks t
-LEFT JOIN public.task_resources tr_primary ON t.primary_resource_id = tr_primary.id
-LEFT JOIN LATERAL (
-  SELECT * FROM public.task_resources
-  WHERE task_id = t.id
-  ORDER BY created_at DESC
-  LIMIT 1
-) tr_newest ON true;
+SELECT 
+    t.*,
+    -- Add missing legacy columns required by view_master_library as NULLs
+    NULL::uuid as resource_id,
+    NULL::text as resource_type,
+    NULL::text as resource_url,
+    NULL::text as resource_text,
+    NULL::text as storage_path,
+    NULL::text as resource_name
+FROM public.tasks t;
 
--- 3.2 view_master_library
+-- MASTER LIBRARY View
 CREATE OR REPLACE VIEW public.view_master_library AS
-SELECT *
-FROM public.tasks_with_primary_resource
-WHERE origin = 'template'
-  AND parent_task_id IS NULL;
+SELECT 
+    t.id,
+    t.parent_task_id,
+    t.title,
+    t.description,
+    t.status,
+    t.origin,
+    t.creator,
+    t.root_id,
+    t.notes,
+    t.days_from_start,
+    t.start_date,
+    t.due_date,
+    t.position,
+    t.created_at,
+    t.updated_at,
+    t.purpose,
+    t.actions,
+    t.is_complete,
+    t.primary_resource_id,
+    t.resource_id,
+    t.resource_type,
+    t.resource_url,
+    t.resource_text,
+    t.storage_path,
+    t.resource_name
+FROM public.tasks_with_primary_resource t
+WHERE 
+    t.origin = 'template' 
+    AND t.parent_task_id IS NULL;
 
--- -------------------------------------------------------------------------
--- 4. FUNCTIONS
--- -------------------------------------------------------------------------
+-- ============================================================================
+-- 3. FUNCTIONS & TRIGGERS
+-- ============================================================================
 
--- 4.1 updated_at trigger
-CREATE OR REPLACE FUNCTION public.trigger_set_updated_at()
-RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
-BEGIN
-  NEW.updated_at = timezone('utc', now());
-  RETURN NEW;
-END;
-$$;
-
--- 4.2 root_id assignment
-CREATE OR REPLACE FUNCTION public.maintain_task_root_id()
-RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
-  DECLARE
-    v_root_id uuid;
-  BEGIN
-    IF TG_OP = 'INSERT' AND NEW.root_id IS NOT NULL THEN RETURN NEW; END IF;
-    IF NEW.parent_task_id IS NULL THEN
-      NEW.root_id := NEW.id;
-    ELSE
-      SELECT t.root_id INTO v_root_id FROM public.tasks t WHERE t.id = NEW.parent_task_id;
-      IF NOT FOUND THEN RAISE EXCEPTION 'Parent task with id % does not exist.', NEW.parent_task_id; END IF;
-      IF v_root_id IS NULL THEN RAISE EXCEPTION 'Parent task % has a NULL root_id.', NEW.parent_task_id; END IF;
-      NEW.root_id := v_root_id;
-    END IF;
-    RETURN NEW;
-  END;
-$$;
-
--- 4.3 propagate_task_root_id
-CREATE OR REPLACE FUNCTION public.propagate_task_root_id()
-RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
-BEGIN
-  IF OLD.root_id IS NOT DISTINCT FROM NEW.root_id THEN RETURN NEW; END IF;
-  WITH RECURSIVE subtree AS (
-    SELECT id FROM public.tasks WHERE parent_task_id = NEW.id
-    UNION ALL
-    SELECT t.id FROM public.tasks t JOIN subtree s ON t.parent_task_id = s.id
-  )
-  UPDATE public.tasks SET root_id = NEW.root_id WHERE id IN (SELECT id FROM subtree);
-  RETURN NEW;
-END;
-$$;
-
--- 4.4 get_task_root_id
--- SECURITY DEFINER: Needed to look up root_id for RLS policy evaluation without recursion.
-CREATE OR REPLACE FUNCTION public.get_task_root_id(p_task_id uuid)
-RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
-DECLARE v_root_id uuid;
-BEGIN
-  SELECT t.root_id INTO v_root_id FROM public.tasks t WHERE t.id = p_task_id;
-  RETURN v_root_id;
-END;
-$function$;
-
--- 4.5 is_active_member
--- SECURITY DEFINER: Used by RLS policies to check membership without exposing project_members directly.
-CREATE OR REPLACE FUNCTION public.is_active_member(p_project_id uuid, p_user_id uuid)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
-BEGIN
-  RETURN EXISTS (SELECT 1 FROM public.project_members WHERE project_id = p_project_id AND user_id = p_user_id);
-END;
-$function$;
-
--- 4.6 is_admin
--- SECURITY DEFINER: Checks app_metadata for 'admin' role.
+-- RLS Helper: is_admin
+-- Note: Uses p_user_id to match existing DB signature
 CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
+RETURNS boolean AS $$
 BEGIN
-  -- Only validate if asking about the current user (safe default)
-  IF p_user_id = auth.uid() THEN
-     RETURN (
-        COALESCE(
-          current_setting('request.jwt.claims', true)::jsonb -> 'app_metadata' ->> 'role' = 'admin',
-          false
-        )
-     );
-  END IF;
-  -- If checking another user, default false since we don't have an admin dictionary table yet
-  RETURN false; 
+  RETURN false; -- Default to false for Alpha
 END;
-$function$;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 4.7 check_project_ownership
--- SECURITY DEFINER: Used by RLS to verify task ownership without exposing tasks table.
-CREATE OR REPLACE FUNCTION public.check_project_ownership(p_id uuid, u_id uuid)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  RETURN EXISTS (SELECT 1 FROM public.tasks WHERE id = p_id AND creator = u_id);
-END;
-$$;
-
--- 4.8 has_project_role
--- SECURITY DEFINER: Checks if user has specific role in project, used by RLS for role-based access.
+-- RLS Helper: has_project_role
+-- Note: Uses p_task_id to match existing DB signature
 CREATE OR REPLACE FUNCTION public.has_project_role(p_task_id uuid, p_user_id uuid, p_allowed_roles text[])
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
-DECLARE v_root_id uuid; v_user_role text;
+RETURNS boolean AS $$
+DECLARE
+    v_role text;
 BEGIN
-  IF p_user_id IS DISTINCT FROM auth.uid() THEN RETURN false; END IF;
-  v_root_id := public.get_task_root_id(p_task_id);
-  IF v_root_id IS NULL THEN RETURN false; END IF;
-  IF EXISTS (SELECT 1 FROM public.tasks t WHERE t.id = v_root_id AND t.creator = p_user_id) THEN RETURN true; END IF;
-  SELECT pm.role INTO v_user_role FROM public.project_members pm WHERE pm.project_id = v_root_id AND pm.user_id = p_user_id LIMIT 1;
-  RETURN (v_user_role IS NOT NULL AND v_user_role = ANY(p_allowed_roles));
-END;
-$function$;
+    SELECT role INTO v_role 
+    FROM public.project_members 
+    WHERE project_id = p_project_id 
+    AND user_id = p_user_id;
 
--- 4.9 clone_project_template
-CREATE OR REPLACE FUNCTION public.clone_project_template(
-    p_template_id uuid,
-    p_new_parent_id uuid,
-    p_new_origin text,
-    p_user_id uuid,
-    p_title text DEFAULT NULL,
-    p_description text DEFAULT NULL,
-    p_start_date timestamptz DEFAULT NULL,
-    p_due_date timestamptz DEFAULT NULL
+    IF v_role IS NOT NULL AND v_role = ANY(p_allowed_roles) THEN
+        RETURN true;
+    END IF;
+
+    RETURN false;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Invite User RPC
+CREATE OR REPLACE FUNCTION public.invite_user_to_project(
+  p_project_id uuid,
+  p_email text,
+  p_role text
 )
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-
 DECLARE
-    v_new_root_id uuid;
-    v_top_new_id uuid;
-    v_tasks_count int;
+  v_user_id uuid;
+  v_invite_id uuid;
+  v_token uuid;
 BEGIN
-    -- 1. Create Temp Table for ID Mapping (Task)
-    CREATE TEMP TABLE IF NOT EXISTS temp_task_map (
-        old_id uuid PRIMARY KEY,
-        new_id uuid
-    ) ON COMMIT DROP;
+  IF NOT public.has_project_role(p_project_id, auth.uid(), ARRAY['owner', 'editor']) AND NOT public.is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'Access denied: You must be an owner or editor to invite members.';
+  END IF;
 
-    -- 2. Create Temp Table for ID Mapping (Resource)
-    CREATE TEMP TABLE IF NOT EXISTS temp_res_map (
-        old_id uuid PRIMARY KEY,
-        new_id uuid
-    ) ON COMMIT DROP;
+  SELECT id INTO v_user_id FROM auth.users WHERE email = p_email;
 
-    -- 3. Identify all tasks in the subtree
-    WITH RECURSIVE subtree AS (
-        SELECT id FROM public.tasks WHERE id = p_template_id
-        UNION ALL
-        SELECT t.id FROM public.tasks t JOIN subtree s ON t.parent_task_id = s.id
-    )
-    INSERT INTO temp_task_map (old_id, new_id)
-    SELECT id, gen_random_uuid() FROM subtree;
-
-    -- Capture new ID of the top node
-    SELECT new_id INTO v_top_new_id FROM temp_task_map WHERE old_id = p_template_id;
-    
-    -- 4. Determine Root ID
-    -- If we have a parent, inherit its root. If not, the new top node is the root.
-    IF p_new_parent_id IS NULL THEN
-        v_new_root_id := v_top_new_id;
-    ELSE
-        SELECT root_id INTO v_new_root_id FROM public.tasks WHERE id = p_new_parent_id;
-        IF v_new_root_id IS NULL THEN
-             RAISE EXCEPTION 'Parent task % has no root_id', p_new_parent_id;
-        END IF;
-    END IF;
-
-    -- 5. Insert New Tasks
-    INSERT INTO public.tasks (
-        id, parent_task_id, root_id, creator, origin, 
-        title, description, status, position, 
-        notes, purpose, actions, is_complete, days_from_start, start_date, due_date
-    )
-    SELECT 
-        m.new_id, 
-        CASE 
-            WHEN t.id = p_template_id THEN p_new_parent_id -- Top node gets new parent
-            ELSE mp.new_id  -- Others get mapped parent
-        END,
-        v_new_root_id,
-        p_user_id,
-        p_new_origin,
-        -- Override Title/Desc for Root if provided
-        CASE WHEN t.id = p_template_id AND p_title IS NOT NULL THEN p_title ELSE t.title END,
-        CASE WHEN t.id = p_template_id AND p_description IS NOT NULL THEN p_description ELSE t.description END,
-        t.status, t.position,
-        t.notes, t.purpose, t.actions, false, t.days_from_start, 
-        -- Set Dates for Root if provided
-        CASE WHEN t.id = p_template_id THEN p_start_date ELSE null END,
-        CASE WHEN t.id = p_template_id THEN p_due_date ELSE null END
-    FROM public.tasks t
-    JOIN temp_task_map m ON t.id = m.old_id
-    LEFT JOIN temp_task_map mp ON t.parent_task_id = mp.old_id;
-
-    -- 6. Identify Resources to clone
-    INSERT INTO temp_res_map (old_id, new_id)
-    SELECT r.id, gen_random_uuid()
-    FROM public.task_resources r
-    JOIN temp_task_map tm ON r.task_id = tm.old_id;
-
-    -- 7. Insert New Resources
-    INSERT INTO public.task_resources (
-        id, task_id, resource_type, resource_url, resource_text, storage_path, storage_bucket
-    )
-    SELECT 
-        rm.new_id,
-        tm.new_id,
-        r.resource_type, r.resource_url, r.resource_text, r.storage_path, r.storage_bucket
-    FROM public.task_resources r
-    JOIN temp_res_map rm ON r.id = rm.old_id
-    JOIN temp_task_map tm ON r.task_id = tm.old_id;
-
-    -- 8. Update Primary Resource Pointers on New Tasks
-    UPDATE public.tasks t
-    SET primary_resource_id = rm.new_id
-    FROM public.tasks original
-    JOIN temp_task_map tm ON original.id = tm.old_id
-    JOIN temp_res_map rm ON original.primary_resource_id = rm.old_id
-    WHERE t.id = tm.new_id;
-
-    -- 9. Return result
-    SELECT COUNT(*) INTO v_tasks_count FROM temp_task_map;
+  IF v_user_id IS NOT NULL THEN
+    INSERT INTO public.project_members (project_id, user_id, role)
+    VALUES (p_project_id, v_user_id, p_role)
+    ON CONFLICT (project_id, user_id) DO UPDATE
+    SET role = EXCLUDED.role;
 
     RETURN jsonb_build_object(
-        'new_root_id', v_top_new_id,
-        'root_project_id', v_new_root_id,
-        'tasks_cloned', v_tasks_count
+      'status', 'added',
+      'user_id', v_user_id
     );
+  ELSE
+    INSERT INTO public.project_invites (project_id, email, role)
+    VALUES (p_project_id, p_email, p_role)
+    ON CONFLICT (project_id, email) DO UPDATE
+    SET role = EXCLUDED.role, expires_at = (now() + interval '7 days')
+    RETURNING id, token INTO v_invite_id, v_token;
+
+    RETURN jsonb_build_object(
+      'status', 'invited',
+      'invite_id', v_invite_id,
+      'token', v_token
+    );
+  END IF;
 END;
 $$;
 
--- 4.10 calc_task_date_rollup
-CREATE OR REPLACE FUNCTION public.calc_task_date_rollup()
-RETURNS trigger
+-- Phase Completion Trigger
+CREATE OR REPLACE FUNCTION public.handle_phase_completion()
+RETURNS TRIGGER 
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
 AS $$
 DECLARE
-    v_parent_id uuid;
-    v_min_start timestamptz;
-    v_max_due timestamptz;
+  v_next_task_id uuid;
 BEGIN
-    -- Recursion Guard to prevent stack overflow
-    IF pg_trigger_depth() > 10 THEN
-        RETURN NULL;
-    END IF;
-
-    -- Determine parent to update
-    IF TG_OP = 'DELETE' THEN
-        v_parent_id := OLD.parent_task_id;
-    ELSE
-        v_parent_id := NEW.parent_task_id;
-    END IF;
-
-    -- If no parent or parent is null, stop recursion
-    IF v_parent_id IS NULL THEN
-        RETURN NULL;
-    END IF;
-
-    -- Calculate Min Start and Max Due from siblings
-    SELECT MIN(start_date), MAX(due_date)
-    INTO v_min_start, v_max_due
+  IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
+    SELECT id INTO v_next_task_id
     FROM public.tasks
-    WHERE parent_task_id = v_parent_id;
+    WHERE parent_task_id = NEW.parent_task_id
+      AND position > NEW.position
+    ORDER BY position ASC
+    LIMIT 1;
 
-    -- Update Parent
-    UPDATE public.tasks
-    SET 
-        start_date = v_min_start,
-        due_date = v_max_due
-    WHERE id = v_parent_id
-      AND (start_date IS DISTINCT FROM v_min_start OR due_date IS DISTINCT FROM v_max_due);
+    IF v_next_task_id IS NOT NULL THEN
+      UPDATE public.tasks
+      SET is_locked = false
+      WHERE id = v_next_task_id;
+    END IF;
+  END IF;
 
-    RETURN NULL;
+  RETURN NEW;
 END;
 $$;
 
--- 4.11 get_user_id_by_email
-CREATE OR REPLACE FUNCTION public.get_user_id_by_email(email text)
-RETURNS uuid
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-STABLE
-AS $$
-  select id from auth.users where email = $1;
-$$;
-
--- Grant execution to service_role (Edge Functions use this)
-GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(text) TO service_role;
--- Revoke from anon/authenticated to prevent public enumeration
-REVOKE EXECUTE ON FUNCTION public.get_user_id_by_email(text) FROM anon, authenticated;
-
--- -------------------------------------------------------------------------
--- 5. TRIGGERS
--- -------------------------------------------------------------------------
-
-DROP TRIGGER IF EXISTS trigger_tasks_set_updated_at ON public.tasks;
-CREATE TRIGGER trigger_tasks_set_updated_at BEFORE UPDATE ON public.tasks
-FOR EACH ROW EXECUTE FUNCTION public.trigger_set_updated_at();
-
-DROP TRIGGER IF EXISTS trigger_maintain_task_root_id ON public.tasks;
-CREATE TRIGGER trigger_maintain_task_root_id BEFORE INSERT OR UPDATE OF parent_task_id ON public.tasks
-FOR EACH ROW EXECUTE FUNCTION public.maintain_task_root_id();
-
-DROP TRIGGER IF EXISTS trigger_propagate_task_root_id ON public.tasks;
-CREATE TRIGGER trigger_propagate_task_root_id AFTER UPDATE OF parent_task_id ON public.tasks
-FOR EACH ROW EXECUTE FUNCTION public.propagate_task_root_id();
-
-DROP TRIGGER IF EXISTS trigger_calc_task_dates ON public.tasks;
-CREATE TRIGGER trigger_calc_task_dates
-AFTER INSERT OR UPDATE OF start_date, due_date, parent_task_id OR DELETE ON public.tasks
+DROP TRIGGER IF EXISTS trg_unlock_next_phase ON public.tasks;
+CREATE TRIGGER trg_unlock_next_phase
+AFTER UPDATE OF status ON public.tasks
 FOR EACH ROW
-EXECUTE FUNCTION public.calc_task_date_rollup();
+EXECUTE FUNCTION public.handle_phase_completion();
 
--- -------------------------------------------------------------------------
--- 6. RLS + GRANTS
--- -------------------------------------------------------------------------
+-- ============================================================================
+-- 4. ROW LEVEL SECURITY (RLS)
+-- ============================================================================
 
+-- TASKS Policies
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.tasks;
+CREATE POLICY "Enable read access for all users" ON public.tasks 
+FOR SELECT USING (
+    creator = auth.uid()
+    OR 
+    public.has_project_role(COALESCE(root_id, id), auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited'])
+);
+
+DROP POLICY IF EXISTS "Enable insert for authenticated users within project" ON public.tasks;
+CREATE POLICY "Enable insert for authenticated users within project" ON public.tasks FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Enable update for users" ON public.tasks;
+CREATE POLICY "Enable update for users" ON public.tasks FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Enable delete for users" ON public.tasks;
+CREATE POLICY "Enable delete for users" ON public.tasks FOR DELETE USING (auth.role() = 'authenticated');
+
+-- PROJECT MEMBERS Policies
 ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.task_resources ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View project members" ON public.project_members;
+CREATE POLICY "View project members" ON public.project_members
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin(auth.uid())
+  );
+  
+DROP POLICY IF EXISTS "Enable all for authenticated users" ON public.project_members;
+CREATE POLICY "Enable all for authenticated users" ON public.project_members FOR ALL USING (auth.role() = 'authenticated');
 
--- Grants
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.tasks TO authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.project_members TO authenticated, service_role;
-GRANT ALL ON public.task_resources TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.task_resources TO authenticated;
+-- PROJECT INVITES Policies
+ALTER TABLE public.project_invites ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View invites for project members" ON public.project_invites;
+CREATE POLICY "View invites for project members" ON public.project_invites
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
 
-GRANT SELECT ON public.tasks_with_primary_resource TO authenticated, service_role;
-GRANT SELECT ON public.view_master_library TO authenticated, service_role;
+DROP POLICY IF EXISTS "Create invites for project members" ON public.project_invites;
+CREATE POLICY "Create invites for project members" ON public.project_invites
+  FOR INSERT WITH CHECK (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
 
--- Revoke Public
-REVOKE EXECUTE ON FUNCTION public.get_task_root_id(uuid) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.is_active_member(uuid, uuid) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.has_project_role(uuid, uuid, text[]) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.check_project_ownership(uuid, uuid) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.is_admin(uuid) FROM PUBLIC;
+DROP POLICY IF EXISTS "Delete invites for project members" ON public.project_invites;
+CREATE POLICY "Delete invites for project members" ON public.project_invites
+  FOR DELETE USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
 
--- Grant Exec
-GRANT EXECUTE ON FUNCTION public.get_task_root_id(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.is_active_member(uuid, uuid) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.has_project_role(uuid, uuid, text[]) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.check_project_ownership(uuid, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.clone_project_template(uuid, uuid, text, uuid, text, text, timestamptz, timestamptz) TO authenticated;
+-- BUDGET ITEMS Policies
+ALTER TABLE public.budget_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View budget items for project members" ON public.budget_items;
+CREATE POLICY "View budget items for project members" ON public.budget_items
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin(auth.uid())
+  );
 
--- Policies: Tasks
-DROP POLICY IF EXISTS tasks_select_policy ON public.tasks;
-CREATE POLICY tasks_select_policy ON public.tasks FOR SELECT USING (
-  creator = auth.uid() OR public.has_project_role(id, auth.uid(), ARRAY['owner','editor','viewer']) OR origin = 'template' OR public.is_admin(auth.uid())
-);
+DROP POLICY IF EXISTS "Manage budget items for owners and editors" ON public.budget_items;
+CREATE POLICY "Manage budget items for owners and editors" ON public.budget_items
+  FOR ALL USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
 
-DROP POLICY IF EXISTS tasks_insert_policy ON public.tasks;
-CREATE POLICY tasks_insert_policy ON public.tasks FOR INSERT WITH CHECK (
-  (parent_task_id IS NULL AND creator = auth.uid()) OR (parent_task_id IS NOT NULL AND public.has_project_role(parent_task_id, auth.uid(), ARRAY['owner','editor'])) OR public.is_admin(auth.uid())
-);
+-- PEOPLE Policies
+ALTER TABLE public.people ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View people for project members" ON public.people;
+CREATE POLICY "View people for project members" ON public.people
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin(auth.uid())
+  );
 
-DROP POLICY IF EXISTS tasks_update_policy ON public.tasks;
-CREATE POLICY tasks_update_policy ON public.tasks FOR UPDATE USING (
-  creator = auth.uid() OR public.has_project_role(id, auth.uid(), ARRAY['owner','editor']) OR public.is_admin(auth.uid())
-) WITH CHECK (
-  creator = auth.uid() OR public.has_project_role(id, auth.uid(), ARRAY['owner','editor']) OR public.is_admin(auth.uid())
-);
+DROP POLICY IF EXISTS "Manage people for owners and editors" ON public.people;
+CREATE POLICY "Manage people for owners and editors" ON public.people
+  FOR ALL USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
 
-DROP POLICY IF EXISTS tasks_delete_policy ON public.tasks;
-CREATE POLICY tasks_delete_policy ON public.tasks FOR DELETE USING (
-  creator = auth.uid() OR public.has_project_role(id, auth.uid(), ARRAY['owner']) OR public.is_admin(auth.uid())
-);
+-- ASSETS Policies
+ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View assets" ON public.assets;
+CREATE POLICY "View assets" ON public.assets
+  FOR SELECT USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin(auth.uid())
+  );
 
--- Policies: task_resources
-DROP POLICY IF EXISTS task_resources_select_policy ON public.task_resources;
-CREATE POLICY task_resources_select_policy ON public.task_resources FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.tasks t WHERE t.id = task_resources.task_id AND (
-    t.creator = auth.uid() OR public.has_project_role(t.id, auth.uid(), ARRAY['owner','editor','viewer']) OR t.origin = 'template' OR public.is_admin(auth.uid())
-  ))
-);
+DROP POLICY IF EXISTS "Manage assets" ON public.assets;
+CREATE POLICY "Manage assets" ON public.assets
+  FOR ALL USING (
+    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
+    public.is_admin(auth.uid())
+  );
 
-DROP POLICY IF EXISTS task_resources_modify_policy ON public.task_resources;
-CREATE POLICY task_resources_modify_policy ON public.task_resources FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.tasks t WHERE t.id = task_resources.task_id AND (
-    t.creator = auth.uid() OR public.has_project_role(t.id, auth.uid(), ARRAY['owner','editor']) OR public.is_admin(auth.uid())
-  ))
-) WITH CHECK (
-  EXISTS (SELECT 1 FROM public.tasks t WHERE t.id = task_resources.task_id AND (
-    t.creator = auth.uid() OR public.has_project_role(t.id, auth.uid(), ARRAY['owner','editor']) OR public.is_admin(auth.uid())
-  ))
-);
+-- TASK RELATIONSHIPS Policies
+ALTER TABLE public.task_relationships ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "View relationships" ON public.task_relationships;
+CREATE POLICY "View relationships" ON public.task_relationships
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.project_members
+            WHERE project_members.project_id = task_relationships.project_id
+            AND project_members.user_id = auth.uid()
+        )
+    );
 
--- Policies: Project Members
-DROP POLICY IF EXISTS members_select_policy ON public.project_members;
-CREATE POLICY members_select_policy ON public.project_members FOR SELECT USING (
-  user_id = auth.uid() OR public.is_active_member(project_id, auth.uid()) OR public.check_project_ownership(project_id, auth.uid())
-);
-
-DROP POLICY IF EXISTS members_insert_policy ON public.project_members;
-CREATE POLICY members_insert_policy ON public.project_members FOR INSERT WITH CHECK (
-  public.check_project_ownership(project_id, auth.uid()) OR project_id IN (SELECT project_id FROM public.project_members WHERE user_id = auth.uid() AND role = 'owner')
-);
-
-DROP POLICY IF EXISTS members_update_policy ON public.project_members;
-CREATE POLICY members_update_policy ON public.project_members FOR UPDATE USING (
-  public.check_project_ownership(project_id, auth.uid()) 
-  OR project_id IN (SELECT project_id FROM public.project_members WHERE user_id = auth.uid() AND role = 'owner')
-) WITH CHECK (
-  -- Prevent self-demotion to viewer
-  -- If updating self, new role must NOT be 'viewer'
-  (user_id != auth.uid() OR role != 'viewer')
-);
-
-DROP POLICY IF EXISTS members_delete_policy ON public.project_members;
-CREATE POLICY members_delete_policy ON public.project_members FOR DELETE USING (
-  user_id = auth.uid() OR public.check_project_ownership(project_id, auth.uid()) OR project_id IN (SELECT project_id FROM public.project_members WHERE user_id = auth.uid() AND role = 'owner')
-);
-
--- Policies: Storage
--- Policy: Allow access to project members only.
--- File path structure: {task_id}/{filename}
-DROP POLICY IF EXISTS "Give access to authenticated users" ON storage.objects;
-CREATE POLICY "Give access to project members" ON storage.objects
-FOR ALL USING (
-    bucket_id = 'resources' AND
-    public.has_project_role(
-        (storage.foldername(name))[1]::uuid,
-        auth.uid(),
-        ARRAY['owner', 'editor', 'viewer']
-    )
-) WITH CHECK (
-    bucket_id = 'resources' AND
-    public.has_project_role(
-        (storage.foldername(name))[1]::uuid,
-        auth.uid(),
-        ARRAY['owner', 'editor']
-    )
-);
-
--- 7. Comments
-COMMENT ON TABLE public.tasks IS 'Tasks table. Resources are now in task_resources table.';
-
-COMMIT;
+DROP POLICY IF EXISTS "Manage relationships" ON public.task_relationships;
+CREATE POLICY "Manage relationships" ON public.task_relationships
+    FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.project_members
+            WHERE project_members.project_id = task_relationships.project_id
+            AND project_members.user_id = auth.uid()
+            AND project_members.role IN ('owner', 'editor')
+        )
+    );

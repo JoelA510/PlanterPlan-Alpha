@@ -35,4 +35,25 @@ const TabsContent = React.forwardRef(({ className, ...props }, ref) => (
   />
 ));
 TabsContent.displayName = TabsPrimitive.Content.displayName;
+TabsContent.displayName = TabsPrimitive.Content.displayName;
+
+import PropTypes from 'prop-types';
+
+const commonPropTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node
+};
+
+TabsList.propTypes = commonPropTypes;
+
+TabsTrigger.propTypes = {
+  ...commonPropTypes,
+  value: PropTypes.string.isRequired
+};
+
+TabsContent.propTypes = {
+  ...commonPropTypes,
+  value: PropTypes.string.isRequired
+};
+
 export { Tabs, TabsList, TabsTrigger, TabsContent };

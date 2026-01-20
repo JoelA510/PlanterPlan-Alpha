@@ -33,4 +33,14 @@ const Button = React.forwardRef(({ className, variant, size, asChild = false, ..
   return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
 });
 Button.displayName = 'Button';
+
+import PropTypes from 'prop-types';
+
+Button.propTypes = {
+  className: PropTypes.string,
+  variant: PropTypes.oneOf(['default', 'destructive', 'outline', 'secondary', 'ghost', 'link']),
+  size: PropTypes.oneOf(['default', 'sm', 'lg', 'icon']),
+  asChild: PropTypes.bool,
+};
+
 export { Button, buttonVariants };

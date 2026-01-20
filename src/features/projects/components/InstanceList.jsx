@@ -25,6 +25,7 @@ const InstanceList = ({
               task={task}
               isSelected={selectedTaskId === task.id}
               onClick={handleTaskClick}
+              to={`/project/${task.id}`}
             />
           ))}
           {hasMore && (

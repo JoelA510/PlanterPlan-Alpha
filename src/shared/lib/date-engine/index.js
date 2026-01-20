@@ -17,10 +17,10 @@ const findTaskById = (tasks, id) => {
  * Calculates start/due dates based on a parent's date and an offset.
  * Handles extensive ancestor traversal to find the root project start date.
  *
- * @param {Array} tasks - List of all tasks (context)
+ * @param {Array<Object>} tasks - List of all tasks (context)
  * @param {string} parentId - Direct parent ID
  * @param {number} daysOffset - Days to add/subtract from base date
- * @returns {Object} { start_date: ISOString, due_date: ISOString } or {}
+ * @returns {{start_date?: string, due_date?: string}} Object with ISOString dates or empty
  */
 export const calculateScheduleFromOffset = (tasks, parentId, daysOffset) => {
   if (parentId === null || parentId === undefined) return {};
@@ -59,8 +59,8 @@ export const calculateScheduleFromOffset = (tasks, parentId, daysOffset) => {
   const iso = start.toISOString();
 
   return {
-    start_date: iso,
-    due_date: iso,
+    start_date: iso.split('T')[0],
+    due_date: iso.split('T')[0],
   };
 };
 
@@ -72,14 +72,25 @@ export const calculateScheduleFromOffset = (tasks, parentId, daysOffset) => {
 export const toIsoDate = (value) => {
   if (!value) return null;
 
-  const base = value.includes('T') ? value : `${value}T00:00:00.000Z`;
-  const parsed = new Date(base);
+  // Handle Date objects directly
+  if (value instanceof Date) {
+    return value.toISOString().split('T')[0];
+  }
 
-  if (Number.isNaN(parsed.getTime())) return null;
+  // Handle strings
+  if (typeof value === 'string') {
+    // If it's already YYYY-MM-DD, return it
+    if (value.match(/^\d{4}-\d{2}-\d{2}$/)) return value;
 
-  // Use UTC Midnight effectively
-  parsed.setUTCHours(0, 0, 0, 0);
-  return parsed.toISOString().split('T')[0];
+    const base = value.includes('T') ? value : `${value}T00:00:00.000Z`;
+    const parsed = new Date(base);
+    if (Number.isNaN(parsed.getTime())) return null;
+
+    parsed.setUTCHours(0, 0, 0, 0);
+    return parsed.toISOString().split('T')[0];
+  }
+
+  return null;
 };
 
 /**
@@ -153,4 +164,63 @@ export const calculateMinMaxDates = (children) => {
     start_date: minStart,
     due_date: maxDue,
   };
+};
+
+/**
+ * Recalculates start/due dates for a project's tasks when the project start date changes.
+ * Only affects incomplete tasks.
+ *
+ * @param {Array} projectTasks - Listing of all tasks in the project
+ * @param {string} newStartDateStr - New Project Start Date (YYYY-MM-DD or ISO)
+ * @param {string} oldStartDateStr - Old Project Start Date (YYYY-MM-DD or ISO)
+ * @returns {Array} List of update objects { id, start_date, due_date }
+ */
+export const recalculateProjectDates = (projectTasks, newStartDateStr, oldStartDateStr) => {
+  if (!projectTasks || !newStartDateStr || !oldStartDateStr) return [];
+
+  const oldStart = new Date(toIsoDate(oldStartDateStr));
+  const newStart = new Date(toIsoDate(newStartDateStr));
+
+  if (isNaN(oldStart.getTime()) || isNaN(newStart.getTime())) return [];
+
+  // Calculate delta in milliseconds
+  const diffTime = newStart.getTime() - oldStart.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return [];
+
+  const updates = [];
+
+  projectTasks.forEach((task) => {
+    // Skip if task is completed (preserve history)
+    if (task.is_complete) return;
+
+    // Skip if task has no dates
+    if (!task.start_date) return;
+
+    const taskStart = new Date(toIsoDate(task.start_date));
+    let taskDue = task.due_date ? new Date(toIsoDate(task.due_date)) : null;
+
+    if (isNaN(taskStart.getTime())) return;
+
+    // Shift Start Date
+    taskStart.setUTCDate(taskStart.getUTCDate() + diffDays);
+    const newStartISO = taskStart.toISOString();
+
+    // Shift Due Date (if exists)
+    let newDueISO = null;
+    if (taskDue && !isNaN(taskDue.getTime())) {
+      taskDue.setUTCDate(taskDue.getUTCDate() + diffDays);
+      newDueISO = taskDue.toISOString();
+    }
+
+    updates.push({
+      id: task.id,
+      start_date: newStartISO,
+      due_date: newDueISO || newStartISO, // Fallback to start if due matches/missing logic
+      updated_at: new Date().toISOString(),
+    });
+  });
+
+  return updates;
 };

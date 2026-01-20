@@ -37,7 +37,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
             {showMenuButton && (
-              <Button variant="ghost" size="icon" onClick={onMenuToggle} className="lg:hidden">
+              <Button variant="ghost" size="icon" onClick={onMenuToggle} className="lg:hidden" aria-label="Menu">
                 <Menu className="w-5 h-5" />
               </Button>
             )}

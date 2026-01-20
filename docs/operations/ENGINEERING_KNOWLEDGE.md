@@ -17,6 +17,12 @@
 We initially defined a Row Level Security (RLS) policy that allowed users to view tasks if they were a member of the project (root task).
 The policy looked up the task's `parent_task_id` recursively to find the root.
 **Result**: Postgres infinite recursion error (`infinite recursion detected in policy for relation "tasks"`). Database crashed on simple SELECTs.
+## [DB-004] Migration Consolidation
+- **Tags**: #database #supabase #migrations
+- **Date**: 2026-01-18
+- **Context & Problem**: Migration files were becoming fragmented and hard to manage (redundant policies, partial rollbacks).
+- **Solution & Pattern**: Consolidated all schema checks, RLS policies, and triggers into a single idempotent `20260118_consolidated_schema.sql`.
+- **Critical Rule**: Always use `IF EXISTS` checks and consolidate migrations periodically to keep the schema source of truth clean.
 
 ### Solution & Pattern
 
@@ -783,6 +789,15 @@ This allows legitimate cascading (Level 1 -> Level 2) but stops infinite cycles.
 
 - **Critical Rule**: Do not try to shim **jest** for mocking. Replace **jest.mock** with **vi.mock** directly to ensure correct hoisting behavior.
 
+## [SEC-043] RLS Recursion and Creator Check
+- **Tags**: #security, #rls, #postgres, #recursion
+- **Date**: 2026-01-19
+- **Context & Problem**: Implementing RLS for `tasks` led to recursion errors when checking `project_members`, or accidental public access when `USING (true)` was left.
+- **Solution & Pattern**:
+  1. **Strict separation**: `has_project_role` checks ONLY `project_members`.
+  2. **Policy Logic**: Tasks policy checks `creator = auth.uid()` inline first (fast path), OR calls the function.
+- **Critical Rule**: Never make an RLS function query the table it protects. Always denormalize checks or use strict directed queries to distinct tables.
+
 ## [TEST-041] ESM Mocking Factories (Default Exports)
 
 - **Tags**: #testing, #vitest, #esm, #mocking
@@ -1101,3 +1116,54 @@ Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due t
   1. **Identify Dependencies**: If a migration modifies a table, wrap the modification in a `DO $$ ... IF EXISTS ... END $$` block unless you are 100% certain of the schema state.
   2. **Idempotency**: Ensure the script can be run multiple times without failure (e.g., using IF NOT EXISTS for creation, or explicit checks for alteration).
 - **Critical Rule**: Migrations should be robust against partial schema states. Use DO blocks to conditionally check for object existence before altering them.
+
+## [DS-046] Design System Color Centralization (SSOT)
+
+- **Tags**: #design-system, #refactor, #constants
+- **Date**: 2026-01-16
+- **Context & Problem**: The `ProjectPipelineBoard` contained hardcoded Tailwind color strings (e.g., `'bg-blue-50 text-blue-700'`) for project statuses. This violated **Rule 30** (No arbitrary colors) and created a maintenance risk where changing the "Planning" color required edits across multiple files.
+- **Solution & Pattern**:
+  1. **Centralize**: Defined `PROJECT_STATUS_COLORS` in `src/app/constants/colors.js`.
+  2. **Consume**: Refactored components to look up styles by status key (`PROJECT_STATUS_COLORS[status]`).
+- **Critical Rule**: Never hardcode status colors in components. Always use the centralized `colors.js` registry to ensure theming consistency across the app.
+
+## [REACT-043] Component Refactoring Hazards (Missing Imports)
+
+- **Tags**: #react, #refactoring, #build-error
+- **Date**: 2026-01-18
+- **Context & Problem**: When moving `BudgetWidget` and `PeopleList` into a tabbed `Project.jsx`, the build failed multiple times because imports (`MilestoneSection`, `AuthContext`) were either missing or pointing to invalid relative paths (`../../` vs absolute aliases).
+- **Solution & Pattern**:
+  - **Absolute Imports**: Always use absolute aliases (`@features/...`, `@app/...`) instead of relative paths to make code portable.
+  - **Verification**: Run `npm run build` immediately after moving any component, even if local dev server seems fine (HMR can be forgiving).
+- **Critical Rule**: precise dependency verification is required when refactoring. Assume all relative paths will break.
+
+## [TEST-044] Ambiguous Text Matchers in Testing Library
+
+- **Tags**: #testing, #react-testing-library, #a11y
+- **Date**: 2026-01-18
+- **Context & Problem**: `PeopleList.test.jsx` failed because `screen.getByText('Add Person')` found multiple elements (The Button, the Modal Title, and the Submit Button).
+- **Solution & Pattern**:
+  - **Role-Based Queries**: Use `getByRole('button', { name: /add person/i })` and `getByRole('heading', { name: /add person/i })` to disambiguate.
+  - **Scope**: Narrow the scope if necessary, but semantic roles are preferred.
+- **Critical Rule**: Avoid `getByText` for common labels. Use `getByRole` to target specific interactive elements or headings.
+
+## [TEST-045] Handling Multiple Matches in RTL
+
+- **Tags**: #testing, #react-testing-library
+- **Date**: 2026-01-18
+- **Context & Problem**: `PhaseCard` test failed because `getByTestId` found two lock icons (one in the header, one in the body).
+- **Solution & Pattern**:
+  - Use `getAllByTestId` when multiple elements are expected.
+  - Assert on `toHaveLength(n)` to ensure exact count.
+  - Alternatively, use `within(container)` to narrow scope if specific lock is needed.
+- **Critical Rule**: Always verify how many times a component renders an element before asserting.
+
+## [TEST-046] Vitest Mocking with ImportActual
+
+- **Tags**: #testing, #vitest, #mocking
+- **Date**: 2026-01-18
+- **Context & Problem**: `AssetList` tests failed with `useQuery.mockReturnValue is not a function` because the mock wasn't set up to expose the mock instance.
+- **Solution & Pattern**:
+  - **Pattern**: `const actual = await vi.importActual('module');` inside `vi.mock`.
+  - **Usage**: Import the mocked function in the test file (`import { useQuery } ...`) to access `.mockReturnValue()`.
+- **Critical Rule**: When partial mocking modules, ensure you export `vi.fn()` instances that you can import and control in your tests.
