@@ -35,6 +35,7 @@ graph TD
 | **Invite Hardening** | ✅ Done | Secure "Authorize-Then-Escalate" RPC pattern. |
 | **Orchestrator** | ✅ Optimized | `10-master-review` now has loop guards and strict tool mandates. |
 | **Browser Agent** | ✅ Upgraded | `09-browser-verification` now produces machine-readable audit logs (`audit.json`). |
+| **Build Ops** | ✅ Optimized | Configured `manualChunks` to split vendor bundles, reducing main bundle size by ~50%. |
 
 ## 🔍 Review Guide
 
@@ -71,6 +72,7 @@ npm test golden-paths
 - `supabase/functions/invite-by-email/index.ts`: Hardened invite logic.
 - `src/features/projects/components/PhaseCard.jsx`: Fixed uneven card heights (UI Polish).
 - `.agent/workflows/*`: Optimized agentic workflows for hallucination prevention.
+- `vite.config.js`: Implemented code splitting (manualChunks) to fix large bundle warnings.
 - `docs/git_documentation/PR_DESCRIPTION_DRAFT.md`: Deleted (Consolidated).
 
 </details>
