@@ -73,7 +73,7 @@ npm test golden-paths
 - `src/features/projects/components/PhaseCard.jsx`: Fixed uneven card heights (UI Polish).
 - `.agent/workflows/*`: Optimized agentic workflows for hallucination prevention.
 - `vite.config.js`: Implemented code splitting (manualChunks) to fix large bundle warnings.
-- `.github/workflows/release-drafter.yml`: Temporarily disabled PR trigger to allow initial merge (bootstrapping fix).
+- `.github/workflows/release-drafter.yml`: Added `continue-on-error: true` to handle bootstrapping (auto-resolves on merge).
 - `docs/git_documentation/PR_DESCRIPTION_DRAFT.md`: Deleted (Consolidated).
 
 </details>
