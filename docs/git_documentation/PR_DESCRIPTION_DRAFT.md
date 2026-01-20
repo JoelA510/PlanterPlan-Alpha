@@ -80,9 +80,11 @@ graph TD
 
 ### 🧠 Medium Complexity
 
+- `src/features/reports/components/StatusPieChart.jsx` - New component. Verify it handles empty states and theme colors correctly.
+- `src/features/tasks/components/TaskDetailsView.jsx` - Validated the removal of the hardcoded `hasLicense` check.
+- `src/features/navigation/components/SidebarNavItem.jsx` - Switched to `Link` for client-side routing.
 - `src/features/people/*` - New CRM logic and UI.
 - `src/features/mobile/*` - New Mobile UI components.
-- `src/features/reports/components/StatusPieChart.jsx` - Extracted component.
 
 ### 🟢 Low Risk / Boilerplate
 
@@ -104,9 +106,14 @@ graph TD
   3. Login as User B (who is NOT a member).
   4. Attempt to fetch User A's project by ID.
   5. **Expected**: Returns `null` or empty array (Access Denied).
+- **Reporting:**
+  1. Navigate to "Reports".
+  2. Verify the Pie Chart renders with correct colors (Brand colors).
 - **Mobile Field Mode:**
   1. Resize browser to mobile width (<640px).
   2. Verify "Agenda" widget and "Quick Add" FAB appear.
+  3. Open Sidebar and click a Project.
+  4. **Expected**: URL changes, drawer closes, and content updates.
 
 ### 3. Automated Tests
 
@@ -124,9 +131,15 @@ npm test
 - `src/features/inventory/*`: Added Asset Tracking.
 - `src/features/mobile/*`: Added Mobile UI.
 - `src/features/reports/components/StatusPieChart.jsx`: Extracted pie chart logic.
+- `src/features/reports/components/ProjectReport.jsx`: Refactored to use new Chart component.
 - `supabase/migrations/20260119_fix_rls.sql`: Added RLS security migration.
 - `docs/db/schema.sql`: Updated schema docs.
-- `src/styles/components/*.css`: Deleted Legacy CSS.
+- `src/features/tasks/components/TaskDetailsView.jsx`: Fixed license gating.
+- `src/features/navigation/components/SidebarNavItem.jsx`: Implemented `Link` component.
+- `src/styles/components/buttons.css`: Deleted (Dead code).
+- `src/styles/components/forms.css`: Deleted (Dead code).
+- `src/styles/components/panels.css`: Deleted (Dead code).
+- `src/styles/components/task-details.css`: Deleted (Dead code).
 - `src/tests/integration/golden-paths-mobile.test.jsx`: Added mobile integration tests.
 
 </details>

@@ -1167,3 +1167,14 @@ Refactoring `Settings.jsx` and `Team.jsx` caused repetitive build failures due t
   - **Pattern**: `const actual = await vi.importActual('module');` inside `vi.mock`.
   - **Usage**: Import the mocked function in the test file (`import { useQuery } ...`) to access `.mockReturnValue()`.
 - **Critical Rule**: When partial mocking modules, ensure you export `vi.fn()` instances that you can import and control in your tests.
+
+## [OPS-045] PostgREST Schema Cache Drift
+
+- **Tags**: #supabase, #postgrest, #schema, #cache, #bugs
+- **Date**: 2026-01-20
+- **Context & Problem**: After creating a new function (`has_project_role`) and using it in an RLS policy in the same SQL batch, API requests failed with "function does not exist" or permission errors.
+- **Root Cause**: PostgREST caches the database schema boundaries. It does not automatically detect new functions created via SQL unless a `NOTIFY pgrst, 'reload'` is issued or the service is restarted.
+- **Solution & Pattern**:
+  1. **Automated**: Include `NOTIFY pgrst, 'reload';` at the end of migration scripts.
+  2. **Manual**: If testing fails immediately after migration, restart the PostgREST API service via Dashboard.
+- **Critical Rule**: When adding RLS dependencies (functions) that the API must "see" to evaluate permissions, you MUST force a schema cache reload.
