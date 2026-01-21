@@ -1,21 +1,22 @@
 # Debt Report
-**Date**: 2026-01-18
+Date: 2026-01-20
 
-## 1. Critical Issues (0)
-*None identified*
+## 1. Critical
+*(None identified)*
 
-## 2. Correctness & Hygiene Risks
-### Active Console Logs
-- [x] `src/features/tasks/hooks/useTaskSubscription.js`: Removed active `console.log` statements.
+## 2. Correctness
+*(None identified - Source code is free of `any`, `console.log`)*
 
-## 3. Maintainability Issues
-### Large Components (>300 lines)
-High priority for splitting to improve readability and testability.
+## 3. Maintainability
+- **File**: `docs/specs/`
+  - **Evidence**: Empty directory.
+  - **Violation**: Zombie directory cluttering structure.
+  - **Fix**: Delete directory.
 
-- [x] `src/features/tasks/components/TaskItem.jsx`: Decomposed into `TaskStatusSelect` and `TaskControlButtons`, reducing main file size by ~40%.
+- **File**: `docs/db/drafts/future_checkpoint_feature.sql`
+  - **Evidence**: file exists.
+  - **Violation**: Stale feature branch artifact in main documentation.
+  - **Fix**: Delete.
 
-- [x] `src/pages/Reports.jsx`: Extracted `StatusPieChart` and `PhaseBarChart`, significantly simplifying the main view.
-
-- [x] `src/pages/Project.jsx`: Logic extracted to `useProjectData.js` and `ProjectTabs.jsx`, fixing "God Component" status.
-
-- [x] `src/features/tasks/components/TaskList.jsx`: Decomposed logic into `TaskDetailsPanel` and `NoProjectSelected`, cleaning up the container.
+## 4. Documentation Debt
+*(None critical)*

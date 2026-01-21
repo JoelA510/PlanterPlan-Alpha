@@ -56,11 +56,11 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
   const isComplete = progress === 100 && totalTasks > 0;
 
   return (
-    <motion.div whileHover={{ scale: isLocked ? 1 : 1.02 }} whileTap={{ scale: isLocked ? 1 : 0.98 }}>
+    <motion.div whileHover={{ scale: isLocked ? 1 : 1.02 }} whileTap={{ scale: isLocked ? 1 : 0.98 }} className="h-full">
       <Card
         onClick={isLocked ? undefined : onClick}
         className={cn(
-          'p-5 transition-all duration-300 border-2 bg-white',
+          'p-5 transition-all duration-300 border-2 bg-white h-full flex flex-col',
           isLocked
             ? 'opacity-75 cursor-not-allowed border-slate-200 bg-slate-50'
             : cn(
@@ -103,7 +103,7 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
         </div>
 
         {phase.description && (
-          <p className="text-sm text-slate-600 mb-4 line-clamp-2">{phase.description}</p>
+          <p className="text-sm text-slate-600 mb-4 line-clamp-2 flex-grow">{phase.description}</p>
         )}
 
         <div className="space-y-2">

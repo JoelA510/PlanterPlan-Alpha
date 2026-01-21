@@ -68,11 +68,12 @@ The agent must verify these paths exists in `src/tests/integration/golden-paths.
 **Goal**: Use the `browser_subagent` to physically interact with the running application, detecting visual bugs, layout shifts, or broken interactions that headless tests miss.
 
 1. **Start Server**: Ensure app is running (`npm run dev`).
-2. **Launch Agent**:
-   - **Task**: "Execute the test cases defined in `<appDataDir>/brain/<conversation-id>/TEST_SCRIPT.md`. If that file does not exist, fall back to: Act as a new user, navigate to Dashboard, create a project, and move a task."
-   - **Focus**: Look for overlapping text, broken z-indices, unclickable buttons, or "jank".
-   - **Script Execution**: The agent should methodically go through the high-priority flows in the script (Auth, Feature, RBAC) as requested by the user.
-3. **Record**: Capture the session and note any "Human Experience" failures.
+71. 2. **Launch Agent**:
+72.    - **Task**: "Execute the test cases defined in `<appDataDir>/brain/<conversation-id>/TEST_SCRIPT.md`. If that file does not exist, analyze the `golden-paths.test.jsx` file and replicate those steps interactively."
+73.    - **Focus**: Look for overlapping text, broken z-indices, unclickable buttons, or "jank".
+74.    - **Output Contract**: The agent **MUST** write a JSON artifact to `<appDataDir>/brain/<conversation-id>/browser_audit.json`.
+75.      - Schema: `[{ "status": "fail|pass", "step": "string", "error": "string", "screenshot_path": "string" }]`
+76. 3. **Record**: Capture the session and note any "Human Experience" failures in the JSON.
 
 ## Phase 5: Design Regression Check (Static Analysis)
 

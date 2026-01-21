@@ -3,15 +3,17 @@
 
 -- 1. Implement has_project_role (Strict member check)
 -- Removes hardcoded "RETURN true"
-CREATE OR REPLACE FUNCTION public.has_project_role(p_project_id uuid, p_user_id uuid, p_allowed_roles text[])
+-- Note: Keeping parameter name as 'p_task_id' to match existing DB signature and avoid DROP CASCADE issues.
+CREATE OR REPLACE FUNCTION public.has_project_role(p_task_id uuid, p_user_id uuid, p_allowed_roles text[])
 RETURNS boolean AS $$
 DECLARE
     v_role text;
 BEGIN
     -- Check Project Members table directly
+    -- We treat p_task_id as the project_id (root_task) for this lookup
     SELECT role INTO v_role 
     FROM public.project_members 
-    WHERE project_id = p_project_id 
+    WHERE project_id = p_task_id 
     AND user_id = p_user_id;
 
     -- If role exists and is in allowed list, return true

@@ -35,16 +35,38 @@ serve(async (req) => {
       throw new Error('Server configuration error: Missing Environment Variables');
     }
 
+    // 3. Authenticate User (Authorize-Then-Escalate)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing Authorization header');
+    }
+
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: req.headers.get('Authorization')! } },
+      global: { headers: { Authorization: authHeader } },
     });
 
+    // 4. Verify Project Permissions
+    // Must be Owner or Editor to invite
+    const { data: memberData, error: memberError } = await supabaseClient
+      .from('project_members')
+      .select('role')
+      .eq('project_id', projectId)
+      .eq('user_id', (await supabaseClient.auth.getUser()).data.user?.id) // Safe check against auth user
+      .single();
+
+    if (memberError || !memberData) {
+      throw new Error('Access Denied: You are not a member of this project.');
+    }
+
+    const allowedRoles = ['owner', 'editor'];
+    if (!allowedRoles.includes(memberData.role)) {
+      throw new Error('Forbidden: Insufficient permissions to invite users.');
+    }
+
+    // 5. Initialize Admin Client (Only after auth check passes)
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // ... (Permission Checks) ...
-    // Note: I will just replace the whole body from "const corsHeaders" to the end to be safe.
-
-    // 5. Lookup User by Email and Insert (Admin Only)
+    // 6. Lookup User by Email and Insert (Admin Only)
     let targetUserId;
 
     const { data: inviteData, error: inviteError } =
@@ -81,7 +103,7 @@ serve(async (req) => {
       throw new Error('Failed to resolve user from invite.');
     }
 
-    // 6. Insert into Project Members
+    // 7. Insert into Project Members
     const { error: insertError } = await supabaseAdmin.from('project_members').upsert({
       project_id: projectId,
       user_id: targetUserId,

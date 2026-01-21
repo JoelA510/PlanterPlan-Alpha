@@ -37,15 +37,19 @@ This workflow acts as the "Manager," orchestrating the execution of specialized 
    - Execute **Workflow 08** (`.agent/workflows/08-design-system-migration.md`) to align UI with Rule 30.
    - Auto-correct any detected "drift" (e.g., hardcoded hex values, wrong shadows).
 
-2. **Browser Verification (Workflow 09):**
-   - Execute **Workflow 09** (`.agent/workflows/09-browser-verification.md`).
-   - **Check**: Did "Golden Paths" pass? Did "Design Regression Check" pass?
-   - _If Fail:_ Fix the immediate issue and **restart Phase 2**.
-
-3. **Code Review & Security Scan (Workflow 07):**
-   - Execute **Workflow 07** (`.agent/workflows/07-pre-pr-review.md`).
-   - **Check**: Are there any blocking findings in `code_review_draft.md`?
-   - _If Fail:_ Fix the violations and **restart Phase 2**.
+40. **Comprehensive Browser & Code Verification (Workflow 09 + Audit):**
+41.    - **Execute** **Workflow 09** (`.agent/workflows/09-browser-verification.md`) **EVERY TIME**.
+42.    - **Scope:** Verify Security, Visual Quality, Performance, and Functionality behavior.
+43.    - **Iterative Loop:**
+44.      - If **ANY** finding (browser fail, visual regression, or code audit issue) is detected:
+45.        1. **Fix** the specific issue.
+46.        2. **Re-Test** to confirm the fix is valid and accurate.
+47.        3. **Restart Phase 2** to ensure no regressions were introduced.
+48. 
+49. 3. **Code Review & Security Scan (Workflow 07):**
+50.    - Execute **Workflow 07** (`.agent/workflows/07-pre-pr-review.md`).
+51.    - **Check**: Are there any blocking findings in `code_review_draft.md`?
+52.    - _If Fail:_ Fix the violations and **restart Phase 2**.
 
 **End Loop:** Proceed only when Workflows 07, 08, and 09 all pass sequentially without requiring changes.
 
@@ -63,11 +67,17 @@ This workflow acts as the "Manager," orchestrating the execution of specialized 
 
 2. **Execute Documentation Update:**
    - Execute **Workflow 06** (`.agent/workflows/06-pre-pr-docs.md`).
+   - **Critical Instruction for PR Description:**
+     - Describe the **End Results** of the feature branch (functionality/value added).
+     - **AVOID** internal verbiage or meta-commentary (e.g., do NOT mention "Master Review Orchestrator", "Security Audit", or "Debt Loop" in the public description).
+   - **Critical Instruction for Persistent Docs (README/Roadmap):**
+     - **Append** updates to existing files.
+     - **Remove** information ONLY if it is now validly stale or incorrect. Do not rewrite sections that are still valid.
    - **Verify Outputs:**
      - `ENGINEERING_KNOWLEDGE.md` has new patterns/bugs logged.
      - `roadmap.md` is updated (Done/In Progress).
      - `README.md` structure is accurate.
-     - `PR_DESCRIPTION_DRAFT.md` is generated and high-quality.
+     - `PR_DESCRIPTION_DRAFT.md` is generated and high-quality (User-Focused).
 
 ---
 

@@ -21,6 +21,7 @@ jobs:
     steps:
       # (Optional) GitHub Action that helps you create releases
       - uses: release-drafter/release-drafter@v6
+        continue-on-error: true
         with:
           config-name: release-drafter.yml
         env:

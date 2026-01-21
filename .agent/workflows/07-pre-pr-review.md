@@ -24,12 +24,12 @@ First, understand the scope of changes.
 
 ## 3. Security & Safety Scan
 
-Manually inspect the diff for:
-
-- [ ] **Secrets**: Ensure no `.env` values, keys, or tokens are hardcoded.
-- [ ] **Injections**: Check SQL/Shell inputs are sanitized.
-- [ ] **Data Loss**: Verify destructive actions (DELETE/DROP) have safeguards.
-- [ ] **Auth**: Ensure new endpoints/actions check for authentication/authorization.
+27. **Automated Scan (grep_search)**:
+28. 
+29. - [ ] **Secrets**: Search for `API_KEY`, `SECRET`, `token`, `password` (fail if hardcoded).
+30. - [ ] **Dangerous SQL**: Search for `DELETE FROM` or `DROP TABLE` (fail if missing `WHERE` or `CASCADE` checks).
+31. - [ ] **Auth**: Search for public endpoints (verify if intended).
+32. - [ ] **Data Loss**: Verify `force: true` or `cascade` usage in migration files.
 
 ## 4. Engineering Standards Review
 
