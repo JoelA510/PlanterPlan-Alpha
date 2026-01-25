@@ -133,7 +133,8 @@ export default function Project() {
     try {
       if (!addTaskModal.milestone) return;
 
-      const { milestone: _unused, ...payload } = taskData;
+      const payload = { ...taskData };
+      delete payload.milestone;
       const parentId = addTaskModal.parentTask?.id || addTaskModal.milestone?.id;
 
       await createTaskMutation.mutateAsync({

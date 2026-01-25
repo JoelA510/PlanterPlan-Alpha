@@ -102,9 +102,11 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
           />
         </div>
 
-        {phase.description && (
-          <p className="text-sm text-slate-600 mb-4 line-clamp-2 flex-grow">{phase.description}</p>
-        )}
+        <div className="flex-grow">
+          {phase.description && (
+            <p className="text-sm text-slate-600 mb-4 line-clamp-2">{phase.description}</p>
+          )}
+        </div>
 
         <div className="space-y-2">
           {isLocked ? (

@@ -201,8 +201,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- RLS Helper: has_project_role
--- Note: Uses p_task_id to match existing DB signature
-CREATE OR REPLACE FUNCTION public.has_project_role(p_task_id uuid, p_user_id uuid, p_allowed_roles text[])
+-- Note: Uses p_project_id for clarity
+CREATE OR REPLACE FUNCTION public.has_project_role(p_project_id uuid, p_user_id uuid, p_allowed_roles text[])
 RETURNS boolean AS $$
 DECLARE
     v_role text;
@@ -210,7 +210,7 @@ BEGIN
     -- Check Project Members table directly
     SELECT role INTO v_role 
     FROM public.project_members 
-    WHERE project_id = p_task_id 
+    WHERE project_id = p_project_id 
     AND user_id = p_user_id;
 
     -- If role exists and is in allowed list, return true
@@ -329,10 +329,20 @@ FOR INSERT WITH CHECK (
 );
 
 DROP POLICY IF EXISTS "Enable update for users" ON public.tasks;
-CREATE POLICY "Enable update for users" ON public.tasks FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable update for users" ON public.tasks 
+FOR UPDATE USING (
+    creator = auth.uid()
+    OR 
+    public.has_project_role(COALESCE(root_id, id), auth.uid(), ARRAY['owner', 'editor'])
+);
 
 DROP POLICY IF EXISTS "Enable delete for users" ON public.tasks;
-CREATE POLICY "Enable delete for users" ON public.tasks FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable delete for users" ON public.tasks 
+FOR DELETE USING (
+    creator = auth.uid()
+    OR 
+    public.has_project_role(COALESCE(root_id, id), auth.uid(), ARRAY['owner', 'editor'])
+);
 
 -- PROJECT MEMBERS Policies
 ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
