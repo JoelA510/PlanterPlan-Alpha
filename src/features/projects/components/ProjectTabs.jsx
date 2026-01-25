@@ -6,8 +6,6 @@ const ProjectTabs = memo(function ProjectTabs({ activeTab, onTabChange }) {
     const tabs = [
         { id: PROJECT_TABS.BOARD, label: PROJECT_TAB_LABELS[PROJECT_TABS.BOARD] },
         { id: PROJECT_TABS.PEOPLE, label: PROJECT_TAB_LABELS[PROJECT_TABS.PEOPLE] },
-        { id: PROJECT_TABS.BUDGET, label: PROJECT_TAB_LABELS[PROJECT_TABS.BUDGET] },
-        { id: PROJECT_TABS.ASSETS, label: PROJECT_TAB_LABELS[PROJECT_TABS.ASSETS] },
     ];
 
     return (

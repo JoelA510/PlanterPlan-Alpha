@@ -1,6 +1,6 @@
 -- PlanterPlan Database Schema
 -- Consolidated: 2026-01-18
--- Includes: Core, Budget, People, Inventory, and Phase 3 features.
+-- Includes: Core, People, and Phase 3 features.
 
 -- ============================================================================
 -- 0. EXTENSIONS
@@ -114,21 +114,7 @@ CREATE TABLE IF NOT EXISTS public.task_relationships (
     CONSTRAINT unique_relationship UNIQUE (from_task_id, to_task_id, type)
 );
 
--- ----------------------------------------------------------------------------
--- BUDGET ITEMS (Phase 3 Feature)
--- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.budget_items (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
-  category text CHECK (category IN ('Equipment', 'Marketing', 'Venue', 'Kids', 'Operations', 'Other')),
-  description text NOT NULL,
-  planned_amount numeric(10, 2) DEFAULT 0,
-  actual_amount numeric(10, 2) DEFAULT 0,
-  status text CHECK (status IN ('planned', 'purchased')) DEFAULT 'planned',
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_budget_items_project_id ON public.budget_items(project_id);
+
 
 -- ----------------------------------------------------------------------------
 -- PEOPLE (CRM Lite)
@@ -148,21 +134,7 @@ CREATE TABLE IF NOT EXISTS public.people (
 );
 CREATE INDEX IF NOT EXISTS idx_people_project_id ON public.people(project_id);
 
--- ----------------------------------------------------------------------------
--- ASSETS (Inventory)
--- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.assets (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
-  name text NOT NULL,
-  category text CHECK (category IN ('equipment', 'venue', 'marketing', 'kids', 'other')),
-  status text NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'in_use', 'maintenance', 'lost', 'retired')),
-  location text,
-  value numeric DEFAULT 0,
-  notes text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+
 
 -- ============================================================================
 -- 2. VIEWS
@@ -403,21 +375,7 @@ CREATE POLICY "Delete invites for project members" ON public.project_invites
     public.is_admin(auth.uid())
   );
 
--- BUDGET ITEMS Policies
-ALTER TABLE public.budget_items ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "View budget items for project members" ON public.budget_items;
-CREATE POLICY "View budget items for project members" ON public.budget_items
-  FOR SELECT USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
-    public.is_admin(auth.uid())
-  );
 
-DROP POLICY IF EXISTS "Manage budget items for owners and editors" ON public.budget_items;
-CREATE POLICY "Manage budget items for owners and editors" ON public.budget_items
-  FOR ALL USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
-    public.is_admin(auth.uid())
-  );
 
 -- PEOPLE Policies
 ALTER TABLE public.people ENABLE ROW LEVEL SECURITY;
@@ -435,21 +393,7 @@ CREATE POLICY "Manage people for owners and editors" ON public.people
     public.is_admin(auth.uid())
   );
 
--- ASSETS Policies
-ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "View assets" ON public.assets;
-CREATE POLICY "View assets" ON public.assets
-  FOR SELECT USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
-    public.is_admin(auth.uid())
-  );
 
-DROP POLICY IF EXISTS "Manage assets" ON public.assets;
-CREATE POLICY "Manage assets" ON public.assets
-  FOR ALL USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
-    public.is_admin(auth.uid())
-  );
 
 -- TASK RELATIONSHIPS Policies
 ALTER TABLE public.task_relationships ENABLE ROW LEVEL SECURITY;

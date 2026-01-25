@@ -41,7 +41,6 @@ The codebase uses a modified **Feature-Sliced Design (FSD)** to enable Agentic r
 src/
 ├── app/            # Global wiring (App.jsx, providers, router)
 ├── features/       # Business domains
-│   ├── budget/     # [NEW] Budgeting Lite
 │   ├── onboarding/ # [NEW] Wizard & Checklist
 │   ├── tasks/
 │   │   ├── components/
@@ -193,8 +192,8 @@ flowchart LR
 - ✅ **Robust Verification**: Golden Paths tested for Dashboard, Board, and Navigation flows (Ref: `golden-paths.test.jsx`).
 - ✅ **People/CRM Lite**: Manage team members, roles, and statuses via specialized `PeopleList` view (Ref: `peopleService.js`).
 - ✅ **Checkpoints**: Gated phases requiring completion of previous phase to unlock (Ref: `PhaseCard.jsx`).
-- ✅ **Inventory/Assets**: Track physical items and location (Ref: `assetService.js`).
 - ✅ **Mobile Field Mode**: Quick-action FAB and "Today's Agenda" for on-the-go focus.
+
 
 ### 5.2 Known Limitations
 
