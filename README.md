@@ -18,9 +18,11 @@ Update discipline:
 - If a section cannot be verified from code, mark it explicitly as "Unverified" and describe what is missing.
 -->
 
-# PlanterPlan
+# PlanterPlan (Alpha)
 
-**Last verified**: 2026-01-20 (Vibe Security Hardening)
+**Status**: Alpha (Refactoring Phase)
+**Last Verified**: 2026-01-25 (Context & Security Hardening)
+**Maintained By**: Antigravity Agent
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
 **Related Docs**: [Engineering Knowledge Base](./docs/operations/ENGINEERING_KNOWLEDGE.md)
