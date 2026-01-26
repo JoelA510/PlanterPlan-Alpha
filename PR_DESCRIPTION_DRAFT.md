@@ -30,6 +30,7 @@ graph LR
 ### 2. Knowledge Base Structure
 We flattened the documentation hierarchy to simplify maintenance.
 
+```mermaid
 graph TD
     DB["Engineering Knowledge Base"]
     
@@ -42,6 +43,7 @@ graph TD
     
     Prod --> DB
     Hist --> DB
+```
 
 ---
 
