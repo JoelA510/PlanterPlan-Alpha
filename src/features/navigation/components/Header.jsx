@@ -9,13 +9,16 @@ import {
   DropdownMenuTrigger,
 } from '@shared/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@shared/ui/avatar';
-import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight } from 'lucide-react';
+import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight, Moon, Sun } from 'lucide-react';
 import { planter } from '@shared/api/planterClient';
 import { useUser } from '@features/auth/hooks/useUser';
+import { useTheme } from '@app/contexts/ThemeContext';
+import ViewAsSelector from './ViewAsSelector';
 
 export default function Header({ onMenuToggle, showMenuButton = false }) {
   const { data: user } = useUser();
   const location = useLocation();
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   // Simple Breadcrumb Logic
   const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -34,7 +37,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
   };
 
   return (
-    <nav className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 shadow-sm">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
@@ -48,27 +51,43 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
               <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm">
                 <CheckCircle2 className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-slate-900 text-lg hidden sm:block">PlanterPlan</span>
+              <span className="font-bold text-slate-900 dark:text-white text-lg hidden sm:block">PlanterPlan</span>
             </Link>
 
             {/* Breadcrumb Separator for Context */}
             {user && (
               <div className="hidden md:flex items-center gap-2 ml-2 text-slate-400">
                 <ChevronRight className="w-4 h-4" />
-                <span className="font-medium text-slate-600">{currentSection}</span>
+                <span className="font-medium text-slate-600 dark:text-slate-300">{currentSection}</span>
               </div>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Redundant Links Removed */}
+            {/* View-As Role Switcher (only for privileged users) */}
+            {user && <ViewAsSelector />}
+
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
+            </Button>
 
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                    <Avatar className="h-9 w-9 border-2 border-slate-200">
-                      <AvatarFallback className="bg-orange-100 text-orange-700 font-semibold text-sm">
+                    <Avatar className="h-9 w-9 border-2 border-slate-200 dark:border-slate-600">
+                      <AvatarFallback className="bg-orange-100 text-orange-700 font-semibold text-sm dark:bg-orange-900 dark:text-orange-200">
                         {getInitials(user.full_name || user.email)}
                       </AvatarFallback>
                     </Avatar>
@@ -78,7 +97,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user.full_name || 'User'}</p>
-                      <p className="text-xs leading-none text-slate-500">{user.email}</p>
+                      <p className="text-xs leading-none text-slate-500 dark:text-slate-400">{user.email}</p>
                     </div>
                   </div>
                   <DropdownMenuSeparator />
@@ -93,7 +112,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
@@ -106,3 +125,4 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
     </nav>
   );
 }
+
