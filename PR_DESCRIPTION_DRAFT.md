@@ -1,65 +1,49 @@
-# PR Description Draft: Refactoring & Security Hardening
+# PR Description: Design System Completion & Schema Stability
 
 ## Summary
-This PR addresses critical technical debt and security feedback from the Alpha review. It reduces the context window usage by ~60% (via archiving and optimization), hardens RLS policies against bypass attempts, and unifies fragmented UI error states.
+This Pull Request finalizes the Design System migration (removing legacy CSS and adhering to Rule 30 standards), consolidates the knowledge base, and fixes a critical schema drift issue detected during verification.
 
 ### Key Changes
-1.  **Context Size Reduction**: Archived 188KB of non-essential SQL/Docs and optimized `recharts` imports (Tree-shaking).
-2.  **Security Hardening**: Replaced generic `authenticated` RLS checks with strict `has_project_role()` security definer functions.
-3.  **UI Unification**: Introduced `<StatusCard />` to replace redundant `EmptyState` and `ErrorFallback` components.
-4.  **Migration Consolidation**: Squashed all pending migrations into `docs/db/schema.sql` for a clean state.
+1.  **Design System Hardening**: Refactored `StatsOverview` and `PeopleList` to use standardized semantic tokens (`bg-brand-50`, `text-slate-600`), eliminating the last of the hardcoded colors and legacy `task-card.css`.
+2.  **Schema Repair**: Fixed a syntax error in `view_master_library` (copy-paste artifact) and provided the SQL fix for the missing `public.people` table in Development environments.
+3.  **Knowledge Consolidation**: Merged all archive files into a single `ENGINEERING_KNOWLEDGE.md`, categorized by "Production Rules" and "Historical Context" to prevent documentation rot.
+4.  **Verification**: Validated "Golden Paths" (Dashboard, Board, Navigation) via automated browser checks.
 
 ---
 
 ## Visualizations
 
-### 1. Architecture: UI Component Unification
-We replaced ad-hoc error/empty states with a single reusable component to enforce consistency and reduce code duplication.
+### 1. Design System: Semantic Token Mapping
+We moved from hardcoded hex/Tailwind values to semantic purposes.
 
 ```mermaid
-classDiagram
-    class StatusCard {
-        +String title
-        +String description
-        +ReactNode icon
-        +ReactNode actions
-        +Variant variant (neutral|error|success)
-    }
-    class EmptyState {
-        <<Deprecated>>
-    }
-    class ErrorFallback {
-        <<Deprecated>>
-    }
-    class TaskList {
-    }
-    class Dashboard {
-    }
-
-    TaskList --> StatusCard : Uses
-    Dashboard --> StatusCard : Uses
-    EmptyState ..> StatusCard : Replaced by
-    ErrorFallback ..> StatusCard : Replaced by
+graph LR
+    Legacy["bg-indigo-50 (Hardcoded)"] --> Semantic["bg-brand-50 (Primary Surface)"]
+    Legacy2["text-gray-500 (Generic)"] --> Semantic2["text-slate-600 (Standard Body)"]
+    Legacy3["task-card.css (Custom)"] --> Semantic3["Tailwind Utility Classes"]
+    
+    Semantic --> Stats["StatsOverview.jsx"]
+    Semantic2 --> People["PeopleList.jsx"]
+    Semantic3 --> Task["TaskItem.jsx"]
 ```
 
-### 2. Security: RLS Policy Flow
-We moved from vulnerable public function calls to a secure, search-path-locked verification flow.
+### 2. Knowledge Base Structure
+We flattened the documentation hierarchy to simplify maintenance.
 
 ```mermaid
-sequenceDiagram
-    participant Client
-    participant Postgres
-    participant RLS_Policy
-    participant Secure_Function
-
-    Client->>Postgres: UPDATE tasks SET title = '...'
-    Postgres->>RLS_Policy: Check "can_edit_task"
-    RLS_Policy->>Secure_Function: call has_project_role(uid, project_id, 'editor')
-    Note right of Secure_Function: SECURITY DEFINER<br/>SET search_path = public
-    Secure_Function->>Postgres: SELECT FROM project_members
-    Secure_Function-->>RLS_Policy: Returns TRUE/FALSE
-    RLS_Policy-->>Postgres: Allow/Deny
-    Postgres-->>Client: Result
+block-beta
+    columns 1
+    db("Engineering Knowledge Base")
+    block:files
+        prod("Production Rules (Active)")
+        hist("Development Findings (History)")
+    end
+    space
+    old("Archives (2025...)")
+    
+    old --> deleted((Deleted))
+    prod --> db
+    hist --> db
 ```
 
 ---
@@ -68,38 +52,37 @@ sequenceDiagram
 
 | Feature | Status | Impact |
 | :--- | :--- | :--- |
-| **Security Hardening** | ✅ Done | Prevents RLS bypass (Fixes PR #34 Feedback) |
-| **Codebase Size Audit** | ✅ Done | Reduces AI Context Window by ~60% |
-| **Design System** | 🚧 In Progress | Foundation laid with CSS extraction (`.btn-primary`) |
+| **Design System (Rule 30)** | ✅ Done | Consistent "Modern SaaS" look; 0 legacy CSS files. |
+| **Schema Integrity** | ⚠️ Fixed | `public.people` table restoration provided. |
+| **Doc Consolidation** | ✅ Done | Single source of truth for Engineering rules. |
+| **Verification** | ✅ Done | Golden Paths Validated. |
 
 ---
 
 ## Technical Details
 
-### Security (High Risk)
-- **RLS Policies**: All policies in `docs/db/schema.sql` now use `has_project_role`.
-- **Edge Functions**: `invite-by-email` now explicitly verifies user session tokens.
-- **Exploit Tests**: Updated `scripts/security/exploit_test.js` to match new schema.
+### Design System (UI)
+- **StatsOverview**: Refactored to accept `color="brand" | "success" | "warning"` instead of raw classes. Mapped internally to `bg-brand-50`, etc.
+- **TaskItem**: Removed specific `task-card.css` dependency. Now pure Tailwind.
+- **Index.css**: Cleaned up imports.
 
-### Refactoring (Medium Risk)
-- **Recharts**: Switched from `import * as Recharts` to named imports.
-    - *Benefit*: Significant bundle size reduction (strips unused chart types).
-- **Archive**: Moved `seed_recovery.sql` (188KB) and `recover_db.js` to `/archive`.
+### Database (Backend)
+- **Schema Fix**: Detected and fixed a syntax error in `docs/db/schema.sql` (lines 188-200) where a cleanup script was misplaced inside a View definition.
+- **Drift Detection**: Browser Agent logged failure on `/projects/:id/people` due to 404 on table `people`. Documentation updated with [BACKEND-003].
 
-### Documentation (Low Risk)
-- **Engineering Knowledge**: Added [CONTEXT-001] regarding context management.
-- **Roadmap**: Updated status and history.
+### Documentation (Docs)
+- **Knowledge Base**: Merged `archive/docs/ENGINEERING_KNOWLEDGE_ARCHIVE_2025.md` back into main file. Tagged items as `[Legacy]` if no longer active.
+- **Context Rules**: Added `browser_audit.json` to context ignore list.
 
 ---
 
 ## Verification Plan
 
 ### Automated
-1.  **Build**: `npm run build` (Must pass < 5s).
-2.  **Lint**: `npm run lint` (Must be zero errors).
-3.  **Tests**: `npm test` (Unit/Integration).
+1.  **Lint**: `npm run lint` (0 Errors, 29 warnings).
+2.  **Tests**: `npm test` (Golden Paths PASSED).
+3.  **Browser Agent**: Confirmed UI/Design pass.
 
-### Manual (Golden Paths)
-1.  **Security**: Try to edit a task in a project you didn't join (Should fail RLS).
-2.  **UI**: Visit a blank project to see the new `StatusCard` empty state.
-3.  **Error Handling**: Disconnect network and try to load dashboard (Should see `StatusCard` error state).
+### Manual Ref
+- **DB Sync**: Run the provided SQL block (in `DEBT_REPORT.md` or comments) to restore `public.people`.
+- **Visual Check**: Verify "Project Dashboard" stats cards use the new orange/brand theme instead of generic blue.

@@ -5,6 +5,10 @@
 
 ## Production Findings (Active Rules & Patterns)
 
+### [DOCS-001] External-Facing PR Descriptions
+- **Context**: PR descriptions contained internal jargon ("Master Review", "Orchestrator") confusing to external reviewers.
+- **Rule**: **No Internal Jargon.** PR descriptions must use industry-standard terms (e.g., "Refactoring", "Verification", "Fix"). Avoid referencing internal agent workflows or names.
+
 ### [ARC-013] Context Provider Hierarchy
 - **Context**: Users experienced infinite loops/stale auth due to incorrect provider nesting.
 - **Rule**: **Respect the Data Dependency Chain.** Order: `Auth` -> `Router` -> `Organization` -> `Task`.
