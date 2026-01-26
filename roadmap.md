@@ -333,3 +333,32 @@ _Goal: Structured progress flows and commerce._
 - [ ] Supervisor Auto-Emails
 - [ ] Strategy Template Task Type
 
+---
+
+## 4. Future Enhancements (Backlog)
+
+_Items identified during PR reviews but deferred for future sprints._
+
+### Design System
+| Item | Priority | Notes |
+|:---|:---|:---|
+| Dark Mode Support | 🔵 Medium | Requires theme provider + CSS variable duplication |
+| Figma Component Parity | 🔵 Medium | Dependent on receiving updated design specs |
+
+### Performance
+| Item | Priority | Notes |
+|:---|:---|:---|
+| List Virtualization | 🔵 Medium | Use react-window/virtuoso for task lists > 100 items |
+| DnD Large Board Optimization | 🟢 Low | Current implementation stable for typical use (< 50 tasks) |
+
+### Security & Compliance
+| Item | Priority | Notes |
+|:---|:---|:---|
+| Audit Logging | 🟢 Low | Nice-to-have for enterprise compliance |
+
+### Documentation
+| Item | Priority | Notes |
+|:---|:---|:---|
+| API Reference | 🔵 Medium | Consider auto-generation from JSDoc/TypeScript |
+
+

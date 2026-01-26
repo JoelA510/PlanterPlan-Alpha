@@ -69,6 +69,40 @@ src/
 
 To set up the project locally, please refer to the **[Local Development Guide](./docs/operations/local_development.md)**.
 
+### Quick Usage Examples
+
+Common operations for contributors:
+
+```bash
+# Run development server
+npm run dev
+
+# Run all tests
+npm test
+
+# Run specific test file
+npm test -- --run src/features/tasks/hooks/useTaskBoard.test.jsx
+
+# Lint code
+npm run lint
+```
+
+**Creating a project programmatically** (via hook):
+```javascript
+// In a React component
+import { useProjectMutations } from '@features/projects/hooks/useProjectMutations';
+
+const { createProject } = useProjectMutations();
+await createProject({ title: 'New Church Plant', templateId: 'launch_large' });
+```
+
+**Fetching project tasks** (via service):
+```javascript
+import { fetchTaskChildren } from '@features/tasks/services/taskService';
+
+const { data: tasks } = await fetchTaskChildren(projectId);
+```
+
 ### External dependencies
 
 - **Supabase** -> Auth & Database (Ref: [src/app/supabaseClient.js](./src/app/supabaseClient.js))
