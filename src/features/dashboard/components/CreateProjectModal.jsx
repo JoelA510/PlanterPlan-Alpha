@@ -107,12 +107,12 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg bg-card text-card-foreground">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {step === 1 ? 'Choose a Template' : 'Project Details'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-muted-foreground">
             {step === 1
               ? 'Select a template that fits your church planting vision'
               : 'Fill in the details for your new project'}
@@ -133,19 +133,19 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                   key={template.id}
                   onClick={() => handleTemplateSelect(template.id)}
                   className={cn(
-                    'flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left bg-white group',
-                    'hover:border-orange-300 hover:bg-orange-50/50 hover:shadow-md cursor-pointer',
+                    'flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left bg-card group',
+                    'hover:border-brand-300 hover:bg-brand-50/50 dark:hover:bg-brand-900/20 hover:shadow-md cursor-pointer',
                     formData.template === template.id
-                      ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500/20'
-                      : 'border-slate-200'
+                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/40 ring-1 ring-brand-500/20'
+                      : 'border-border'
                   )}
                 >
                   <div
                     className={cn(
                       'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
                       formData.template === template.id
-                        ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-md shadow-orange-500/20 scale-110'
-                        : 'bg-slate-100 group-hover:bg-orange-100 group-hover:scale-105'
+                        ? 'bg-gradient-to-br from-brand-500 to-brand-600 shadow-md shadow-brand-500/20 scale-110'
+                        : 'bg-muted group-hover:bg-brand-100 dark:group-hover:bg-brand-900/50 group-hover:scale-105'
                     )}
                   >
                     <template.icon
@@ -153,13 +153,13 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                         'w-6 h-6',
                         formData.template === template.id
                           ? 'text-white'
-                          : 'text-slate-600 group-hover:text-orange-600'
+                          : 'text-muted-foreground group-hover:text-brand-600 dark:group-hover:text-brand-400'
                       )}
                     />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900">{template.name}</h4>
-                    <p className="text-sm text-slate-500">{template.description}</p>
+                    <h4 className="font-semibold text-card-foreground">{template.name}</h4>
+                    <p className="text-sm text-muted-foreground">{template.description}</p>
                   </div>
                   {
                     formData.template === template.id && (

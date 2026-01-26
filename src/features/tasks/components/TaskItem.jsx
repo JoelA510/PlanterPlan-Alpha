@@ -80,10 +80,10 @@ const TaskItem = memo(
             'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
             'bg-card text-card-foreground', // Default card styles
             isSelected
-              ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-100'
-              : 'border-border hover:border-brand-300',
-            isLocked && 'opacity-70 bg-slate-50',
-            level === 0 && 'border-l-4 border-l-brand-600'
+              ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-100 dark:bg-brand-900/40 dark:border-brand-400 dark:ring-brand-900/50'
+              : 'border-border hover:border-brand-300 dark:hover:border-brand-700',
+            isLocked && 'opacity-70 bg-muted/30 dark:bg-slate-900/50',
+            level === 0 && 'border-l-4 border-l-brand-600 dark:border-l-brand-500'
           )}
           style={{ marginLeft: `${indentWidth}px` }}
           onClick={!isLocked ? handleCardClick : undefined}
@@ -142,18 +142,18 @@ const TaskItem = memo(
 
               <div className="flex items-center gap-3 min-w-0 overflow-hidden">
                 <span
-                  className="font-medium text-slate-700 text-sm truncate"
+                  className="font-medium text-slate-700 dark:text-slate-200 text-sm truncate"
                   title={task.title}
                 >
                   {task.title}
                 </span>
                 {task.duration && (
-                  <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 whitespace-nowrap flex-shrink-0">
+                  <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0">
                     {task.duration}
                   </span>
                 )}
                 {task.resource_type && (
-                  <span className="px-2.5 py-1 text-xs uppercase font-bold tracking-wider rounded bg-brand-50 text-brand-700 border border-brand-100 whitespace-nowrap flex-shrink-0 flex items-center gap-1">
+                  <span className="px-2.5 py-1 text-xs uppercase font-bold tracking-wider rounded bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border border-brand-100 dark:border-brand-800 whitespace-nowrap flex-shrink-0 flex items-center gap-1">
                     <LinkIcon className="w-3 h-3" />
                     {task.resource_type}
                   </span>

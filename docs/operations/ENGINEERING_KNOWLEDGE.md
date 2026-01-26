@@ -186,3 +186,7 @@
 - **Date**: 2026-01-25
 - **Context**: Tests failed with `window.matchMedia is not a function` after adding `ThemeContext` with system preference sync.
 - **Rule**: **Mock `matchMedia` in `setupTests.js`.** JSDOM doesn't implement it. Include `addEventListener`/`removeEventListener` in the mock implementation to support reactive themes.
+### [UI-025] Theme-Reactive Surface Standardization
+- **Date**: 2026-01-25
+- **Context**: Main layout and dashboard cards failed to toggle to dark mode due to hardcoded `bg-white` classes and a naming mismatch in the Tailwind v4 `@theme` block (`--color-bg-background` instead of `--color-background`).
+- **Rule**: **Surfaces must be semantic.** Avoid hardcoded `bg-white` or `bg-slate-X` for structural areas. Use `--color-background` (`bg-background`) for page canvas and `--color-card` (`bg-card`) for widgets. Ensure Tailwind theme variables precisely align with their intended utility names to enable reliable dark mode inheritance.

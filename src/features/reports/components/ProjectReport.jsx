@@ -74,38 +74,38 @@ const ProjectReport = () => {
       <div className="project-view-container w-full h-full flex flex-col">
         {project ? (
           <>
-            <div className="bg-white px-8">
+            <div className="bg-card px-8 border-b border-border">
               <ProjectHeader project={project} />
             </div>
 
             {/* Report Content */}
             <div className="flex-1 px-8 pb-12 max-w-6xl w-full mx-auto overflow-x-visible pt-8">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                <h2 className="text-xl font-semibold mb-4 text-slate-800">Project Performance</h2>
+              <div className="bg-card rounded-xl shadow-sm border border-border p-8">
+                <h2 className="text-xl font-semibold mb-4 text-card-foreground">Project Performance</h2>
                 {/* Placeholder for actual charts/stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                    <div className="text-slate-500 text-sm mb-1">Total Tasks</div>
-                    <div className="text-2xl font-bold text-slate-800">
+                  <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
+                    <div className="text-muted-foreground text-sm mb-1">Total Tasks</div>
+                    <div className="text-2xl font-bold text-card-foreground">
                       {project.children?.length || 0}
                     </div>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                    <div className="text-slate-500 text-sm mb-1">Completed</div>
-                    <div className="text-2xl font-bold text-emerald-600">
+                  <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
+                    <div className="text-muted-foreground text-sm mb-1">Completed</div>
+                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                       {project.children?.filter((t) => t.is_complete).length || 0}
                     </div>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                    <div className="text-slate-500 text-sm mb-1">Pending</div>
-                    <div className="text-2xl font-bold text-amber-600">
+                  <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
+                    <div className="text-muted-foreground text-sm mb-1">Pending</div>
+                    <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                       {project.children?.filter((t) => !t.is_complete).length || 0}
                     </div>
                   </div>
                 </div>
 
-                <div className="h-80 bg-slate-50 rounded-lg p-6 border border-slate-100">
-                  <h3 className="text-sm font-semibold text-slate-500 mb-4 uppercase tracking-wider">
+                <div className="h-80 bg-muted/30 rounded-lg p-6 border border-border/50">
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
                     Status Distribution
                   </h3>
                   <div className="w-full h-full pb-6">

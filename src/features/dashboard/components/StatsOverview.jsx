@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { cn } from '@shared/lib/utils';
 import { Card } from '@shared/ui/card';
 import { FolderKanban, CheckCircle2, Clock, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -18,18 +19,18 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       value: totalProjects,
       icon: FolderKanban,
       // Design System: Primary/Brand
-      bgColor: 'bg-brand-50',
-      textColor: 'text-brand-600',
-      borderColor: 'hover:border-brand-200',
+      bgColor: 'bg-brand-50 dark:bg-brand-900/20',
+      textColor: 'text-brand-600 dark:text-brand-400',
+      borderColor: 'hover:border-brand-200 dark:hover:border-brand-800',
     },
     {
       label: 'Completed Tasks',
       value: completedTasks,
       icon: CheckCircle2,
       // Design System: Success
-      bgColor: 'bg-emerald-50',
-      textColor: 'text-emerald-600',
-      borderColor: 'hover:border-emerald-200',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+      textColor: 'text-emerald-600 dark:text-emerald-400',
+      borderColor: 'hover:border-emerald-200 dark:hover:border-emerald-800',
       suffix: `/ ${totalTasks}`,
     },
     {
@@ -37,18 +38,18 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       value: pendingTasks,
       icon: Clock,
       // Design System: Warning/Pending
-      bgColor: 'bg-amber-50',
-      textColor: 'text-amber-600',
-      borderColor: 'hover:border-amber-200',
+      bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+      textColor: 'text-amber-600 dark:text-amber-400',
+      borderColor: 'hover:border-amber-200 dark:hover:border-amber-800',
     },
     {
       label: 'Team Members',
       value: teamMembers.length,
       icon: Users,
       // Design System: Secondary/Accent
-      bgColor: 'bg-slate-100',
-      textColor: 'text-slate-600',
-      borderColor: 'hover:border-slate-300',
+      bgColor: 'bg-slate-100 dark:bg-slate-800',
+      textColor: 'text-slate-600 dark:text-slate-400',
+      borderColor: 'hover:border-slate-300 dark:hover:border-slate-700',
     },
   ];
 
@@ -62,20 +63,28 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
           transition={{ delay: index * 0.1 }}
         >
           <Card
-            className={`p-5 border border-slate-200 bg-white shadow-sm transition-all duration-300 ${stat.borderColor} hover:shadow-md`}
+            className={cn(
+              'p-5 border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:shadow-md',
+              stat.borderColor
+            )}
           >
             <div className="flex items-center gap-4">
               <div
-                className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center`}
+                className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center',
+                  stat.bgColor
+                )}
               >
-                <stat.icon className={`w-6 h-6 ${stat.textColor}`} />
+                <stat.icon className={cn('w-6 h-6', stat.textColor)} />
               </div>
               <div>
-                <p className="text-sm text-slate-500">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {stat.value}
                   {stat.suffix && (
-                    <span className="text-sm font-normal text-slate-400 ml-1">{stat.suffix}</span>
+                    <span className="text-sm font-normal text-slate-400 dark:text-slate-500 ml-1">
+                      {stat.suffix}
+                    </span>
                   )}
                 </p>
               </div>

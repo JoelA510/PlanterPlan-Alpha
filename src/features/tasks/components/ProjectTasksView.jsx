@@ -53,7 +53,7 @@ const ProjectTasksView = ({
   };
 
   return (
-    <div className="project-view-container px-4 sm:px-8 py-6 w-full h-full flex flex-col bg-slate-50/30">
+    <div className="project-view-container px-4 sm:px-8 py-6 w-full h-full flex flex-col bg-background/30">
       {/* Header Section */}
       <div className="flex-none mb-6">
         <ProjectHeader
@@ -63,7 +63,7 @@ const ProjectTasksView = ({
         />
 
         {/* Toolbar: Actions & View Switcher */}
-        <div className="mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-4">
+        <div className="mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-4">
           <button
             onClick={() => handleAddChildTask(project)}
             className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm font-medium flex items-center transition-all shadow-sm"
@@ -75,12 +75,12 @@ const ProjectTasksView = ({
           </button>
 
           {/* View Switcher */}
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <div className="flex bg-muted p-1 rounded-lg border border-border">
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm font-medium ${viewMode === 'list'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                ? 'bg-card text-card-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-card-foreground hover:bg-muted/50'
                 }`}
               title="List View"
             >
@@ -90,8 +90,8 @@ const ProjectTasksView = ({
             <button
               onClick={() => setViewMode('board')}
               className={`p-2 rounded-md transition-all flex items-center gap-2 text-sm font-medium ${viewMode === 'board'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                ? 'bg-card text-card-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-card-foreground hover:bg-muted/50'
                 }`}
               title="Board View"
             >
@@ -129,12 +129,12 @@ const ProjectTasksView = ({
         ) : (
           <div
             ref={setNodeRef}
-            className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 h-full flex flex-col items-center justify-center"
+            className="text-center py-12 border-2 border-dashed border-border rounded-xl bg-muted/30 h-full flex flex-col items-center justify-center"
           >
-            <p className="text-slate-500 mb-4">No tasks in this project yet.</p>
+            <p className="text-muted-foreground mb-4">No tasks in this project yet.</p>
             <button
               onClick={() => handleAddChildTask(project)}
-              className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 text-sm font-medium"
+              className="px-4 py-2 bg-card border border-border rounded-lg text-card-foreground hover:bg-muted text-sm font-medium"
             >
               Create First Task
             </button>

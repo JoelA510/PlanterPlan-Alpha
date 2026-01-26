@@ -37,7 +37,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
   };
 
   return (
-    <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 shadow-sm">
+    <nav className="bg-card text-card-foreground border-b border-border sticky top-0 z-50 shadow-sm">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
