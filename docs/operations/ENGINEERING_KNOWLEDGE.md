@@ -182,3 +182,7 @@
 - **Context**: Sidebar didn't update after project creation because it used different data source than Dashboard.
 - **Rule**: **Single source of truth for entity lists.** Components showing the same data must use the same hook/query key.
 
+### [TEST-001] JSDOM matchMedia Mock Requirement
+- **Date**: 2026-01-25
+- **Context**: Tests failed with `window.matchMedia is not a function` after adding `ThemeContext` with system preference sync.
+- **Rule**: **Mock `matchMedia` in `setupTests.js`.** JSDOM doesn't implement it. Include `addEventListener`/`removeEventListener` in the mock implementation to support reactive themes.

@@ -228,6 +228,10 @@ flowchart LR
 - ✅ **People/CRM Lite**: Manage team members, roles, and statuses via specialized `PeopleList` view (Ref: `peopleService.js`).
 - ✅ **Checkpoints**: Gated phases requiring completion of previous phase to unlock (Ref: `PhaseCard.jsx`).
 - ✅ **Mobile Field Mode**: Quick-action FAB and "Today's Agenda" for on-the-go focus.
+- ✅ **Dark Mode 🌙**: System sync + persistent toggle (Ref: [ThemeContext.jsx](./src/app/contexts/ThemeContext.jsx)).
+- ✅ **List Virtualization ⚡**: Smooth scrolling for projects with 50+ tasks (Ref: [ProjectListView.jsx](./src/features/tasks/components/ProjectListView.jsx)).
+- ✅ **View-As Switcher 👁️**: Admin preview mode for role testing (Ref: [ViewAsContext.jsx](./src/app/contexts/ViewAsContext.jsx)).
+
 
 
 ### 5.2 Known Limitations
