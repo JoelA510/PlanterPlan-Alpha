@@ -33,8 +33,14 @@ export const useTaskBoard = () => {
 
   const { addToast } = useToast();
 
+  // Flatten all known tasks for DnD context
+  const allTasks = useMemo(() => {
+    const descendants = Object.values(hydratedProjects).flat();
+    return [...tasks, ...descendants];
+  }, [tasks, hydratedProjects]);
+
   const { sensors, handleDragEnd } = useTaskDrag({
-    tasks,
+    tasks: allTasks, // Pass ALL tasks so DnD works for subtasks too
     setTasks,
     fetchTasks,
     currentUserId,

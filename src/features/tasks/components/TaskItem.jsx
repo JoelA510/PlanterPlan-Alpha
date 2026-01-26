@@ -184,13 +184,13 @@ const TaskItem = memo(
         </div>
 
         {canHaveChildren && isExpanded && (
-          <div className="pl-0" ref={setDroppableNodeRef}>
+          <div className="pl-0 min-h-[40px]" ref={setDroppableNodeRef}>
             <SortableContext
               items={task.children ? task.children.map((c) => c.id) : []}
               strategy={verticalListSortingStrategy}
               id={`sortable-context-${task.id}`}
             >
-              {task.children &&
+              {task.children && task.children.length > 0 ? (
                 task.children.map((child) => (
                   <SortableTaskItem
                     key={child.id}
@@ -205,7 +205,12 @@ const TaskItem = memo(
                     onEdit={onEdit}
                     onDelete={onDelete}
                   />
-                ))}
+                ))
+              ) : (
+                <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
+                  Drop subtasks here
+                </div>
+              )}
             </SortableContext>
           </div>
         )}

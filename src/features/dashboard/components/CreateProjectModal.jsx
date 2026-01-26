@@ -53,19 +53,17 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     description: '',
     template: '',
     launch_date: null,
     location: '',
     status: PROJECT_STATUS.PLANNING,
-    project_type: 'primary',
-    parent_project_id: null,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
-    queryFn: () => planter.entities.Project.list(), // UPDATED
+    queryFn: () => planter.entities.Project.list(),
     enabled: open,
   });
 
@@ -76,18 +74,28 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
 
   const handleCreate = async () => {
     setLoading(true);
-    await onCreate(formData);
+    // Ensure we map template -> templateId if needed by mutations, 
+    // but useProjectMutations uses 'templateId' from formData.
+    // The previous code had `template: templateId`. 
+    // Let's ensure we pass `templateId: formData.template` to the onCreate prop if it expects generic object,
+    // OR just rely on formData having `template` and the hook mapping it.
+    // Looking at useProjectMutations: if (formData.templateId) ...
+    // So we need to ensure we pass templateId.
+
+    await onCreate({
+      ...formData,
+      templateId: formData.template // Explicit mapping
+    });
+
     setLoading(false);
     setStep(1);
     setFormData({
-      name: '',
+      title: '',
       description: '',
       template: '',
       launch_date: null,
       location: '',
       status: PROJECT_STATUS.PLANNING,
-      project_type: 'primary',
-      parent_project_id: null,
     });
     onClose();
   };
@@ -170,12 +178,12 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
               className="grid gap-5 py-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="name">Project Name *</Label>
+                <Label htmlFor="title">Project Name *</Label>
                 <Input
-                  id="name"
+                  id="title"
                   placeholder="e.g., Grace Community Church"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="h-11"
                 />
               </div>
@@ -191,52 +199,7 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Project Type</Label>
-                <Select
-                  value={formData.project_type}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      project_type: value,
-                      parent_project_id: value === 'primary' ? null : formData.parent_project_id,
-                    })
-                  }
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="primary">Primary Project</SelectItem>
-                    <SelectItem value="secondary">Secondary Project</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.project_type === 'secondary' && (
-                <div className="space-y-2">
-                  <Label>Parent Project</Label>
-                  <Select
-                    value={formData.parent_project_id || ''}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, parent_project_id: value })
-                    }
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Select parent project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects
-                        .filter((p) => !p.project_type || p.project_type === 'primary')
-                        .map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              {/* Removed Project Type Selector - Defaulting to Standard Project */}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -283,7 +246,7 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                 </Button>
                 <Button
                   onClick={handleCreate}
-                  disabled={!formData.name || loading}
+                  disabled={!formData.title || loading}
                   className="bg-orange-500 hover:bg-orange-600"
                 >
                   {loading ? (

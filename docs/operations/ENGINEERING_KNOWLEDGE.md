@@ -166,3 +166,19 @@
 ### [REACT-031] The "God Hook" Facade Pattern
 - **Analysis**: Refactoring a massive hook without breaking consumers.
 - **Lesson**: Use a Facade Hook to maintain API compatibility while splitting internals.
+
+### [FE-045] Form Field Name Consistency
+- **Date**: 2026-01-25
+- **Context**: `CreateProjectModal` sent `name` field but `useProjectMutations` expected `title`, causing silent project creation failure.
+- **Rule**: **Field names must match between UI and API.** Add regression tests for form payload structure.
+
+### [DND-002] Task Scope for Drag-and-Drop
+- **Date**: 2026-01-25
+- **Context**: `useTaskDrag` only received root tasks, so subtask dragging failed silently (IDs not found).
+- **Rule**: **DnD context must include ALL draggable items.** Aggregate root tasks + hydrated subtasks before passing to drag handler.
+
+### [SYNC-001] Query Key Alignment for Cache Invalidation
+- **Date**: 2026-01-25
+- **Context**: Sidebar didn't update after project creation because it used different data source than Dashboard.
+- **Rule**: **Single source of truth for entity lists.** Components showing the same data must use the same hook/query key.
+

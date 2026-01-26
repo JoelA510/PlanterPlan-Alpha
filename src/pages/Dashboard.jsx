@@ -41,6 +41,7 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
     },
   });
 
@@ -48,6 +49,7 @@ export default function Dashboard() {
     mutationFn: ({ projectId, status }) => updateProjectStatus(projectId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
     }
   });
 

@@ -1,9 +1,12 @@
 import { useCallback } from 'react';
 import { supabase } from '@app/supabaseClient';
+import { useQueryClient } from '@tanstack/react-query';
 import { deepCloneTask, deleteTask } from '@features/tasks/services/taskService';
 import { toIsoDate, recalculateProjectDates } from '@shared/lib/date-engine';
 
 export const useProjectMutations = ({ tasks, fetchTasks }) => {
+  const queryClient = useQueryClient();
+
   const createProject = useCallback(
     async (formData) => {
       try {
@@ -19,6 +22,7 @@ export const useProjectMutations = ({ tasks, fetchTasks }) => {
         const projectStartDate = toIsoDate(formData.start_date);
         if (!projectStartDate) throw new Error('A valid project start date is required');
 
+        let result;
         if (formData.templateId) {
           const { data: newTasks, error: cloneError } = await deepCloneTask(
             formData.templateId,
@@ -33,8 +37,7 @@ export const useProjectMutations = ({ tasks, fetchTasks }) => {
             }
           );
           if (cloneError) throw cloneError;
-          await fetchTasks();
-          return newTasks;
+          result = newTasks;
         } else {
           const { data, error: insertError } = await supabase
             .from('tasks')
@@ -58,15 +61,19 @@ export const useProjectMutations = ({ tasks, fetchTasks }) => {
             .select()
             .single();
           if (insertError) throw insertError;
-          await fetchTasks();
-          return data;
+          result = data;
         }
+
+        await fetchTasks();
+        // Invalidate TanStack Query cache to update other components (Sidebar, Dashboard)
+        queryClient.invalidateQueries(['userProjects']);
+        return result;
       } catch (error) {
         console.error('Error creating project:', error);
         throw error;
       }
     },
-    [tasks, fetchTasks]
+    [tasks, fetchTasks, queryClient]
   );
 
   const updateProject = useCallback(
@@ -112,13 +119,14 @@ export const useProjectMutations = ({ tasks, fetchTasks }) => {
         }
 
         await fetchTasks();
+        queryClient.invalidateQueries(['userProjects']);
         return true;
       } catch (error) {
         console.error('Error updating project:', error);
         throw error;
       }
     },
-    [fetchTasks]
+    [fetchTasks, queryClient]
   );
 
   const deleteProject = useCallback(
@@ -127,13 +135,14 @@ export const useProjectMutations = ({ tasks, fetchTasks }) => {
         const { error } = await deleteTask(projectId);
         if (error) throw error;
         await fetchTasks();
+        queryClient.invalidateQueries(['userProjects']);
         return true;
       } catch (error) {
         console.error('Error deleting project:', error);
         throw error;
       }
     },
-    [fetchTasks]
+    [fetchTasks, queryClient]
   );
 
   return {

@@ -197,7 +197,12 @@ WHERE t.origin = 'template';
 CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
 RETURNS boolean AS $$
 BEGIN
-  RETURN false; -- Default to false for Alpha
+  -- Temporary Hardcoded Admin for User Testing
+  IF auth.email() = 'timothy.cheung58@gmail.com' THEN
+    RETURN true;
+  END IF;
+  
+  RETURN false; -- Default to false for others
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
