@@ -30,21 +30,17 @@ graph LR
 ### 2. Knowledge Base Structure
 We flattened the documentation hierarchy to simplify maintenance.
 
-```mermaid
-block-beta
-    columns 1
-    db("Engineering Knowledge Base")
-    block:files
-        prod("Production Rules (Active)")
-        hist("Development Findings (History)")
-    end
-    space
-    old("Archives (2025...)")
+graph TD
+    DB[Engineering Knowledge Base]
     
-    old --> deleted((Deleted))
-    prod --> db
-    hist --> db
-```
+    subgraph Files
+        Prod[Production Rules - Active]
+        Hist[Development Findings - History]
+    end
+    
+    Old[Archives 2025...] -.->|Deleted| Bin((Trash))
+    Prod --> DB
+    Hist --> DB
 
 ---
 
