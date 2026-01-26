@@ -31,14 +31,15 @@ graph LR
 We flattened the documentation hierarchy to simplify maintenance.
 
 graph TD
-    DB[Engineering Knowledge Base]
+    DB["Engineering Knowledge Base"]
     
     subgraph Files
-        Prod[Production Rules - Active]
-        Hist[Development Findings - History]
+        Prod["Production Rules"]
+        Hist["Historical Findings"]
     end
     
-    Old[Archives 2025...] -.->|Deleted| Bin((Trash))
+    Old["Archive Files"] -.->|Deleted| Trash(("Trash"))
+    
     Prod --> DB
     Hist --> DB
 
