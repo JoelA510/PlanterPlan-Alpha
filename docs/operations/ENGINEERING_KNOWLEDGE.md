@@ -190,3 +190,8 @@
 - **Date**: 2026-01-25
 - **Context**: Main layout and dashboard cards failed to toggle to dark mode due to hardcoded `bg-white` classes and a naming mismatch in the Tailwind v4 `@theme` block (`--color-bg-background` instead of `--color-background`).
 - **Rule**: **Surfaces must be semantic.** Avoid hardcoded `bg-white` or `bg-slate-X` for structural areas. Use `--color-background` (`bg-background`) for page canvas and `--color-card` (`bg-card`) for widgets. Ensure Tailwind theme variables precisely align with their intended utility names to enable reliable dark mode inheritance.
+
+### [AUTH-001] Data-Driven Authorization via RPC
+- **Date**: 2026-01-25
+- **Context**: Hardcoded admin email lists in `ViewAsProviderWrapper.jsx` violated security best practices and prevented dynamic admin management. Initial attempt to query `admin_users` table directly caused app hangs due to schema drift.
+- **Rule**: **Never hardcode authorization checks.** Use database RPCs (e.g., `is_admin`) for role detection. Always wrap authentication enrichment in try/catch with fail-safe `setLoading(false)` to prevent infinite loading states when backend changes occur.
