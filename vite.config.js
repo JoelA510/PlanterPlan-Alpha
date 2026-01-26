@@ -27,14 +27,16 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('@radix-ui')) return 'ui';
-            if (id.includes('recharts')) return 'charts';
-            if (id.includes('framer-motion')) return 'motion';
-            if (id.includes('@supabase')) return 'supabase';
-            if (id.includes('lucide')) return 'icons';
-            return 'vendor';
-          }
+          if (!id.includes('node_modules')) return;
+
+          if (/@radix-ui/.test(id)) return 'ui';
+          if (/recharts/.test(id)) return 'charts';
+          if (/framer-motion/.test(id)) return 'motion';
+          if (/@supabase/.test(id)) return 'supabase';
+          if (/lucide/.test(id)) return 'icons';
+
+          const match = id.match(/node_modules\/([^/]+)/);
+          return match ? `vendor-${match[1].replace('@', '')}` : 'vendor';
         },
       },
     },

@@ -41,6 +41,18 @@
   --color-white-alpha-80: rgba(255, 255, 255, 0.8);
   --color-white-alpha-10: rgba(255, 255, 255, 0.1);
 
+  /* Semantic Variables used in layouts */
+  --color-foreground: #0f172a;
+  /* Slate 900 */
+  --color-text-secondary: #64748b;
+  /* Slate 500 */
+  --color-background: #f8fafc;
+  /* Slate 50 */
+  --color-brand-primary: #f97316;
+  /* Orange 500 */
+  --color-brand-primary-soft: #fff7ed;
+  /* Orange 50 */
+
   --radius-lg: 0.5rem;
   --radius-md: calc(0.5rem - 2px);
   --radius-sm: calc(0.5rem - 4px);
@@ -73,6 +85,75 @@
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    @apply dark:bg-slate-900 dark:text-slate-100;
+  }
+}
+
+/* Dark Mode Variables */
+.dark {
+  --color-primary: #fb923c;
+  --color-primary-foreground: #1e293b;
+
+  --color-secondary: #334155;
+  --color-secondary-foreground: #f8fafc;
+
+  --color-brand-50: #431407;
+  --color-brand-100: #7c2d12;
+  --color-brand-200: #9a3412;
+  --color-brand-300: #c2410c;
+  --color-brand-400: #ea580c;
+  --color-brand-500: #f97316;
+  --color-brand-600: #fb923c;
+  --color-brand-700: #fdba74;
+  --color-brand-800: #fed7aa;
+  --color-brand-900: #ffedd5;
+  --color-brand-950: #fff7ed;
+
+  --color-accent: #334155;
+  --color-accent-foreground: #f8fafc;
+
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #1e293b;
+
+  --color-muted: #334155;
+  --color-muted-foreground: #94a3b8;
+
+  --color-card: #1e293b;
+  --color-card-foreground: #f8fafc;
+
+  --color-popover: #1e293b;
+  --color-popover-foreground: #f8fafc;
+
+  --color-border: #334155;
+  --color-input: #475569;
+  --color-ring: #fb923c;
+
+  /* Semantic Variables (Dark Map) */
+  --color-foreground: #f8fafc;
+  /* Slate 50 */
+  --color-text-secondary: #94a3b8;
+  /* Slate 400 */
+  --color-background: #0f172a;
+  /* Slate 900 */
+  --color-brand-primary: #f97316;
+  /* Orange 500 */
+  --color-brand-primary-soft: #431407;
+  /* Orange 950 */
+}
+
+/* Component Classes (Extracted to reduce file size) */
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+    @apply dark:bg-brand-500 dark:hover:bg-brand-400;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-card text-card-foreground font-medium rounded-lg border border-border hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring;
+  }
+
+  .card-panel {
+    @apply bg-card text-card-foreground rounded-xl shadow-sm border border-border;
   }
 }
 

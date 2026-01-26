@@ -26,7 +26,7 @@ const JoinedProjectsList = ({ projects, error, handleTaskClick, selectedTaskId }
           ))}
         </div>
       ) : (
-        <div className="text-sm text-slate-400 px-3 py-4">
+        <div className="text-sm text-muted-foreground px-3 py-4">
           You haven&apos;t joined any projects yet.
         </div>
       )}

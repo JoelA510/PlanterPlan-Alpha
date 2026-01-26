@@ -20,8 +20,7 @@
 
 .side-nav-divider {
   height: 1px;
-  background: var(--status-todo-border);
-  /* Slate 200 equivalent */
+  background: var(--color-border);
   margin: 12px 0;
 }
 
@@ -45,10 +44,8 @@
 }
 
 .side-nav .section-title {
-  color: var(--text-secondary);
-  /* Slate 400/500 */
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
-  /* Standardized to xs */
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 700;
@@ -56,9 +53,8 @@
 }
 
 .side-nav .section-count {
-  background: var(--bg-background);
-  /* Slate 100 */
-  color: var(--text-secondary);
+  background: var(--color-bg-background);
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   padding: 2px 6px;
   border-radius: 999px;
@@ -71,24 +67,20 @@
   align-items: center;
   gap: 4px;
   background: transparent;
-  color: var(--color-action-hover);
-  /* Blue 500/600 */
-  border: 1px dashed var(--status-todo-border);
-  /* Slate 300 */
+  color: var(--color-brand-primary);
+  border: 1px dashed var(--color-border);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.75rem;
-  /* Standardized */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-new-item:hover {
-  background: var(--brand-primary-soft);
-  /* Blue 50 */
-  border-color: var(--color-action-hover);
-  color: var(--color-action-hover);
+  background: var(--color-brand-primary-soft);
+  border-color: var(--color-brand-primary);
+  color: var(--color-brand-primary);
 }
 
 /* Sidebar Navigation Item - Lightweight nav links */
@@ -101,8 +93,7 @@
   min-height: 40px;
   border-radius: 8px;
   background: transparent;
-  color: var(--text-secondary);
-  /* Slate 600 */
+  color: var(--color-text-secondary);
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -111,18 +102,14 @@
 }
 
 .sidebar-nav-item:hover {
-  background: var(--bg-background);
-  /* Slate 50 */
-  color: var(--text-primary);
-  /* Slate 900 */
+  background: var(--color-bg-background);
+  color: var(--color-text-primary);
 }
 
 .sidebar-nav-item.selected {
-  background: var(--brand-primary-soft);
-  /* Blue 50 */
-  color: var(--color-action-hover);
-  /* Blue 600 */
-  border-left-color: var(--color-action-hover);
+  background: var(--color-brand-primary-soft);
+  color: var(--color-brand-primary);
+  border-left-color: var(--color-brand-primary);
 }
 
 .sidebar-nav-item-title {

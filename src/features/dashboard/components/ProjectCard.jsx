@@ -31,14 +31,14 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
   return (
     <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
       <Link to={createPageUrl(`project/${project.id}`)}>
-        <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-orange-300 cursor-pointer group bg-white">
+        <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
                 <Icon className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg text-slate-900 group-hover:text-orange-600 transition-colors">
+                <h3 className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors">
                   {project.name}
                 </h3>
                 <Badge
@@ -49,11 +49,11 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
                 </Badge>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-brand-500 group-hover:translate-x-1 transition-all" />
           </div>
 
           {project.description && (
-            <p className="text-slate-600 text-sm mb-4 line-clamp-2">{project.description}</p>
+            <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{project.description}</p>
           )}
 
           <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-5">
@@ -79,11 +79,11 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600">Progress</span>
-              <span className="font-medium text-slate-900">{progressPercent}%</span>
+              <span className="text-muted-foreground">Progress</span>
+              <span className="font-medium text-card-foreground">{progressPercent}%</span>
             </div>
-            <Progress value={progressPercent} className="h-2 bg-slate-100" />
-            <p className="text-xs text-slate-500">
+            <Progress value={progressPercent} className="h-2 bg-muted" />
+            <p className="text-xs text-muted-foreground">
               {completedTasks} of {totalTasks} tasks completed
             </p>
           </div>

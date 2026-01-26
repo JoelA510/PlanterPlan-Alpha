@@ -18,11 +18,34 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setLoading(false);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          // Robust Check: Use is_admin RPC to handle schema drift and RLS
+          const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', {
+            p_user_id: session.user.id
+          });
+
+          if (rpcError) {
+            console.error('Error checking admin status:', rpcError);
+          }
+
+          setUser({
+            ...session.user,
+            role: isAdmin ? 'admin' : 'owner'
+          });
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Auth initialization failed:', err);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
     getSession();
@@ -31,8 +54,24 @@ export const AuthProvider = ({ children }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      try {
+        if (session?.user) {
+          const { data: isAdmin } = await supabase.rpc('is_admin', {
+            p_user_id: session.user.id
+          });
+
+          setUser({
+            ...session.user,
+            role: isAdmin ? 'admin' : 'owner'
+          });
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Auth change handling failed:', err);
+      } finally {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();

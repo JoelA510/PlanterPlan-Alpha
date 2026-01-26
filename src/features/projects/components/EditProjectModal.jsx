@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useTaskForm } from '@features/tasks/hooks/useTaskForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@shared/ui/dialog';
 import { Button } from '@shared/ui/button';
@@ -9,7 +9,8 @@ import { useProjectMutations } from '@features/projects/hooks/useProjectMutation
 import { toIsoDate } from '@shared/lib/date-engine';
 
 export default function EditProjectModal({ project, isOpen, onClose }) {
-    const { updateProject: updateProjectMutation } = useProjectMutations({
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const { updateProject: updateProjectMutation, deleteProject } = useProjectMutations({
         tasks: [],
         fetchTasks: () => window.location.reload()
     });
@@ -138,6 +139,60 @@ export default function EditProjectModal({ project, isOpen, onClose }) {
                         <Button onClick={(e) => handleSubmit(e, onSubmit)} disabled={isSubmitting}>
                             {isSubmitting ? 'Saving...' : 'Save Changes'}
                         </Button>
+                    </div>
+
+                    <div className="relative py-4">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-slate-200" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-white px-2 text-slate-500">Danger Zone</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label className="block mb-1 font-semibold text-red-800">
+                                    Delete Project
+                                </Label>
+                                <p className="text-xs text-red-700">
+                                    Permanently remove this project and all its tasks.
+                                </p>
+                            </div>
+                            {!showDeleteConfirm ? (
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                >
+                                    Delete Project
+                                </Button>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-red-700 font-medium">Are you sure?</span>
+                                    <Button
+                                        variant="outline"
+                                        size="xs"
+                                        className="h-8 text-slate-600 bg-white hover:bg-slate-50 border-red-200"
+                                        onClick={() => setShowDeleteConfirm(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="xs"
+                                        className="h-8"
+                                        onClick={async () => {
+                                            await deleteProject(project.id);
+                                            window.location.href = '/dashboard'; // Force redirect
+                                        }}
+                                    >
+                                        Yes, Delete
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </DialogContent>

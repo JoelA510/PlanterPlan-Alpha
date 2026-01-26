@@ -81,21 +81,21 @@ export default function TasksPage() {
       onDragEnd={handleDragEnd}
     >
       <DashboardLayout>
-        <div className="flex-1 flex flex-col min-w-0 bg-slate-50 h-full overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
           <div className="flex-none max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">My Tasks</h1>
-                <p className="text-slate-500 mt-1">Review and manage your assignments across all projects</p>
+                <h1 className="text-3xl font-bold text-card-foreground tracking-tight">My Tasks</h1>
+                <p className="text-muted-foreground mt-1">Review and manage your assignments across all projects</p>
               </div>
 
               {/* View Toggler */}
-              <div className="bg-slate-200 p-1 rounded-lg flex items-center space-x-1">
+              <div className="bg-muted p-1 rounded-lg flex items-center space-x-1">
                 <button
                   onClick={() => setViewMode('list')}
                   className={`p-2 rounded-md transition-all ${viewMode === 'list'
-                    ? 'bg-white shadow text-slate-900'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-card shadow text-card-foreground'
+                    : 'text-muted-foreground hover:text-card-foreground'
                     }`}
                   aria-label="List View"
                 >
@@ -104,8 +104,8 @@ export default function TasksPage() {
                 <button
                   onClick={() => setViewMode('board')}
                   className={`p-2 rounded-md transition-all ${viewMode === 'board'
-                    ? 'bg-white shadow text-slate-900'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-card shadow text-card-foreground'
+                    : 'text-muted-foreground hover:text-card-foreground'
                     }`}
                   aria-label="Board View"
                 >
@@ -118,8 +118,8 @@ export default function TasksPage() {
           <div className="flex-1 overflow-hidden">
             <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
               {myTasks.length === 0 ? (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
-                  <p className="text-slate-500">No tasks found across your projects.</p>
+                <div className="bg-card rounded-xl border border-border shadow-sm p-12 text-center">
+                  <p className="text-muted-foreground">No tasks found across your projects.</p>
                 </div>
               ) : (
                 viewMode === 'list' ? (

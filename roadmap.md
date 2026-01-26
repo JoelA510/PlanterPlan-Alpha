@@ -1,7 +1,9 @@
 # PlanterPlan Roadmap & History
 
-**Last Updated**: 2026-01-12 (Master Review & PR Fixes)
-**Current Focus**: Phase 7 (Design System Verification)
+**Last Updated**: 2026-01-26
+## Current Status
+**Phase:** Alpha (Release Candidate 1)
+**Current Focus:** Production Hardening & Documentation Completion
 
 ---
 
@@ -248,7 +250,13 @@ _Goal: System-wide visibility and admin tools._
 
 - **ID:** `P10-QUALITY-CONVERGE`
 - **Goal**: Standardize Design System (Rule 30) and Verify Golden Paths.
-- **Status**: ✅ Done (Jan 2026)
+- **Status**: ✅ Done (Jan 26, 2026) -> Feature Parity Confirmed.
+
+#### 10.5 Browser Agent Audit
+
+- **ID:** `P10-BROWSER-AUDIT`
+- **Goal**: End-to-end verification via simulated user agent.
+- **Status**: ✅ Done (Jan 26 2026) -> Dashboard & Board pass. Backend Drift noted (People).
 
 ### Phase 11: Monetization & Progression (Post-Testing)
 
@@ -324,4 +332,33 @@ _Goal: Structured progress flows and commerce._
 - [ ] Checkpoint/Unlock System -> See `P8-CHECKPOINTS`
 - [ ] Supervisor Auto-Emails
 - [ ] Strategy Template Task Type
+
+---
+
+## 4. Future Enhancements (Backlog)
+
+_Items identified during PR reviews but deferred for future sprints._
+
+### Design System
+| Item | Priority | Notes |
+|:---|:---|:---|
+| Dark Mode Support | 🔵 Medium | Requires theme provider + CSS variable duplication |
+| Figma Component Parity | 🔵 Medium | Dependent on receiving updated design specs |
+
+### Performance
+| Item | Priority | Notes |
+|:---|:---|:---|
+| List Virtualization | 🔵 Medium | Use react-window/virtuoso for task lists > 100 items |
+| DnD Large Board Optimization | 🟢 Low | Current implementation stable for typical use (< 50 tasks) |
+
+### Security & Compliance
+| Item | Priority | Notes |
+|:---|:---|:---|
+| Audit Logging | 🟢 Low | Nice-to-have for enterprise compliance |
+
+### Documentation
+| Item | Priority | Notes |
+|:---|:---|:---|
+| API Reference | 🔵 Medium | Consider auto-generation from JSDoc/TypeScript |
+
 

@@ -41,6 +41,7 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
     },
   });
 
@@ -48,6 +49,7 @@ export default function Dashboard() {
     mutationFn: ({ projectId, status }) => updateProjectStatus(projectId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
     }
   });
 
@@ -80,22 +82,22 @@ export default function Dashboard() {
           className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 flex-shrink-0"
         >
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-slate-600 mt-1">Manage your church planting projects</p>
+            <h1 className="text-3xl font-bold text-card-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Manage your church planting projects</p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-white border border-slate-200 rounded-lg p-1 flex items-center">
+            <div className="bg-card border border-border rounded-lg p-1 flex items-center">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-muted text-card-foreground' : 'text-muted-foreground hover:text-card-foreground'}`}
                 title="Grid View"
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('pipeline')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'pipeline' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'pipeline' ? 'bg-muted text-card-foreground' : 'text-muted-foreground hover:text-card-foreground'}`}
                 title="Pipeline View"
               >
                 <Kanban className="w-4 h-4" />
@@ -133,13 +135,13 @@ export default function Dashboard() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center"
+              className="bg-card rounded-2xl border border-border shadow-sm p-12 text-center"
             >
-              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <FolderKanban className="w-8 h-8 text-slate-400" />
+              <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <FolderKanban className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">No projects yet</h3>
-              <p className="text-slate-600 mb-6 max-w-sm mx-auto">
+              <h3 className="text-xl font-semibold text-card-foreground mb-2">No projects yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                 Start your church planting journey by creating your first project
               </p>
               <Button
@@ -161,7 +163,7 @@ export default function Dashboard() {
             <>
               {/* Primary Projects */}
               <div className="mb-8">
-                <h2 className="text-xl font-semibold text-slate-900 mb-4">Primary Projects</h2>
+                <h2 className="text-xl font-semibold text-card-foreground mb-4">Primary Projects</h2>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {projects
                     .filter((p) => p.project_type === 'primary' || !p.project_type)
@@ -185,7 +187,7 @@ export default function Dashboard() {
               {/* Secondary Projects */}
               {projects.filter((p) => p.project_type === 'secondary').length > 0 && (
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900 mb-4">Secondary Projects</h2>
+                  <h2 className="text-xl font-semibold text-card-foreground mb-4">Secondary Projects</h2>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {projects
                       .filter((p) => p.project_type === 'secondary')

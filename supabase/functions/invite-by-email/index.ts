@@ -36,23 +36,26 @@ serve(async (req) => {
     }
 
     // 3. Authenticate User (Authorize-Then-Escalate)
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing Authorization header');
+    const { data: { user }, error: userError } = await createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: req.headers.get('Authorization')! } },
+    }).auth.getUser();
+
+    if (userError || !user) {
+      throw new Error('Unauthorized: Invalid session');
     }
 
+    // Initialize Anon Client with Auth Header for RLS checks
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
+      global: { headers: { Authorization: req.headers.get('Authorization')! } },
     });
 
     // 4. Verify Project Permissions
-    // Must be Owner or Editor to invite
     const { data: memberData, error: memberError } = await supabaseClient
       .from('project_members')
       .select('role')
       .eq('project_id', projectId)
-      .eq('user_id', (await supabaseClient.auth.getUser()).data.user?.id) // Safe check against auth user
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
 
     if (memberError || !memberData) {
       throw new Error('Access Denied: You are not a member of this project.');

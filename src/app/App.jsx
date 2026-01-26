@@ -5,6 +5,8 @@ import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from '@shared/ui/ErrorFallback';
 import { AuthProvider, useAuth } from '@app/contexts/AuthContext';
 import { ToastProvider } from '@app/contexts/ToastContext';
+import { ThemeProvider } from '@app/contexts/ThemeContext';
+import ViewAsProviderWrapper from '@app/contexts/ViewAsProviderWrapper';
 
 // Upstream/Legacy Feature Components
 import LoginForm from '@features/auth/components/LoginForm';
@@ -26,8 +28,8 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center text-primary">Loading...</div>
       </div>
     );
   }
@@ -41,8 +43,8 @@ const AppRoutes = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center text-primary">Loading...</div>
       </div>
     );
   }
@@ -131,16 +133,22 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <div className="App">
-      <AuthProvider>
-        <ToastProvider>
-          <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>
-            <AppRoutes />
-          </ErrorBoundary>
-        </ToastProvider>
-      </AuthProvider>
+    <div className="App min-h-screen bg-background transition-colors duration-200">
+      <ThemeProvider>
+        <AuthProvider>
+          <ViewAsProviderWrapper>
+            <ToastProvider>
+              <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>
+                <AppRoutes />
+              </ErrorBoundary>
+            </ToastProvider>
+          </ViewAsProviderWrapper>
+        </AuthProvider>
+      </ThemeProvider>
     </div>
   );
 }
 
 export default App;
+
+

@@ -8,7 +8,15 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ============================================================================
--- 1. TABLES & TYPES
+-- 1. CLEANUP & INIT
+-- ============================================================================
+
+-- Remove Legacy Features (Budget & Inventory)
+DROP TABLE IF EXISTS public.budget_items CASCADE;
+DROP TABLE IF EXISTS public.assets CASCADE;
+
+-- ============================================================================
+-- 2. TABLES & TYPES
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -176,33 +184,46 @@ SELECT
     t.actions,
     t.is_complete,
     t.primary_resource_id,
-    t.resource_id,
-    t.resource_type,
-    t.resource_url,
-    t.resource_text,
-    t.storage_path,
-    t.resource_name
-FROM public.tasks_with_primary_resource t
-WHERE 
-    t.origin = 'template' 
-    AND t.parent_task_id IS NULL;
+    t.primary_resource_id as resource_id
+FROM public.tasks t
+WHERE t.origin = 'template';
 
 -- ============================================================================
 -- 3. FUNCTIONS & TRIGGERS
 -- ============================================================================
 
+-- Admin Users Table (for intentional admin assignments)
+-- Admins must be added/removed via separate SQL grants, NOT in this schema
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  granted_at timestamptz DEFAULT now(),
+  granted_by text
+);
+
+-- Enable RLS on admin_users (only admins can see other admins)
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+
 -- RLS Helper: is_admin
--- Note: Uses p_user_id to match existing DB signature
+-- Checks admin_users table - NO HARDCODED EMAILS
+-- To add an admin, run: INSERT INTO public.admin_users (user_id, email, granted_by) VALUES ('<uuid>', '<email>', 'manual');
 CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
 RETURNS boolean AS $$
 BEGIN
-  RETURN false; -- Default to false for Alpha
+  -- Check admin_users table for intentional admin grants
+  RETURN EXISTS (
+    SELECT 1 FROM public.admin_users 
+    WHERE user_id = p_user_id
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- RLS Helper: has_project_role
--- Note: Uses p_task_id to match existing DB signature
-CREATE OR REPLACE FUNCTION public.has_project_role(p_task_id uuid, p_user_id uuid, p_allowed_roles text[])
+-- Note: Uses p_project_id for clarity
+-- CRITICAL: Use CASCADE to drop dependency policies before re-defining
+DROP FUNCTION IF EXISTS public.has_project_role(uuid, uuid, text[]) CASCADE;
+
+CREATE OR REPLACE FUNCTION public.has_project_role(p_project_id uuid, p_user_id uuid, p_allowed_roles text[])
 RETURNS boolean AS $$
 DECLARE
     v_role text;
@@ -210,7 +231,7 @@ BEGIN
     -- Check Project Members table directly
     SELECT role INTO v_role 
     FROM public.project_members 
-    WHERE project_id = p_task_id 
+    WHERE project_id = p_project_id 
     AND user_id = p_user_id;
 
     -- If role exists and is in allowed list, return true
@@ -221,6 +242,131 @@ BEGIN
     RETURN false;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Clone Project Template Function
+CREATE OR REPLACE FUNCTION public.clone_project_template(
+    p_template_id uuid,
+    p_new_parent_id uuid,
+    p_new_origin text,
+    p_user_id uuid,
+    p_title text DEFAULT NULL,
+    p_description text DEFAULT NULL,
+    p_start_date timestamptz DEFAULT NULL,
+    p_due_date timestamptz DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+
+DECLARE
+    v_new_root_id uuid;
+    v_top_new_id uuid;
+    v_tasks_count int;
+BEGIN
+    -- 1. Create Temp Table for ID Mapping (Task)
+    CREATE TEMP TABLE IF NOT EXISTS temp_task_map (
+        old_id uuid PRIMARY KEY,
+        new_id uuid
+    ) ON COMMIT DROP;
+
+    -- 2. Create Temp Table for ID Mapping (Resource)
+    CREATE TEMP TABLE IF NOT EXISTS temp_res_map (
+        old_id uuid PRIMARY KEY,
+        new_id uuid
+    ) ON COMMIT DROP;
+
+    -- 3. Identify all tasks in the subtree
+    WITH RECURSIVE subtree AS (
+        SELECT id FROM public.tasks WHERE id = p_template_id
+        UNION ALL
+        SELECT t.id FROM public.tasks t JOIN subtree s ON t.parent_task_id = s.id
+    )
+    INSERT INTO temp_task_map (old_id, new_id)
+    SELECT id, gen_random_uuid() FROM subtree;
+
+    -- Capture new ID of the top node
+    SELECT new_id INTO v_top_new_id FROM temp_task_map WHERE old_id = p_template_id;
+    
+    -- 4. Determine Root ID
+    -- If we have a parent, inherit its root. If not, the new top node is the root.
+    IF p_new_parent_id IS NULL THEN
+        v_new_root_id := v_top_new_id;
+    ELSE
+        SELECT root_id INTO v_new_root_id FROM public.tasks WHERE id = p_new_parent_id;
+        IF v_new_root_id IS NULL THEN
+             RAISE EXCEPTION 'Parent task % has no root_id', p_new_parent_id;
+        END IF;
+    END IF;
+
+    -- 5. Insert New Tasks
+    INSERT INTO public.tasks (
+        id, parent_task_id, root_id, creator, origin, 
+        title, description, status, position, 
+        notes, purpose, actions, is_complete, days_from_start, start_date, due_date
+    )
+    SELECT 
+        m.new_id, 
+        CASE 
+            WHEN t.id = p_template_id THEN p_new_parent_id -- Top node gets new parent
+            ELSE mp.new_id  -- Others get mapped parent
+        END,
+        v_new_root_id,
+        p_user_id,
+        p_new_origin,
+        -- Override Title/Desc for Root if provided
+        CASE WHEN t.id = p_template_id AND p_title IS NOT NULL THEN p_title ELSE t.title END,
+        CASE WHEN t.id = p_template_id AND p_description IS NOT NULL THEN p_description ELSE t.description END,
+        t.status, t.position,
+        t.notes, t.purpose, t.actions, false, t.days_from_start, 
+        -- Set Dates for Root if provided
+        CASE WHEN t.id = p_template_id THEN p_start_date ELSE null END,
+        CASE WHEN t.id = p_template_id THEN p_due_date ELSE null END
+    FROM public.tasks t
+    JOIN temp_task_map m ON t.id = m.old_id
+    LEFT JOIN temp_task_map mp ON t.parent_task_id = mp.old_id;
+
+    -- 6. Identify Resources to clone
+    INSERT INTO temp_res_map (old_id, new_id)
+    SELECT r.id, gen_random_uuid()
+    FROM public.task_resources r
+    JOIN temp_task_map tm ON r.task_id = tm.old_id;
+
+    -- 7. Insert New Resources
+    INSERT INTO public.task_resources (
+        id, task_id, resource_type, resource_url, resource_text, storage_path, storage_bucket
+    )
+    SELECT 
+        rm.new_id,
+        tm.new_id,
+        r.resource_type, r.resource_url, r.resource_text, r.storage_path, r.storage_bucket
+    FROM public.task_resources r
+    JOIN temp_res_map rm ON r.id = rm.old_id
+    JOIN temp_task_map tm ON r.task_id = tm.old_id;
+
+    -- 8. Update Primary Resource Pointers on New Tasks
+    UPDATE public.tasks t
+    SET primary_resource_id = rm.new_id
+    FROM public.tasks original
+    JOIN temp_task_map tm ON original.id = tm.old_id
+    JOIN temp_res_map rm ON original.primary_resource_id = rm.old_id
+    WHERE t.id = tm.new_id;
+
+    -- 9. Return result
+    SELECT COUNT(*) INTO v_tasks_count FROM temp_task_map;
+
+    RETURN jsonb_build_object(
+        'new_root_id', v_top_new_id,
+        'root_project_id', v_new_root_id,
+        'tasks_cloned', v_tasks_count
+    );
+END;
+$$;
+
+-- Grant permissions for clone function
+GRANT EXECUTE ON FUNCTION public.clone_project_template(uuid, uuid, text, uuid, text, text, timestamptz, timestamptz) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.clone_project_template(uuid, uuid, text, uuid, text, text, timestamptz, timestamptz) TO service_role;
 
 -- Invite User RPC
 CREATE OR REPLACE FUNCTION public.invite_user_to_project(
@@ -329,10 +475,20 @@ FOR INSERT WITH CHECK (
 );
 
 DROP POLICY IF EXISTS "Enable update for users" ON public.tasks;
-CREATE POLICY "Enable update for users" ON public.tasks FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable update for users" ON public.tasks 
+FOR UPDATE USING (
+    creator = auth.uid()
+    OR 
+    public.has_project_role(COALESCE(root_id, id), auth.uid(), ARRAY['owner', 'editor'])
+);
 
 DROP POLICY IF EXISTS "Enable delete for users" ON public.tasks;
-CREATE POLICY "Enable delete for users" ON public.tasks FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable delete for users" ON public.tasks 
+FOR DELETE USING (
+    creator = auth.uid()
+    OR 
+    public.has_project_role(COALESCE(root_id, id), auth.uid(), ARRAY['owner', 'editor'])
+);
 
 -- PROJECT MEMBERS Policies
 ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
