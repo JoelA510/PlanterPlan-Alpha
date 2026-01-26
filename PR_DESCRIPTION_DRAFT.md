@@ -14,9 +14,9 @@ This Pull Request finalizes the Design System migration, fixes critical bugs ide
     - `CreateProjectModal.test.jsx`: 8 tests covering field mapping, template selection, UI state
     - `useTaskBoard.test.jsx`: 5 tests verifying DnD aggregation and expansion state
 
-3.  **Design System Hardening**: Refactored UI components to use semantic tokens, eliminated legacy CSS.
+3.  **Design System Hardening**: Refactored major UI components (`Dashboard`, `TasksPage`, `ProjectCard`, `TaskDetailsView`) to use semantic tokens. Resolves the "sticky" light background issue by standardizing on `bg-background` and `bg-card`.
 
-4.  **Knowledge Consolidation**: Added 3 new entries to `ENGINEERING_KNOWLEDGE.md` documenting the bugs and prevention rules.
+4.  **Knowledge Consolidation**: Added 4 new entries to `ENGINEERING_KNOWLEDGE.md` documenting the bugs and prevention rules (including UI-025 for theme consistency).
 
 ---
 
@@ -126,7 +126,11 @@ graph LR
 
 ### 1. Dark Mode 🌙
 
-Full dark mode support with system preference sync and localStorage persistence.
+Full dark mode support with system preference sync, localStorage persistence, and semantic surface standardization.
+
+#### Technical Resolution (UI-025)
+- **Root Cause Fix**: Corrected variable naming in `globals.css` (renamed `--color-bg-background` to `--color-background`) to align with Tailwind v4 utility expectations.
+- **Surface Standardization**: Eliminated hardcoded `bg-white` in project cards, task lists, and modals, replacing them with `bg-card` for consistent theme inheritance.
 
 | Component | Description |
 | :--- | :--- |
