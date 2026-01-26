@@ -12,6 +12,7 @@ import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@layouts/DashboardLayout';
 import TaskDetailsPanel from '@features/tasks/components/TaskDetailsPanel';
 import EmptyProjectState from '@features/tasks/components/EmptyProjectState';
+import StatusCard from '@shared/ui/StatusCard';
 
 // Hooks & Utils
 import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
@@ -169,11 +170,12 @@ const TaskList = () => {
   if (error) {
     return (
       <DashboardLayout sidebar={sidebarContent}>
-        <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 max-w-2xl mx-auto mt-8">
-          <div className="flex items-center">
-            <div className="text-rose-600 font-semibold">Error loading projects</div>
-          </div>
-          <div className="text-rose-700 text-sm mt-1">{error}</div>
+        <div className="mt-8 mx-auto max-w-2xl">
+          <StatusCard
+            title="Error loading projects"
+            description={error}
+            variant="error"
+          />
         </div>
       </DashboardLayout>
     );

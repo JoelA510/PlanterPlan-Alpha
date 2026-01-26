@@ -21,7 +21,7 @@ Update discipline:
 # PlanterPlan (Alpha)
 
 **Status**: Alpha (Refactoring Phase)
-**Last Verified**: 2026-01-25 (Context & Security Hardening)
+**Last Verified**: 2026-01-26 (Design System Hardening)
 **Maintained By**: Antigravity Agent
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
@@ -43,12 +43,11 @@ The codebase uses a modified **Feature-Sliced Design (FSD)** to enable Agentic r
 src/
 ├── app/            # Global wiring (App.jsx, providers, router)
 ├── features/       # Business domains
-│   ├── onboarding/ # [NEW] Wizard & Checklist
-│   ├── tasks/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   └── services/
-│   └── projects/
+├── tasks/
+│   ├── components/
+│   ├── hooks/
+│   └── services/
+└── projects/
 ├── shared/         # Reusable code with NO business logic
 │   ├── lib/        # Pure functions (date-engine, formatters)
 │   └── ui/         # Dumb components (Button, Modal)
@@ -204,7 +203,7 @@ flowchart LR
 
 ### 5.3 Technical Debt (Brutal Honesty)
 
-- **Debt Cleanup Phase Completed** (2026-01-11):
-  - `window.confirm` replaced with proper UI.
-  - Colors constants standardized.
-  - Layout architecture verified.
+- **Debt Cleanup Phase Completed** (2026-01-26):
+  - `budget` and `inventory` features deprecated and removed.
+  - Design component migration verified.
+  - `task-card.css` consolidated into Tailwind.

@@ -17,34 +17,38 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       label: 'Total Projects',
       value: totalProjects,
       icon: FolderKanban,
-      color: 'from-indigo-500 to-indigo-600',
-      bgColor: 'bg-indigo-50',
-      textColor: 'text-indigo-600',
+      // Design System: Primary/Brand
+      bgColor: 'bg-brand-50',
+      textColor: 'text-brand-600',
+      borderColor: 'hover:border-brand-200',
     },
     {
       label: 'Completed Tasks',
       value: completedTasks,
       icon: CheckCircle2,
-      color: 'from-green-500 to-green-600',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-600',
+      // Design System: Success
+      bgColor: 'bg-emerald-50',
+      textColor: 'text-emerald-600',
+      borderColor: 'hover:border-emerald-200',
       suffix: `/ ${totalTasks}`,
     },
     {
       label: 'Pending Tasks',
       value: pendingTasks,
       icon: Clock,
-      color: 'from-orange-500 to-orange-600',
-      bgColor: 'bg-orange-50',
-      textColor: 'text-orange-600',
+      // Design System: Warning/Pending
+      bgColor: 'bg-amber-50',
+      textColor: 'text-amber-600',
+      borderColor: 'hover:border-amber-200',
     },
     {
       label: 'Team Members',
       value: teamMembers.length,
       icon: Users,
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600',
+      // Design System: Secondary/Accent
+      bgColor: 'bg-slate-100',
+      textColor: 'text-slate-600',
+      borderColor: 'hover:border-slate-300',
     },
   ];
 
@@ -57,7 +61,9 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
         >
-          <Card className="p-5 border border-slate-200 bg-white hover:shadow-md hover:border-orange-200 transition-all duration-300">
+          <Card
+            className={`p-5 border border-slate-200 bg-white shadow-sm transition-all duration-300 ${stat.borderColor} hover:shadow-md`}
+          >
             <div className="flex items-center gap-4">
               <div
                 className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center`}

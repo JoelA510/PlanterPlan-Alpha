@@ -1,18 +1,164 @@
 # Engineering Knowledge Base
 
-## [CONTEXT-001] Context Size Management
-**Tags:** #context #ai #refactor
-**Date:** 2026-01-25
-**Context & Problem**: Project context size exceeded window limits due to large backup files (`seed_recovery.sql`: 188KB) and unoptimized builds.
-**Solution & Pattern**:
-1.  **Archive**: Move non-essential files to `archive/` and `.gitignore` them.
-2.  **Tree-shaking**: Use named imports for heavy libraries like `recharts`.
-3.  **UI Unification**: Consolidate patterns into generic components (`StatusCard`).
-**Critical Rule**: Always check `git ls-files | xargs wc -l` and bundle size before adding assets.
+**Purpose**: This living document captures hard-won lessons, architectural decisions, and recurrent pitfalls.
+**Usage**: Check this files before estimating complex tasks or refactoring core services.
 
-## [SECURITY-002] RLS Function Security
-**Tags:** #rls #supabase #security
-**Date:** 2026-01-25
-**Context & Problem**: RLS policies using `auth.uid()` directly in complex queries can be bypassed.
-**Solution & Pattern**: Use strict `SECURITY DEFINER` functions with fixed `search_path` (e.g., `has_project_role`).
-**Critical Rule**: Never trust `public` functions in RLS policies.
+## Production Findings (Active Rules & Patterns)
+
+### [ARC-013] Context Provider Hierarchy
+- **Context**: Users experienced infinite loops/stale auth due to incorrect provider nesting.
+- **Rule**: **Respect the Data Dependency Chain.** Order: `Auth` -> `Router` -> `Organization` -> `Task`.
+
+### [ARC-034] Date Calculation Ownership
+- **Context**: Confusion between client-side relative logic and server-side absolute logic.
+- **Rule**: Client owns `days_from_start` (Business Logic). Database owns `parent rollup` (Triggers) and `cloning` (RPC).
+
+### [BACKEND-003] Database Schema Drift
+- **Context**: Browser verified failed because `public.people` was missing in DB despite being in `schema.sql`.
+- **Rule**: `schema.sql` is a document, not state. Always sync with `supabase db push` and verify.
+
+### [CSS-036] Recharts Zero-Height Bug in Grid
+- **Context**: Charts vanished in Grid layouts.
+- **Rule**: `ResponsiveContainer` requires a parent with measurable dimensions (explicit width/height or flex constraints).
+
+### [CSS-039] Full Screen Dashboard Layout Strategy
+- **Context**: Double scrollbars plague dashboards.
+- **Rule**: Lock root to `h-screen w-screen overflow-hidden flex`. Scroll content areas `flex-1 overflow-y-auto`, not the body.
+
+### [CONTEXT-001] Context Size Management
+- **Context**: Large backup files blew up AI context window.
+- **Rule**: Archive non-essentials. Use named imports. Check `git ls-files | xargs wc -l` before committing assets.
+
+### [DB-001] RLS Recursion & The `root_id` Optimization
+- **Context**: Recursive RLS policies caused infinite loops and crashes.
+- **Rule**: **Never write recursive RLS.** Denormalize hierarchy identifiers (`root_id`) to the row to allow flat lookups.
+
+### [DB-007] Trigger Idempotency
+- **Context**: Triggers refiring on unchanged rows wasted cycles.
+- **Rule**: **Triggers should be lazy.** Exit early if `NEW.value = OLD.value`. Trust user-provided IDs on INSERT if valid.
+
+### [DB-014] RLS Silent Filtering
+- **Context**: API returned 0 results with no error because RLS filtered rows due to missing scope params.
+- **Rule**: **RLS is Silent.** If result is empty, check if you are passing the required filtering context (Org ID) that RLS expects.
+
+### [DB-015] PL/pgSQL Ambiguous Column References
+- **Context**: `root_id` variable collided with `root_id` column, causing ambiguity errors.
+- **Rule**: **Hungarian Notation is MANDATORY.** Prefix variables (`v_root_id`) to distinguish from columns (`t.root_id`).
+
+### [DB-026] Recursion Depth Guard
+- **Context**: Cascading date updates caused stack overflows.
+- **Rule**: Use `IF pg_trigger_depth() > 10` to guard against infinite trigger loops.
+
+### [DB-027] Edge Function Auth Schema Access (PGRST106)
+- **Context**: Edge functions couldn't check if email exists because `auth` schema is hidden from REST.
+- **Rule**: Use a `SECURITY DEFINER` RPC to strictly expose necessary auth checks. Do not query `auth.users` directly.
+
+### [DX-012] Zero-Tolerance Linting
+- **Context**: Warnings accumulated, hiding real bugs.
+- **Rule**: Enforce `max-warnings=0` in CI/Commit hooks. Fix warnings immediately.
+
+### [FE-004] Date Recalculation Loops (React)
+- **Context**: Bidirectional parent-child date syncing caused React loops.
+- **Rule**: **Avoid Reflexive Date Logic.** Separate "Push" (Parent moves Child) from "Pull" (Child expands Parent) into distinct effects or atomic updates.
+
+### [FE-005] Recursive Component Performance
+- **Context**: Deep trees lagged during Drag-and-Drop.
+- **Rule**: **Isolate Drop Zones.** Do not use a single global sortable context. Each parent manages its own children's sorting.
+
+### [FE-011/DATE-002] UTC Date Normalization
+- **Context**: Dates shifted by 1 day due to timezone differences.
+- **Rule**: **Dates are Data.** Normalize to UTC Midnight (`T00:00:00.000Z`) immediately on input. Force UTC context on display.
+
+### [PERF-025] Timezone Safety in Date Utils
+- **Context**: `new Date('YYYY-MM-DD')` is unstable across browsers.
+- **Rule**: **String-First Approach.** Work with `YYYY-MM-DD` strings directly where possible.
+
+### [REACT-032] Controlled Tree Expansion (Race Conditions)
+- **Context**: Async fetches wiped out local toggle state.
+- **Rule**: Decouple state mutation from async handlers. Use `useEffect` to merge "UI Config" into "Data Model" synchronously.
+
+### [RPC-020] Atomic Deep Cloning
+- **Context**: Client-side cloning was flaky and slow.
+- **Rule**: **Transactions belong in the DB.** Use Postgres RPC for multi-step write operations like deep cloning.
+
+### [SEC-002/043] RLS Function Security & Recursion
+- **Context**: Public RLS functions and recursion holes.
+- **Rule**: **Never trust public functions in RLS.** Use `SECURITY DEFINER` with fixed `search_path`. Never make an RLS function query the table it protects.
+
+### [SEC-023] Project Membership Initialization
+- **Context**: Creators verified as "non-members" because membership row wasn't created yet.
+- **Rule**: **Creators must be members.** Explicitly insert into `project_members` in the same transaction/flow as project creation.
+
+### [SEC-024] Explicit Role Checking
+- **Context**: String matching `"admin"` was insecure.
+- **Rule**: **No Magic Strings.** Use `ROLES` constants. Strict equality only.
+
+### [SVC-002] Deep Clone "Race Condition"
+- **Context**: Parallel inserts failed FK constraints.
+- **Rule**: **Topological Sort.** Insert Parents -> Children. Pre-allocate IDs in memory to build graph before writing.
+
+### [SVC-006] Cancellable Search Requests
+- **Context**: Fast typing caused stale search results to overwrite new ones.
+- **Rule**: **Abort Stale Requests.** Use `AbortController` for all "type-ahead" mechanisms.
+
+### [SVC-037] Service Response Destructuring
+- **Context**: Services wrapping Supabase return `{ data, error }`, not `data`.
+- **Rule**: Always destructure service responses. Do not assume array return types.
+
+### [UI-003] User-Scoped Drag and Drop
+- **Context**: Global position updates corrupted other users' data.
+- **Rule**: **Scope strictly.** Positioning logic must always filter by `owner_id` or `project_id`.
+
+### [UI-016] Optimistic Rollback Strategy
+- **Context**: Failed drag operations triggered full reloads.
+- **Rule**: **Snap Back.** On failure, revert local state via variable capture. Do not re-fetch unless necessary.
+
+### [UI-017] Atomic Design & Elevation
+- **Context**: Inconsistent shadows and styles.
+- **Rule**: Use strict Atomic hierarchy (Atoms -> Molecules -> Organisms). Use global `--elevation-N` variables.
+
+### [UI-018] Brand Identity System
+- **Context**: Generic colors.
+- **Rule**: **Use Variables.** Never hardcode hex. Use `brand-primary`, `brand-500` tokens.
+
+### [UI-022] Modal Portals
+- **Context**: Modals clipped by `overflow: hidden` parents.
+- **Rule**: **Portal to Body.** Always render modals outside the DOM hierarchy using `createPortal`.
+
+### [UI-038] URL-Driven Sidebar Navigation
+- **Context**: Deep links didn't update navigation state.
+- **Rule**: Sync UI state with URL params (`useParams`) in a `useEffect`.
+
+## Development Findings (Historical Context & Deprecated Patterns)
+
+### [CSS-028/030] Manual Tailwind Emulation Pitfalls
+- **Analysis**: We used to emulate Tailwind in a manual CSS file. Missing classes caused silent failures.
+- **Lesson**: If emulating a framework, audit missing classes rigorously. Ideally, migrate to real Tailwind (Done).
+
+### [DB-004] Migration Consolidation
+- **Analysis**: Migrations were fragmented. Consolidated into single snapshots.
+- **Lesson**: Consolidate periodically. Use `IF EXISTS`.
+
+### [DB-008] Ambiguous Column References in Seeds
+- **Analysis**: Joins on `id` failed in seed scripts.
+- **Lesson**: **Always alias tables** in complex queries (`p.id` not `id`).
+
+### [DB-035] Migration Safety via Conditional Logic
+- **Analysis**: Setup scripts crashed on fresh installs.
+- **Lesson**: Wrap destructive logic (`DROP COLUMN`) in checks for existence.
+
+### [ENV-010] Local Dev Port Selection
+- **Analysis**: Dev server picking random ports broke Auth/CORS.
+- **Lesson**: Enforce port 3000. Fail fast if occupied.
+
+### [FE-019] Recursive Tree Expansion State (Legacy)
+- **Analysis**: Prop instability caused whole-tree re-renders.
+- **Lesson**: Merged visual state into data model. (Superseded by REACT-032).
+
+### [FE-021] Hook Extraction for Complex Components
+- **Analysis**: `TaskList` became a God Component.
+- **Lesson**: Split by **Concern** (Drag vs Data vs Logic), not just by UI component.
+
+### [REACT-031] The "God Hook" Facade Pattern
+- **Analysis**: Refactoring a massive hook without breaking consumers.
+- **Lesson**: Use a Facade Hook to maintain API compatibility while splitting internals.

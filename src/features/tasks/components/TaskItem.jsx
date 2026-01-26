@@ -4,7 +4,7 @@ import RoleIndicator from '@shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
-import '../../../styles/components/task-card.css';
+import { cn } from '@shared/lib/utils';
 import ErrorBoundary from '@shared/ui/ErrorBoundary';
 import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
 import TaskStatusSelect from './TaskStatusSelect';
@@ -35,6 +35,16 @@ const TaskItem = memo(
     const isExpanded = !!task.isExpanded;
     const showChevron = !hideExpansion && canHaveChildren && (hasChildren || forceShowChevron);
 
+    // Dnd-kit droppable
+    const { setNodeRef: setDroppableNodeRef } = useDroppable({
+      id: `child-context-${task.id}`,
+      data: {
+        type: 'container',
+        parentId: task.id,
+        origin: task.origin,
+      },
+    });
+
     const handleCardClick = useCallback(
       (e) => {
         if (
@@ -61,29 +71,34 @@ const TaskItem = memo(
       [onToggleExpand, task, isExpanded]
     );
 
-    const { setNodeRef: setDroppableNodeRef } = useDroppable({
-      id: `child-context-${task.id}`,
-      data: {
-        type: 'container',
-        parentId: task.id,
-        origin: task.origin,
-      },
-    });
-
     const isLocked = task.is_locked || false;
 
     return (
       <>
         <div
-          className={`task-card level-${level} ${isSelected ? 'selected' : ''} py-4 px-5 mb-3 ${isLocked ? 'opacity-70 bg-slate-50' : ''}`}
+          className={cn(
+            'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
+            'bg-card text-card-foreground', // Default card styles
+            isSelected
+              ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-100'
+              : 'border-border hover:border-brand-300',
+            isLocked && 'opacity-70 bg-slate-50',
+            level === 0 && 'border-l-4 border-l-brand-600'
+          )}
           style={{ marginLeft: `${indentWidth}px` }}
           onClick={!isLocked ? handleCardClick : undefined}
         >
-          <div className="task-card-content">
-            <div className="task-card-left flex-1 min-w-0 mr-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* LEFT SIDE: Drag Handle, Expand, Info */}
+            <div className="flex-1 flex items-center min-w-0 overflow-hidden">
               {!disableDrag && (
                 <button
-                  className={`drag-handle-btn mr-2 ${isLocked ? 'cursor-not-allowed opacity-30' : ''}`}
+                  className={cn(
+                    'mr-2 p-1 rounded transition-colors flex-shrink-0',
+                    isLocked
+                      ? 'cursor-not-allowed opacity-30 text-slate-400'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                  )}
                   type="button"
                   aria-label="Reorder task"
                   ref={!isLocked ? dragHandleProps?.ref : undefined}
@@ -91,9 +106,9 @@ const TaskItem = memo(
                   disabled={isLocked}
                 >
                   {isLocked ? (
-                    <Lock className="w-3 h-3 text-slate-400" />
+                    <Lock className="w-3 h-3" />
                   ) : (
-                    <GripVertical className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                    <GripVertical className="w-4 h-4" />
                   )}
                 </button>
               )}
@@ -101,11 +116,14 @@ const TaskItem = memo(
               {showChevron ? (
                 <button
                   onClick={handleToggleExpandClick}
-                  className="expand-button p-2 -m-2 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors visible min-w-8 min-h-8"
+                  className="expand-button p-1 mr-2 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors flex-shrink-0"
                   aria-label={isExpanded ? 'Collapse' : 'Expand'}
                 >
                   <svg
-                    className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
+                    className={cn(
+                      'transition-transform duration-200',
+                      isExpanded ? 'rotate-90' : ''
+                    )}
                     width="16"
                     height="16"
                     viewBox="0 0 24 24"
@@ -119,18 +137,18 @@ const TaskItem = memo(
                   </svg>
                 </button>
               ) : (
-                <div className="expand-spacer"></div>
+                <div className="w-6 mr-2 flex-shrink-0"></div>
               )}
 
-              <div className="task-info flex items-center gap-3 flex-1 min-w-0 mr-4">
+              <div className="flex items-center gap-3 min-w-0 overflow-hidden">
                 <span
-                  className="task-title font-medium text-slate-800 text-sm line-clamp-2"
+                  className="font-medium text-slate-700 text-sm truncate"
                   title={task.title}
                 >
                   {task.title}
                 </span>
                 {task.duration && (
-                  <span className="task-duration text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 whitespace-nowrap flex-shrink-0">
+                  <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 whitespace-nowrap flex-shrink-0">
                     {task.duration}
                   </span>
                 )}
@@ -143,7 +161,8 @@ const TaskItem = memo(
               </div>
             </div>
 
-            <div className="task-card-right">
+            {/* RIGHT SIDE: Role, Status, Controls */}
+            <div className="flex items-center gap-3 flex-shrink-0">
               {task.membership_role && <RoleIndicator role={task.membership_role} />}
 
               <TaskStatusSelect
@@ -165,7 +184,7 @@ const TaskItem = memo(
         </div>
 
         {canHaveChildren && isExpanded && (
-          <div className="task-children" ref={setDroppableNodeRef}>
+          <div className="pl-0" ref={setDroppableNodeRef}>
             <SortableContext
               items={task.children ? task.children.map((c) => c.id) : []}
               strategy={verticalListSortingStrategy}
@@ -219,14 +238,18 @@ export const SortableTaskItem = memo(function SortableTaskItem({ task, level, ..
     opacity: isDragging ? 0.8 : 1,
     position: 'relative',
     zIndex: isDragging ? 999 : 'auto',
-    boxShadow: isDragging
-      ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' // equivalent to shadow-xl
-      : 'none',
     scale: isDragging ? 1.02 : 1,
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="sortable-task-wrapper">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'transition-shadow duration-200',
+        isDragging && 'shadow-xl rounded-xl z-50'
+      )}
+    >
       <ErrorBoundary name={`Task-${task.id}`}>
         <TaskItem
           task={task}

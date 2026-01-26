@@ -184,20 +184,9 @@ SELECT
     t.actions,
     t.is_complete,
     t.primary_resource_id,
-    t.resource_id,
--- ============================================================================
--- 1. CLEANUP & INIT
--- ============================================================================
-
--- Remove Legacy Features (Budget & Inventory)
-DROP TABLE IF EXISTS public.budget_items CASCADE;
-DROP TABLE IF EXISTS public.assets CASCADE;
-
--- ----------------------------------------------------------------------------
--- TABLES & TYPES
--- ----------------------------------------------------------------------------
-
--- [The rest of the table definitions are fine, resuming from Functions section]
+    t.primary_resource_id as resource_id
+FROM public.tasks t
+WHERE t.origin = 'instance' OR t.origin = 'template';
 
 -- ============================================================================
 -- 3. FUNCTIONS & TRIGGERS
