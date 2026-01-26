@@ -186,7 +186,7 @@ SELECT
     t.primary_resource_id,
     t.primary_resource_id as resource_id
 FROM public.tasks t
-WHERE t.origin = 'instance' OR t.origin = 'template';
+WHERE t.origin = 'template';
 
 -- ============================================================================
 -- 3. FUNCTIONS & TRIGGERS
