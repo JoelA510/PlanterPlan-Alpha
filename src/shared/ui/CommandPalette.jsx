@@ -1,14 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Calculator,
-    Calendar,
-    CreditCard,
-    Settings,
-    Smile,
-    User,
     LayoutDashboard,
-    FolderOpen
+    FolderOpen,
+    Settings,
+    User
 } from 'lucide-react';
 
 import {

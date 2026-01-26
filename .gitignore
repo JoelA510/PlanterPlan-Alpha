@@ -49,3 +49,5 @@ code_review_draft.md
 
 # Temporary Lint Logs
 lint_errors*.txt
+archive/db/seed_recovery.sql
+archive/scripts/recover_db.js
