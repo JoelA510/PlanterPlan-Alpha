@@ -167,6 +167,25 @@ export const updateTaskPosition = async (taskId, newPosition, parentId = undefin
 };
 
 /**
+ * Delete a task.
+ * CAUTION: If this is a Project (root task), this will cascade delete ALL subtasks.
+ */
+export const deleteTask = async (taskId, client = supabase) => {
+  try {
+    const { error } = await client
+      .from('tasks')
+      .delete()
+      .eq('id', taskId);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('[taskService.deleteTask] Error:', error);
+    return { error };
+  }
+};
+
+/**
  * Recursively updates a parent task's dates based on its children.
  * Bottom-Up Aggregation.
  */

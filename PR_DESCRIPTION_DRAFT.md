@@ -8,6 +8,8 @@ This Pull Request finalizes the Design System migration (removing legacy CSS and
 2.  **Schema Repair**: Fixed a syntax error in `view_master_library` (copy-paste artifact) and provided the SQL fix for the missing `public.people` table in Development environments.
 3.  **Knowledge Consolidation**: Merged all archive files into a single `ENGINEERING_KNOWLEDGE.md`, categorized by "Production Rules" and "Historical Context" to prevent documentation rot.
 4.  **Verification**: Validated "Golden Paths" (Dashboard, Board, Navigation) via automated browser checks.
+5.  **Project Management**: Added **Delete Project** functionality ("Danger Zone" in Settings) with cascading deletion assurance.
+6.  **UI/UX Improvements**: Implemented **Sticky Project Header** and dynamic **Breadcrumbs**, removing redundant navigation links.
 
 ---
 
@@ -64,6 +66,11 @@ graph TD
 - **StatsOverview**: Refactored to accept `color="brand" | "success" | "warning"` instead of raw classes. Mapped internally to `bg-brand-50`, etc.
 - **TaskItem**: Removed specific `task-card.css` dependency. Now pure Tailwind.
 - **Index.css**: Cleaned up imports.
+
+### Project Management & UX
+- **Delete Logic**: Added `deleteTask` to `taskService.js`; exposed via `useProjectMutations`. Added Danger Zone UI to `EditProjectModal`.
+- **Sticky Header**: Applied `sticky top-16` to `ProjectHeader` for improved scroll experience.
+- **Nav Cleanup**: Refactored `Header.jsx` to strip static "Home/Dashboard" buttons in favor of contextual Breadcrumbs.
 
 ### Database (Backend)
 - **Schema Fix**: Detected and fixed a syntax error in `docs/db/schema.sql` (lines 188-200) where a cleanup script was misplaced inside a View definition.

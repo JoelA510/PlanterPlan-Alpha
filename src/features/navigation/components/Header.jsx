@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@shared/lib/utils';
 import { Button } from '@shared/ui/button';
 import {
@@ -9,26 +9,28 @@ import {
   DropdownMenuTrigger,
 } from '@shared/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@shared/ui/avatar';
-import { CheckCircle2, Home, LayoutDashboard, User, Settings, LogOut, Menu } from 'lucide-react';
+import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight } from 'lucide-react';
 import { planter } from '@shared/api/planterClient';
 import { useUser } from '@features/auth/hooks/useUser';
 
 export default function Header({ onMenuToggle, showMenuButton = false }) {
   const { data: user } = useUser();
+  const location = useLocation();
+
+  // Simple Breadcrumb Logic
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const currentSection = pathSegments[0]
+    ? pathSegments[0].charAt(0).toUpperCase() + pathSegments[0].slice(1)
+    : 'Home';
 
   const handleLogout = async () => {
     await planter.auth.signOut();
-    window.location.reload(); // Simple reload to clear state/redirect
+    window.location.reload();
   };
 
   const getInitials = (name) => {
     if (!name) return 'U';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   return (
@@ -42,28 +44,24 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
               </Button>
             )}
 
-            <Link to={createPageUrl('Home')} className="flex items-center gap-2">
+            <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2">
               <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm">
                 <CheckCircle2 className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-slate-900 text-lg">PlanterPlan</span>
+              <span className="font-bold text-slate-900 text-lg hidden sm:block">PlanterPlan</span>
             </Link>
+
+            {/* Breadcrumb Separator for Context */}
+            {user && (
+              <div className="hidden md:flex items-center gap-2 ml-2 text-slate-400">
+                <ChevronRight className="w-4 h-4" />
+                <span className="font-medium text-slate-600">{currentSection}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            <Link to={createPageUrl('Home')}>
-              <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
-                <Home className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Home</span>
-              </Button>
-            </Link>
-
-            <Link to={createPageUrl('Dashboard')}>
-              <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
-                <LayoutDashboard className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </Button>
-            </Link>
+            {/* Redundant Links Removed */}
 
             {user && (
               <DropdownMenu>

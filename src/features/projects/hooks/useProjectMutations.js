@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@app/supabaseClient';
-import { deepCloneTask } from '@features/tasks/services/taskService';
+import { deepCloneTask, deleteTask } from '@features/tasks/services/taskService';
 import { toIsoDate, recalculateProjectDates } from '@shared/lib/date-engine';
 
 export const useProjectMutations = ({ tasks, fetchTasks }) => {
@@ -121,8 +121,24 @@ export const useProjectMutations = ({ tasks, fetchTasks }) => {
     [fetchTasks]
   );
 
+  const deleteProject = useCallback(
+    async (projectId) => {
+      try {
+        const { error } = await deleteTask(projectId);
+        if (error) throw error;
+        await fetchTasks();
+        return true;
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        throw error;
+      }
+    },
+    [fetchTasks]
+  );
+
   return {
     createProject,
-    updateProject
+    updateProject,
+    deleteProject
   };
 };

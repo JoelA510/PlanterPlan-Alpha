@@ -48,7 +48,7 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border-b border-slate-200"
+      className="bg-white border-b border-slate-200 sticky top-16 z-40 transition-all shadow-sm"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center gap-4 mb-6">
