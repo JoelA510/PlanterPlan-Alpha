@@ -10,29 +10,18 @@ import { ViewAsProvider } from '@app/contexts/ViewAsContext';
 import { ROLES } from '@app/constants/index';
 
 /**
- * Known admin emails (from schema.sql admin function)
- * In production, this should come from user metadata or a database query.
- */
-const ADMIN_EMAILS = [
-    'joel@namb.net',
-    'joela510@gmail.com',
-    'timothy.cheung58@gmail.com',
-];
-
-/**
  * Determines user's global role for View-As purposes.
  * Falls back to VIEWER if not authenticated.
  */
 function getUserGlobalRole(user) {
     if (!user) return ROLES.VIEWER;
 
-    // Check if user is a global admin
-    if (ADMIN_EMAILS.includes(user.email)) {
+    // Check if user has admin role (now enriched by AuthContext from DB)
+    if (user.role === ROLES.ADMIN) {
         return ROLES.ADMIN;
     }
 
     // Default to OWNER for authenticated users (they own their own projects)
-    // In a more sophisticated system, this could check user_metadata
     return ROLES.OWNER;
 }
 
