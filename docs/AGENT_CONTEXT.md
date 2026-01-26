@@ -6,7 +6,7 @@
 
 - **`src/features/`**: Domain-specific logic (Business Logic).
   - Structure: `components/`, `hooks/`, `services/`, `index.js` (public API).
-  - Key Domains: `projects`, `tasks`, `people`, `inventory`, `budget`, `auth`.
+  - Key Domains: `projects`, `tasks`, `people`, `auth`.
 - **`src/pages/`**: Top-level Route Views (Page Composition).
   - *Note*: Pages should primarily compose features, not contain deep logic.
 - **`src/shared/`**: Universal utilities and UI (No Business Logic).

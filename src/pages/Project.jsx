@@ -18,10 +18,10 @@ import {
 
 import ProjectHeader from '@features/projects/components/ProjectHeader';
 import ProjectTabs from '@features/projects/components/ProjectTabs';
-import BudgetWidget from '@features/budget/components/BudgetWidget';
+
 import { useProjectData } from '@features/projects/hooks/useProjectData';
 import PeopleList from '@features/people/components/PeopleList';
-import AssetList from '@features/inventory/components/AssetList';
+
 import DashboardLayout from '@layouts/DashboardLayout';
 import PhaseCard from '@features/projects/components/PhaseCard';
 import MilestoneSection from '@features/projects/components/MilestoneSection';
@@ -282,17 +282,9 @@ export default function Project() {
             <PeopleList projectId={projectId} />
           )}
 
-          {/* Budget Tab */}
-          {activeTab === 'budget' && (
-            <div className="max-w-xl">
-              <BudgetWidget projectId={projectId} />
-            </div>
-          )}
 
-          {/* Assets Tab */}
-          {activeTab === 'assets' && (
-            <AssetList projectId={projectId} />
-          )}
+
+
         </div>
 
         {/* Drag Overlay for feedback */}
