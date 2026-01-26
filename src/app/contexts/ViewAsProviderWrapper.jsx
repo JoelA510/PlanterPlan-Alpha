@@ -15,7 +15,8 @@ import { ROLES } from '@app/constants/index';
  */
 const ADMIN_EMAILS = [
     'joel@namb.net',
-    // Add other admin emails as needed
+    'joela510@gmail.com',
+    'timothy.cheung58@gmail.com',
 ];
 
 /**

@@ -192,17 +192,29 @@ WHERE t.origin = 'template';
 -- 3. FUNCTIONS & TRIGGERS
 -- ============================================================================
 
+-- Admin Users Table (for intentional admin assignments)
+-- Admins must be added/removed via separate SQL grants, NOT in this schema
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  granted_at timestamptz DEFAULT now(),
+  granted_by text
+);
+
+-- Enable RLS on admin_users (only admins can see other admins)
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+
 -- RLS Helper: is_admin
--- Note: Uses p_user_id to match existing DB signature
+-- Checks admin_users table - NO HARDCODED EMAILS
+-- To add an admin, run: INSERT INTO public.admin_users (user_id, email, granted_by) VALUES ('<uuid>', '<email>', 'manual');
 CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
 RETURNS boolean AS $$
 BEGIN
-  -- Temporary Hardcoded Admin for User Testing
-  IF auth.email() = 'timothy.cheung58@gmail.com' THEN
-    RETURN true;
-  END IF;
-  
-  RETURN false; -- Default to false for others
+  -- Check admin_users table for intentional admin grants
+  RETURN EXISTS (
+    SELECT 1 FROM public.admin_users 
+    WHERE user_id = p_user_id
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
