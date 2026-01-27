@@ -41,8 +41,8 @@ notion.md
 supabase/.temp/
 
 # Recovery & One-time Scripts
-docs/db/seed_recovery.sql
-scripts/recover_db.js
+*seed_recovery.sql
+*recover_db.js
 feedback.md
 code_review_draft.md
 

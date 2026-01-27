@@ -19,31 +19,31 @@ export default function GettingStartedWidget({ project, teamMembers, onDismiss }
     const progress = (completedCount / steps.length) * 100;
 
     return (
-        <Card className="p-6 border-orange-100 bg-orange-50/50 mb-8">
+        <Card className="p-6 border-brand-100 dark:border-brand-900 bg-brand-50/30 dark:bg-brand-950/20 mb-8">
             <div className="flex items-start justify-between mb-4">
                 <div>
-                    <h3 className="text-lg font-bold text-slate-900">Getting Started</h3>
-                    <p className="text-sm text-slate-600">Complete these steps to set up your project for success.</p>
+                    <h3 className="text-lg font-bold text-card-foreground">Getting Started</h3>
+                    <p className="text-sm text-muted-foreground">Complete these steps to set up your project for success.</p>
                 </div>
                 <div className="text-right">
-                    <span className="text-sm font-bold text-orange-600">{Math.round(progress)}%</span>
+                    <span className="text-sm font-bold text-brand-600 dark:text-brand-400">{Math.round(progress)}%</span>
                 </div>
             </div>
 
-            <Progress value={progress} className="h-2 bg-orange-100 mb-6" indicatorClassName="bg-orange-500" />
+            <Progress value={progress} className="h-2 bg-brand-100 dark:bg-brand-950/40 mb-6" indicatorClassName="bg-brand-500" />
 
             <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {steps.map((step, idx) => (
-                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg border ${step.completed ? 'bg-white border-slate-100' : 'bg-white/50 border-orange-200'}`}>
+                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg border ${step.completed ? 'bg-card border-border shadow-sm' : 'bg-brand-50/50 dark:bg-brand-900/10 border-brand-200 dark:border-brand-800'}`}>
                         {step.completed ? (
                             <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                         ) : (
-                            <Circle className="w-5 h-5 text-orange-300 flex-shrink-0" />
+                            <Circle className="w-5 h-5 text-brand-300 dark:text-brand-700 flex-shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
-                            <div className={`text-sm font-medium ${step.completed ? 'text-slate-700' : 'text-slate-900'}`}>{step.label}</div>
+                            <div className={`text-sm font-medium ${step.completed ? 'text-muted-foreground' : 'text-card-foreground'}`}>{step.label}</div>
                             {!step.completed && step.link && (
-                                <Link to={step.link} className="text-xs text-orange-600 hover:underline flex items-center mt-1">
+                                <Link to={step.link} className="text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center mt-1">
                                     {step.action} <ArrowRight className="w-3 h-3 ml-1" />
                                 </Link>
                             )}

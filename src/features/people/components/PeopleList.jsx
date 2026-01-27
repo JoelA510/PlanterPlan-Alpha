@@ -16,7 +16,7 @@ import {
 } from '@shared/ui/dropdown-menu';
 
 const STATUS_OPTS = {
-    'New': 'bg-blue-100 text-blue-700',
+    'New': 'bg-brand-100 text-brand-700',
     'Contacted': 'bg-indigo-100 text-indigo-700',
     'Meeting Scheduled': 'bg-purple-100 text-purple-700',
     'Joined': 'bg-emerald-100 text-emerald-700',
@@ -102,13 +102,13 @@ export default function PeopleList({ projectId }) {
                         aria-label="Search people"
                     />
                 </div>
-                <Button onClick={() => { setEditingPerson(null); setIsAddModalOpen(true); }} className="bg-brand-600 hover:bg-brand-700 text-white">
+                <Button onClick={() => { setEditingPerson(null); setIsAddModalOpen(true); }}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Person
                 </Button>
             </div>
 
-            <Card className="overflow-hidden border border-slate-200 shadow-sm">
+            <Card className="overflow-hidden">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                         <tr>

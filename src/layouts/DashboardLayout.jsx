@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '@shared/lib/utils';
 import Header from '@features/navigation/components/Header';
 import ProjectSidebarContainer from '@features/navigation/components/ProjectSidebarContainer';
 import { CommandPalette } from '@shared/ui/CommandPalette';
@@ -12,12 +13,15 @@ export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
   const { projects } = useUserProjects(user?.id);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <CommandPalette projects={projects || []} />
       <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} showMenuButton={true} />
 
       <div
-        className={`fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-slate-200 z-40 transition-transform duration-300 lg:translate-x-0 shadow-lg lg:shadow-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={cn(
+          'fixed top-16 left-0 bottom-0 w-64 bg-card border-r border-border z-40 transition-transform duration-300 lg:translate-x-0 shadow-lg lg:shadow-none',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
       >
         {sidebar ? (
           // If custom sidebar passed (e.g. ProjectSidebar with logic), render it
@@ -33,7 +37,7 @@ export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
       {/* Mobile Overlay for Sidebar */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/50 dark:bg-black/60 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}

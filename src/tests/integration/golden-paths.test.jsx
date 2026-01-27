@@ -127,6 +127,8 @@ const mockTasks = [
 // --- Helper: Render with Providers ---
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@app/contexts/ThemeContext';
+import { ViewAsProvider } from '@app/contexts/ViewAsContext';
 
 const renderWithProviders = (ui, { route = '/', user = mockUser, ...renderOptions } = {}) => {
   const mockAuthContext = {
@@ -146,17 +148,21 @@ const renderWithProviders = (ui, { route = '/', user = mockUser, ...renderOption
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={mockAuthContext}>
-        <ToastProvider>
-          <MemoryRouter initialEntries={[route]}>
-            <Routes>
-              <Route path="/" element={<TaskList />} />
-              <Route path="/project/:projectId" element={<TaskList />} />
-              <Route path="/reports" element={<Reports />} />
-            </Routes>
-          </MemoryRouter>
-        </ToastProvider>
-      </AuthContext.Provider>
+      <ThemeProvider>
+        <AuthContext.Provider value={mockAuthContext}>
+          <ViewAsProvider userRole={ROLES.ADMIN}>
+            <ToastProvider>
+              <MemoryRouter initialEntries={[route]}>
+                <Routes>
+                  <Route path="/" element={<TaskList />} />
+                  <Route path="/project/:projectId" element={<TaskList />} />
+                  <Route path="/reports" element={<Reports />} />
+                </Routes>
+              </MemoryRouter>
+            </ToastProvider>
+          </ViewAsProvider>
+        </AuthContext.Provider>
+      </ThemeProvider>
     </QueryClientProvider>,
     renderOptions
   );

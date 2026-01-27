@@ -184,31 +184,37 @@ SELECT
     t.actions,
     t.is_complete,
     t.primary_resource_id,
-    t.resource_id,
--- ============================================================================
--- 1. CLEANUP & INIT
--- ============================================================================
-
--- Remove Legacy Features (Budget & Inventory)
-DROP TABLE IF EXISTS public.budget_items CASCADE;
-DROP TABLE IF EXISTS public.assets CASCADE;
-
--- ----------------------------------------------------------------------------
--- TABLES & TYPES
--- ----------------------------------------------------------------------------
-
--- [The rest of the table definitions are fine, resuming from Functions section]
+    t.primary_resource_id as resource_id
+FROM public.tasks t
+WHERE t.origin = 'template';
 
 -- ============================================================================
 -- 3. FUNCTIONS & TRIGGERS
 -- ============================================================================
 
+-- Admin Users Table (for intentional admin assignments)
+-- Admins must be added/removed via separate SQL grants, NOT in this schema
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  granted_at timestamptz DEFAULT now(),
+  granted_by text
+);
+
+-- Enable RLS on admin_users (only admins can see other admins)
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+
 -- RLS Helper: is_admin
--- Note: Uses p_user_id to match existing DB signature
+-- Checks admin_users table - NO HARDCODED EMAILS
+-- To add an admin, run: INSERT INTO public.admin_users (user_id, email, granted_by) VALUES ('<uuid>', '<email>', 'manual');
 CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
 RETURNS boolean AS $$
 BEGIN
-  RETURN false; -- Default to false for Alpha
+  -- Check admin_users table for intentional admin grants
+  RETURN EXISTS (
+    SELECT 1 FROM public.admin_users 
+    WHERE user_id = p_user_id
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

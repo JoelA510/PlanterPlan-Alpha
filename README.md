@@ -21,7 +21,7 @@ Update discipline:
 # PlanterPlan (Alpha)
 
 **Status**: Alpha (Refactoring Phase)
-**Last Verified**: 2026-01-25 (Context & Security Hardening)
+**Last Verified**: 2026-01-26 (Design System Hardening)
 **Maintained By**: Antigravity Agent
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
@@ -43,12 +43,11 @@ The codebase uses a modified **Feature-Sliced Design (FSD)** to enable Agentic r
 src/
 ├── app/            # Global wiring (App.jsx, providers, router)
 ├── features/       # Business domains
-│   ├── onboarding/ # [NEW] Wizard & Checklist
-│   ├── tasks/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   └── services/
-│   └── projects/
+├── tasks/
+│   ├── components/
+│   ├── hooks/
+│   └── services/
+└── projects/
 ├── shared/         # Reusable code with NO business logic
 │   ├── lib/        # Pure functions (date-engine, formatters)
 │   └── ui/         # Dumb components (Button, Modal)
@@ -69,6 +68,40 @@ src/
 ### Quick Start
 
 To set up the project locally, please refer to the **[Local Development Guide](./docs/operations/local_development.md)**.
+
+### Quick Usage Examples
+
+Common operations for contributors:
+
+```bash
+# Run development server
+npm run dev
+
+# Run all tests
+npm test
+
+# Run specific test file
+npm test -- --run src/features/tasks/hooks/useTaskBoard.test.jsx
+
+# Lint code
+npm run lint
+```
+
+**Creating a project programmatically** (via hook):
+```javascript
+// In a React component
+import { useProjectMutations } from '@features/projects/hooks/useProjectMutations';
+
+const { createProject } = useProjectMutations();
+await createProject({ title: 'New Church Plant', templateId: 'launch_large' });
+```
+
+**Fetching project tasks** (via service):
+```javascript
+import { fetchTaskChildren } from '@features/tasks/services/taskService';
+
+const { data: tasks } = await fetchTaskChildren(projectId);
+```
 
 ### External dependencies
 
@@ -195,6 +228,10 @@ flowchart LR
 - ✅ **People/CRM Lite**: Manage team members, roles, and statuses via specialized `PeopleList` view (Ref: `peopleService.js`).
 - ✅ **Checkpoints**: Gated phases requiring completion of previous phase to unlock (Ref: `PhaseCard.jsx`).
 - ✅ **Mobile Field Mode**: Quick-action FAB and "Today's Agenda" for on-the-go focus.
+- ✅ **Dark Mode 🌙**: System sync + persistent toggle (Ref: [ThemeContext.jsx](./src/app/contexts/ThemeContext.jsx)).
+- ✅ **List Virtualization ⚡**: Smooth scrolling for projects with 50+ tasks (Ref: [ProjectListView.jsx](./src/features/tasks/components/ProjectListView.jsx)).
+- ✅ **View-As Switcher 👁️**: Admin preview mode for role testing (Ref: [ViewAsContext.jsx](./src/app/contexts/ViewAsContext.jsx)).
+
 
 
 ### 5.2 Known Limitations
@@ -204,7 +241,7 @@ flowchart LR
 
 ### 5.3 Technical Debt (Brutal Honesty)
 
-- **Debt Cleanup Phase Completed** (2026-01-11):
-  - `window.confirm` replaced with proper UI.
-  - Colors constants standardized.
-  - Layout architecture verified.
+- **Debt Cleanup Phase Completed** (2026-01-26):
+  - `budget` and `inventory` features deprecated and removed.
+  - Design component migration verified.
+  - `task-card.css` consolidated into Tailwind.

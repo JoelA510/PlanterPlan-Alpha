@@ -35,7 +35,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
             );
             window.location.href = `mailto:?subject=${subject}&body=${body}`;
           }}
-          className="flex-1 py-3 px-4 bg-white border border-slate-200 text-slate-600 rounded-lg shadow-sm hover:bg-slate-50 hover:shadow-md transition-all font-medium text-sm"
+          className="flex-1 py-3 px-4 bg-card border border-border text-card-foreground rounded-lg shadow-sm hover:bg-muted hover:shadow-md transition-all font-medium text-sm"
         >
           Email Task
         </button>
@@ -43,7 +43,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           <button
             type="button"
             onClick={() => onEditTask(task)}
-            className="flex-1 py-3 px-4 bg-white border border-brand-200 text-brand-600 rounded-lg shadow-sm hover:bg-brand-50 hover:shadow-md transition-all font-medium text-sm"
+            className="flex-1 py-3 px-4 bg-card border border-brand-200 dark:border-brand-900 text-brand-600 rounded-lg shadow-sm hover:bg-brand-50 dark:hover:bg-brand-950/30 hover:shadow-md transition-all font-medium text-sm"
           >
             Edit Task
           </button>
@@ -52,7 +52,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           <button
             type="button"
             onClick={() => onDeleteTask(task)}
-            className="flex-1 py-3 px-4 bg-white border border-rose-200 text-rose-600 rounded-lg shadow-sm hover:bg-rose-50 hover:shadow-md transition-all font-medium text-sm"
+            className="flex-1 py-3 px-4 bg-card border border-rose-200 dark:border-rose-900 text-rose-600 rounded-lg shadow-sm hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:shadow-md transition-all font-medium text-sm"
           >
             Delete Task
           </button>
@@ -67,7 +67,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
               Type
             </span>
             <span
-              className={`task-type-badge inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border ${task.origin === 'instance' ? 'bg-brand-50 text-brand-700 border-brand-100' : 'bg-slate-100 text-slate-600 border-slate-200'}`}
+              className={`task-type-badge inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border ${task.origin === 'instance' ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border-brand-100 dark:border-brand-800' : 'bg-muted text-muted-foreground border-border'}`}
             >
               {task.origin === 'instance' ? 'Project Task' : 'Template'}
             </span>
@@ -113,12 +113,12 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       <div className="h-px bg-slate-100 my-4"></div>
 
       {isLocked ? (
-        <div className="p-8 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl my-6">
-          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        <div className="p-8 text-center bg-muted/30 border-2 border-dashed border-border rounded-xl my-6">
+          <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-2">Premium Content Locked</h3>
-          <p className="text-slate-600 mb-6 max-w-sm mx-auto">
+          <h3 className="text-lg font-bold text-card-foreground mb-2">Premium Content Locked</h3>
+          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
             This content is part of the Premium PlanterPlan curriculum. Upgrade to unlock full access to detailed guides, resources, and templates.
           </p>
           <button className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm transition-colors">
@@ -190,19 +190,19 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       <div className="detail-section mb-6">
         <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Schedule</h3>
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
-            <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+          <div className="p-4 bg-card border border-border rounded-lg shadow-sm flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
               Start Date
             </span>
-            <span className="text-sm font-bold text-slate-800 tracking-tight">
+            <span className="text-sm font-bold text-card-foreground tracking-tight">
               {formatDisplayDate(task.start_date)}
             </span>
           </div>
-          <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col gap-1">
-            <span className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+          <div className="p-4 bg-card border border-border rounded-lg shadow-sm flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
               Due Date
             </span>
-            <span className="text-sm font-bold text-slate-800 tracking-tight">
+            <span className="text-sm font-bold text-card-foreground tracking-tight">
               {formatDisplayDate(task.due_date)}
             </span>
           </div>
@@ -220,16 +220,13 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Subtasks</h3>
           <div className="space-y-2">
             {task.children.map((child) => (
-              <div key={child.id} className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm flex items-center justify-between">
+              <div key={child.id} className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${child.is_complete ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
-                  <span className={`text-sm font-medium ${child.is_complete ? 'text-slate-500 line-through' : 'text-slate-700'}`}>
+                  <span className={`text-sm font-medium ${child.is_complete ? 'text-muted-foreground line-through' : 'text-card-foreground'}`}>
                     {child.title}
                   </span>
                 </div>
-                {/* Reuse onEditTask to open child details if needed, or recursive details? 
-                      For now just basic display. 
-                  */}
               </div>
             ))}
           </div>

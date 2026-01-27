@@ -49,11 +49,11 @@ export default function AddTaskModal({ open, onClose, onAdd, milestone, parentTa
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto bg-card text-card-foreground">
         <DialogHeader>
           <DialogTitle>Add {parentTask ? 'Subtask' : 'Task'}</DialogTitle>
-          {milestone && !parentTask && <p className="text-sm text-slate-500">Adding to: {milestone.title || milestone.name}</p>}
-          {parentTask && <p className="text-sm text-slate-500">Subtask of: {parentTask.title}</p>}
+          {milestone && !parentTask && <p className="text-sm text-muted-foreground">Adding to: {milestone.title || milestone.name}</p>}
+          {parentTask && <p className="text-sm text-muted-foreground">Subtask of: {parentTask.title}</p>}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-4">

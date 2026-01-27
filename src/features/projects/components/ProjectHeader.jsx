@@ -48,7 +48,7 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border-b border-slate-200"
+      className="bg-card border-b border-border sticky top-16 z-40 transition-all shadow-sm"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center gap-4 mb-6">
@@ -63,20 +63,20 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-slate-900">{project.name}</h1>
+                <h1 className="text-2xl font-bold text-card-foreground">{project.name}</h1>
                 <Badge className={statusColors[project.status]}>
                   {project.status?.replace('_', ' ')}
                 </Badge>
               </div>
-              {project.description && <p className="text-slate-600 mt-1">{project.description}</p>}
+              {project.description && <p className="text-muted-foreground mt-1">{project.description}</p>}
             </div>
           </div>
 
           <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}>
-              <Search className="w-4 h-4 mr-2 text-slate-400" />
+              <Search className="w-4 h-4 mr-2 text-muted-foreground" />
               <span className="lg:hidden">Search</span>
-              <span className="hidden lg:inline text-slate-400 text-xs">⌘K</span>
+              <span className="hidden lg:inline text-muted-foreground text-xs">⌘K</span>
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setIsEditModalOpen(true)}>
               <Settings className="w-4 h-4 mr-2" />
@@ -138,8 +138,8 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
           </div>
 
           <div className="flex-1 flex items-center gap-3 min-w-52 max-w-md ml-auto">
-            <Progress value={progress} className="h-2 flex-1 bg-slate-100" />
-            <span className="text-sm font-medium text-slate-700 whitespace-nowrap">
+            <Progress value={progress} className="h-2 flex-1 bg-muted" />
+            <span className="text-sm font-medium text-card-foreground whitespace-nowrap">
               {progress}% complete
             </span>
           </div>
@@ -197,7 +197,7 @@ function DraggableAvatar({ member }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-white bg-slate-200 text-xs font-medium text-slate-600 cursor-grab active:cursor-grabbing hover:z-10 transition-transform ${isDragging ? 'opacity-50 z-50' : ''}`}
+      className={`relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground cursor-grab active:cursor-grabbing hover:z-10 transition-transform ${isDragging ? 'opacity-50 z-50' : ''}`}
       title={`Drag to assign ${displayName}`}
     >
       {member.avatar_url ? (

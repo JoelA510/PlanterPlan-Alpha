@@ -5,6 +5,10 @@ import { AuthContext } from '@app/contexts/AuthContext';
 import { ToastProvider } from '@app/contexts/ToastContext';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@app/contexts/ThemeContext';
+import { ViewAsProvider } from '@app/contexts/ViewAsContext';
+import { ROLES } from '@app/constants/index';
+
 
 // --- Mocks ---
 vi.mock('@app/supabaseClient', () => ({
@@ -26,18 +30,24 @@ global.ResizeObserver = class ResizeObserver {
     disconnect() { }
 };
 
+
 // --- Helper: Render ---
 const renderWithProviders = (ui) => {
+
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const mockUser = { id: 'user-123' };
 
     return render(
         <QueryClientProvider client={queryClient}>
-            <AuthContext.Provider value={{ user: mockUser }}>
-                <ToastProvider>
-                    <MemoryRouter>{ui}</MemoryRouter>
-                </ToastProvider>
-            </AuthContext.Provider>
+            <ThemeProvider>
+                <AuthContext.Provider value={{ user: mockUser }}>
+                    <ViewAsProvider userRole={ROLES.ADMIN}>
+                        <ToastProvider>
+                            <MemoryRouter>{ui}</MemoryRouter>
+                        </ToastProvider>
+                    </ViewAsProvider>
+                </AuthContext.Provider>
+            </ThemeProvider>
         </QueryClientProvider>
     );
 };

@@ -28,7 +28,7 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => 
         <div className="flex items-center">
           {/* Clone Button (Visible on Hover) */}
           <button
-            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-brand-600 transition-all mr-2"
+            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded text-muted-foreground hover:text-brand-600 dark:hover:text-brand-400 transition-all mr-2"
             onClick={(e) => {
               e.preventDefault(); // Prevent navigation
               e.stopPropagation();

@@ -18,9 +18,9 @@ export default function TaskDetailsModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0 gap-0">
-                <DialogHeader className="px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
-                    <DialogTitle className="text-lg font-bold text-slate-800 leading-snug pr-8">
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0 gap-0 bg-card text-card-foreground">
+                <DialogHeader className="px-6 py-4 border-b border-border sticky top-0 bg-card z-10">
+                    <DialogTitle className="text-lg font-bold text-card-foreground leading-snug pr-8">
                         {freshTask.title}
                     </DialogTitle>
                 </DialogHeader>

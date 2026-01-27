@@ -1,20 +1,55 @@
 import { useNavigate } from 'react-router-dom';
 import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
+import { useUserProjects } from '@features/projects/hooks/useUserProjects';
+import { useAuth } from '@app/contexts/AuthContext';
 import ProjectSidebar from './ProjectSidebar';
 
 export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) {
     const navigate = useNavigate();
+    const { projects: userProjects, isLoading: projectsLoading } = useUserProjects();
     const {
-        joinedProjects = [],
-        instanceTasks = [],
+        joinedProjects = [], // Note: useUserProjects includes joined projects if mapped correctly, but let's check.
+        // useUserProjects returns an array of ALL projects (owned + joined).
+        // Check ProjectSidebar prop types.
+
+        // calculated instanceTasks from useTaskOperations (Manual) - REPLACING with userProjects
         templateTasks = [],
-        loading,
+        loading: tasksLoading,
         error,
         joinedError,
         loadMoreProjects,
         hasMore,
         isFetchingMore,
     } = useTaskOperations();
+
+    // useUserProjects returns ALL projects (owned + joined).
+    // ProjectSidebar expects `instanceTasks` (Owned) and `joinedProjects` (Joined) SEPARATELY?
+    // Let's check ProjectSidebar.jsx again.
+    // It renders InstanceList (instanceTasks) then JoinedProjectsList (joinedProjects).
+    // If useUserProjects returns ALL, we need to split them if we want to maintain the UI distinction.
+    // useUserProjects maps them into a single Map to dedup.
+    // Implementation:
+    // const { data: owned } = await getUserProjects(user.id);
+    // const { data: joined } = await getJoinedProjects(user.id);
+    // return Array.from(projectMap.values());
+
+    // So userProjects is a MIXED list.
+    // ProjectSidebar might need refactoring if it expects split.
+    // Or we filter here.
+    // We need currentUserId to filter 'owned' vs 'joined'.
+    // useTaskOperations exposes currentUserId!
+
+    // But wait, useUserProjects is cleaner. 
+    // If I use userProjects, I need to know which are owned vs joined.
+    // Project objects have `creator` (owner_id).
+    // I can filter userProjects by `creator === user.id`.
+
+
+    const { user } = useAuth(); // Need user for filtering
+
+    // Split userProjects into Owned and Joined
+    const ownedProjects = userProjects?.filter(p => p.creator === user?.id) || [];
+    const joinedProjs = userProjects?.filter(p => p.creator !== user?.id) || [];
 
     const handleSelectProject = (project) => {
         navigate(`/project/${project.id}`);
@@ -32,10 +67,14 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) 
 
     return (
         <ProjectSidebar
-            joinedProjects={joinedProjects}
-            instanceTasks={instanceTasks}
+            // Use TanStack Query data (synced with Dashboard)
+            instanceTasks={ownedProjects}
+            joinedProjects={joinedProjs}
+
+            // Keep templates from legacy hook for now (or move to Tanstack later)
             templateTasks={templateTasks}
-            loading={loading}
+
+            loading={projectsLoading || tasksLoading}
             error={error}
             joinedError={joinedError}
             handleSelectProject={handleSelectProject}

@@ -1,22 +1,22 @@
+import { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
+import { Virtuoso } from 'react-virtuoso';
 import TaskItem, { SortableTaskItem } from '@features/tasks/components/TaskItem';
+
+/**
+ * Threshold for enabling virtualization.
+ * Below this, DnD works normally. Above this, we virtualize for performance.
+ */
+const VIRTUALIZATION_THRESHOLD = 50;
 
 const ProjectListView = ({
     project,
     childrenTasks,
     taskItemProps,
     disableDrag,
-
 }) => {
-    // We can use useDroppable here locally if we want the "droppable container" to be the list view itself
-    // But ProjectBoardView will have its own droppables (columns).
-    // The parent ProjectTasksView used useDroppable for the whole project ID. 
-    // Let's keep the droppable logic inside the specific views if possible, or pass the ref down.
-    // In the original code, useDroppable was on ProjectTasksView.
-    // Ideally, ProjectListView is the droppable container for "List Mode".
-
     const { setNodeRef: listDropRef } = useDroppable({
         id: `project-view-${project.id}-list`,
         data: {
@@ -28,6 +28,41 @@ const ProjectListView = ({
         disabled: disableDrag,
     });
 
+    // Virtuoso item renderer
+    const renderItem = useCallback((index) => {
+        const task = childrenTasks[index];
+        if (!task) return null;
+
+        if (disableDrag) {
+            return <TaskItem key={task.id} task={task} level={0} {...taskItemProps} />;
+        }
+        return <SortableTaskItem key={task.id} task={task} level={0} {...taskItemProps} />;
+    }, [childrenTasks, disableDrag, taskItemProps]);
+
+    const shouldVirtualize = childrenTasks.length > VIRTUALIZATION_THRESHOLD;
+
+    // For very large lists, use virtualization (but note: DnD may not work well)
+    if (shouldVirtualize && disableDrag) {
+        return (
+            <div ref={listDropRef} className="task-cards-container h-full">
+                <Virtuoso
+                    style={{ height: '100%' }}
+                    totalCount={childrenTasks.length}
+                    itemContent={renderItem}
+                    className="space-y-2"
+                    components={{
+                        Item: ({ children, ...props }) => (
+                            <div {...props} className="mb-2">
+                                {children}
+                            </div>
+                        ),
+                    }}
+                />
+            </div>
+        );
+    }
+
+    // Standard rendering for smaller lists or when DnD is enabled
     if (disableDrag) {
         return (
             <div ref={listDropRef} className="task-cards-container space-y-2">
@@ -61,3 +96,4 @@ ProjectListView.propTypes = {
 };
 
 export default ProjectListView;
+

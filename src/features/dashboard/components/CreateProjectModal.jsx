@@ -53,19 +53,17 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     description: '',
     template: '',
     launch_date: null,
     location: '',
     status: PROJECT_STATUS.PLANNING,
-    project_type: 'primary',
-    parent_project_id: null,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
-    queryFn: () => planter.entities.Project.list(), // UPDATED
+    queryFn: () => planter.entities.Project.list(),
     enabled: open,
   });
 
@@ -76,18 +74,28 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
 
   const handleCreate = async () => {
     setLoading(true);
-    await onCreate(formData);
+    // Ensure we map template -> templateId if needed by mutations, 
+    // but useProjectMutations uses 'templateId' from formData.
+    // The previous code had `template: templateId`. 
+    // Let's ensure we pass `templateId: formData.template` to the onCreate prop if it expects generic object,
+    // OR just rely on formData having `template` and the hook mapping it.
+    // Looking at useProjectMutations: if (formData.templateId) ...
+    // So we need to ensure we pass templateId.
+
+    await onCreate({
+      ...formData,
+      templateId: formData.template // Explicit mapping
+    });
+
     setLoading(false);
     setStep(1);
     setFormData({
-      name: '',
+      title: '',
       description: '',
       template: '',
       launch_date: null,
       location: '',
       status: PROJECT_STATUS.PLANNING,
-      project_type: 'primary',
-      parent_project_id: null,
     });
     onClose();
   };
@@ -99,12 +107,12 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg bg-card text-card-foreground">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {step === 1 ? 'Choose a Template' : 'Project Details'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-muted-foreground">
             {step === 1
               ? 'Select a template that fits your church planting vision'
               : 'Fill in the details for your new project'}
@@ -125,19 +133,19 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                   key={template.id}
                   onClick={() => handleTemplateSelect(template.id)}
                   className={cn(
-                    'flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left bg-white group',
-                    'hover:border-orange-300 hover:bg-orange-50/50 hover:shadow-md cursor-pointer',
+                    'flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left bg-card group',
+                    'hover:border-brand-300 hover:bg-brand-50/50 dark:hover:bg-brand-900/20 hover:shadow-md cursor-pointer',
                     formData.template === template.id
-                      ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500/20'
-                      : 'border-slate-200'
+                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/40 ring-1 ring-brand-500/20'
+                      : 'border-border'
                   )}
                 >
                   <div
                     className={cn(
                       'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
                       formData.template === template.id
-                        ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-md shadow-orange-500/20 scale-110'
-                        : 'bg-slate-100 group-hover:bg-orange-100 group-hover:scale-105'
+                        ? 'bg-gradient-to-br from-brand-500 to-brand-600 shadow-md shadow-brand-500/20 scale-110'
+                        : 'bg-muted group-hover:bg-brand-100 dark:group-hover:bg-brand-900/50 group-hover:scale-105'
                     )}
                   >
                     <template.icon
@@ -145,13 +153,13 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                         'w-6 h-6',
                         formData.template === template.id
                           ? 'text-white'
-                          : 'text-slate-600 group-hover:text-orange-600'
+                          : 'text-muted-foreground group-hover:text-brand-600 dark:group-hover:text-brand-400'
                       )}
                     />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900">{template.name}</h4>
-                    <p className="text-sm text-slate-500">{template.description}</p>
+                    <h4 className="font-semibold text-card-foreground">{template.name}</h4>
+                    <p className="text-sm text-muted-foreground">{template.description}</p>
                   </div>
                   {
                     formData.template === template.id && (
@@ -170,12 +178,12 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
               className="grid gap-5 py-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="name">Project Name *</Label>
+                <Label htmlFor="title">Project Name *</Label>
                 <Input
-                  id="name"
+                  id="title"
                   placeholder="e.g., Grace Community Church"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="h-11"
                 />
               </div>
@@ -191,52 +199,7 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Project Type</Label>
-                <Select
-                  value={formData.project_type}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      project_type: value,
-                      parent_project_id: value === 'primary' ? null : formData.parent_project_id,
-                    })
-                  }
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="primary">Primary Project</SelectItem>
-                    <SelectItem value="secondary">Secondary Project</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.project_type === 'secondary' && (
-                <div className="space-y-2">
-                  <Label>Parent Project</Label>
-                  <Select
-                    value={formData.parent_project_id || ''}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, parent_project_id: value })
-                    }
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Select parent project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects
-                        .filter((p) => !p.project_type || p.project_type === 'primary')
-                        .map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              {/* Removed Project Type Selector - Defaulting to Standard Project */}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -283,7 +246,7 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                 </Button>
                 <Button
                   onClick={handleCreate}
-                  disabled={!formData.name || loading}
+                  disabled={!formData.title || loading}
                   className="bg-orange-500 hover:bg-orange-600"
                 >
                   {loading ? (

@@ -8,11 +8,11 @@ const GlobalNavItem = ({ isActive, onClick, label, icon }) => (
     tabIndex={0}
   >
     <div
-      className={`text-slate-400 group-hover:text-slate-600 ${isActive ? 'text-brand-600' : ''}`}
+      className={`text-muted-foreground group-hover:text-card-foreground ${isActive ? 'text-brand-600 dark:text-brand-400' : ''}`}
     >
       {icon}
     </div>
-    <span className={`sidebar-nav-item-title ${isActive ? 'text-brand-700 font-semibold' : ''}`}>
+    <span className={`sidebar-nav-item-title ${isActive ? 'text-brand-700 dark:text-brand-300 font-semibold' : ''}`}>
       {label}
     </span>
   </div>

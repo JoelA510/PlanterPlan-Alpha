@@ -83,7 +83,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">Resources</h4>
+        <h4 className="text-sm font-semibold text-card-foreground uppercase tracking-wider">Resources</h4>
         <Button
           size="sm"
           onClick={() => setShowAddModal(true)}
@@ -96,7 +96,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
 
       <div className="space-y-2">
         {resources.length === 0 ? (
-          <p className="text-sm text-slate-500 py-4 text-center">No resources yet</p>
+          <p className="text-sm text-muted-foreground py-4 text-center">No resources yet</p>
         ) : (
           resources.map((resource) => {
             // Adapted logic: check both 'type' and 'resource_type' to be safe, defaulting to resource_type from service
@@ -110,21 +110,21 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
                 className={cn(
                   'flex items-center justify-between p-3 rounded-lg border transition-all',
                   isPrimary
-                    ? 'bg-brand-50 border-brand-300'
-                    : 'bg-white border-slate-200 hover:border-slate-300'
+                    ? 'bg-brand-50 dark:bg-brand-900/30 border-brand-300 dark:border-brand-700'
+                    : 'bg-card border-border hover:border-brand-300'
                 )}
               >
                 <div className="flex items-center gap-3 flex-1">
                   <div
                     className={cn(
                       'w-9 h-9 rounded-lg flex items-center justify-center',
-                      isPrimary ? 'bg-brand-500' : 'bg-slate-100'
+                      isPrimary ? 'bg-brand-500' : 'bg-muted/50'
                     )}
                   >
-                    <Icon className={cn('w-4 h-4', isPrimary ? 'text-white' : 'text-slate-600')} />
+                    <Icon className={cn('w-4 h-4', isPrimary ? 'text-white' : 'text-muted-foreground')} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">
+                    <p className="text-sm font-medium text-card-foreground truncate">
                       {resourceTypeLabels[type] || type}
                     </p>
                     {type === 'url' && resource.resource_url && (
@@ -138,7 +138,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
                       </a>
                     )}
                     {type === 'text' && resource.resource_text && (
-                      <p className="text-xs text-slate-500 truncate">
+                      <p className="text-xs text-muted-foreground truncate">
                         {resource.resource_text.substring(0, 50)}...
                       </p>
                     )}
@@ -158,7 +158,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
                     size="icon"
                     variant="ghost"
                     onClick={() => deleteResourceMutation.mutate(resource.id)}
-                    className="h-8 w-8 text-red-600 hover:bg-red-50"
+                    className="h-8 w-8 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -170,7 +170,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }) {
       </div>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="sm:max-w-md bg-white">
+        <DialogContent className="sm:max-w-md bg-card text-card-foreground">
           <DialogHeader>
             <DialogTitle>Add Resource</DialogTitle>
           </DialogHeader>

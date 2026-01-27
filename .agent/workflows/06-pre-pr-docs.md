@@ -85,7 +85,7 @@ If any non-trivial bugs were fixed or new patterns were established:
 
 Generate the PR description using the template in PR-PROMPT.md:
 
-1. **Summary**: 3-4 bullet points in user-facing language (no file names)
+1. **Summary**: 3-4 bullet points in user-facing language (no file names). **CRITICAL**: Do NOT use internal jargon (e.g., "Master Review", "Orchestrator", "Workflow 09"). Use standard terms like "Verification", "Refactoring", or "Cleanup".
 2. **Roadmap Progress**: Table of affected roadmap items with status
 3. **Architecture Decisions**: Key patterns, trade-offs, tech debt
 4. **Review Guide**: Categorize files by risk level (High/Medium/Low)
