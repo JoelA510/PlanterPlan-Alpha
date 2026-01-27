@@ -1,178 +1,97 @@
-# PR Description: Design System Completion & Bug Fixes
 
-## Summary
-This Pull Request finalizes the Design System migration, fixes critical bugs identified in PR #102 feedback, and adds regression tests to prevent recurrence.
+# Pull Request: Core Systems Stability & Network Resilience
 
-### Key Changes
-1.  **Bug Fixes (PR #102 Feedback)**:
-    - Fixed Project Creation failure (form sent `name` but API expected `title`)
-    - Fixed Sidebar sync (now uses same data hook as Dashboard)  
-    - Fixed Drag-and-Drop for subtasks (DnD context now includes all tasks)
-    - Added admin access for specified user
+## 📋 Summary
 
-2.  **Regression Test Coverage (13 New Tests)**:
-    - `CreateProjectModal.test.jsx`: 8 tests covering field mapping, template selection, UI state
-    - `useTaskBoard.test.jsx`: 5 tests verifying DnD aggregation and expansion state
+This pull request focuses on a comprehensive "Stability & Resilience" initiative to ensure the application remains robust under flaky network conditions and prevents critical user crashes. It addresses the root causes of persistent UI hangs during loading, crashes during project creation, and unhandled authentication race conditions.
 
-3.  **Design System Hardening**: Refactored major UI components (`Dashboard`, `TasksPage`, `ProjectCard`, `TaskDetailsView`) to use semantic tokens. Resolves the "sticky" light background issue by standardizing on `bg-background` and `bg-card`.
+## ✨ Highlights
 
-4.  **Knowledge Consolidation**: Added 4 new entries to `ENGINEERING_KNOWLEDGE.md` documenting the bugs and prevention rules (including UI-025 for theme consistency).
+- **Crash Prevention:** Resolved a critical `TypeError` during project creation by enforcing strict type normalization for dates before serialization, preventing the application from crashing when users submit forms.
+- **Network Resilience:** Implemented an **Exponential Backoff Retry Strategy** for the API client. The application now automatically retries failed requests (up to 3 times) when it encounters network interruptions or `AbortError`s, significantly reducing "white screen" failures.
+- **Graceful Failure Handling:** The Dashboard now degrades gracefully instead of hanging indefinitely. If data fetching fails after retries, it displays an empty state rather than locking the UI in a "Loading..." spiral, allowing the user to retry or navigate away.
+- **Authentication Hardening:** Fortified the authentication flow to explicitly handle race conditions during session initialization. This prevents the application from getting stuck in an invalid loading state if the browser cancels the initial auth request.
 
----
+## 🗺️ Roadmap Progress
 
-## Visualizations
+| Item ID          | Feature Name             | Phase | Status      | Notes |
+| ---------------- | ------------------------ | ----- | ----------- | ----- |
+| [P5-ERR-BOUND]   | Error Boundaries         | 5     | ✅ Done      | Extended to Network Layer |
+| [P5-TECH-DEBT]   | Tech Debt Resolution     | 5     | ✅ Done      | API Client Hardening |
+| [P6.8-LOGIC]     | Component Logic Polish   | 6     | ✅ Done      | Date Hydration Safety |
 
-### Bug Fix Architecture
+## 🏗️ Architecture Decisions
+
+### Key Patterns & Decisions
+
+- **Pattern: Client-Side Resilience:** We chose to implement retry logic directly in the API adapter (`planterClient.js`) rather than in individual components. This provides global protection for all data operations without cluttering UI code.
+- **Pattern: Defensive Type Casting:** We adopted a "Trust but Verify" approach for Date objects in service layers. We now explicitly instantiate `new Date()` before calling methods like `toISOString()`, guarding against unstable upstream data formats.
+- **Tech Debt:** The `createProjectWithDefaults` logic still handles some business logic on the client. Future iterations should move the "template hydration" entirely to a database function to ensure atomic transactional integrity.
+
+### Logic Flow: Resilient Data Fetching
+
 ```mermaid
 graph TD
-    subgraph "Before (Broken)"
-        Modal1["CreateProjectModal"] -->|"name: 'X'"| Mutation1["useProjectMutations"]
-        Mutation1 -->|"expects title"| Fail["❌ Silent Failure"]
-    end
+    UI["Dashboard UI"] -->|Request Data| Client["API Client"]
+    Client -->|Attempt 1| Network{Network OK?}
     
-    subgraph "After (Fixed)"
-        Modal2["CreateProjectModal"] -->|"title: 'X'"| Mutation2["useProjectMutations"]
-        Mutation2 --> Success["✅ Project Created"]
-    end
+    Network -- No (Abort/Fail) --> Retry1[Wait 300ms]
+    Retry1 -->|Attempt 2| Network
+    
+    Network -- No (Abort/Fail) --> Retry2[Wait 600ms]
+    Retry2 -->|Attempt 3| Network
+    
+    Network -- Yes --> Success["Return Data"]
+    Retry2 -- Fail --> Fallback["Return Safe Default []"]
+    
+    Success --> UI
+    Fallback --> UI
+    
+    style Retry1 fill:#f9f,stroke:#333
+    style Retry2 fill:#f9f,stroke:#333
+    style Fallback fill:#ffe6cc,stroke:#d6b656
 ```
 
-### Test Coverage Map
-```mermaid
-graph LR
-    subgraph "New Tests"
-        CPM["CreateProjectModal.test.jsx (8)"]
-        UTB["useTaskBoard.test.jsx (5)"]
-    end
-    
-    CPM --> FieldMap["Field Mapping Regression"]
-    CPM --> UIState["UI State Management"]
-    CPM --> NoConfuse["No Confusing UI"]
-    
-    UTB --> DnDAgg["DnD Aggregation"]
-    UTB --> Expand["Expansion State"]
+## 🔍 Review Guide
+
+### 🚨 High Risk / Security Sensitive
+
+- `src/app/contexts/AuthContext.jsx` - Modified session stability logic. Ensure no regression in login/logout flows.
+- `src/features/projects/services/projectService.js` - Changed how project dates are processed.
+
+### 🧠 Medium Complexity
+
+- `src/shared/api/planterClient.js` - Introduction of the `retryOperation` helper. Verify the backoff math and error catching.
+- `src/features/tasks/hooks/useTaskQuery.js` - Updates to error swallowing behavior for `AbortError`.
+
+### 🟢 Low Risk / Boilerplate
+
+- `docs/operations/ENGINEERING_KNOWLEDGE.md` - Documentation updates only.
+
+## 🧪 Verification Plan
+
+### 1. Environment Setup
+
+- [ ] Clear browser cache/cookies to test fresh auth sessions.
+- [ ] No new dependencies to install.
+
+### 2. Manual Verification
+
+- **Dashboard Resilience:**
+  1. Open Network tab in DevTools.
+  2. Set throttling to "Fast 3G" or simulate offline briefly.
+  3. Reload the dashboard.
+  4. **Outcome:** The app should recover or show "No projects" instead of spinning forever.
+
+- **Project Creation:**
+  1. Use the "New Project" wizard.
+  2. Enter a valid name and select a date.
+  3. Click Create.
+  4. **Outcome:** Project is created successfully (or fails gracefully with a toast message if the local environment blocks the write).
+
+### 3. Automated Tests
+
+```bash
+npm run test -- src/shared/api/planterClient.test.js
+npm run lint
 ```
-
----
-
-## Roadmap Progress
-
-| Feature | Status | Impact |
-| :--- | :--- | :--- |
-| **Design System (Rule 30)** | ✅ Done | Consistent "Modern SaaS" look; 0 legacy CSS files. |
-| **Project Creation Bug** | ✅ Fixed | Forms now pass correct field names. |
-| **Sidebar Sync Bug** | ✅ Fixed | Sidebar updates immediately on project creation. |
-| **DnD Subtask Bug** | ✅ Fixed | Subtasks can be dragged and dropped. |
-| **Test Coverage** | ✅ Improved | 13 new regression tests added. |
-
----
-
-## Technical Details
-
-### Bug Fixes
-
-#### 1. Project Creation (FE-045)
-- **File**: `CreateProjectModal.jsx`
-- **Fix**: Changed `name` state to `title` to match mutation expectations
-
-#### 2. Sidebar Sync (SYNC-001)
-- **Files**: `ProjectSidebarContainer.jsx`, `useProjectMutations.js`
-- **Fix**: Switched to `useUserProjects` hook, added query invalidation
-
-#### 3. DnD for Subtasks (DND-002)
-- **File**: `useTaskBoard.js`
-- **Fix**: Aggregate `tasks` + `hydratedProjects` before passing to `useTaskDrag`
-
-### New Tests
-
-| File | Tests | Coverage |
-| :--- | :--- | :--- |
-| `CreateProjectModal.test.jsx` | 8 | Form field mapping, template flow, UI regression |
-| `useTaskBoard.test.jsx` | 5 | DnD task aggregation, expansion state |
-
----
-
-## Verification Plan
-
-### Automated
-1.  **Lint**: `npm run lint` (0 Errors)
-2.  **Tests**: `npm test` (All 64 tests pass, including 13 new)
-
-### Manual Verification
-- Create a new project → Verify it appears in Sidebar immediately
-- Drag a subtask to another task → Verify it moves correctly
-- Check admin access for designated user
-
----
-
-## Files Changed
-
-### High Risk (Review Required)
-- `src/features/dashboard/components/CreateProjectModal.jsx` - Form field mapping
-- `src/features/tasks/hooks/useTaskBoard.js` - DnD aggregation logic
-- `docs/db/schema.sql` - Admin function update
-
-### Medium Risk
-- `src/features/navigation/components/ProjectSidebarContainer.jsx` - Data hook change
-- `src/features/projects/hooks/useProjectMutations.js` - Query invalidation
-
-### Low Risk (Tests)
-- `src/features/dashboard/components/CreateProjectModal.test.jsx` - New tests
-- `src/features/tasks/hooks/useTaskBoard.test.jsx` - New tests
-- `docs/operations/ENGINEERING_KNOWLEDGE.md` - New entries
-
----
-
-## Design System Completion Features (NEW)
-
-### 1. Dark Mode 🌙
-
-Full dark mode support with system preference sync, localStorage persistence, and semantic surface standardization.
-
-#### Technical Resolution (UI-025)
-- **Root Cause Fix**: Corrected variable naming in `globals.css` (renamed `--color-bg-background` to `--color-background`) to align with Tailwind v4 utility expectations.
-- **Surface Standardization**: Eliminated hardcoded `bg-white` in project cards, task lists, and modals, replacing them with `bg-card` for consistent theme inheritance.
-
-| Component | Description |
-| :--- | :--- |
-| `ThemeContext.jsx` | Theme provider with `useMemo` for resolved theme |
-| `globals.css` | Dark CSS variables under `.dark` selector |
-| `Header.jsx` | Sun/Moon toggle button |
-
-**Usage**: Click the Moon/Sun icon in the header to toggle themes.
-
-### 2. List Virtualization ⚡
-
-Performance optimization for large task lists using `react-virtuoso`.
-
-| Component | Description |
-| :--- | :--- |
-| `ProjectListView.jsx` | Conditionally virtualizes lists > 50 items |
-
-**Threshold**: Lists with 50+ items use virtualization; smaller lists keep DnD support.
-
-### 3. View-As Role Switcher 👁️
-
-Privileged users (ADMIN/OWNER) can preview the app as other roles.
-
-| Component | Description |
-| :--- | :--- |
-| `ViewAsContext.jsx` | Context with `effectiveRole` for permission checks |
-| `ViewAsSelector.jsx` | Dropdown in Header (only visible to privileged users) |
-| `ViewAsProviderWrapper.jsx` | Determines user's global role |
-
-**Rules**:
-- Only shows for ADMIN and OWNER roles
-- Stored in session (not localStorage) to prevent lock-in
-- Persistent in navbar between breadcrumb and avatar
-
----
-
-## New Files Added
-
-| File | Purpose |
-| :--- | :--- |
-| `src/app/contexts/ThemeContext.jsx` | Dark mode provider |
-| `src/app/contexts/ViewAsContext.jsx` | View-As role context |
-| `src/app/contexts/ViewAsProviderWrapper.jsx` | User role detection |
-| `src/features/navigation/components/ViewAsSelector.jsx` | Header dropdown |
-

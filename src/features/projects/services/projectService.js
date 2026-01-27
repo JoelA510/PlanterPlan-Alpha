@@ -132,7 +132,7 @@ export async function createProjectWithDefaults(projectData) {
   const project = await planter.entities.Project.create({
     ...projectData,
     launch_date: projectData.launch_date
-      ? projectData.launch_date.toISOString().split('T')[0]
+      ? new Date(projectData.launch_date).toISOString().split('T')[0]
       : null,
   });
 

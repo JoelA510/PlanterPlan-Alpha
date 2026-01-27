@@ -1,6 +1,3 @@
----
-trigger: always_on
----
 
 # Verification + Debugging (always-on)
 
@@ -20,3 +17,9 @@ For any logic change, API change, or schema change:
 
 Use the "Debug Loop (5)" workflow when a verification command fails.
 Do not loop endlessly.
+
+## Browser Agent Testing Rules
+
+- **Credentials Source**: ALWAYS pull `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from the `.env` file when a browser interaction requires login.
+- **Form Hygiene**: ALWAYS clear input fields before filling them to prevent concatenation errors or double-typing.
+- **Validation**: Verify login success by checking for post-login indicators (e.g., Dashboard URL, Sidebar content, User Profile).

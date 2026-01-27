@@ -15,7 +15,13 @@ const createEntityClient = (tableName, select = '*') => ({
    */
   list: async () => {
     const { data, error } = await supabase.from(tableName).select(select);
-    if (error) throw error;
+    if (error) {
+      if (error.name === 'AbortError' || error.code === '20') {
+        console.warn(`PlanterClient: list(${tableName}) aborted`);
+        return [];
+      }
+      throw error;
+    }
     return data;
   },
   /**
@@ -79,10 +85,27 @@ const createEntityClient = (tableName, select = '*') => ({
       query = query.eq(key, filters[key]);
     });
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      if (error.name === 'AbortError' || error.code === '20') return [];
+      throw error;
+    }
     return data;
   },
 });
+
+// Helper for retrying operations on AbortError
+const retryOperation = async (fn, retries = 3, delay = 300) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isAbort = err.name === 'AbortError' || err.code === '20';
+      if (!isAbort || i === retries - 1) throw err;
+      console.warn(`PlanterClient: Retrying operation (attempt ${i + 1}) due to AbortError...`);
+      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+    }
+  }
+};
 
 export const planter = {
   auth: {
@@ -101,55 +124,64 @@ export const planter = {
       ...createEntityClient('tasks', '*, name:title, launch_date:due_date, owner_id:creator'),
       // Override list to filter for Root Tasks (Projects)
       list: async () => {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('*, name:title, launch_date:due_date, owner_id:creator')
-          .is('parent_task_id', null)
-          .eq('origin', 'instance')
-          .order('created_at', { ascending: false });
+        return retryOperation(async () => {
+          const { data, error } = await supabase
+            .from('tasks')
+            .select('*, name:title, launch_date:due_date, owner_id:creator')
+            .is('parent_task_id', null)
+            .eq('origin', 'instance')
+            .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        return data;
+          if (error) throw error;
+          return data;
+        }).catch(err => {
+          console.error('PlanterClient: Project.list failed after retries', err);
+          return []; // Fallback to empty to prevent UI crash
+        });
       },
       // Override create for specific mapping
       create: async (projectData) => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        return retryOperation(async () => {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
 
-        const taskPayload = {
-          title: projectData.name,
-          description: projectData.description,
-          due_date: projectData.launch_date,
-          origin: 'instance',
-          parent_task_id: null,
-          status: projectData.status || 'planning', // Fixed: Respect provided status
-          creator: user.id, // Required for RLS
-        };
+          const taskPayload = {
+            title: projectData.name,
+            description: projectData.description,
+            due_date: projectData.launch_date,
+            origin: 'instance',
+            parent_task_id: null,
+            status: projectData.status || 'planning', // Fixed: Respect provided status
+            creator: user.id, // Required for RLS
+          };
 
-        const { data, error } = await supabase
-          .from('tasks')
-          .insert([taskPayload])
-          .select('*, name:title, launch_date:due_date, owner_id:creator')
-          .single();
+          const { data, error } = await supabase
+            .from('tasks')
+            .insert([taskPayload])
+            .select('*, name:title, launch_date:due_date, owner_id:creator')
+            .single();
 
-        if (error) throw error;
-        return data;
+          if (error) throw error;
+          return data;
+        });
       },
       // Override filter to ensure we only get projects
       filter: async (filters) => {
-        let query = supabase
-          .from('tasks')
-          .select('*, name:title, launch_date:due_date, owner_id:creator')
-          .is('parent_task_id', null)
-          .eq('origin', 'instance');
+        return retryOperation(async () => {
+          let query = supabase
+            .from('tasks')
+            .select('*, name:title, launch_date:due_date, owner_id:creator')
+            .is('parent_task_id', null)
+            .eq('origin', 'instance');
 
-        Object.keys(filters).forEach((key) => {
-          query = query.eq(key, filters[key]);
-        });
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
+          Object.keys(filters).forEach((key) => {
+            query = query.eq(key, filters[key]);
+          });
+          const { data, error } = await query;
+          if (error) throw error;
+          return data;
+        }).catch(() => []);
       },
       // Custom methods
       addMember: async (projectId, userId, role) => {

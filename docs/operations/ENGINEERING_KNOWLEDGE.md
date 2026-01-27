@@ -195,3 +195,18 @@
 - **Date**: 2026-01-25
 - **Context**: Hardcoded admin email lists in `ViewAsProviderWrapper.jsx` violated security best practices and prevented dynamic admin management. Initial attempt to query `admin_users` table directly caused app hangs due to schema drift.
 - **Rule**: **Never hardcode authorization checks.** Use database RPCs (e.g., `is_admin`) for role detection. Always wrap authentication enrichment in try/catch with fail-safe `setLoading(false)` to prevent infinite loading states when backend changes occur.
+
+### [API-004] Robust Date Serialization
+- **Date**: 2026-01-27
+- **Context**: `createProjectWithDefaults` crashed with `TypeError` because `launch_date` from the UI was a string, not a Date object, causing `.toISOString()` to fail.
+- **Rule**: **Always normalize before serialization.** Never assume a variable is a Date object. Wrap input in `new Date(value)` before calling Date methods to handle both strings and objects safely.
+
+### [REACT-040] AuthContext Abort Safety
+- **Date**: 2026-01-27
+- **Context**: An unhandled `AbortError` during the initial session fetch caused the `loading` state to remain `true` indefinitely, hanging the application.
+- **Rule**: **AbortErrors are not critical failures.** Explicitly check for `err.name === 'AbortError'` and treat it as a warning. **ALWAYS** ensure `setLoading(false)` executes (e.g., in a `finally` block or robust `catch` handler) to prevent UI lockup.
+
+### [NET-005] Transient Network Abort Resilience
+- **Date**: 2026-01-27
+- **Context**: Persistent `AbortError`s were observed during local Supabase debugging, causing simple reads and writes to fail.
+- **Rule**: **Retry on Abort.** Implement exponential backoff retry logic for critical API client methods (`list`, `create`). Do not allow a single canceled request to break the user flow.
