@@ -9,28 +9,56 @@ This pull request delivers a major stability and user experience upgrade. It res
 
 - **Localhost Connectivity Fix:** Configured Vite to explicitly listen on `127.0.0.1`. This eliminates a confirmed 30-150 second "stall" caused by IPv6 address resolution timeouts on `localhost`, restoring instant load times.
 - **Authentication Stability:** Added a 10-second timeout to Supabase session retrieval with explicit error handling. If the session hangs, it now clears stale tokens and fails gracefully rather than freezing the app indefinitely.
+- **Resilient Data Fetching:** Implemented an **Exponential Backoff Retry Strategy** in the API client (`planterClient.js`). The application now automatically retries failed requests (up to 3 times) when it encounters network interruptions, preventing white screens.
 - **Theme & Design System:**
-  - **Dark Mode Overhaul:** Removed "muddy" backgrounds and "ugly" orange highlights. Implemented clean, translucent brand tints (`bg-brand-500/10`) and proper semantic colors (`text-muted-foreground`) for better contrast and legibility.
-  - **Universal Layout:** Enforced uniform height for Project Cards prevents grid misalignment.
-  - **Visual Consistency:** Harmonized hover states, shadow intensities, and icon colors across the Dashboard, Stats, and Sidebar.
+  - **Dark Mode Overhaul:** Removed "muddy" backgrounds and "ugly" orange highlights. Implemented clean, translucent brand tints (`bg-brand-500/10`) and proper semantic colors.
+  - **Universal Layout:** Enforced uniform height for Project Cards.
+  - **Visual Consistency:** Harmonized hover states, shadow intensities, and icon colors.
 
 ## 🗺️ Roadmap Progress
 
 | Item ID          | Feature Name             | Phase | Status      | Notes |
 | ---------------- | ------------------------ | ----- | ----------- | ----- |
-| [P5-TECH-DEBT]   | Tech Debt Resolution     | 5     | ✅ Done      | Network Config & Auth Timeouts |
+| [P5-ERR-BOUND]   | Error Boundaries         | 5     | ✅ Done      | Extended to Network Layer |
+| [P5-TECH-DEBT]   | Tech Debt Resolution     | 5     | ✅ Done      | Auth Timeouts & IPv4 Config |
 | [P6.9-UI-POLISH] | UI/UX Consistency        | 6     | ✅ Done      | Dark Mode & Layout Fixes |
 
 ## 🏗️ Technical Details
 
 ### Connectivity & Network
-- **Vite Config:** Updated `vite.config.js` to set `server.host: '127.0.0.1'`. Previous default behavior caused extensive stalls due to dual-stack (IPv4/IPv6) contention.
-- **Auth Context:** `AuthContext.jsx` now races the `supabase.auth.getSession()` call against a 10-second timeout promise to preventing infinite loading spirals during network flakes.
+- **Vite Config:** Updated `vite.config.js` to set `server.host: '127.0.0.1'`.
+- **Auth Context:** `AuthContext.jsx` now races the `supabase.auth.getSession()` call against a 10-second timeout promise.
+
+### Logic Flow: Auth Session Race Condition
+
+```mermaid
+sequenceDiagram
+    participant UI as AuthProvider
+    participant SB as Supabase Client
+    participant TO as Timeout Promise (10s)
+
+    UI->>SB: getSession()
+    UI->>TO: Start Timer
+    
+    par Race
+        SB-->>UI: Success (Session Data)
+    and
+        TO-->>UI: Reject (Error: "Auth Session Timeout")
+    end
+
+    alt RPC Returns First
+        UI->>UI: Set User & Role
+    else Timeout Wins
+        UI->>UI: Catch Error
+        UI->>UI: localStorage.removeItem('planter-auth-token')
+        UI->>UI: Set User = null
+        Note over UI: Prevents Infinite Loading
+    end
+```
 
 ### Design System Updates
-- **Global Nav:** Replaced legacy CSS `.selected` rule with utility-first Tailwind classes (`bg-brand-50 dark:bg-brand-500/10`) for precise theme control.
-- **Project Cards:** Added `h-full` to card containers. Updated status badges to use specific dark-mode color variants (e.g., `dark:bg-indigo-500/20`).
-- **Stats Overview:** switched hardcoded slate colors to `text-muted-foreground` / `text-card-foreground` to fix "invisible text" bugs in dark mode.
+- **Global Nav:** Replaced legacy CSS `.selected` rule with utility-first Tailwind classes.
+- **Stats Overview:** Fixed "invisible text" bugs in dark mode.
 
 ## 🔍 Review Guide
 
@@ -61,11 +89,7 @@ This pull request delivers a major stability and user experience upgrade. It res
 
 - **Theme Consistency:**
   1. Toggle Dark Mode.
-  2. Check Sidebar "Dashboard" highlight (should be subtle brand tint, not solid orange).
-  3. Check "Getting Started" widget (clean background, legible text).
+  2. Check Sidebar "Dashboard" highlight (should be subtle brand tint).
+  3. Check "Getting Started" widget (clean background).
   4. Check "New Template" button (neutral background).
-  5. Check Stats cards (Team icon visible in light mode, text visible in all modes).
-
-- **Grid Layout:**
-  1. View Dashboard with multiple projects.
-  2. Verify all cards have equal height regardless of content length.
+  5. Check Stats cards (Team icon visible in light mode).
