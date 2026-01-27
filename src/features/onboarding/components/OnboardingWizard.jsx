@@ -26,7 +26,8 @@ export default function OnboardingWizard({ open, onCreateProject }) {
         setStep(step + 1);
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e) => {
+        if (e) e.preventDefault();
         setLoading(true);
         try {
             await onCreateProject({
