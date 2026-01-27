@@ -128,7 +128,13 @@ export async function updateProjectStatus(projectId, status) {
  * @param {Object} projectData - The project data (name, launch_date, etc.)
  * @returns {Promise<Object>} - The created project object
  */
+/**
+ * Creates a new project with default phases, milestones, and tasks.
+ * @param {Object} projectData - The project data (name, launch_date, etc.)
+ * @returns {Promise<Object>} - The created project object
+ */
 export async function createProjectWithDefaults(projectData) {
+  // 1. Create the Project container
   const project = await planter.entities.Project.create({
     ...projectData,
     launch_date: projectData.launch_date
@@ -136,162 +142,24 @@ export async function createProjectWithDefaults(projectData) {
       : null,
   });
 
-  // Create default phases for the project
-  const defaultPhases = [
-    {
-      title: 'Discovery',
-      description: 'Assess calling, gather resources, foundation',
-      order: 1,
-      icon: 'compass',
-      color: 'blue',
-    },
-    {
-      title: 'Planning',
-      description: 'Develop strategy, vision, and initial team',
-      order: 2,
-      icon: 'map',
-      color: 'purple',
-    },
-    {
-      title: 'Preparation',
-      description: 'Build systems, recruit team, prepare for launch',
-      order: 3,
-      icon: 'wrench',
-      color: 'orange',
-    },
-    {
-      title: 'Pre-Launch',
-      description: 'Final preparations, preview services, marketing',
-      order: 4,
-      icon: 'rocket',
-      color: 'green',
-    },
-    {
-      title: 'Launch',
-      description: 'Grand opening and initial growth phase',
-      order: 5,
-      icon: 'yellow',
-      color: 'yellow',
-    },
-    {
-      title: 'Growth',
-      description: 'Establish systems, develop leaders, expand reach',
-      order: 6,
-      icon: 'trending-up',
-      color: 'pink',
-    },
-  ];
-
   // Get current user for attribution
   const {
     data: { user },
   } = await supabase.auth.getUser();
   const creatorId = user?.id || project.creator;
 
-  for (const phase of defaultPhases) {
-    const createdPhase = await planter.entities.Phase.create({
-      title: phase.title,
-      description: phase.description,
-      position: phase.order, // Map order to position
-      root_id: project.id,
-      parent_task_id: project.id, // Phase is child of Project
-      creator: creatorId, // Explicitly set creator
-    });
+  // 2. Initialize default structure via Server-Side RPC
+  // This replaces ~200 client-side requests with 1 atomic transaction.
+  const { error } = await supabase.rpc('initialize_default_project', {
+    p_project_id: project.id,
+    p_creator_id: creatorId
+  });
 
-    // Create default milestones for each phase
-    const milestones = getMilestonesForPhase(phase.order);
-    for (const milestone of milestones) {
-      const createdMilestone = await planter.entities.Milestone.create({
-        title: milestone.title,
-        description: milestone.description,
-        position: milestone.order, // Map order to position
-        parent_task_id: createdPhase.id, // Milestone child of Phase
-        root_id: project.id,
-        creator: creatorId, // Explicitly set creator
-      });
-
-      // Create default tasks for each milestone
-      const tasks = getTasksForMilestone(milestone.order);
-      for (const task of tasks) {
-        await planter.entities.Task.create({
-          title: task.title,
-          priority: task.priority,
-          status: TASK_STATUS.TODO,
-          position: task.order, // Map order to position
-          parent_task_id: createdMilestone.id, // Task child of Milestone
-          root_id: project.id,
-          creator: creatorId, // Explicitly set creator
-        });
-      }
-    }
+  if (error) {
+    console.error('Failed to initialize default project structure:', error);
+    // Attempt rollback or just warn? For now, throw so UI knows.
+    throw error;
   }
 
   return project;
-}
-
-// Helper functions to generate default milestones and tasks
-function getMilestonesForPhase(phaseOrder) {
-  const milestonesMap = {
-    1: [
-      {
-        title: 'Personal Assessment',
-        order: 1,
-        description: 'Evaluate your calling and readiness',
-      },
-      { title: 'Family Preparation', order: 2, description: 'Prepare your family for the journey' },
-      {
-        title: 'Resource Gathering',
-        order: 3,
-        description: 'Identify available resources and support',
-      },
-    ],
-    2: [
-      { title: 'Vision Development', order: 1, description: 'Clarify your vision and mission' },
-      { title: 'Strategic Planning', order: 2, description: 'Develop your launch strategy' },
-      { title: 'Core Team Building', order: 3, description: 'Recruit and develop your core team' },
-    ],
-    3: [
-      { title: 'Systems Setup', order: 1, description: 'Establish operational systems' },
-      { title: 'Facility Planning', order: 2, description: 'Secure meeting location' },
-      { title: 'Ministry Development', order: 3, description: 'Develop key ministry areas' },
-    ],
-    4: [
-      { title: 'Preview Services', order: 1, description: 'Host preview gatherings' },
-      { title: 'Marketing Launch', order: 2, description: 'Begin community outreach' },
-      { title: 'Final Preparations', order: 3, description: 'Complete all launch requirements' },
-    ],
-    5: [
-      { title: 'Launch Week', order: 1, description: 'Execute your launch plan' },
-      { title: 'First Month', order: 2, description: 'Establish weekly rhythms' },
-      { title: 'Guest Follow-up', order: 3, description: 'Connect with visitors' },
-    ],
-    6: [
-      { title: 'Leadership Development', order: 1, description: 'Train and empower leaders' },
-      { title: 'Ministry Expansion', order: 2, description: 'Launch additional ministries' },
-      { title: 'Future Planning', order: 3, description: 'Plan for multiplication' },
-    ],
-  };
-  // Ensure we fallback to empty if generic phase
-  return (
-    milestonesMap[phaseOrder] || [
-      { title: 'Generic Milestone 1', order: 1, description: 'Default milestone' },
-      { title: 'Generic Milestone 2', order: 2, description: 'Default milestone' },
-    ]
-  );
-}
-
-function getTasksForMilestone(milestoneOrder) {
-  // Return a few sample tasks for each milestone
-  const taskTemplates = [
-    { title: 'Review and complete assessment', priority: 'high' },
-    { title: 'Schedule planning meeting', priority: 'medium' },
-    { title: 'Create action items list', priority: 'medium' },
-    { title: 'Follow up on pending items', priority: 'low' },
-  ];
-
-  return taskTemplates.slice(0, 2 + (milestoneOrder % 2)).map((task, index) => ({
-    ...task,
-    order: index + 1,
-    status: 'not_started',
-  }));
 }
