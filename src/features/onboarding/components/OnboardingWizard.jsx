@@ -94,18 +94,18 @@ export default function OnboardingWizard({ open, onCreateProject }) {
                     {step === 3 && (
                         <div className="space-y-4">
                             <RadioGroup value={formData.template} onValueChange={(val) => setFormData({ ...formData, template: val })}>
-                                <div className={`flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${formData.template === 'Launch Large' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                                <div className={`flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${formData.template === 'Launch Large' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-border hover:border-brand-300'}`}>
                                     <RadioGroupItem value="Launch Large" id="t1" className="mt-1" />
                                     <div className="flex-1">
-                                        <Label htmlFor="t1" className="font-semibold cursor-pointer">Launch Large</Label>
-                                        <p className="text-sm text-slate-600 mt-1">Standard ARC/CMN model. 6 phases, ~200 tasks focusing on a strong day-one launch.</p>
+                                        <Label htmlFor="t1" className="font-semibold cursor-pointer text-foreground">Launch Large</Label>
+                                        <p className="text-sm text-muted-foreground mt-1">Standard ARC/CMN model. 6 phases, ~200 tasks focusing on a strong day-one launch.</p>
                                     </div>
                                 </div>
-                                <div className={`flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${formData.template === 'Micro' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                                <div className={`flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-all ${formData.template === 'Micro' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-border hover:border-brand-300'}`}>
                                     <RadioGroupItem value="Micro" id="t2" className="mt-1" />
                                     <div className="flex-1">
-                                        <Label htmlFor="t2" className="font-semibold cursor-pointer">Simple / House Church</Label>
-                                        <p className="text-sm text-slate-600 mt-1">Simplified flow for smaller, gathering-based plants.</p>
+                                        <Label htmlFor="t2" className="font-semibold cursor-pointer text-foreground">Simple / House Church</Label>
+                                        <p className="text-sm text-muted-foreground mt-1">Simplified flow for smaller, gathering-based plants.</p>
                                     </div>
                                 </div>
                             </RadioGroup>

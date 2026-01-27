@@ -106,7 +106,7 @@ export default function Dashboard() {
 
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20"
+              className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20 dark:shadow-none"
             >
               <Plus className="w-5 h-5 mr-2" />
               New Project

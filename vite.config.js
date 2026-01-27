@@ -45,6 +45,7 @@ export default defineConfig({
   server: {
     open: true,
     port: 3000,
+    host: '127.0.0.1',
   },
   test: {
     globals: true,

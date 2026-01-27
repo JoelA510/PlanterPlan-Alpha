@@ -19,7 +19,7 @@ export default function GettingStartedWidget({ project, teamMembers, onDismiss }
     const progress = (completedCount / steps.length) * 100;
 
     return (
-        <Card className="p-6 border-brand-100 dark:border-brand-900 bg-brand-50/30 dark:bg-brand-950/20 mb-8">
+        <Card className="p-6 border-brand-100 dark:border-brand-900/50 mb-8 bg-gradient-to-br from-brand-50/50 to-transparent dark:from-brand-900/10 dark:to-transparent">
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <h3 className="text-lg font-bold text-card-foreground">Getting Started</h3>
@@ -34,11 +34,11 @@ export default function GettingStartedWidget({ project, teamMembers, onDismiss }
 
             <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {steps.map((step, idx) => (
-                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg border ${step.completed ? 'bg-card border-border shadow-sm' : 'bg-brand-50/50 dark:bg-brand-900/10 border-brand-200 dark:border-brand-800'}`}>
+                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg border ${step.completed ? 'bg-card border-border shadow-sm' : 'bg-muted/40 border-border/60'}`}>
                         {step.completed ? (
                             <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                         ) : (
-                            <Circle className="w-5 h-5 text-brand-300 dark:text-brand-700 flex-shrink-0" />
+                            <Circle className="w-5 h-5 text-muted-foreground/50 flex-shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                             <div className={`text-sm font-medium ${step.completed ? 'text-muted-foreground' : 'text-card-foreground'}`}>{step.label}</div>

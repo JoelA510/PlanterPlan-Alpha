@@ -21,7 +21,7 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       // Design System: Primary/Brand
       bgColor: 'bg-brand-50 dark:bg-brand-900/20',
       textColor: 'text-brand-600 dark:text-brand-400',
-      borderColor: 'hover:border-brand-200 dark:hover:border-brand-800',
+      borderColor: 'hover:border-brand-300 dark:hover:border-brand-700',
     },
     {
       label: 'Completed Tasks',
@@ -30,7 +30,7 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       // Design System: Success
       bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
       textColor: 'text-emerald-600 dark:text-emerald-400',
-      borderColor: 'hover:border-emerald-200 dark:hover:border-emerald-800',
+      borderColor: 'hover:border-emerald-300 dark:hover:border-emerald-700',
       suffix: `/ ${totalTasks}`,
     },
     {
@@ -40,7 +40,7 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       // Design System: Warning/Pending
       bgColor: 'bg-amber-50 dark:bg-amber-900/20',
       textColor: 'text-amber-600 dark:text-amber-400',
-      borderColor: 'hover:border-amber-200 dark:hover:border-amber-800',
+      borderColor: 'hover:border-amber-300 dark:hover:border-amber-700',
     },
     {
       label: 'Team Members',
@@ -48,8 +48,8 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
       icon: Users,
       // Design System: Secondary/Accent
       bgColor: 'bg-slate-100 dark:bg-slate-800',
-      textColor: 'text-slate-600 dark:text-slate-400',
-      borderColor: 'hover:border-slate-300 dark:hover:border-slate-700',
+      textColor: 'text-slate-700 dark:text-slate-200',
+      borderColor: 'hover:border-slate-300 dark:hover:border-slate-600',
     },
   ];
 
@@ -78,11 +78,11 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
                 <stat.icon className={cn('w-6 h-6', stat.textColor)} />
               </div>
               <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                <p className="text-2xl font-bold text-card-foreground">
                   {stat.value}
                   {stat.suffix && (
-                    <span className="text-sm font-normal text-slate-400 dark:text-slate-500 ml-1">
+                    <span className="text-sm font-normal text-muted-foreground ml-1">
                       {stat.suffix}
                     </span>
                   )}

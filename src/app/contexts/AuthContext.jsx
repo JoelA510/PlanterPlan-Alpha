@@ -21,7 +21,16 @@ export const AuthProvider = ({ children }) => {
       let session = null;
       try {
         console.log('AuthContext: calling getSession');
-        const { data, error } = await supabase.auth.getSession();
+
+        // Timeout wrapper to prevent infinite hanging
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Auth Session Timeout')), 10000)
+        );
+
+        const { data, error } = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]);
         if (error) throw error;
         session = data.session;
         console.log('AuthContext: getSession success', { user: session?.user?.id });
@@ -29,6 +38,9 @@ export const AuthProvider = ({ children }) => {
         // Ignore AbortError which happens on rapid reloads/strict mode
         if (err.name === 'AbortError') {
           console.warn('AuthContext: getSession aborted (harmless)');
+        } else if (err.message === 'Auth Session Timeout') {
+          console.warn('AuthContext: Session timed out. Clearing stale tokens.');
+          localStorage.removeItem('sb-ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH-auth-token');
         } else {
           console.error('AuthContext: getSession failed', err);
         }
