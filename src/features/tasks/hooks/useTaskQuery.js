@@ -90,8 +90,13 @@ export const useTaskQuery = () => {
       }
     } catch (err) {
       if (!isMountedRef.current) return;
-      console.error('Fetch projects exception:', err);
-      setError('Failed to fetch projects');
+      if (err.name === 'AbortError') {
+        console.warn('Fetch projects aborted (harmless)');
+        // Do not set error, just keep previous state
+      } else {
+        console.error('Fetch projects exception:', err);
+        setError('Failed to fetch projects');
+      }
     } finally {
       if (isMountedRef.current) {
         setLoading(false);

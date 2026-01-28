@@ -18,32 +18,63 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
+      let session = null;
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        console.log('AuthContext: calling getSession');
 
-        if (session?.user) {
+        // Timeout wrapper to prevent infinite hanging
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Auth Session Timeout')), 10000)
+        );
+
+        const { data, error } = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]);
+        if (error) throw error;
+        session = data.session;
+        console.log('AuthContext: getSession success', { user: session?.user?.id });
+      } catch (err) {
+        // Ignore AbortError which happens on rapid reloads/strict mode
+        if (err.name === 'AbortError') {
+          console.warn('AuthContext: getSession aborted (harmless)');
+        } else if (err.message === 'Auth Session Timeout') {
+          console.warn('AuthContext: Session timed out. Clearing stale tokens.');
+          localStorage.removeItem('sb-ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH-auth-token');
+        } else {
+          console.error('AuthContext: getSession failed', err);
+        }
+        setLoading(false);
+        setUser(null);
+        return;
+      }
+
+      if (session?.user) {
+        try {
+          console.log('AuthContext: calling is_admin RPC');
           // Robust Check: Use is_admin RPC to handle schema drift and RLS
           const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', {
             p_user_id: session.user.id
           });
 
           if (rpcError) {
-            console.error('Error checking admin status:', rpcError);
+            console.error('AuthContext: RPC error', rpcError);
+          } else {
+            console.log('AuthContext: RPC success', isAdmin);
           }
 
           setUser({
             ...session.user,
-            role: isAdmin ? 'admin' : 'owner'
+            role: isAdmin ? 'admin' : 'owner' // Fallback to owner if RPC fails or returns false
           });
-        } else {
-          setUser(null);
+        } catch (rpcCrash) {
+          console.error('AuthContext: RPC crashed', rpcCrash);
+          // Fallback to owner on crash
+          setUser({ ...session.user, role: 'owner' });
         }
-      } catch (err) {
-        console.error('Auth initialization failed:', err);
+        setLoading(false); // Ensure loading is cleared after logic
+      } else {
         setUser(null);
-      } finally {
         setLoading(false);
       }
     };

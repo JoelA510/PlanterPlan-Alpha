@@ -106,11 +106,11 @@
   color: var(--color-text-primary);
 }
 
-.sidebar-nav-item.selected {
+/* .sidebar-nav-item.selected {
   background: var(--color-brand-primary-soft);
   color: var(--color-brand-primary);
   border-left-color: var(--color-brand-primary);
-}
+} */
 
 .sidebar-nav-item-title {
   font-size: 0.875rem;

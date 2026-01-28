@@ -114,7 +114,7 @@ const ProjectSidebar = ({
           </button>
           <button
             onClick={handleNewTemplate}
-            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/30 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"
+            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-accent/40 rounded-lg hover:bg-brand-100 dark:hover:bg-accent/60 transition-colors"
           >
             New Template
           </button>

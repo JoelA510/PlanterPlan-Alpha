@@ -158,19 +158,7 @@
 }
 
 /* Component Classes (Extracted to reduce file size) */
-@layer components {
-  .btn-primary {
-    @apply px-4 py-2 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20;
-  }
 
-  .btn-secondary {
-    @apply px-4 py-2 bg-white text-slate-700 font-medium rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500/20;
-  }
-
-  .card-panel {
-    @apply bg-white rounded-xl shadow-sm border border-slate-200;
-  }
-}
 
 /* Animation Utilities - Escaped for Tailwind v4 */
 .animate-in {

@@ -1,178 +1,95 @@
-# PR Description: Design System Completion & Bug Fixes
 
-## Summary
-This Pull Request finalizes the Design System migration, fixes critical bugs identified in PR #102 feedback, and adds regression tests to prevent recurrence.
+# Pull Request: Stability Fixes & UI Polish
 
-### Key Changes
-1.  **Bug Fixes (PR #102 Feedback)**:
-    - Fixed Project Creation failure (form sent `name` but API expected `title`)
-    - Fixed Sidebar sync (now uses same data hook as Dashboard)  
-    - Fixed Drag-and-Drop for subtasks (DnD context now includes all tasks)
-    - Added admin access for specified user
+## 📋 Summary
 
-2.  **Regression Test Coverage (13 New Tests)**:
-    - `CreateProjectModal.test.jsx`: 8 tests covering field mapping, template selection, UI state
-    - `useTaskBoard.test.jsx`: 5 tests verifying DnD aggregation and expansion state
+This pull request delivers a major stability and user experience upgrade. It resolves critical network connectivity issues causing "infinite" loading states in the local development environment and implements a comprehensive UI polish pass to ensure a consistent, premium design across both light and dark modes.
 
-3.  **Design System Hardening**: Refactored major UI components (`Dashboard`, `TasksPage`, `ProjectCard`, `TaskDetailsView`) to use semantic tokens. Resolves the "sticky" light background issue by standardizing on `bg-background` and `bg-card`.
+## ✨ Highlights
 
-4.  **Knowledge Consolidation**: Added 4 new entries to `ENGINEERING_KNOWLEDGE.md` documenting the bugs and prevention rules (including UI-025 for theme consistency).
+- **Localhost Connectivity Fix:** Configured Vite to explicitly listen on `127.0.0.1`. This eliminates a confirmed 30-150 second "stall" caused by IPv6 address resolution timeouts on `localhost`, restoring instant load times.
+- **Authentication Stability:** Added a 10-second timeout to Supabase session retrieval with explicit error handling. If the session hangs, it now clears stale tokens and fails gracefully rather than freezing the app indefinitely.
+- **Resilient Data Fetching:** Implemented an **Exponential Backoff Retry Strategy** in the API client (`planterClient.js`). The application now automatically retries failed requests (up to 3 times) when it encounters network interruptions, preventing white screens.
+- **Theme & Design System:**
+  - **Dark Mode Overhaul:** Removed "muddy" backgrounds and "ugly" orange highlights. Implemented clean, translucent brand tints (`bg-brand-500/10`) and proper semantic colors.
+  - **Universal Layout:** Enforced uniform height for Project Cards.
+  - **Visual Consistency:** Harmonized hover states, shadow intensities, and icon colors.
 
----
+## 🗺️ Roadmap Progress
 
-## Visualizations
+| Item ID          | Feature Name             | Phase | Status      | Notes |
+| ---------------- | ------------------------ | ----- | ----------- | ----- |
+| [P5-ERR-BOUND]   | Error Boundaries         | 5     | ✅ Done      | Extended to Network Layer |
+| [P5-TECH-DEBT]   | Tech Debt Resolution     | 5     | ✅ Done      | Auth Timeouts & IPv4 Config |
+| [P6.9-UI-POLISH] | UI/UX Consistency        | 6     | ✅ Done      | Dark Mode & Layout Fixes |
 
-### Bug Fix Architecture
+## 🏗️ Technical Details
+
+### Connectivity & Network
+- **Vite Config:** Updated `vite.config.js` to set `server.host: '127.0.0.1'`.
+- **Auth Context:** `AuthContext.jsx` now races the `supabase.auth.getSession()` call against a 10-second timeout promise.
+
+### Logic Flow: Auth Session Race Condition
+
 ```mermaid
-graph TD
-    subgraph "Before (Broken)"
-        Modal1["CreateProjectModal"] -->|"name: 'X'"| Mutation1["useProjectMutations"]
-        Mutation1 -->|"expects title"| Fail["❌ Silent Failure"]
-    end
+sequenceDiagram
+    participant UI as AuthProvider
+    participant SB as Supabase Client
+    participant TO as Timeout Promise (10s)
+
+    UI->>SB: getSession()
+    UI->>TO: Start Timer
     
-    subgraph "After (Fixed)"
-        Modal2["CreateProjectModal"] -->|"title: 'X'"| Mutation2["useProjectMutations"]
-        Mutation2 --> Success["✅ Project Created"]
+    par Race
+        SB-->>UI: Success (Session Data)
+    and
+        TO-->>UI: Reject (Error: "Auth Session Timeout")
+    end
+
+    alt RPC Returns First
+        UI->>UI: Set User & Role
+    else Timeout Wins
+        UI->>UI: Catch Error
+        UI->>UI: localStorage.removeItem('planter-auth-token')
+        UI->>UI: Set User = null
+        Note over UI: Prevents Infinite Loading
     end
 ```
 
-### Test Coverage Map
-```mermaid
-graph LR
-    subgraph "New Tests"
-        CPM["CreateProjectModal.test.jsx (8)"]
-        UTB["useTaskBoard.test.jsx (5)"]
-    end
-    
-    CPM --> FieldMap["Field Mapping Regression"]
-    CPM --> UIState["UI State Management"]
-    CPM --> NoConfuse["No Confusing UI"]
-    
-    UTB --> DnDAgg["DnD Aggregation"]
-    UTB --> Expand["Expansion State"]
-```
+### Design System Updates
+- **Global Nav:** Replaced legacy CSS `.selected` rule with utility-first Tailwind classes.
+- **Stats Overview:** Fixed "invisible text" bugs in dark mode.
 
----
+## 🔍 Review Guide
 
-## Roadmap Progress
+### 🚨 High Risk / Security Sensitive
 
-| Feature | Status | Impact |
-| :--- | :--- | :--- |
-| **Design System (Rule 30)** | ✅ Done | Consistent "Modern SaaS" look; 0 legacy CSS files. |
-| **Project Creation Bug** | ✅ Fixed | Forms now pass correct field names. |
-| **Sidebar Sync Bug** | ✅ Fixed | Sidebar updates immediately on project creation. |
-| **DnD Subtask Bug** | ✅ Fixed | Subtasks can be dragged and dropped. |
-| **Test Coverage** | ✅ Improved | 13 new regression tests added. |
+- `vite.config.js` - Network binding change to `127.0.0.1`.
+- `src/app/contexts/AuthContext.jsx` - Session timeout logic.
 
----
+### 🎨 UI & Design
 
-## Technical Details
+- `src/features/navigation/components/GlobalNavItem.jsx` - New active state styling.
+- `src/features/dashboard/components/ProjectCard.jsx` - Layout and color fixes.
+- `src/features/onboarding/components/GettingStartedWidget.jsx` - Background and border contrast improvements.
+- `src/styles/layout.css` - Removal of legacy active class styles.
 
-### Bug Fixes
+## 🧪 Verification Plan
 
-#### 1. Project Creation (FE-045)
-- **File**: `CreateProjectModal.jsx`
-- **Fix**: Changed `name` state to `title` to match mutation expectations
+### 1. Environment Setup
 
-#### 2. Sidebar Sync (SYNC-001)
-- **Files**: `ProjectSidebarContainer.jsx`, `useProjectMutations.js`
-- **Fix**: Switched to `useUserProjects` hook, added query invalidation
+- [x] Restart `npm run dev` to apply Vite config changes.
+- [x] Clear browser cache to test fresh load speeds.
 
-#### 3. DnD for Subtasks (DND-002)
-- **File**: `useTaskBoard.js`
-- **Fix**: Aggregate `tasks` + `hydratedProjects` before passing to `useTaskDrag`
+### 2. Manual Verification
 
-### New Tests
+- **Load Speed:**
+  1. Reload the app.
+  2. Verify WebSocket connection is instant (no 30s+ stall).
 
-| File | Tests | Coverage |
-| :--- | :--- | :--- |
-| `CreateProjectModal.test.jsx` | 8 | Form field mapping, template flow, UI regression |
-| `useTaskBoard.test.jsx` | 5 | DnD task aggregation, expansion state |
-
----
-
-## Verification Plan
-
-### Automated
-1.  **Lint**: `npm run lint` (0 Errors)
-2.  **Tests**: `npm test` (All 64 tests pass, including 13 new)
-
-### Manual Verification
-- Create a new project → Verify it appears in Sidebar immediately
-- Drag a subtask to another task → Verify it moves correctly
-- Check admin access for designated user
-
----
-
-## Files Changed
-
-### High Risk (Review Required)
-- `src/features/dashboard/components/CreateProjectModal.jsx` - Form field mapping
-- `src/features/tasks/hooks/useTaskBoard.js` - DnD aggregation logic
-- `docs/db/schema.sql` - Admin function update
-
-### Medium Risk
-- `src/features/navigation/components/ProjectSidebarContainer.jsx` - Data hook change
-- `src/features/projects/hooks/useProjectMutations.js` - Query invalidation
-
-### Low Risk (Tests)
-- `src/features/dashboard/components/CreateProjectModal.test.jsx` - New tests
-- `src/features/tasks/hooks/useTaskBoard.test.jsx` - New tests
-- `docs/operations/ENGINEERING_KNOWLEDGE.md` - New entries
-
----
-
-## Design System Completion Features (NEW)
-
-### 1. Dark Mode 🌙
-
-Full dark mode support with system preference sync, localStorage persistence, and semantic surface standardization.
-
-#### Technical Resolution (UI-025)
-- **Root Cause Fix**: Corrected variable naming in `globals.css` (renamed `--color-bg-background` to `--color-background`) to align with Tailwind v4 utility expectations.
-- **Surface Standardization**: Eliminated hardcoded `bg-white` in project cards, task lists, and modals, replacing them with `bg-card` for consistent theme inheritance.
-
-| Component | Description |
-| :--- | :--- |
-| `ThemeContext.jsx` | Theme provider with `useMemo` for resolved theme |
-| `globals.css` | Dark CSS variables under `.dark` selector |
-| `Header.jsx` | Sun/Moon toggle button |
-
-**Usage**: Click the Moon/Sun icon in the header to toggle themes.
-
-### 2. List Virtualization ⚡
-
-Performance optimization for large task lists using `react-virtuoso`.
-
-| Component | Description |
-| :--- | :--- |
-| `ProjectListView.jsx` | Conditionally virtualizes lists > 50 items |
-
-**Threshold**: Lists with 50+ items use virtualization; smaller lists keep DnD support.
-
-### 3. View-As Role Switcher 👁️
-
-Privileged users (ADMIN/OWNER) can preview the app as other roles.
-
-| Component | Description |
-| :--- | :--- |
-| `ViewAsContext.jsx` | Context with `effectiveRole` for permission checks |
-| `ViewAsSelector.jsx` | Dropdown in Header (only visible to privileged users) |
-| `ViewAsProviderWrapper.jsx` | Determines user's global role |
-
-**Rules**:
-- Only shows for ADMIN and OWNER roles
-- Stored in session (not localStorage) to prevent lock-in
-- Persistent in navbar between breadcrumb and avatar
-
----
-
-## New Files Added
-
-| File | Purpose |
-| :--- | :--- |
-| `src/app/contexts/ThemeContext.jsx` | Dark mode provider |
-| `src/app/contexts/ViewAsContext.jsx` | View-As role context |
-| `src/app/contexts/ViewAsProviderWrapper.jsx` | User role detection |
-| `src/features/navigation/components/ViewAsSelector.jsx` | Header dropdown |
-
+- **Theme Consistency:**
+  1. Toggle Dark Mode.
+  2. Check Sidebar "Dashboard" highlight (should be subtle brand tint).
+  3. Check "Getting Started" widget (clean background).
+  4. Check "New Template" button (neutral background).
+  5. Check Stats cards (Team icon visible in light mode).

@@ -72,7 +72,8 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
     setStep(2);
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (e) => {
+    if (e) e.preventDefault();
     setLoading(true);
     // Ensure we map template -> templateId if needed by mutations, 
     // but useProjectMutations uses 'templateId' from formData.

@@ -15,10 +15,10 @@ const templateIcons = {
 };
 
 const statusColors = {
-  [PROJECT_STATUS.PLANNING]: 'bg-indigo-100 text-indigo-700',
-  [PROJECT_STATUS.IN_PROGRESS]: 'bg-orange-100 text-orange-700',
-  [PROJECT_STATUS.LAUNCHED]: 'bg-green-100 text-green-700',
-  [PROJECT_STATUS.PAUSED]: 'bg-slate-100 text-slate-700',
+  [PROJECT_STATUS.PLANNING]: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300',
+  [PROJECT_STATUS.IN_PROGRESS]: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
+  [PROJECT_STATUS.LAUNCHED]: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300',
+  [PROJECT_STATUS.PAUSED]: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400',
 };
 
 export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
@@ -29,9 +29,9 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
   const Icon = templateIcons[project.template] || Rocket;
 
   return (
-    <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-      <Link to={createPageUrl(`project/${project.id}`)}>
-        <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card">
+    <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} className="h-full">
+      <Link to={createPageUrl(`project/${project.id}`)} className="h-full block">
+        <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card h-full flex flex-col justify-between">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
@@ -56,7 +56,7 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
             <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{project.description}</p>
           )}
 
-          <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-5">
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-5">
             {project.location && (
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-4 h-4" />
