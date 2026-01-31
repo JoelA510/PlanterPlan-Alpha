@@ -17,9 +17,17 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
     const [activeProject, setActiveProject] = useState(null);
 
     const columns = useMemo(() => {
+        // Optimization: Bucketize projects in one pass (O(N)) instead of filtering for every column
+        const buckets = projects.reduce((acc, project) => {
+            const status = project.status || PROJECT_STATUS.PLANNING;
+            if (!acc[status]) acc[status] = [];
+            acc[status].push(project);
+            return acc;
+        }, {});
+
         return COLUMNS.map(c => ({
             ...c,
-            projects: projects.filter(p => (p.status || PROJECT_STATUS.PLANNING) === c.id)
+            projects: buckets[c.id] || []
         }));
     }, [projects]);
 
@@ -39,6 +47,7 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
 
     const handleDragEnd = (event) => {
         const { active, over } = event;
+        // Always clear active project first to ensure overlay is removed
         setActiveProject(null);
 
         if (!over) return;
@@ -90,7 +99,7 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
                 </div>
 
                 {createPortal(
-                    <DragOverlay>
+                    <DragOverlay aria-hidden="true">
                         {activeProject && (
                             <div className="w-[350px] rotate-2 cursor-grabbing">
                                 <ProjectCard

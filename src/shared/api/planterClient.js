@@ -1,4 +1,5 @@
 import { supabase } from '@app/supabaseClient';
+import { retryOperation } from '@shared/utils/retry';
 
 /**
  * Planter API Client Adapter
@@ -14,15 +15,17 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Array>}
    */
   list: async () => {
-    const { data, error } = await supabase.from(tableName).select(select);
-    if (error) {
-      if (error.name === 'AbortError' || error.code === '20') {
-        console.warn(`PlanterClient: list(${tableName}) aborted`);
-        return [];
+    return retryOperation(async () => {
+      const { data, error } = await supabase.from(tableName).select(select);
+      if (error) {
+        if (error.name === 'AbortError' || error.code === '20') {
+          console.warn(`PlanterClient: list(${tableName}) aborted`);
+          return [];
+        }
+        throw error;
       }
-      throw error;
-    }
-    return data;
+      return data;
+    });
   },
   /**
    * Get a single record by ID
@@ -30,9 +33,11 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   get: async (id) => {
-    const { data, error } = await supabase.from(tableName).select(select).eq('id', id).single();
-    if (error) throw error;
-    return data;
+    return retryOperation(async () => {
+      const { data, error } = await supabase.from(tableName).select(select).eq('id', id).single();
+      if (error) throw error;
+      return data;
+    });
   },
   /**
    * Create a new record
@@ -40,13 +45,15 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   create: async (payload) => {
-    const { data, error } = await supabase
-      .from(tableName)
-      .insert([payload])
-      .select(select)
-      .single();
-    if (error) throw error;
-    return data;
+    return retryOperation(async () => {
+      const { data, error } = await supabase
+        .from(tableName)
+        .insert([payload])
+        .select(select)
+        .single();
+      if (error) throw error;
+      return data;
+    });
   },
   /**
    * Update a record
@@ -55,14 +62,16 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   update: async (id, payload) => {
-    const { data, error } = await supabase
-      .from(tableName)
-      .update(payload)
-      .eq('id', id)
-      .select(select)
-      .single();
-    if (error) throw error;
-    return data;
+    return retryOperation(async () => {
+      const { data, error } = await supabase
+        .from(tableName)
+        .update(payload)
+        .eq('id', id)
+        .select(select)
+        .single();
+      if (error) throw error;
+      return data;
+    });
   },
   /**
    * Delete a record
@@ -70,9 +79,11 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<boolean>}
    */
   delete: async (id) => {
-    const { error } = await supabase.from(tableName).delete().eq('id', id);
-    if (error) throw error;
-    return true;
+    return retryOperation(async () => {
+      const { error } = await supabase.from(tableName).delete().eq('id', id);
+      if (error) throw error;
+      return true;
+    });
   },
   /**
    * Filter records by key-value pairs
@@ -93,19 +104,7 @@ const createEntityClient = (tableName, select = '*') => ({
   },
 });
 
-// Helper for retrying operations on AbortError
-const retryOperation = async (fn, retries = 3, delay = 300) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      const isAbort = err.name === 'AbortError' || err.code === '20';
-      if (!isAbort || i === retries - 1) throw err;
-      console.warn(`PlanterClient: Retrying operation (attempt ${i + 1}) due to AbortError...`);
-      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
-    }
-  }
-};
+
 
 export const planter = {
   auth: {

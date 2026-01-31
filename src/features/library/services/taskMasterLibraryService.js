@@ -101,9 +101,6 @@ export const fetchMasterLibraryTasks = async (
 
 /**
  * Search template tasks by title/description with optional resource type filter.
- */
-/**
- * Search template tasks by title/description with optional resource type filter.
  * 
  * @param {Object} params - Search parameters.
  * @param {string} params.query - The semantic search query string.

@@ -4,14 +4,20 @@ import { Card } from '@shared/ui/card';
 import { FolderKanban, CheckCircle2, Clock, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TASK_STATUS } from '@app/constants/index';
+import { useMemo } from 'react';
 
 export default function StatsOverview({ projects, tasks, teamMembers }) {
-  const totalProjects = projects.length;
-  const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
-  const totalTasks = tasks.length;
-  const pendingTasks = tasks.filter(
-    (t) => t.status === TASK_STATUS.TODO || t.status === TASK_STATUS.IN_PROGRESS
-  ).length;
+  const { totalProjects, completedTasks, totalTasks, pendingTasks } = useMemo(() => {
+    return {
+      totalProjects: projects.length,
+      totalTasks: tasks.length,
+      completedTasks: tasks.reduce((acc, t) => (t.status === TASK_STATUS.COMPLETED ? acc + 1 : acc), 0),
+      pendingTasks: tasks.reduce(
+        (acc, t) => (t.status === TASK_STATUS.TODO || t.status === TASK_STATUS.IN_PROGRESS ? acc + 1 : acc),
+        0
+      ),
+    };
+  }, [projects.length, tasks]);
 
   const stats = [
     {

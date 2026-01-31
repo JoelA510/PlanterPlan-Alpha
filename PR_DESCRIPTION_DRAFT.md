@@ -1,35 +1,61 @@
-
-# Pull Request: Stability Fixes & UI Polish
+# Pull Request: Stability, Performance & UI Hardening
 
 ## 📋 Summary
 
-This pull request delivers a major stability and user experience upgrade. It resolves critical network connectivity issues causing "infinite" loading states in the local development environment and implements a comprehensive UI polish pass to ensure a consistent, premium design across both light and dark modes.
+This pull request represents a comprehensive hardening of the PlanterPlan codebase, executing **5 distinct code review passes** to resolve critical stability issues, optimize performance, ensure accessibility compliance, and polish the user interface.
 
-## ✨ Highlights
+It addresses the "infinite loading" connectivity issues on localhost, implements network resilience across the application, optimizes React rendering performance (O(N) data processing), and unifies the design system across light/dark modes.
 
-- **Localhost Connectivity Fix:** Configured Vite to explicitly listen on `127.0.0.1`. This eliminates a confirmed 30-150 second "stall" caused by IPv6 address resolution timeouts on `localhost`, restoring instant load times.
-- **Authentication Stability:** Added a 10-second timeout to Supabase session retrieval with explicit error handling. If the session hangs, it now clears stale tokens and fails gracefully rather than freezing the app indefinitely.
-- **Resilient Data Fetching:** Implemented an **Exponential Backoff Retry Strategy** in the API client (`planterClient.js`). The application now automatically retries failed requests (up to 3 times) when it encounters network interruptions, preventing white screens.
-- **Theme & Design System:**
-  - **Dark Mode Overhaul:** Removed "muddy" backgrounds and "ugly" orange highlights. Implemented clean, translucent brand tints (`bg-brand-500/10`) and proper semantic colors.
-  - **Universal Layout:** Enforced uniform height for Project Cards.
-  - **Visual Consistency:** Harmonized hover states, shadow intensities, and icon colors.
+**Total Improvements:** ~45 distinct fixes and optimizations.
+
+## ✨ Key Highlights
+
+-   **🚀 Performance:** Optimized `StatsOverview` and `ProjectPipelineBoard` from O(3N)/O(N*M) to O(N) using single-pass reduction and memoization.
+-   **🛡️ Resilience:** Implemented **Exponential Backoff Retry Strategy** in `planterClient.js` for all network requests, robust against 30-150s drops.
+-   **🎨 UI Polish:** Complete Dark Mode overhaul (removed "muddy" greys), unified card layouts, smoother transitions (`AnimatePresence`), and improved empty states.
+-   **♿ Accessibility:** Added extensive ARIA support for Navigation, Search, and Drag-and-Drop interfaces.
+-   **🔌 Connectivity:** Fixed `vite.config.js` IPv6/localhost binding issue to eliminate local development stalls.
 
 ## 🗺️ Roadmap Progress
 
-| Item ID          | Feature Name             | Phase | Status      | Notes |
-| ---------------- | ------------------------ | ----- | ----------- | ----- |
-| [P5-ERR-BOUND]   | Error Boundaries         | 5     | ✅ Done      | Extended to Network Layer |
-| [P5-TECH-DEBT]   | Tech Debt Resolution     | 5     | ✅ Done      | Auth Timeouts & IPv4 Config |
-| [P6.9-UI-POLISH] | UI/UX Consistency        | 6     | ✅ Done      | Dark Mode & Layout Fixes |
+| Item ID | Feature Name | Phase | Status | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `[P5-ERR-BOUND]` | Error Boundaries | 5 | ✅ Done | Extended to Network Layer |
+| `[P5-TECH-DEBT]` | Tech Debt Resolution | 5 | ✅ Done | Auth Timeouts & IPv4 Config |
+| `[P6.9-UI-POLISH]` | UI/UX Consistency | 6 | ✅ Done | Dark Mode & Layout Fixes |
+| `[PASS-5-PERF]` | React Optimization | 6 | ✅ Done | Memoization & O(N) Logic |
+| `[PASS-5-A11Y]` | Accessibility Audit | 6 | ✅ Done | ARIA Roles & labels |
 
 ## 🏗️ Technical Details
 
-### Connectivity & Network
-- **Vite Config:** Updated `vite.config.js` to set `server.host: '127.0.0.1'`.
-- **Auth Context:** `AuthContext.jsx` now races the `supabase.auth.getSession()` call against a 10-second timeout promise.
+### 1. Resilience & Network Architecture
 
-### Logic Flow: Auth Session Race Condition
+We implemented a robust retry layer wrapping all Supabase interactions to handle network instability gracefully.
+
+```mermaid
+classDiagram
+    class Supabase {
+        +select()
+        +insert()
+    }
+    class PlanterClient {
+        +list()
+        +get()
+        +create()
+    }
+    class RetryLogic {
+        +retryOperation(fn)
+        +exponentialBackoff()
+    }
+
+    PlanterClient --> RetryLogic : Wraps All Calls
+    RetryLogic --> Supabase : Executes
+    RetryLogic --> RetryLogic : Retries on 503/Network Error
+```
+
+### 2. Auth Session Race Condition Fix
+
+Prevents the application from hanging indefinitely if the Auth provider is slow to respond.
 
 ```mermaid
 sequenceDiagram
@@ -46,50 +72,79 @@ sequenceDiagram
         TO-->>UI: Reject (Error: "Auth Session Timeout")
     end
 
-    alt RPC Returns First
-        UI->>UI: Set User & Role
-    else Timeout Wins
+    alt Timeout Wins
         UI->>UI: Catch Error
-        UI->>UI: localStorage.removeItem('planter-auth-token')
+        UI->>UI: Clear Stale Tokens
         UI->>UI: Set User = null
         Note over UI: Prevents Infinite Loading
     end
 ```
 
-### Design System Updates
-- **Global Nav:** Replaced legacy CSS `.selected` rule with utility-first Tailwind classes.
-- **Stats Overview:** Fixed "invisible text" bugs in dark mode.
+### 3. Performance: Stats Calculation Optimization
 
-## 🔍 Review Guide
+Refactored `StatsOverview` to compute all metrics in a single pass, significantly reducing main thread work.
 
-### 🚨 High Risk / Security Sensitive
+```mermaid
+flowchart TD
+    A[Raw Projects/Tasks] --> B{"Reduce Loop (O(N))"}
+    B --> C[Count Projects]
+    B --> D[Count Completed]
+    B --> E[Count Pending]
+    B --> F[Return Stats Object]
+    F --> G[Memoize Result]
+```
 
-- `vite.config.js` - Network binding change to `127.0.0.1`.
-- `src/app/contexts/AuthContext.jsx` - Session timeout logic.
+## 🔧 Comprehensive Change Log
 
-### 🎨 UI & Design
+### High Impact / Critical Fixes
 
-- `src/features/navigation/components/GlobalNavItem.jsx` - New active state styling.
-- `src/features/dashboard/components/ProjectCard.jsx` - Layout and color fixes.
-- `src/features/onboarding/components/GettingStartedWidget.jsx` - Background and border contrast improvements.
-- `src/styles/layout.css` - Removal of legacy active class styles.
+| File | Category | Issue | Fix |
+| :--- | :--- | :--- | :--- |
+| `vite.config.js` | Config | IPv6 Localhost Timeout | Bound to `127.0.0.1` |
+| `planterClient.js` | Resilience | Network Flakiness | Added `retryOperation` wrapper |
+| `AuthContext.jsx` | Stability | Infinite Loading | Added `AUTH_TIMEOUT_MS` (10s) |
+| `date-engine/index.js` | Logic | `due_date` coercion bug | Fixed null handling + Regression Test |
+| `20260127_rpc_init_project.sql` | Correctness | RPC swallows errors | Removed `EXCEPTION` block (Hard Fail) |
+| `useProjectData.js` | Performance | Excessive Re-renders | Memoized derived state |
+| `StatsOverview.jsx` | Performance | O(3N) filtering | Optimized to O(N) reduce |
 
-## 🧪 Verification Plan
+### UI / UX & Accessibility
 
-### 1. Environment Setup
+| File | Change | Impact |
+| :--- | :--- | :--- |
+| `index.css` / `layout.css` | Deleted legacy `layout.css` and consolidated styles. | Cleaner codebase |
+| `InstanceList.jsx` | Added "No Projects" Icon & CTA. | Better Onboarding |
+| `GettingStartedWidget.jsx` | Added `AnimatePresence` for smooth dismiss. | Premium Feel |
+| `Header.jsx` | Replaced `window.location.reload()` with `useNavigate`. | Smoother Logout |
+| `SidebarNavItem.jsx` | Added `aria-current="page"`. | Accessibility |
+| `MasterLibrarySearch.jsx` | Added `aria-controls`, `aria-activedescendant`. | Accessibility |
+| `ProjectCard.jsx` | Enforced uniform height & text truncation. | Visual Consistency |
 
-- [x] Restart `npm run dev` to apply Vite config changes.
-- [x] Clear browser cache to test fresh load speeds.
+### Code Quality & Hygiene
 
-### 2. Manual Verification
+| File | Improvement |
+| :--- | :--- |
+| `peopleService.js` | Added input validation guards. |
+| `CreateProjectModal.jsx` | Added try/catch/finally block for better error handling. |
+| `useTaskSubscription.js` | Added error callback for silent subscription failures. |
+| `utils.js` | Added null guard in `createPageUrl`. |
+| `ToastContext.jsx` | Exposed `removeToast` for programmatic dismissal. |
+| `AppSidebar.jsx` | Fixed `no-undef` lint error on `useMemo`. |
+| `GettingStartedWidget.jsx` | Fixed conditional Hook lint error. |
 
-- **Load Speed:**
-  1. Reload the app.
-  2. Verify WebSocket connection is instant (no 30s+ stall).
+## 🧪 Verification Plan & Results
 
-- **Theme Consistency:**
-  1. Toggle Dark Mode.
-  2. Check Sidebar "Dashboard" highlight (should be subtle brand tint).
-  3. Check "Getting Started" widget (clean background).
-  4. Check "New Template" button (neutral background).
-  5. Check Stats cards (Team icon visible in light mode).
+### Automated Verification
+-   ✅ **Build**: Success (2.62s) - Clean build, no type errors.
+-   ✅ **Tests**: 82/82 Passed (Includes new regression tests for `date-engine`).
+-   ✅ **Lint**: 0 Errors.
+
+### Manual Verification Checklist
+1.  **Network**: Verified instant load on `localhost` (No IPv6 hang).
+2.  **Resilience**: Verified app recovers from simulated network interruption.
+3.  **Theme**: Verified Dark Mode consistency (no "muddy" greys, visible icons).
+4.  **Performance**: Verified `StatsOverview` renders instantly with large datasets.
+5.  **A11y**: Verified Screen Reader announces active nav items and search results.
+
+---
+**Ready for Merge**

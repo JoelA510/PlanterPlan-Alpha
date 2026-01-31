@@ -34,6 +34,7 @@ yarn-error.log*
 
 docs/git_documentation/review_report.md
 notion.md
+*PR_DESCRIPTION_DRAFT.md
 
 # Context
 /Context
@@ -49,5 +50,4 @@ code_review_draft.md
 
 # Temporary Lint Logs
 lint_errors*.txt
-archive/db/seed_recovery.sql
-archive/scripts/recover_db.js
+

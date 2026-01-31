@@ -6,5 +6,6 @@ export function cn(...inputs) {
 }
 
 export const createPageUrl = (page) => {
+  if (!page) return '/';
   return page.startsWith('/') ? page : `/${page}`;
 };

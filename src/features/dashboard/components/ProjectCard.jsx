@@ -38,7 +38,7 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
                 <Icon className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors">
+                <h3 className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors truncate pr-2">
                   {project.name}
                 </h3>
                 <Badge

@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@shared/lib/utils';
 import { Button } from '@shared/ui/button';
 import {
@@ -26,9 +26,11 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
     ? pathSegments[0].charAt(0).toUpperCase() + pathSegments[0].slice(1)
     : 'Home';
 
+  const navigate = useNavigate();
+
   const handleLogout = async () => {
     await planter.auth.signOut();
-    window.location.reload();
+    navigate('/auth/login');
   };
 
   const getInitials = (name) => {
@@ -47,7 +49,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
               </Button>
             )}
 
-            <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2">
+            <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2" aria-label="PlanterPlan Home">
               <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm">
                 <CheckCircle2 className="w-5 h-5 text-white" />
               </div>

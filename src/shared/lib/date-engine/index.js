@@ -8,7 +8,7 @@
  * @param {string} id
  * @returns {Object|null}
  */
-const findTaskById = (tasks, id) => {
+export const findTaskById = (tasks, id) => {
   if (id === null || id === undefined) return null;
   return tasks.find((task) => task.id === id) || null;
 };
@@ -217,7 +217,7 @@ export const recalculateProjectDates = (projectTasks, newStartDateStr, oldStartD
     updates.push({
       id: task.id,
       start_date: newStartISO,
-      due_date: newDueISO || newStartISO, // Fallback to start if due matches/missing logic
+      due_date: newDueISO || null,
       updated_at: new Date().toISOString(),
     });
   });
