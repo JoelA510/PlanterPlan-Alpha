@@ -101,6 +101,6 @@ SortableBoardTaskCard.displayName = 'SortableBoardTaskCard';
 SortableBoardTaskCard.propTypes = {
     task: PropTypes.object.isRequired,
     onClick: PropTypes.func
-}
+};
 
 export default SortableBoardTaskCard;

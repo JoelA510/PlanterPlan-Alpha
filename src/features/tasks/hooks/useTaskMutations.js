@@ -177,7 +177,7 @@ export const useTaskMutations = ({
           if (
             newTasks &&
             newTasks.new_root_id &&
-            (parsedDays !== null || (origin === 'instance' && parsedDays !== null))
+            parsedDays !== null
           ) {
             const updates = { days_from_start: parsedDays, updated_at: new Date().toISOString() };
             if (origin === 'instance' && parsedDays !== null)
