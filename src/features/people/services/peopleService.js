@@ -4,7 +4,7 @@ export const peopleService = {
     /**
      * Get all people for a project
      * @param {string} projectId 
-     * @returns {Promise<Array>} List of people
+     * @returns {Promise<object[]>} List of people
      */
     async getPeople(projectId) {
         if (!projectId) throw new Error('projectId is required');
