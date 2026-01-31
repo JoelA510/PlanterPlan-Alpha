@@ -53,3 +53,15 @@
 ## 5. Deployment / Build
 - **Build**: `npm run build` (Vite).
 - **Environment**: Local Supabase (`127.0.0.1:54321`) mimics Sync/Realtime.
+
+## 6. Ignorable Files (Context Noise)
+The following files are generated or tracked for AI context but are not critical for a human code review. They can be safely ignored to save focus:
+
+- **`PR_DESCRIPTION_DRAFT.md`**: Draft content for the PR description (Root).
+- **`DEBT_REPORT.md`**: A comprehensive log of technical debt and linting issues.
+- **`docs/operations/ENGINEERING_KNOWLEDGE.md`**: A cumulative knowledge base; check only if solving a complex architectural problem.
+- **`browser_audit.json`**: Automated verification logs.
+- **`docs/db/drafts/*`**: Work-in-progress SQL scripts.
+- **`.agent/*`**: AI Agent configuration, rules, and workflows.
+- **`archive/*`**: Old code and documentation.
+- **`supabase/seeds/*`**: Large seed files (unless modifying data initialization).
