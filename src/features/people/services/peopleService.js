@@ -39,10 +39,13 @@ export const peopleService = {
 
     /**
      * Update a person's details.
-     * @param {string} id 
-     * @param {Object} updates 
+     * @param {string} id - Person ID
+     * @param {Object} updates - Fields to update
+     * @returns {Promise<Object>} Updated person
      */
     async updatePerson(id, updates) {
+        if (!id) throw new Error('id is required');
+
         const { data, error } = await supabase
             .from('people')
             .update(updates)
@@ -56,9 +59,12 @@ export const peopleService = {
 
     /**
      * Delete a person.
-     * @param {string} id 
+     * @param {string} id - Person ID
+     * @returns {Promise<boolean>} True if deleted
      */
     async deletePerson(id) {
+        if (!id) throw new Error('id is required');
+
         const { error } = await supabase
             .from('people')
             .delete()

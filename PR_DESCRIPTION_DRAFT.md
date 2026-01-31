@@ -125,3 +125,58 @@ flowchart LR
 - ✅ `npm run build` - Success (7.30s)
 - ✅ `npm test` - 80/80 tests passed
 - ✅ `npm run lint` - 0 errors (36 warnings, pre-existing)
+
+## 🔬 Deep Code Review Pass 2 (2026-01-31)
+
+Additional 6 improvements from thorough second-pass review:
+
+| # | File | Issue | Fix |
+|---|------|-------|-----|
+| 9 | `taskMasterLibraryService.js` | Duplicate JSDoc block | Removed |
+| 10 | `CreateProjectModal.jsx` | Unused imports & query | Removed |
+| 11 | `positionService.js` | Wrong JSDoc return type | Fixed to `Promise<Array>` |
+| 12 | `peopleService.js` | Missing validation in update/delete | Added guards |
+| 13 | `CreateProjectModal.jsx` | No try/catch in handleCreate | Added with finally |
+| 14 | `useTaskSubscription.js` | Silent subscription errors | Added error callback |
+
+### Error Handling Flow (CreateProjectModal)
+
+```mermaid
+sequenceDiagram
+    participant UI as CreateProjectModal
+    participant Parent as DashboardPage
+    participant DB as Supabase
+
+    UI->>UI: setLoading(true)
+    UI->>Parent: onCreate(formData)
+    Parent->>DB: createProject()
+    
+    alt Success
+        DB-->>Parent: project
+        Parent-->>UI: resolve
+        UI->>UI: Reset form & close
+    else Error
+        DB-->>Parent: error
+        Parent-->>UI: reject
+        UI->>UI: Log error
+        Note over UI: Parent handles toast
+    end
+    UI->>UI: setLoading(false)
+```
+
+### Subscription Error Handling
+
+```mermaid
+flowchart TD
+    A[Subscribe to channel] --> B{Status callback}
+    B -->|err exists| C[Log error to console]
+    B -->|no error| D[Continue listening]
+    D --> E{Postgres change event}
+    E --> F[Debounce check]
+    F --> G[Invalidate queries]
+```
+
+### Updated Build & Test Results
+- ✅ `npm run build` - Success (4.18s)
+- ✅ `npm test` - 80/80 tests passed
+- ✅ `npm run lint` - 0 errors

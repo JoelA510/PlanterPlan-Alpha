@@ -25,7 +25,8 @@ export const calculateNewPosition = (prevPos, nextPos) => {
  * Renormalizes positions for a list of tasks to restore proper spacing.
  * @param {string} parentId - The parent task ID (or null for root tasks)
  * @param {string} origin - The task origin ('instance' or 'template')
- * @returns {Promise<void>}
+ * @param {string} userId - The user ID
+ * @returns {Promise<Array>} Array of updated tasks with new positions
  */
 export const renormalizePositions = async (parentId, origin, userId) => {
   // console.debug('Triggering renormalization for parent:', parentId);
