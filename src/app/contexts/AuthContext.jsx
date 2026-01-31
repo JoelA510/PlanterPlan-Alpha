@@ -11,7 +11,9 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider = ({ children }) => {
+const AUTH_TIMEOUT_MS = 10000;
+
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +26,7 @@ export const AuthProvider = ({ children }) => {
 
         // Timeout wrapper to prevent infinite hanging
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auth Session Timeout')), 10000)
+          setTimeout(() => reject(new Error('Auth Session Timeout')), AUTH_TIMEOUT_MS)
         );
 
         const { data, error } = await Promise.race([

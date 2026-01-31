@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { TASK_STATUS } from '@app/constants/index';
 import PropTypes from 'prop-types';
@@ -63,6 +64,7 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => 
         className={commonClasses}
         onClick={handleClick}
         title={task.title}
+        aria-current={isSelected ? 'page' : undefined}
       >
         {content}
       </Link>
@@ -103,4 +105,4 @@ SidebarNavItem.propTypes = {
   to: PropTypes.string,
 };
 
-export default SidebarNavItem;
+export default memo(SidebarNavItem);

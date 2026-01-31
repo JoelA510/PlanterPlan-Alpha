@@ -43,7 +43,7 @@ export function useProjectData(projectId) {
         );
 
         return { phases: _phases, milestones: _milestones, tasks: _tasks };
-    }, [projectHierarchy, projectId]);
+    }, [projectHierarchy, projectId]); // Recalculate only when raw data or query ID changes
 
     // 3. Fetch Team Members
     const { data: teamMembers = [] } = useQuery({

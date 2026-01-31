@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import SidebarNavItem from '@features/navigation/components/SidebarNavItem';
+import { FolderPlus } from 'lucide-react';
 
 const InstanceList = ({
   tasks,
@@ -39,8 +40,10 @@ const InstanceList = ({
           )}
         </div>
       ) : (
-        <div className="text-sm text-muted-foreground px-3 py-4">
-          No projects yet. Click &quot;New Project&quot; to start.
+        <div className="flex flex-col items-center justify-center p-4 text-center cursor-pointer hover:bg-muted/50 rounded-lg m-2 transition-colors border border-dashed border-border" onClick={onLoadMore}>
+          <FolderPlus className="w-8 h-8 text-muted-foreground mb-2" />
+          <p className="text-sm font-medium text-foreground">No Projects</p>
+          <p className="text-xs text-muted-foreground">Create your first project to get started.</p>
         </div>
       )}
     </div>
