@@ -8,6 +8,8 @@ import { createPageUrl } from '@shared/lib/utils';
 import { useState } from 'react';
 
 export default function GettingStartedWidget({ project, teamMembers, onDismiss }) {
+    const [isVisible, setIsVisible] = useState(true);
+
     if (!project) return null;
 
     const steps = [
@@ -19,8 +21,6 @@ export default function GettingStartedWidget({ project, teamMembers, onDismiss }
 
     const completedCount = steps.filter(s => s.completed).length;
     const progress = (completedCount / steps.length) * 100;
-
-    const [isVisible, setIsVisible] = useState(true);
 
     const handleDismiss = () => {
         setIsVisible(false);
