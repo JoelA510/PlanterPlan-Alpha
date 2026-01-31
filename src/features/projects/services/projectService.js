@@ -1,6 +1,5 @@
 import { planter } from '@shared/api/planterClient';
 import { supabase } from '@app/supabaseClient';
-import { TASK_STATUS } from '@app/constants/index';
 
 // --- Membership ---
 
@@ -14,6 +13,13 @@ export async function inviteMemberByEmail(projectId, email, role) {
 
 // --- Projects (Queries) ---
 
+/**
+ * Get projects owned by a user with pagination.
+ * @param {string} userId - The user's ID
+ * @param {number} [page=1] - Page number (1-indexed)
+ * @param {number} [pageSize=20] - Items per page
+ * @returns {Promise<{data: Array, error: null}>} Paginated project list
+ */
 export async function getUserProjects(userId, page = 1, pageSize = 20) {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;

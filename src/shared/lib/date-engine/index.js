@@ -8,7 +8,7 @@
  * @param {string} id
  * @returns {Object|null}
  */
-const findTaskById = (tasks, id) => {
+export const findTaskById = (tasks, id) => {
   if (id === null || id === undefined) return null;
   return tasks.find((task) => task.id === id) || null;
 };

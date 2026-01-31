@@ -4,8 +4,11 @@ export const peopleService = {
     /**
      * Get all people for a project
      * @param {string} projectId 
+     * @returns {Promise<Array>} List of people
      */
     async getPeople(projectId) {
+        if (!projectId) throw new Error('projectId is required');
+
         const { data, error } = await supabase
             .from('people')
             .select('*')
@@ -18,9 +21,12 @@ export const peopleService = {
 
     /**
      * Add a new person to the project.
-     * @param {Object} person 
+     * @param {Object} person - Person object with project_id and name
+     * @returns {Promise<Object>} Created person
      */
     async addPerson(person) {
+        if (!person || !person.project_id) throw new Error('person with project_id is required');
+
         const { data, error } = await supabase
             .from('people')
             .insert([person])

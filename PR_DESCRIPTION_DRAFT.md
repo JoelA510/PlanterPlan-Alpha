@@ -93,3 +93,35 @@ sequenceDiagram
   3. Check "Getting Started" widget (clean background).
   4. Check "New Template" button (neutral background).
   5. Check Stats cards (Team icon visible in light mode).
+
+## 🔧 Code Review Improvements (2026-01-31)
+
+This release also includes 8 code quality improvements identified during a comprehensive code review:
+
+| # | File | Issue | Fix |
+|---|------|-------|-----|
+| 1 | `taskService.js` | Duplicate JSDoc block | Removed |
+| 2 | `AuthContext.jsx` | Duplicate console.warn | Removed |
+| 3 | `projectService.js` | Unused `TASK_STATUS` import | Removed |
+| 4 | `utils.js` | Missing null guard in `createPageUrl` | Added |
+| 5 | `peopleService.js` | Missing input validation | Added guards |
+| 6 | `date-engine/index.js` | `findTaskById` not exported | Now exported |
+| 7 | `projectService.js` | Missing JSDoc return types | Added |
+| 8 | `useTaskBoard.test.jsx` | Missing displayName | Added |
+
+### Validation Flow (peopleService)
+
+```mermaid
+flowchart LR
+    A[getPeople called] --> B{projectId?}
+    B -->|No| C[Throw Error]
+    B -->|Yes| D[Query Supabase]
+    D --> E{error?}
+    E -->|Yes| F[Throw Error]
+    E -->|No| G[Return data]
+```
+
+### Build & Test Results
+- ✅ `npm run build` - Success (7.30s)
+- ✅ `npm test` - 80/80 tests passed
+- ✅ `npm run lint` - 0 errors (36 warnings, pre-existing)

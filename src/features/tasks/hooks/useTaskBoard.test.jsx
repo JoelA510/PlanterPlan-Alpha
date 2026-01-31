@@ -77,13 +77,15 @@ const createWrapper = () => {
         loading: false,
     };
 
-    return ({ children }) => (
+    const Wrapper = ({ children }) => (
         <QueryClientProvider client={queryClient}>
             <AuthContext.Provider value={mockAuth}>
                 <ToastProvider>{children}</ToastProvider>
             </AuthContext.Provider>
         </QueryClientProvider>
     );
+    Wrapper.displayName = 'TestWrapper';
+    return Wrapper;
 };
 
 describe('useTaskBoard', () => {
