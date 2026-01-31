@@ -210,3 +210,9 @@
 - **Date**: 2026-01-27
 - **Context**: Persistent `AbortError`s were observed during local Supabase debugging, causing simple reads and writes to fail.
 - **Rule**: **Retry on Abort.** Implement exponential backoff retry logic for critical API client methods (`list`, `create`). Do not allow a single canceled request to break the user flow.
+
+### [NET-005] Troubleshooting AbortErrors
+If AbortErrors persist after implementing retries:
+1. **Check Connection Pooling**: Ensure Supabase connection pooling transaction mode is enabled.
+2. **Verify Network Stability**: VPNs and strict firewalls can terminate long-lived connections.
+3. **Increase Timeout**: In development, `main.jsx` StrictMode can double-invoke async calls, exacerbating race conditions. Ensure `AuthContext` timeout is > 10s.

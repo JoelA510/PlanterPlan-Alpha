@@ -173,6 +173,9 @@ BEGIN
         'project_id', p_project_id,
         'tasks_created', v_task_count
     );
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Error in initialize_default_project: %', SQLERRM;
+    RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
 $$;
 

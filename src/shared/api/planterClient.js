@@ -1,4 +1,5 @@
 import { supabase } from '@app/supabaseClient';
+import { retryOperation } from '@shared/utils/retry';
 
 /**
  * Planter API Client Adapter
@@ -93,19 +94,7 @@ const createEntityClient = (tableName, select = '*') => ({
   },
 });
 
-// Helper for retrying operations on AbortError
-const retryOperation = async (fn, retries = 3, delay = 300) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      const isAbort = err.name === 'AbortError' || err.code === '20';
-      if (!isAbort || i === retries - 1) throw err;
-      console.warn(`PlanterClient: Retrying operation (attempt ${i + 1}) due to AbortError...`);
-      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
-    }
-  }
-};
+
 
 export const planter = {
   auth: {

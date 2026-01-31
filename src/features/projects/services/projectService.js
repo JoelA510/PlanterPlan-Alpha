@@ -137,9 +137,12 @@ export async function createProjectWithDefaults(projectData) {
   // 1. Create the Project container
   const project = await planter.entities.Project.create({
     ...projectData,
-    launch_date: projectData.launch_date
-      ? new Date(projectData.launch_date).toISOString().split('T')[0]
-      : null,
+    launch_date: (() => {
+      if (!projectData.launch_date) return null;
+      const date = new Date(projectData.launch_date);
+      if (isNaN(date.getTime())) throw new Error('Invalid launch_date provided');
+      return date.toISOString().split('T')[0];
+    })(),
   });
 
   // Get current user for attribution
@@ -157,8 +160,14 @@ export async function createProjectWithDefaults(projectData) {
 
   if (error) {
     console.error('Failed to initialize default project structure:', error);
-    // Attempt rollback or just warn? For now, throw so UI knows.
-    throw error;
+    // Rollback: Delete the project if initialization fails to prevent orphans
+    try {
+      await planter.entities.Project.delete(project.id);
+      console.warn('Rolled back project creation due to initialization failure.');
+    } catch (rollbackError) {
+      console.error('CRITICAL: Failed to rollback project creation:', rollbackError);
+    }
+    throw new Error('Project initialization failed. Please try again.');
   }
 
   return project;

@@ -40,7 +40,13 @@ export const AuthProvider = ({ children }) => {
           console.warn('AuthContext: getSession aborted (harmless)');
         } else if (err.message === 'Auth Session Timeout') {
           console.warn('AuthContext: Session timed out. Clearing stale tokens.');
-          localStorage.removeItem('sb-ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH-auth-token');
+          console.warn('AuthContext: Session timed out. Clearing stale tokens.');
+          // Flexible token clearing for any Supabase project
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              localStorage.removeItem(key);
+            }
+          });
         } else {
           console.error('AuthContext: getSession failed', err);
         }
