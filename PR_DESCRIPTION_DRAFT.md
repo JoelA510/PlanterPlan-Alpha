@@ -245,3 +245,62 @@ This enables consumers to programmatically dismiss toasts when needed (e.g., on 
 - ✅ Build: Success (3.40s)
 - ✅ Tests: 80/80 passed
 - ✅ Lint: 0 errors
+
+---
+
+## 🚀 Code Review Pass 4 - Gemini Optimization (Final)
+
+### Overview
+Complete and final pass leveraging Deep Analysis. Focused on architectural resilience, performance, and cleaning up legacy artifacts.
+
+### Implemented Fixes (5 total)
+
+| # | File | Issue | Fix |
+|---|------|-------|-----|
+| 21 | `planterClient.js` | Inconsistent network resilience | Wrapped ALL generic methods in `retryOperation` |
+| 22 | `useProjectData.js` | Logic runs on every render | Memoized filtered derivations (Performance) |
+| 23 | `date-engine/index.js` | Logic bug (`due_date` coercion) | Fixed fallback to allow nulls |
+| 24 | `src/styles/` | CSS Bloat (`layout.css`) | Migrated `.custom-scrollbar` & Deleted legacy file |
+| 25 | `docs/spec.md` | Doc Drift | Redirected to `ARCHITECTURE.md` (SSOT) |
+
+### Architecture: Resilient Data Layer
+
+```mermaid
+classDiagram
+    class Supabase {
+        +select()
+        +insert()
+    }
+    class PlanterClient {
+        +list()
+        +get()
+        +create()
+    }
+    class RetryLogic {
+        +exponentialBackoff()
+    }
+
+    PlanterClient --> RetryLogic : Wraps All Calls
+    RetryLogic --> Supabase : Executes
+    RetryLogic --> RetryLogic : Retries on 503/Network Error
+```
+
+### Performance: Memoization Strategy
+
+```mermaid
+flowchart TD
+    A[Props/Query Changes] --> B{Re-render?}
+    B -->|Yes| C[useProjectData Hook]
+    C --> D{Inputs Changed?}
+    D -- No --> E[Return Cached Arrays]
+    D -- Yes --> F[Recalculate Filters]
+    F --> G[New Arrays]
+    E --> H[Component]
+    G --> H
+```
+
+### Final Verification Results
+- ✅ **Build**: Success (2.62s)
+- ✅ **Tests**: 80/80 Passed
+- ✅ **Clean**: 0 Legacy CSS files
+

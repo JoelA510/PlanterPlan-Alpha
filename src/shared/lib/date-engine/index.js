@@ -217,7 +217,7 @@ export const recalculateProjectDates = (projectTasks, newStartDateStr, oldStartD
     updates.push({
       id: task.id,
       start_date: newStartISO,
-      due_date: newDueISO || newStartISO, // Fallback to start if due matches/missing logic
+      due_date: newDueISO || null,
       updated_at: new Date().toISOString(),
     });
   });

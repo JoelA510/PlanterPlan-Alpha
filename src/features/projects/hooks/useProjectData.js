@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { planter } from '@shared/api/planterClient';
 
 /**
@@ -30,16 +31,19 @@ export function useProjectData(projectId) {
     });
 
     // Derived State
-    const phases = projectHierarchy.filter((t) => t.parent_task_id === projectId);
-    const milestones = projectHierarchy.filter((t) => phases.some((p) => p.id === t.parent_task_id));
+    const { phases, milestones, tasks } = useMemo(() => {
+        const _phases = projectHierarchy.filter((t) => t.parent_task_id === projectId);
+        const _milestones = projectHierarchy.filter((t) => _phases.some((p) => p.id === t.parent_task_id));
 
-    // Tasks are any items that are below the milestone level (Root Tasks + Subtasks)
-    // We filter out phases and milestones to get everything else.
-    const tasks = projectHierarchy.filter((t) =>
-        !phases.some(p => p.id === t.id) &&
-        !milestones.some(m => m.id === t.id) &&
-        t.parent_task_id !== projectId // Exclude phases again just in case, though first check handles it
-    );
+        // Tasks are any items that are below the milestone level (Root Tasks + Subtasks)
+        const _tasks = projectHierarchy.filter((t) =>
+            !_phases.some(p => p.id === t.id) &&
+            !_milestones.some(m => m.id === t.id) &&
+            t.parent_task_id !== projectId
+        );
+
+        return { phases: _phases, milestones: _milestones, tasks: _tasks };
+    }, [projectHierarchy, projectId]);
 
     // 3. Fetch Team Members
     const { data: teamMembers = [] } = useQuery({

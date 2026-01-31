@@ -15,15 +15,17 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Array>}
    */
   list: async () => {
-    const { data, error } = await supabase.from(tableName).select(select);
-    if (error) {
-      if (error.name === 'AbortError' || error.code === '20') {
-        console.warn(`PlanterClient: list(${tableName}) aborted`);
-        return [];
+    return retryOperation(async () => {
+      const { data, error } = await supabase.from(tableName).select(select);
+      if (error) {
+        if (error.name === 'AbortError' || error.code === '20') {
+          console.warn(`PlanterClient: list(${tableName}) aborted`);
+          return [];
+        }
+        throw error;
       }
-      throw error;
-    }
-    return data;
+      return data;
+    });
   },
   /**
    * Get a single record by ID
@@ -31,9 +33,11 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   get: async (id) => {
-    const { data, error } = await supabase.from(tableName).select(select).eq('id', id).single();
-    if (error) throw error;
-    return data;
+    return retryOperation(async () => {
+      const { data, error } = await supabase.from(tableName).select(select).eq('id', id).single();
+      if (error) throw error;
+      return data;
+    });
   },
   /**
    * Create a new record
@@ -41,13 +45,15 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   create: async (payload) => {
-    const { data, error } = await supabase
-      .from(tableName)
-      .insert([payload])
-      .select(select)
-      .single();
-    if (error) throw error;
-    return data;
+    return retryOperation(async () => {
+      const { data, error } = await supabase
+        .from(tableName)
+        .insert([payload])
+        .select(select)
+        .single();
+      if (error) throw error;
+      return data;
+    });
   },
   /**
    * Update a record
@@ -56,14 +62,16 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   update: async (id, payload) => {
-    const { data, error } = await supabase
-      .from(tableName)
-      .update(payload)
-      .eq('id', id)
-      .select(select)
-      .single();
-    if (error) throw error;
-    return data;
+    return retryOperation(async () => {
+      const { data, error } = await supabase
+        .from(tableName)
+        .update(payload)
+        .eq('id', id)
+        .select(select)
+        .single();
+      if (error) throw error;
+      return data;
+    });
   },
   /**
    * Delete a record
@@ -71,9 +79,11 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<boolean>}
    */
   delete: async (id) => {
-    const { error } = await supabase.from(tableName).delete().eq('id', id);
-    if (error) throw error;
-    return true;
+    return retryOperation(async () => {
+      const { error } = await supabase.from(tableName).delete().eq('id', id);
+      if (error) throw error;
+      return true;
+    });
   },
   /**
    * Filter records by key-value pairs
