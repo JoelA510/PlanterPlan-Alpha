@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { planter } from '@shared/api/planterClient';
 import { createProjectWithDefaults, updateProjectStatus } from '@features/projects/services/projectService'; // Service import
+import { useAuth } from '@app/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@shared/ui/button';
 import { Plus, FolderKanban, Loader2, LayoutGrid, Kanban } from 'lucide-react';
@@ -19,7 +20,9 @@ import DashboardLayout from '@layouts/DashboardLayout';
 export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'pipeline'
+  const [wizardDismissed, setWizardDismissed] = useState(false); // Enable dismissing the wizard
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['projects'],
@@ -54,7 +57,7 @@ export default function Dashboard() {
   });
 
   const handleCreateProject = async (projectData) => {
-    await createProjectMutation.mutateAsync(projectData);
+    await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
   };
 
   const handleStatusChange = async (projectId, newStatus) => {
@@ -219,12 +222,11 @@ export default function Dashboard() {
         />
 
         <OnboardingWizard
-          open={!loadingProjects && projects.length === 0}
+          open={!loadingProjects && projects.length === 0 && !wizardDismissed}
           onCreateProject={handleCreateProject}
+          onDismiss={() => setWizardDismissed(true)}
         />
       </div>
     </DashboardLayout>
   );
 }
-
-// Helper functions to generate default milestones and tasks

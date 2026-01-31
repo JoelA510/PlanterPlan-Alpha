@@ -129,17 +129,23 @@ export async function updateProjectStatus(projectId, status) {
 
 // --- Projects (Mutations) ---
 
-/**
- * Creates a new project with default phases, milestones, and tasks.
- * @param {Object} projectData - The project data (name, launch_date, etc.)
- * @returns {Promise<Object>} - The created project object
- */
+
 /**
  * Creates a new project with default phases, milestones, and tasks.
  * @param {Object} projectData - The project data (name, launch_date, etc.)
  * @returns {Promise<Object>} - The created project object
  */
 export async function createProjectWithDefaults(projectData) {
+  // Get creator from arguments (preferred) or fallback to auth
+  let creatorId = projectData.creator;
+
+  if (!creatorId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    creatorId = user?.id;
+  }
+
+  if (!creatorId) throw new Error('User must be logged in to create a project');
+
   // 1. Create the Project container
   const project = await planter.entities.Project.create({
     ...projectData,
@@ -149,23 +155,19 @@ export async function createProjectWithDefaults(projectData) {
       if (isNaN(date.getTime())) throw new Error('Invalid launch_date provided');
       return date.toISOString().split('T')[0];
     })(),
+    creator: creatorId // Pass explicitly
   });
-
-  // Get current user for attribution
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const creatorId = user?.id || project.creator;
 
   // 2. Initialize default structure via Server-Side RPC
   // This replaces ~200 client-side requests with 1 atomic transaction.
+  console.log('[ProjectService] Initializing default project via RPC...', { projectId: project.id, creatorId });
   const { error } = await supabase.rpc('initialize_default_project', {
     p_project_id: project.id,
     p_creator_id: creatorId
   });
 
   if (error) {
-    console.error('Failed to initialize default project structure:', error);
+    console.error('[ProjectService] RPC Error:', error);
     // Rollback: Delete the project if initialization fails to prevent orphans
     try {
       await planter.entities.Project.delete(project.id);

@@ -140,30 +140,37 @@ export const planter = {
       },
       // Override create for specific mapping
       create: async (projectData) => {
-        return retryOperation(async () => {
+        console.log('[PlanterClient] Creating project:', projectData);
+
+        let userId = projectData.creator;
+
+        // Fallback only if not provided (legacy support)
+        if (!userId) {
+          console.warn('[PlanterClient] No creator passed, fetching user (risky)...');
           const {
             data: { user },
           } = await supabase.auth.getUser();
+          userId = user?.id;
+        }
 
-          const taskPayload = {
-            title: projectData.name,
-            description: projectData.description,
-            due_date: projectData.launch_date,
-            origin: 'instance',
-            parent_task_id: null,
-            status: projectData.status || 'planning', // Fixed: Respect provided status
-            creator: user.id, // Required for RLS
-          };
+        const taskPayload = {
+          title: projectData.title || projectData.name,
+          description: projectData.description,
+          due_date: projectData.launch_date,
+          origin: 'instance',
+          parent_task_id: null,
+          status: projectData.status || 'planning',
+          creator: userId, // Required for RLS
+        };
 
-          const { data, error } = await supabase
-            .from('tasks')
-            .insert([taskPayload])
-            .select('*, name:title, launch_date:due_date, owner_id:creator')
-            .single();
+        const { data, error } = await supabase
+          .from('tasks')
+          .insert([taskPayload])
+          .select('*, name:title, launch_date:due_date, owner_id:creator')
+          .single();
 
-          if (error) throw error;
-          return data;
-        });
+        if (error) throw error;
+        return data;
       },
       // Override filter to ensure we only get projects
       filter: async (filters) => {

@@ -105,6 +105,7 @@ flowchart TD
 | `AuthContext.jsx` | Stability | Infinite Loading | Added `AUTH_TIMEOUT_MS` (10s) |
 | `date-engine/index.js` | Logic | `due_date` coercion bug | Fixed null handling + Regression Test |
 | `20260127_rpc_init_project.sql` | Correctness | RPC swallows errors | Removed `EXCEPTION` block (Hard Fail) |
+| `20260131_fix_tasks_rls.sql` | Access Control | Project Creation RLS Error | Updated Policy + Added Owner Trigger |
 | `useProjectData.js` | Performance | Excessive Re-renders | Memoized derived state |
 | `StatsOverview.jsx` | Performance | O(3N) filtering | Optimized to O(N) reduce |
 
