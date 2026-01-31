@@ -41,7 +41,7 @@ export const peopleService = {
      * Update a person's details.
      * @param {string} id - Person ID
      * @param {Object} updates - Fields to update
-     * @returns {Promise<Object>} Updated person
+     * @returns {Promise<object>} Updated person
      */
     async updatePerson(id, updates) {
         if (!id) throw new Error('id is required');
