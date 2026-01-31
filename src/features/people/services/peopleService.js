@@ -22,7 +22,7 @@ export const peopleService = {
     /**
      * Add a new person to the project.
      * @param {Object} person - Person object with project_id and name
-     * @returns {Promise<Object>} Created person
+     * @returns {Promise<object>} Created person
      */
     async addPerson(person) {
         if (!person || !person.project_id) throw new Error('person with project_id is required');
