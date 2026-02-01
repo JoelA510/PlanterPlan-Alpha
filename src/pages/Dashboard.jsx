@@ -22,21 +22,24 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'pipeline'
   const [wizardDismissed, setWizardDismissed] = useState(false); // Enable dismissing the wizard
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['projects'],
     queryFn: () => planter.entities.Project.list('-created_date'),
+    enabled: !!user,
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks'],
     queryFn: () => planter.entities.Task.list(),
+    enabled: !!user,
   });
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['teamMembers'],
     queryFn: () => planter.entities.TeamMember.list(),
+    enabled: !!user,
   });
 
   const createProjectMutation = useMutation({
@@ -65,7 +68,7 @@ export default function Dashboard() {
     await updateStatusMutation.mutateAsync({ projectId, status: newStatus });
   };
 
-  if (loadingProjects) {
+  if (loadingProjects || authLoading) {
     return (
       <DashboardLayout>
         <div className="flex justify-center py-20">

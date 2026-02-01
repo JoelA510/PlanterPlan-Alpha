@@ -134,7 +134,12 @@ export const planter = {
           if (error) throw error;
           return data;
         }).catch(err => {
-          console.error('PlanterClient: Project.list failed after retries', err);
+          console.error('[PlanterClient] Project.list failed after retries:', {
+            message: err.message,
+            details: err.details,
+            hint: err.hint,
+            code: err.code
+          });
           return []; // Fallback to empty to prevent UI crash
         });
       },

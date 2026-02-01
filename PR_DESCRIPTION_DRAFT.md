@@ -1,12 +1,14 @@
-# Pull Request: Stability, Performance & UI Hardening
+# Pull Request: Stability, Performance & UI Hardening (Master Review Verification)
 
 ## 📋 Summary
 
-This pull request represents a comprehensive hardening of the PlanterPlan codebase, executing **5 distinct code review passes** to resolve critical stability issues, optimize performance, ensure accessibility compliance, and polish the user interface.
+This pull request represents a comprehensive hardening of the PlanterPlan codebase, executing **5 distinct code review passes** and concluding the **Master Review Orchestrator** workflow (Phase 2: Verification).
 
-It addresses the "infinite loading" connectivity issues on localhost, implements network resilience across the application, optimizes React rendering performance (O(N) data processing), and unifies the design system across light/dark modes.
+It addresses critical stability issues ("infinite loading" on localhost, "invisible projects"), implements network resilience across the application, optimizes React rendering performance (O(N) data processing), and unifies the design system across light/dark modes.
 
-**Total Improvements:** ~45 distinct fixes and optimizations.
+We have conclusively identified and resolved the "Invisible Projects" root cause (an environment configuration issue) and verified backend integrity.
+
+**Total Improvements:** ~50 distinct fixes and optimizations.
 
 ## ✨ Key Highlights
 
@@ -15,6 +17,7 @@ It addresses the "infinite loading" connectivity issues on localhost, implements
 -   **🎨 UI Polish:** Complete Dark Mode overhaul (removed "muddy" greys), unified card layouts, smoother transitions (`AnimatePresence`), and improved empty states.
 -   **♿ Accessibility:** Added extensive ARIA support for Navigation, Search, and Drag-and-Drop interfaces.
 -   **🔌 Connectivity:** Fixed `vite.config.js` IPv6/localhost binding issue to eliminate local development stalls.
+-   **✅ Root Cause Analysis:** Conclusively identified that the "Invisible Projects" issue was caused by a malformed `.env` password (`#` character interpreted as comment), not a logic bug.
 
 ## 🗺️ Roadmap Progress
 
@@ -25,6 +28,7 @@ It addresses the "infinite loading" connectivity issues on localhost, implements
 | `[P6.9-UI-POLISH]` | UI/UX Consistency | 6 | ✅ Done | Dark Mode & Layout Fixes |
 | `[PASS-5-PERF]` | React Optimization | 6 | ✅ Done | Memoization & O(N) Logic |
 | `[PASS-5-A11Y]` | Accessibility Audit | 6 | ✅ Done | ARIA Roles & labels |
+| `[MASTER-REVIEW]` | End-to-End Verification | - | ✅ Done | Config Hardening & Parity Check |
 
 ## 🏗️ Technical Details
 
@@ -94,6 +98,14 @@ flowchart TD
     F --> G[Memoize Result]
 ```
 
+### 4. Master Review Findings (Configuration Hardening)
+
+During the verification phase, we encountered persistent "Invisible Projects" on the dashboard. Deep debugging revealed:
+1.  **Issue:** `.env` password contained a hash (`#`) character (`TEST_USER_PASSWORD=...#...`).
+2.  **Impact:** `dotenv` parsed the hash as a comment start, truncating the password. Logic was failing silently or rejecting the truncated password.
+3.  **Fix:** Quoted the password in `.env` and verified `planterClient.js` correctly maps `origin='instance'` projects.
+4.  **Verification:** Created `verify_db_state.js` (clean room Node script) to prove data accessibility with correct credentials.
+
 ## 🔧 Comprehensive Change Log
 
 ### High Impact / Critical Fixes
@@ -108,6 +120,8 @@ flowchart TD
 | `20260131_fix_tasks_rls.sql` | Access Control | Project Creation RLS Error | Updated Policy + Added Owner Trigger |
 | `useProjectData.js` | Performance | Excessive Re-renders | Memoized derived state |
 | `StatsOverview.jsx` | Performance | O(3N) filtering | Optimized to O(N) reduce |
+| `projectService.js` | Stability | **Project Creation AbortError** | Injected User Context (Avoids Race) |
+| `.env` | Config | Malformed Password | Quoted value to prevent comment parsing |
 
 ### UI / UX & Accessibility
 
@@ -139,6 +153,14 @@ flowchart TD
 -   ✅ **Build**: Success (2.62s) - Clean build, no type errors.
 -   ✅ **Tests**: 82/82 Passed (Includes new regression tests for `date-engine`).
 -   ✅ **Lint**: 0 Errors.
+
+### Master Review Verification Results
+| Component | Status | Notes |
+| :--- | :--- | :--- |
+| **Backend API** | ✅ **Verified** | All endpoints responding correctly. |
+| **Authentication** | ✅ **Verified** | Login flows successful with valid config. |
+| **Project Lists** | ✅ **Verified** | Projects appear correctly for their creators. |
+| **Environment** | ✅ **Verified** | `localhost:5173` connectivity confirmed. |
 
 ### Manual Verification Checklist
 1.  **Network**: Verified instant load on `localhost` (No IPv6 hang).

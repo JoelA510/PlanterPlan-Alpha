@@ -53,12 +53,10 @@ If any non-trivial bugs were fixed or new patterns were established:
 **Prompt Reference**: `.agent/prompts/ROADMAP-PROMPT.md`
 
 1. Update the **"Last Updated"** date at the top.
-2. Review roadmap items affected by this PR:
-   - Change 📅 (Planned) → ✅ (Done) if fully implemented and verified
-   - Change 📅 → 🚧 (In Progress) if partial work committed
-3. Update **"Current Focus"** to reflect the next priority.
-4. Add a row to **"Project History"** if a major milestone was completed.
-5. Update **"UX Workflows & Status"** if workflow status changed.
+2. **Strict SSoT Rule**: Treat the roadmap as a Developer Single Source of Truth for *progress only*.
+   - ✅ **Update Status**: Change 📅 (Planned) → ✅ (Done) or 🚧 (In Progress) based on actual work.
+   - 🚫 **No Scope Creep**: Do **NOT** add new features, change timelines, or re-architect items unless explicitly requested by the user.
+   - 🚫 **No Rewrite**: Preserve existing structure and item IDs.
 
 ---
 
@@ -68,13 +66,11 @@ If any non-trivial bugs were fixed or new patterns were established:
 **Prompt Reference**: `.agent/prompts/README-PROMPT.md`
 
 1. Update the **"Last verified"** date and commit SHA.
-2. Review these sections for accuracy:
-   - **Section 2 (Project Structure)**: Add new directories/files if structure changed
-   - **Section 4 (Architecture)**: Update component responsibilities if new services added
-   - **Section 5 (Current State)**: Update working features, limitations, or tech debt
-3. **Constraint**: Every claim must be backed by a file link.
-
-> **Skip if**: Only bug fixes with no structural changes.
+2. **Clarify & Enrich**:
+   - Update **Project Structure** if files moved.
+   - Refine **Architecture** diagram if patterns changed.
+   - Update **Current State** limitations or known issues.
+   - *Goal*: Make it easier for a new dev to understand the *current* reality.
 
 ---
 
@@ -83,13 +79,17 @@ If any non-trivial bugs were fixed or new patterns were established:
 **File**: `PR_DESCRIPTION_DRAFT.md`
 **Prompt Reference**: `.agent/prompts/PR-PROMPT.md`
 
-Generate the PR description using the template in PR-PROMPT.md:
+Generate the PR description matching the style of the current draft (use `view_file` to check `PR_DESCRIPTION_DRAFT.md` first):
 
-1. **Summary**: 3-4 bullet points in user-facing language (no file names). **CRITICAL**: Do NOT use internal jargon (e.g., "Master Review", "Orchestrator", "Workflow 09"). Use standard terms like "Verification", "Refactoring", or "Cleanup".
-2. **Roadmap Progress**: Table of affected roadmap items with status
-3. **Architecture Decisions**: Key patterns, trade-offs, tech debt
-4. **Review Guide**: Categorize files by risk level (High/Medium/Low)
-5. **Verification Plan**: Step-by-step test instructions
+1. **Visuals (Mermaid)**: logic changes MUST be visualized with Mermaid diagrams (Flowcharts, Sequence, Class).
+2. **Structure**: Follow the existing template:
+   - 📋 **Summary** (User-facing, no jargon)
+   - ✨ **Key Highlights**
+   - 🗺️ **Roadmap Progress** (Table)
+   - 🏗️ **Technical Details** (Mermaid Diagrams required here)
+   - 🔧 **Change Log** (Tables)
+   - 🧪 **Verification Results**
+3. **No Meta-Commentary**: Never mention "Master Workflow", "Agent", or "Refactor Loop". Speak as a Principal Engineer.
 
 ### Required Input Data
 
