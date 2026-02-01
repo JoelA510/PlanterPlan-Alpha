@@ -60,7 +60,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
             {user && (
               <div className="hidden md:flex items-center gap-2 ml-2 text-slate-400">
                 <ChevronRight className="w-4 h-4" />
-                <span className="font-medium text-slate-600 dark:text-slate-300">{currentSection}</span>
+                <span className="font-medium text-slate-900 dark:text-white">{currentSection}</span>
               </div>
             )}
           </div>

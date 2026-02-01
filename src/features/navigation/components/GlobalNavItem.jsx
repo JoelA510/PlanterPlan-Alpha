@@ -2,17 +2,21 @@ import PropTypes from 'prop-types';
 
 const GlobalNavItem = ({ isActive, onClick, label, icon }) => (
   <div
-    className={`sidebar-nav-item group ${isActive ? 'bg-brand-50 dark:bg-brand-500/10 border-l-brand-600 dark:border-l-brand-500' : 'hover:bg-accent hover:text-accent-foreground border-transparent'}`}
+    className={`sidebar-nav-item group flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 cursor-pointer ${isActive
+      ? 'bg-gradient-to-br from-orange-200/80 to-transparent border border-orange-300/50 dark:bg-slate-800/80 text-slate-900 dark:text-white shadow-sm dark:shadow-none font-semibold'
+      : 'text-muted-foreground hover:bg-gradient-to-br hover:from-orange-100/50 hover:to-transparent hover:border-orange-200/50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+      }`}
     onClick={onClick}
     role="button"
     tabIndex={0}
   >
     <div
-      className={`group-hover:text-foreground ${isActive ? 'text-brand-600 dark:text-brand-400' : 'text-muted-foreground'}`}
+      className={`flex-shrink-0 transition-colors ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'
+        }`}
     >
       {icon}
     </div>
-    <span className={`sidebar-nav-item-title ${isActive ? 'text-brand-700 dark:text-brand-300 font-semibold' : 'text-muted-foreground group-hover:text-foreground'}`}>
+    <span className="sidebar-nav-item-title font-medium whitespace-nowrap overflow-hidden text-ellipsis">
       {label}
     </span>
   </div>

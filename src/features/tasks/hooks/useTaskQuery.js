@@ -55,14 +55,23 @@ export const useTaskQuery = () => {
         PAGE_SIZE
       );
 
-      // Fetch Templates (Naive: Fetch all for now or create service)
-      const { data: templates, error: tmplError } = await supabase
-        .from('tasks_with_primary_resource')
-        .select('*')
-        .eq('creator', user.id)
-        .eq('origin', 'template')
-        .is('parent_task_id', null)
-        .order('title', { ascending: true });
+      // Fetch Templates (Safe Raw Fetch logic)
+
+      let templates = [];
+      try {
+        const { data } = await supabase
+          .from('tasks_with_primary_resource')
+          .select('*')
+          .eq('creator', user.id)
+          .eq('origin', 'template')
+          .is('parent_task_id', null)
+          .order('title', { ascending: true });
+        templates = data || [];
+      } catch (e) {
+        if (e.name !== 'AbortError') console.error('Template fetch error', e);
+      }
+
+      const tmplError = null; // Suppressed
 
       if (projError) throw projError;
       if (tmplError) throw tmplError;

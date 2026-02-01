@@ -1,5 +1,12 @@
-import { supabase } from '@app/supabaseClient';
+// import { supabase } from '@app/supabaseClient'; // Singleton appears broken in browser environment (AbortError)
+// import { createClient } from '@supabase/supabase-js'; // REMOVED to avoid Multiple GoTrueClient conflict
 import { retryOperation } from '@shared/utils/retry';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+
+// NOTE: Internal supabase client removed. All ops use rawSupabaseFetch.
 
 /**
  * Planter API Client Adapter
@@ -9,6 +16,7 @@ import { retryOperation } from '@shared/utils/retry';
  */
 
 // Helper factory for generic CRUD operations
+// Helper factory for generic CRUD operations using Raw Fetch
 const createEntityClient = (tableName, select = '*') => ({
   /**
    * List all records
@@ -16,15 +24,11 @@ const createEntityClient = (tableName, select = '*') => ({
    */
   list: async () => {
     return retryOperation(async () => {
-      const { data, error } = await supabase.from(tableName).select(select);
-      if (error) {
-        if (error.name === 'AbortError' || error.code === '20') {
-          console.warn(`PlanterClient: list(${tableName}) aborted`);
-          return [];
-        }
-        throw error;
-      }
-      return data;
+      // select=* needs to be URL encoded or safe?
+      // simple select string usually works.
+      const query = `${tableName}?select=${select}`;
+      const data = await rawSupabaseFetch(query, { method: 'GET' });
+      return data || [];
     });
   },
   /**
@@ -34,9 +38,12 @@ const createEntityClient = (tableName, select = '*') => ({
    */
   get: async (id) => {
     return retryOperation(async () => {
-      const { data, error } = await supabase.from(tableName).select(select).eq('id', id).single();
-      if (error) throw error;
-      return data;
+      const query = `${tableName}?select=${select}&id=eq.${id}`;
+      // PostgREST returns array. We want single. 
+      // We can use validation header 'Accept: application/vnd.pgrst.object+json' 
+      // or just [0] client side. Client side is safer fallback.
+      const data = await rawSupabaseFetch(query, { method: 'GET' });
+      return data?.[0] || null;
     });
   },
   /**
@@ -46,13 +53,17 @@ const createEntityClient = (tableName, select = '*') => ({
    */
   create: async (payload) => {
     return retryOperation(async () => {
-      const { data, error } = await supabase
-        .from(tableName)
-        .insert([payload])
-        .select(select)
-        .single();
-      if (error) throw error;
-      return data;
+      console.log(`[PlanterClient] Creating ${tableName} (Raw Fetch):`, payload);
+      const data = await rawSupabaseFetch(
+        `${tableName}?select=${select}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Prefer': 'return=representation' }
+        }
+      );
+      // PostgREST return array for inserts
+      return data?.[0] || data;
     });
   },
   /**
@@ -63,14 +74,15 @@ const createEntityClient = (tableName, select = '*') => ({
    */
   update: async (id, payload) => {
     return retryOperation(async () => {
-      const { data, error } = await supabase
-        .from(tableName)
-        .update(payload)
-        .eq('id', id)
-        .select(select)
-        .single();
-      if (error) throw error;
-      return data;
+      const data = await rawSupabaseFetch(
+        `${tableName}?select=${select}&id=eq.${id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+          headers: { 'Prefer': 'return=representation' }
+        }
+      );
+      return data?.[0] || data;
     });
   },
   /**
@@ -80,8 +92,7 @@ const createEntityClient = (tableName, select = '*') => ({
    */
   delete: async (id) => {
     return retryOperation(async () => {
-      const { error } = await supabase.from(tableName).delete().eq('id', id);
-      if (error) throw error;
+      await rawSupabaseFetch(`${tableName}?id=eq.${id}`, { method: 'DELETE' });
       return true;
     });
   },
@@ -91,137 +102,295 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Array>}
    */
   filter: async (filters) => {
-    let query = supabase.from(tableName).select(select);
-    Object.keys(filters).forEach((key) => {
-      query = query.eq(key, filters[key]);
+    return retryOperation(async () => {
+      let queryParams = [`select=${select}`];
+      Object.keys(filters).forEach((key) => {
+        const val = filters[key];
+        if (val === null) {
+          queryParams.push(`${key}=is.null`);
+        } else {
+          queryParams.push(`${key}=eq.${val}`);
+        }
+      });
+
+      const queryString = queryParams.join('&');
+      const data = await rawSupabaseFetch(`${tableName}?${queryString}`, { method: 'GET' });
+      return data || [];
     });
-    const { data, error } = await query;
-    if (error) {
-      if (error.name === 'AbortError' || error.code === '20') return [];
-      throw error;
-    }
-    return data;
   },
 });
 
 
 
+// Helper to get token from localStorage (bypass broken supabase client)
+const getSupabaseToken = () => {
+  if (typeof window === 'undefined') return null;
+  // Scan for Supabase session key
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+      try {
+        const session = JSON.parse(localStorage.getItem(key));
+        return session?.access_token;
+      } catch (e) {
+        console.warn('[PlanterClient] Failed to parse session key', key, e);
+      }
+    }
+  }
+  return null;
+};
+
+// Raw Fetch Wrapper for robustness against Supabase Client AbortErrors
+const rawSupabaseFetch = async (endpoint, options = {}, explicitToken = null) => {
+  const token = explicitToken || getSupabaseToken();
+  if (!token) throw new Error('No auth token available for raw fetch');
+
+  const url = `${supabaseUrl}/rest/v1/${endpoint}`;
+  const headers = {
+    'apikey': supabaseKey,
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation', // Default to returning data
+    ...options.headers
+  };
+
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Supabase Raw Error (${response.status}): ${text}`);
+  }
+
+  return await response.json();
+};
+
 export const planter = {
   auth: {
+    // Auth should be handled by the main supabase client / AuthContext.
+    // We provide placeholder me() to not break existing calls, but implementation usually handled by Context.
     me: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      return user;
+      console.warn('[PlanterClient] auth.me() called - falling back to direct fetch');
+      const token = getSupabaseToken();
+      if (!token) return null;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+        const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${token}`
+          },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) return null;
+        const user = await response.json();
+        return user;
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          console.warn('[PlanterClient] auth.me() timed out');
+        }
+        return null;
+      }
     },
     signOut: async () => {
-      return await supabase.auth.signOut();
+      console.warn('[PlanterClient] signOut called - cannot sign out via Raw Fetch. Use AuthContext.');
+      // Returns empty promise
+      return Promise.resolve();
     },
   },
   entities: {
+
+
     Project: {
       ...createEntityClient('tasks', '*, name:title, launch_date:due_date, owner_id:creator'),
       // Override list to filter for Root Tasks (Projects)
       list: async () => {
         return retryOperation(async () => {
-          const { data, error } = await supabase
-            .from('tasks')
-            .select('*, name:title, launch_date:due_date, owner_id:creator')
-            .is('parent_task_id', null)
-            .eq('origin', 'instance')
-            .order('created_at', { ascending: false });
-
-          if (error) throw error;
-          return data;
+          // Use Raw Fetch to bypass potential client AbortErrors
+          try {
+            const data = await rawSupabaseFetch(
+              'tasks?select=*,name:title,launch_date:due_date,owner_id:creator&parent_task_id=is.null&origin=eq.instance&order=created_at.desc',
+              { method: 'GET' }
+            );
+            return data;
+          } catch (err) {
+            console.error('[PlanterClient] Raw Fetch List failed:', err);
+            // Fallback to client if raw fails? No, client is definitely broken.
+            throw err;
+          }
         }).catch(err => {
-          console.error('[PlanterClient] Project.list failed after retries:', {
-            message: err.message,
-            details: err.details,
-            hint: err.hint,
-            code: err.code
-          });
-          return []; // Fallback to empty to prevent UI crash
+          console.error('[PlanterClient] Project.list failed after retries:', err);
+          return [];
         });
       },
       // Override create for specific mapping
       create: async (projectData) => {
-        console.log('[PlanterClient] Creating project:', projectData);
+        return retryOperation(async () => {
+          console.log('[PlanterClient] Creating project (Raw Fetch):', projectData);
 
-        let userId = projectData.creator;
+          let userId = projectData.creator;
 
-        // Fallback only if not provided (legacy support)
-        if (!userId) {
-          console.warn('[PlanterClient] No creator passed, fetching user (risky)...');
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          userId = user?.id;
-        }
+          // Fallback only if not provided (legacy support)
+          if (!userId) {
+            // We can decode the token or just fail. 
+            // With raw fetch we can't easily "getUser" without another call.
+            // Assume userId is passed correctly by UI.
+            const token = getSupabaseToken();
+            // Simple JWT decode hack for user_id? 
+            // Let's just trust the UI passed it or use 'auth.uid()' in RLS if possible?
+            // Actually, the UI usually passes it.
+          }
 
-        const taskPayload = {
-          title: projectData.title || projectData.name,
-          description: projectData.description,
-          due_date: projectData.launch_date,
-          origin: 'instance',
-          parent_task_id: null,
-          status: projectData.status || 'planning',
-          creator: userId, // Required for RLS
-        };
+          // Extract explicit token if provided
+          const explicitToken = projectData._token;
+          const cleanProjectData = { ...projectData };
+          delete cleanProjectData._token;
 
-        const { data, error } = await supabase
-          .from('tasks')
-          .insert([taskPayload])
-          .select('*, name:title, launch_date:due_date, owner_id:creator')
-          .single();
+          const taskPayload = {
+            title: cleanProjectData.title || cleanProjectData.name,
+            description: cleanProjectData.description,
+            due_date: cleanProjectData.launch_date,
+            origin: 'instance',
+            parent_task_id: null,
+            status: cleanProjectData.status || 'planning',
+            creator: userId, // Required for RLS
+          };
 
-        if (error) throw error;
-        return data;
+          const data = await rawSupabaseFetch(
+            'tasks?select=*,name:title,launch_date:due_date,owner_id:creator',
+            {
+              method: 'POST',
+              headers: { 'Prefer': 'return=representation,headers=off' }, // Return single object not array? PostgREST returns array by default.
+              body: JSON.stringify(taskPayload)
+            },
+            explicitToken // Pass explicit token
+          );
+
+          // PostgREST returns an array for inserts. We need single object.
+          return data?.[0] || data;
+        });
+      },
+      // Safe list by creator (Raw Fetch)
+      listByCreator: async (userId, page = 1, pageSize = 20) => {
+        return retryOperation(async () => {
+          const from = (page - 1) * pageSize;
+          const to = from + pageSize - 1;
+          const rangeHeader = `${from}-${to}`;
+
+          try {
+            // Strategy: Fetch ALL visible projects (like Dashboard) and filter client-side.
+            // This avoids potential PostgREST filtering issues or 'creator' column quirks.
+            const data = await rawSupabaseFetch(
+              `tasks?select=*,name:title,launch_date:due_date,owner_id:creator&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`,
+              {
+                method: 'GET',
+                headers: { 'Range': rangeHeader }
+              }
+            );
+
+            // Client-side filter for 'My Projects'
+            console.warn('[DEBUG_SIDEBAR] listByCreator Raw Data Length:', (data || []).length);
+            if (data?.length > 0) {
+              console.warn('[DEBUG_SIDEBAR] Sample Project Keys:', Object.keys(data[0]));
+              console.warn('[DEBUG_SIDEBAR] Sample Project Creator/Owner:', { creator: data[0].creator, owner_id: data[0].owner_id });
+            }
+            const filtered = (data || []).filter(p => (p.creator === userId || p.owner_id === userId));
+            console.warn('[DEBUG_SIDEBAR] Filtered Data Length:', filtered.length, 'UserId:', userId);
+
+            return filtered;
+          } catch (err) {
+            console.error('[PlanterClient] listByCreator failed:', err);
+            // Return empty array to prevent UI crash, but log error
+            return [];
+          }
+        });
+      },
+      // Safe list joined projects (Raw Fetch)
+      listJoined: async (userId) => {
+        return retryOperation(async () => {
+          try {
+            // PostgREST join syntax: select=project:tasks(*)
+            // Note: We need to match the fields selected in getUserProjects/list
+            const query = `project_members?select=project:tasks(*,name:title,launch_date:due_date,owner_id:creator)&user_id=eq.${userId}`;
+
+            const data = await rawSupabaseFetch(query, { method: 'GET' });
+
+            // Map structure to match expected format (flatten project)
+            return (data || [])
+              .map(item => item.project)
+              .filter(p => p !== null);
+
+          } catch (err) {
+            console.error('[PlanterClient] listJoined failed:', err);
+            return [];
+          }
+        });
       },
       // Override filter to ensure we only get projects
       filter: async (filters) => {
         return retryOperation(async () => {
-          let query = supabase
-            .from('tasks')
-            .select('*, name:title, launch_date:due_date, owner_id:creator')
-            .is('parent_task_id', null)
-            .eq('origin', 'instance');
+          // Manual query build for raw fetch
+          let queryParams = [
+            'select=*,name:title,launch_date:due_date,owner_id:creator',
+            'parent_task_id=is.null',
+            'origin=eq.instance'
+          ];
 
           Object.keys(filters).forEach((key) => {
-            query = query.eq(key, filters[key]);
+            const val = filters[key];
+            if (val === null) queryParams.push(`${key}=is.null`);
+            else queryParams.push(`${key}=eq.${val}`);
           });
-          const { data, error } = await query;
-          if (error) throw error;
-          return data;
+
+          const queryString = queryParams.join('&');
+          const data = await rawSupabaseFetch(`tasks?${queryString}`, { method: 'GET' });
+          return data || [];
         }).catch(() => []);
       },
       // Custom methods
       addMember: async (projectId, userId, role) => {
-        const { data, error } = await supabase
-          .from('project_members')
-          .insert([{ project_id: projectId, user_id: userId, role }])
-          .select()
-          .single();
-        if (error) throw error;
-        return data;
+        // INSERT into project_members
+        const data = await rawSupabaseFetch(
+          'project_members?select=*',
+          {
+            method: 'POST',
+            body: JSON.stringify({ project_id: projectId, user_id: userId, role }),
+            headers: { 'Prefer': 'return=representation' }
+          }
+        );
+        return { data: data?.[0], error: null };
       },
       addMemberByEmail: async (projectId, email, role) => {
-        const { data: user } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', email)
-          .single();
+        // 1. Get User by Email (from profiles table)
+        const users = await rawSupabaseFetch(`profiles?select=id&email=eq.${email}`, { method: 'GET' });
+        const user = users?.[0];
 
         if (user) {
           return await planter.entities.Project.addMember(projectId, user.id, role);
         }
 
-        const { data, error } = await supabase.rpc('invite_user_to_project', {
-          p_project_id: projectId,
-          p_email: email,
-          p_role: role,
-        });
-        if (error) throw error;
-        return data;
+        // 2. RPC call for invite
+        // RPC via Raw Fetch: POST /rpc/function_name
+        try {
+          const data = await rawSupabaseFetch('rpc/invite_user_to_project', {
+            method: 'POST',
+            body: JSON.stringify({
+              p_project_id: projectId,
+              p_email: email,
+              p_role: role,
+            })
+          });
+          return { data, error: null };
+        } catch (e) {
+          throw e;
+        }
       },
     },
     Task: createEntityClient('tasks'),

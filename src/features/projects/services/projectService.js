@@ -21,52 +21,27 @@ export async function inviteMemberByEmail(projectId, email, role) {
  * @returns {Promise<{data: Array, error: null}>} Paginated project list
  */
 export async function getUserProjects(userId, page = 1, pageSize = 20) {
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-
-  // Use 'tasks' table, filtering for root tasks (parent_task_id is null)
-  const { data, error } = await supabase
-    .from('tasks')
-    .select('*, name:title, launch_date:due_date, owner_id:creator')
-    .eq('creator', userId)
-    .is('parent_task_id', null)
-    .eq('origin', 'instance')
-    .order('created_at', { ascending: false })
-    .range(from, to);
-
-  if (error) throw error;
-  return { data, error: null };
+  // Use safe listByCreator method from planter client (Raw Fetch)
+  try {
+    console.warn('[DEBUG_SIDEBAR] getUserProjects called with:', userId);
+    const data = await planter.entities.Project.listByCreator(userId, page, pageSize);
+    return { data, error: null };
+  } catch (error) {
+    console.error('getUserProjects failed:', error);
+    return { data: [], error };
+  }
 }
 
 export async function getJoinedProjects(userId) {
-  // Join 'tasks' instead of 'projects'
-  const { data, error } = await supabase
-    .from('project_members')
-    .select('project:tasks(*)')
-    .eq('user_id', userId);
-
-  if (error) throw error;
-
-  // Flatten result, filter nulls, and map fields manually since we can't alias in nested join easily?
-  // actually we can try select('project:tasks(*, name:title, ...)')
-  // Re-fetching with explicit mapping in join:
-  // .select('project:tasks(*, name:title, launch_date:due_date, owner_id:creator)')
-
-  // Let's assume the component can handle it, or we map it here.
-  const mappedData = (data || [])
-    .map((item) => item.project)
-    .filter((p) => p !== null)
-    .map((p) => ({
-      ...p,
-      name: p.title,
-      launch_date: p.due_date,
-      owner_id: p.creator,
-    }));
-
-  return {
-    data: mappedData,
-    error: null,
-  };
+  // Use safe listJoined method from planter client (Raw Fetch)
+  try {
+    console.warn('[DEBUG_SIDEBAR] getJoinedProjects called with:', userId);
+    const data = await planter.entities.Project.listJoined(userId);
+    return { data, error: null };
+  } catch (error) {
+    console.error('getJoinedProjects failed:', error);
+    return { data: [], error };
+  }
 }
 
 export async function getProjectWithStats(projectId) {
@@ -146,6 +121,10 @@ export async function createProjectWithDefaults(projectData) {
 
   if (!creatorId) throw new Error('User must be logged in to create a project');
 
+  // Get session token to ensure PlanterClient works even if localStorage is tricky
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
   // 1. Create the Project container
   const project = await planter.entities.Project.create({
     ...projectData,
@@ -155,7 +134,8 @@ export async function createProjectWithDefaults(projectData) {
       if (isNaN(date.getTime())) throw new Error('Invalid launch_date provided');
       return date.toISOString().split('T')[0];
     })(),
-    creator: creatorId // Pass explicitly
+    creator: creatorId, // Pass explicitly
+    _token: token // Pass token to bypass PlanterClient's localStorage scan
   });
 
   // 2. Initialize default structure via Server-Side RPC

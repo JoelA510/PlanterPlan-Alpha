@@ -48,15 +48,21 @@ export default function Team() {
   });
 
   const { data: teamMembers = [], isLoading } = useQuery({
-    queryKey: ['teamMembers', projectId],
-    queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId }),
-    enabled: !!projectId,
+    queryKey: ['teamMembers', projectId || 'all'],
+    queryFn: () => {
+      if (projectId) {
+        return planter.entities.TeamMember.filter({ project_id: projectId });
+      } else {
+        // Fetch all members from all projects the user has access to
+        return planter.entities.TeamMember.list();
+      }
+    },
   });
 
   const deleteMemberMutation = useMutation({
     mutationFn: (id) => planter.entities.TeamMember.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teamMembers', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['teamMembers', projectId || 'all'] });
       toast({ title: 'Member removed successfully' });
     },
   });
@@ -64,7 +70,7 @@ export default function Team() {
   const addMemberMutation = useMutation({
     mutationFn: (data) => planter.entities.TeamMember.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teamMembers', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['teamMembers', projectId || 'all'] });
       setShowAddModal(false);
       toast({ title: 'Member added successfully' });
     },
@@ -74,7 +80,7 @@ export default function Team() {
     return (
       <DashboardLayout>
         <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
         </div>
       </DashboardLayout>
     );
@@ -82,28 +88,33 @@ export default function Team() {
 
   return (
     <DashboardLayout selectedTaskId={projectId}>
-      <div className="min-h-screen bg-slate-50">
-        <div className="bg-white border-b border-slate-200">
+      <div className="min-h-screen bg-background">
+        <div className="bg-card border-b border-border">
           <div className="max-w-5xl mx-auto px-4 py-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <Link to={createPageUrl(`Project?id=${projectId}`)}>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <ArrowLeft className="w-5 h-5" />
-                  </Button>
-                </Link>
+                {projectId && (
+                  <Link to={createPageUrl(`Project?id=${projectId}`)}>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                  </Link>
+                )}
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900">Project Team</h1>
-                  {project && <p className="text-slate-600 mt-1">{project.name}</p>}
+                  <h1 className="text-3xl font-bold text-foreground">{projectId ? 'Project Team' : 'All Team Members'}</h1>
+                  {project && <p className="text-muted-foreground mt-1">{project.name}</p>}
+                  {!projectId && <p className="text-muted-foreground mt-1">People collaborating across your projects</p>}
                 </div>
               </div>
-              <Button
-                onClick={() => setShowAddModal(true)}
-                className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20"
-              >
-                <UserPlus className="w-5 h-5 mr-2" />
-                Add Member
-              </Button>
+              {projectId && (
+                <Button
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/20"
+                >
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  Add Member
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -119,20 +130,20 @@ export default function Team() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="p-6 bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 group">
+                  <Card className="p-6 bg-card border border-border shadow-sm hover:shadow-md transition-all duration-300 group">
                     <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm ring-2 ring-slate-50">
-                        <Users className="w-6 h-6 text-slate-400" />
+                      <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center border-2 border-background shadow-sm ring-2 ring-muted">
+                        <Users className="w-6 h-6 text-muted-foreground" />
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            className="text-red-600"
+                            className="text-rose-600 focus:text-rose-700 focus:bg-rose-50 dark:focus:bg-rose-900/40"
                             onClick={() => deleteMemberMutation.mutate(member.id)}
                           >
                             Remove from team
@@ -141,27 +152,27 @@ export default function Team() {
                       </DropdownMenu>
                     </div>
 
-                    <h3 className="text-lg font-bold text-slate-900 mb-1">{member.name}</h3>
+                    <h3 className="text-lg font-bold text-foreground mb-1">{member.name || 'Unknown Name'}</h3>
                     <div className="flex flex-wrap gap-2 mb-4">
-                      <Badge variant="secondary" className="bg-orange-50 text-orange-700 border-0">
+                      <Badge variant="secondary" className="bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border-0">
                         {member.role || 'Member'}
                       </Badge>
                       {member.is_lead && (
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-0">
+                        <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-0">
                           Lead
                         </Badge>
                       )}
                     </div>
 
-                    <div className="space-y-2 mt-4 pt-4 border-t border-slate-100">
+                    <div className="space-y-2 mt-4 pt-4 border-t border-border">
                       {member.email && (
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-muted-foreground">
                           <Mail className="w-4 h-4 mr-2" />
                           {member.email}
                         </div>
                       )}
                       {member.phone && (
-                        <div className="flex items-center text-sm text-slate-500">
+                        <div className="flex items-center text-sm text-muted-foreground">
                           <Phone className="w-4 h-4 mr-2" />
                           {member.phone}
                         </div>
@@ -174,31 +185,35 @@ export default function Team() {
 
             {teamMembers.length === 0 && (
               <div className="col-span-full py-20 text-center">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Users className="w-10 h-10 text-slate-300" />
+                <div className="w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Users className="w-10 h-10 text-muted-foreground/50" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Build your team</h3>
-                <p className="text-slate-500 mb-8 max-w-sm mx-auto">
-                  Add members to collaborate on this project and track their progress.
+                <h3 className="text-xl font-bold text-foreground mb-2">Build your team</h3>
+                <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
+                  {projectId
+                    ? "Add members to collaborate on this project."
+                    : "No team members found across your projects."}
                 </p>
-                <Button
-                  onClick={() => setShowAddModal(true)}
-                  className="bg-orange-500 hover:bg-orange-600"
-                >
-                  <UserPlus className="w-5 h-5 mr-2" />
-                  Add First Member
-                </Button>
+                {projectId && (
+                  <Button
+                    onClick={() => setShowAddModal(true)}
+                    className="bg-brand-600 hover:bg-brand-700 text-white"
+                  >
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    Add First Member
+                  </Button>
+                )}
               </div>
             )}
           </div>
         </div>
 
         <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-          <DialogContent>
+          <DialogContent className="bg-card text-card-foreground border-border">
             <DialogHeader>
               <DialogTitle>Add Team Member</DialogTitle>
               <DialogDescription>
-                Fill in the details below to add a new member to your project team.
+                Fill in the details below to add a new member.
               </DialogDescription>
             </DialogHeader>
             <form
@@ -215,16 +230,16 @@ export default function Team() {
               className="space-y-4 pt-4"
             >
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Full Name</label>
-                <Input name="name" placeholder="Enter name" required />
+                <label className="text-sm font-medium text-foreground">Full Name</label>
+                <Input name="name" placeholder="Enter name" required className="bg-background border-input" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Email Address</label>
-                <Input name="email" type="email" placeholder="Enter email" />
+                <label className="text-sm font-medium text-foreground">Email Address</label>
+                <Input name="email" type="email" placeholder="Enter email" className="bg-background border-input" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Role</label>
-                <Input name="role" placeholder="e.g. Lead, Coordinator, Volunteer" />
+                <label className="text-sm font-medium text-foreground">Role</label>
+                <Input name="role" placeholder="e.g. Lead, Coordinator, Volunteer" className="bg-background border-input" />
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
@@ -232,7 +247,7 @@ export default function Team() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-brand-600 hover:bg-brand-700 text-white"
                   disabled={addMemberMutation.isPending}
                 >
                   {addMemberMutation.isPending ? 'Adding...' : 'Add Member'}

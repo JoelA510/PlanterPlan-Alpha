@@ -6,7 +6,7 @@ import ProjectSidebar from './ProjectSidebar';
 
 export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) {
     const navigate = useNavigate();
-    const { projects: userProjects, isLoading: projectsLoading } = useUserProjects();
+    const { data: userProjects, isLoading: projectsLoading } = useUserProjects();
     const {
         joinedProjects = [], // Note: useUserProjects includes joined projects if mapped correctly, but let's check.
         // useUserProjects returns an array of ALL projects (owned + joined).
@@ -47,9 +47,14 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) 
 
     const { user } = useAuth(); // Need user for filtering
 
+    if (userProjects?.length > 0) {
+        console.warn('[DEBUG_UI] Sidebar Render - User:', user?.id ? 'Present' : 'MISSING', 'Project Count:', userProjects.length);
+        if (userProjects[0]) console.warn('[DEBUG_UI] First Project Creator:', userProjects[0].creator, 'User ID:', user?.id);
+    }
+
     // Split userProjects into Owned and Joined
-    const ownedProjects = userProjects?.filter(p => p.creator === user?.id) || [];
-    const joinedProjs = userProjects?.filter(p => p.creator !== user?.id) || [];
+    const ownedProjects = userProjects?.filter(p => (p.creator === user?.id || p.owner_id === user?.id)) || [];
+    const joinedProjs = userProjects?.filter(p => (p.creator !== user?.id && p.owner_id !== user?.id)) || [];
 
     const handleSelectProject = (project) => {
         navigate(`/project/${project.id}`);
@@ -67,13 +72,9 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) 
 
     return (
         <ProjectSidebar
-            // Use TanStack Query data (synced with Dashboard)
             instanceTasks={ownedProjects}
             joinedProjects={joinedProjs}
-
-            // Keep templates from legacy hook for now (or move to Tanstack later)
             templateTasks={templateTasks}
-
             loading={projectsLoading || tasksLoading}
             error={error}
             joinedError={joinedError}

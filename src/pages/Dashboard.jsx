@@ -17,6 +17,21 @@ import MobileAgenda from '@features/mobile/MobileAgenda';
 
 import DashboardLayout from '@layouts/DashboardLayout';
 
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
+
 export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'pipeline'
@@ -80,7 +95,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-[calc(100vh-64px)] flex flex-col">
+      <div className="w-full px-4 py-8 h-[calc(100vh-64px)] flex flex-col">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -136,7 +151,7 @@ export default function Dashboard() {
         )}
 
         {/* Content Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
           {projects.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -170,7 +185,11 @@ export default function Dashboard() {
               {/* Primary Projects */}
               <div className="mb-8">
                 <h2 className="text-xl font-semibold text-card-foreground mb-4">Primary Projects</h2>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <motion.div
+                  className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
                   {projects
                     .filter((p) => p.project_type === 'primary' || !p.project_type)
                     .map((project, index) => (
@@ -179,6 +198,7 @@ export default function Dashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
+                        variants={item}
                       >
                         <ProjectCard
                           project={project}
@@ -187,7 +207,7 @@ export default function Dashboard() {
                         />
                       </motion.div>
                     ))}
-                </div>
+                </motion.div>
               </div>
 
               {/* Secondary Projects */}

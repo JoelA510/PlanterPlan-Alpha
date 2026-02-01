@@ -225,3 +225,8 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-01-31
 - **Context**: Calendar component styles broke (misaligned grid, missing headers) because the component used `react-day-picker` v8 class keys (`caption`, `table`) while v9 was installed.
 - **Rule**: **Version Check Styles.** When styling library components, verify the installed version matches the style API. For `react-day-picker` v9, use `classNames` with keys like `month_caption`, `month_grid`, and `weekdays`.
+
+### [NET-006] Client-Side Timeouts for Vital Fetches
+- **Date**: 2026-02-01
+- **Context**: Login flow hung indefinitely because `planter.auth.me()` waited for a stalled Vite HMR WebSocket connection.
+- **Rule**: **Always Enforce Timeouts.** Critical authentication or initialization fetches must use an `AbortController` with a strict timeout (e.g., 5-10s) to prevent UI freezes during network congestion.

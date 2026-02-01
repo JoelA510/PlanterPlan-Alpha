@@ -4,9 +4,10 @@ import { Card } from '@shared/ui/card';
 import { Badge } from '@shared/ui/badge';
 import { Progress } from '@shared/ui/progress';
 import { format } from 'date-fns';
-import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch } from 'lucide-react';
+import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch, FolderKanban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TASK_STATUS, PROJECT_STATUS } from '@app/constants/index';
+import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
 
 const templateIcons = {
   launch_large: Rocket,
@@ -14,42 +15,37 @@ const templateIcons = {
   multiplication: GitBranch,
 };
 
-const statusColors = {
-  [PROJECT_STATUS.PLANNING]: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300',
-  [PROJECT_STATUS.IN_PROGRESS]: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
-  [PROJECT_STATUS.LAUNCHED]: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300',
-  [PROJECT_STATUS.PAUSED]: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400',
-};
+const ProjectCard = ({ project, tasks = [], teamMembers = [] }) => {
+  const Icon = templateIcons[project.template_id] || FolderKanban;
 
-export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
-  const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
+  const statusConfig = PROJECT_STATUS_COLORS[project.status] || PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING];
+
   const totalTasks = tasks.length;
-  const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  const Icon = templateIcons[project.template] || Rocket;
+  const completedTasks = tasks.filter(t => t.status === TASK_STATUS.DONE).length;
+  const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
   return (
     <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} className="h-full">
       <Link to={createPageUrl(`project/${project.id}`)} className="h-full block">
-        <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card h-full flex flex-col justify-between">
+        <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card h-full flex flex-col justify-between overflow-hidden">
           <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
                 <Icon className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h3 className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors truncate pr-2">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors truncate">
                   {project.name}
                 </h3>
                 <Badge
                   variant="secondary"
-                  className={`${statusColors[project.status]} text-xs mt-1`}
+                  className={`${statusConfig.bg} ${statusConfig.text} ${statusConfig.border} border text-[10px] font-bold mt-1 uppercase tracking-wider`}
                 >
                   {project.status?.replace('_', ' ')}
                 </Badge>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-brand-500 group-hover:translate-x-1 transition-all" />
+            <ChevronRight className="w-5 h-5 flex-shrink-0 text-muted-foreground group-hover:text-brand-500 group-hover:translate-x-1 transition-all" />
           </div>
 
           {project.description && (
@@ -92,3 +88,5 @@ export default function ProjectCard({ project, tasks = [], teamMembers = [] }) {
     </motion.div>
   );
 }
+
+export default ProjectCard;

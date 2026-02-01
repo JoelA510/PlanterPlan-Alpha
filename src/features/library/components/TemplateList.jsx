@@ -3,15 +3,15 @@ import SidebarNavItem from '@features/navigation/components/SidebarNavItem';
 
 const TemplateList = ({ tasks, selectedTaskId, handleTaskClick }) => {
   return (
-    <div className="task-section">
-      <div className="section-header">
-        <div className="section-header-left">
-          <h2 className="section-title">Templates</h2>
-          <span className="section-count">{tasks.length}</span>
-        </div>
+    <div className="mt-6">
+      <div className="flex items-center justify-between px-2 mb-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Templates</h2>
+        <span className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-xs font-bold px-2 py-0.5 rounded-full min-w-[1.25rem] text-center">
+          {tasks.length}
+        </span>
       </div>
       {tasks.length > 0 ? (
-        <div className="sidebar-nav-list">
+        <div className="space-y-1">
           {tasks.map((template) => (
             <SidebarNavItem
               key={template.id}

@@ -135,8 +135,8 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }) {
                                 )}>
                                     <RadioGroupItem value="launch_large" id="t1" className="mt-1" />
                                     <div className="flex-1">
-                                        <Label htmlFor="t1" className="font-semibold cursor-pointer text-foreground">Launch Large</Label>
-                                        <p className="text-sm text-muted-foreground mt-1">Standard ARC/CMN model. 6 phases, ~200 tasks focusing on a strong day-one launch.</p>
+                                        <Label htmlFor="t1" className="font-semibold cursor-pointer text-slate-900 dark:text-slate-100">Launch Large</Label>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Standard ARC/CMN model. 6 phases, ~200 tasks focusing on a strong day-one launch.</p>
                                     </div>
                                 </div>
                                 <div className={cn(
@@ -147,8 +147,8 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }) {
                                 )}>
                                     <RadioGroupItem value="multiplication" id="t2" className="mt-1" />
                                     <div className="flex-1">
-                                        <Label htmlFor="t2" className="font-semibold cursor-pointer text-foreground">Simple / House Church</Label>
-                                        <p className="text-sm text-muted-foreground mt-1">Simplified flow for smaller, gathering-based plants.</p>
+                                        <Label htmlFor="t2" className="font-semibold cursor-pointer text-slate-900 dark:text-slate-100">Simple / House Church</Label>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Simplified flow for smaller, gathering-based plants.</p>
                                     </div>
                                 </div>
                             </RadioGroup>

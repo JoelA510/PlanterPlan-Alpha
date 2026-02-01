@@ -64,7 +64,7 @@ const ProjectSidebar = ({
   const userInitial = user?.email ? user.email[0].toUpperCase() : '?';
 
   return (
-    <div className="flex flex-col h-full bg-card text-card-foreground border-r border-border">
+    <div className="flex flex-col h-full bg-card text-card-foreground border-r border-border shadow-sm">
       {/* Global Navigation */}
       <div className="px-4 py-4 space-y-1">
         <GlobalNavItem
@@ -114,8 +114,16 @@ const ProjectSidebar = ({
           </button>
           <button
             onClick={handleNewTemplate}
-            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-accent/40 rounded-lg hover:bg-brand-100 dark:hover:bg-accent/60 transition-colors"
+            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
           >
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
             New Template
           </button>
         </div>
@@ -159,7 +167,7 @@ const ProjectSidebar = ({
       {/* User Profile Section (Bottom) */}
       <div className="border-t border-border p-4 bg-muted/20">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center text-brand-700 dark:text-brand-300 font-bold border border-brand-200 dark:border-brand-800">
+          <div className="h-8 w-8 rounded-full bg-brand-50 dark:bg-brand-900/40 flex items-center justify-center text-brand-600 dark:text-brand-300 font-bold border border-brand-200 dark:border-brand-800">
             {userInitial}
           </div>
           <div className="flex-1 min-w-0">

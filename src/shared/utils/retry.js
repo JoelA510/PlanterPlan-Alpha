@@ -12,11 +12,16 @@ export const retryOperation = async (fn, retries = 3, delay = 300) => {
         try {
             return await fn();
         } catch (err) {
-            // Don't retry on AbortError - if it was cancelled, we should stop.
-            const isAbort = err.name === 'AbortError' || err.code === '20';
-            if (isAbort || i === retries - 1) throw err;
+            // Retry specifically on AbortError (network timeout/flake) or 503s
+            const isAbort = err.name === 'AbortError' || err.code === '20' || err.status === 503;
+            if (!isAbort && i < retries - 1) {
+                // For non-abort errors, we might NOT want to retry? 
+                // Actually, original intent was likely: ONLY retry on Abort/Network, throw others.
+                throw err;
+            }
+            if (i === retries - 1) throw err;
 
-            // console.warn(\`Retrying operation (attempt \${i + 1}) due to AbortError...\`);
+            console.warn(`Retrying operation (attempt ${i + 1}) due to AbortError/NetworkError...`);
             await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
         }
     }

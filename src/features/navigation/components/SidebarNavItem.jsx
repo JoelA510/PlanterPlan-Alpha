@@ -19,7 +19,10 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => 
   };
 
   const statusClass = task.status ? `status-dot ${task.status}` : `status-dot ${TASK_STATUS.TODO}`;
-  const commonClasses = `sidebar-nav-item group ${isSelected ? 'selected' : ''}`;
+  const commonClasses = `sidebar-nav-item group flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 cursor-pointer ${isSelected
+    ? 'bg-gradient-to-br from-orange-200/80 to-transparent border border-orange-300/50 dark:bg-slate-800/80 text-slate-900 dark:text-white shadow-sm dark:shadow-none font-semibold'
+    : 'text-muted-foreground hover:bg-gradient-to-br hover:from-orange-100/50 hover:to-transparent hover:border-orange-200/50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+    }`;
 
   const content = (
     <>

@@ -13,18 +13,18 @@ We have conclusively identified and resolved the "Invisible Projects" root cause
 ## ✨ Key Highlights
 
 -   **🚀 Performance:** Optimized `StatsOverview` and `ProjectPipelineBoard` from O(3N)/O(N*M) to O(N) using single-pass reduction and memoization.
--   **🛡️ Resilience:** Implemented **Exponential Backoff Retry Strategy** in `planterClient.js` for all network requests, robust against 30-150s drops.
+-   **🛡️ Resilience:** Resolved persistent `AbortError` in Project Creation and Sidebar via `rawSupabaseFetch`. Fixed "Empty Sidebar" by implementing resilient property filtering (`creator` vs `owner_id`) to handle PostgREST aliasing.
 -   **🎨 UI Polish:** Complete Dark Mode overhaul (removed "muddy" greys), unified card layouts, smoother transitions (`AnimatePresence`), and improved empty states.
 -   **♿ Accessibility:** Added extensive ARIA support for Navigation, Search, and Drag-and-Drop interfaces.
 -   **🔌 Connectivity:** Fixed `vite.config.js` IPv6/localhost binding issue to eliminate local development stalls.
--   **✅ Root Cause Analysis:** Conclusively identified that the "Invisible Projects" issue was caused by a malformed `.env` password (`#` character interpreted as comment), not a logic bug.
+-   **✅ Root Cause Analysis:** Conclusively identified that the "Invisible Projects" issue was caused by a malformed `.env` password (`#` character interpreted as comment).
 
 ## 🗺️ Roadmap Progress
 
 | Item ID | Feature Name | Phase | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | `[P5-ERR-BOUND]` | Error Boundaries | 5 | ✅ Done | Extended to Network Layer |
-| `[P5-TECH-DEBT]` | Tech Debt Resolution | 5 | ✅ Done | Auth Timeouts & IPv4 Config |
+| `[P5-TECH-DEBT]` | Tech Debt Resolution | 5 | ✅ Done | Auth Timeouts, IPv4 Config, Raw Fetch |
 | `[P6.9-UI-POLISH]` | UI/UX Consistency | 6 | ✅ Done | Dark Mode & Layout Fixes |
 | `[PASS-5-PERF]` | React Optimization | 6 | ✅ Done | Memoization & O(N) Logic |
 | `[PASS-5-A11Y]` | Accessibility Audit | 6 | ✅ Done | ARIA Roles & labels |
@@ -34,27 +34,25 @@ We have conclusively identified and resolved the "Invisible Projects" root cause
 
 ### 1. Resilience & Network Architecture
 
-We implemented a robust retry layer wrapping all Supabase interactions to handle network instability gracefully.
+We implemented a robust retry layer, and for critical project operations, a **Raw Fetch Fallback** to bypass client-side `AbortError` issues. We also hardened client-side filtering to handle irregular property aliasing (`owner_id` vs `creator`).
 
 ```mermaid
 classDiagram
-    class Supabase {
-        +select()
-        +insert()
+    class SupabaseClient {
+        +abort()
     }
     class PlanterClient {
-        +list()
-        +get()
+        +listByCreator()
         +create()
+        +rawSupabaseFetch()
     }
-    class RetryLogic {
-        +retryOperation(fn)
-        +exponentialBackoff()
+    class ProjectService {
+        +getUserProjects()
     }
 
-    PlanterClient --> RetryLogic : Wraps All Calls
-    RetryLogic --> Supabase : Executes
-    RetryLogic --> RetryLogic : Retries on 503/Network Error
+    PlanterClient --|> SupabaseClient : Bypasses for Critical Ops
+    ProjectService --> PlanterClient : Uses Safe Methods
+    PlanterClient --> WindowFetch : Direct Execution
 ```
 
 ### 2. Auth Session Race Condition Fix
@@ -106,6 +104,29 @@ During the verification phase, we encountered persistent "Invisible Projects" on
 3.  **Fix:** Quoted the password in `.env` and verified `planterClient.js` correctly maps `origin='instance'` projects.
 4.  **Verification:** Created `verify_db_state.js` (clean room Node script) to prove data accessibility with correct credentials.
 
+### 5. UI Standardization & Polish (Final Pass)
+
+We unified the application's visual language by enforcing a "Bold Orange" theme for active states and eliminating inconsistent slate/grey tones in navigation.
+
+```mermaid
+graph TD
+    subgraph Design Tokens
+        O1[Brand Orange 200] ---|Gradient| GN[Global Nav Item]
+        O2[Brand Orange 300] ---|Border| GN
+        S9[Slate 900] ---|Text| GN
+    end
+
+    subgraph Component Layer
+        GN -->|Style Inheritance| SN[Sidebar Nav Item]
+        O1 -->|Gradient Background| PH[Pipeline Header]
+        O2 -->|Accent Border| PH
+    end
+
+    style GN fill:#fbd38d,stroke:#f6ad55,color:#1a202c
+    style SN fill:#fbd38d,stroke:#f6ad55,color:#1a202c
+    style PH fill:#bee3f8,stroke:#3182ce,color:#1a202c
+```
+
 ## 🔧 Comprehensive Change Log
 
 ### High Impact / Critical Fixes
@@ -118,9 +139,10 @@ During the verification phase, we encountered persistent "Invisible Projects" on
 | `date-engine/index.js` | Logic | `due_date` coercion bug | Fixed null handling + Regression Test |
 | `20260127_rpc_init_project.sql` | Correctness | RPC swallows errors | Removed `EXCEPTION` block (Hard Fail) |
 | `20260131_fix_tasks_rls.sql` | Access Control | Project Creation RLS Error | Updated Policy + Added Owner Trigger |
-| `useProjectData.js` | Performance | Excessive Re-renders | Memoized derived state |
+| `Tasks List` | Performance | Excessive Re-renders | Memoized derived state |
 | `StatsOverview.jsx` | Performance | O(3N) filtering | Optimized to O(N) reduce |
-| `projectService.js` | Stability | **Project Creation AbortError** | Injected User Context (Avoids Race) |
+| `projectService.js` | Stability | **Sidebar Empty & AbortError** | Migrated to `rawSupabaseFetch` |
+| `planterClient.js` | Stability | **Project Creation AbortError** | Added `rawSupabaseFetch` & Client-side Filters |
 | `.env` | Config | Malformed Password | Quoted value to prevent comment parsing |
 
 ### UI / UX & Accessibility
@@ -134,6 +156,13 @@ During the verification phase, we encountered persistent "Invisible Projects" on
 | `SidebarNavItem.jsx` | Added `aria-current="page"`. | Accessibility |
 | `MasterLibrarySearch.jsx` | Added `aria-controls`, `aria-activedescendant`. | Accessibility |
 | `ProjectCard.jsx` | Enforced uniform height & text truncation. | Visual Consistency |
+| `ProjectSidebar` | Populated "My Projects" with Safe Fetch. | **User Confidence** |
+| `colors.js` | Added `gradient` & `accent` tokens for status headers. | Design System |
+| `ProjectPipelineBoard` | Applied status-specific gradients to column headers. | Visual Polish |
+| `GlobalNavItem.jsx` | Enforced "Bold Orange" gradient (`from-orange-200`) for active state. | Brand Consistency |
+| `SidebarNavItem.jsx` | Replaced legacy `.selected` class with explicit Tailwind classes. | Consistency |
+| `Header.jsx` | Fixed breadcrumb text contrast (`text-slate-900`) for Light Mode. | Readability |
+| `ProjectSidebar.jsx` | Added "+" icon to "New Template" button. | Consistency |
 
 ### Code Quality & Hygiene
 
@@ -164,7 +193,7 @@ During the verification phase, we encountered persistent "Invisible Projects" on
 
 ### Manual Verification Checklist
 1.  **Network**: Verified instant load on `localhost` (No IPv6 hang).
-2.  **Resilience**: Verified app recovers from simulated network interruption.
+2.  **Resilience**: Verified `AbortError` resolution for Project Creation & Sidebar.
 3.  **Theme**: Verified Dark Mode consistency (no "muddy" greys, visible icons).
 4.  **Performance**: Verified `StatsOverview` renders instantly with large datasets.
 5.  **A11y**: Verified Screen Reader announces active nav items and search results.

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
+import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable, useDraggable } from '@dnd-kit/core';
 import { PROJECT_STATUS } from '@app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
 import ProjectCard from '@features/dashboard/components/ProjectCard';
@@ -75,7 +75,7 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
     };
 
     return (
-        <div className="h-full overflow-x-auto pb-4">
+        <div className="h-full overflow-x-auto pb-4 no-scrollbar">
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCorners}
@@ -87,7 +87,7 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
                     }
                 }}
             >
-                <div className="flex gap-6 h-full min-w-[1000px]">
+                <section className="flex gap-4 h-full w-full overflow-x-hidden pb-4 no-scrollbar">
                     {columns.map((column) => (
                         <PipelineColumn
                             key={column.id}
@@ -96,7 +96,7 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
                             teamMembers={teamMembers}
                         />
                     ))}
-                </div>
+                </section>
 
                 {createPortal(
                     <DragOverlay aria-hidden="true">
@@ -125,8 +125,6 @@ ProjectPipelineBoard.propTypes = {
     onStatusChange: PropTypes.func.isRequired
 };
 
-import { useDroppable } from '@dnd-kit/core';
-
 function PipelineColumn({ column, tasks, teamMembers }) {
     const { setNodeRef } = useDroppable({
         id: column.id,
@@ -134,21 +132,23 @@ function PipelineColumn({ column, tasks, teamMembers }) {
     });
 
     return (
-        <div ref={setNodeRef} className="flex-1 flex flex-col min-w-[300px] h-full rounded-xl bg-slate-50/50 border border-slate-200/60">
+        <div ref={setNodeRef} className={`flex-1 w-0 min-w-0 flex flex-col h-full rounded-xl bg-gradient-to-br ${column.gradient} border border-brand-100/50 dark:border-slate-800`}>
             {/* Header */}
-            <div className={`p-4 border-b ${column.border} bg-white rounded-t-xl`}>
+            {/* Header */}
+            {/* Header */}
+            <div className={`p-4 border-b border-transparent rounded-t-xl ${column.headerBg}`}>
                 <div className="flex items-center justify-between">
-                    <h3 className={`font-semibold text-sm uppercase tracking-wider ${column.text}`}>
+                    <h3 className={`font-bold text-sm uppercase tracking-wider ${column.headerContent}`}>
                         {column.title}
                     </h3>
-                    <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-white/20 text-white`}>
                         {column.projects.length}
                     </span>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="p-3 flex-1 overflow-y-auto space-y-3">
+            <div className="p-3 flex-1 overflow-y-auto space-y-3 no-scrollbar">
                 {column.projects.map(project => (
                     <DraggableProjectCard
                         key={project.id}
@@ -158,7 +158,7 @@ function PipelineColumn({ column, tasks, teamMembers }) {
                     />
                 ))}
                 {column.projects.length === 0 && (
-                    <div className="h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-sm">
+                    <div className="h-24 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg flex items-center justify-center text-slate-400 dark:text-slate-600 text-sm">
                         Drop Project Here
                     </div>
                 )}
@@ -173,7 +173,6 @@ PipelineColumn.propTypes = {
     teamMembers: PropTypes.array.isRequired
 };
 
-import { useDraggable } from '@dnd-kit/core';
 
 function DraggableProjectCard({ project, tasks, teamMembers }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
