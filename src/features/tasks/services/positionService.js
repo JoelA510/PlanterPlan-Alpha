@@ -1,4 +1,4 @@
-import { supabase } from '@app/supabaseClient';
+import { planter } from '@shared/api/planterClient';
 import { POSITION_STEP } from '@app/constants/index';
 const MIN_GAP = 2; // Minimum gap before triggering renormalization
 
@@ -31,25 +31,18 @@ export const calculateNewPosition = (prevPos, nextPos) => {
 export const renormalizePositions = async (parentId, origin, userId) => {
   // console.debug('Triggering renormalization for parent:', parentId);
 
-  let query = supabase
-    .from('tasks')
-    .select('*') // Fetched full objects to allow local state update
-    .eq('origin', origin)
-    .eq('creator', userId)
-    .order('position', { ascending: true });
+  const filters = {
+    origin,
+    creator: userId,
+    parent_task_id: parentId || null
+  };
 
-  if (parentId) {
-    query = query.eq('parent_task_id', parentId);
-  } else {
-    query = query.is('parent_task_id', null);
-  }
+  const tasks = await planter.entities.Task.filter(filters);
+  if (!tasks) return [];
 
-  const { data: tasks, error } = await query;
-
-  if (error || !tasks) {
-    console.error('Error fetching tasks for renormalization:', error);
-    return [];
-  }
+  // Sort tasks by position locally since filter doesn't support complex ordering yet
+  // or we rely on default order. Better to sort JS side to be safe.
+  tasks.sort((a, b) => (a.position || 0) - (b.position || 0));
 
   // 2. Perform updates
   // Refactored to use bulk upsert for atomicity and performance
@@ -64,7 +57,7 @@ export const renormalizePositions = async (parentId, origin, userId) => {
     position,
   }));
 
-  const { error: updateError } = await supabase.from('tasks').upsert(updates);
+  const { error: updateError } = await planter.entities.Task.upsert(updates);
 
   if (updateError) {
     console.error('Renormalization update failed', updateError);
@@ -86,7 +79,7 @@ export const updateTaskPosition = async (taskId, newPosition, parentId) => {
     parent_task_id: parentId,
   };
 
-  const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
+  const { error } = await planter.entities.Task.update(taskId, updates);
 
   if (error) {
     console.error('Failed to update task position:', error);

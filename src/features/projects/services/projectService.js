@@ -1,5 +1,5 @@
 import { planter } from '@shared/api/planterClient';
-import { supabase } from '@app/supabaseClient';
+
 
 // --- Membership ---
 
@@ -46,40 +46,29 @@ export async function getJoinedProjects(userId) {
 
 export async function getProjectWithStats(projectId) {
   // Fetch Project (Root Task)
-  const { data: project, error: projError } = await supabase
-    .from('tasks')
-    .select('*, name:title, launch_date:due_date, owner_id:creator')
-    .eq('id', projectId)
-    .single();
+  const project = await planter.entities.Task.get(projectId); // Task entities for projects
 
-  if (projError) throw projError;
+  if (!project) throw new Error('Project not found');
 
   // Fetch Tasks for Stats (Children)
-  // Logic: All tasks where root_id = projectId OR project_id = projectId?
-  // Schema has `project_id` on tasks? No, it has `root_id`.
-  // Schema: `root_id uuid` (Line 35).
-  // So we must use `root_id`.
+  // Logic: All tasks where root_id = projectId
+  // Note: We need Counts. PlanterClient 'filter' doesn't support count.
+  // We will manually fetch all IDs for now since we are client-side filtering anyway or
+  // we can add a 'count' method to PlanterClient later. 
+  // For now, let's fetch 'id, root_id, is_complete' for all children to calculate stats.
+  // This is actually safer against AbortError than complex count queries sometimes.
 
-  const { count: totalTasks, error: totalError } = await supabase
-    .from('tasks')
-    .select('id', { count: 'exact', head: true })
-    .eq('root_id', projectId);
+  // NOTE: planter.entities.Task.filter is generic.
+  // Let's use a specific filter call that we know usually works.
+  const allProjectTasks = await planter.entities.Task.filter({ root_id: projectId });
 
-  const { count: completedTasks, error: completedError } = await supabase
-    .from('tasks')
-    .select('id', { count: 'exact', head: true })
-    .eq('root_id', projectId)
-    .eq('is_complete', true);
-
-  if (totalError || completedError) console.warn('Stats fetch error', totalError, completedError);
-
-  // Fetch ALL children
-  const { data: children } = await supabase.from('tasks').select('*').eq('root_id', projectId);
+  const totalTasks = allProjectTasks.length;
+  const completedTasks = allProjectTasks.filter(t => t.is_complete).length;
 
   return {
     data: {
       ...project,
-      children: children || [],
+      children: allProjectTasks || [],
       stats: {
         totalTasks: totalTasks || 0,
         completedTasks: completedTasks || 0,
@@ -91,15 +80,13 @@ export async function getProjectWithStats(projectId) {
 }
 
 export async function updateProjectStatus(projectId, status) {
-  const { data, error } = await supabase
-    .from('tasks')
-    .update({ status })
-    .eq('id', projectId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return { data, error: null };
+  try {
+    const data = await planter.entities.Project.update(projectId, { status });
+    return { data, error: null };
+  } catch (error) {
+    console.error('updateProjectStatus failed:', error);
+    throw error;
+  }
 }
 
 // --- Projects (Mutations) ---
@@ -113,17 +100,16 @@ export async function updateProjectStatus(projectId, status) {
 export async function createProjectWithDefaults(projectData) {
   // Get creator from arguments (preferred) or fallback to auth
   let creatorId = projectData.creator;
+  let token = projectData._token;
 
+  // We can't use supabase.auth calls here if we want to be pure.
+  // But we need the USER ID.
   if (!creatorId) {
-    const { data: { user } } = await supabase.auth.getUser();
-    creatorId = user?.id;
+    const me = await planter.auth.me();
+    creatorId = me?.id;
   }
 
   if (!creatorId) throw new Error('User must be logged in to create a project');
-
-  // Get session token to ensure PlanterClient works even if localStorage is tricky
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
 
   // 1. Create the Project container
   const project = await planter.entities.Project.create({
@@ -134,14 +120,13 @@ export async function createProjectWithDefaults(projectData) {
       if (isNaN(date.getTime())) throw new Error('Invalid launch_date provided');
       return date.toISOString().split('T')[0];
     })(),
-    creator: creatorId, // Pass explicitly
-    _token: token // Pass token to bypass PlanterClient's localStorage scan
+    creator: creatorId,
+    _token: token
   });
 
   // 2. Initialize default structure via Server-Side RPC
-  // This replaces ~200 client-side requests with 1 atomic transaction.
   console.log('[ProjectService] Initializing default project via RPC...', { projectId: project.id, creatorId });
-  const { error } = await supabase.rpc('initialize_default_project', {
+  const { error } = await planter.rpc('initialize_default_project', {
     p_project_id: project.id,
     p_creator_id: creatorId
   });

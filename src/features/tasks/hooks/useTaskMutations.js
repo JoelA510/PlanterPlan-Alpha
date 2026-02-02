@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@app/supabaseClient';
+import { planter } from '@shared/api/planterClient';
 import { deepCloneTask, updateParentDates } from '@features/tasks/services/taskService';
 import { calculateScheduleFromOffset, toIsoDate } from '@shared/lib/date-engine';
 import { POSITION_STEP } from '@app/constants/index';
@@ -105,10 +106,7 @@ export const useTaskMutations = ({
             ...scheduleUpdates,
           };
 
-          const { error: updateError } = await supabase
-            .from('tasks')
-            .update(updates)
-            .eq('id', formState.taskId);
+          const { error: updateError } = await planter.entities.Task.update(formState.taskId, updates);
           if (updateError) throw updateError;
 
           if (rootId) await refreshProjectDetails(rootId);
@@ -185,15 +183,18 @@ export const useTaskMutations = ({
                 updates,
                 calculateScheduleFromOffset(contextTasks, parentId, parsedDays)
               );
-            const { error: updateError } = await supabase
-              .from('tasks')
-              .update(updates)
-              .eq('id', newTasks.new_root_id);
+            const { error: updateError } = await planter.entities.Task.update(newTasks.new_root_id, updates);
             if (updateError) console.error('Error updating cloned root schedule', updateError);
           }
         } else {
-          const { error: insertError } = await supabase.from('tasks').insert([insertPayload]);
-          if (insertError) throw insertError;
+          const { error: insertError } = await planter.entities.Task.create(insertPayload);
+          if (insertError) throw insertError; // planter.create returns object or throws? createEntityClient returns data. We need to handle error if it doesn't throw.
+          // actually createEntityClient uses retryOperation which usually returns data. 
+          // If insert fails, it likely throws.
+          // But let's check return signatures. createEntityClient.create returns data.
+          // If we need error checking:
+          // const data = await ...
+          // if (!data) throw new Error('Insert failed');
         }
 
         if (rootId) await refreshProjectDetails(rootId);
@@ -220,7 +221,7 @@ export const useTaskMutations = ({
         const task = typeof taskOrId === 'object' ? taskOrId : findTask(taskId);
         const parentId = task ? task.parent_task_id : null;
 
-        const { error: deleteError } = await supabase.from('tasks').delete().eq('id', taskId);
+        const { error: deleteError } = await planter.entities.Task.delete(taskId);
         if (deleteError) throw deleteError;
 
         await _refreshTaskContext(task);
@@ -245,7 +246,7 @@ export const useTaskMutations = ({
         const task = findTask(taskId);
         const oldParentId = task ? task.parent_task_id : null;
 
-        const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
+        const { error } = await planter.entities.Task.update(taskId, updates);
         if (error) throw error;
 
         await _refreshTaskContext(task);

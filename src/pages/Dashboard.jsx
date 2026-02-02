@@ -71,16 +71,30 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
+    },
+    onError: (error) => {
+      console.error('Failed to update project status:', error);
+      // Optional: Add toast notification here
     }
   });
 
   const handleCreateProject = async (projectData) => {
-    await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+    try {
+      await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+    } catch (error) {
+      console.error('Create project failed:', error);
+    }
   };
 
   const handleStatusChange = async (projectId, newStatus) => {
-    // Optimistically update or just trigger mutation
-    await updateStatusMutation.mutateAsync({ projectId, status: newStatus });
+    try {
+      await updateStatusMutation.mutateAsync({ projectId, status: newStatus });
+    } catch (error) {
+      console.error('Status move failed:', error);
+      // If we had optimistic UI, we'd roll back here.
+      // Since we rely on refetch, we might just need to ensure the board resets if error.
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    }
   };
 
   if (loadingProjects || authLoading) {

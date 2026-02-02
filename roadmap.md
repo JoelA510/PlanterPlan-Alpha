@@ -157,7 +157,7 @@ _Goal: Optimize for large trees and refine the dashboard interface._
 
 - **ID:** `P6-REALTIME`
 - **Goal**: Implement Supabase Realtime subscriptions.
-- **Status**: 📅 Planned
+- **Status**: ✅ Done
 
 #### 6.5 Layout & Navigation Polish
 

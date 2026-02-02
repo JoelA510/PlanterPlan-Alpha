@@ -5,6 +5,7 @@ import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestC
 import { PROJECT_STATUS } from '@app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
 import ProjectCard from '@features/dashboard/components/ProjectCard';
+import { useProjectRealtime } from '@features/projects/hooks/useProjectRealtime';
 
 const COLUMNS = [
     { id: PROJECT_STATUS.PLANNING, title: 'Planning', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING] },
@@ -14,6 +15,11 @@ const COLUMNS = [
 ];
 
 export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onStatusChange }) {
+    // Enable Realtime Subscription for the board (global scope or all projects)
+    // Since this is a "All Projects" board, we pass null to listen to all tasks we have access to
+    // OR we could subscribe to 'tasks' globally.
+    useProjectRealtime(); // No specific projectId means listen to all accessible task changes
+
     const [activeProject, setActiveProject] = useState(null);
 
     const columns = useMemo(() => {

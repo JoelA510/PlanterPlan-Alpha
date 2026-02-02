@@ -1,9 +1,20 @@
 // import { supabase } from '@app/supabaseClient'; // Singleton appears broken in browser environment (AbortError)
 // import { createClient } from '@supabase/supabase-js'; // REMOVED to avoid Multiple GoTrueClient conflict
-import { retryOperation } from '@shared/utils/retry';
+import { retryOperation } from '../utils/retry.js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const getEnv = (key) => {
+  let val;
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    val = import.meta.env[key];
+  }
+  if (!val && typeof process !== 'undefined' && process.env) {
+    val = process.env[key];
+  }
+  return val || '';
+};
+
+const supabaseUrl = getEnv('VITE_SUPABASE_URL');
+const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
 
 // NOTE: Internal supabase client removed. All ops use rawSupabaseFetch.
@@ -118,6 +129,32 @@ const createEntityClient = (tableName, select = '*') => ({
       return data || [];
     });
   },
+  /**
+   * Upsert records (Insert or Update)
+   * @param {Object|Array} payload - Single object or array of objects
+   * @param {Object} options - { onConflict: 'id', ignoreDuplicates: false }
+   * @returns {Promise<any>}
+   */
+  upsert: async (payload, options = {}) => {
+    return retryOperation(async () => {
+      const onConflict = options.onConflict || 'id';
+      const preferHeaders = ['return=representation'];
+      if (options.ignoreDuplicates) preferHeaders.push('resolution=ignore-duplicates');
+      else preferHeaders.push(`resolution=merge-duplicates`);
+
+      const headerStr = preferHeaders.join(',');
+
+      const data = await rawSupabaseFetch(
+        `${tableName}?select=${select}&on_conflict=${onConflict}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Prefer': headerStr }
+        }
+      );
+      return { data, error: null };
+    });
+  }
 });
 
 
@@ -396,8 +433,29 @@ export const planter = {
     Task: createEntityClient('tasks'),
     Phase: createEntityClient('tasks'),
     Milestone: createEntityClient('tasks'),
-    TeamMember: createEntityClient('project_members'),
+    TaskResource: createEntityClient('task_resources'),
+  },
+  /**
+   * Execute a remote procedure call (RPC)
+   * @param {string} functionName
+   * @param {Object} params
+   * @returns {Promise<{data: any, error: any}>}
+   */
+  rpc: async (functionName, params) => {
+    return retryOperation(async () => {
+      try {
+        const data = await rawSupabaseFetch(`rpc/${functionName}`, {
+          method: 'POST',
+          body: JSON.stringify(params),
+          headers: { 'Prefer': 'return=representation' } // Or params? RPC uses body for params.
+        });
+        return { data, error: null };
+      } catch (error) {
+        return { data: null, error };
+      }
+    });
   },
 };
+
 
 export default planter;

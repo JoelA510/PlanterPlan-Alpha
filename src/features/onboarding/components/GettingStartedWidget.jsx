@@ -36,7 +36,7 @@ export default function GettingStartedWidget({ project, teamMembers, onDismiss }
                     exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                     transition={{ duration: 0.3 }}
                 >
-                    <Card className="p-6 border-brand-100 dark:border-brand-900/50 bg-gradient-to-br from-brand-50/50 to-transparent dark:from-brand-900/10 dark:to-transparent relative group">
+                    <Card className="p-6 border-brand-100 dark:border-brand-900/50 bg-gradient-to-br from-orange-200/40 via-orange-50/20 to-transparent dark:from-orange-900/20 dark:to-transparent relative group">
                         <button
                             onClick={handleDismiss}
                             className="absolute top-4 right-4 p-1 text-muted-foreground/50 hover:text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors opacity-0 group-hover:opacity-100"

@@ -82,7 +82,7 @@ const ProjectSidebar = ({
         <GlobalNavItem
           label="Reports"
           isActive={location.pathname === '/reports'}
-          onClick={() => handleGlobalNav('/reports')}
+          onClick={() => handleGlobalNav(selectedTaskId ? `/reports?project=${selectedTaskId}` : '/reports')}
           icon={<BarChart className="w-5 h-5" />}
         />
         <GlobalNavItem

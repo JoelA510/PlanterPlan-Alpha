@@ -154,13 +154,13 @@ export default function Team() {
 
                     <h3 className="text-lg font-bold text-foreground mb-1">{member.name || 'Unknown Name'}</h3>
                     <div className="flex flex-wrap gap-2 mb-4">
-                      <Badge variant="secondary" className="bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border-0">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white dark:bg-slate-950 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300">
                         {member.role || 'Member'}
-                      </Badge>
+                      </span>
                       {member.is_lead && (
-                        <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-0">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white dark:bg-slate-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
                           Lead
-                        </Badge>
+                        </span>
                       )}
                     </div>
 

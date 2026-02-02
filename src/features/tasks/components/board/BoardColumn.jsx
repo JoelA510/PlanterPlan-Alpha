@@ -15,22 +15,22 @@ const BoardColumn = ({ id, title, tasks, onTaskClick, className, parentId }) => 
     });
 
     return (
-        <div className={cn("flex flex-col min-w-[280px] w-[280px] rounded-xl bg-slate-50/50 border border-slate-200 h-full max-h-full", className)}>
+        <div className={cn("flex flex-col min-w-[280px] w-[280px] rounded-xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 h-full max-h-full", className)}>
             {/* Header */}
             <div className={cn(
-                "p-3 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-slate-50/95 backdrop-blur-sm rounded-t-xl z-10",
-                isOver && "bg-brand-50/50"
+                "p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-t-xl z-10",
+                isOver && "bg-brand-50/50 dark:bg-brand-900/30"
             )}>
-                <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wide">
+                <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-200 uppercase tracking-wide">
                     {title}
                 </h3>
-                <span className="bg-slate-200 text-slate-600 text-xs py-0.5 px-2 rounded-full font-medium">
+                <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs py-0.5 px-2 rounded-full font-medium">
                     {tasks.length}
                 </span>
             </div>
 
             {/* Task List */}
-            <div ref={setNodeRef} className="flex-1 p-2 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+            <div ref={setNodeRef} className="flex-1 p-2 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
                 <SortableContext
                     items={tasks.map((t) => t.id)}
                     strategy={verticalListSortingStrategy}
