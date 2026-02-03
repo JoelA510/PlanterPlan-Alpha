@@ -70,8 +70,10 @@ This workflow acts as the "Manager," orchestrating the execution of specialized 
    - **Critical Instruction for PR Description:**
      - Describe the **End Results** of the feature branch (functionality/value added).
      - **AVOID** internal verbiage or meta-commentary (e.g., do NOT mention "Master Review Orchestrator", "Security Audit", or "Debt Loop" in the public description).
+     - **MUST** include Mermaid Diagrams for logic flows.
    - **Critical Instruction for Persistent Docs (README/Roadmap):**
-     - **Append** updates to existing files.
+     - **Roadmap**: Treat as **Dev SSoT**. Update status only. No scope creep.
+     - **README**: Enrich and clarify. Constraint: Back every claim with a file link.
      - **Remove** information ONLY if it is now validly stale or incorrect. Do not rewrite sections that are still valid.
    - **Verify Outputs:**
      - `ENGINEERING_KNOWLEDGE.md` has new patterns/bugs logged.

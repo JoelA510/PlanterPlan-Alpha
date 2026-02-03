@@ -1,24 +1,21 @@
 # Debt Report
-Date: 2026-01-20
+Date: 2026-01-30
 
 ## 1. Critical (Security/Crash)
-- **Database Drift**: `public.people` table definition exists in `schema.sql` but is missing from the running Supabase instance (verified via Browser Agent 404/Error).
-  - **Impact**: People management features are broken in Stage/Dev.
-  - **Fix**: Run `supabase db push` or apply `schema.sql` to the instance.
+*(None Identified)*
+- Scans for `console.log`, `todo`, `fixme` returned 0 results.
 
 ## 2. Correctness
-*(None identified - Source code is free of `any`, `console.log`)*
+*(None Identified)*
+- Scans for `any` type usage returned 0 results.
 
 ## 3. Maintainability
-- **File**: `docs/specs/`
-  - **Evidence**: Empty directory.
-  - **Violation**: Zombie directory cluttering structure.
-  - **Fix**: Delete directory.
-
-- **File**: `docs/db/drafts/future_checkpoint_feature.sql`
-  - **Evidence**: file exists.
-  - **Violation**: Stale feature branch artifact in main documentation.
-  - **Fix**: Delete.
+*(None Identified)*
+- Scans for `!important` and arbitrary Tailwind values (`w-[`) returned 0 results.
 
 ## 4. Documentation Debt
-*(None critical)*
+
+- **File**: `docs/git_documentation/CONTEXT_IGNORE_RECOMMENDATIONS.md`
+  - **Evidence**: Low-value meta-documentation.
+  - **Violation**: Fragmentation.
+  - **Fix**: [Completed 2026-01-31] Consolidated into `docs/AGENT_CONTEXT.md`.

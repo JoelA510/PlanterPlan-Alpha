@@ -1,4 +1,4 @@
-import { supabase } from '@app/supabaseClient';
+import { planter } from '@shared/api/planterClient';
 
 /**
  * @typedef {Object} TaskResource
@@ -18,14 +18,7 @@ import { supabase } from '@app/supabaseClient';
  * @returns {Promise<TaskResource[]>}
  */
 export const listTaskResources = async (taskId) => {
-  const { data, error } = await supabase
-    .from('task_resources')
-    .select('*')
-    .eq('task_id', taskId)
-    .order('created_at', { ascending: true });
-
-  if (error) throw error;
-  return data;
+  return await planter.entities.TaskResource.filter({ task_id: taskId });
 };
 
 /**
@@ -46,20 +39,13 @@ export const createTaskResource = async (taskId, { type, url, text_content, stor
   if (type === 'text' && !text_content) throw new Error('Content is required for text type');
   if (type === 'pdf' && !storage_path) throw new Error('Storage path is required for pdf type');
 
-  const { data, error } = await supabase
-    .from('task_resources')
-    .insert({
-      task_id: taskId,
-      resource_type: type,
-      resource_url: type === 'url' ? url : null,
-      resource_text: type === 'text' ? text_content : null,
-      storage_path: type === 'pdf' ? storage_path : null,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return await planter.entities.TaskResource.create({
+    task_id: taskId,
+    resource_type: type,
+    resource_url: type === 'url' ? url : null,
+    resource_text: type === 'text' ? text_content : null,
+    storage_path: type === 'pdf' ? storage_path : null,
+  });
 };
 
 /**
@@ -67,9 +53,7 @@ export const createTaskResource = async (taskId, { type, url, text_content, stor
  * @param {string} resourceId
  */
 export const deleteTaskResource = async (resourceId) => {
-  const { error } = await supabase.from('task_resources').delete().eq('id', resourceId);
-
-  if (error) throw error;
+  await planter.entities.TaskResource.delete(resourceId);
 };
 
 /**
@@ -78,10 +62,5 @@ export const deleteTaskResource = async (resourceId) => {
  * @param {string} resourceId - Pass NULL to clear primary resource
  */
 export const setPrimaryResource = async (taskId, resourceId) => {
-  const { error } = await supabase
-    .from('tasks')
-    .update({ primary_resource_id: resourceId })
-    .eq('id', taskId);
-
-  if (error) throw error;
+  await planter.entities.Task.update(taskId, { primary_resource_id: resourceId });
 };

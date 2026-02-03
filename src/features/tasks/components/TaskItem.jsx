@@ -142,7 +142,7 @@ const TaskItem = memo(
 
               <div className="flex items-center gap-3 min-w-0 overflow-hidden">
                 <span
-                  className="font-medium text-slate-700 dark:text-slate-200 text-sm truncate"
+                  className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate"
                   title={task.title}
                 >
                   {task.title}

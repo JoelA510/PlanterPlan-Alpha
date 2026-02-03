@@ -4,8 +4,11 @@ export const peopleService = {
     /**
      * Get all people for a project
      * @param {string} projectId 
+     * @returns {Promise<object[]>} List of people
      */
     async getPeople(projectId) {
+        if (!projectId) throw new Error('projectId is required');
+
         const { data, error } = await supabase
             .from('people')
             .select('*')
@@ -18,9 +21,12 @@ export const peopleService = {
 
     /**
      * Add a new person to the project.
-     * @param {Object} person 
+     * @param {Object} person - Person object with project_id and name
+     * @returns {Promise<object>} Created person
      */
     async addPerson(person) {
+        if (!person || !person.project_id) throw new Error('person with project_id is required');
+
         const { data, error } = await supabase
             .from('people')
             .insert([person])
@@ -33,10 +39,13 @@ export const peopleService = {
 
     /**
      * Update a person's details.
-     * @param {string} id 
-     * @param {Object} updates 
+     * @param {string} id - Person ID
+     * @param {Object} updates - Fields to update
+     * @returns {Promise<object>} Updated person
      */
     async updatePerson(id, updates) {
+        if (!id) throw new Error('id is required');
+
         const { data, error } = await supabase
             .from('people')
             .update(updates)
@@ -50,9 +59,12 @@ export const peopleService = {
 
     /**
      * Delete a person.
-     * @param {string} id 
+     * @param {string} id - Person ID
+     * @returns {Promise<boolean>} True if deleted
      */
     async deletePerson(id) {
+        if (!id) throw new Error('id is required');
+
         const { error } = await supabase
             .from('people')
             .delete()

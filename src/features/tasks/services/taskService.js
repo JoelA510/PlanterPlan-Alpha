@@ -99,11 +99,7 @@ export const getTasksForUser = async (userId, client = supabase) => {
 
 /**
  * Update a task's status.
- */
-/**
- * Update a task's status.
- * RECURSIVE: If status is 'completed' (or whatever the done state is), mark all children as same?
- * User asked for "Auto-mark children complete".
+ * RECURSIVE: If status is 'completed', mark all children as complete (Top-Down).
  */
 export const updateTaskStatus = async (taskId, status, client = supabase) => {
   try {

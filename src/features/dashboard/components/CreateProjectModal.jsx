@@ -14,7 +14,6 @@ import { Textarea } from '@shared/ui/textarea';
 import { Label } from '@shared/ui/label';
 import { Calendar } from '@shared/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@shared/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select';
 import { format } from 'date-fns';
 import {
   Calendar as CalendarIcon,
@@ -61,12 +60,6 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
     status: PROJECT_STATUS.PLANNING,
   });
 
-  const { data: projects = [] } = useQuery({
-    queryKey: ['projects'],
-    queryFn: () => planter.entities.Project.list(),
-    enabled: open,
-  });
-
   const handleTemplateSelect = (templateId) => {
     setFormData({ ...formData, template: templateId });
     setStep(2);
@@ -75,30 +68,29 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
   const handleCreate = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
-    // Ensure we map template -> templateId if needed by mutations, 
-    // but useProjectMutations uses 'templateId' from formData.
-    // The previous code had `template: templateId`. 
-    // Let's ensure we pass `templateId: formData.template` to the onCreate prop if it expects generic object,
-    // OR just rely on formData having `template` and the hook mapping it.
-    // Looking at useProjectMutations: if (formData.templateId) ...
-    // So we need to ensure we pass templateId.
 
-    await onCreate({
-      ...formData,
-      templateId: formData.template // Explicit mapping
-    });
+    try {
+      await onCreate({
+        ...formData,
+        templateId: formData.template
+      });
 
-    setLoading(false);
-    setStep(1);
-    setFormData({
-      title: '',
-      description: '',
-      template: '',
-      launch_date: null,
-      location: '',
-      status: PROJECT_STATUS.PLANNING,
-    });
-    onClose();
+      setStep(1);
+      setFormData({
+        title: '',
+        description: '',
+        template: '',
+        launch_date: null,
+        location: '',
+        status: PROJECT_STATUS.PLANNING,
+      });
+      onClose();
+    } catch (error) {
+      console.error('[CreateProjectModal] Failed to create project:', error);
+      // Error is surfaced via parent's toast/error handling
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {

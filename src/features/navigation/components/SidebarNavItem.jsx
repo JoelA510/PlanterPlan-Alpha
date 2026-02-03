@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { TASK_STATUS } from '@app/constants/index';
 import PropTypes from 'prop-types';
@@ -18,7 +19,10 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => 
   };
 
   const statusClass = task.status ? `status-dot ${task.status}` : `status-dot ${TASK_STATUS.TODO}`;
-  const commonClasses = `sidebar-nav-item group ${isSelected ? 'selected' : ''}`;
+  const commonClasses = `sidebar-nav-item group flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 cursor-pointer ${isSelected
+    ? 'bg-gradient-to-r from-orange-100 to-white border-l-4 border-l-orange-500 border-y border-r border-y-orange-100 border-r-transparent dark:from-slate-800 dark:to-slate-800/50 dark:border-l-orange-500 dark:border-y-transparent dark:border-r-transparent text-slate-900 dark:text-white shadow-sm dark:shadow-none font-semibold'
+    : 'text-muted-foreground hover:bg-gradient-to-r hover:from-orange-50 hover:to-transparent hover:border-orange-100/50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+    }`;
 
   const content = (
     <>
@@ -63,6 +67,7 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => 
         className={commonClasses}
         onClick={handleClick}
         title={task.title}
+        aria-current={isSelected ? 'page' : undefined}
       >
         {content}
       </Link>
@@ -103,4 +108,4 @@ SidebarNavItem.propTypes = {
   to: PropTypes.string,
 };
 
-export default SidebarNavItem;
+export default memo(SidebarNavItem);

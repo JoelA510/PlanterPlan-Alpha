@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useMemo } from 'react';
 import { createPageUrl } from '@shared/lib/utils';
 import { Button } from '@shared/ui/button';
 import { cn } from '@shared/lib/utils';
@@ -38,7 +39,7 @@ export default function AppSidebar({ onClose, currentProject, className }) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-6">
-          {navigationItems.map((section) => (
+          {useMemo(() => navigationItems.map((section) => (
             <div key={section.title}>
               <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {section.title}
@@ -46,7 +47,8 @@ export default function AppSidebar({ onClose, currentProject, className }) {
               <div className="space-y-1">
                 {section.items.map((item) => {
                   const Icon = item.icon;
-                  const active = isActive(item.path);
+                  // Optimization: moved isActive check here, could be memoized further but this map buffer is sufficient
+                  const active = location.pathname.includes(item.path.toLowerCase());
 
                   return (
                     <Link
@@ -71,7 +73,7 @@ export default function AppSidebar({ onClose, currentProject, className }) {
                 })}
               </div>
             </div>
-          ))}
+          )), [location.pathname, onClose])}
 
           {/* Project Context */}
           {currentProject && (

@@ -12,7 +12,7 @@ export default function EditProjectModal({ project, isOpen, onClose }) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const { updateProject: updateProjectMutation, deleteProject } = useProjectMutations({
         tasks: [],
-        fetchTasks: () => window.location.reload()
+        fetchTasks: () => { } // No-op: Modal only updates project settings, not tasks
     });
 
     const currentSettings = project.settings || {};
@@ -41,19 +41,24 @@ export default function EditProjectModal({ project, isOpen, onClose }) {
     } = useTaskForm(initialState, validate);
 
     const onSubmit = async (data) => {
-        const oldStartDate = toIsoDate(project.start_date || project.created_at);
-        const { due_soon_threshold, ...rest } = data;
+        try {
+            const oldStartDate = toIsoDate(project.start_date || project.created_at);
+            const { due_soon_threshold, ...rest } = data;
 
-        const updateData = {
-            ...rest,
-            settings: {
-                ...currentSettings,
-                due_soon_threshold: parseInt(due_soon_threshold, 10) || 3
-            }
-        };
+            const updateData = {
+                ...rest,
+                settings: {
+                    ...currentSettings,
+                    due_soon_threshold: parseInt(due_soon_threshold, 10) || 3
+                }
+            };
 
-        await updateProjectMutation(project.id, updateData, oldStartDate);
-        onClose();
+            await updateProjectMutation(project.id, updateData, oldStartDate);
+            onClose();
+        } catch (error) {
+            console.error('[EditProjectModal] Failed to update project:', error);
+            // Error is surfaced via parent's toast/error handling
+        }
     };
 
     return (

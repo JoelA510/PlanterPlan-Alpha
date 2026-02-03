@@ -47,7 +47,7 @@ export default function ViewAsSelector() {
             flex items-center gap-2 text-sm font-medium
             ${isViewing
                             ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/50 dark:text-amber-200 dark:hover:bg-amber-800/50'
-                            : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
+                            : 'text-slate-700 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                         }
           `}
                 >

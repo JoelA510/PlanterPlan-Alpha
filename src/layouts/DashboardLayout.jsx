@@ -10,7 +10,7 @@ import MobileFAB from '@features/mobile/MobileFAB';
 export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useAuth();
-  const { projects } = useUserProjects(user?.id);
+  const { data: projects } = useUserProjects(user?.id);
 
   return (
     <div className="min-h-screen bg-background">

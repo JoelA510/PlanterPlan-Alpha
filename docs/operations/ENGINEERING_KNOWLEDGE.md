@@ -210,3 +210,23 @@
 - **Date**: 2026-01-27
 - **Context**: Persistent `AbortError`s were observed during local Supabase debugging, causing simple reads and writes to fail.
 - **Rule**: **Retry on Abort.** Implement exponential backoff retry logic for critical API client methods (`list`, `create`). Do not allow a single canceled request to break the user flow.
+
+### [NET-005] Troubleshooting AbortErrors
+If AbortErrors persist after implementing retries:
+1. **Check Connection Pooling**: Ensure Supabase connection pooling transaction mode is enabled.
+2. **Verify Network Stability**: VPNs and strict firewalls can terminate long-lived connections.
+3. **Increase Timeout**: In development, `main.jsx` StrictMode can double-invoke async calls, exacerbating race conditions. Ensure `AuthContext` timeout is > 10s.
+### [AUTH-006] Critical Path User Fetching
+- **Date**: 2026-01-31
+- **Context**: `supabase.auth.getUser()` calls within the `projectService` `create` logic caused random `AbortError`s and race conditions, failing project creation.
+- **Rule**: **Context Injection.** Do not fetch the user inside service execution methods. Pass the authenticated user ID explicitly from the UI layer (e.g., via `useAuth`) into the service.
+
+### [UI-040] React Day Picker v8 vs v9 Attributes
+- **Date**: 2026-01-31
+- **Context**: Calendar component styles broke (misaligned grid, missing headers) because the component used `react-day-picker` v8 class keys (`caption`, `table`) while v9 was installed.
+- **Rule**: **Version Check Styles.** When styling library components, verify the installed version matches the style API. For `react-day-picker` v9, use `classNames` with keys like `month_caption`, `month_grid`, and `weekdays`.
+
+### [NET-006] Client-Side Timeouts for Vital Fetches
+- **Date**: 2026-02-01
+- **Context**: Login flow hung indefinitely because `planter.auth.me()` waited for a stalled Vite HMR WebSocket connection.
+- **Rule**: **Always Enforce Timeouts.** Critical authentication or initialization fetches must use an `AbortController` with a strict timeout (e.g., 5-10s) to prevent UI freezes during network congestion.

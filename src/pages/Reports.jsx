@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Circle,
   TrendingUp,
+  BarChart,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import StatusPieChart from '@features/reports/components/StatusPieChart';
@@ -143,110 +144,124 @@ export default function Reports() {
         </div>
 
         <div className="max-w-6xl mx-auto px-4 py-8">
-          {/* Overview Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            {statsConfig.map((stat, index) => (
+          {!projectId ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
+              <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
+                <BarChart className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">Select a Project</h3>
+              <p className="text-slate-500 max-w-sm text-center mt-2">
+                Please select a project from the sidebar to view its detailed reports and analytics.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Overview Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                {statsConfig.map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card className={`p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 group hover:${stat.borderClass}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                            {stat.label}
+                          </p>
+                          <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                        </div>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${stat.bgClass} group-hover:${stat.hoverBgClass}`}>
+                          <stat.icon className={`w-6 h-6 transition-colors ${stat.textClass} group-hover:text-white`} />
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Overall Progress */}
               <motion.div
-                key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: 0.4 }}
               >
-                <Card className={`p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 group hover:${stat.borderClass}`}>
-                  <div className="flex items-center justify-between">
+                <Card className="p-8 mb-10 border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-md hover:shadow-xl transition-all duration-300">
+                  <div className="flex items-center justify-between mb-6">
                     <div>
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                        {stat.label}
+                      <h3 className="text-xl font-bold text-slate-900">Overall Progress</h3>
+                      <p className="text-sm text-slate-500 mt-1">
+                        {completedTasks} of {totalTasks} tasks completed
                       </p>
-                      <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
                     </div>
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${stat.bgClass} group-hover:${stat.hoverBgClass}`}>
-                      <stat.icon className={`w-6 h-6 transition-colors ${stat.textClass} group-hover:text-white`} />
+                    <div className="flex items-center gap-3 px-4 py-2 bg-green-50 rounded-xl border border-green-200">
+                      <TrendingUp className="w-5 h-5 text-green-600" />
+                      <span className="text-2xl font-bold text-green-700">{overallProgress}%</span>
                     </div>
+                  </div>
+                  <Progress value={overallProgress} className="h-3 bg-slate-200" />
+                </Card>
+              </motion.div>
+
+              <div className="grid lg:grid-cols-2 gap-8 mb-8">
+                {/* Task Distribution Pie Chart */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <StatusPieChart tasks={tasks} />
+                </motion.div>
+
+                {/* Phase Progress Bar Chart */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <PhaseBarChart data={phaseData} />
+                </motion.div>
+              </div>
+
+              {/* Phase Details */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="mt-8"
+              >
+                <Card className="p-8 border border-slate-200 bg-white shadow-lg">
+                  <h3 className="text-xl font-bold text-slate-900 mb-8">Phase Details</h3>
+                  <div className="space-y-6">
+                    {phaseData.map((phase, index) => (
+                      <div
+                        key={index}
+                        className="p-4 rounded-xl border border-slate-200 hover:border-orange-200 hover:bg-slate-50 transition-all duration-300"
+                      >
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="w-24 text-sm font-semibold text-slate-700">{phase.name}</div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900 mb-2">{phase.fullName}</p>
+                            <div className="flex items-center gap-3">
+                              <Progress value={phase.progress} className="h-2.5 flex-1 bg-slate-200" />
+                              <span className="text-sm font-bold text-orange-600 w-14 text-right">
+                                {phase.progress}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-500 ml-28">
+                          {phase.completed} of {phase.total} tasks completed
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </Card>
               </motion.div>
-            ))}
-          </div>
-
-          {/* Overall Progress */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="p-8 mb-10 border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-md hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">Overall Progress</h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {completedTasks} of {totalTasks} tasks completed
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 px-4 py-2 bg-green-50 rounded-xl border border-green-200">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                  <span className="text-2xl font-bold text-green-700">{overallProgress}%</span>
-                </div>
-              </div>
-              <Progress value={overallProgress} className="h-3 bg-slate-200" />
-            </Card>
-          </motion.div>
-
-          <div className="grid lg:grid-cols-2 gap-8 mb-8">
-            {/* Task Distribution Pie Chart */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <StatusPieChart tasks={tasks} />
-            </motion.div>
-
-            {/* Phase Progress Bar Chart */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-            >
-              <PhaseBarChart data={phaseData} />
-            </motion.div>
-          </div>
-
-          {/* Phase Details */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="mt-8"
-          >
-            <Card className="p-8 border border-slate-200 bg-white shadow-lg">
-              <h3 className="text-xl font-bold text-slate-900 mb-8">Phase Details</h3>
-              <div className="space-y-6">
-                {phaseData.map((phase, index) => (
-                  <div
-                    key={index}
-                    className="p-4 rounded-xl border border-slate-200 hover:border-orange-200 hover:bg-slate-50 transition-all duration-300"
-                  >
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="w-24 text-sm font-semibold text-slate-700">{phase.name}</div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-900 mb-2">{phase.fullName}</p>
-                        <div className="flex items-center gap-3">
-                          <Progress value={phase.progress} className="h-2.5 flex-1 bg-slate-200" />
-                          <span className="text-sm font-bold text-orange-600 w-14 text-right">
-                            {phase.progress}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500 ml-28">
-                      {phase.completed} of {phase.total} tasks completed
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </motion.div>
+            </>
+          )}
         </div>
       </div>
     </DashboardLayout>

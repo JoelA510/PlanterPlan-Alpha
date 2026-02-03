@@ -29,7 +29,7 @@ export const ToastProvider = ({ children }) => {
   }, []);
 
   return (
-    <ToastContext.Provider value={{ addToast }}>
+    <ToastContext.Provider value={{ addToast, removeToast }}>
       {children}
       <div className="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 pointer-events-none">
         <AnimatePresence>
@@ -44,12 +44,11 @@ export const ToastProvider = ({ children }) => {
               className={`
                 pointer-events-auto cursor-pointer rounded-lg px-4 py-3 shadow-md text-sm font-medium
                 transform transition-all duration-300 hover:scale-105 active:scale-95
-                ${
-                  toast.type === 'success'
-                    ? 'bg-green-500 text-white'
-                    : toast.type === 'error'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-slate-800 text-white'
+                ${toast.type === 'success'
+                  ? 'bg-green-500 text-white'
+                  : toast.type === 'error'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-slate-800 text-white'
                 }
               `}
             >

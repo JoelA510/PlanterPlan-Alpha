@@ -75,17 +75,17 @@ export default function TasksPage() {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragEnd={handleDragEnd}
-    >
-      <DashboardLayout>
+    <DashboardLayout>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragEnd={handleDragEnd}
+      >
         <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
           <div className="flex-none max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-card-foreground tracking-tight">My Tasks</h1>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">My Tasks</h1>
                 <p className="text-muted-foreground mt-1">Review and manage your assignments across all projects</p>
               </div>
 
@@ -154,7 +154,7 @@ export default function TasksPage() {
             </div>
           </div>
         </div>
-      </DashboardLayout>
-    </DndContext>
+      </DndContext>
+    </DashboardLayout>
   );
 }

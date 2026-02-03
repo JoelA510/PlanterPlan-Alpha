@@ -53,7 +53,11 @@ export const useTaskSubscription = ({
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status, err) => {
+                if (err) {
+                    console.error('[useTaskSubscription] Channel error:', err);
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);

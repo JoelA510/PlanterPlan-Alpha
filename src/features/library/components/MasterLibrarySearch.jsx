@@ -1,4 +1,5 @@
-import { Fragment, useId, useMemo, useRef, useState } from 'react';
+import { Fragment, useId, useMemo, useRef, useState, useCallback } from 'react';
+import { X } from 'lucide-react';
 import useMasterLibrarySearch from '@features/library/hooks/useMasterLibrarySearch';
 import { getHighlightSegments } from '@shared/lib/highlightMatches';
 
@@ -26,13 +27,13 @@ const MasterLibrarySearch = ({
   });
 
   // Removed auto-selection logic to prevent render loops and improve UX
-  const handleQueryChange = (event) => {
+  const handleQueryChange = useCallback((event) => {
     const newQuery = event.target.value;
     setQuery(newQuery);
     if (newQuery.trim().length < SEARCH_MIN_LENGTH) {
       setActiveIndex(-1);
     }
-  };
+  }, []);
 
   const activeResultId = useMemo(() => {
     if (activeIndex < 0 || activeIndex >= results.length) {
@@ -41,15 +42,15 @@ const MasterLibrarySearch = ({
     return `${listboxId}-item-${results[activeIndex].id}`;
   }, [activeIndex, listboxId, results]);
 
-  const handleSelect = (task) => {
+  const handleSelect = useCallback((task) => {
     if (onSelect) {
       onSelect(task);
     }
     setQuery(task.title ?? '');
     setActiveIndex(-1);
-  };
+  }, [onSelect]);
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = useCallback((event) => {
     if (!hasResults) {
       return;
     }
@@ -78,7 +79,7 @@ const MasterLibrarySearch = ({
     } else if (event.key === 'Escape') {
       setActiveIndex(-1);
     }
-  };
+  }, [hasResults, results, activeIndex, handleSelect]);
 
   const renderActionLabel = useMemo(() => {
     if (mode === 'view') {
@@ -137,6 +138,19 @@ const MasterLibrarySearch = ({
           role="combobox"
           aria-haspopup="listbox"
         />
+        {query.length > 0 && !isLoading && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('');
+              inputRef.current?.focus();
+            }}
+            className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+            aria-label="Clear search"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
         {isLoading && (
           <div className="absolute inset-y-0 right-3 flex items-center">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
@@ -181,8 +195,8 @@ const MasterLibrarySearch = ({
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handleSelect(task)}
                 className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 focus:outline-none ${isActive || (hasResults && activeResultId === `${listboxId}-item-${task.id}`)
-                    ? 'bg-brand-50'
-                    : 'bg-white'
+                  ? 'bg-brand-50'
+                  : 'bg-white'
                   }`}
               >
                 <div className="flex items-start justify-between">
