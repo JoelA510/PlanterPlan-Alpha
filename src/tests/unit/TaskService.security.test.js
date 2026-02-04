@@ -1,17 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getTasksForUser } from '../../features/tasks/services/taskService';
-import { supabase } from '../../app/supabaseClient';
+import { planter } from '../../shared/api/planterClient';
 
-// Mock Supabase
-vi.mock('../../app/supabaseClient', () => ({
-    supabase: {
-        from: vi.fn(() => ({
-            select: vi.fn(() => ({
-                eq: vi.fn(() => ({
-                    order: vi.fn().mockResolvedValue({ data: [], error: null }),
-                })),
-            })),
-        })),
+// Mock planter
+vi.mock('../../shared/api/planterClient', () => ({
+    planter: {
+        entities: {
+            TaskWithResources: {
+                filter: vi.fn(),
+            },
+        },
     }
 }));
 
@@ -20,7 +18,7 @@ describe('TaskService Security', () => {
         vi.clearAllMocks();
     });
 
-    it('Should throw Validation Error if sortColumn contains malicious SQL', async () => {
+    it('Should return error if sortColumn contains malicious SQL', async () => {
         const maliciousSort = "id; DROP TABLE tasks;";
 
         // We expect this to return an error object (Service Pattern)
@@ -30,18 +28,19 @@ describe('TaskService Security', () => {
         expect(result.error).toBeDefined();
         expect(result.error.message).toMatch(/Invalid sort column/i);
 
-        // Assert that supabase was NOT called
-        expect(supabase.from).not.toHaveBeenCalled();
+        // Assert that planter was NOT called
+        expect(planter.entities.TaskWithResources.filter).not.toHaveBeenCalled();
     });
 
     it('Should allow valid sort columns', async () => {
         const validSort = "created_at";
+        planter.entities.TaskWithResources.filter.mockResolvedValue([]);
 
         await expect(getTasksForUser('user-123', { sortColumn: validSort }))
             .resolves
             .not.toThrow();
 
-        // Assert that supabase WAS called
-        expect(supabase.from).toHaveBeenCalledWith('tasks_with_primary_resource');
+        // Assert that planter WAS called
+        expect(planter.entities.TaskWithResources.filter).toHaveBeenCalledWith({ creator: 'user-123' });
     });
 });

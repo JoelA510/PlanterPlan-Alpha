@@ -429,6 +429,7 @@ export const planter = {
     Task: createEntityClient('tasks'),
     Phase: createEntityClient('tasks'),
     Milestone: createEntityClient('tasks'),
+    TaskWithResources: createEntityClient('tasks_with_primary_resource'),
     TaskResource: createEntityClient('task_resources'),
   },
   /**

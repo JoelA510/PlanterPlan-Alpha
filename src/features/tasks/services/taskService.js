@@ -1,56 +1,24 @@
-// src/services/taskService.js
-// Core task operations and re-exports from specialized modules
-//
-// This file has been refactored for maintainability:
-// - Master Library operations: see taskMasterLibraryService.js
-// - Clone operations: see taskCloneService.js
-// - Core CRUD operations: remain here
+import { planter } from '@shared/api/planterClient';
 
-import { supabase } from '@app/supabaseClient.js';
+// --- Hierarchy Operations ---
 
-// Re-export from specialized modules for backward compatibility
-export {
-  fetchMasterLibraryTasks,
-  searchMasterLibraryTasks,
-} from '@features/library/services/taskMasterLibraryService';
-export { deepCloneTask } from '@features/tasks/services/taskCloneService';
-
-// ============================================================================
-// Hierarchy Operations
-// ============================================================================
-
-/**
- * Fetch a task and all its descendants (children, grandchildren, etc.)
- * Uses root_id for efficient scoped queries.
- */
-export const fetchTaskChildren = async (taskId, client = supabase) => {
+export const fetchTaskChildren = async (taskId) => {
   try {
     // 1. Get the task's root_id to identify the project scope
-    const { data: targetTask, error: targetError } = await client
-      .from('tasks_with_primary_resource')
-      .select('id, root_id')
-      .eq('id', taskId)
-      .single();
+    const targetTask = await planter.entities.TaskWithResources.get(taskId);
 
-    if (targetError) throw targetError;
+    if (!targetTask) throw new Error('Task not found');
 
-    // If the task has a root_id, use it. Fallback to taskId if root_id is missing.
     const projectRootId = targetTask.root_id || targetTask.id;
 
     // 2. Fetch all tasks belonging to this project (same root_id)
-    const { data: projectTasks, error: fetchError } = await client
-      .from('tasks_with_primary_resource')
-      .select('*')
-      .eq('root_id', projectRootId);
-
-    if (fetchError) throw fetchError;
+    const projectTasks = await planter.entities.TaskWithResources.filter({ root_id: projectRootId });
 
     // 3. Filter in-memory to get the specific subtree for 'taskId'
     const descendants = [];
     const queue = [taskId];
     const visited = new Set([taskId]);
 
-    // Include the target task itself
     const rootTask = projectTasks.find((t) => t.id === taskId);
     if (rootTask) descendants.push(rootTask);
 
@@ -74,67 +42,46 @@ export const fetchTaskChildren = async (taskId, client = supabase) => {
   }
 };
 
-// ============================================================================
-// Core CRUD Operations
-// ============================================================================
+// --- Core CRUD Operations ---
 
-/**
- * Get all tasks for a user, ordered by position.
- */
 import { validateSortColumn } from '@shared/lib/validation';
 
-/**
- * Get all tasks for a user, ordered by position (default) or specified column.
- * Includes security validation for sort parameters.
- */
-export const getTasksForUser = async (userId, { sortColumn = 'position', sortOrder = 'asc' } = {}, client = supabase) => {
+export const getTasksForUser = async (userId, { sortColumn = 'position', sortOrder = 'asc' } = {}) => {
   try {
-    // Validate sort column to prevent SQL injection
     const validSortColumn = validateSortColumn(sortColumn, ['position', 'title', 'status', 'created_at', 'due_date']);
 
-    const { data, error } = await client
-      .from('tasks_with_primary_resource')
-      .select('*')
-      .eq('creator', userId)
-      .order(validSortColumn, { ascending: sortOrder === 'asc' });
+    // PlanterClient 'filter' doesn't support complex 'order' yet.
+    // We'll use the generic entity client but we might need to add order support.
+    // For now, let's keep it simple or use rawSupabaseFetch directly if needed.
+    // Actually, entities.TaskWithResources.filter is just a wrapper for rawSupabaseFetch.
 
-    if (error) throw error;
-    return { data, error: null };
+    const data = await planter.entities.TaskWithResources.filter({ creator: userId });
+
+    // Sort in-memory if needed, or update filter to support order
+    const sortedData = [...data].sort((a, b) => {
+      const valA = a[validSortColumn];
+      const valB = b[validSortColumn];
+      if (sortOrder === 'asc') return valA > valB ? 1 : -1;
+      return valA < valB ? 1 : -1;
+    });
+
+    return { data: sortedData, error: null };
   } catch (error) {
     console.error('[taskService.getTasksForUser] Error:', error);
     return { data: null, error };
   }
 };
 
-/**
- * Update a task's status.
- * RECURSIVE: If status is 'completed', mark all children as complete (Top-Down).
- */
-export const updateTaskStatus = async (taskId, status, client = supabase) => {
+export const updateTaskStatus = async (taskId, status) => {
   try {
-    const { data, error } = await client
-      .from('tasks')
-      .update({ status })
-      .eq('id', taskId)
-      .select()
-      .single();
+    const data = await planter.entities.Task.update(taskId, { status });
 
-    if (error) throw error;
-
-    // Auto-mark children logic
-    // If we are marking as DONE, maybe mark all children as DONE?
-    // Let's implement Top-Down completion.
     if (status === 'completed') {
-      // Fetch children IDs
-      const { data: children } = await client
-        .from('tasks')
-        .select('id')
-        .eq('parent_task_id', taskId);
+      const children = await planter.entities.Task.filter({ parent_task_id: taskId });
 
       if (children && children.length > 0) {
-        // Parallel update for speed
         await Promise.all(
-          children.map((child) => updateTaskStatus(child.id, 'completed', client))
+          children.map((child) => updateTaskStatus(child.id, 'completed'))
         );
       }
     }
@@ -142,47 +89,28 @@ export const updateTaskStatus = async (taskId, status, client = supabase) => {
     return { data, error: null };
   } catch (error) {
     console.error('[taskService.updateTaskStatus] Error:', error);
-    return { data: null, error };
+    return { data: null, error: error.message || error };
   }
 };
 
-/**
- * Update a task's position and optionally its parent (reparenting).
- */
-export const updateTaskPosition = async (taskId, newPosition, parentId = undefined, client = supabase) => {
+export const updateTaskPosition = async (taskId, newPosition, parentId = undefined) => {
   try {
     const updates = { position: newPosition };
     if (parentId !== undefined) {
       updates.parent_task_id = parentId;
     }
 
-    const { data, error } = await client
-      .from('tasks')
-      .update(updates)
-      .eq('id', taskId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const data = await planter.entities.Task.update(taskId, updates);
     return { data, error: null };
   } catch (error) {
     console.error('[taskService.updateTaskPosition] Error:', error);
-    return { data: null, error };
+    return { data: null, error: error.message || error };
   }
 };
 
-/**
- * Delete a task.
- * CAUTION: If this is a Project (root task), this will cascade delete ALL subtasks.
- */
-export const deleteTask = async (taskId, client = supabase) => {
+export const deleteTask = async (taskId) => {
   try {
-    const { error } = await client
-      .from('tasks')
-      .delete()
-      .eq('id', taskId);
-
-    if (error) throw error;
+    await planter.entities.Task.delete(taskId);
     return { error: null };
   } catch (error) {
     console.error('[taskService.deleteTask] Error:', error);
