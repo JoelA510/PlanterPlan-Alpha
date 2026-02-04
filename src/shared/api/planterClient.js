@@ -48,7 +48,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   get: async (id) => {
-    return undefined(async () => {
+    return retry(async () => {
       const query = `${tableName}?select=${select}&id=eq.${id}`;
       // PostgREST returns array. We want single. 
       // We can use validation header 'Accept: application/vnd.pgrst.object+json' 
@@ -63,7 +63,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   create: async (payload) => {
-    return undefined(async () => {
+    return retry(async () => {
       console.log(`[PlanterClient] Creating ${tableName} (Raw Fetch):`, payload);
       const data = await rawSupabaseFetch(
         `${tableName}?select=${select}`,
@@ -84,7 +84,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   update: async (id, payload) => {
-    return undefined(async () => {
+    return retry(async () => {
       const data = await rawSupabaseFetch(
         `${tableName}?select=${select}&id=eq.${id}`,
         {
@@ -102,7 +102,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<boolean>}
    */
   delete: async (id) => {
-    return undefined(async () => {
+    return retry(async () => {
       await rawSupabaseFetch(`${tableName}?id=eq.${id}`, { method: 'DELETE' });
       return true;
     });
@@ -113,7 +113,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Array>}
    */
   filter: async (filters) => {
-    return undefined(async () => {
+    return retry(async () => {
       let queryParams = [`select=${select}`];
       Object.keys(filters).forEach((key) => {
         const val = filters[key];
@@ -136,7 +136,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<any>}
    */
   upsert: async (payload, options = {}) => {
-    return undefined(async () => {
+    return retry(async () => {
       const onConflict = options.onConflict || 'id';
       const preferHeaders = ['return=representation'];
       if (options.ignoreDuplicates) preferHeaders.push('resolution=ignore-duplicates');
@@ -249,7 +249,7 @@ export const planter = {
       ...createEntityClient('tasks', '*, name:title, launch_date:due_date, owner_id:creator'),
       // Override list to filter for Root Tasks (Projects)
       list: async () => {
-        return undefined(async () => {
+        return retry(async () => {
           // Use Raw Fetch to bypass potential client AbortErrors
           try {
             const data = await rawSupabaseFetch(
@@ -269,7 +269,7 @@ export const planter = {
       },
       // Override create for specific mapping
       create: async (projectData) => {
-        return undefined(async () => {
+        return retry(async () => {
           console.log('[PlanterClient] Creating project (Raw Fetch):', projectData);
 
           let userId = projectData.creator;
@@ -316,7 +316,7 @@ export const planter = {
       },
       // Safe list by creator (Raw Fetch)
       listByCreator: async (userId, page = 1, pageSize = 20) => {
-        return undefined(async () => {
+        return retry(async () => {
           const from = (page - 1) * pageSize;
           const to = from + pageSize - 1;
           const rangeHeader = `${from}-${to}`;
@@ -351,7 +351,7 @@ export const planter = {
       },
       // Safe list joined projects (Raw Fetch)
       listJoined: async (userId) => {
-        return undefined(async () => {
+        return retry(async () => {
           try {
             // PostgREST join syntax: select=project:tasks(*)
             // Note: We need to match the fields selected in getUserProjects/list
@@ -372,7 +372,7 @@ export const planter = {
       },
       // Override filter to ensure we only get projects
       filter: async (filters) => {
-        return undefined(async () => {
+        return retry(async () => {
           // Manual query build for raw fetch
           let queryParams = [
             'select=*,name:title,launch_date:due_date,owner_id:creator',
@@ -438,7 +438,7 @@ export const planter = {
    * @returns {Promise<{data: any, error: any}>}
    */
   rpc: async (functionName, params) => {
-    return undefined(async () => {
+    return retry(async () => {
       try {
         const data = await rawSupabaseFetch(`rpc/${functionName}`, {
           method: 'POST',
