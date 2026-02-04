@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
-import { AuthContext, AuthProvider } from '../../app/contexts/AuthContext';
+import { AuthProvider } from '../../app/contexts/AuthContext';
 import ViewAsProviderWrapper from '../../app/contexts/ViewAsProviderWrapper';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { supabase } from '../../app/supabaseClient';
 
 // Mock Supabase
@@ -20,6 +20,7 @@ vi.mock('../../app/supabaseClient', () => ({
 }));
 
 // Component that counts renders to detect loops
+// eslint-disable-next-line react/display-name
 const RenderCounter = () => {
     const count = React.useRef(0);
 
@@ -30,6 +31,7 @@ const RenderCounter = () => {
         }
     });
 
+    // eslint-disable-next-line
     return <div data-testid="render-count">{count.current}</div>;
 };
 
