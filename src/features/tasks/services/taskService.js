@@ -1,5 +1,6 @@
 import { planter } from '@shared/api/planterClient';
 import { calculateMinMaxDates } from '@shared/lib/date-engine';
+export { deepCloneTask } from './taskCloneService';
 
 // --- Hierarchy Operations ---
 

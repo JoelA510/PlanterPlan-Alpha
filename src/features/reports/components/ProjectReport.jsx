@@ -7,7 +7,7 @@ import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
 import { getProjectWithStats } from '@features/projects/services/projectService';
 import { Loader2 } from 'lucide-react';
 // PieChart logic moved to StatusPieChart
-import { TASK_STATUS } from '@app/constants/index';
+import { cn } from '@shared/lib/utils';
 // Removed hardcoded CHART_COLORS
 import StatusPieChart from '@features/reports/components/StatusPieChart';
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FolderPlus, Layout } from 'lucide-react';
+import { Layout } from 'lucide-react';
+import { FolderPlus } from 'lucide-react';
 
 export default function EmptyProjectState({ onCreateProject }) {
     return (
