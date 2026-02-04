@@ -1,60 +1,47 @@
-# Pull Request: Master Remediation - Security, Reliability & UI Hardening
+# Pull Request: Anti-Gravity Agentic Architecture & Security Hardening
 
 ## 📋 Summary
 
-This pull request executes the **Master Remediation Plan**, a 12-point initiative to harden the PlanterPlan codebase. It addresses **critical security vulnerabilities (P0)**, **reliability & performance issues (P1)**, **UI/UX inconsistencies (P2)**, and **code hygiene debt (P3)**.
+This PR represents a foundational upgrade to the PlanterPlan codebase, introducing the **"Anti-Gravity" Agentic Workflow** and resolving critical **P0 Security Vulnerabilities** identified in the Master Remediation Plan. It establishes a strict **Test-Driven Development (TDD)** protocol, enforcing Feature-Sliced Design (FSD) boundaries and preventing regression through surgical unit testing.
 
-**Total Fixes:** ~15 major components refactored, 4 new security modules, and full mobile layout optimization.
+## ✨ Key Changes
 
-## ✨ Key Highlights
+### 🛡️ Security & Reliability (P0/P1)
+Executed via "Surgical TDD" (Red-Green-Refactor):
+-   **Auth Role Fallback Patch:** Fixed a vulnerability where failed RPC calls could default users to elevated roles. Verified via `AuthContext.security.test.jsx`.
+-   **SQL Injection Prevention:** Implemented strict allowlisting for sort parameters in `validateSortColumn`. Verified via `TaskService.security.test.js`.
+-   **XSS Sanitization:** Integrated `dompurify` for all user-generated content (Rich Text Support with `onerror` stripping). Verified via `XSS.test.jsx`.
+-   **Network Resilience:** Implemented `retry.js` with exponential backoff for `AbortError` and network flakes.
+-   **Optimistic UI Stability:** Added rollback mechanisms to `useTaskBoard` to prevent invalid states during drag-and-drop failures.
 
--   **🛡️ Security (P0):** Patched RLS member injection, implemented strict input sanitization (`dompurify`), prevented SQL injection in sort parameters, and secured Supabase client credentials.
--   **🚀 Reliability (P1):** Resolved Optimistic UI race conditions with rollback logic, fixed realtime subscription memory leaks via channel scoping, and eliminated infinite render loops in `ViewAsContext`.
--   **📱 UI/UX (P2):** Complete mobile layout overhaul (grid gaps, padding), standardized chart colors (Emerald/Slate theme), and improved dashboard responsiveness.
--   **🧹 Hygiene (P3):** Removed zombie code from core components and consolidated ad-hoc CSV exports into a centralized utility.
+### 🤖 Agentic Architecture
+-   **Workflow Migration:** Migrated legacy `.agent/` workflows to high-context `.antigravity/` rules and prompts.
+-   **Persistent Memory:** Established `tasks/lessons.md` as a living knowledge base for "Modernity Logs" (React 19 / Tailwind 4 quirks) and "Production Findings".
+-   **FSD Enforcement:** Formalized strict dependency boundaries (`features` -> `shared`, no circulars) in `.antigravity/rules.md`.
 
-## 🗺️ Remediation Status
+### 🧹 Tech Debt & Hygiene
+-   **Documentation Consolidation:** Centralized disparate documentation into the `.antigravity` structure.
+-   **Zombie Code Cleanup:** Removed deprecated workflow scripts and unused operational artifacts.
+-   **Session Deduplication:** Refactored `AuthContext` to use a single source of truth for session handling, eliminating race conditions.
 
-| Priority | Feature | Status | Impact |
-| :--- | :--- | :--- | :--- |
-| **P0** | **Secure Supabase & Env** | ✅ Done | Credential safety |
-| **P0** | **Auth Role Fallback** | ✅ Done | Fail-safe permissions |
-| **P0** | **Input Sanitization** | ✅ Done | XSS Prevention |
-| **P0** | **SQL Injection Fix** | ✅ Done | Query Safety |
-| **P0** | **RLS Patch** | ✅ Done | Data Isolation |
-| **P1** | **Optimistic UI Fix** | ✅ Done | Data Consistency |
-| **P1** | **Realtime Memory Leak** | ✅ Done | Performance |
-| **P1** | **ViewAsContext Loop** | ✅ Done | Stability |
-| **P2** | **Mobile Layout Grid** | ✅ Done | Usability |
-| **P2** | **Chart Colors** | ✅ Done | Visual Consistency |
-| **P3** | **Zombie Code Cleanup** | ✅ Done | Maintainability |
-| **P3** | **CSV Consolidation** | ✅ Done | Code Quality |
+## 🧪 Verification Plan
 
-## 🏗️ Technical Details
-
-### 1. Security Hardening
--   **Input Sanitization:** New `sanitize.js` library utilizing `dompurify` to strip malicious content from user-generated fields (Task Titles, Descriptions).
--   **RLS Access Control:** New SQL migration (`20260202_fix_member_injection.sql`) prevents unauthorized project member injection.
--   **Sort Parameter Validation:** Whitelist-based validation prevents SQL injection vectors in sort columns.
-
-### 2. Reliability & Performance
--   **Optimistic UI Rollback:** Implemented timestamp-based reconciliation buffer (`pendingMutationsRef`) to prevent server state from overwriting local optimistic updates incorrectly.
--   **Auth Memoization:** `AuthContext` value is now stable, preventing spurious re-renders that caused infinite loops in `ViewAsContext`.
-
-### 3. UI/UX Polish
--   **Mobile First:** `Dashboard`, `StatsOverview`, and `ProjectCard` now use adaptive grid gaps (`gap-4` vs `gap-6`) and padding to maximize screen real estate on mobile devices.
--   **Design System Compliance:** All charts now strictly use design system tokens (`emerald-500`, `slate-200`) instead of random hex values.
-
-## 🧪 Verification Results
+This release adhered to the **Red-Green-Refactor** protocol.
 
 ### Automated Verification
--   ✅ **Lint**: `npm run lint` passed with **0 errors**.
--   ✅ **Unit Tests**: New security tests pass (`AuthContext.security.test.jsx`, `XSS.test.jsx`, `TaskService.security.test.js`).
--   ✅ **Integration**: Optimistic UI tests pass (`TaskQuery.optimistic.test.jsx`).
+-   **Security Unit Tests:**
+    -   `AuthContext.security.test.jsx`: ✅ Passed
+    -   `XSS.test.jsx`: ✅ Passed
+    -   `TaskService.security.test.js`: ✅ Passed
+-   **Resilience Tests:**
+    -   `retry.test.js`: ✅ Passed (Verifies logic for incomplete network requests)
+    -   `rollback.test.jsx`: ✅ Passed (Verifies state restoration on failure)
+-   **Regression Safety:**
+    -   `golden-paths.test.jsx`: ✅ Passed (6/6 Critical User Flows)
 
 ### Manual Verification
--   **Mobile Check**: Verified responsive grid behavior on small viewports.
--   **Security**: Verified that invalid sort columns and malicious scripts are rejected.
+-   **Network Chaos:** Verified retry logic by throttling network conditions during data fetching.
+-   **Mobile Responsiveness:** Verified grid layout adaptations on small viewports.
 
 ---
-*Generated by Antigravity Master Remediation Workflow*
+*Generated by Antigravity Agent*
