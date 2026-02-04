@@ -1,43 +1,47 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getTasksForUser } from '../../features/tasks/services/taskService';
 import { supabase } from '../../app/supabaseClient';
 
-// Mock Supabase client
+// Mock Supabase
 vi.mock('../../app/supabaseClient', () => ({
     supabase: {
-        from: vi.fn(),
-    },
+        from: vi.fn(() => ({
+            select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                    order: vi.fn().mockResolvedValue({ data: [], error: null }),
+                })),
+            })),
+        })),
+    }
 }));
 
 describe('TaskService Security', () => {
-    let mockSelect, mockEq, mockOrder;
-
     beforeEach(() => {
-        mockOrder = vi.fn().mockResolvedValue({ data: [], error: null });
-        mockEq = vi.fn().mockReturnValue({ order: mockOrder });
-        mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-        supabase.from.mockReturnValue({ select: mockSelect });
+        vi.clearAllMocks();
     });
 
-    it('should allow valid sort columns', async () => {
-        await getTasksForUser('user-1', { sortColumn: 'title' });
+    it('Should throw Validation Error if sortColumn contains malicious SQL', async () => {
+        const maliciousSort = "id; DROP TABLE tasks;";
 
-        expect(mockOrder).toHaveBeenCalledWith('title', expect.any(Object));
-    });
+        // We expect this to return an error object (Service Pattern)
+        const result = await getTasksForUser('user-123', { sortColumn: maliciousSort });
 
-    it('should throw error/fail on invalid sort columns (SQL Injection attempt)', async () => {
-        const maliciousSort = 'id; DROP TABLE tasks;';
-
-        const result = await getTasksForUser('user-1', { sortColumn: maliciousSort });
-
-        // The service catches errors and returns { data: null, error }
-        // We expect the error to be our validation error
         expect(result.data).toBeNull();
         expect(result.error).toBeDefined();
-        expect(result.error.message).toContain('Invalid sort column');
+        expect(result.error.message).toMatch(/Invalid sort column/i);
 
-        // Ensure Supabase was NOT called with the malicious string
-        expect(mockOrder).not.toHaveBeenCalled();
+        // Assert that supabase was NOT called
+        expect(supabase.from).not.toHaveBeenCalled();
+    });
+
+    it('Should allow valid sort columns', async () => {
+        const validSort = "created_at";
+
+        await expect(getTasksForUser('user-123', { sortColumn: validSort }))
+            .resolves
+            .not.toThrow();
+
+        // Assert that supabase WAS called
+        expect(supabase.from).toHaveBeenCalledWith('tasks_with_primary_resource');
     });
 });

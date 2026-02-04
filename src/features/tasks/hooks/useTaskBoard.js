@@ -47,6 +47,7 @@ export const useTaskBoard = () => {
     currentUserId,
     updateTaskStatus: (taskId, status) => updateTask(taskId, { status }),
     handleOptimisticUpdate: rest.handleOptimisticUpdate, // Pass the new helper
+    commitOptimisticUpdate: rest.commitOptimisticUpdate, // Pass the commit helper for rollback
   });
 
   // UI State

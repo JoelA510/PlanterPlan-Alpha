@@ -1,44 +1,48 @@
-
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { AuthProvider, useAuth } from '../../app/contexts/AuthContext';
+import { AuthProvider, AuthContext } from '../../app/contexts/AuthContext';
 import { supabase } from '../../app/supabaseClient';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import React, { useContext } from 'react';
 
 // Mock Supabase
 vi.mock('../../app/supabaseClient', () => ({
     supabase: {
         auth: {
             getSession: vi.fn(),
-            onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
-            signUp: vi.fn(),
-            signInWithPassword: vi.fn(),
-            signOut: vi.fn(),
+            onAuthStateChange: vi.fn(),
         },
         rpc: vi.fn(),
-    },
+    }
 }));
 
+// Helper component to expose context
 const TestComponent = () => {
-    const { user } = useAuth();
-    if (!user) return <div>No User</div>;
-    return <div>User Role: {user.role}</div>;
+    const { user, loading } = useContext(AuthContext);
+    if (loading) return <div>Loading...</div>;
+    return <div data-testid="user-role">{user?.role || 'null'}</div>;
 };
 
-describe('AuthContext Security', () => {
+describe('AuthContext Security Fallback', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Default auth setup
+        supabase.auth.onAuthStateChange.mockReturnValue({
+            data: { subscription: { unsubscribe: vi.fn() } }
+        });
     });
 
-    it('should NOT default to owner when RPC checks fail', async () => {
-        // Mock successful session
-        const mockUser = { id: 'test-user-id', email: 'test@example.com' };
+    it('Should default to "viewer" role if supabase.rpc throws error', async () => {
+        // Mock Session
         supabase.auth.getSession.mockResolvedValue({
-            data: { session: { user: mockUser } },
-            error: null,
+            data: { session: { user: { id: 'user-123', email: 'test@example.com' } } },
+            error: null
         });
 
-        // Mock RPC FAILURE (Reject)
-        supabase.rpc.mockRejectedValue(new Error('RPC Failed'));
+        // Mock RPC Error (The Vulnerability Condition)
+        supabase.rpc.mockResolvedValue({
+            data: null,
+            error: { message: 'Network Error', code: '500' }
+        });
 
         render(
             <AuthProvider>
@@ -46,14 +50,56 @@ describe('AuthContext Security', () => {
             </AuthProvider>
         );
 
-        // Initial check (might be No User while loading)
-        // Wait for role to appear
-        await waitFor(() => {
-            const roleElement = screen.getByText(/User Role:/);
-            // The vulnerability is that it defaults to 'owner'
-            // We WANT this test to Fail if the vulnerability exists, OR pass if we write it as "expect vulnerability"
-            // The Plan says: "**Assert:** user.role MUST NOT be 'owner'. (This test should FAIL currently)."
-            expect(roleElement.textContent).not.toBe('User Role: owner');
+        await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+
+        // ASSERT: Must be 'viewer', NOT 'owner' or 'admin'
+        expect(screen.getByTestId('user-role')).toHaveTextContent('viewer');
+    });
+
+    it('Should default to "viewer" role if supabase.rpc crashes/throws exception', async () => {
+        // Mock Session
+        supabase.auth.getSession.mockResolvedValue({
+            data: { session: { user: { id: 'user-123', email: 'test@example.com' } } },
+            error: null
         });
+
+        // Mock RPC Throwing
+        supabase.rpc.mockRejectedValue(new Error('Unexpected Crash'));
+
+        render(
+            <AuthProvider>
+                <TestComponent />
+            </AuthProvider>
+        );
+
+        await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+
+        // ASSERT
+        expect(screen.getByTestId('user-role')).toHaveTextContent('viewer');
+    });
+
+    it('Should not default to "owner" on network failure', async () => {
+        // Mock Session
+        supabase.auth.getSession.mockResolvedValue({
+            data: { session: { user: { id: 'user-123', email: 'test@example.com' } } },
+            error: null
+        });
+
+        // Mock RPC Error pretending to be network issue
+        supabase.rpc.mockResolvedValue({
+            data: null,
+            error: { message: 'Failed to fetch', hinted: 'Check connection' }
+        });
+
+        render(
+            <AuthProvider>
+                <TestComponent />
+            </AuthProvider>
+        );
+
+        await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+
+        // ASSERT
+        expect(screen.getByTestId('user-role')).toHaveTextContent('viewer');
     });
 });

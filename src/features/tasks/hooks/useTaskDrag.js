@@ -153,13 +153,12 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId, update
             // We do NOT clear explicitly, we let the Server Timestamp win eventually
           } catch (e) {
             console.error("Failed to update status", e);
-            // Revert
-            if (handleOptimisticUpdate) {
-              // To revert, we "update" back to old status with specific timestamp? 
-              // Or just clear pending and reset?
-              // Best is to update to old value
+            // Revert: Clear the pending optimistic update so the server state (or lack of update) shines through
+            if (commitOptimisticUpdate) {
+              commitOptimisticUpdate(active.id);
+            } else if (handleOptimisticUpdate) {
+              // Fallback (Legacy/Imperfect): try to "update back"
               handleOptimisticUpdate(active.id, { status: prevStatus });
-              // And maybe commit it to clear the "future" timestamp logic?
             } else {
               setTasks(prev => prev.map(t => t.id === active.id ? { ...t, status: prevStatus } : t));
             }
@@ -205,8 +204,10 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId, update
           await updateTaskPosition(active.id, newPos, newParentId);
         } catch (e) {
           console.error('Failed to persist move', e);
-          if (handleOptimisticUpdate) {
-            // Revert
+          if (commitOptimisticUpdate) {
+            commitOptimisticUpdate(active.id); // Valid Revert
+          } else if (handleOptimisticUpdate) {
+            // Revert legacy
             handleOptimisticUpdate(active.id, { position: activeTask.position, parent_task_id: activeTask.parent_task_id });
           } else {
             // Revert legacy

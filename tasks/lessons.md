@@ -1,9 +1,17 @@
-# Engineering Knowledge Base
+# Project Knowledge Base & Agent Lessons
+> **INSTRUCTION FOR AGENT:** Read this file at the start of every session. These are the hard-earned lessons for PlanterPlan.
 
-**Purpose**: This living document captures hard-won lessons, architectural decisions, and recurrent pitfalls.
-**Usage**: Check this files before estimating complex tasks or refactoring core services.
+## 1. The "Modernity" Log (Stack Specifics)
+*Specific API quirks for our 2026 stack (React 19, TW4, Vite 7).*
 
-## Production Findings (Active Rules & Patterns)
+| Library | Version | The Rule / Quirk |
+| :--- | :--- | :--- |
+| `tailwindcss` | `v4.x` | Use `@theme` in CSS, not `tailwind.config.js`. Use `--color-*` variables for semantic theming (see [UI-025]). |
+| `react` | `19.x` | No `forwardRef`. Use `useActionState` for form actions. Strict hydration checks. |
+| `react-router` | `v7` | Ensure routes are defined in the new data-router format if modifying `App.jsx`. |
+| `date-engine` | Custom | **NEVER** do raw date math. ALWAYS use `src/shared/lib/date-engine`. (See [ARC-034]). |
+
+## 2. Production Findings (Active Rules & Patterns)
 
 ### [DOCS-001] External-Facing PR Descriptions
 - **Context**: PR descriptions contained internal jargon ("Master Review", "Orchestrator") confusing to external reviewers.
@@ -229,4 +237,12 @@ If AbortErrors persist after implementing retries:
 ### [NET-006] Client-Side Timeouts for Vital Fetches
 - **Date**: 2026-02-01
 - **Context**: Login flow hung indefinitely because `planter.auth.me()` waited for a stalled Vite HMR WebSocket connection.
-- **Rule**: **Always Enforce Timeouts.** Critical authentication or initialization fetches must use an `AbortController` with a strict timeout (e.g., 5-10s) to prevent UI freezes during network congestion.
+### [UI-041] Optimistic UI Rollback Clarity
+- **Date**: 2026-02-03
+- **Context**: Failed task drag operations caused the UI to stay in the dropped state because the "revert" logic stacked a new optimistic update on top of the old one instead of clearing it.
+- **Rule**: **Commit to Revert.** To rollback an optimistic update, do not apply a new "inverse" update. Explicitly "commit" (clear) the pending optimistic ID to reveal the server state.
+
+### [AUTH-007] Deduplicated Session Handling
+- **Date**: 2026-02-03
+- **Context**: `AuthContext` had duplicate logic in `useEffect` (initial load) and `onAuthStateChange`. This increased the surface area for bugs and race conditions.
+- **Rule**: **Single Source of Session Truth.** Extract session processing into a `handleSession` function and use it for both initialization and event listening.
