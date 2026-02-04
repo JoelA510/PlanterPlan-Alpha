@@ -36,9 +36,6 @@ const ProjectTabs = memo(function ProjectTabs({ activeTab, onTabChange }) {
     );
 });
 
-ProjectTabs.propTypes = {
-    activeTab: PropTypes.string.isRequired,
-    onTabChange: PropTypes.func.isRequired,
-};
+
 
 export default ProjectTabs;

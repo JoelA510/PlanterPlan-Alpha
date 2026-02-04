@@ -65,16 +65,6 @@ const PhaseBarChart = memo(function PhaseBarChart({ data }) {
     );
 });
 
-PhaseBarChart.propTypes = {
-    data: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string.isRequired,
-            fullName: PropTypes.string,
-            completed: PropTypes.number.isRequired,
-            remaining: PropTypes.number.isRequired,
-            progress: PropTypes.number,
-        })
-    ).isRequired,
-};
+
 
 export default PhaseBarChart;
