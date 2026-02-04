@@ -11,9 +11,10 @@ export const useProjectRealtime = (projectId = null) => {
     const queryClient = useQueryClient();
 
     useEffect(() => {
-        // Create a channel for tasks
+        // Create a unique channel per scope to avoid collisions
+        const channelName = projectId ? `db-changes:project-${projectId}` : 'db-changes:global';
         const channel = supabase
-            .channel('db-changes')
+            .channel(channelName)
             .on(
                 'postgres_changes',
                 {

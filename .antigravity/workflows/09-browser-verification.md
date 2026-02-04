@@ -86,7 +86,7 @@ The agent must verify these paths exists in `src/tests/integration/golden-paths.
      - `text-black` (Should be `text-slate-900`)
 
 2. **Correction**:
-   - If forbidden classes are found, strictly verify against `.agent/rules/30-design-standards.md` and auto-correct.
+   - If forbidden classes are found, strictly verify against `.antigravity/rules.md` (Design Standards) and auto-correct.
 
 ## Phase 5: Reporting
 

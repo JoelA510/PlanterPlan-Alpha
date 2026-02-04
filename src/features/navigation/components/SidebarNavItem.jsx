@@ -1,7 +1,6 @@
 import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { TASK_STATUS } from '@app/constants/index';
-import PropTypes from 'prop-types';
 import RoleIndicator from '@shared/ui/RoleIndicator';
 
 /**
@@ -10,7 +9,7 @@ import RoleIndicator from '@shared/ui/RoleIndicator';
  * Checks for `to` prop to render as a semantic Link.
  */
 const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => {
-  const handleClick = (e) => {
+  const handleClick = () => {
     // If it's a Link, let the browser handle navigation unless prevented
     // But we still want to fire 'onClick' for side effects (like closing mobile menu)
     if (onClick) {
@@ -96,16 +95,6 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => 
   );
 };
 
-SidebarNavItem.propTypes = {
-  task: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    title: PropTypes.string.isRequired,
-    membership_role: PropTypes.string,
-  }).isRequired,
-  isSelected: PropTypes.bool,
-  onClick: PropTypes.func.isRequired,
-  showRole: PropTypes.bool,
-  to: PropTypes.string,
-};
+
 
 export default memo(SidebarNavItem);

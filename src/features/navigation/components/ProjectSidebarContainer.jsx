@@ -8,11 +8,7 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) 
     const navigate = useNavigate();
     const { data: userProjects, isLoading: projectsLoading } = useUserProjects();
     const {
-        joinedProjects = [], // Note: useUserProjects includes joined projects if mapped correctly, but let's check.
-        // useUserProjects returns an array of ALL projects (owned + joined).
-        // Check ProjectSidebar prop types.
-
-        // calculated instanceTasks from useTaskOperations (Manual) - REPLACING with userProjects
+        // templateTasks from useTaskOperations (Manual) - REPLACING with userProjects
         templateTasks = [],
         loading: tasksLoading,
         error,

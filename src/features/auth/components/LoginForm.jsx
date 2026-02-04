@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { useAuth } from '@app/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@shared/ui/use-toast';
@@ -111,10 +110,6 @@ const LoginForm = () => {
       </div>
     </div>
   );
-};
-
-LoginForm.propTypes = {
-  // No props currently, but adding the object satisfies linting for future
 };
 
 export default LoginForm;

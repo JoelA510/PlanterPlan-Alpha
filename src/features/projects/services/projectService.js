@@ -4,7 +4,14 @@ import { planter } from '@shared/api/planterClient';
 // --- Membership ---
 
 export async function inviteMember(projectId, userId, role) {
-  return await planter.entities.Project.addMember(projectId, userId, role);
+  try {
+    return await planter.entities.Project.addMember(projectId, userId, role);
+  } catch (error) {
+    if (error.code === '42501' || (error.message && error.message.includes('policy'))) {
+      throw new Error('Access denied: You must be an Owner to manage members.');
+    }
+    throw error;
+  }
 }
 
 export async function inviteMemberByEmail(projectId, email, role) {

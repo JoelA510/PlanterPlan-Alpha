@@ -41,5 +41,7 @@ export const useTaskOperations = () => {
     templateTasks,
     ...mutations,
     ...projectMutations,
+    handleOptimisticUpdate: query.handleOptimisticUpdate,
+    commitOptimisticUpdate: query.commitOptimisticUpdate,
   };
 };
