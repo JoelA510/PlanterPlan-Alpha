@@ -106,7 +106,12 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
 export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId, updateTaskStatus, handleOptimisticUpdate, commitOptimisticUpdate }) => {
   const [moveError, setMoveError] = useState(null);
 
-  // ... (sensors)
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleDragEnd = useCallback(
     async (event) => {

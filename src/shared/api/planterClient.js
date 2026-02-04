@@ -415,19 +415,15 @@ export const planter = {
 
         // 2. RPC call for invite
         // RPC via Raw Fetch: POST /rpc/function_name
-        try {
-          const data = await rawSupabaseFetch('rpc/invite_user_to_project', {
-            method: 'POST',
-            body: JSON.stringify({
-              p_project_id: projectId,
-              p_email: email,
-              p_role: role,
-            })
-          });
-          return { data, error: null };
-        } catch (e) {
-          throw e;
-        }
+        const data = await rawSupabaseFetch('rpc/invite_user_to_project', {
+          method: 'POST',
+          body: JSON.stringify({
+            p_project_id: projectId,
+            p_email: email,
+            p_role: role,
+          })
+        });
+        return { data, error: null };
       },
     },
     Task: createEntityClient('tasks'),

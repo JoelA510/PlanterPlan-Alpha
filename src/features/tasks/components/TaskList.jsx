@@ -244,10 +244,6 @@ const TaskList = () => {
             }}
           />
         )}
-        {/* Re-add invite success handler logic in render or update hook to return it? */}
-        {/* Easier to keep UI callbacks here if they are simple */}
-        {/* Actually, I missed adding useToast import in the component if I removed it? No I can import it. */}
-        {/* But useTaskBoard has useToast. */}
       </DashboardLayout>
     </DndContext>
   );

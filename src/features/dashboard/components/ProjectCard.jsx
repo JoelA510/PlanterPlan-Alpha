@@ -28,7 +28,7 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }) => {
   return (
     <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} className="h-full">
       <Link to={createPageUrl(`project/${project.id}`)} className="h-full block">
-        <Card className="p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card h-full flex flex-col justify-between overflow-hidden">
+        <Card className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card h-full flex flex-col justify-between overflow-hidden">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4 min-w-0">
               <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
