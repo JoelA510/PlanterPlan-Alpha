@@ -221,7 +221,7 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId, update
         fetchTasks();
       }
     },
-    [tasks, fetchTasks, currentUserId, setTasks, updateTaskStatus, handleOptimisticUpdate]
+    [tasks, fetchTasks, currentUserId, setTasks, updateTaskStatus, handleOptimisticUpdate, commitOptimisticUpdate]
   );
 
   return { sensors, handleDragEnd, moveError, setMoveError };
