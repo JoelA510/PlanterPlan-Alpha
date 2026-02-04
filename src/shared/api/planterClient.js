@@ -34,7 +34,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Array>}
    */
   list: async () => {
-    return undefined(async () => {
+    return retry(async () => {
       // select=* needs to be URL encoded or safe?
       // simple select string usually works.
       const query = `${tableName}?select=${select}`;
