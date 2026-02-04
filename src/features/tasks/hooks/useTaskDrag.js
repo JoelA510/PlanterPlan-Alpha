@@ -3,7 +3,6 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useCallback, useState, useEffect } from 'react';
 import {
   calculateNewPosition,
-  renormalizePositions,
   updateTaskPosition,
 } from '@features/tasks/services/positionService';
 
@@ -103,7 +102,7 @@ const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
 };
 
 // ... (imports)
-export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId, updateTaskStatus, handleOptimisticUpdate, commitOptimisticUpdate }) => {
+export const useTaskDrag = ({ tasks, setTasks, fetchTasks, updateTaskStatus, handleOptimisticUpdate, commitOptimisticUpdate }) => {
   const [moveError, setMoveError] = useState(null);
 
   const sensors = useSensors(
@@ -221,7 +220,7 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, currentUserId, update
         fetchTasks();
       }
     },
-    [tasks, fetchTasks, currentUserId, setTasks, updateTaskStatus, handleOptimisticUpdate, commitOptimisticUpdate]
+    [tasks, fetchTasks, setTasks, updateTaskStatus, handleOptimisticUpdate, commitOptimisticUpdate]
   );
 
   return { sensors, handleDragEnd, moveError, setMoveError };

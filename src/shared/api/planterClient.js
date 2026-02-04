@@ -1,6 +1,6 @@
 // import { supabase } from '@app/supabaseClient'; // Singleton appears broken in browser environment (AbortError)
 // import { createClient } from '@supabase/supabase-js'; // REMOVED to avoid Multiple GoTrueClient conflict
-import { retry } from '../../shared/lib/retry.js';
+import { retry } from '@shared/lib/retry';
 
 const getEnv = (key) => {
   let val;
@@ -279,10 +279,6 @@ export const planter = {
             // We can decode the token or just fail. 
             // With raw fetch we can't easily "getUser" without another call.
             // Assume userId is passed correctly by UI.
-            const token = getSupabaseToken();
-            // Simple JWT decode hack for user_id? 
-            // Let's just trust the UI passed it or use 'auth.uid()' in RLS if possible?
-            // Actually, the UI usually passes it.
           }
 
           // Extract explicit token if provided

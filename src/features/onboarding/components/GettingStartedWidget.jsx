@@ -3,7 +3,6 @@ import { Card } from '@shared/ui/card';
 import { Progress } from '@shared/ui/progress';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, Circle, ArrowRight, X } from 'lucide-react';
-import { createPageUrl } from '@shared/lib/utils';
 import { useState } from 'react';
 
 export default function GettingStartedWidget({ project, teamMembers, onDismiss }) {
