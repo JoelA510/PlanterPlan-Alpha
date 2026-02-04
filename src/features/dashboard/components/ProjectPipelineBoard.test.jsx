@@ -9,6 +9,10 @@ vi.mock('@features/dashboard/components/ProjectCard', () => ({
     default: ({ project }) => <div data-testid={`project-card-${project.id}`}>{project.name}</div>,
 }));
 
+vi.mock('@features/projects/hooks/useProjectRealtime', () => ({
+    useProjectRealtime: vi.fn(),
+}));
+
 // Mock Drag Overlay portal (createPortal is not needed in JSDOM if we just verify state, 
 // but DndKit uses it. We can rely on standard DndContext behavior or mock it if needed. 
 // For basic interaction, JSDOM + DndKit can be tricky. We will focus on rendering correctness first.)

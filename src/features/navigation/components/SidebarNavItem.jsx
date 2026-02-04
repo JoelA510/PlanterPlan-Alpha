@@ -95,16 +95,6 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => 
   );
 };
 
-SidebarNavItem.propTypes = {
-  task: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    title: PropTypes.string.isRequired,
-    membership_role: PropTypes.string,
-  }).isRequired,
-  isSelected: PropTypes.bool,
-  onClick: PropTypes.func.isRequired,
-  showRole: PropTypes.bool,
-  to: PropTypes.string,
-};
+
 
 export default memo(SidebarNavItem);

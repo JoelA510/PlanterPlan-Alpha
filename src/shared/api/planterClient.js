@@ -1,6 +1,6 @@
 // import { supabase } from '@app/supabaseClient'; // Singleton appears broken in browser environment (AbortError)
 // import { createClient } from '@supabase/supabase-js'; // REMOVED to avoid Multiple GoTrueClient conflict
-import { retry } from '@shared/lib/retry';
+import { retry } from '../lib/retry.js';
 
 const getEnv = (key) => {
   let val;
@@ -272,14 +272,7 @@ export const planter = {
         return retry(async () => {
           console.log('[PlanterClient] Creating project (Raw Fetch):', projectData);
 
-          let userId = projectData.creator;
-
-          // Fallback only if not provided (legacy support)
-          if (!userId) {
-            // We can decode the token or just fail. 
-            // With raw fetch we can't easily "getUser" without another call.
-            // Assume userId is passed correctly by UI.
-          }
+          const userId = projectData.creator;
 
           // Extract explicit token if provided
           const explicitToken = projectData._token;
