@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase } from '@app/supabaseClient';
 
 export const AuthContext = createContext({});
@@ -66,18 +66,19 @@ export function AuthProvider({ children }) {
 
           if (rpcError) {
             console.error('AuthContext: RPC error', rpcError);
+            // FAIL SAFE: Default to viewer if admin check fails
+            setUser({ ...session.user, role: 'viewer' });
           } else {
             console.log('AuthContext: RPC success', isAdmin);
+            setUser({
+              ...session.user,
+              role: isAdmin ? 'admin' : 'owner'
+            });
           }
-
-          setUser({
-            ...session.user,
-            role: isAdmin ? 'admin' : 'owner' // Fallback to owner if RPC fails or returns false
-          });
         } catch (rpcCrash) {
           console.error('AuthContext: RPC crashed', rpcCrash);
-          // Fallback to owner on crash
-          setUser({ ...session.user, role: 'owner' });
+          // FAIL SAFE: Default to viewer on crash
+          setUser({ ...session.user, role: 'viewer' });
         }
         setLoading(false); // Ensure loading is cleared after logic
       } else {
@@ -94,14 +95,19 @@ export function AuthProvider({ children }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
         if (session?.user) {
-          const { data: isAdmin } = await supabase.rpc('is_admin', {
+          const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', {
             p_user_id: session.user.id
           });
 
-          setUser({
-            ...session.user,
-            role: isAdmin ? 'admin' : 'owner'
-          });
+          if (rpcError) {
+            console.error('Auth check failed', rpcError);
+            setUser({ ...session.user, role: 'viewer' });
+          } else {
+            setUser({
+              ...session.user,
+              role: isAdmin ? 'admin' : 'owner'
+            });
+          }
         } else {
           setUser(null);
         }
@@ -155,13 +161,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     loading,
     signUp,
     signIn,
     signOut,
-  };
+  }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

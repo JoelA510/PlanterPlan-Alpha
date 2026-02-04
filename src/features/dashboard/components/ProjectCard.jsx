@@ -8,6 +8,7 @@ import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch, Fo
 import { motion } from 'framer-motion';
 import { TASK_STATUS, PROJECT_STATUS } from '@app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
+import { sanitizeHTML } from '@shared/lib/sanitize';
 
 const templateIcons = {
   launch_large: Rocket,
@@ -34,9 +35,10 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }) => {
                 <Icon className="w-6 h-6 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors truncate">
-                  {project.name}
-                </h3>
+                <h3
+                  className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors truncate"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHTML(project.name) }}
+                />
                 <Badge
                   variant="secondary"
                   className={`${statusConfig.bg} ${statusConfig.text} ${statusConfig.border} border text-[10px] font-bold mt-1 uppercase tracking-wider`}
@@ -49,14 +51,17 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }) => {
           </div>
 
           {project.description && (
-            <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{project.description}</p>
+            <p
+              className="text-muted-foreground text-sm mb-4 line-clamp-2"
+              dangerouslySetInnerHTML={{ __html: sanitizeHTML(project.description) }}
+            />
           )}
 
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-5">
             {project.location && (
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-4 h-4" />
-                <span>{project.location}</span>
+                <span dangerouslySetInnerHTML={{ __html: sanitizeHTML(project.location) }} />
               </div>
             )}
             {project.launch_date && (

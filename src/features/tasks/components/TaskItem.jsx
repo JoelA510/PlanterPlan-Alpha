@@ -1,5 +1,6 @@
 // src/components/molecules/TaskItem.jsx
 import { useCallback, memo } from 'react';
+import { sanitizeHTML } from '@shared/lib/sanitize';
 import RoleIndicator from '@shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -141,12 +142,12 @@ const TaskItem = memo(
               )}
 
               <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+
                 <span
                   className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate"
                   title={task.title}
-                >
-                  {task.title}
-                </span>
+                  dangerouslySetInnerHTML={{ __html: sanitizeHTML(task.title) }}
+                />
                 {task.duration && (
                   <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0">
                     {task.duration}

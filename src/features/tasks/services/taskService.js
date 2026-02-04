@@ -81,13 +81,22 @@ export const fetchTaskChildren = async (taskId, client = supabase) => {
 /**
  * Get all tasks for a user, ordered by position.
  */
-export const getTasksForUser = async (userId, client = supabase) => {
+import { validateSortColumn } from '@shared/lib/validation';
+
+/**
+ * Get all tasks for a user, ordered by position (default) or specified column.
+ * Includes security validation for sort parameters.
+ */
+export const getTasksForUser = async (userId, { sortColumn = 'position', sortOrder = 'asc' } = {}, client = supabase) => {
   try {
+    // Validate sort column to prevent SQL injection
+    const validSortColumn = validateSortColumn(sortColumn, ['position', 'title', 'status', 'created_at', 'due_date']);
+
     const { data, error } = await client
       .from('tasks_with_primary_resource')
       .select('*')
       .eq('creator', userId)
-      .order('position', { ascending: true });
+      .order(validSortColumn, { ascending: sortOrder === 'asc' });
 
     if (error) throw error;
     return { data, error: null };

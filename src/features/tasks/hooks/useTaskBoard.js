@@ -29,6 +29,7 @@ export const useTaskBoard = () => {
     hasMore,
     isFetchingMore,
     loadMoreProjects,
+    ...rest // Capture handleOptimisticUpdate
   } = useTaskOperations();
 
   const { addToast } = useToast();
@@ -45,6 +46,7 @@ export const useTaskBoard = () => {
     fetchTasks,
     currentUserId,
     updateTaskStatus: (taskId, status) => updateTask(taskId, { status }),
+    handleOptimisticUpdate: rest.handleOptimisticUpdate, // Pass the new helper
   });
 
   // UI State
