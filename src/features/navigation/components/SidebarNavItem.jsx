@@ -10,7 +10,7 @@ import RoleIndicator from '@shared/ui/RoleIndicator';
  * Checks for `to` prop to render as a semantic Link.
  */
 const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => {
-  const handleClick = (e) => {
+  const handleClick = () => {
     // If it's a Link, let the browser handle navigation unless prevented
     // But we still want to fire 'onClick' for side effects (like closing mobile menu)
     if (onClick) {

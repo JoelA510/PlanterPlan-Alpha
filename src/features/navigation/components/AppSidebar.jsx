@@ -22,10 +22,6 @@ const navigationItems = [
 export default function AppSidebar({ onClose, currentProject, className }) {
   const location = useLocation();
 
-  const isActive = (path) => {
-    return location.pathname.includes(path.toLowerCase());
-  };
-
   return (
     <div className={cn('flex flex-col h-full bg-card border-r border-border', className)}>
       <div className="flex flex-col h-full">

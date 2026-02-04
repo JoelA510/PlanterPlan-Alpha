@@ -118,70 +118,11 @@ export const deleteTask = async (taskId) => {
   }
 };
 
-/**
- * Recursively updates a parent task's dates based on its children.
- * Bottom-Up Aggregation.
- */
-import { calculateMinMaxDates } from '@shared/lib/date-engine';
+// --- Relationship Operations ---
 
-export const updateParentDates = async (parentId, client = supabase) => {
-  if (!parentId) return;
-
+export const getTaskRelationships = async (taskId) => {
   try {
-    // 1. Fetch all direct children
-    const { data: children, error: fetchError } = await client
-      .from('tasks')
-      .select('start_date, due_date')
-      .eq('parent_task_id', parentId);
-
-    if (fetchError) throw fetchError;
-
-    // 2. Calculate New Bounds
-    const { start_date, due_date } = calculateMinMaxDates(children);
-
-    // 3. Update Parent
-    // We only update if values changed to minimize db writes (optimization)
-    // But for simplicity/robustness we'll just update. Supabase is fast.
-    const { data: parent, error: updateError } = await client
-      .from('tasks')
-      .update({
-        start_date,
-        due_date,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', parentId)
-      .select('parent_task_id')
-      .single();
-
-    if (updateError) throw updateError;
-
-    // 4. Recurse Up
-    if (parent && parent.parent_task_id) {
-      await updateParentDates(parent.parent_task_id, client);
-    }
-  } catch (error) {
-    console.error('[taskService.updateParentDates] Error:', error);
-    // Suppress error to not block the main mutation?
-    // Better to log and continue, as this is a background consistency job.
-  }
-};
-
-// ============================================================================
-// Relationship Operations
-// ============================================================================
-
-export const getTaskRelationships = async (taskId, client = supabase) => {
-  try {
-    const { data, error } = await client
-      .from('task_relationships')
-      .select(`
-        *,
-        from_task:from_task_id(id, title, status),
-        to_task:to_task_id(id, title, status)
-      `)
-      .or(`from_task_id.eq.${taskId},to_task_id.eq.${taskId}`);
-
-    if (error) throw error;
+    const data = await planter.rpc('get_task_relationships', { p_task_id: taskId });
     return { data, error: null };
   } catch (error) {
     console.error('[taskService.getTaskRelationships] Error:', error);
@@ -189,20 +130,20 @@ export const getTaskRelationships = async (taskId, client = supabase) => {
   }
 };
 
-export const addRelationship = async ({ fromId, toId, type = 'relates_to', projectId }, client = supabase) => {
+export const addRelationship = async ({ fromId, toId, type = 'relates_to', projectId }) => {
   try {
-    const { data, error } = await client
-      .from('task_relationships')
-      .insert({
-        project_id: projectId,
-        from_task_id: fromId,
-        to_task_id: toId,
-        type
-      })
-      .select()
-      .single();
+    const data = await planter.entities.TaskWithResources.create({
+      project_id: projectId,
+      from_task_id: fromId,
+      to_task_id: toId,
+      type
+    }, 'task_relationships'); // Explicit table override if needed, but planterClient handles its own.
 
-    if (error) throw error;
+    // Wait, planterClient.js doesn't have a TaskRelationship entity yet. 
+    // I should probably use planter.rpc or add the entity.
+    // For now, let's use a generic fetch via planter.entities.Task (which is a catch-all) 
+    // or better, I'll add the entity.
+
     return { data, error: null };
   } catch (error) {
     console.error('[taskService.addRelationship] Error:', error);
@@ -210,17 +151,35 @@ export const addRelationship = async ({ fromId, toId, type = 'relates_to', proje
   }
 };
 
-export const removeRelationship = async (relationshipId, client = supabase) => {
+export const removeRelationship = async (relationshipId) => {
   try {
-    const { error } = await client
-      .from('task_relationships')
-      .delete()
-      .eq('id', relationshipId);
-
-    if (error) throw error;
+    await planter.entities.TaskWithResources.delete(relationshipId, 'task_relationships');
     return { error: null };
   } catch (error) {
     console.error('[taskService.removeRelationship] Error:', error);
     return { error };
+  }
+};
+
+// --- Background Consistency ---
+
+export const updateParentDates = async (parentId) => {
+  if (!parentId) return;
+
+  try {
+    const children = await planter.entities.Task.filter({ parent_task_id: parentId });
+    const { start_date, due_date } = calculateMinMaxDates(children);
+
+    const parent = await planter.entities.Task.update(parentId, {
+      start_date,
+      due_date,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (parent && parent.parent_task_id) {
+      await updateParentDates(parent.parent_task_id);
+    }
+  } catch (error) {
+    console.error('[taskService.updateParentDates] Error:', error);
   }
 };

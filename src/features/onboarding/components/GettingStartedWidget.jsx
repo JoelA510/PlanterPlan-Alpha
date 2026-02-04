@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Card } from '@shared/ui/card';
 import { Progress } from '@shared/ui/progress';
-import { Button } from '@shared/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, Circle, ArrowRight, X } from 'lucide-react';
 import { createPageUrl } from '@shared/lib/utils';

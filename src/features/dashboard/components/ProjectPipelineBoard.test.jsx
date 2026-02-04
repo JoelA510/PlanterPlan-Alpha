@@ -1,8 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ProjectPipelineBoard from './ProjectPipelineBoard';
 import { PROJECT_STATUS } from '@app/constants/index';
-import { DndContext } from '@dnd-kit/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock generic components to simplify rendering

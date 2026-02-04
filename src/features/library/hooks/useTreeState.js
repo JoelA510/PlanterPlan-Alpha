@@ -151,7 +151,6 @@ export const useTreeState = (rootTasks) => {
 
       // Simplest Logic: Take position before or after 'over' node.
       // But we need the position values.
-      const overPos = overData.node.position || 0;
 
       // Let's assume we place it BEFORE the over node if moving up, AFTER if moving down?
       // Actually, standard dnd-kit sortable strategy is swap.
