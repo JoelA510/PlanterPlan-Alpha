@@ -22,11 +22,14 @@ vi.mock('../../app/supabaseClient', () => ({
 // Component that counts renders to detect loops
 const RenderCounter = () => {
     const count = React.useRef(0);
-    count.current++;
 
-    if (count.current > 50) {
-        throw new Error('Infinite Loop Detected in RenderCounter');
-    }
+    React.useEffect(() => {
+        count.current++;
+        if (count.current > 50) {
+            throw new Error('Infinite Loop Detected in RenderCounter');
+        }
+    });
+
     return <div data-testid="render-count">{count.current}</div>;
 };
 
