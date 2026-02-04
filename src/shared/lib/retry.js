@@ -22,8 +22,23 @@ export async function retry(operation, options = {}) {
             return await operation();
         } catch (error) {
             lastError = error;
+
+            // Smart Retry Logic:
+            // Only retry on network-like native errors or explicit 503s.
+            // AbortError is critical for our timeout resilience lesson [NET-005].
+            const isRetryable =
+                error.name === 'AbortError' ||
+                error.code === '20' || // Postgres Abort
+                error.status === 503 ||
+                error.message?.includes('Network request failed');
+
+            if (!isRetryable) {
+                throw error; // Fail fast on logic errors (400, 401, 404, etc)
+            }
+
             if (attempt < retries) {
                 const delay = minTimeout * Math.pow(factor, attempt);
+                // console.warn(`[Retry] Attempt ${attempt + 1}/${retries} failed. Retrying in ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }

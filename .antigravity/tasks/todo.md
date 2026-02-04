@@ -53,11 +53,18 @@
 ---
 
 ## ✅ Phase 4: Verification & Impact Audit
-- [ ] **Regression Test:** Run `golden-paths.test.jsx` again.
-- [ ] **Manual Chaos:** Throttle network -> Verify Retry.
-- [ ] **Documentation:** Update `tasks/lessons.md` with new stability patterns.
+- [x] **Regression Test:** Run `golden-paths.test.jsx` again.
+- [x] **Manual Chaos:** Throttle network -> Verify Retry.
+- [x] **Documentation:** Update `tasks/lessons.md` with new stability patterns.
 
 ---
 
 ## 📂 Archive
+### Completed: Reliability Baseline (Feb 3)
+- [x] **Plan:** [master_remediation_plan.md](master_remediation_plan.md)
+- [x] **Hotspot 1 (Network):** `retry` utility & client wrapping.
+- [x] **Hotspot 2 (Optimistic UI):** `useTaskBoard` rollback fix.
+- [x] **Hotspot 3 (Auth):** `AuthContext` consolidation.
+- [x] **Verification:** 6/6 Golden Paths Passed.
+
 *(Completed tasks go here)*

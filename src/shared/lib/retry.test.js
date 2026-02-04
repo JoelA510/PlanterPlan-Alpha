@@ -9,8 +9,10 @@ describe('retry utility', () => {
         expect(operation).toHaveBeenCalledTimes(1);
     });
 
-    it('retries on failure up to maxRetries', async () => {
+    it('retries on failure up to maxRetries (if retryable)', async () => {
         const error = new Error('Transient failure');
+        error.name = 'AbortError'; // Mark as retryable
+
         const operation = vi.fn()
             .mockRejectedValueOnce(error)
             .mockRejectedValueOnce(error)
@@ -21,8 +23,18 @@ describe('retry utility', () => {
         expect(operation).toHaveBeenCalledTimes(3);
     });
 
+    it('fails fast on non-retryable errors', async () => {
+        const error = new Error('Logic error'); // Not AbortError
+        const operation = vi.fn().mockRejectedValue(error);
+
+        await expect(retry(operation, { retries: 3 }))
+            .rejects.toThrow('Logic error');
+        expect(operation).toHaveBeenCalledTimes(1);
+    });
+
     it('throws the last error if maxRetries is exceeded', async () => {
         const error = new Error('Persistent failure');
+        error.name = 'AbortError'; // Retryable
         const operation = vi.fn().mockRejectedValue(error);
 
         await expect(retry(operation, { retries: 2, minTimeout: 1 }))

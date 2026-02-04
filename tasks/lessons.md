@@ -246,3 +246,14 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-03
 - **Context**: `AuthContext` had duplicate logic in `useEffect` (initial load) and `onAuthStateChange`. This increased the surface area for bugs and race conditions.
 - **Rule**: **Single Source of Session Truth.** Extract session processing into a `handleSession` function and use it for both initialization and event listening.
+
+### [SEC-044] Client-Side XSS Sanitization
+- **Date**: 2026-02-03
+- **Context**: Stored XSS vulnerability allowed malicious scripts in Task Titles and Project Descriptions.
+- **Rule**: **Trust Nothing.** Even with React's escaping, use `dompurify` for any user-generated content that *might* be rendered as rich text. Verify `onerror` attributes are stripped.
+
+### [SEC-045] SQL Injection in Sort Parameters
+- **Date**: 2026-02-03
+- **Context**: Dynamic SQL sorting via `rpc` exposed potential injection vectors.
+- **Rule**: **Allowlist Sort Columns.** Validate sort parameters against a strict set of allowed column names before passing them to the database query.
+
