@@ -51,3 +51,10 @@ code_review_draft.md
 # Temporary Lint Logs
 lint_errors*.txt
 
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

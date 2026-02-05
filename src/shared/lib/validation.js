@@ -1,3 +1,4 @@
+import { z } from 'zod';
 
 /**
  * Validates that a sort column is a safe, allowed identifier.
@@ -10,14 +11,30 @@
 export const validateSortColumn = (column, allowedColumns = []) => {
     if (!column) return null;
 
-    // Basic strict alphanumeric check, allowing underscores
-    if (!/^[a-zA-Z0-9_]+$/.test(column)) {
-        throw new Error('Invalid sort column format');
-    }
+    // Define base schema for safe SQL identifiers (alphanumeric + underscore)
+    const baseSchema = z.string().regex(/^[a-zA-Z0-9_]+$/, 'Invalid sort column format');
 
-    if (allowedColumns.length > 0 && !allowedColumns.includes(column)) {
-        throw new Error(`Invalid sort column: ${column}`);
-    }
+    try {
+        // Validate format first
+        const validFormat = baseSchema.parse(column);
 
-    return column;
+        // Validate allowlist if provided
+        if (allowedColumns.length > 0) {
+            const enumSchema = z.enum(allowedColumns);
+            // We use the already validated formatted string, but check it against enum
+            // Using safeParse for custom error message similar to original
+            const result = enumSchema.safeParse(validFormat);
+            if (!result.success) {
+                throw new Error(`Invalid sort column: ${column}`);
+            }
+        }
+
+        return validFormat;
+    } catch (error) {
+        // preserve original error messages for compatibility or re-throw Zod errors
+        if (error instanceof z.ZodError) {
+            throw new Error(error.issues[0].message);
+        }
+        throw error;
+    }
 };

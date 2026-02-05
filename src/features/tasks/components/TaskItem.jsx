@@ -1,5 +1,4 @@
 // src/components/molecules/TaskItem.jsx
-import { useCallback, memo } from 'react';
 import { sanitizeHTML } from '@shared/lib/sanitize';
 import RoleIndicator from '@shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -11,216 +10,208 @@ import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
 import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
 
-const TaskItem = memo(
-  ({
-    task,
-    level = 0,
-    onTaskClick,
-    selectedTaskId,
-    onAddChildTask,
-    onInviteMember,
-    onStatusChange,
-    dragHandleProps = {},
-    forceShowChevron = false,
-    onToggleExpand,
-    onEdit = null,
-    onDelete = null,
-    hideExpansion = false,
-    disableDrag = false,
-  }) => {
-    const hasChildren = task.children && task.children.length > 0;
-    const indentWidth = level * 20;
-    const isSelected = selectedTaskId === task.id;
-    const canHaveChildren = level < 4;
+const TaskItem = ({
+  task,
+  level = 0,
+  onTaskClick,
+  selectedTaskId,
+  onAddChildTask,
+  onInviteMember,
+  onStatusChange,
+  dragHandleProps = {},
+  forceShowChevron = false,
+  onToggleExpand,
+  onEdit = null,
+  onDelete = null,
+  hideExpansion = false,
+  disableDrag = false,
+}) => {
+  const hasChildren = task.children && task.children.length > 0;
+  const indentWidth = level * 20;
+  const isSelected = selectedTaskId === task.id;
+  const canHaveChildren = level < 4;
 
-    const isExpanded = !!task.isExpanded;
-    const showChevron = !hideExpansion && canHaveChildren && (hasChildren || forceShowChevron);
+  const isExpanded = !!task.isExpanded;
+  const showChevron = !hideExpansion && canHaveChildren && (hasChildren || forceShowChevron);
 
-    // Dnd-kit droppable
-    const { setNodeRef: setDroppableNodeRef } = useDroppable({
-      id: `child-context-${task.id}`,
-      data: {
-        type: 'container',
-        parentId: task.id,
-        origin: task.origin,
-      },
-    });
+  // Dnd-kit droppable
+  const { setNodeRef: setDroppableNodeRef } = useDroppable({
+    id: `child-context-${task.id}`,
+    data: {
+      type: 'container',
+      parentId: task.id,
+      origin: task.origin,
+    },
+  });
 
-    const handleCardClick = useCallback(
-      (e) => {
-        if (
-          e.target.closest('.expand-button') ||
-          e.target.closest('select') ||
-          e.target.closest('button')
-        ) {
-          return;
-        }
-        if (onTaskClick) {
-          onTaskClick(task);
-        }
-      },
-      [onTaskClick, task]
-    );
+  const handleCardClick = (e) => {
+    if (
+      e.target.closest('.expand-button') ||
+      e.target.closest('select') ||
+      e.target.closest('button')
+    ) {
+      return;
+    }
+    if (onTaskClick) {
+      onTaskClick(task);
+    }
+  };
 
-    const handleToggleExpandClick = useCallback(
-      (e) => {
-        e.stopPropagation();
-        if (onToggleExpand) {
-          onToggleExpand(task, !isExpanded);
-        }
-      },
-      [onToggleExpand, task, isExpanded]
-    );
+  const handleToggleExpandClick = (e) => {
+    e.stopPropagation();
+    if (onToggleExpand) {
+      onToggleExpand(task, !isExpanded);
+    }
+  };
 
-    const isLocked = task.is_locked || false;
+  const isLocked = task.is_locked || false;
 
-    return (
-      <>
-        <div
-          className={cn(
-            'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
-            'bg-card text-card-foreground', // Default card styles
-            isSelected
-              ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-100 dark:bg-brand-900/40 dark:border-brand-400 dark:ring-brand-900/50'
-              : 'border-border hover:border-brand-300 dark:hover:border-brand-700',
-            isLocked && 'opacity-70 bg-muted/30 dark:bg-slate-900/50',
-            level === 0 && 'border-l-4 border-l-brand-600 dark:border-l-brand-500'
-          )}
-          style={{ marginLeft: `${indentWidth}px` }}
-          onClick={!isLocked ? handleCardClick : undefined}
-        >
-          <div className="flex items-center justify-between gap-4">
-            {/* LEFT SIDE: Drag Handle, Expand, Info */}
-            <div className="flex-1 flex items-center min-w-0 overflow-hidden">
-              {!disableDrag && (
-                <button
+  return (
+    <>
+      <div
+        className={cn(
+          'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
+          'bg-card text-card-foreground', // Default card styles
+          isSelected
+            ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-100 dark:bg-brand-900/40 dark:border-brand-400 dark:ring-brand-900/50'
+            : 'border-border hover:border-brand-300 dark:hover:border-brand-700',
+          isLocked && 'opacity-70 bg-muted/30 dark:bg-slate-900/50',
+          level === 0 && 'border-l-4 border-l-brand-600 dark:border-l-brand-500'
+        )}
+        style={{ marginLeft: `${indentWidth}px` }}
+        onClick={!isLocked ? handleCardClick : undefined}
+      >
+        <div className="flex items-center justify-between gap-4">
+          {/* LEFT SIDE: Drag Handle, Expand, Info */}
+          <div className="flex-1 flex items-center min-w-0 overflow-hidden">
+            {!disableDrag && (
+              <button
+                className={cn(
+                  'mr-2 p-1 rounded transition-colors flex-shrink-0',
+                  isLocked
+                    ? 'cursor-not-allowed opacity-30 text-slate-400'
+                    : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                )}
+                type="button"
+                aria-label="Reorder task"
+                ref={!isLocked ? dragHandleProps?.ref : undefined}
+                {...(!isLocked ? dragHandleProps : {})}
+                disabled={isLocked}
+              >
+                {isLocked ? (
+                  <Lock className="w-3 h-3" />
+                ) : (
+                  <GripVertical className="w-4 h-4" />
+                )}
+              </button>
+            )}
+
+            {showChevron ? (
+              <button
+                onClick={handleToggleExpandClick}
+                className="expand-button p-1 mr-2 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors flex-shrink-0"
+                aria-label={isExpanded ? 'Collapse' : 'Expand'}
+              >
+                <svg
                   className={cn(
-                    'mr-2 p-1 rounded transition-colors flex-shrink-0',
-                    isLocked
-                      ? 'cursor-not-allowed opacity-30 text-slate-400'
-                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                    'transition-transform duration-200',
+                    isExpanded ? 'rotate-90' : ''
                   )}
-                  type="button"
-                  aria-label="Reorder task"
-                  ref={!isLocked ? dragHandleProps?.ref : undefined}
-                  {...(!isLocked ? dragHandleProps : {})}
-                  disabled={isLocked}
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  {isLocked ? (
-                    <Lock className="w-3 h-3" />
-                  ) : (
-                    <GripVertical className="w-4 h-4" />
-                  )}
-                </button>
-              )}
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            ) : (
+              <div className="w-6 mr-2 flex-shrink-0"></div>
+            )}
 
-              {showChevron ? (
-                <button
-                  onClick={handleToggleExpandClick}
-                  className="expand-button p-1 mr-2 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors flex-shrink-0"
-                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
-                >
-                  <svg
-                    className={cn(
-                      'transition-transform duration-200',
-                      isExpanded ? 'rotate-90' : ''
-                    )}
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-              ) : (
-                <div className="w-6 mr-2 flex-shrink-0"></div>
-              )}
+            <div className="flex items-center gap-3 min-w-0 overflow-hidden">
 
-              <div className="flex items-center gap-3 min-w-0 overflow-hidden">
-
-                <span
-                  className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate"
-                  title={task.title}
-                  dangerouslySetInnerHTML={{ __html: sanitizeHTML(task.title) }}
-                />
-                {task.duration && (
-                  <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0">
-                    {task.duration}
-                  </span>
-                )}
-                {task.resource_type && (
-                  <span className="px-2.5 py-1 text-xs uppercase font-bold tracking-wider rounded bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border border-brand-100 dark:border-brand-800 whitespace-nowrap flex-shrink-0 flex items-center gap-1">
-                    <LinkIcon className="w-3 h-3" />
-                    {task.resource_type}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* RIGHT SIDE: Role, Status, Controls */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              {task.membership_role && <RoleIndicator role={task.membership_role} />}
-
-              <TaskStatusSelect
-                status={task.status}
-                taskId={task.id}
-                onStatusChange={onStatusChange}
+              <span
+                className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate"
+                title={task.title}
+                dangerouslySetInnerHTML={{ __html: sanitizeHTML(task.title) }}
               />
-
-              <TaskControlButtons
-                task={task}
-                onEdit={onEdit}
-                onAddChild={onAddChildTask}
-                onInvite={onInviteMember}
-                onDelete={onDelete}
-                canHaveChildren={canHaveChildren}
-              />
+              {task.duration && (
+                <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0">
+                  {task.duration}
+                </span>
+              )}
+              {task.resource_type && (
+                <span className="px-2.5 py-1 text-xs uppercase font-bold tracking-wider rounded bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border border-brand-100 dark:border-brand-800 whitespace-nowrap flex-shrink-0 flex items-center gap-1">
+                  <LinkIcon className="w-3 h-3" />
+                  {task.resource_type}
+                </span>
+              )}
             </div>
+          </div>
+
+          {/* RIGHT SIDE: Role, Status, Controls */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {task.membership_role && <RoleIndicator role={task.membership_role} />}
+
+            <TaskStatusSelect
+              status={task.status}
+              taskId={task.id}
+              onStatusChange={onStatusChange}
+            />
+
+            <TaskControlButtons
+              task={task}
+              onEdit={onEdit}
+              onAddChild={onAddChildTask}
+              onInvite={onInviteMember}
+              onDelete={onDelete}
+              canHaveChildren={canHaveChildren}
+            />
           </div>
         </div>
+      </div>
 
-        {canHaveChildren && isExpanded && (
-          <div className="pl-0 min-h-[40px]" ref={setDroppableNodeRef}>
-            <SortableContext
-              items={task.children ? task.children.map((c) => c.id) : []}
-              strategy={verticalListSortingStrategy}
-              id={`sortable-context-${task.id}`}
-            >
-              {task.children && task.children.length > 0 ? (
-                task.children.map((child) => (
-                  <SortableTaskItem
-                    key={child.id}
-                    task={child}
-                    level={level + 1}
-                    onTaskClick={onTaskClick}
-                    selectedTaskId={selectedTaskId}
-                    onAddChildTask={onAddChildTask}
-                    onInviteMember={onInviteMember}
-                    onStatusChange={onStatusChange}
-                    onToggleExpand={onToggleExpand}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                  />
-                ))
-              ) : (
-                <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
-                  Drop subtasks here
-                </div>
-              )}
-            </SortableContext>
-          </div>
-        )}
-      </>
-    );
-  }
-);
+      {canHaveChildren && isExpanded && (
+        <div className="pl-0 min-h-[40px]" ref={setDroppableNodeRef}>
+          <SortableContext
+            items={task.children ? task.children.map((c) => c.id) : []}
+            strategy={verticalListSortingStrategy}
+            id={`sortable-context-${task.id}`}
+          >
+            {task.children && task.children.length > 0 ? (
+              task.children.map((child) => (
+                <SortableTaskItem
+                  key={child.id}
+                  task={child}
+                  level={level + 1}
+                  onTaskClick={onTaskClick}
+                  selectedTaskId={selectedTaskId}
+                  onAddChildTask={onAddChildTask}
+                  onInviteMember={onInviteMember}
+                  onStatusChange={onStatusChange}
+                  onToggleExpand={onToggleExpand}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))
+            ) : (
+              <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
+                Drop subtasks here
+              </div>
+            )}
+          </SortableContext>
+        </div>
+      )}
+    </>
+  );
+};
 
-export const SortableTaskItem = memo(function SortableTaskItem({ task, level, ...props }) {
+export const SortableTaskItem = function SortableTaskItem({ task, level, ...props }) {
   const {
     attributes,
     listeners,
@@ -266,7 +257,7 @@ export const SortableTaskItem = memo(function SortableTaskItem({ task, level, ..
       </ErrorBoundary>
     </div>
   );
-});
+};
 
 TaskItem.displayName = '@features/tasks/components/TaskItem';
 

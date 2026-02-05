@@ -11,7 +11,7 @@ export const useAuth = () => {
   return context;
 };
 
-const AUTH_TIMEOUT_MS = 10000;
+
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -28,15 +28,21 @@ export function AuthProvider({ children }) {
 
       try {
         console.log('AuthContext: checking admin status for', session.user.id);
-        const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', {
-          p_user_id: session.user.id
-        });
+        // Timeout the RPC call to prevent hanging
+        const timeoutPromise = new Promise((resolve) =>
+          setTimeout(() => resolve({ error: { message: 'RPC Timeout' } }), 5000)
+        );
+
+        const { data: isAdmin, error: rpcError } = await Promise.race([
+          supabase.rpc('is_admin', { p_user_id: session.user.id }),
+          timeoutPromise
+        ]);
 
         if (rpcError) {
           console.error('AuthContext: RPC error', rpcError);
+          // Default to viewer on error/timeout
           setUser({ ...session.user, role: 'viewer' });
         } else {
-          // console.log('AuthContext: RPC success', isAdmin);
           setUser({
             ...session.user,
             role: isAdmin ? 'admin' : 'owner'
@@ -53,9 +59,8 @@ export function AuthProvider({ children }) {
     // Get initial session
     const getSession = async () => {
       try {
-        // Timeout wrapper to prevent infinite hanging
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auth Session Timeout')), AUTH_TIMEOUT_MS)
+        const timeoutPromise = new Promise((resolve) =>
+          setTimeout(() => resolve({ error: { message: 'Session check timed out' } }), 5000)
         );
 
         const { data, error } = await Promise.race([
@@ -66,18 +71,7 @@ export function AuthProvider({ children }) {
         if (error) throw error;
         await handleSession(data.session);
       } catch (err) {
-        if (err.name === 'AbortError') {
-          console.warn('AuthContext: getSession aborted (harmless)');
-        } else if (err.message === 'Auth Session Timeout') {
-          console.warn('AuthContext: Session timed out. Clearing stale tokens.');
-          Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
-              localStorage.removeItem(key);
-            }
-          });
-        } else {
-          console.error('AuthContext: getSession failed', err);
-        }
+        console.error('AuthContext: getSession failed', err);
         setLoading(false);
         setUser(null);
       }
