@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import NewProjectForm from '@features/projects/components/NewProjectForm';
 import NewTaskForm from '@features/tasks/components/NewTaskForm';

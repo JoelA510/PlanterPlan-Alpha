@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { updateProjectStatus } from './projectService';
-import { supabase } from '@app/supabaseClient';
+import { planter } from '@shared/api/planterClient';
 
-// Mock Supabase client
-vi.mock('@app/supabaseClient', () => ({
-  supabase: {
-    from: vi.fn(),
+// Mock planter client
+vi.mock('@shared/api/planterClient', () => ({
+  planter: {
+    entities: {
+      Project: {
+        update: vi.fn(),
+      },
+    },
   },
 }));
 
@@ -18,40 +22,24 @@ describe('projectService', () => {
     it('should update project status successfully', async () => {
       const projectId = 'proj-123';
       const newStatus = 'in_progress';
-      const mockData = { id: projectId, status: newStatus };
+      const mockProject = { id: projectId, status: newStatus };
 
-      const updateBuilder = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-      };
-
-      supabase.from.mockReturnValue(updateBuilder);
+      planter.entities.Project.update.mockResolvedValue(mockProject);
 
       const result = await updateProjectStatus(projectId, newStatus);
 
-      expect(supabase.from).toHaveBeenCalledWith('tasks');
-      expect(updateBuilder.update).toHaveBeenCalledWith({ status: newStatus });
-      expect(updateBuilder.eq).toHaveBeenCalledWith('id', projectId);
-      expect(result).toEqual({ data: mockData, error: null });
+      expect(planter.entities.Project.update).toHaveBeenCalledWith(projectId, { status: newStatus });
+      expect(result).toEqual({ data: mockProject, error: null });
     });
 
     it('should throw error if update fails', async () => {
       const projectId = 'proj-err';
       const newStatus = 'planning';
-      const mockError = { message: 'DB Error' };
+      const mockError = new Error('DB Error');
 
-      const updateBuilder = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: null, error: mockError }),
-      };
+      planter.entities.Project.update.mockRejectedValue(mockError);
 
-      supabase.from.mockReturnValue(updateBuilder);
-
-      await expect(updateProjectStatus(projectId, newStatus)).rejects.toEqual(mockError);
+      await expect(updateProjectStatus(projectId, newStatus)).rejects.toThrow('DB Error');
     });
   });
 });

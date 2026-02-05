@@ -1,5 +1,4 @@
-import React, { memo } from 'react';
-import PropTypes from 'prop-types';
+import { memo } from 'react';
 import { PROJECT_TABS, PROJECT_TAB_LABELS } from '../../../app/constants/project';
 
 const ProjectTabs = memo(function ProjectTabs({ activeTab, onTabChange }) {
@@ -36,9 +35,6 @@ const ProjectTabs = memo(function ProjectTabs({ activeTab, onTabChange }) {
     );
 });
 
-ProjectTabs.propTypes = {
-    activeTab: PropTypes.string.isRequired,
-    onTabChange: PropTypes.func.isRequired,
-};
+
 
 export default ProjectTabs;

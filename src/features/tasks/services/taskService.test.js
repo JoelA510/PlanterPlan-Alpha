@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { updateTaskPosition } from './taskService';
-import { supabase } from '@app/supabaseClient';
+import { planter } from '@shared/api/planterClient';
 
-// Mock Supabase
-vi.mock('@app/supabaseClient', () => ({
-  supabase: {
-    from: vi.fn(),
+// Mock planter
+vi.mock('@shared/api/planterClient', () => ({
+  planter: {
+    entities: {
+      Task: {
+        update: vi.fn(),
+      },
+    },
   },
 }));
 
@@ -21,23 +25,14 @@ describe('taskService', () => {
       const parentId = 'p1';
       const mockData = { id: taskId, position: newPosition, parent_task_id: parentId };
 
-      const updateBuilder = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockData, error: null })
-      };
-
-      supabase.from.mockReturnValue(updateBuilder);
+      planter.entities.Task.update.mockResolvedValue(mockData);
 
       const result = await updateTaskPosition(taskId, newPosition, parentId);
 
-      expect(supabase.from).toHaveBeenCalledWith('tasks');
-      expect(updateBuilder.update).toHaveBeenCalledWith({
+      expect(planter.entities.Task.update).toHaveBeenCalledWith(taskId, {
         position: newPosition,
         parent_task_id: parentId
       });
-      expect(updateBuilder.eq).toHaveBeenCalledWith('id', taskId);
       expect(result.data).toEqual(mockData);
     });
 
@@ -46,18 +41,11 @@ describe('taskService', () => {
       const newPosition = 10000;
       const parentId = null;
 
-      const updateBuilder = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { id: taskId }, error: null })
-      };
-
-      supabase.from.mockReturnValue(updateBuilder);
+      planter.entities.Task.update.mockResolvedValue({ id: taskId });
 
       await updateTaskPosition(taskId, newPosition, parentId);
 
-      expect(updateBuilder.update).toHaveBeenCalledWith({
+      expect(planter.entities.Task.update).toHaveBeenCalledWith(taskId, {
         position: newPosition,
         parent_task_id: null
       });

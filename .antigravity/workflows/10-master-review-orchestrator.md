@@ -34,11 +34,11 @@ This workflow acts as the "Manager," orchestrating the execution of specialized 
 
 1. **Design Standardization (Workflow 08):**
    - _Condition:_ Run this step **ONLY IF** the Debt Audit or Remediation involved changes to UI components or CSS.
-   - Execute **Workflow 08** (`.agent/workflows/08-design-system-migration.md`) to align UI with Rule 30.
+   - Execute **Workflow 08** (`.antigravity/workflows/08-design-system-migration.md`) to align UI with Rule 30.
    - Auto-correct any detected "drift" (e.g., hardcoded hex values, wrong shadows).
 
 40. **Comprehensive Browser & Code Verification (Workflow 09 + Audit):**
-41.    - **Execute** **Workflow 09** (`.agent/workflows/09-browser-verification.md`) **EVERY TIME**.
+41.    - **Execute** **Workflow 09** (`.antigravity/workflows/09-browser-verification.md`) **EVERY TIME**.
 42.    - **Scope:** Verify Security, Visual Quality, Performance, and Functionality behavior.
 43.    - **Iterative Loop:**
 44.      - If **ANY** finding (browser fail, visual regression, or code audit issue) is detected:

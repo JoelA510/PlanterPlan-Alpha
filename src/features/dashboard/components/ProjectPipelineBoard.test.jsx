@@ -1,17 +1,35 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ProjectPipelineBoard from './ProjectPipelineBoard';
 import { PROJECT_STATUS } from '@app/constants/index';
-import { DndContext } from '@dnd-kit/core';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock generic components to simplify rendering
 vi.mock('@features/dashboard/components/ProjectCard', () => ({
     default: ({ project }) => <div data-testid={`project-card-${project.id}`}>{project.name}</div>,
 }));
 
+vi.mock('@features/projects/hooks/useProjectRealtime', () => ({
+    useProjectRealtime: vi.fn(),
+}));
+
 // Mock Drag Overlay portal (createPortal is not needed in JSDOM if we just verify state, 
 // but DndKit uses it. We can rely on standard DndContext behavior or mock it if needed. 
 // For basic interaction, JSDOM + DndKit can be tricky. We will focus on rendering correctness first.)
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: { retry: false },
+    },
+});
+
+const renderWithProviders = (ui) => {
+    return render(
+        <QueryClientProvider client={queryClient}>
+            {ui}
+        </QueryClientProvider>
+    );
+};
 
 describe('ProjectPipelineBoard', () => {
     const projects = [
@@ -24,7 +42,7 @@ describe('ProjectPipelineBoard', () => {
     const onStatusChange = vi.fn();
 
     it('renders all columns', () => {
-        render(
+        renderWithProviders(
             <ProjectPipelineBoard
                 projects={projects}
                 tasks={tasks}
@@ -40,7 +58,7 @@ describe('ProjectPipelineBoard', () => {
     });
 
     it('distributes projects into correct columns', () => {
-        render(
+        renderWithProviders(
             <ProjectPipelineBoard
                 projects={projects}
                 tasks={tasks}

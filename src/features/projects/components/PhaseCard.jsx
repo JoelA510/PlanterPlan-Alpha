@@ -1,3 +1,4 @@
+import { sanitizeHTML } from '@shared/lib/sanitize';
 import { Card } from '@shared/ui/card';
 import { Progress } from '@shared/ui/progress';
 
@@ -109,7 +110,10 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
 
         <div className="flex-grow">
           {phase.description && (
-            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{phase.description}</p>
+            <p
+              className="text-sm text-muted-foreground mb-4 line-clamp-2"
+              dangerouslySetInnerHTML={{ __html: sanitizeHTML(phase.description) }}
+            />
           )}
         </div>
 

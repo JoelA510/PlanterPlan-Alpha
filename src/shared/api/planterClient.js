@@ -1,6 +1,6 @@
 // import { supabase } from '@app/supabaseClient'; // Singleton appears broken in browser environment (AbortError)
 // import { createClient } from '@supabase/supabase-js'; // REMOVED to avoid Multiple GoTrueClient conflict
-import { retryOperation } from '../utils/retry.js';
+import { retry } from '../lib/retry.js';
 
 const getEnv = (key) => {
   let val;
@@ -34,7 +34,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Array>}
    */
   list: async () => {
-    return retryOperation(async () => {
+    return retry(async () => {
       // select=* needs to be URL encoded or safe?
       // simple select string usually works.
       const query = `${tableName}?select=${select}`;
@@ -48,7 +48,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   get: async (id) => {
-    return retryOperation(async () => {
+    return retry(async () => {
       const query = `${tableName}?select=${select}&id=eq.${id}`;
       // PostgREST returns array. We want single. 
       // We can use validation header 'Accept: application/vnd.pgrst.object+json' 
@@ -63,7 +63,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   create: async (payload) => {
-    return retryOperation(async () => {
+    return retry(async () => {
       console.log(`[PlanterClient] Creating ${tableName} (Raw Fetch):`, payload);
       const data = await rawSupabaseFetch(
         `${tableName}?select=${select}`,
@@ -84,7 +84,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Object>}
    */
   update: async (id, payload) => {
-    return retryOperation(async () => {
+    return retry(async () => {
       const data = await rawSupabaseFetch(
         `${tableName}?select=${select}&id=eq.${id}`,
         {
@@ -102,7 +102,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<boolean>}
    */
   delete: async (id) => {
-    return retryOperation(async () => {
+    return retry(async () => {
       await rawSupabaseFetch(`${tableName}?id=eq.${id}`, { method: 'DELETE' });
       return true;
     });
@@ -113,7 +113,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<Array>}
    */
   filter: async (filters) => {
-    return retryOperation(async () => {
+    return retry(async () => {
       let queryParams = [`select=${select}`];
       Object.keys(filters).forEach((key) => {
         const val = filters[key];
@@ -136,7 +136,7 @@ const createEntityClient = (tableName, select = '*') => ({
    * @returns {Promise<any>}
    */
   upsert: async (payload, options = {}) => {
-    return retryOperation(async () => {
+    return retry(async () => {
       const onConflict = options.onConflict || 'id';
       const preferHeaders = ['return=representation'];
       if (options.ignoreDuplicates) preferHeaders.push('resolution=ignore-duplicates');
@@ -209,7 +209,7 @@ export const planter = {
     // Auth should be handled by the main supabase client / AuthContext.
     // We provide placeholder me() to not break existing calls, but implementation usually handled by Context.
     me: async () => {
-      console.warn('[PlanterClient] auth.me() called - falling back to direct fetch');
+      // console.warn('[PlanterClient] auth.me() called - falling back to direct fetch'); // Removed: This is now the primary method.
       const token = getSupabaseToken();
       if (!token) return null;
       try {
@@ -237,7 +237,7 @@ export const planter = {
       }
     },
     signOut: async () => {
-      console.warn('[PlanterClient] signOut called - cannot sign out via Raw Fetch. Use AuthContext.');
+      // console.warn('[PlanterClient] signOut called - cannot sign out via Raw Fetch. Use AuthContext.');
       // Returns empty promise
       return Promise.resolve();
     },
@@ -249,7 +249,7 @@ export const planter = {
       ...createEntityClient('tasks', '*, name:title, launch_date:due_date, owner_id:creator'),
       // Override list to filter for Root Tasks (Projects)
       list: async () => {
-        return retryOperation(async () => {
+        return retry(async () => {
           // Use Raw Fetch to bypass potential client AbortErrors
           try {
             const data = await rawSupabaseFetch(
@@ -269,21 +269,10 @@ export const planter = {
       },
       // Override create for specific mapping
       create: async (projectData) => {
-        return retryOperation(async () => {
+        return retry(async () => {
           console.log('[PlanterClient] Creating project (Raw Fetch):', projectData);
 
-          let userId = projectData.creator;
-
-          // Fallback only if not provided (legacy support)
-          if (!userId) {
-            // We can decode the token or just fail. 
-            // With raw fetch we can't easily "getUser" without another call.
-            // Assume userId is passed correctly by UI.
-            const token = getSupabaseToken();
-            // Simple JWT decode hack for user_id? 
-            // Let's just trust the UI passed it or use 'auth.uid()' in RLS if possible?
-            // Actually, the UI usually passes it.
-          }
+          const userId = projectData.creator;
 
           // Extract explicit token if provided
           const explicitToken = projectData._token;
@@ -316,7 +305,7 @@ export const planter = {
       },
       // Safe list by creator (Raw Fetch)
       listByCreator: async (userId, page = 1, pageSize = 20) => {
-        return retryOperation(async () => {
+        return retry(async () => {
           const from = (page - 1) * pageSize;
           const to = from + pageSize - 1;
           const rangeHeader = `${from}-${to}`;
@@ -351,7 +340,7 @@ export const planter = {
       },
       // Safe list joined projects (Raw Fetch)
       listJoined: async (userId) => {
-        return retryOperation(async () => {
+        return retry(async () => {
           try {
             // PostgREST join syntax: select=project:tasks(*)
             // Note: We need to match the fields selected in getUserProjects/list
@@ -372,7 +361,7 @@ export const planter = {
       },
       // Override filter to ensure we only get projects
       filter: async (filters) => {
-        return retryOperation(async () => {
+        return retry(async () => {
           // Manual query build for raw fetch
           let queryParams = [
             'select=*,name:title,launch_date:due_date,owner_id:creator',
@@ -415,24 +404,21 @@ export const planter = {
 
         // 2. RPC call for invite
         // RPC via Raw Fetch: POST /rpc/function_name
-        try {
-          const data = await rawSupabaseFetch('rpc/invite_user_to_project', {
-            method: 'POST',
-            body: JSON.stringify({
-              p_project_id: projectId,
-              p_email: email,
-              p_role: role,
-            })
-          });
-          return { data, error: null };
-        } catch (e) {
-          throw e;
-        }
+        const data = await rawSupabaseFetch('rpc/invite_user_to_project', {
+          method: 'POST',
+          body: JSON.stringify({
+            p_project_id: projectId,
+            p_email: email,
+            p_role: role,
+          })
+        });
+        return { data, error: null };
       },
     },
     Task: createEntityClient('tasks'),
     Phase: createEntityClient('tasks'),
     Milestone: createEntityClient('tasks'),
+    TaskWithResources: createEntityClient('tasks_with_primary_resource'),
     TaskResource: createEntityClient('task_resources'),
   },
   /**
@@ -442,7 +428,7 @@ export const planter = {
    * @returns {Promise<{data: any, error: any}>}
    */
   rpc: async (functionName, params) => {
-    return retryOperation(async () => {
+    return retry(async () => {
       try {
         const data = await rawSupabaseFetch(`rpc/${functionName}`, {
           method: 'POST',

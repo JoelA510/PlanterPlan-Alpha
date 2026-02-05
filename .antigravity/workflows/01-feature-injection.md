@@ -20,7 +20,7 @@ Steps:
 3. If risk is medium/high OR touches auth/data/migrations:
    - Run the "Test Plan" workflow and write TEST_PLAN.md.
 4. Implement in small commits.
-   - If updating `README.md`, follow instructions in `.agent/prompts/README-PROMPT.md`.
+   - If updating `README.md`, follow instructions in `.antigravity/prompts/README-PROMPT.md`.
 5. Verify with commands; include results in Walkthrough artifact.
 6. Finalize:
    - Generate PR Description using `docs/git_documentation/PR-PROMPT.md`

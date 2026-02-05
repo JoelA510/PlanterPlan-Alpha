@@ -50,7 +50,7 @@ If any non-trivial bugs were fixed or new patterns were established:
 ## Step 3: Update roadmap.md
 
 **File**: `roadmap.md`
-**Prompt Reference**: `.agent/prompts/ROADMAP-PROMPT.md`
+**Prompt Reference**: `.antigravity/prompts/ROADMAP-PROMPT.md`
 
 1. Update the **"Last Updated"** date at the top.
 2. **Strict SSoT Rule**: Treat the roadmap as a Developer Single Source of Truth for *progress only*.
@@ -63,7 +63,7 @@ If any non-trivial bugs were fixed or new patterns were established:
 ## Step 4: Update README.md
 
 **File**: `README.md`
-**Prompt Reference**: `.agent/prompts/README-PROMPT.md`
+**Prompt Reference**: `.antigravity/prompts/README-PROMPT.md`
 
 1. Update the **"Last verified"** date and commit SHA.
 2. **Clarify & Enrich**:
@@ -77,7 +77,7 @@ If any non-trivial bugs were fixed or new patterns were established:
 ## Step 5: Generate PR_DESCRIPTION_DRAFT.md
 
 **File**: `PR_DESCRIPTION_DRAFT.md`
-**Prompt Reference**: `.agent/prompts/PR-PROMPT.md`
+**Prompt Reference**: `.antigravity/prompts/PR-PROMPT.md`
 
 Generate the PR description matching the style of the current draft (use `view_file` to check `PR_DESCRIPTION_DRAFT.md` first):
 
@@ -121,6 +121,6 @@ Generate the PR description matching the style of the current draft (use `view_f
 | Document                   | When to Update                 | Prompt File                        |
 | -------------------------- | ------------------------------ | ---------------------------------- |
 | `ENGINEERING_KNOWLEDGE.md` | Bugs fixed, patterns learned   | N/A (follow existing format)       |
-| `roadmap.md`               | Features completed/started     | `.agent/prompts/ROADMAP-PROMPT.md` |
-| `README.md`                | Structure/architecture changes | `.agent/prompts/README-PROMPT.md`  |
-| `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `.agent/prompts/PR-PROMPT.md`      |
+| `roadmap.md`               | Features completed/started     | `.antigravity/prompts/ROADMAP-PROMPT.md` |
+| `README.md`                | Structure/architecture changes | `.antigravity/prompts/README-PROMPT.md`  |
+| `PR_DESCRIPTION_DRAFT.md`  | Every PR                       | `.antigravity/prompts/PR-PROMPT.md`      |

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase } from '@app/supabaseClient';
 
 export const AuthContext = createContext({});
@@ -11,78 +11,69 @@ export const useAuth = () => {
   return context;
 };
 
-const AUTH_TIMEOUT_MS = 10000;
+
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Shared session handler to prevent duplication and ensure consistency
+    const handleSession = async (session) => {
+      if (!session?.user) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        console.log('AuthContext: checking admin status for', session.user.id);
+        // Timeout the RPC call to prevent hanging
+        const timeoutPromise = new Promise((resolve) =>
+          setTimeout(() => resolve({ error: { message: 'RPC Timeout' } }), 5000)
+        );
+
+        const { data: isAdmin, error: rpcError } = await Promise.race([
+          supabase.rpc('is_admin', { p_user_id: session.user.id }),
+          timeoutPromise
+        ]);
+
+        if (rpcError) {
+          console.error('AuthContext: RPC error', rpcError);
+          // Default to viewer on error/timeout
+          setUser({ ...session.user, role: 'viewer' });
+        } else {
+          setUser({
+            ...session.user,
+            role: isAdmin ? 'admin' : 'owner'
+          });
+        }
+      } catch (rpcCrash) {
+        console.error('AuthContext: RPC crashed', rpcCrash);
+        setUser({ ...session.user, role: 'viewer' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
     // Get initial session
     const getSession = async () => {
-      let session = null;
       try {
-        console.log('AuthContext: calling getSession');
-
-        // Timeout wrapper to prevent infinite hanging
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auth Session Timeout')), AUTH_TIMEOUT_MS)
+        const timeoutPromise = new Promise((resolve) =>
+          setTimeout(() => resolve({ error: { message: 'Session check timed out' } }), 5000)
         );
 
         const { data, error } = await Promise.race([
           supabase.auth.getSession(),
           timeoutPromise
         ]);
+
         if (error) throw error;
-        session = data.session;
-        console.log('AuthContext: getSession success', { user: session?.user?.id });
+        await handleSession(data.session);
       } catch (err) {
-        // Ignore AbortError which happens on rapid reloads/strict mode
-        if (err.name === 'AbortError') {
-          console.warn('AuthContext: getSession aborted (harmless)');
-        } else if (err.message === 'Auth Session Timeout') {
-          console.warn('AuthContext: Session timed out. Clearing stale tokens.');
-          // Flexible token clearing for any Supabase project
-          Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
-              localStorage.removeItem(key);
-            }
-          });
-        } else {
-          console.error('AuthContext: getSession failed', err);
-        }
+        console.error('AuthContext: getSession failed', err);
         setLoading(false);
         setUser(null);
-        return;
-      }
-
-      if (session?.user) {
-        try {
-          console.log('AuthContext: calling is_admin RPC');
-          // Robust Check: Use is_admin RPC to handle schema drift and RLS
-          const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', {
-            p_user_id: session.user.id
-          });
-
-          if (rpcError) {
-            console.error('AuthContext: RPC error', rpcError);
-          } else {
-            console.log('AuthContext: RPC success', isAdmin);
-          }
-
-          setUser({
-            ...session.user,
-            role: isAdmin ? 'admin' : 'owner' // Fallback to owner if RPC fails or returns false
-          });
-        } catch (rpcCrash) {
-          console.error('AuthContext: RPC crashed', rpcCrash);
-          // Fallback to owner on crash
-          setUser({ ...session.user, role: 'owner' });
-        }
-        setLoading(false); // Ensure loading is cleared after logic
-      } else {
-        setUser(null);
-        setLoading(false);
       }
     };
 
@@ -92,23 +83,16 @@ export function AuthProvider({ children }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        if (session?.user) {
-          const { data: isAdmin } = await supabase.rpc('is_admin', {
-            p_user_id: session.user.id
-          });
-
-          setUser({
-            ...session.user,
-            role: isAdmin ? 'admin' : 'owner'
-          });
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error('Auth change handling failed:', err);
-      } finally {
+      console.log('AuthContext: Auth State Change:', event);
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
         setLoading(false);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        await handleSession(session);
+      } else {
+        // Handle other events like PASSWORD_RECOVERY?
+        // Default to handling session if present
+        if (session) await handleSession(session);
       }
     });
 
@@ -155,13 +139,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     loading,
     signUp,
     signIn,
     signOut,
-  };
+  }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

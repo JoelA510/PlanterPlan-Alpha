@@ -1,6 +1,13 @@
 import { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell } from 'recharts';
+import {
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+    ChartLegend,
+    ChartLegendContent
+} from '@shared/ui/chart';
 import { TASK_STATUS } from '@app/constants/index';
 import { CHART_COLORS } from '@app/constants/colors';
 
@@ -30,9 +37,16 @@ const StatusPieChart = ({ tasks }) => {
         ];
     }, [tasks]);
 
+    const chartConfig = useMemo(() => ({
+        [TASK_STATUS.TODO]: { label: 'To Do', color: CHART_COLORS[TASK_STATUS.TODO] },
+        [TASK_STATUS.IN_PROGRESS]: { label: 'In Progress', color: CHART_COLORS[TASK_STATUS.IN_PROGRESS] },
+        [TASK_STATUS.BLOCKED]: { label: 'Blocked', color: CHART_COLORS[TASK_STATUS.BLOCKED] },
+        [TASK_STATUS.COMPLETED]: { label: 'Completed', color: CHART_COLORS[TASK_STATUS.COMPLETED] },
+    }), []);
+
     return (
         <div className="w-full h-full pb-6">
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer config={chartConfig} className="h-full w-full">
                 <PieChart>
                     <Pie
                         data={data}
@@ -42,22 +56,16 @@ const StatusPieChart = ({ tasks }) => {
                         outerRadius={90}
                         paddingAngle={2}
                         dataKey="count"
+                        nameKey="name"
                     >
                         {data.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                     </Pie>
-                    <Tooltip
-                        formatter={(value, name) => [value, name]}
-                        contentStyle={{
-                            borderRadius: '8px',
-                            border: 'none',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                        }}
-                    />
-                    <Legend verticalAlign="bottom" height={36} />
+                    <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+                    <ChartLegend content={<ChartLegendContent />} />
                 </PieChart>
-            </ResponsiveContainer>
+            </ChartContainer>
         </div>
     );
 };

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useDebounce from '@shared/lib/hooks/useDebounce';
-import { searchMasterLibraryTasks } from '@features/tasks/services/taskService';
+import { searchMasterLibraryTasks } from '@features/library/services/taskMasterLibraryService';
 
 const DEFAULT_SEARCH_LIMIT = 15;
 const initialState = {
