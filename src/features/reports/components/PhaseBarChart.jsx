@@ -12,11 +12,11 @@ import {
 const chartConfig = {
     completed: {
         label: "Completed",
-        color: "#10b981", // emerald-500
+        color: "var(--color-brand-500)",
     },
     remaining: {
         label: "Remaining",
-        color: "#e2e8f0", // slate-200
+        color: "var(--color-muted)",
     },
 };
 
@@ -31,7 +31,11 @@ const PhaseBarChart = memo(function PhaseBarChart({ data }) {
                         layout="vertical"
                         margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
                     >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            horizontal={false}
+                            stroke="var(--color-border)"
+                        />
                         <XAxis type="number" hide />
                         <YAxis
                             type="category"
