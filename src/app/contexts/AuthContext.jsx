@@ -28,15 +28,7 @@ export function AuthProvider({ children }) {
 
       try {
         console.log('AuthContext: checking admin status for', session.user.id);
-        // Timeout the RPC call to prevent hanging
-        const timeoutPromise = new Promise((resolve) =>
-          setTimeout(() => resolve({ error: { message: 'RPC Timeout' } }), 5000)
-        );
-
-        const { data: isAdmin, error: rpcError } = await Promise.race([
-          supabase.rpc('is_admin', { p_user_id: session.user.id }),
-          timeoutPromise
-        ]);
+        const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', { p_user_id: session.user.id });
 
         if (rpcError) {
           console.error('AuthContext: RPC error', rpcError);
@@ -59,14 +51,7 @@ export function AuthProvider({ children }) {
     // Get initial session
     const getSession = async () => {
       try {
-        const timeoutPromise = new Promise((resolve) =>
-          setTimeout(() => resolve({ error: { message: 'Session check timed out' } }), 5000)
-        );
-
-        const { data, error } = await Promise.race([
-          supabase.auth.getSession(),
-          timeoutPromise
-        ]);
+        const { data, error } = await supabase.auth.getSession();
 
         if (error) throw error;
         await handleSession(data.session);
