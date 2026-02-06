@@ -41,8 +41,8 @@ test.describe('Authentication Flow', () => {
 
         // IMPORTANT: Mock the RPC call that was causing the race condition
         await page.route('**/rest/v1/rpc/is_admin', async route => {
-            // Add a small delay to simulate network latency
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Add a small delay to simulate network latency, which might have triggered the race before
+            await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
             await route.fulfill({ status: 200, contentType: 'application/json', body: 'true' });
         });
 
@@ -60,37 +60,40 @@ test.describe('Authentication Flow', () => {
     });
 
     test('should allow a user to sign in, maintain session, and sign out', async ({ page }) => {
-        // 0. Force Clean State
-        await page.goto('/');
-        await page.evaluate(() => localStorage.clear());
+        await test.step('1. Setup Clean State', async () => {
+            await page.goto('/');
+            await page.evaluate(() => localStorage.clear());
+        });
 
-        // 1. Visit Login
-        await page.goto('/login');
+        await test.step('2. Perform Login', async () => {
+            await page.goto('/login');
+            const emailInput = page.getByLabel('Email address');
+            await emailInput.waitFor({ state: 'visible', timeout: 30000 });
 
-        // 2. Perform Login
-        // Explicitly wait for the form to ensure hydration matches
-        const emailInput = page.getByLabel('Email address');
-        await emailInput.waitFor({ state: 'visible', timeout: 30000 });
+            await emailInput.fill('test@example.com');
+            await page.getByLabel('Password').fill('password');
+            await page.getByRole('button', { name: 'Sign In' }).click();
+        });
 
-        await emailInput.fill('test@example.com');
-        await page.getByLabel('Password').fill('password');
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        await test.step('3. Verify Dashboard Access', async () => {
+            await expect(page).toHaveURL(/\/dashboard/, { timeout: 30000 });
+        });
 
-        // 3. Verify Redirect to Dashboard
-        await expect(page).toHaveURL(/\/dashboard/, { timeout: 30000 });
+        await test.step('4. Verify Session Persistence (Reload)', async () => {
+            await page.reload();
+            await expect(page).toHaveURL(/\/dashboard/);
+        });
 
-        // 4. Verify Session Persistence (Reload)
-        await page.reload();
-        await expect(page).toHaveURL(/\/dashboard/);
+        await test.step('5. Sign Out', async () => {
+            // Ensure the button is interactive
+            const signOutBtn = page.getByRole('button', { name: /Sign Out/i });
+            await signOutBtn.waitFor({ state: 'visible', timeout: 10000 });
+            await signOutBtn.click();
+        });
 
-        // 5. Sign Out
-        // Ensure the button is interactive
-        const signOutBtn = page.getByRole('button', { name: /Sign Out/i });
-        await signOutBtn.waitFor({ state: 'visible', timeout: 10000 });
-        await signOutBtn.click();
-
-        // 6. Verify Redirect to Login/Home
-        // Expect to be back at /login or /
-        await expect(page.getByLabel('Email address')).toBeVisible({ timeout: 10000 });
+        await test.step('6. Verify Logout', async () => {
+            // Expect to be back at /login or /
+            await expect(page.getByLabel('Email address')).toBeVisible({ timeout: 10000 });
+        });
     });
 });

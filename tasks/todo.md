@@ -9,3 +9,7 @@
     - [x] Create `e2e/auth.spec.ts` (Login, Logout, Session)
     - [x] Refactor `AuthContext.jsx` (Remove Promise.race)
     - [x] Verify Fixes
+
+- [/] PR Remediation (PR #106)
+    - [ ] P1: Reintroduce RPC Timeout Guard (Source: @chatgpt-codex-connector)
+    - [ ] P2: Refactor E2E with `test.step` (Source: @gemini-code-assist)
