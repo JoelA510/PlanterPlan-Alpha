@@ -13,9 +13,10 @@ test.describe('Authentication Flow', () => {
     };
 
     const fakeSession = {
-        access_token: 'fake-jwt-token-auth',
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE4OTM0NTYwMDB9.SIGNATURE',
         token_type: 'bearer',
         expires_in: 3600,
+        VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE4OTM0NTYwMDB9.SIGNATURE',
         refresh_token: 'fake-refresh-token-auth',
         user: fakeUser,
     };
@@ -41,8 +42,6 @@ test.describe('Authentication Flow', () => {
 
         // IMPORTANT: Mock the RPC call that was causing the race condition
         await page.route('**/rest/v1/rpc/is_admin', async route => {
-            // Add a small delay to simulate network latency, which might have triggered the race before
-            await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
             await route.fulfill({ status: 200, contentType: 'application/json', body: 'true' });
         });
 
@@ -50,12 +49,36 @@ test.describe('Authentication Flow', () => {
             await route.fulfill({ status: 204, body: '' });
         });
 
-        // Mock generic data calls to prevent 404s
-        await page.route('**/rest/v1/projects*', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-        });
+        // Mock tasks (which are used for projects)
         await page.route('**/rest/v1/tasks*', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+            const url = route.request().url();
+            // detailed check if needed, or just return project for now
+            if (url.includes('parent_task_id=is.null')) {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify([{
+                        id: 'mock-project-1',
+                        title: 'Mock Project',
+                        name: 'Mock Project', // aliased in query
+                        owner_id: 'auth-user-id',
+                        creator: 'auth-user-id',
+                        origin: 'instance',
+                        parent_task_id: null,
+                        created_at: new Date().toISOString()
+                    }])
+                });
+            } else {
+                await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+            }
+        });
+        await page.route('**/rest/v1/project_members*', async route => {
+            // Mock returning the membership for the mock project
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify([{ project_id: 'mock-project-1', user_id: 'auth-user-id', role: 'owner', project: { title: 'Mock Project', owner_id: 'auth-user-id' } }])
+            });
         });
     });
 
@@ -85,9 +108,15 @@ test.describe('Authentication Flow', () => {
         });
 
         await test.step('5. Sign Out', async () => {
+            // Wait for loading skeleton to disappear (if present)
+            const skeleton = page.getByTestId('sidebar-skeleton');
+            if (await skeleton.count() > 0) {
+                await skeleton.waitFor({ state: 'detached', timeout: 10000 });
+            }
+
             // Ensure the button is interactive
             const signOutBtn = page.getByRole('button', { name: /Sign Out/i });
-            await signOutBtn.waitFor({ state: 'visible', timeout: 10000 });
+            await signOutBtn.waitFor({ state: 'visible', timeout: 15000 });
             await signOutBtn.click();
         });
 

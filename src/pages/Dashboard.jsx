@@ -98,6 +98,7 @@ export default function Dashboard() {
   };
 
   if (loadingProjects || authLoading) {
+    console.log('[Dashboard] Loading State:', { loadingProjects, authLoading, user: !!user });
     return (
       <DashboardLayout>
         <div className="flex justify-center py-20">

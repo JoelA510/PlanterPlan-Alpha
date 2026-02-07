@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -34,10 +34,20 @@ export function CommandPalette({ projects = [] }) {
         return () => document.removeEventListener('keydown', down);
     }, []);
 
-    const runCommand = (command) => {
+    const runCommand = useCallback((command) => {
         setOpen(false);
         command();
-    };
+    }, []);
+
+    const projectItems = useMemo(() => projects.map((project) => (
+        <CommandItem
+            key={project.id}
+            onSelect={() => runCommand(() => navigate(`/projects/${project.id}`))}
+        >
+            <FolderOpen className="mr-2 h-4 w-4" />
+            <span>{project.title}</span>
+        </CommandItem>
+    )), [projects, navigate, runCommand]);
 
     return (
         <>
@@ -61,15 +71,7 @@ export function CommandPalette({ projects = [] }) {
                     <CommandSeparator />
 
                     <CommandGroup heading="Projects">
-                        {projects.map((project) => (
-                            <CommandItem
-                                key={project.id}
-                                onSelect={() => runCommand(() => navigate(`/projects/${project.id}`))}
-                            >
-                                <FolderOpen className="mr-2 h-4 w-4" />
-                                <span>{project.title}</span>
-                            </CommandItem>
-                        ))}
+                        {projectItems}
                     </CommandGroup>
 
                     <CommandSeparator />
