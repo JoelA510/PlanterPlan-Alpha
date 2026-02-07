@@ -38,14 +38,12 @@ ChartContainer.displayName = 'Chart';
 const ChartStyle = ({ id, config }) => {
   const colorConfig = React.useMemo(() => Object.entries(config).filter(([, config]) => config.theme || config.color), [config]);
 
-  if (!colorConfig.length) {
-    return null;
-  }
+  const safeId = id.replace(/[^a-zA-Z0-9-_]/g, '');
 
   const styleContent = React.useMemo(() => Object.entries(THEMES)
     .map(
       ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+${prefix} [data-chart=${safeId}] {
 ${colorConfig
           .map(([key, itemConfig]) => {
             const color = itemConfig.theme?.[theme] || itemConfig.color;
@@ -55,7 +53,11 @@ ${colorConfig
 }
 `
     )
-    .join('\n'), [id, colorConfig]);
+    .join('\n').replace(/<\/style/gi, '<\\/style'), [safeId, colorConfig]);
+
+  if (!colorConfig.length) {
+    return null;
+  }
 
   return (
     <style

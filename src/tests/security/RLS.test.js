@@ -39,7 +39,7 @@ describe('Security: RLS & Access Control', () => {
 
         it('should NOT be able to delete a task', async () => {
             // Try to delete a random ID
-            const { error, count } = await anonClient
+            await anonClient
                 .from('tasks')
                 .delete()
                 .eq('id', '00000000-0000-0000-0000-000000000000'); // Random UUID
@@ -60,7 +60,7 @@ describe('Security: RLS & Access Control', () => {
 
     describe('Invite Logic (RPC)', () => {
         it('should fail to get details for invalid token', async () => {
-            const { data, error } = await anonClient.rpc('get_invite_details', {
+            const { error } = await anonClient.rpc('get_invite_details', {
                 p_token: '00000000-0000-0000-0000-000000000000'
             });
 
@@ -118,6 +118,33 @@ describe('Security: RLS & Access Control', () => {
 
             // Cleanup
             await authClient.from('tasks').delete().eq('id', project.id);
+        });
+    });
+    describe('Authenticated Access', () => {
+        let authClient;
+
+        beforeAll(async () => {
+            authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const { error } = await authClient.auth.signInWithPassword({
+                email: process.env.TEST_USER_EMAIL,
+                password: process.env.TEST_USER_PASSWORD
+            });
+            if (error) throw error;
+        });
+
+        it('should NOT be able to spoof creator ID on new project', async () => {
+            const fakeUserId = '00000000-0000-0000-0000-000000000000';
+
+            const { error } = await authClient.from('tasks').insert({
+                title: 'Spoofed Project',
+                origin: 'instance',
+                root_id: null,
+                creator: fakeUserId // Spoofing attempt
+            }).select();
+
+            // Should fail with RLS violation
+            expect(error).not.toBeNull();
+            expect(error.code).toMatch(/42501|PGRST301/);
         });
     });
 });

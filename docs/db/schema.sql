@@ -509,8 +509,8 @@ FOR SELECT USING (
 DROP POLICY IF EXISTS "Enable insert for authenticated users within project" ON public.tasks;
 CREATE POLICY "Enable insert for authenticated users within project" ON public.tasks 
 FOR INSERT WITH CHECK (
-    -- Allow authenticated users to create Root Projects
-    (auth.role() = 'authenticated' AND root_id IS NULL)
+    -- Allow authenticated users to create Root Projects (Must claim ownership)
+    (auth.role() = 'authenticated' AND root_id IS NULL AND parent_task_id IS NULL AND creator = auth.uid())
     OR
     -- Must have write access to the project (Root ID)
     public.has_project_role(root_id, auth.uid(), ARRAY['owner', 'editor'])
