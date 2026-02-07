@@ -25,9 +25,11 @@ const TestComponent = () => {
 describe('AuthContext Security Fallback', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        // Default auth setup
-        supabase.auth.onAuthStateChange.mockReturnValue({
-            data: { subscription: { unsubscribe: vi.fn() } }
+        // Default auth setup: Simulate immediate callback execution
+        supabase.auth.onAuthStateChange.mockImplementation((callback) => {
+            // Simulate the initial session check that Supabase does
+            callback('INITIAL_SESSION', { user: { id: 'user-123', email: 'test@example.com' } });
+            return { data: { subscription: { unsubscribe: vi.fn() } } };
         });
     });
 
