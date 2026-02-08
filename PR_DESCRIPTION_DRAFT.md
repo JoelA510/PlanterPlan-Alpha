@@ -36,7 +36,7 @@ This pull request addresses critical production bugs identified as "Live Issues"
 -   **XSS Protection:** Added input sanitization to `ChartStyle` component in `chart.jsx` to prevent CSS/JS injection via malicious IDs.
 -   **CI Stability:** Updated `src/tests/security/RLS.test.js` to gracefully skip tests when Supabase environment variables are missing, preventing CI failures.
 
-## 🗺️ remediation Scope
+## 🗺️ Remediation Scope
 ```mermaid
 graph TD
     A[Live Issues] --> B(Logout Fix)
