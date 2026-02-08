@@ -28,7 +28,7 @@ test.describe('Golden Path: Project Creation', () => {
         //    Let's try to set it, but mocking network is more robust if client validates on load.
 
         // 2. Comprehensive Network Mocks
-        page.on('console', msg => console.log(`[Browser] ${msg.text()}`));
+        // 2. Comprehensive Network Mocks
         await page.route('**/auth/v1/user', async route => {
             await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeUser) });
         });
@@ -107,7 +107,8 @@ test.describe('Golden Path: Project Creation', () => {
         // Since we mock empty projects, the wizard SHOULD appear. Wait for it.
         await expect(wizardTitle).toBeVisible({ timeout: 20000 });
 
-        console.log('Wizard Visible - Dismissing');
+        await expect(wizardTitle).toBeVisible({ timeout: 20000 });
+
         await page.getByRole('button', { name: 'Skip' }).click();
         await expect(wizardTitle).not.toBeVisible();
 
@@ -117,7 +118,8 @@ test.describe('Golden Path: Project Creation', () => {
         const newProjectBtn = page.getByRole('button', { name: 'New Project' }).nth(1);
         await expect(newProjectBtn).toBeVisible({ timeout: 15000 });
 
-        console.log('Button HTML:', await newProjectBtn.evaluate(el => el.outerHTML));
+        await expect(newProjectBtn).toBeVisible({ timeout: 15000 });
+
         await page.waitForTimeout(1000); // Wait for UI stability after Wizard dismissal
 
         await newProjectBtn.click();
