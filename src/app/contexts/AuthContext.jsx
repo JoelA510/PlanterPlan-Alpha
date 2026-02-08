@@ -14,6 +14,7 @@ export const useAuth = () => {
 
 
 export function AuthProvider({ children }) {
+  console.log('AuthContext loaded v2 - TIMEOUT 2000ms');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
