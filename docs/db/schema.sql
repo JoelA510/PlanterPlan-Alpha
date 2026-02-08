@@ -216,7 +216,7 @@ BEGIN
     WHERE user_id = p_user_id
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- RLS Helper: has_project_role
 -- Note: Uses p_project_id for clarity
@@ -241,7 +241,7 @@ BEGIN
 
     RETURN false;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Clone Project Template Function
 CREATE OR REPLACE FUNCTION public.clone_project_template(
@@ -416,6 +416,45 @@ BEGIN
 END;
 $$;
 
+-- Get Invite Details (Secure RPC for Anon)
+CREATE OR REPLACE FUNCTION public.get_invite_details(p_token uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_invite public.project_invites%ROWTYPE;
+  v_project_title text;
+BEGIN
+  -- 1. Find the invite
+  SELECT * INTO v_invite
+  FROM public.project_invites
+  WHERE token = p_token
+  AND expires_at > now();
+
+  IF v_invite IS NULL THEN
+    RAISE EXCEPTION 'Invalid or expired invite token';
+  END IF;
+
+  -- 2. Get Project Title (Securely, bypassing RLS via SECURITY DEFINER)
+  SELECT title INTO v_project_title
+  FROM public.tasks
+  WHERE id = v_invite.project_id;
+
+  -- 3. Return safe details
+  RETURN jsonb_build_object(
+    'email', v_invite.email,
+    'role', v_invite.role,
+    'project_id', v_invite.project_id,
+    'project_title', v_project_title
+  );
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.get_invite_details(uuid) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_invite_details(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_invite_details(uuid) TO service_role;
+
 -- Phase Completion Trigger
 CREATE OR REPLACE FUNCTION public.handle_phase_completion()
 RETURNS TRIGGER 
@@ -470,6 +509,9 @@ FOR SELECT USING (
 DROP POLICY IF EXISTS "Enable insert for authenticated users within project" ON public.tasks;
 CREATE POLICY "Enable insert for authenticated users within project" ON public.tasks 
 FOR INSERT WITH CHECK (
+    -- Allow authenticated users to create Root Projects (Must claim ownership)
+    (auth.role() = 'authenticated' AND root_id IS NULL AND parent_task_id IS NULL AND creator = auth.uid())
+    OR
     -- Must have write access to the project (Root ID)
     public.has_project_role(root_id, auth.uid(), ARRAY['owner', 'editor'])
 );

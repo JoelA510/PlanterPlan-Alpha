@@ -1,21 +1,23 @@
-# Debt Report
-Date: 2026-01-30
+# 🏗️ Technical Debt & Security Manifest (Recovered)
+**Status:** All Critical Findings Resolved
+**Protocol:** High-Rigor (Test-First)
 
-## 1. Critical (Security/Crash)
-*(None Identified)*
-- Scans for `console.log`, `todo`, `fixme` returned 0 results.
+## 1. 🚨 Critical Security (RLS & SQL)
+| Priority | File | Violation | Status |
+| :--- | :--- | :--- | :--- |
+| **CRITICAL** | `docs/db/schema.sql` | **RLS Disabled** | ✅ **FIXED** (Verified via `e2e/security.spec.ts`) |
+| **HIGH** | `docs/db/schema.sql` | **SQL Injection Risk** | ✅ **FIXED** (Added `SET search_path = public`) |
+| **HIGH** | `docs/db/schema.sql` | **Invite Logic Gap** | ⚠️ **PENDING** (Requires separate User Story) |
 
-## 2. Correctness
-*(None Identified)*
-- Scans for `any` type usage returned 0 results.
+## 2. ⚡ React Performance
+| Priority | File | Violation | Status |
+| :--- | :--- | :--- | :--- |
+| **MEDIUM** | `src/shared/ui/CommandPalette.jsx` | **Render Thrashing** | ✅ **FIXED** (`useMemo` applied) |
+| **MEDIUM** | `src/shared/ui/chart.jsx` | **Style Thrashing** | ✅ **FIXED** (`useMemo` applied) |
 
-## 3. Maintainability
-*(None Identified)*
-- Scans for `!important` and arbitrary Tailwind values (`w-[`) returned 0 results.
-
-## 4. Documentation Debt
-
-- **File**: `docs/git_documentation/CONTEXT_IGNORE_RECOMMENDATIONS.md`
-  - **Evidence**: Low-value meta-documentation.
-  - **Violation**: Fragmentation.
-  - **Fix**: [Completed 2026-01-31] Consolidated into `docs/AGENT_CONTEXT.md`.
+## 3. 🎨 Design System Integrity
+| Priority | File | Violation | Status |
+| :--- | :--- | :--- | :--- |
+| **MEDIUM** | `src/shared/ui/chart.jsx` | **Hardcoded Hex** | ✅ **FIXED** (Replaced with `var(--color-...)`) |
+| **LOW** | `src/features/reports/components/PhaseBarChart.jsx` | **Hardcoded Hex** | ✅ **FIXED** (Replaced with `var(--color-...)`) |
+| **LOW** | `src/pages/Home.jsx` | **Hardcoded SVG** | ✅ **FIXED** (Replaced with `var(--color-...)`) |

@@ -12,11 +12,11 @@ import {
 const chartConfig = {
     completed: {
         label: "Completed",
-        color: "#10b981", // emerald-500
+        color: "var(--color-emerald-500)", // emerald-500
     },
     remaining: {
         label: "Remaining",
-        color: "#e2e8f0", // slate-200
+        color: "var(--color-slate-200)", // slate-200
     },
 };
 

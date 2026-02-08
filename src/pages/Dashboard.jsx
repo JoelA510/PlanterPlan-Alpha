@@ -17,15 +17,7 @@ import MobileAgenda from '@features/mobile/MobileAgenda';
 
 import DashboardLayout from '@layouts/DashboardLayout';
 
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
+
 
 const item = {
   hidden: { opacity: 0, y: 20 },
@@ -98,6 +90,7 @@ export default function Dashboard() {
   };
 
   if (loadingProjects || authLoading) {
+
     return (
       <DashboardLayout>
         <div className="flex justify-center py-20">

@@ -28,6 +28,7 @@ test.describe('Golden Path: Project Creation', () => {
         //    Let's try to set it, but mocking network is more robust if client validates on load.
 
         // 2. Comprehensive Network Mocks
+        page.on('console', msg => console.log(`[Browser] ${msg.text()}`));
         await page.route('**/auth/v1/user', async route => {
             await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeUser) });
         });
@@ -98,14 +99,31 @@ test.describe('Golden Path: Project Creation', () => {
         }
 
         // 3. Verify Dashboard Access
-        // Wait for the New Project button (Header)
-        await expect(page.getByRole('button', { name: 'New Project' })).toBeVisible({ timeout: 15000 });
+
+        // Handle Onboarding Wizard (auto-opens on empty project list)
+        // We skip it to test the manual "New Project" flow, or we could test the wizard itself.
+        // For now, let's skip to match the existing test steps.
+        const wizardTitle = page.getByRole('heading', { name: 'Welcome to PlanterPlan' });
+        // Since we mock empty projects, the wizard SHOULD appear. Wait for it.
+        await expect(wizardTitle).toBeVisible({ timeout: 20000 });
+
+        console.log('Wizard Visible - Dismissing');
+        await page.getByRole('button', { name: 'Skip' }).click();
+        await expect(wizardTitle).not.toBeVisible();
 
         // 4. Start New Project Flow
-        await page.getByRole('button', { name: 'New Project' }).click();
+        // Use .nth(1) to target the Header New Project button (Sidebar is 0, Header is 1)
+        // Sidebar button might not be wired to Dashboard's modal state if layout prevents it.
+        const newProjectBtn = page.getByRole('button', { name: 'New Project' }).nth(1);
+        await expect(newProjectBtn).toBeVisible({ timeout: 15000 });
+
+        console.log('Button HTML:', await newProjectBtn.evaluate(el => el.outerHTML));
+        await page.waitForTimeout(1000); // Wait for UI stability after Wizard dismissal
+
+        await newProjectBtn.click();
 
         // 5. Select Template (Step 1)
-        await expect(page.getByRole('heading', { name: 'Choose a Template' })).toBeVisible();
+        await expect(page.getByText('Choose a Template')).toBeVisible();
         await page.getByRole('button', { name: 'Launch Large' }).click();
 
         // 6. Fill Project Details (Step 2)

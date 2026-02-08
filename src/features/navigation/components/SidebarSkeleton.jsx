@@ -1,6 +1,6 @@
 const SidebarSkeleton = () => {
   return (
-    <div className="animate-pulse px-3 py-4 space-y-4">
+    <div className="animate-pulse px-3 py-4 space-y-4" data-testid="sidebar-skeleton">
       {/* Search/Header Skeleton */}
       <div className="h-4 bg-slate-200 rounded w-3/4 mb-6"></div>
 

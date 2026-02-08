@@ -14,6 +14,7 @@ export const useAuth = () => {
 
 
 export function AuthProvider({ children }) {
+  console.log('AuthContext loaded v2 - TIMEOUT 2000ms');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -29,10 +30,12 @@ export function AuthProvider({ children }) {
       try {
         console.log('AuthContext: checking admin status for', session.user.id);
 
-        const callWithTimeout = (promise, ms = 10000) => {
+        const callWithTimeout = (promise, ms = 2000) => {
           return Promise.race([
             promise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('RPC Timeout')), ms))
+            new Promise((_, reject) => setTimeout(() => {
+              reject(new Error('RPC Timeout'));
+            }, ms))
           ]);
         };
 
@@ -62,27 +65,10 @@ export function AuthProvider({ children }) {
       }
     };
 
-    // Get initial session
-    const getSession = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-
-        if (error) throw error;
-        await handleSession(data.session);
-      } catch (err) {
-        console.error('AuthContext: getSession failed', err);
-        setLoading(false);
-        setUser(null);
-      }
-    };
-
-    getSession();
-
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('AuthContext: Auth State Change:', event);
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setLoading(false);
