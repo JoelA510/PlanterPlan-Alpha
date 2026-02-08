@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from '@shared/ui/avatar';
 import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight, Moon, Sun } from 'lucide-react';
 import { planter } from '@shared/api/planterClient';
 import { useUser } from '@features/auth/hooks/useUser';
+import { useAuth } from '@app/contexts/AuthContext';
 import { useTheme } from '@app/contexts/ThemeContext';
 import ViewAsSelector from './ViewAsSelector';
 
@@ -28,8 +29,10 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
 
   const navigate = useNavigate();
 
+  const { signOut } = useAuth();
+
   const handleLogout = async () => {
-    await planter.auth.signOut();
+    await signOut();
     navigate('/auth/login');
   };
 

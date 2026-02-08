@@ -5,6 +5,12 @@ import { formatDisplayDate } from '@shared/lib/date-engine';
 import { useAuth } from '@app/contexts/AuthContext';
 
 const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated, ...props }) => {
+  const { user } = useAuth();
+
+  if (!task) {
+    return <div className="p-4 text-center text-muted-foreground">Select a task to view details</div>;
+  }
+
   // Determine hierarchy level
   const getTaskLevel = () => {
     if (!task.parent_task_id) return 0;
@@ -14,7 +20,6 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
   const level = getTaskLevel();
   const canHaveChildren = level < 3;
 
-  const { user } = useAuth();
   // Check valid subscription or override for local dev/admin if needed. 
   // For now, strict check on subscription_status.
   const hasLicense = user?.subscription_status === 'active' || user?.subscription_status === 'trialing';
