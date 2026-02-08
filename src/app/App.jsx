@@ -133,7 +133,7 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <div className="App min-h-screen bg-background transition-colors duration-200">
+    <div className="App min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
       <ThemeProvider>
         <AuthProvider>
           <ViewAsProviderWrapper>

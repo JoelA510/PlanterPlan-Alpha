@@ -136,10 +136,10 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           {
             task.description && (
               <div className="detail-section mb-6">
-                <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">
                   Overview
                 </h3>
-                <p className="text-slate-600 leading-relaxed text-sm">{task.description}</p>
+                <p className="text-slate-600 dark:text-muted-foreground leading-relaxed text-sm">{task.description}</p>
               </div>
             )
           }
@@ -147,10 +147,10 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           {
             task.purpose && (
               <div className="detail-section mb-6">
-                <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">
                   Purpose (The Why)
                 </h3>
-                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-slate-700 leading-relaxed text-sm">
+                <div className="p-4 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900 text-slate-700 dark:text-indigo-200 leading-relaxed text-sm">
                   {task.purpose}
                 </div>
               </div>
@@ -160,10 +160,10 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           {
             task.actions && (
               <div className="detail-section mb-6">
-                <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">
                   Action Steps (The What)
                 </h3>
-                <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
+                <div className="p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 text-slate-700 dark:text-green-200 leading-relaxed text-sm whitespace-pre-wrap">
                   {task.actions}
                 </div>
               </div>
@@ -172,8 +172,8 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
           {
             task.notes && (
               <div className="detail-section mb-6">
-                <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Notes</h3>
-                <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-slate-700 text-sm italic">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">Notes</h3>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900 text-slate-700 dark:text-amber-200 text-sm italic">
                   {task.notes}
                 </div>
               </div>
@@ -193,7 +193,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       <div className="h-px bg-slate-100 my-4"></div>
       {/* 5. Dates Grid */}
       <div className="detail-section mb-6">
-        <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Schedule</h3>
+        <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">Schedule</h3>
         <div className="grid grid-cols-2 gap-3">
           <div className="p-4 bg-card border border-border rounded-lg shadow-sm flex flex-col gap-1">
             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
@@ -222,7 +222,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       {/* 5.6 Subtasks List */}
       {task.children && task.children.length > 0 && (
         <div className="detail-section mb-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Subtasks</h3>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">Subtasks</h3>
           <div className="space-y-2">
             {task.children.map((child) => (
               <div key={child.id} className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-center justify-between">
