@@ -6,7 +6,8 @@ import { act } from 'react';
 // Mock dependencies
 vi.mock('../../features/tasks/services/positionService', () => ({
     calculateNewPosition: vi.fn((prev, next) => (prev + (next || prev + 2000)) / 2),
-    updateTaskPosition: vi.fn().mockResolvedValue(true),
+    updateTaskPosition: vi.fn(),
+    updateTasksBatch: vi.fn().mockResolvedValue(true),
     updateTask: vi.fn().mockResolvedValue(true), // Assuming we'll add this generic update
 }));
 

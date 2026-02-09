@@ -1,7 +1,7 @@
 import { KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useCallback, useState } from 'react';
-import { updateTaskPosition, updateTasksBatch } from '@features/tasks/services/positionService';
+import { updateTasksBatch } from '@features/tasks/services/positionService';
 import { calculateDropTarget } from '@features/tasks/services/dragDropUtils';
 import { calculateDateDeltas } from '@features/tasks/services/dateInheritance';
 import { addDays, differenceInCalendarDays, parseISO, isValid, format } from 'date-fns';
