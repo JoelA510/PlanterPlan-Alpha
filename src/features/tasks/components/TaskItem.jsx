@@ -9,6 +9,8 @@ import ErrorBoundary from '@shared/ui/ErrorBoundary';
 import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
 import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
+// [NEW] Inline Task Input
+import InlineTaskInput from './InlineTaskInput';
 
 const TaskItem = ({
   task,
@@ -25,6 +27,10 @@ const TaskItem = ({
   onDelete = null,
   hideExpansion = false,
   disableDrag = false,
+  // [NEW] Inline Props
+  isAddingInline = false,
+  onInlineCommit,
+  onInlineCancel,
 }) => {
   const hasChildren = task.children && task.children.length > 0;
   const indentWidth = level * 20;
@@ -48,7 +54,9 @@ const TaskItem = ({
     if (
       e.target.closest('.expand-button') ||
       e.target.closest('select') ||
-      e.target.closest('button')
+      e.target.closest('button') ||
+      // [NEW] Ignore clicks inside valid inputs to prevent closing/navigation
+      e.target.closest('input')
     ) {
       return;
     }
@@ -184,6 +192,17 @@ const TaskItem = ({
             strategy={verticalListSortingStrategy}
             id={`sortable-context-${task.id}`}
           >
+            {/* [NEW] Inline Input renders BEFORE children */}
+            {isAddingInline && (
+              <div className="ml-6 mb-2">
+                <InlineTaskInput
+                  onCommit={(title) => onInlineCommit(task.id, title)}
+                  onCancel={onInlineCancel}
+                  level={level + 1}
+                />
+              </div>
+            )}
+
             {task.children && task.children.length > 0 ? (
               task.children.map((child) => (
                 <SortableTaskItem
@@ -198,12 +217,19 @@ const TaskItem = ({
                   onToggleExpand={onToggleExpand}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  // Pass Props Down
+                  isAddingInline={child.isAddingInline}
+                  onInlineCommit={onInlineCommit}
+                  onInlineCancel={onInlineCancel}
                 />
               ))
             ) : (
-              <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
-                Drop subtasks here
-              </div>
+              // Only show "Drop here" if NOT adding inline and truly empty
+              !isAddingInline && (
+                <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
+                  Drop subtasks here
+                </div>
+              )
             )}
           </SortableContext>
         </div>

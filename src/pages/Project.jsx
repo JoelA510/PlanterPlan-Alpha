@@ -39,6 +39,8 @@ export default function Project() {
   const [addTaskModal, setAddTaskModal] = useState({ open: false, milestone: null });
   const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
   const [activeDragMember, setActiveDragMember] = useState(null);
+  // [NEW] Inline Task State
+  const [inlineAddingParentId, setInlineAddingParentId] = useState(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -122,7 +124,9 @@ export default function Project() {
 
   const mapTaskWithState = (task) => ({
     ...task,
-    isExpanded: expandedTaskIds.has(task.id),
+    // Expand if user clicked expand OR if we are currently adding a child to this task
+    isExpanded: expandedTaskIds.has(task.id) || inlineAddingParentId === task.id,
+    isAddingInline: inlineAddingParentId === task.id,
     children: tasks
       .filter((t) => t.parent_task_id === task.id)
       .map(mapTaskWithState)
@@ -156,8 +160,43 @@ export default function Project() {
       setAddTaskModal({ open: false, milestone: null, parentTask: null });
       toast({ title: 'Task created successfully', variant: 'default' });
     } catch (error) {
+      // toast({ title: 'Failed to create task', variant: 'destructive' });
+      // console.error(error);
+    }
+  };
+
+  // [NEW] Inline Handlers
+  const handleStartInlineAdd = (parentTask) => {
+    // If we want to support generic "Add Task" button logic:
+    // This replaces the modal for subtasks.
+    setInlineAddingParentId(parentTask.id);
+
+    // Ensure parent is expanded so input is visible
+    setExpandedTaskIds(prev => {
+      const next = new Set(prev);
+      next.add(parentTask.id);
+      return next;
+    });
+  };
+
+  const handleInlineCommit = async (parentId, title) => {
+    try {
+      await createTaskMutation.mutateAsync({
+        title,
+        root_id: projectId,
+        status: 'todo', // Use lowercase default or constant
+        parent_task_id: parentId,
+        origin: 'instance', // Explicitly set origin
+        priority: 'medium', // Default
+        description: '',
+      });
+      // Don't close immediately if we want to allow rapid entry?
+      // For now, close it. User can click + again.
+      // Actually best UX is keep it open? Let's close for MVP.
+      setInlineAddingParentId(null);
+    } catch (e) {
+      console.error("Inline create failed", e);
       toast({ title: 'Failed to create task', variant: 'destructive' });
-      console.error(error);
     }
   };
 
@@ -266,9 +305,13 @@ export default function Project() {
                           onTaskUpdate={handleTaskUpdate}
                           onToggleExpand={handleToggleExpand}
                           onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
-                          onAddChildTask={(parent) => setAddTaskModal({ open: true, milestone: null, parentTask: parent })}
+                          // [MODIFIED] Use inline handler for subtasks
+                          onAddChildTask={handleStartInlineAdd}
                           onTaskClick={handleTaskClick}
                           phase={activePhase}
+                          // [NEW] Props for inline
+                          onInlineCommit={handleInlineCommit}
+                          onInlineCancel={() => setInlineAddingParentId(null)}
                         />
                       ))
                     )}
