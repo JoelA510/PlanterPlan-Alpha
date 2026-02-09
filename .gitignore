@@ -58,3 +58,11 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Local Agent Artifacts
+master_remediation_plan.md
+implementation_plan.md
+task.md
+walkthrough.md
+PR_DESCRIPTION_DRAFT.md
+lint_output.txt

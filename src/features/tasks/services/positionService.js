@@ -86,3 +86,19 @@ export const updateTaskPosition = async (taskId, newPosition, parentId) => {
     throw error;
   }
 };
+
+/**
+ * Batch updates multiple tasks. Useful for drag & drop with date propagation.
+ * @param {Array<Object>} updates - Array of task objects to update (must include id)
+ * @returns {Promise<void>}
+ */
+export const updateTasksBatch = async (updates) => {
+  if (!updates || updates.length === 0) return;
+
+  const { error } = await planter.entities.Task.upsert(updates);
+
+  if (error) {
+    console.error('Failed to batch update tasks:', error);
+    throw error;
+  }
+};
