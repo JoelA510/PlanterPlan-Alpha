@@ -15,6 +15,12 @@ DECLARE
     v_milestone_id uuid;
     v_task_count int := 0;
 BEGIN
+    -- 0. PRE-FLIGHT: Security Check
+    -- Ensure the caller is actually the user claimed as creator
+    IF auth.uid() <> p_creator_id THEN
+        RAISE EXCEPTION 'Access Denied: You can only create projects for yourself.';
+    END IF;
+
     -- 0. CRITICAL: Security Bootstrap
     -- Insert the creator as the OWNER of the project.
     -- This is required because strict RLS on project_members prevents 
@@ -149,7 +155,7 @@ BEGIN
 
     -- 5. Launch Phase
     INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, settings, origin, status, is_premium)
-    VALUES (p_project_id, p_project_id, p_creator_id, 5, 'Launch', 'Grand opening and initial growth phase', '{"color": "yellow", "icon": "yellow"}'::jsonb, 'instance', 'not_started', false)
+    VALUES (p_project_id, p_project_id, p_creator_id, 5, 'Launch', 'Grand opening and initial growth phase', '{"color": "yellow", "icon": "zap"}'::jsonb, 'instance', 'not_started', false)
     RETURNING id INTO v_phase_id;
         -- Milestones
         INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
