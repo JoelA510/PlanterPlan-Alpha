@@ -49,8 +49,8 @@ export function AuthProvider({ children }) {
 
         if (rpcError) {
           console.error('AuthContext: RPC error', rpcError);
-          // Default to viewer on error/timeout
-          setUser({ ...session.user, role: 'viewer' });
+          // Default to viewer on error/timeout, unless session has role
+          setUser({ ...session.user, role: session.user.role || 'viewer' });
         } else {
           setUser({
             ...session.user,
@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
         }
       } catch (rpcCrash) {
         console.error('AuthContext: RPC crashed', rpcCrash);
-        setUser({ ...session.user, role: 'viewer' });
+        setUser({ ...session.user, role: session.user.role || 'viewer' });
       } finally {
         setLoading(false);
       }

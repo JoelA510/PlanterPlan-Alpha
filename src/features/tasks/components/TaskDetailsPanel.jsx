@@ -44,18 +44,18 @@ export default function TaskDetailsPanel({
     const isTaskFormOpen = Boolean(taskFormState);
 
     return (
-        <aside className="w-1/3 min-w-96 bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-2xl z-30 h-full overflow-hidden transition-all duration-300">
-            <div className="pt-8 px-6 pb-6 border-b border-slate-100 flex justify-between items-start bg-white sticky top-0 z-20">
-                <h2 className="font-bold text-xl text-slate-800 truncate pr-4" title={panelTitle}>{panelTitle}</h2>
+        <aside className="w-1/3 min-w-96 bg-white dark:bg-card border-l border-slate-200 dark:border-border flex flex-col flex-shrink-0 shadow-2xl z-30 h-full overflow-hidden transition-all duration-300">
+            <div className="pt-8 px-6 pb-6 border-b border-slate-100 dark:border-border flex justify-between items-start bg-white dark:bg-card sticky top-0 z-20">
+                <h2 className="font-bold text-xl text-slate-800 dark:text-foreground truncate pr-4" title={panelTitle}>{panelTitle}</h2>
                 <button
                     onClick={onClose}
-                    className="text-slate-400 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                    className="text-slate-400 dark:text-muted-foreground hover:text-slate-700 dark:hover:text-foreground p-2 rounded-full hover:bg-slate-100 dark:hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                     aria-label="Close panel"
                 >
                     <X className="w-6 h-6" />
                 </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white">
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white dark:bg-card">
                 {showForm ? (
                     <NewProjectForm onSubmit={handleProjectSubmit} onCancel={onClose} />
                 ) : isTaskFormOpen ? (

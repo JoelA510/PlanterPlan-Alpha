@@ -56,8 +56,9 @@ export default function TaskDependencies({ task, allProjectTasks }) {
     });
 
     // Filter out self and already existing relationships
-    const existingIds = new Set(relationships.flatMap(r => [r.from_task_id, r.to_task_id]));
-    const availableTasks = allProjectTasks.filter(t => t.id !== task.id && !existingIds.has(t.id));
+    const validRelationships = Array.isArray(relationships) ? relationships : [];
+    const existingIds = new Set(validRelationships.flatMap(r => [r.from_task_id, r.to_task_id]));
+    const availableTasks = (allProjectTasks || []).filter(t => t.id !== task.id && !existingIds.has(t.id));
 
     return (
         <div className="detail-section mb-6">
@@ -66,10 +67,10 @@ export default function TaskDependencies({ task, allProjectTasks }) {
             </div>
 
             <div className="space-y-2 mb-3">
-                {relationships.length === 0 && (
+                {validRelationships.length === 0 && (
                     <p className="text-sm text-slate-500 italic">No dependencies linked.</p>
                 )}
-                {relationships.map(rel => {
+                {validRelationships.map(rel => {
                     const isOutgoing = rel.from_task_id === task.id;
                     const otherTask = isOutgoing ? rel.to_task : rel.from_task;
                     // Safety check if join failed

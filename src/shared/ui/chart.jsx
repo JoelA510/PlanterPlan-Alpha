@@ -47,13 +47,16 @@ ${prefix} [data-chart=${safeId}] {
 ${colorConfig
           .map(([key, itemConfig]) => {
             const color = itemConfig.theme?.[theme] || itemConfig.color;
-            return color ? `  --color-${key}: ${color};` : null;
+            // Security: Sanitize key and color to prevent CSS injection
+            const safeKey = key.replace(/[^a-zA-Z0-9-_]/g, '');
+            const safeColor = color ? color.replace(/;/g, '') : null;
+            return safeColor ? `  --color-${safeKey}: ${safeColor};` : null;
           })
           .join('\n')}
 }
 `
     )
-    .join('\n').replace(/<\/style/gi, '<\\/style'), [safeId, colorConfig]);
+    .join('\n'), [safeId, colorConfig]);
 
   if (!colorConfig.length) {
     return null;

@@ -43,19 +43,19 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-background">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-brand-600">PlanterPlan</h2>
-          <p className="mt-2 text-center text-sm text-slate-600">
+          <p className="mt-2 text-center text-sm text-slate-600 dark:text-muted-foreground">
             {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </p>
         </div>
 
-        <form className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit}>
+        <form className="bg-white dark:bg-card py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit}>
           <div className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-foreground">
                 Email address
               </label>
               <input
@@ -63,7 +63,7 @@ const LoginForm = () => {
                 name="email"
                 type="email"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-400 text-slate-900 rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 dark:border-input placeholder-slate-400 dark:bg-background dark:text-foreground rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -71,7 +71,7 @@ const LoginForm = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-foreground">
                 Password
               </label>
               <input
@@ -79,7 +79,7 @@ const LoginForm = () => {
                 name="password"
                 type="password"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-400 text-slate-900 rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 dark:border-input placeholder-slate-400 dark:bg-background dark:text-foreground rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
