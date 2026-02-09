@@ -86,7 +86,7 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
     } catch (err) {
       if (err instanceof z.ZodError) {
         const fieldErrors = {};
-        err.errors.forEach((e) => {
+        err.errors?.forEach((e) => {
           fieldErrors[e.path[0]] = e.message;
         });
         setErrors(fieldErrors);
