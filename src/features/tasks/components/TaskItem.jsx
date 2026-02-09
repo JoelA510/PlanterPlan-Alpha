@@ -35,7 +35,7 @@ const TaskItem = ({
   const showChevron = !hideExpansion && canHaveChildren && (hasChildren || forceShowChevron);
 
   // Dnd-kit droppable
-  const { setNodeRef: setDroppableNodeRef } = useDroppable({
+  const { setNodeRef: setDroppableNodeRef, isOver } = useDroppable({
     id: `child-context-${task.id}`,
     data: {
       type: 'container',
@@ -72,9 +72,10 @@ const TaskItem = ({
         className={cn(
           'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
           'bg-card text-card-foreground', // Default card styles
-          isSelected
+          isOver && 'ring-2 ring-brand-400 bg-brand-50 dark:bg-brand-900/40 z-10', // Drop Target feedback
+          isSelected && !isOver
             ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-100 dark:bg-brand-900/40 dark:border-brand-400 dark:ring-brand-900/50'
-            : 'border-border hover:border-brand-300 dark:hover:border-brand-700',
+            : !isOver && 'border-border hover:border-brand-300 dark:hover:border-brand-700',
           isLocked && 'opacity-70 bg-muted/30 dark:bg-slate-900/50',
           level === 0 && 'border-l-4 border-l-brand-600 dark:border-l-brand-500'
         )}
@@ -87,7 +88,7 @@ const TaskItem = ({
             {!disableDrag && (
               <button
                 className={cn(
-                  'mr-2 p-1 rounded transition-colors flex-shrink-0',
+                  'mr-2 p-1 rounded transition-colors flex-shrink-0 cursor-grab active:cursor-grabbing',
                   isLocked
                     ? 'cursor-not-allowed opacity-30 text-slate-400'
                     : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'

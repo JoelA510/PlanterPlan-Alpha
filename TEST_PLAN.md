@@ -1,46 +1,82 @@
-# Test Plan: Drag-and-Drop Enhancements
+# Test Plan: Project Creation Hardening
 
-## 1. Objectives
-- Verify correctness of "Project Pipeline Board" logic (Status updates).
-- Verify correctness of "Drag-to-Assign" logic (Member -> Task assignment).
-- Ensure regressions are prevented in `projectService` and [Dashboard](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/pages/Dashboard.jsx#16-211).
-- **Security**: Verify RLS enforcement on core tables.
+## 1. Context & Objectives
+**Goal**: Ensure the "Create Project" flow is robust, atomic, and statistically correct for RLS.
+**Critical Flaw Identified**: The current `has_project_role` function strictly checks `project_members`. However, the Project Creator is not automatically added to `project_members` upon project creation. This creates an RLS Deadlock where the creator cannot administer their own project.
 
-## 2. Scope
-- **Feature**: Project Pipeline Board ([src/features/dashboard/components/ProjectPipelineBoard.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/dashboard/components/ProjectPipelineBoard.jsx))
-- **Feature**: Drag-to-Assign ([src/pages/Project.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/pages/Project.jsx), [src/features/projects/components/ProjectHeader.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/projects/components/ProjectHeader.jsx))
-- **Service**: [src/features/projects/services/projectService.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/projects/services/projectService.js)
-- **Database**: [docs/db/schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql)
+## 2. The Fix Strategy
+We will move the "Add Creator as Member" logic into the `initialize_default_project` RPC. Since this RPC runs as `SECURITY DEFINER`, it can bypass the `project_members` RLS restriction and bootstrap the ownership.
 
-## 3. Automated Testing Strategy (Vitest)
+## 3. Test Cases
 
-### A. Unit Tests ([projectService.test.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/projects/services/projectService.test.js))
-- [x] Test [updateProjectStatus](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/projects/services/projectService.js#112-123) calls Supabase correctly.
-- [x] Test error handling.
+### 3.1. Integration Test (`src/tests/integration/create-project.spec.jsx`)
+**Status:** ✅ VERIFIED
+This test uses `vitest` with mocked Supabase/PlanterClient to verify the service logic and error handling.
 
-### B. Integration Tests ([ProjectPipelineBoard.test.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/dashboard/components/ProjectPipelineBoard.test.jsx))
-- [x] Render Board with mock projects.
-- [x] Verify Columns render correct project counts.
-- [x] Simulate `dragEnd` event triggering `onStatusChange`.
+*   **Case 1: Success Path**
+    *   **Input**: Valid project data (`title`, `start_date`, `creator_id`).
+    *   **Expectation**:
+        *   `planter.entities.Project.create` is called.
+        *   `planter.rpc('initialize_default_project')` is called with correct args.
+        *   Function returns the project object.
+*   **Case 2: RPC Failure (Rollback)**
+    *   **Input**: Valid data, but RPC returns `{ error: 'RPC Failed' }`.
+    *   **Expectation**:
+        *   `planter.entities.Project.delete` is called (Rollback).
+        *   Function throws descriptive error.
+*   **Case 3: Missing Creator**
+    *   **Input**: No `creator` in args, `planter.auth.me()` returns null.
+    *   **Expectation**: Throws "User must be logged in".
 
-### C. Integration Tests (`DragToAssign.test.jsx`)
-- [x] Test [Project.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/pages/Project.jsx) specific logic (extract [handleDragEnd](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/library/components/MasterLibraryList.jsx#60-66) for testing if possible, or test via integration).
-- [x] Verify [DraggableAvatar](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/projects/components/ProjectHeader.jsx#134-168) renders with correct attributes.
-- [x] Verify [handleDragEnd](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/library/components/MasterLibraryList.jsx#60-66) correctly identifies [User](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/tasks/services/taskService.js#81-99) -> [Task](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/library/hooks/useTreeState.js#70-81) drop and calls mutation.
+### 3.2. Unit Test (`NewProjectForm.test.jsx`)
+*   **Case 1: Validation**
+    *   **Input**: Empty form submission.
+    *   **Expectation**: Zod errors for `title` (Required) and `start_date` (Required).
+*   **Case 2: Loading State**
+    *   **Input**: Valid submit.
+    *   **Expectation**: Submit button disabled, Spinner visible.
 
-### D. Security Verification (`e2e/security.spec.ts`)
-- [ ] **Sad Path (Anon)**: Verify anonymous request to `tasks` returns empty list/error (RLS Active).
-- [ ] **Sad Path (Cross-Tenant)**: Verify User A cannot access User B's private project (RLS Policy).
+### 3.3. Unit Test (`src/tests/unit/dateInheritance.test.js`)
+**Status:** ✅ VERIFIED
+*   **Case 1: Basic Propagation**
+    *   **Input**: Parent moves +5 days.
+    *   **Expectation**: Child moves +5 days.
+*   **Case 2: Null Dates**
+    *   **Input**: Parent has no date -> sets date.
+    *   **Expectation**: Child keeps its relative offset if it had one, or sets to parent date?
+    *   **Decision**: If Child has NO date, it remains no date (unless we enforce inheritance). If Child HAS date, it shifts.
+*   **Case 3: Subtree Propagation**
+    *   **Input**: Grandparent moves.
+    *   **Expectation**: Parent and Child move.
 
-## 4. Manual Verification (Golden Paths)
-- [x] **Pipeline**: Open Dashboard -> Toggle View -> Drag Project -> Refresh -> Verify Persistence.
-- [x] **Assignment**: Open Project -> Drag Avatar -> Drop on Task -> Verify Toast/Assignment.
+### 3.4. Integration Test (`src/tests/integration/drag-interaction.spec.jsx`)
+**Status:** ✅ VERIFIED
+*   **Case 1: Date Cascade on Reparenting**
+    *   **Setup**: 
+        *   Task A (Jan 1) is under Milestone X (Jan 1). 
+        *   Milestone Y starts Feb 1.
+    *   **Action**: Drag Task A into Milestone Y.
+    *   **Expectation**: 
+        *   Task A `parent_task_id` becomes Milestone Y.
+        *   Task A `start_date` becomes Feb 1 (maintains +0 offset from new parent start).
+        *   DB update includes both parent change and date change.
 
-## 5. Execution Plan
-1. [x] Create [src/features/projects/services/projectService.test.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/projects/services/projectService.test.js).
-2. [x] Create [src/features/dashboard/components/ProjectPipelineBoard.test.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/dashboard/components/ProjectPipelineBoard.test.jsx).
-3. [x] Create [src/tests/integration/drag-to-assign.test.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/tests/integration/drag-to-assign.test.jsx) (Mocked Logic).
-4. [x] Create [src/features/tasks/services/taskService.test.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/features/tasks/services/taskService.test.js) (Reparenting Logic).
-5. [x] Run `npm test` (All 8 tests passed).
-6. [x] Run `npx playwright test e2e/security.spec.ts` (Passed).
-7. [ ] **Performance**: Verify Command Palette responsiveness and Chart rendering.
+## 4. Manual Verification Steps
+1.  **SQL Patch**: Apply `docs/db/20260209_fix_project_creation.sql` (New migration).
+2.  **UI Verification**:
+    *   Go to Dashboard.
+    *   Click "New Project".
+    *   Enter "Alpha Protocol Project".
+    *   Click Create.
+    *   **Pass Criteria**:
+        *   Project appears in Dashboard instantly (Optimistic/Invalidated).
+        *   Clicking Project works (RLS allows view).
+        *   "Settings" -> "Team" shows You as Owner.
+
+## 5. Artifacts Created/Modified
+*   `[NEW]` `docs/db/20260209_fix_project_creation.sql`
+*   `[MODIFY]` `src/features/dashboard/components/CreateProjectModal.jsx`
+*   `[NEW]` `src/tests/integration/create-project.spec.jsx`
+*   `[NEW]` `src/tests/unit/dateInheritance.test.js`
+*   `[NEW]` `src/features/tasks/services/dateInheritance.js`
+*   `[NEW]` `src/tests/integration/drag-interaction.spec.jsx`
