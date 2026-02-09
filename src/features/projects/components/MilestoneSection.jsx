@@ -5,7 +5,7 @@ import { Progress } from '@shared/ui/progress';
 import { ChevronRight, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TASK_STATUS } from '@app/constants/index';
-import TaskItem from '@features/tasks/components/TaskItem'; // UPDATED
+import TaskItem from '@features/tasks/components/TaskItem';
 
 export default function MilestoneSection({
   milestone,
@@ -14,6 +14,8 @@ export default function MilestoneSection({
   onAddTask,
   onAddChildTask,
   onTaskClick,
+  onInlineCommit,
+  onInlineCancel,
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -90,6 +92,9 @@ export default function MilestoneSection({
                         onTaskClick={onTaskClick}
                         onStatusChange={(id, status) => onTaskUpdate(id, { status })}
                         onAddChildTask={onAddChildTask}
+                        isAddingInline={task.isAddingInline}
+                        onInlineCommit={onInlineCommit}
+                        onInlineCancel={onInlineCancel}
                       />
                     ))}
                   <Button
