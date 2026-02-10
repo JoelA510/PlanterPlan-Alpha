@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { supabase } from '@app/supabaseClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { deepCloneTask, deleteTask } from '@features/tasks/services/taskService';
+import { createProject as createProjectService } from '@features/projects/services/projectService';
 import { toIsoDate, recalculateProjectDates } from '@shared/lib/date-engine';
 
 export const useProjectMutations = ({ tasks, fetchTasks }) => {
@@ -24,6 +25,7 @@ export const useProjectMutations = ({ tasks, fetchTasks }) => {
 
         let result;
         if (formData.templateId) {
+          // Template Cloning Strategy
           const { data: newTasks, error: cloneError } = await deepCloneTask(
             formData.templateId,
             null,
@@ -39,29 +41,13 @@ export const useProjectMutations = ({ tasks, fetchTasks }) => {
           if (cloneError) throw cloneError;
           result = newTasks;
         } else {
-          const { data, error: insertError } = await supabase
-            .from('tasks')
-            .insert([
-              {
-                title: formData.title,
-                description: formData.description ?? null,
-                purpose: formData.purpose ?? null,
-                actions: formData.actions ?? null,
-                notes: formData.notes ?? null,
-                days_from_start: null,
-                origin: 'instance',
-                creator: user.id,
-                parent_task_id: null,
-                position: maxPosition + 1000,
-                is_complete: false,
-                start_date: projectStartDate,
-                due_date: projectStartDate,
-              },
-            ])
-            .select()
-            .single();
-          if (insertError) throw insertError;
-          result = data;
+          // Default Project Strategy (Target of RLS Fix)
+          // Uses the hardened service method that calls 'initialize_default_project' RPC
+          result = await createProjectService({
+            title: formData.title,
+            start_date: projectStartDate,
+            creator: user.id
+          });
         }
 
         await fetchTasks();

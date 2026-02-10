@@ -103,6 +103,26 @@ export const updateTaskInTree = (nodes, taskId, updates) => {
 };
 
 /**
+ * Flattens a tree structure into a flat array.
+ * @param {Array} tree - The tree structure.
+ * @returns {Array} - Flat array of items.
+ */
+export const flattenTree = (tree) => {
+  const result = [];
+  const traverse = (nodes) => {
+    for (const node of nodes) {
+      const { children, ...rest } = node;
+      result.push(rest);
+      if (children && children.length > 0) {
+        traverse(children);
+      }
+    }
+  };
+  traverse(tree);
+  return result;
+};
+
+/**
  * Builds a hierarchical tree from a flat list of items.
  * Uses a Map for O(n) complexity.
  * @param {Array} items - Flat list of items.
