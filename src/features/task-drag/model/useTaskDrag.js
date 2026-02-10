@@ -1,9 +1,9 @@
 import { KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useCallback, useState } from 'react';
-import { updateTasksBatch } from '@features/tasks/services/positionService';
-import { calculateDropTarget } from '@features/tasks/services/dragDropUtils';
-import { calculateDateDeltas } from '@features/tasks/services/dateInheritance';
+import { updateTasksBatch } from '../lib/positionService';
+import { calculateDropTarget } from '../lib/dragDropUtils';
+import { calculateDateDeltas } from '../lib/dateInheritance';
 import { addDays, differenceInCalendarDays, parseISO, isValid, format } from 'date-fns';
 import { toast } from '@shared/ui/use-toast';
 

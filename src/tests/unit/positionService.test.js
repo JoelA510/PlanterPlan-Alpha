@@ -1,5 +1,5 @@
 // Mock must be before imports
-import { calculateNewPosition } from '@features/tasks/services/positionService';
+import { calculateNewPosition } from '../../features/task-drag/lib/positionService';
 
 vi.mock('@app/supabaseClient', () => ({
   supabase: {

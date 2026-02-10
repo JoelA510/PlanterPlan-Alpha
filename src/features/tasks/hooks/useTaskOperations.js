@@ -21,6 +21,7 @@ export const useTaskOperations = () => {
     findTask: query.findTask,
     joinedProjects: query.joinedProjects,
     hydratedProjects: query.hydratedProjects,
+    commitOptimisticUpdate: query.commitOptimisticUpdate,
   });
 
   useTaskSubscription({

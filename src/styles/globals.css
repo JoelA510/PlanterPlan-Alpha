@@ -53,6 +53,16 @@
   --color-brand-primary-soft: #fff7ed;
   /* Orange 50 */
 
+  /* Strict Semantic Tokens (Rules.md Section 3) */
+  --color-surface-bg: #f8fafc;
+  /* Slate 50 */
+  --color-panel-bg: #ffffff;
+  /* White */
+  --color-error-bg: #fff1f2;
+  /* Rose 50 */
+  --color-error-text: #be123c;
+  /* Rose 700 */
+
   --radius-lg: 0.5rem;
   --radius-md: calc(0.5rem - 2px);
   --radius-sm: calc(0.5rem - 4px);
@@ -139,6 +149,9 @@
   /* Orange 500 */
   --color-brand-primary-soft: #431407;
   /* Orange 950 */
+  --color-surface: var(--color-card);
+  --color-surface-foreground: var(--color-card-foreground);
+  --color-border-subtle: var(--color-secondary);
 }
 
 /* Component Classes (Extracted to reduce file size) */

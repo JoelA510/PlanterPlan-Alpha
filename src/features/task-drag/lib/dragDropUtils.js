@@ -1,4 +1,4 @@
-import { calculateNewPosition } from '@features/tasks/services/positionService';
+import { calculateNewPosition } from './positionService';
 
 /**
  * Calculates the valid drop target and new position for a dragged task.

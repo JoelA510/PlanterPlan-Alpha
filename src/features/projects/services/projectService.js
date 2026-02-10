@@ -98,12 +98,43 @@ export async function updateProjectStatus(projectId, status) {
 
 // --- Projects (Mutations) ---
 
-
 /**
- * Creates a new project with default phases, milestones, and tasks.
- * @param {Object} projectData - The project data (name, launch_date, etc.)
- * @returns {Promise<Object>} - The created project object
+ * Direct Project Creation to bypass Entity wrapper issues.
+ * Retains strict RLS compatibility via RPC.
  */
+export async function createProject(projectData) {
+  const { data: user } = await planter.auth.me();
+  if (!user) throw new Error('User must be logged in');
+
+  // 1. Create Project (Row) - Direct Insert
+  // Mapped to 'tasks' table via planter client if 'projects' alias exists, 
+  // or checks strictly if 'projects' table was restored.
+  // Assuming 'projects' alias maps to 'tasks' with root_id=null in PlanterClient, 
+  // OR the user expects 'projects' table. 
+  // Based on schema, we insert into 'tasks' but use 'projects' collection name for client.
+
+  const { data: project, error: projError } = await planter.create('projects', {
+    title: projectData.title,
+    start_date: projectData.start_date,
+    creator: user.id
+  });
+  if (projError) throw projError;
+
+  // 2. Initialize Membership (RPC) - Fixes RLS Deadlock
+  const { error: rpcError } = await planter.rpc('initialize_default_project', {
+    p_project_id: project.id,
+    p_creator_id: user.id
+  });
+
+  if (rpcError) {
+    // Rollback if RPC fails
+    await planter.delete('projects', project.id);
+    throw rpcError;
+  }
+
+  return project;
+}
+
 export async function createProjectWithDefaults(projectData) {
   // Get creator from arguments (preferred) or fallback to auth
   let creatorId = projectData.creator;

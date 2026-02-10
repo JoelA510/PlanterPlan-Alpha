@@ -193,6 +193,25 @@ export const useTaskQuery = () => {
     };
   }, [fetchProjects, authLoading, authUser]);
 
+  // Rollback / Invalidate helper for Optimistic UI
+  const commitOptimisticUpdate = useCallback(
+    async (taskId) => {
+      // Strategy: Identify context (Project vs Root) and refresh from server to "revert" / "sync"
+      const task = findTask(taskId);
+      if (task) {
+        const rootId =
+          task.root_id || (task.parent_task_id ? findTask(task.parent_task_id)?.root_id : null);
+        if (rootId) {
+          await refreshProjectDetails(rootId);
+          return;
+        }
+      }
+      // Fallback: Refresh Global List
+      await fetchProjects(page);
+    },
+    [findTask, refreshProjectDetails, fetchProjects, page]
+  );
+
   return {
     tasks,
     setTasks,
@@ -211,6 +230,7 @@ export const useTaskQuery = () => {
     hasMore,
     isFetchingMore,
     loadMoreProjects,
-    page
+    page,
+    commitOptimisticUpdate,
   };
 };

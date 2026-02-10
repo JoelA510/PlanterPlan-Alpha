@@ -25,18 +25,9 @@ import { cn } from '@shared/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PROJECT_STATUS } from '@app/constants/index';
 import { z } from 'zod';
+import { projectSchema } from '@entities/project/model';
 
-const projectSchema = z.object({
-  title: z.string().min(3, 'Project name must be at least 3 characters'),
-  description: z.string().optional(),
-  template: z.string().min(1, 'Please select a template'),
-  launch_date: z.date({
-    required_error: 'Target launch date is required',
-    invalid_type_error: 'That is not a valid date',
-  }),
-  location: z.string().optional(),
-  status: z.string(),
-});
+
 
 const templates = [
   {

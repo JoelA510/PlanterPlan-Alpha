@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
-import { useTaskDrag } from '@features/tasks/hooks/useTaskDrag';
+import { useTaskDrag } from '@features/task-drag';
 import { useToast } from '@app/contexts/ToastContext';
 import { separateTasksByOrigin } from '@shared/lib/viewHelpers';
 import { buildTree } from '@shared/lib/treeHelpers';
