@@ -7,7 +7,7 @@ import PhaseCard from '../../features/projects/components/PhaseCard';
 import { BrowserRouter } from 'react-router-dom';
 
 // Mock dependencies
-vi.mock('../../features/tasks/hooks/useTaskDrag', () => ({
+vi.mock('../../features/task-drag/model/useTaskDrag', () => ({
     useTaskDrag: () => ({
         attributes: {},
         listeners: {},

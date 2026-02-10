@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateDateDeltas, getDescendants } from '../../features/tasks/services/dateInheritance';
+import { calculateDateDeltas, getDescendants } from '../../features/task-drag/lib/dateInheritance';
 import { addDays, parseISO, format } from 'date-fns';
 
 describe('Date Inheritance Service', () => {

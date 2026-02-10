@@ -53,7 +53,7 @@ const mockHandleDragEnd = vi.fn();
 const mockTaskDragResult = { sensors: [], handleDragEnd: mockHandleDragEnd };
 let capturedTasksPassedToDrag = [];
 
-vi.mock('@features/tasks/hooks/useTaskDrag', () => ({
+vi.mock('@features/task-drag', () => ({
     useTaskDrag: vi.fn((props) => {
         capturedTasksPassedToDrag = props.tasks;
         return mockTaskDragResult;

@@ -3,12 +3,12 @@ import { renderHook, act } from '@testing-library/react';
 import { useTaskBoard } from '../../features/tasks/hooks/useTaskBoard';
 import { ToastProvider } from '../../app/contexts/ToastContext';
 import * as useTaskOperationsModule from '../../features/tasks/hooks/useTaskOperations';
-import * as useTaskDragModule from '../../features/tasks/hooks/useTaskDrag';
+import * as useTaskDragModule from '../../features/task-drag/model/useTaskDrag';
 import React from 'react';
 
 // Mocks
 vi.mock('../../features/tasks/hooks/useTaskOperations');
-vi.mock('../../features/tasks/hooks/useTaskDrag');
+vi.mock('../../features/task-drag/model/useTaskDrag');
 vi.mock('../../features/projects/services/projectService', () => ({
     inviteMember: vi.fn(),
     fetchProjectDetails: vi.fn().mockResolvedValue({}),

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useTaskDrag } from '../../features/tasks/hooks/useTaskDrag';
+import { useTaskDrag } from '../../features/task-drag/model/useTaskDrag';
 import { act } from 'react';
 
 // Mock dependencies
-vi.mock('../../features/tasks/services/positionService', () => ({
+vi.mock('../../features/task-drag/lib/positionService', () => ({
     calculateNewPosition: vi.fn((prev, next) => (prev + (next || prev + 2000)) / 2),
     updateTaskPosition: vi.fn(),
     updateTasksBatch: vi.fn().mockResolvedValue(true),
@@ -12,7 +12,7 @@ vi.mock('../../features/tasks/services/positionService', () => ({
 }));
 
 // We need to mock the date inheritance service too
-vi.mock('../../features/tasks/services/dateInheritance', () => ({
+vi.mock('../../features/task-drag/lib/dateInheritance', () => ({
     calculateDateDeltas: vi.fn(() => ([
         { id: 'task-a', start_date: '2024-02-01' }
     ])),

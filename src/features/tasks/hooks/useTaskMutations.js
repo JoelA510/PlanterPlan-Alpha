@@ -13,6 +13,7 @@ export const useTaskMutations = ({
   findTask,
   joinedProjects,
   hydratedProjects,
+  commitOptimisticUpdate,
 }) => {
   /* Helper to refresh the appropriate context (Root Project or Global List) */
   const _refreshTaskContext = useCallback(
@@ -208,6 +209,9 @@ export const useTaskMutations = ({
 
       } catch (error) {
         console.error('Error saving task:', error);
+        if (commitOptimisticUpdate && formState?.taskId) {
+          commitOptimisticUpdate(formState.taskId);
+        }
         throw error;
       }
     },
@@ -234,6 +238,12 @@ export const useTaskMutations = ({
 
       } catch (error) {
         console.error('Error deleting task:', error);
+        if (commitOptimisticUpdate) {
+          // For delete, we might need to know the ID if we supported optimistic delete.
+          // Currently generic findTask uses ID.
+          const taskId = typeof taskOrId === 'object' ? taskOrId.id : taskOrId;
+          commitOptimisticUpdate(taskId);
+        }
         throw error;
       }
     },
@@ -267,6 +277,9 @@ export const useTaskMutations = ({
         }
       } catch (error) {
         console.error('Error updating task:', error);
+        if (commitOptimisticUpdate) {
+          commitOptimisticUpdate(taskId);
+        }
         throw error;
       }
     },

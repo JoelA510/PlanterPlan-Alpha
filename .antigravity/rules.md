@@ -1,6 +1,6 @@
 # .antigravity/rules.md
 # Configuration for Gemini 3 Pro High Agent
-# Context: PlanterPlan-Alpha (React 19 / Tailwind 4 / FSD)
+# Context: PlanterPlan-Alpha (FSD Architecture)
 
 ## 0. Prime Directive: The "Staff Engineer" Mindset
 *Always-on behaviors for high-agency intervention.*
@@ -29,18 +29,12 @@
     - **No Recursive RLS:** Check `root_id` existence before writing policies.
     - **Optimistic Rollbacks:** Every optimistic update must use a rollback mechanism.
 
-## 2. Modernity Protocol (2026 Stack)
-*The stack uses versions newer than standard training data.*
+## 2. Modernity Protocol
+*Adhere to the Tech Stack defined in `.antigravity/instructions.md`.*
 
-- **Tailwind CSS v4:**
-    - Use `@theme` in CSS. Do NOT use `tailwind.config.js`.
-    - Use semantic variables: `--color-primary`, `--color-bg-card` (See Section 3).
-- **React 19:**
-    - No `forwardRef` (use props).
-    - Use `useActionState` for form actions.
-    - Strict hydration checks are active.
-- **Vite 7:**
-    - Native ESM. Ensure `vite.config.js` binds to `127.0.0.1` for IPv6 safety.
+- **Tailwind:** Use the configured semantic variables (Section 3).
+- **React:** Strict hydration checks are active. Avoid deprecated patterns (e.g., `forwardRef` in React 19).
+- **Vite:** Native ESM conventions apply.
 
 ## 3. Design Standards & Semantic Tokens
 *Strict UI rules for "Modern Clean SaaS".*
@@ -75,7 +69,7 @@
 
 ## 6. The "No-Hallucination" Check
 1. **Manifest Audit:** Trust `package.json` versions over training data.
-2. **Library Syntax:** If unsure (e.g., `react-day-picker` v9), SEARCH KEYWORDS `"library vX upgrade guide"`.
+2. **Library Syntax:** If unsure, SEARCH KEYWORDS `"library vX upgrade guide"`.
 3. **Legacy Watch:** If you see an FSD violation, flag it. Do not repeat it.
 
 ## 7. Workflow Triggers (Decision Matrix)
@@ -109,6 +103,6 @@
 - **FSD Check:** Did we accidentally couple a Feature to another Feature? Move shared logic to `shared/lib` if needed.
 
 ### 🔵 BLUE: The "Modernity" & "Visual" Audit
-- **Modernity:** Scan for legacy patterns (e.g., `useEffect` where `useQuery` handles it). Ensure Tailwind 4 syntax is correct.
+- **Modernity:** Scan for legacy patterns (e.g., `useEffect` where `useQuery` handles it). Ensure Tailwind syntax matches `instructions.md`.
 - **Visual:** If this is a UI component, trigger the Anti-Gravity Preview. Does it look like the design?
 - **Final Polish:** Run `npm run lint`. Ensure `max-warnings=0`.

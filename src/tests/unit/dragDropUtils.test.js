@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { calculateDropTarget } from '../../features/tasks/services/dragDropUtils';
+import { calculateDropTarget } from '../../features/task-drag/lib/dragDropUtils';
 
 // Mock calculateNewPosition since it's a separate utility
-vi.mock('../../features/tasks/services/positionService', () => ({
+vi.mock('../../features/task-drag/lib/positionService', () => ({
     calculateNewPosition: (prev, next) => {
         // Simple mock logic: if prev is 0 and next is null -> 1000
         // if prev is 1000 and next is 2000 -> 1500
