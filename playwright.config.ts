@@ -39,6 +39,11 @@ export default defineConfig({
 
     /* Run tests in headed mode by default */
     headless: false,
+
+    /* Slow down execution interactions by 1000ms to allow visual inspection */
+    launchOptions: {
+      slowMo: 1000,
+    },
   },
 
   /* Configure projects for major browsers */
