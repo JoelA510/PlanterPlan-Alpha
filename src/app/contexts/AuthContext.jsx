@@ -52,6 +52,7 @@ export function AuthProvider({ children }) {
           // Default to viewer on error/timeout, unless session has role
           setUser({ ...session.user, role: session.user.role || 'viewer' });
         } else {
+          console.log('[AuthContext] Setting User (Admin/Owner)');
           setUser({
             ...session.user,
             role: isAdmin ? 'admin' : 'owner'
@@ -61,6 +62,7 @@ export function AuthProvider({ children }) {
         console.error('AuthContext: RPC crashed', rpcCrash);
         setUser({ ...session.user, role: session.user.role || 'viewer' });
       } finally {
+        console.log('[AuthContext] setLoading(false)');
         setLoading(false);
       }
     };

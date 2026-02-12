@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { planter } from '@shared/api/planterClient';
 import { createProjectWithDefaults, updateProjectStatus } from '@features/projects/services/projectService'; // Service import
 import { useAuth } from '@app/contexts/AuthContext';
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'pipeline'
   const [wizardDismissed, setWizardDismissed] = useState(false); // Enable dismissing the wizard
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
 
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
@@ -72,7 +74,11 @@ export default function Dashboard() {
 
   const handleCreateProject = async (projectData) => {
     try {
-      await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+      const project = await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+      // Redirect to the new project board
+      if (project?.id) {
+        navigate(`/project/${project.id}`);
+      }
     } catch (error) {
       console.error('Create project failed:', error);
     }
@@ -89,8 +95,10 @@ export default function Dashboard() {
     }
   };
 
-  if (loadingProjects || authLoading) {
+  console.log('[Dashboard] Render. Loading:', { loadingProjects, authLoading, user: !!user });
 
+  if (loadingProjects || authLoading) {
+    console.log('[Dashboard] Rendering Loader');
     return (
       <DashboardLayout>
         <div className="flex justify-center py-20">
@@ -99,6 +107,7 @@ export default function Dashboard() {
       </DashboardLayout>
     );
   }
+  console.log('[Dashboard] Rendering Content');
 
   return (
     <DashboardLayout>
