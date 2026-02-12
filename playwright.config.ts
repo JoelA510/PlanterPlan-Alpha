@@ -37,12 +37,11 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
 
-    /* Run tests in headed mode by default */
-    headless: false,
+    headless: true,
 
-    /* Slow down execution interactions by 1000ms to allow visual inspection */
+    /* Standard execution speed for E2E */
     launchOptions: {
-      slowMo: 1000,
+      slowMo: 0,
     },
   },
 
