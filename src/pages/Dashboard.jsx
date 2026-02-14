@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { planter } from '@shared/api/planterClient';
 import { createProjectWithDefaults, updateProjectStatus } from '@features/projects/services/projectService'; // Service import
 import { useAuth } from '@app/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@shared/ui/use-toast';
 import { Button } from '@shared/ui/button';
 import { Plus, FolderKanban, Loader2, LayoutGrid, Kanban } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -29,9 +31,11 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'pipeline'
   const [wizardDismissed, setWizardDismissed] = useState(false); // Enable dismissing the wizard
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
-  const { data: projects = [], isLoading: loadingProjects } = useQuery({
+  const { data: projects = [], isLoading: loadingProjects, isError, error } = useQuery({
     queryKey: ['projects'],
     queryFn: () => planter.entities.Project.list('-created_date'),
     enabled: !!user,
@@ -56,6 +60,9 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
     },
+    onError: (error) => {
+      toast({ title: 'Failed to create project', description: error.message, variant: 'destructive' });
+    }
   });
 
   const updateStatusMutation = useMutation({
@@ -65,16 +72,23 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
     },
     onError: (error) => {
-      console.error('Failed to update project status:', error);
-      // Optional: Add toast notification here
+      toast({
+        title: 'Failed to move project',
+        description: error.message,
+        variant: 'destructive',
+      });
     }
   });
 
   const handleCreateProject = async (projectData) => {
     try {
-      await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+      const project = await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+      // Redirect to the new project board
+      if (project?.id) {
+        navigate(`/project/${project.id}`);
+      }
     } catch (error) {
-      console.error('Create project failed:', error);
+      // Error handled by onError in useMutation, no need for console.error here
     }
   };
 
@@ -82,7 +96,7 @@ export default function Dashboard() {
     try {
       await updateStatusMutation.mutateAsync({ projectId, status: newStatus });
     } catch (error) {
-      console.error('Status move failed:', error);
+      // Error handled by onError in useMutation, no need for console.error here
       // If we had optimistic UI, we'd roll back here.
       // Since we rely on refetch, we might just need to ensure the board resets if error.
       queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -95,6 +109,20 @@ export default function Dashboard() {
       <DashboardLayout>
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <p className="text-destructive font-medium">Failed to load projects</p>
+          <p className="text-muted-foreground text-sm">{error?.message}</p>
+          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ['projects'] })}>
+            Retry
+          </Button>
         </div>
       </DashboardLayout>
     );

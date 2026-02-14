@@ -68,6 +68,9 @@ export default function Project() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
     },
+    onError: (error) => {
+      toast({ title: 'Failed to update task', description: error.message, variant: 'destructive' });
+    },
   });
 
   const deleteTaskMutation = useMutation({
@@ -76,6 +79,9 @@ export default function Project() {
       setSelectedTask(null);
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
       toast({ title: 'Task deleted', variant: 'default' });
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to delete task', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -87,7 +93,7 @@ export default function Project() {
     },
     onError: (err) => {
       console.error(err);
-      toast({ title: 'Failed to assign member', description: 'API might be missing', variant: 'destructive' });
+      toast({ title: 'Failed to assign member', description: err.message || 'API might be missing', variant: 'destructive' });
     }
   });
 
@@ -95,6 +101,9 @@ export default function Project() {
     mutationFn: (data) => planter.entities.Task.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to create task', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -160,8 +169,8 @@ export default function Project() {
       setAddTaskModal({ open: false, milestone: null, parentTask: null });
       toast({ title: 'Task created successfully', variant: 'default' });
     } catch (error) {
-      // toast({ title: 'Failed to create task', variant: 'destructive' });
-      // console.error(error);
+      toast({ title: 'Failed to create task', description: error.message, variant: 'destructive' });
+      console.error(error);
     }
   };
 
