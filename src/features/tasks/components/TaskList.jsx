@@ -8,19 +8,7 @@ import TaskDetailsView from '@features/tasks/components/TaskDetailsView';
 import InviteMemberModal from '@features/projects/components/InviteMemberModal';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from '@shared/ui/ErrorFallback';
-// ... imports
 
-// ... TaskList component code ...
-
-// Export wrapped component
-const TaskListWithErrorBoundary = (props) => (
-  <ErrorBoundary
-    FallbackComponent={ErrorFallback}
-    onReset={() => window.location.reload()}
-  >
-    <TaskList {...props} />
-  </ErrorBoundary>
-);
 import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@layouts/DashboardLayout';
@@ -265,7 +253,10 @@ const TaskList = () => {
 
 // Export wrapped component
 const TaskListWithErrorBoundary = (props) => (
-  <ErrorBoundary name="@features/tasks/components/TaskList">
+  <ErrorBoundary
+    FallbackComponent={ErrorFallback}
+    onReset={() => window.location.reload()}
+  >
     <TaskList {...props} />
   </ErrorBoundary>
 );
