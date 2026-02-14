@@ -5,7 +5,8 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@shared/lib/utils';
-import ErrorBoundary from '@shared/ui/ErrorBoundary';
+import { ErrorBoundary } from 'react-error-boundary';
+import ErrorFallback from '@shared/ui/ErrorFallback';
 import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
 import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
@@ -274,7 +275,10 @@ export const SortableTaskItem = function SortableTaskItem({ task, level, ...prop
         isDragging && 'shadow-xl rounded-xl z-50'
       )}
     >
-      <ErrorBoundary name={`Task-${task.id}`}>
+      <ErrorBoundary
+        FallbackComponent={ErrorFallback}
+        onReset={() => window.location.reload()}
+      >
         <TaskItem
           task={task}
           level={level}
