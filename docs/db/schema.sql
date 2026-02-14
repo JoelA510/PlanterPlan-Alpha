@@ -81,6 +81,8 @@ CREATE INDEX IF NOT EXISTS idx_tasks_root_id ON public.tasks(root_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON public.tasks(parent_task_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_is_locked ON public.tasks(is_locked);
 CREATE INDEX IF NOT EXISTS idx_tasks_is_premium ON public.tasks(is_premium);
+CREATE INDEX IF NOT EXISTS idx_tasks_creator ON public.tasks(creator);
+CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON public.tasks(assignee_id);
 
 -- ----------------------------------------------------------------------------
 -- PROJECT MEMBERS Table
@@ -142,6 +144,22 @@ CREATE TABLE IF NOT EXISTS public.people (
 );
 CREATE INDEX IF NOT EXISTS idx_people_project_id ON public.people(project_id);
 
+-- ----------------------------------------------------------------------------
+-- TASK RESOURCES Table
+-- Resources attached to tasks (files, links, text)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.task_resources (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  resource_type text,
+  resource_url text,
+  resource_text text,
+  storage_path text,
+  storage_bucket text,
+  created_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_task_resources_task_id ON public.task_resources(task_id);
+
 
 
 -- ============================================================================
@@ -161,6 +179,9 @@ SELECT
     NULL::text as storage_path,
     NULL::text as resource_name
 FROM public.tasks t;
+
+-- View Grants (required for PostgREST / Supabase API access)
+GRANT SELECT ON public.tasks_with_primary_resource TO authenticated, anon, service_role;
 
 -- MASTER LIBRARY View
 CREATE OR REPLACE VIEW public.view_master_library AS
@@ -187,6 +208,8 @@ SELECT
     t.primary_resource_id as resource_id
 FROM public.tasks t
 WHERE t.origin = 'template';
+
+GRANT SELECT ON public.view_master_library TO authenticated, anon, service_role;
 
 -- ============================================================================
 -- 3. FUNCTIONS & TRIGGERS
@@ -217,6 +240,9 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO service_role;
 
 -- RLS Helper: has_project_role
 -- Note: Uses p_project_id for clarity
@@ -416,6 +442,9 @@ BEGIN
 END;
 $$;
 
+GRANT EXECUTE ON FUNCTION public.invite_user_to_project(uuid, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.invite_user_to_project(uuid, text, text) TO service_role;
+
 -- Get Invite Details (Secure RPC for Anon)
 CREATE OR REPLACE FUNCTION public.get_invite_details(p_token uuid)
 RETURNS jsonb
@@ -488,6 +517,25 @@ CREATE TRIGGER trg_unlock_next_phase
 AFTER UPDATE OF status ON public.tasks
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_phase_completion();
+
+-- Auto-update updated_at timestamp
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_tasks_updated_at ON public.tasks;
+CREATE TRIGGER trg_tasks_updated_at
+  BEFORE UPDATE ON public.tasks
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_people_updated_at ON public.people;
+CREATE TRIGGER trg_people_updated_at
+  BEFORE UPDATE ON public.people
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- Auto-add creator as owner for Root Projects
 CREATE OR REPLACE FUNCTION public.handle_new_project_creation()
@@ -809,21 +857,47 @@ DROP POLICY IF EXISTS "View relationships" ON public.task_relationships;
 CREATE POLICY "View relationships" ON public.task_relationships
     FOR SELECT
     USING (
-        EXISTS (
-            SELECT 1 FROM public.project_members
-            WHERE project_members.project_id = task_relationships.project_id
-            AND project_members.user_id = (select auth.uid())
-        )
+        public.has_project_role(project_id, (select auth.uid()), ARRAY['owner','editor','coach','viewer','limited'])
+        OR public.is_admin((select auth.uid()))
     );
 
 DROP POLICY IF EXISTS "Manage relationships" ON public.task_relationships;
 CREATE POLICY "Manage relationships" ON public.task_relationships
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM public.project_members
-            WHERE project_members.project_id = task_relationships.project_id
-            AND project_members.user_id = (select auth.uid())
-            AND project_members.role IN ('owner', 'editor')
-        )
+        public.has_project_role(project_id, (select auth.uid()), ARRAY['owner','editor'])
+        OR public.is_admin((select auth.uid()))
     );
+
+-- ============================================================================
+-- TASK RESOURCES Table Policies
+-- ============================================================================
+
+ALTER TABLE public.task_resources ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "View resources" ON public.task_resources;
+CREATE POLICY "View resources" ON public.task_resources
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.tasks t
+      WHERE t.id = task_resources.task_id
+      AND (t.creator = (select auth.uid())
+        OR public.has_project_role(COALESCE(t.root_id, t.id), (select auth.uid()), ARRAY['owner','editor','coach','viewer','limited']))
+    )
+    OR public.is_admin((select auth.uid()))
+  );
+
+DROP POLICY IF EXISTS "Manage resources" ON public.task_resources;
+CREATE POLICY "Manage resources" ON public.task_resources
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.tasks t
+      WHERE t.id = task_resources.task_id
+      AND (t.creator = (select auth.uid())
+        OR public.has_project_role(COALESCE(t.root_id, t.id), (select auth.uid()), ARRAY['owner','editor']))
+    )
+    OR public.is_admin((select auth.uid()))
+  );
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.task_resources TO authenticated;
+GRANT ALL ON public.task_resources TO service_role;
