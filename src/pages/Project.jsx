@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { planter } from '@shared/api/planterClient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
@@ -118,7 +118,14 @@ export default function Project() {
 
   const sortedPhases = [...phases].sort((a, b) => (a.position || 0) - (b.position || 0));
   const activePhase = selectedPhase || sortedPhases[0];
-  const phaseMilestones = milestones
+  // [PERF] Memoize sorted milestones
+  const projectMilestones = useMemo(() =>
+    milestones?.filter((m) => m.project_id === projectId)
+      .sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) || [],
+    [milestones, projectId]
+  );
+
+  const phaseMilestones = projectMilestones
     .filter((m) => m.parent_task_id === activePhase?.id)
     .sort((a, b) => (a.position || 0) - (b.position || 0));
 

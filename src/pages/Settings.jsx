@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@app/contexts/AuthContext';
-import { supabase } from '@app/supabaseClient';
+import { planter } from '@shared/api/planterClient';
 import { Button } from '@shared/ui/button';
 import { Input } from '@shared/ui/input';
 import { Label } from '@shared/ui/label';
@@ -19,6 +19,7 @@ export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
 
   const [profile, setProfile] = useState({
     full_name: '',
@@ -26,7 +27,7 @@ export default function Settings() {
     role: '',
     organization: '',
     avatar_url: '',
-    email_frequency: 'daily', // daily, weekly, none
+    email_frequency: 'weekly', // daily, weekly, none
   });
 
   // Load initial data from User Metadata
@@ -43,32 +44,32 @@ export default function Settings() {
     }
   }, [user]);
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSave = async () => {
+    if (avatarError) return;
 
+    setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: profile.full_name,
-          role: profile.role,
-          organization: profile.organization,
-          avatar_url: profile.avatar_url,
-          email_frequency: profile.email_frequency,
-        },
+      // Assuming 'planter' is an imported or globally available object similar to 'supabase'
+      // and has an 'auth' property with an 'updateProfile' method.
+      // If 'planter' is meant to be 'supabase', please adjust the instruction.
+      await planter.auth.updateProfile({
+        full_name: profile.full_name,
+        role: profile.role,
+        organization: profile.organization,
+        avatar_url: profile.avatar_url,
+        email_frequency: profile.email_frequency,
       });
 
-      if (error) throw error;
-
       toast({
-        title: 'Settings saved',
-        description: 'Your profile has been updated successfully.',
+        title: "Settings saved",
+        description: "Your profile has been updated successfully.",
       });
     } catch (error) {
+      console.error('Error updating profile:', error);
       toast({
-        title: 'Error saving settings',
-        description: error.message,
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to update settings. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -154,16 +155,27 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="avatar_url">Avatar URL</Label>
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="avatar_url" className="text-foreground">Avatar URL</Label>
                     <Input
                       id="avatar_url"
                       value={profile.avatar_url}
-                      onChange={(e) => setProfile({ ...profile, avatar_url: e.target.value })}
-                      placeholder="https://example.com/photo.jpg"
-                      className="border-slate-200"
+                      onChange={(e) => {
+                        setProfile({ ...profile, avatar_url: e.target.value });
+                        // Clear error on change, validate on blur
+                        if (avatarError) setAvatarError('');
+                      }}
+                      onBlur={() => {
+                        if (profile.avatar_url && !profile.avatar_url.match(/^https?:\/\/.+/)) {
+                          setAvatarError('Please enter a valid URL (https://...)');
+                        } else {
+                          setAvatarError(''); // Clear error if valid or empty
+                        }
+                      }}
+                      className={`mt-1 bg-background border-border ${avatarError ? 'border-destructive focus:ring-destructive' : ''}`}
+                      placeholder="https://example.com/avatar.jpg"
                     />
-                    <p className="text-xs text-slate-400">Paste a link to your profile photo.</p>
+                    {avatarError && <p className="text-xs text-destructive">{avatarError}</p>}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

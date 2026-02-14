@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { planter } from '@shared/api/planterClient';
 import { createProjectWithDefaults, updateProjectStatus } from '@features/projects/services/projectService'; // Service import
@@ -36,6 +36,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: projects = [], isLoading: loadingProjects, isError, error } = useQuery({
     queryKey: ['projects'],
@@ -43,11 +45,36 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: () => planter.entities.Task.list(),
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ['allTasks'],
+    queryFn: () => planter.entities.Task.listByCreator(user?.id),
     enabled: !!user,
   });
+
+  // [PERF] Memoize filtered tasks to prevent re-computation on every render
+  const activeProjects = useMemo(() => {
+    return Array.isArray(projects) ? projects.filter(p => p.status === 'active') : [];
+  }, [projects]);
+
+  const filteredTasks = useMemo(() => {
+    if (!Array.isArray(allTasks)) return [];
+
+    // 1. Filter by Project (if selected)
+    let tasks = selectedProjectId
+      ? allTasks.filter(t => t.project_id === selectedProjectId)
+      : allTasks;
+
+    // 2. Filter by Search Query
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      tasks = tasks.filter(t =>
+        t.title.toLowerCase().includes(lowerQuery) ||
+        t.description?.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    return tasks;
+  }, [allTasks, selectedProjectId, searchQuery]);
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['teamMembers'],
@@ -189,8 +216,8 @@ export default function Dashboard() {
                 }}
               />
             )}
-            <MobileAgenda tasks={tasks} />
-            <StatsOverview projects={projects} tasks={tasks} teamMembers={teamMembers} />
+            <MobileAgenda tasks={filteredTasks} />
+            <StatsOverview projects={projects} tasks={filteredTasks} teamMembers={teamMembers} />
           </div>
         )}
 
@@ -220,7 +247,7 @@ export default function Dashboard() {
           ) : viewMode === 'pipeline' ? (
             <ProjectPipelineBoard
               projects={projects}
-              tasks={tasks}
+              tasks={filteredTasks}
               teamMembers={teamMembers}
               onStatusChange={handleStatusChange}
             />
@@ -246,7 +273,7 @@ export default function Dashboard() {
                       >
                         <ProjectCard
                           project={project}
-                          tasks={tasks.filter((t) => t.project_id === project.id)}
+                          tasks={filteredTasks.filter((t) => t.project_id === project.id)}
                           teamMembers={teamMembers.filter((m) => m.project_id === project.id)}
                         />
                       </motion.div>
@@ -270,7 +297,7 @@ export default function Dashboard() {
                         >
                           <ProjectCard
                             project={project}
-                            tasks={tasks.filter((t) => t.project_id === project.id)}
+                            tasks={filteredTasks.filter((t) => t.project_id === project.id)}
                             teamMembers={teamMembers.filter((m) => m.project_id === project.id)}
                           />
                         </motion.div>
