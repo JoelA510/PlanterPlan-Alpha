@@ -96,24 +96,28 @@ const ProjectSidebar = ({
       <div className="h-px bg-border mx-4"></div>
 
       {/* Top Actions Area */}
-      {isAdmin && (
-        <div className="px-4 py-4 space-y-2 border-b border-border">
-          <button
-            onClick={handleNewProject}
-            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            New Project
-          </button>
+      {/* Top Actions Area */}
+      <div className="px-4 py-4 space-y-2 border-b border-border">
+        <button
+          onClick={handleNewProject}
+          data-testid="sidebar-new-project-btn"
+          className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          New Project
+        </button>
+
+        {isAdmin && (
           <button
             onClick={handleNewTemplate}
+            data-testid="sidebar-new-template-btn"
             className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors shadow-sm"
           >
             <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -126,8 +130,8 @@ const ProjectSidebar = ({
             </svg>
             New Template
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Main Navigation Lists (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar" data-testid="project-switcher">

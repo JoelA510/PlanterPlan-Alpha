@@ -758,17 +758,33 @@ FOR SELECT USING (
 DROP POLICY IF EXISTS "Enable insert for authenticated users within project" ON public.tasks;
 CREATE POLICY "Enable insert for authenticated users within project" ON public.tasks 
 FOR INSERT WITH CHECK (
-    (auth.role() = 'authenticated' AND root_id IS NULL AND parent_task_id IS NULL AND creator = (select auth.uid()))
-    OR
-    public.has_project_role(root_id, (select auth.uid()), ARRAY['owner', 'editor'])
+    (
+        (auth.role() = 'authenticated' AND root_id IS NULL AND parent_task_id IS NULL AND creator = (select auth.uid()))
+        OR
+        public.has_project_role(root_id, (select auth.uid()), ARRAY['owner', 'editor'])
+    )
+    AND 
+    (
+        origin IS DISTINCT FROM 'template' 
+        OR 
+        public.is_admin((select auth.uid()))
+    )
 );
 
 DROP POLICY IF EXISTS "Enable update for users" ON public.tasks;
 CREATE POLICY "Enable update for users" ON public.tasks 
 FOR UPDATE USING (
-    creator = (select auth.uid())
-    OR 
-    public.has_project_role(COALESCE(root_id, id), (select auth.uid()), ARRAY['owner', 'editor'])
+    (
+        creator = (select auth.uid())
+        OR 
+        public.has_project_role(COALESCE(root_id, id), (select auth.uid()), ARRAY['owner', 'editor'])
+    )
+    AND 
+    (
+        origin IS DISTINCT FROM 'template' 
+        OR 
+        public.is_admin((select auth.uid()))
+    )
 );
 
 DROP POLICY IF EXISTS "Enable delete for users" ON public.tasks;

@@ -185,13 +185,16 @@ export const useTaskQuery = () => {
   useEffect(() => {
     isMountedRef.current = true;
     if (!authLoading && authUser) {
+      // Prevent refetch loop if user ID hasn't changed
+      if (authUser.id === currentUserId) return;
+
       setCurrentUserId(authUser.id);
       fetchProjects(1);
     }
     return () => {
       isMountedRef.current = false;
     };
-  }, [fetchProjects, authLoading, authUser]);
+  }, [fetchProjects, authLoading, authUser, currentUserId]);
 
   // Rollback / Invalidate helper for Optimistic UI
   const commitOptimisticUpdate = useCallback(
