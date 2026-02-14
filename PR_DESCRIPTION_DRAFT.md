@@ -15,6 +15,10 @@ mindmap
       RLS-safe RPC initialization
       Template & scratch flows
       Automatic redirect
+    Template System
+      Dedicated modal
+      URL-driven state
+      Category selection
     Task Hierarchy
       Recursive rendering
       Flat-to-tree transformation
@@ -71,7 +75,42 @@ sequenceDiagram
 
 ---
 
-## 2. Recursive Task Hierarchy
+## 2. Template System — Dedicated Creation Flow
+
+The "New Template" action is now decoupled from project creation, offering a specialized experience for building reusable assets.
+
+- **Dedicated Modal**: `CreateTemplateModal` focuses on title, description, and category (Checklist, Workflow, Blueprint).
+- **URL-Driven State**: Sidebar buttons navigate to `/dashboard?action=new-project` or `?action=new-template`, allowing the Dashboard to auto-open the correct modal. This bridges the architectural gap between the layout sidebar and the page-level modal state.
+
+```mermaid
+graph LR
+    subgraph "Navigation Layer"
+        A["Sidebar Button"] --> B["Navigate to\n/dashboard?action=..."]
+    end
+
+    subgraph "Page Layer (Dashboard.jsx)"
+        B --> C{Check URL Param}
+        C -- "action=new-project" --> D["Open CreateProjectModal"]
+        C -- "action=new-template" --> E["Open CreateTemplateModal"]
+    end
+
+    subgraph "Data Layer"
+        D --> F["Project Mutation\n(origin: 'instance')"]
+        E --> G["Template Mutation\n(origin: 'template')"]
+    end
+
+    style A fill:#f3e5f5,stroke:#7b1fa2
+    style C fill:#fff3e0,stroke:#f57c00
+    style F fill:#e3f2fd,stroke:#1565c0
+    style G fill:#e0f2f1,stroke:#00695c
+```
+
+**Files changed:**
+`CreateTemplateModal.jsx` · `Dashboard.jsx` · `ProjectSidebarContainer.jsx`
+
+---
+
+## 3. Recursive Task Hierarchy
 
 Tasks now render as an arbitrarily deep parent–child structure. Flat query results from the database are transformed into stable nested trees using shared helper utilities, enabling folder-like nesting at any depth.
 
@@ -95,7 +134,7 @@ graph TD
 
 ---
 
-## 3. Drag & Drop — Reorder, Reparent, and Date Inheritance
+## 4. Drag & Drop — Reorder, Reparent, and Date Inheritance
 
 Drag-and-drop supports two operations: **reordering** tasks within the same parent and **reparenting** tasks across milestones. When a task moves to a new time context, the **Date Inheritance Engine** calculates the calendar delta and shifts every date in the entire subtree accordingly.
 
@@ -126,7 +165,7 @@ sequenceDiagram
 
 ---
 
-## 4. Architecture — Feature-Sliced Design & Optimistic Recovery
+## 5. Architecture — Feature-Sliced Design & Optimistic Recovery
 
 The task domain is restructured along **Feature-Sliced Design** boundaries, separating data concerns from interaction behavior. Mutations follow a consistent optimistic update pattern with context-aware rollback, so the UI recovers instantly if a server request fails.
 
@@ -166,7 +205,7 @@ graph LR
 
 ---
 
-## 5. Reliability Hardening
+## 6. Reliability Hardening
 
 A collection of stability improvements across the application:
 
@@ -199,7 +238,7 @@ graph TD
 
 ---
 
-## 6. Theming — Semantic Design Tokens
+## 7. Theming — Semantic Design Tokens
 
 Key UI surfaces are migrated to semantic design tokens, ensuring components respond correctly to dark and light modes without hardcoded color values.
 
@@ -208,7 +247,7 @@ Key UI surfaces are migrated to semantic design tokens, ensuring components resp
 
 ---
 
-## 7. Database — Schema Hardening & Policy Hygiene
+## 8. Database — Schema Hardening & Policy Hygiene
 
 An audit of Supabase edge logs revealed **51 failing requests** across two root causes, which drove a comprehensive schema review covering permissions, missing objects, and performance.
 
@@ -292,7 +331,7 @@ RLS policy expressions also use `(select auth.uid())` patterns, improving Postgr
 
 ---
 
-## 8. Documentation & Workflows
+## 9. Documentation & Workflows
 
 | Document | Purpose |
 |:---------|:--------|
