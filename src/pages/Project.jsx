@@ -55,6 +55,8 @@ export default function Project() {
   });
 
   // Data Fetching via Hook
+  const { user } = useAuth();
+
   const {
     project,
     loadingProject,
