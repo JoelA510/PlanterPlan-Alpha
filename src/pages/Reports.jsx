@@ -13,14 +13,45 @@ import {
   AlertTriangle,
   Circle,
   TrendingUp,
-  BarChart,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import StatusPieChart from '@features/reports/components/StatusPieChart';
-import PhaseBarChart from '@features/reports/components/PhaseBarChart';
+
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from 'recharts';
 
 import DashboardLayout from '@layouts/DashboardLayout';
 import { TASK_STATUS } from '@app/constants/index';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+// Mock Data (since we are just styling now)
+const reports = {
+  projectProgress: [
+    { name: 'Alpha', progress: 75 },
+    { name: 'Beta', progress: 45 },
+    { name: 'Gamma', progress: 90 },
+  ],
+  taskDistribution: [
+    { name: 'To Do', value: 10 },
+    { name: 'In Progress', value: 20 },
+    { name: 'Done', value: 30 },
+  ],
+  upcomingDeadlines: [
+    { id: 1, title: 'Launch', project: 'Alpha', date: '2023-10-01', priority: 'High' },
+    { id: 2, title: 'Test', project: 'Beta', date: '2023-10-05', priority: 'Medium' },
+  ],
+};
 
 export default function Reports() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -191,8 +222,8 @@ export default function Reports() {
                 <Card className="p-8 mb-10 border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-md hover:shadow-xl transition-all duration-300">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900">Overall Progress</h3>
-                      <p className="text-sm text-slate-500 mt-1">
+                      <h3 className="text-xl font-bold text-foreground">Overall Progress</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
                         {completedTasks} of {totalTasks} tasks completed
                       </p>
                     </div>
@@ -201,28 +232,76 @@ export default function Reports() {
                       <span className="text-2xl font-bold text-green-700">{overallProgress}%</span>
                     </div>
                   </div>
-                  <Progress value={overallProgress} className="h-3 bg-slate-200" />
+                  <Progress value={overallProgress} className="h-3 bg-border" />
                 </Card>
               </motion.div>
 
-              <div className="grid lg:grid-cols-2 gap-8 mb-8">
-                {/* Task Distribution Pie Chart */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <StatusPieChart tasks={tasks} />
-                </motion.div>
+              <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-8">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Project Overview</h2>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={reports.projectProgress}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
+                      <Tooltip
+                        cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
+                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                      />
+                      <Bar dataKey="progress" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
-                {/* Phase Progress Bar Chart */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                >
-                  <PhaseBarChart data={phaseData} />
-                </motion.div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Task Status Distribution</h2>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={reports.taskDistribution}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {reports.taskDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Upcoming Deadlines</h2>
+                  <div className="space-y-4">
+                    {reports.upcomingDeadlines.map((task) => (
+                      <div key={task.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
+                        <div>
+                          <h4 className="font-medium text-foreground">{task.title}</h4>
+                          <p className="text-sm text-muted-foreground">{task.project}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-orange-600 dark:text-orange-400">{task.date}</p>
+                          <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'High' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            }`}>
+                            {task.priority}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Phase Details */}
@@ -232,27 +311,27 @@ export default function Reports() {
                 transition={{ delay: 0.7 }}
                 className="mt-8"
               >
-                <Card className="p-8 border border-slate-200 bg-white shadow-lg">
-                  <h3 className="text-xl font-bold text-slate-900 mb-8">Phase Details</h3>
+                <Card className="p-8 border border-border bg-card shadow-lg">
+                  <h3 className="text-xl font-bold text-foreground mb-8">Phase Details</h3>
                   <div className="space-y-6">
                     {phaseData.map((phase, index) => (
                       <div
                         key={index}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-orange-200 hover:bg-slate-50 transition-all duration-300"
+                        className="p-4 rounded-xl border border-border hover:border-orange-200 hover:bg-accent transition-all duration-300"
                       >
                         <div className="flex items-center gap-4 mb-3">
-                          <div className="w-24 text-sm font-semibold text-slate-700">{phase.name}</div>
+                          <div className="w-24 text-sm font-semibold text-foreground">{phase.name}</div>
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-slate-900 mb-2">{phase.fullName}</p>
+                            <p className="text-sm font-medium text-foreground mb-2">{phase.fullName}</p>
                             <div className="flex items-center gap-3">
-                              <Progress value={phase.progress} className="h-2.5 flex-1 bg-slate-200" />
+                              <Progress value={phase.progress} className="h-2.5 flex-1 bg-border" />
                               <span className="text-sm font-bold text-orange-600 w-14 text-right">
                                 {phase.progress}%
                               </span>
                             </div>
                           </div>
                         </div>
-                        <p className="text-xs text-slate-500 ml-28">
+                        <p className="text-xs text-muted-foreground ml-28">
                           {phase.completed} of {phase.total} tasks completed
                         </p>
                       </div>

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@app/contexts/AuthContext';
 import { supabase } from '@app/supabaseClient';
 import { Button } from '@shared/ui/button';
-import { Card } from '@shared/ui/card';
 import { Input } from '@shared/ui/input';
 import { Label } from '@shared/ui/label';
 import { useToast } from '@shared/ui/use-toast';
@@ -80,8 +79,8 @@ export default function Settings() {
     <DashboardLayout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Settings</h1>
-          <p className="text-slate-500 mt-1">Manage your account and app preferences</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Settings</h1>
+          <p className="text-muted-foreground mt-2">Manage your account and app preferences</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -97,9 +96,9 @@ export default function Settings() {
                 variant="ghost"
                 disabled={item.comingSoon}
                 className={`w-full justify-start ${item.active
-                  ? 'text-orange-600 bg-orange-50 font-semibold'
+                  ? 'text-brand-600 bg-brand-50 dark:bg-brand-950/20 dark:text-brand-400 font-semibold'
                   : 'text-muted-foreground'
-                  } ${item.comingSoon ? 'cursor-not-allowed opacity-70' : 'hover:text-slate-900'}`}
+                  } ${item.comingSoon ? 'cursor-not-allowed opacity-70' : 'hover:text-foreground hover:bg-muted'}`}
               >
                 <item.icon className="w-4 h-4 mr-2" />
                 {item.label}
@@ -110,35 +109,37 @@ export default function Settings() {
             ))}
           </div>
 
-          {/* Main Content */}
-          <div className="md:col-span-3 space-y-6">
+          {/* Content Area */}
+          <div className="md:col-span-3">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="p-6 border border-slate-200 bg-white shadow-sm">
+              <div className="bg-card rounded-xl border border-border shadow-sm p-6">
                 <div className="flex items-center gap-6 mb-8">
                   <div className="relative">
-                    <div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center border-2 border-white shadow-md overflow-hidden">
+                    <div className="w-24 h-24 bg-secondary rounded-2xl flex items-center justify-center border-2 border-background shadow-md overflow-hidden">
                       {profile.avatar_url ? (
                         <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
-                        <User className="w-10 h-10 text-slate-400" />
+                        <User className="w-10 h-10 text-muted-foreground" />
                       )}
                     </div>
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-slate-900">Personal Info</h2>
                     <p className="text-sm text-slate-500">Update your photo and personal details.</p>
+                    <h2 className="text-xl font-bold text-foreground">Personal Info</h2>
+                    <p className="text-sm text-muted-foreground">Update your photo and personal details.</p>
                   </div>
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="full_name">Full Name</Label>
+                      <Label htmlFor="full_name" className="text-foreground">Full Name</Label>
                       <Input
                         id="full_name"
                         value={profile.full_name}
                         onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                        className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
+                        className="mt-1 bg-background border-border"
                       />
                     </div>
                     <div className="space-y-2">
@@ -188,37 +189,34 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <div className="pt-6 border-t border-slate-100 mt-6 md:mt-8">
-                    <h3 className="text-md font-semibold text-slate-900 mb-4">Email Preferences</h3>
-                    <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-slate-100 p-2 rounded-lg">
-                          <Bell className="w-5 h-5 text-slate-600" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-slate-900">Email Notifications</div>
-                          <div className="text-sm text-slate-500">Receive updates about project activity.</div>
-                        </div>
+                  <div className="pt-6 border-t border-border">
+                    <h3 className="text-sm font-medium text-foreground mb-4">Email Preferences</h3>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Weekly Digest</p>
+                        <p className="text-sm text-muted-foreground">Get a summary of your tasks every Monday</p>
                       </div>
                       <Switch
-                        checked={profile.email_frequency !== 'none'}
-                        onCheckedChange={(checked) => setProfile({ ...profile, email_frequency: checked ? 'daily' : 'none' })}
+                        checked={profile.email_frequency === 'weekly'}
+                        onCheckedChange={(checked) =>
+                          setProfile({ ...profile, email_frequency: checked ? 'weekly' : 'never' })
+                        }
                       />
                     </div>
                   </div>
 
-                  <div className="pt-6 flex justify-end">
+                  <div className="pt-6 border-t border-border flex justify-end">
                     <Button
-                      type="submit"
+                      onClick={handleSave}
                       disabled={loading}
-                      className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20"
+                      className="bg-brand-600 hover:bg-brand-700 text-white"
                     >
-                      {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Save Changes
                     </Button>
                   </div>
                 </form>
-              </Card>
+              </div>
             </motion.div>
           </div>
         </div>
@@ -226,4 +224,3 @@ export default function Settings() {
     </DashboardLayout>
   );
 }
-

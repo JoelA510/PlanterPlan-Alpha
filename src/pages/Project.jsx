@@ -311,8 +311,8 @@ export default function Project() {
 
                   <div className="space-y-4">
                     {phaseMilestones.length === 0 ? (
-                      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
-                        <p className="text-slate-500">No milestones in this phase yet</p>
+                      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-border shadow-sm p-12 text-center">
+                        <p className="text-slate-500 dark:text-muted-foreground">No milestones in this phase yet</p>
                       </div>
                     ) : (
                       phaseMilestones.map((milestone) => (

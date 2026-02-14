@@ -188,7 +188,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-2xl p-8 border border-slate-200 hover:border-orange-300 transition-all hover:shadow-lg group"
+                className="bg-card rounded-2xl p-8 border border-border hover:border-brand-200 transition-all hover:shadow-lg group"
               >
                 <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-orange-500 transition-colors">
                   <CheckCircle2 className="w-6 h-6 text-orange-500 group-hover:text-white transition-colors" />
