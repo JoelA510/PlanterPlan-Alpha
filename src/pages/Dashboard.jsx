@@ -132,8 +132,9 @@ export default function Dashboard() {
     }
   };
 
-  if (loadingProjects || authLoading) {
 
+  if (loadingProjects || authLoading) {
+    console.log('[Dashboard] Rendering Loader');
     return (
       <DashboardLayout>
         <div className="flex justify-center py-20">
@@ -142,6 +143,7 @@ export default function Dashboard() {
       </DashboardLayout>
     );
   }
+  console.log('[Dashboard] Rendering Content');
 
   if (isError) {
     return (

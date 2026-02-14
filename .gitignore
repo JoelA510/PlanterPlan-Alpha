@@ -25,10 +25,10 @@ PlanterPlan.code-workspace
 .DS_Store
 
 # Logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # Documentation
 

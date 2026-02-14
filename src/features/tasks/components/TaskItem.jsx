@@ -90,6 +90,7 @@ const TaskItem = ({
         )}
         style={{ marginLeft: `${indentWidth}px` }}
         onClick={!isLocked ? handleCardClick : undefined}
+        data-testid={`task-row-${task.id}`}
       >
         <div className="flex items-center justify-between gap-4">
           {/* LEFT SIDE: Drag Handle, Expand, Info */}

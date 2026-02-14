@@ -15,20 +15,6 @@ The README documents the architecture and feature set using a modified Feature-S
 - Frontend: React 18 + Vite + Tailwind CSS v4. citeturn24view0
 - Database/auth: Supabase (Postgres) with Row Level Security (RLS) called out as enabled on `public.tasks` and `public.project_members`. citeturn24view0turn24view1
 - Test tooling: Vitest + React Testing Library (unit/integration at the UI level), and Playwright infrastructure is present via `playwright.config.ts` and an `e2e/` directory. citeturn24view0turn31view4
-
-## 4. Agentic Verification Layer (Manual/Hybrid)
-
-Due to environment constraints blocking standard stdio capture, we utilize a **Hybrid Verification Strategy**:
-
-1.  **Automated Specs**: We write standard Playwright specs (`e2e/**/*.spec.ts`) to serve as the source of truth and for local developer execution (`run_full_suite.sh`).
-2.  **Agentic Execution**: The AI Agent uses the **Browser Subagent** to manually execute the critical paths defined in `docs/operations/agent-test-scripts.md`.
-    *   **Pros**: Validates visual rendering, transitions, and "real" user interactions.
-    *   **Cons**: Slower than headless automation.
-3.  **Process**:
-    *   Dev/Agent writes code.
-    *   Agent checks `agent-test-scripts.md` for relevant flows.
-    *   Agent invokes `browser_subagent` to execute the flow.
-    *   Agent records the "Pass/Fail" result in `task.md` or PR description.
 - Noted external dependencies: Supabase (via `src/app/supabaseClient.js`) and `dnd-kit` for drag-and-drop. citeturn32view0turn23view3
 
 ### Key scripts / commands

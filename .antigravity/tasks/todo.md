@@ -1,50 +1,22 @@
 # Current Task & Execution Plan
 
 ## 📍 Current Objective
-> **Summary:** [Insert Summary of Current Goal]
-> **Status:** `PLANNING`
+> **Summary:** Execute "Deep Research" Testing Strategy (Regression Gating)
+> **Status:** `IN_PROGRESS`
 
 ---
 
-## 🔍 Phase 1: Context & FSD Check
-*Before implementation, validate the environment.*
+## 🔍 Phase 1: Foundation & Factories
+- [ ] **Scaffold:** Create `src/shared/test/factories` (Task, Project, User).
+- [ ] **Scaffold:** Create `renderWithProviders` helper in `src/shared/test/utils.jsx`.
+- [ ] **Audit:** Verify `vitest` config supports the "no network" default rule.
 
-- [ ] **Golden Paths Baseline:**
-    - *Result:* TBD
-    - *Warning:* Check for regressions in `[PlanterClient]`.
-- [ ] **Hotspot Identification:**
-    - *Source:* `tasks/lessons.md` & `DEBT_REPORT.md`.
+## 🧠 Phase 2: Core Domain Logic (P0 Unit)
+- [ ] **Tree Model:** Backfill tests for `buildTree` and `fetchTaskChildren` (deterministic).
+- [ ] **Deep Clone:** Verify `deepCloneTask` preserves structure and resets IDs.
+- [ ] **RLS Service:** Mocked integration tests for `projectService` permission handling.
 
----
-
-## 🧠 Phase 2: Reliability Hotspots (The "Fix" List)
-*Top Areas causing recent instability.*
-
-### 🔥 Hotspot 1: [Name]
-- **Problem:** [Description]
-- **Evidence:** [Lesson ID]
-- **Target:** [Solution]
-
----
-
-## 🛠️ Phase 3: Implementation (TDD Cycle)
-*Select a Hotspot to attack.*
-
-- [ ] **Attack Hotspot 1:**
-    - Test created? [ ]
-    - Implementation complete? [ ]
-
----
-
-## ✅ Phase 4: Verification & Impact Audit
-- [ ] **Regression Test:** Run `golden-paths.test.jsx`.
-- [ ] **Manual Verification:** [Specific Step].
-- [ ] **Documentation:** Update `tasks/lessons.md`.
-
----
-
-## 📂 Archive
-### Completed: Reliability Baseline (Previous)
-- [x] **Hotspot 1 (Network):** `retry` utility & client wrapping.
-- [x] **Hotspot 2 (Optimistic UI):** `useTaskBoard` rollback fix.
-- [x] **Hotspot 3 (Auth):** `AuthContext` consolidation.
+## 🛡️ Phase 3: E2E Hardening (Playwright)
+- [ ] **Smoke Suite:** Refactor `e2e/golden-paths.spec.ts` to match the "Smoke" definition in the strategy.
+- [ ] **Selectors:** Audit and add `data-testid` to Sidebar, TaskList, and PhaseCard.
+- [ ] **Config:** Ensure CI config matches the "Fast Fail" design.

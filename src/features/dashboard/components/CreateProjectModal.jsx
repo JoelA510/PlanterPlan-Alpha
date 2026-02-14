@@ -48,6 +48,12 @@ const templates = [
     description: 'Reproducing and multiplying congregations',
     icon: GitBranch,
   },
+  {
+    id: 'blank',
+    name: 'Start from scratch',
+    description: 'Empty project with no predefined tasks',
+    icon: Rocket, // Reusing Rocket or importing another if needed, but let's stick to existing imports or add one.
+  },
 ];
 
 export default function CreateProjectModal({ open, onClose, onCreate }) {

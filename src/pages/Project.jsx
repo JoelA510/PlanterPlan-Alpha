@@ -28,6 +28,7 @@ import PhaseCard from '@features/projects/components/PhaseCard';
 import MilestoneSection from '@features/projects/components/MilestoneSection';
 import AddTaskModal from '@features/projects/components/AddTaskModal';
 import TaskDetailsModal from '@features/projects/components/TaskDetailsModal';
+import InviteMemberModal from '@features/projects/components/InviteMemberModal';
 import { useTaskSubscription } from '@features/tasks/hooks/useTaskSubscription';
 import { resolveDragAssign } from '@features/projects/utils/dragUtils';
 
@@ -42,6 +43,7 @@ export default function Project() {
   const [activeDragMember, setActiveDragMember] = useState(null);
   // [NEW] Inline Task State
   const [inlineAddingParentId, setInlineAddingParentId] = useState(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -271,6 +273,7 @@ export default function Project() {
           tasks={tasks}
           teamMembers={teamMembers}
           canInvite={canInvite}
+          onInviteMember={() => setShowInviteModal(true)}
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -393,6 +396,17 @@ export default function Project() {
         allProjectTasks={tasks}
         canEdit={canEdit}
       />
+
+      {showInviteModal && (
+        <InviteMemberModal
+          project={project}
+          onClose={() => setShowInviteModal(false)}
+          onInviteSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+            // The modal handles its own success toast and close delay
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }

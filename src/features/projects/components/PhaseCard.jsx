@@ -65,6 +65,7 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
     <motion.div whileHover={{ scale: isLocked ? 1 : 1.02 }} whileTap={{ scale: isLocked ? 1 : 0.98 }} className="h-full">
       <Card
         onClick={isLocked ? undefined : onClick}
+        data-testid={`phase-card-${phase.id}`}
         className={cn(
           'p-5 transition-all duration-300 border-2 bg-card text-card-foreground h-full flex flex-col',
           isLocked

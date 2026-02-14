@@ -32,17 +32,16 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
     /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://127.0.0.1:3005',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
 
-    /* Run tests in headed mode by default */
-    headless: false,
+    headless: true,
 
-    /* Slow down execution interactions by 1000ms to allow visual inspection */
+    /* Standard execution speed for E2E */
     launchOptions: {
-      slowMo: 1000,
+      slowMo: 0,
     },
   },
 
@@ -86,8 +85,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run start',
-    url: 'http://localhost:3000',
+    command: 'VITE_E2E_MODE=true npm run start -- --port 3005',
+    url: 'http://127.0.0.1:3005',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },

@@ -130,7 +130,7 @@ const ProjectSidebar = ({
       )}
 
       {/* Main Navigation Lists (Scrollable) */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar" data-testid="project-switcher">
         {error && (
           <div className="p-3 mb-2 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg">
             ⚠️ {error}

@@ -10,6 +10,7 @@ import { ThemeProvider } from '@app/contexts/ThemeContext';
 import ViewAsProviderWrapper from '@app/contexts/ViewAsProviderWrapper';
 
 import SidebarSkeleton from '@features/navigation/components/SidebarSkeleton';
+import { AuthSeeder } from '@app/components/AuthSeeder';
 
 // Upstream/Legacy Feature Components
 import LoginForm from '@features/auth/components/LoginForm';
@@ -147,6 +148,7 @@ function App() {
     <div className="App min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
       <ThemeProvider>
         <AuthProvider>
+          {import.meta.env.VITE_E2E_MODE === 'true' && <AuthSeeder />}
           <ViewAsProviderWrapper>
             <ToastProvider>
               <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>
