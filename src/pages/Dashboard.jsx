@@ -95,7 +95,6 @@ export default function Dashboard() {
     }
   };
 
-  console.log('[Dashboard] Render. Loading:', { loadingProjects, authLoading, user: !!user });
 
   if (loadingProjects || authLoading) {
     console.log('[Dashboard] Rendering Loader');

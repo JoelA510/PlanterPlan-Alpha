@@ -35,10 +35,15 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
     setError(null);
 
     let result;
-    if (isEmail) {
-      result = await inviteMemberByEmail(project.id, userId, role);
-    } else {
-      result = await inviteMember(project.id, userId, role);
+    try {
+      if (isEmail) {
+        result = await inviteMemberByEmail(project.id, userId, role);
+      } else {
+        result = await inviteMember(project.id, userId, role);
+      }
+    } catch (err) {
+      console.error('[InviteMemberModal] Exception during invite:', err);
+      result = { error: err };
     }
 
     const { error: inviteError } = result;

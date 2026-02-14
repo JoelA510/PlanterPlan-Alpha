@@ -1,45 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { TEST_USERS } from '../fixtures/test-users';
-import crypto from 'crypto';
+import { signJWT, createSession, setupAuthenticatedState } from '../fixtures/e2e-helpers';
 
 /**
  * Task Management Journey E2E Test - Data-Verification Version
  */
 
-const SUPABASE_JWT_SECRET = 'super-secret-jwt-token-with-at-least-32-characters-long';
-
-function signJWT(payload) {
-    const header = { alg: 'HS256', typ: 'JWT' };
-    const encode = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    const toSign = `${encode(header)}.${encode(payload)}`;
-    const signature = crypto.createHmac('sha256', SUPABASE_JWT_SECRET).update(toSign).digest('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    return `${toSign}.${signature}`;
-}
-
 test.describe('Journey: Task Management', () => {
-    const jwtPayload = {
-        sub: 'test-user-id',
-        role: 'authenticated',
-        exp: Math.floor(Date.now() / 1000) + 3600 * 24 * 365,
-        app_metadata: { provider: 'email' },
-        user_metadata: { full_name: 'Test Owner' }
-    };
-    const validFakeJWT = signJWT(jwtPayload);
-
-    const fakeSession = {
-        access_token: validFakeJWT,
-        token_type: 'bearer',
-        expires_in: 3600,
-        refresh_token: 'fake-refresh-token',
-        user: {
-            id: 'test-user-id',
-            aud: 'authenticated',
-            role: 'authenticated',
-            email: TEST_USERS.OWNER.email,
-            app_metadata: { provider: 'email' },
-            user_metadata: { full_name: 'Test Owner' },
-        },
-    };
+    const fakeSession = createSession('OWNER', 'test-user-id');
 
     test.beforeEach(async ({ page }) => {
         page.on('console', msg => {
@@ -63,17 +31,6 @@ test.describe('Journey: Task Management', () => {
         await page.route('**/rest/v1/tasks_with_primary_resource*', route => route.fulfill({ status: 200, body: '[]' }));
         await page.route('**/rest/v1/task_resources*', route => route.fulfill({ status: 200, body: '[]' }));
     });
-
-    async function setupAuthenticatedState(page) {
-        await page.goto('/');
-        await expect(page.getByTestId('auth-seeder-active')).toBeAttached({ timeout: 10000 });
-
-        await page.evaluate((session) => {
-            window.dispatchEvent(new CustomEvent('SEED_AUTH', { detail: { session } }));
-        }, fakeSession);
-
-        await expect(page.getByTestId('auth-user-seeded')).toBeAttached({ timeout: 40000 });
-    }
 
     test('Owner can create a new task', async ({ page }) => {
         let testProjectTasks = [
@@ -113,17 +70,12 @@ test.describe('Journey: Task Management', () => {
             return route.fulfill({ status: 200, body: '{}' });
         });
 
-        await setupAuthenticatedState(page);
+        await setupAuthenticatedState(page, fakeSession);
         await page.goto('/project/test-project-id');
 
-        // Wait for the project header AND the board to be present
         await expect(page.getByRole('heading', { name: 'Test Project' })).toBeVisible({ timeout: 20000 });
         await expect(page.getByText('Milestone 1').first()).toBeVisible({ timeout: 20000 });
 
-        // Debug screenshot to see if button is visible
-        await page.screenshot({ path: 'e2e-debug-create-task.png' });
-
-        // Use a more robust locator and force click in case of overlay/animation
         await page.getByRole('button', { name: /Add Task/i }).first().click({ force: true });
 
         await page.getByLabel('Task Title *').fill('Validated New Task');
@@ -155,13 +107,17 @@ test.describe('Journey: Task Management', () => {
 
             if (method === 'PATCH' && url.includes('id=eq.task-1')) {
                 const postData = route.request().postDataJSON();
-                testProjectTasks[0] = { ...testProjectTasks[0], ...postData };
-                return route.fulfill({ status: 200, body: JSON.stringify([testProjectTasks[0]]) });
+                // Fix: update the correct task (task-1 = index 2), not index 0
+                const taskIdx = testProjectTasks.findIndex(t => t.id === 'task-1');
+                if (taskIdx >= 0) {
+                    testProjectTasks[taskIdx] = { ...testProjectTasks[taskIdx], ...postData };
+                    return route.fulfill({ status: 200, body: JSON.stringify([testProjectTasks[taskIdx]]) });
+                }
             }
             return route.fulfill({ status: 200, body: '{}' });
         });
 
-        await setupAuthenticatedState(page);
+        await setupAuthenticatedState(page, fakeSession);
         await page.goto('/project/test-id');
 
         await expect(page.getByText('Mutable Task').first()).toBeVisible({ timeout: 20000 });
@@ -184,7 +140,7 @@ test.describe('Journey: Task Management', () => {
             return route.fulfill({ body: '[]' });
         });
 
-        await setupAuthenticatedState(page);
+        await setupAuthenticatedState(page, fakeSession);
 
         await page.goto('/project/p-a');
         await expect(page.getByText('Unique Task A')).toBeVisible({ timeout: 20000 });

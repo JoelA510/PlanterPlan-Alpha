@@ -1,17 +1,17 @@
 export const TEST_USERS = {
     OWNER: {
-        email: 'planterplan.test@gmail.com',
-        password: 'roots99',
+        email: process.env.E2E_OWNER_EMAIL || 'planterplan.test@gmail.com',
+        password: process.env.E2E_OWNER_PASSWORD || 'roots99',
         role: 'owner',
     },
     EDITOR: {
-        email: 'tim.planterplan@gmail.com',
-        password: 'roots99(E',
+        email: process.env.E2E_EDITOR_EMAIL || 'tim.planterplan@gmail.com',
+        password: process.env.E2E_EDITOR_PASSWORD || 'roots99(E',
         role: 'editor',
     },
     VIEWER: {
-        email: 'planterplan.role_tester@mail.com',
-        password: 'roots99_role',
+        email: process.env.E2E_VIEWER_EMAIL || 'planterplan.role_tester@mail.com',
+        password: process.env.E2E_VIEWER_PASSWORD || 'roots99_role',
         role: 'viewer',
     },
 };
