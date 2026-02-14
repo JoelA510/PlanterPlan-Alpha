@@ -201,9 +201,13 @@ mindmap
       Navigation Domain
         App Sidebar
         Project Sidebar
+          New Project Button (?action=new-project)
+          New Template Button (?action=new-template)
         Header Bar
         ViewAs Selector
       Library Domain
+        Create Template Modal
+          Categories: Checklist, Workflow, Blueprint
         Template Browser
         Search and Filter
         Deep Clone to Instance
@@ -284,7 +288,8 @@ flowchart LR
 flowchart TD
     subgraph "User Actions"
         P1["Create Project (Scratch)"]
-        P2["Create Project (Template)"]
+        P2["Create Project (from Template)"]
+        P_NEW_TMP["Create New Template"]
         P3[Edit Project Settings]
         P4[Delete Project]
         P5[View Project Board]
@@ -305,6 +310,7 @@ flowchart TD
         PC_D["Project.delete()"]
         PC_CL["clone_project_template RPC"]
         PC_INIT["initialize_default_project RPC"]
+        PC_TC["Task.create() (origin='template')"]
     end
 
     subgraph "Database"
@@ -327,6 +333,8 @@ flowchart TD
 
     P2 --> TCS --> PC_CL --> DB_T
     PC_CL --> SE_MEMBER
+
+    P_NEW_TMP --> TS --> PC_TC --> DB_T
 
     P3 --> PS --> PC_U --> DB_T --> SE_CACHE
     P4 --> PS --> PC_D --> DB_T --> SE_CACHE
@@ -523,6 +531,8 @@ flowchart TD
         PPB[ProjectPipelineBoard]
         AS[AppSidebar]
         PS6[ProjectSidebar]
+        MD_PROJ[CreateProjectModal]
+        MD_TMP[CreateTemplateModal]
     end
 
     D1 --> AC2 --> PS3 --> PC2
@@ -537,6 +547,14 @@ flowchart TD
     D1 --> SO
 
     D8 & D9 & D10 --> AS
+
+    subgraph "URL Actions"
+        URL_NEW_PROJ["?action=new-project"]
+        URL_NEW_TMP["?action=new-template"]
+    end
+
+    PS6 --> URL_NEW_PROJ --> MD_PROJ
+    PS6 --> URL_NEW_TMP --> MD_TMP
 ```
 
 ### 3.7 Reporting & People Actions
@@ -735,3 +753,13 @@ All items from the Gap Analysis have been implemented across 5 atomic waves. Eac
 | Item | File | Status |
 |:-----|:-----|:------:|
 | Replace `Promise.race` timeout with `callWithTimeout(rpc, 10s)` for `is_admin` check | `AuthContext.jsx` | ✅ |
+
+### Wave 6: Template System & Schema Hardening
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 8.1 | Fix Sidebar "New Project/Template" buttons (were stubs) | `ProjectSidebarContainer.jsx` | ✅ |
+| 8.2 | URL-driven modal state (`?action=new-project`) | `Dashboard.jsx` | ✅ |
+| 8.3 | Dedicated `CreateTemplateModal` with categories | `CreateTemplateModal.jsx` | ✅ |
+| 8.4 | Fix `tasks_with_primary_resource` view permissions (RLS bug) | `schema.sql` | ✅ |
+| 8.5 | Added indexes for `creator` and `assignee_id` | `schema.sql` | ✅ |
