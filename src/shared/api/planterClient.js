@@ -216,7 +216,7 @@ export const planter = {
     // We provide placeholder me() to not break existing calls, but implementation usually handled by Context.
     me: async () => {
       // console.warn('[PlanterClient] auth.me() called - falling back to direct fetch'); // Removed: This is now the primary method.
-      const token = getSupabaseToken();
+      const token = await getSupabaseToken();
       if (!token) return null;
       try {
         const controller = new AbortController();
