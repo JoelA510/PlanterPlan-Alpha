@@ -14,5 +14,5 @@ description: Run the full E2E test suite using the Hybrid Verification strategy 
    - **Record**: Save the verification result (Pass/Fail) in the current task or PR description.
 
 3. **Reporting**:
-   - If issues are found, log them in `tasks/todo.md` or create a new issue.
+   - If issues are found, log them in `TODO.md` or create a new issue.
    - If all pass, mark the task as verified.

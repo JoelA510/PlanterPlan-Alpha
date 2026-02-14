@@ -43,8 +43,6 @@ Every file that gives meaningful context about this project, organized by role.
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [TEST_PLAN.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/TEST_PLAN.md) | Test strategy overview (unit, integration, E2E) | 🔵 Useful |
-| [testing-roadmap.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/testing-roadmap.md) | Test coverage tracker across all spec files | 🔵 Useful |
 | [testing-strategy.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/operations/testing-strategy.md) | Detailed testing methodology and patterns | 🔵 Useful |
 | [playwright-e2e-testing-system.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/playwright-e2e-testing-system.md) | E2E infrastructure reference (69K) | 🟡 Reference |
 | [e2e-helpers.ts](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/fixtures/e2e-helpers.ts) | Centralized test auth/mock helpers | 🔵 Useful |
@@ -81,10 +79,8 @@ Every file that gives meaningful context about this project, organized by role.
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
 | [DEBT_REPORT.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/DEBT_REPORT.md) | Technical debt log | 🟡 Reference |
-| [REFACTOR_PLAN.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/REFACTOR_PLAN.md) | Planned refactoring items | 🟡 Reference |
-| [lessons.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/tasks/lessons.md) | Engineering lessons learned (17K) | 🟡 Reference |
-| [todo.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/tasks/todo.md) | Active todo items | 🔵 Useful |
-| [ENGINEERING_KNOWLEDGE_ARCHIVE_2025.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/archive/docs/ENGINEERING_KNOWLEDGE_ARCHIVE_2025.md) | Archived engineering knowledge | 🟢 Low |
+| [LESSONS.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/LESSONS.md) | Engineering lessons learned — 260 entries of hard-won knowledge (17K) | 🔴 Critical |
+| [TODO.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/TODO.md) | Active backlog items | 🔵 Useful |
 
 ---
 
