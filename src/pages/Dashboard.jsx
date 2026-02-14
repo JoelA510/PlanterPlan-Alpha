@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { planter } from '@shared/api/planterClient';
 import { createProjectWithDefaults, updateProjectStatus } from '@features/projects/services/projectService'; // Service import
 import { useAuth } from '@app/contexts/AuthContext';
@@ -38,6 +38,18 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Auto-open modal when navigated with ?action=new-project or ?action=new-template
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'new-project' || action === 'new-template') {
+      setShowCreateModal(true);
+      // Clean up the URL param so it doesn't re-trigger
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: projects = [], isLoading: loadingProjects, isError, error } = useQuery({
     queryKey: ['projects'],

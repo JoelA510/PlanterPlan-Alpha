@@ -57,13 +57,11 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) 
     };
 
     const handleNewProjectClick = () => {
-        navigate('/dashboard');
-        // In a real app, this might open the create modal on the dashboard
-        // For now, we redirect to dashboard where the FAB/Button is.
+        navigate('/dashboard?action=new-project');
     };
 
     const handleNewTemplateClick = () => {
-        navigate('/dashboard');
+        navigate('/dashboard?action=new-template');
     };
 
     return (
