@@ -820,3 +820,80 @@ Playwright is configured to target `localhost:3000` with the Chromium project.
 ---
 
 *This document is auto-generated from the codebase at HEAD. For operational guides, see `docs/operations/`. For the database DDL, see `docs/db/schema.sql`.*
+
+---
+
+## 17. Component Diagrams (Legacy Reference)
+
+These diagrams detail specific internal structures of complex modules.
+
+### 17.1 Project Page Architecture
+
+The `Project` module (`src/pages/Project.jsx`) uses a composition of specialized hooks and UI components.
+
+```mermaid
+graph TD
+    subgraph Page [Project Page Layer]
+        PageComp[Project.jsx]
+        Tabs[ProjectTabs.jsx]
+        Header[ProjectHeader.jsx]
+    end
+
+    subgraph Logic [Business Logic Layer]
+        Hook[useProjectData.js]
+        Sub[useTaskSubscription.js]
+    end
+
+    subgraph Feature [Feature Widgets]
+        Board[Task Board UI]
+        Budget[BudgetWidget]
+        People[PeopleList]
+        Assets[AssetList]
+    end
+
+    PageComp -->|Data Consumption| Hook
+    PageComp -->|Realtime Events| Sub
+    
+    PageComp -->|Renders| Header
+    PageComp -->|Renders| Tabs
+    
+    PageComp -->|Conditional Render| Board
+    PageComp -->|Conditional Render| Budget
+    PageComp -->|Conditional Render| People
+    PageComp -->|Conditional Render| Assets
+
+    Hook -->|Fetches| Supabase[(Supabase DB)]
+```
+
+### 17.2 Task List Facade
+
+The `TaskList` (`src/features/tasks/components/TaskList.jsx`) serves as the main application dashboard logic.
+
+```mermaid
+graph TD
+    subgraph Container [TaskList Container]
+        List[TaskList.jsx]
+        Sidebar[ProjectSidebar]
+        MainView[ProjectTasksView]
+        Details[TaskDetailsPanel]
+        Empty[NoProjectSelected]
+    end
+
+    subgraph Facade [Logic Facade]
+        Hook[useTaskBoard Hook]
+    end
+
+    subgraph Internals [Internal Hooks]
+        Drag[useTaskDrag]
+        Ops[useTaskOperations]
+    end
+
+    List -->|Delegates Logic| Hook
+    Hook -->|Composes| Drag
+    Hook -->|Composes| Ops
+
+    List -->|Renders| Sidebar
+    List -->|Renders| MainView
+    List -->|Renders| Details
+    List -->|Renders| Empty
+```

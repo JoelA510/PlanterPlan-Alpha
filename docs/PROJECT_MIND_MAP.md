@@ -1,6 +1,6 @@
 # PlanterPlan — Project Mind Map
 
-> **Generated**: 2026-02-13  
+> **Last Updated**: 2026-02-14  
 > **Purpose**: A complete catalog of context files + a visual breakdown of all actions, data flows, and component interactions across the application.
 
 ---
@@ -13,8 +13,7 @@ Every file that gives meaningful context about this project, organized by role.
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [FULL_ARCHITECTURE.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/FULL_ARCHITECTURE.md) | **Single Source of Truth** — 823-line deep reference covering tech stack, FSD structure, provider tree, API adapter, all 11 feature domains, DB schema, security model, realtime flow, and ADRs | 🔴 Critical |
-| [ARCHITECTURE.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/ARCHITECTURE.md) | Legacy component diagrams (superseded by FULL_ARCHITECTURE) | 🟡 Reference |
+| [FULL_ARCHITECTURE.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/FULL_ARCHITECTURE.md) | **Single Source of Truth** — 900+ line deep reference covering tech stack, FSD structure, provider tree, API adapter, all 11 feature domains, DB schema, security model, realtime flow, ADRs, and legacy component diagrams | 🔴 Critical |
 | [repo-context.yaml](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/repo-context.yaml) | Machine-readable semantic dependency graph, behavior specs, contracts, state machines, and health metrics | 🔴 Critical |
 | [AGENT_CONTEXT.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/AGENT_CONTEXT.md) | Quick-start codebase map for AI agents — directory structure, key patterns, golden path files | 🔵 Useful |
 
@@ -27,7 +26,6 @@ Every file that gives meaningful context about this project, organized by role.
 | [README.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/README.md) | Project overview, setup instructions, feature summary | 🔴 Critical |
 | [roadmap.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/roadmap.md) | Full project history timeline, UX workflow status, future phases (5–11), and feature parity checklist | 🔴 Critical |
 | [deep-research-report.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/deep-research-report.md) | Deep competitive/market research analysis | 🟡 Reference |
-| [spec.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/spec.md) | Legacy spec stub — redirects to ARCHITECTURE + AGENT_CONTEXT | 🟢 Low |
 
 ---
 
@@ -109,6 +107,8 @@ mindmap
     Auth & Access
       Supabase GoTrue
       AuthContext
+        callWithTimeout 10s guard
+        Bounded admin-role RPC
       JWT via localStorage
       5 RBAC Roles
         Owner
@@ -116,6 +116,9 @@ mindmap
         Coach
         Viewer
         Limited
+      Client-Side RBAC Guards
+        canEdit permission gating
+        Disabled controls for Viewers
       RLS on All Tables
       Admin Users Table
     Data Layer
@@ -123,6 +126,7 @@ mindmap
         Raw Fetch to REST API
         Entity Client Factory
         6 Registered Entities
+        auth.updateProfile adapter
       Supabase PostgreSQL
         tasks table
         project_members
@@ -147,12 +151,36 @@ mindmap
         AuthProvider
         ViewAsWrapper
         ToastProvider
-        ErrorBoundary
+        ErrorBoundary react-error-boundary
       React Router v7
         7 Protected Routes
         2 Public Routes
       React Query Cache
+        Global staleTime 2min
+        Bounded retry 1
+        refetchOnWindowFocus disabled
       Realtime Subscriptions
+    Robustness Layer
+      Error Handling
+        onError toast on all mutations
+        isError state on queries
+        No swallowed errors
+      Validation
+        Project Name required
+        Avatar URL regex
+        Zod schema checks
+      Performance
+        useMemo Dashboard grouping
+        useMemo Project sorting
+      Theme Consistency
+        Semantic design tokens
+        bg-card text-card-foreground
+        Full dark mode support
+      UX Completeness
+        Delete confirmations
+        GettingStarted dismiss persist
+        Coming Soon tab badges
+        Loading states on modals
     Feature Domains
       Tasks Domain
         Task CRUD
@@ -644,7 +672,6 @@ stateDiagram-v2
         Hovering --> Dropped: mouseup on zone
         Dropped --> Idle: cleanup
     }
-
     state "Template Clone" as TC {
         [*] --> SelectTemplate
         SelectTemplate --> ConfigureProject: template chosen
@@ -654,3 +681,61 @@ stateDiagram-v2
         Error --> SelectTemplate: retry
     }
 ```
+
+---
+
+## 7. Robustness Hardening Audit — All 22 Items ✅
+
+All items from the Gap Analysis have been implemented across 5 atomic waves. Each item is verified present in source.
+
+### Wave 1: Error Handling & User Feedback
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 1.1 | `onError` toast on all 4 mutations (update, delete, create task + create project) | `Project.jsx`, `Dashboard.jsx` | ✅ |
+| 1.2 | Un-swallow errors in `handleAddTask` | `Project.jsx` | ✅ |
+| 1.3 | `isError` + retry state on Dashboard projects query | `Dashboard.jsx` | ✅ |
+| 1.5 | Remove debug `console.log` from Dashboard | `Dashboard.jsx` | ✅ |
+| 1.6 | Toast on `updateStatusMutation` `onError` | `Dashboard.jsx` | ✅ |
+
+### Wave 2: Architectural Hygiene
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 6.2 | Global `QueryClient` defaults (`staleTime: 2min`, `retry: 1`, `refetchOnWindowFocus: false`) | `main.jsx` | ✅ |
+| 6.3 | Standardize on `react-error-boundary` (removed custom `ErrorBoundary.jsx`) | `App.jsx`, `TaskList.jsx`, `TaskItem.jsx` | ✅ |
+
+### Wave 3: RBAC Guards & UX Completeness
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 1.4 | Delete confirmation for tasks (`window.confirm`) | `Project.jsx` | ✅ |
+| 3.1 | Client-side `canEdit` RBAC guards (disable edits for viewers) | `Project.jsx` | ✅ |
+| 3.2 | Settings navigation tabs → "Coming Soon" badge + disabled | `Settings.jsx` | ✅ |
+| 5.1 | Loading state on `InviteMemberModal` submit | `InviteMemberModal.jsx` | ✅ |
+| 5.2 | No-op handlers reviewed in `TaskDetailsModal` | `Project.jsx` | ✅ |
+| 5.3 | `GettingStartedWidget` dismiss persisted to `localStorage` | `Dashboard.jsx` | ✅ |
+
+### Wave 4: Dark Mode Token Migration
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 2.1 | `Project.jsx` → semantic tokens (`bg-card`, `text-card-foreground`, `border-border`) | `Project.jsx` | ✅ |
+| 2.2 | `Settings.jsx` & `Reports.jsx` → semantic tokens | `Settings.jsx`, `Reports.jsx` | ✅ |
+| 2.3 | `Home.jsx` → semantic tokens | `Home.jsx` | ✅ |
+
+### Wave 5: Validation, Architecture & Performance
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 4.1 | Client-side validation on Project Name (required) | `CreateProjectModal.jsx` | ✅ |
+| 4.2 | Avatar URL regex validation on blur | `Settings.jsx` | ✅ |
+| 6.1 | Route profile updates through `planter.auth.updateProfile()` (removed raw Supabase import) | `Settings.jsx`, `planterClient.js` | ✅ |
+| 7.1 | Memoize Dashboard task/member filtering via `useMemo` | `Dashboard.jsx` | ✅ |
+| 7.2 | Memoize sorted phases/milestones via `useMemo` | `Project.jsx` | ✅ |
+
+### Auth Stabilization (Cross-Cutting)
+
+| Item | File | Status |
+|:-----|:-----|:------:|
+| Replace `Promise.race` timeout with `callWithTimeout(rpc, 10s)` for `is_admin` check | `AuthContext.jsx` | ✅ |
