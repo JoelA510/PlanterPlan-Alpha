@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 
 import ProjectCard from '@features/dashboard/components/ProjectCard';
 import CreateProjectModal from '@features/dashboard/components/CreateProjectModal';
+import CreateTemplateModal from '@features/dashboard/components/CreateTemplateModal';
 import StatsOverview from '@features/dashboard/components/StatsOverview';
 import ProjectPipelineBoard from '@features/dashboard/components/ProjectPipelineBoard';
 import OnboardingWizard from '@features/onboarding/components/OnboardingWizard';
@@ -28,6 +29,7 @@ const item = {
 
 export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'pipeline'
   const [wizardDismissed, setWizardDismissed] = useState(() => {
     return localStorage.getItem('gettingStartedDismissed') === 'true';
@@ -43,9 +45,12 @@ export default function Dashboard() {
   // Auto-open modal when navigated with ?action=new-project or ?action=new-template
   useEffect(() => {
     const action = searchParams.get('action');
-    if (action === 'new-project' || action === 'new-template') {
+    if (action === 'new-project') {
       setShowCreateModal(true);
-      // Clean up the URL param so it doesn't re-trigger
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    } else if (action === 'new-template') {
+      setShowTemplateModal(true);
       searchParams.delete('action');
       setSearchParams(searchParams, { replace: true });
     }
@@ -121,6 +126,17 @@ export default function Dashboard() {
     }
   });
 
+  const createTemplateMutation = useMutation({
+    mutationFn: (templateData) => planter.entities.Task.create({ ...templateData, creator: user?.id, origin: 'template', parent_task_id: null }),
+    onSuccess: () => {
+      toast({ title: 'Template created', description: 'Your new template is ready.' });
+      queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Templates are in sidebar
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to create template', description: error.message, variant: 'destructive' });
+    }
+  });
+
   const handleCreateProject = async (projectData) => {
     try {
       const project = await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
@@ -130,6 +146,14 @@ export default function Dashboard() {
       }
     } catch (error) {
       // Error handled by onError in useMutation, no need for console.error here
+    }
+  };
+
+  const handleCreateTemplate = async (templateData) => {
+    try {
+      await createTemplateMutation.mutateAsync({ ...templateData, creator: user?.id });
+    } catch (error) {
+      // Error handled via Mutation onError
     }
   };
 
@@ -327,6 +351,12 @@ export default function Dashboard() {
           open={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateProject}
+        />
+
+        <CreateTemplateModal
+          open={showTemplateModal}
+          onClose={() => setShowTemplateModal(false)}
+          onCreate={handleCreateTemplate}
         />
 
         <OnboardingWizard
