@@ -1,5 +1,4 @@
-// import { supabase } from '@app/supabaseClient'; // Singleton appears broken in browser environment (AbortError)
-// import { createClient } from '@supabase/supabase-js'; // REMOVED to avoid Multiple GoTrueClient conflict
+import { supabase } from '@app/supabaseClient';
 import { retry } from '../lib/retry.js';
 
 const getEnv = (key) => {
@@ -159,10 +158,17 @@ const createEntityClient = (tableName, select = '*') => ({
 
 
 
-// Helper to get token from localStorage (bypass broken supabase client)
-const getSupabaseToken = () => {
+// Helper to get token from Supabase auth session (primary) or localStorage (fallback)
+const getSupabaseToken = async () => {
+  // Primary: use official Supabase client session
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) return session.access_token;
+  } catch (e) {
+    console.warn('[PlanterClient] getSession() failed, falling back to localStorage scan', e);
+  }
+  // Fallback: localStorage scan for legacy or edge cases
   if (typeof window === 'undefined') return null;
-  // Scan for Supabase session key
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
@@ -179,7 +185,7 @@ const getSupabaseToken = () => {
 
 // Raw Fetch Wrapper for robustness against Supabase Client AbortErrors
 const rawSupabaseFetch = async (endpoint, options = {}, explicitToken = null) => {
-  const token = explicitToken || getSupabaseToken();
+  const token = explicitToken || await getSupabaseToken();
   if (!token) throw new Error('No auth token available for raw fetch');
 
   const url = `${supabaseUrl}/rest/v1/${endpoint}`;

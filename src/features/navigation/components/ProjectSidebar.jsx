@@ -30,7 +30,7 @@ const ProjectSidebar = ({
   const location = useLocation();
   const navigate = useNavigate();
   // Simple check for admin role (assuming user.role exists from DB/Auth)
-  const isAdmin = user?.role === ROLES.ADMIN;
+  const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.OWNER;
 
   const handleTaskClickWrapped = (task) => {
     handleSelectProject(task);
