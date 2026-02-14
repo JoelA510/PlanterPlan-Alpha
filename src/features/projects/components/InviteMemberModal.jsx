@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { inviteMember, inviteMemberByEmail } from '@features/projects/services/projectService';
 import { ROLES } from '@app/constants/index';
+import { Loader2 } from 'lucide-react';
 
 const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
   const [userId, setUserId] = useState('');
@@ -131,9 +132,10 @@ const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {
             </button>
             <button
               type="submit"
-              className="rounded-md border border-transparent bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+              className="rounded-md border border-transparent bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 flex items-center"
               disabled={isSubmitting}
             >
+              {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isSubmitting ? 'Inviting...' : 'Send Invite'}
             </button>
           </div>

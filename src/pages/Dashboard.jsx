@@ -29,7 +29,9 @@ const item = {
 export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'pipeline'
-  const [wizardDismissed, setWizardDismissed] = useState(false); // Enable dismissing the wizard
+  const [wizardDismissed, setWizardDismissed] = useState(() => {
+    return localStorage.getItem('gettingStartedDismissed') === 'true';
+  });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -177,7 +179,14 @@ export default function Dashboard() {
               <GettingStartedWidget
                 project={projects[0]} // Primary/First project
                 teamMembers={teamMembers.filter(m => m.project_id === projects[0].id)}
-                onDismiss={() => { }}
+                onDismiss={() => {
+                  setWizardDismissed(true);
+                  // Optional: Persist to localStorage if we want it to survive reloads
+                  // localStorage.setItem('gettingStartedDismissed', 'true'); 
+                  // For now, session-based dismissal (until refresh) is acceptable, 
+                  // but let's persist it to be robust as requested.
+                  localStorage.setItem('gettingStartedDismissed', 'true');
+                }}
               />
             )}
             <MobileAgenda tasks={tasks} />

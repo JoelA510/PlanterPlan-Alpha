@@ -5,7 +5,8 @@ import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
 import { useToast } from '@shared/ui/use-toast';
-import { TASK_STATUS } from '@app/constants/index';
+import { useAuth } from '@app/contexts/AuthContext';
+import { TASK_STATUS, ROLES } from '@app/constants/index';
 import { createPortal } from 'react-dom';
 import {
   DndContext,
@@ -62,6 +63,12 @@ export default function Project() {
     tasks,
     teamMembers,
   } = useProjectData(projectId);
+
+  // [NEW] RBAC Logic
+  const currentMember = teamMembers?.find((m) => m.user_id === user?.id);
+  const userRole = currentMember?.role || ROLES.VIEWER;
+  const canEdit = [ROLES.OWNER, ROLES.EDITOR, ROLES.ADMIN].includes(userRole);
+  const canInvite = [ROLES.OWNER, ROLES.ADMIN].includes(userRole);
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }) => planter.entities.Task.update(id, data),
@@ -250,22 +257,23 @@ export default function Project() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <ProjectHeader project={project} tasks={tasks} teamMembers={teamMembers} />
+        <ProjectHeader
+          project={project}
+          tasks={tasks}
+          teamMembers={teamMembers}
+          canInvite={canInvite}
+        />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-
-
-          {/* Tabs */}
-          {/* Tabs */}
+          {/* ... tabs ... */}
           <ProjectTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
           {/* Board Tab */}
           {activeTab === 'board' && (
-            // ... board content ...
             <>
               {/* Phase Selection */}
               <div className="mb-8">
+                {/* ... phases grid ... */}
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">Phases</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {sortedPhases.map((phase) => (
@@ -284,7 +292,6 @@ export default function Project() {
               {/* Milestones & Tasks */}
               {activePhase && (
                 <motion.div
-                  // ... (rest of board content)
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
@@ -314,13 +321,12 @@ export default function Project() {
                           onTaskUpdate={handleTaskUpdate}
                           onToggleExpand={handleToggleExpand}
                           onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
-                          // [MODIFIED] Use inline handler for subtasks
                           onAddChildTask={handleStartInlineAdd}
                           onTaskClick={handleTaskClick}
                           phase={activePhase}
-                          // [NEW] Props for inline
                           onInlineCommit={handleInlineCommit}
                           onInlineCancel={() => setInlineAddingParentId(null)}
+                          canEdit={canEdit}
                         />
                       ))
                     )}
@@ -335,12 +341,9 @@ export default function Project() {
             <PeopleList projectId={projectId} />
           )}
 
-
-
-
         </div>
 
-        {/* Drag Overlay for feedback */}
+        {/* ... drag overlay ... */}
         {createPortal(
           <DragOverlay>
             {activeDragMember && (
@@ -370,11 +373,16 @@ export default function Project() {
         task={selectedTask}
         isOpen={!!selectedTask}
         onClose={() => setSelectedTask(null)}
-        onAddChildTask={() => { }} // Not implemented yet inside details
-        onEditTask={() => { }} // Managed inside details view logic or parent
-        onDeleteTask={(t) => deleteTaskMutation.mutate(t.id)}
+        onAddChildTask={() => { }}
+        onEditTask={() => { }}
+        onDeleteTask={(t) => {
+          if (window.confirm(`Delete "${t.title || 'this task'}"? This cannot be undone.`)) {
+            deleteTaskMutation.mutate(t.id);
+          }
+        }}
         onTaskUpdated={(id, data) => updateTaskMutation.mutate({ id, data })}
         allProjectTasks={tasks}
+        canEdit={canEdit}
       />
     </DashboardLayout>
   );

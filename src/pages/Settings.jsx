@@ -9,7 +9,6 @@ import { useToast } from '@shared/ui/use-toast';
 import { Switch } from '@shared/ui/switch';
 import {
   User,
-  Mail,
   Lock,
   Bell,
   Loader2,
@@ -90,19 +89,23 @@ export default function Settings() {
           <div className="md:col-span-1 space-y-1">
             {[
               { label: 'Profile', icon: User, active: true },
-              { label: 'Notifications', icon: Mail },
-              { label: 'Security', icon: Lock },
+              { label: 'Notifications', icon: Bell, comingSoon: true },
+              { label: 'Security', icon: Lock, comingSoon: true },
             ].map((item) => (
               <Button
                 key={item.label}
                 variant="ghost"
+                disabled={item.comingSoon}
                 className={`w-full justify-start ${item.active
-                    ? 'text-orange-600 bg-orange-50 font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  ? 'text-orange-600 bg-orange-50 font-semibold'
+                  : 'text-muted-foreground'
+                  } ${item.comingSoon ? 'cursor-not-allowed opacity-70' : 'hover:text-slate-900'}`}
               >
                 <item.icon className="w-4 h-4 mr-2" />
                 {item.label}
+                {item.comingSoon && (
+                  <span className="ml-auto text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Soon</span>
+                )}
               </Button>
             ))}
           </div>

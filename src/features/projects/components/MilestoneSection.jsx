@@ -16,6 +16,7 @@ export default function MilestoneSection({
   onTaskClick,
   onInlineCommit,
   onInlineCancel,
+  canEdit = true, // Default to true if not passed for backward compat
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -76,7 +77,13 @@ export default function MilestoneSection({
               {milestoneTasks.length === 0 ? (
                 <div className="py-8 text-center">
                   <p className="text-slate-500 mb-4">No tasks yet</p>
-                  <Button variant="outline" size="sm" onClick={() => onAddTask(milestone)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAddTask(milestone)}
+                    disabled={!canEdit}
+                    title={!canEdit ? "You need permissions to add tasks" : undefined}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Task
                   </Button>
@@ -100,8 +107,10 @@ export default function MilestoneSection({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full text-slate-500 hover:text-slate-700 mt-2"
+                    className="w-full text-slate-500 hover:text-slate-700 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => onAddTask(milestone)}
+                    disabled={!canEdit}
+                    title={!canEdit ? "You need permissions to add tasks" : undefined}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Task
