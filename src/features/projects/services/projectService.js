@@ -136,50 +136,65 @@ export async function createProject(projectData) {
 }
 
 export async function createProjectWithDefaults(projectData) {
+  console.log('[ProjectService] createProjectWithDefaults called with:', JSON.stringify(projectData, null, 2));
+
   // Get creator from arguments (preferred) or fallback to auth
   let creatorId = projectData.creator;
   let token = projectData._token;
 
-  // We can't use supabase.auth calls here if we want to be pure.
-  // But we need the USER ID.
   if (!creatorId) {
     const me = await planter.auth.me();
     creatorId = me?.id;
   }
 
   if (!creatorId) throw new Error('User must be logged in to create a project');
+  console.log('[ProjectService] Step 1: Creator resolved:', creatorId);
 
   // 1. Create the Project container
-  const project = await planter.entities.Project.create({
-    ...projectData,
-    launch_date: (() => {
-      if (!projectData.launch_date) return null;
-      const date = new Date(projectData.launch_date);
-      if (isNaN(date.getTime())) throw new Error('Invalid launch_date provided');
-      return date.toISOString().split('T')[0];
-    })(),
-    creator: creatorId,
-    _token: token
-  });
+  let project;
+  try {
+    project = await planter.entities.Project.create({
+      ...projectData,
+      launch_date: (() => {
+        if (!projectData.launch_date) return null;
+        const date = new Date(projectData.launch_date);
+        if (isNaN(date.getTime())) throw new Error('Invalid launch_date provided');
+        return date.toISOString().split('T')[0];
+      })(),
+      creator: creatorId,
+      _token: token
+    });
+    console.log('[ProjectService] Step 2: Project INSERT succeeded:', JSON.stringify(project, null, 2));
+  } catch (insertError) {
+    console.error('[ProjectService] Step 2 FAILED: Project INSERT error:', insertError);
+    throw insertError;
+  }
+
+  if (!project?.id) {
+    console.error('[ProjectService] Step 2 FAILED: No project.id returned. Raw value:', project);
+    throw new Error('Project creation failed: no ID returned from database.');
+  }
 
   // 2. Initialize default structure via Server-Side RPC
-  console.log('[ProjectService] Initializing default project via RPC...', { projectId: project.id, creatorId });
-  const { error } = await planter.rpc('initialize_default_project', {
+  console.log('[ProjectService] Step 3: Calling initialize_default_project RPC...', { projectId: project.id, creatorId });
+  const { data: rpcData, error } = await planter.rpc('initialize_default_project', {
     p_project_id: project.id,
     p_creator_id: creatorId
   });
+  console.log('[ProjectService] Step 3 result:', { rpcData, error });
 
   if (error) {
-    console.error('[ProjectService] RPC Error:', error);
+    console.error('[ProjectService] Step 3 FAILED: RPC Error:', error);
     // Rollback: Delete the project if initialization fails to prevent orphans
     try {
       await planter.entities.Project.delete(project.id);
-      console.warn('Rolled back project creation due to initialization failure.');
+      console.warn('[ProjectService] Rolled back project creation due to initialization failure.');
     } catch (rollbackError) {
-      console.error('CRITICAL: Failed to rollback project creation:', rollbackError);
+      console.error('[ProjectService] CRITICAL: Failed to rollback project creation:', rollbackError);
     }
     throw new Error('Project initialization failed. Please try again.');
   }
 
+  console.log('[ProjectService] Step 4: SUCCESS — returning project with id:', project.id);
   return project;
 }

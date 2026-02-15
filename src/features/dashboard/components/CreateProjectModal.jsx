@@ -267,6 +267,11 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                           setFormData({ ...formData, launch_date: date });
                           if (errors.launch_date) setErrors((prev) => ({ ...prev, launch_date: null }));
                         }}
+                        defaultMonth={new Date(new Date().setMonth(new Date().getMonth() + 3))}
+                        startMonth={new Date()}
+                        endMonth={new Date(new Date().setFullYear(new Date().getFullYear() + 5))}
+                        disabled={{ before: new Date() }}
+                        captionLayout="dropdown"
                         initialFocus
                       />
                     </PopoverContent>

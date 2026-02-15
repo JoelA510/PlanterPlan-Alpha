@@ -538,27 +538,7 @@ CREATE TRIGGER trg_people_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- Auto-add creator as owner for Root Projects
-CREATE OR REPLACE FUNCTION public.handle_new_project_creation()
-RETURNS TRIGGER 
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  -- Only for Root Projects
-  IF NEW.root_id IS NULL AND NEW.parent_task_id IS NULL THEN
-    INSERT INTO public.project_members (project_id, user_id, role)
-    VALUES (NEW.id, NEW.creator, 'owner')
-    ON CONFLICT DO NOTHING;
-  END IF;
-  RETURN NEW;
-END;
-$$;
 
-DROP TRIGGER IF EXISTS trg_auto_add_project_owner ON public.tasks;
-CREATE TRIGGER trg_auto_add_project_owner
-AFTER INSERT ON public.tasks
-FOR EACH ROW
-EXECUTE FUNCTION public.handle_new_project_creation();
 
 -- Initialize Default Project RPC
 CREATE OR REPLACE FUNCTION public.initialize_default_project(

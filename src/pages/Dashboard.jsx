@@ -138,14 +138,19 @@ export default function Dashboard() {
   });
 
   const handleCreateProject = async (projectData) => {
+    console.log('[Dashboard] handleCreateProject called with:', projectData);
     try {
       const project = await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+      console.log('[Dashboard] mutateAsync returned:', project);
       // Redirect to the new project board
       if (project?.id) {
+        console.log('[Dashboard] Navigating to /project/' + project.id);
         navigate(`/project/${project.id}`);
+      } else {
+        console.error('[Dashboard] No project.id — cannot navigate. Full return:', JSON.stringify(project));
       }
     } catch (error) {
-      // Error handled by onError in useMutation, no need for console.error here
+      console.error('[Dashboard] handleCreateProject ERROR:', error);
     }
   };
 
