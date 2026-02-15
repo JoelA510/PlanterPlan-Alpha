@@ -291,9 +291,12 @@ export const planter = {
             due_date: cleanProjectData.launch_date,
             origin: 'instance',
             parent_task_id: null,
+            root_id: null, // Critical for RLS "Proect" detection
             status: cleanProjectData.status || 'planning',
             creator: userId, // Required for RLS
           };
+
+          console.log('[PlanterClient] FINAL PAYLOAD (Tasks Table):', JSON.stringify(taskPayload, null, 2));
 
           const data = await rawSupabaseFetch(
             'tasks?select=*,name:title,launch_date:due_date,owner_id:creator',

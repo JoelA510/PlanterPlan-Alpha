@@ -73,7 +73,18 @@ sequenceDiagram
 **Files changed:**
 `projectService.js` · `CreateProjectModal.jsx` · `Dashboard.jsx`
 
+## 1a. RLS Policy Fix - Project Creation Trigger Removal
+
+An internal audit revealed a race condition where a database trigger [`trg_auto_add_project_owner`] attempted to add the project creator as an owner before RLS policies could validate the creator's membership, leading to `403 Forbidden` errors.
+
+This trigger was found to be redundant, as the client-side `initialize_default_project` RPC already handles this responsibility securely. The trigger and its associated function were removed to rely on the robust RPC path.
+
+- **Removed**: `trg_auto_add_project_owner` on `tasks` table.
+- **Removed**: `handle_new_project_creation` function.
+- **Secured**: `initialize_default_project` RPC explicitly owned by `postgres`.
+
 ---
+
 
 ## 2. Template System — Dedicated Creation Flow
 
