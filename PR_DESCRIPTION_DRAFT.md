@@ -73,15 +73,35 @@ sequenceDiagram
 **Files changed:**
 `projectService.js` · `CreateProjectModal.jsx` · `Dashboard.jsx`
 
-## 1a. RLS Policy Fix - Project Creation Trigger Removal
+## 1a. RLS Policy Hardening & Zombie Trigger Removal
 
-An internal audit revealed a race condition where a database trigger [`trg_auto_add_project_owner`] attempted to add the project creator as an owner before RLS policies could validate the creator's membership, leading to `403 Forbidden` errors.
+During verification, a critical `403 Forbidden` error on project creation was traced to **legacy triggers** (`trigger_maintain_task_root_id`, `trg_auto_add_project_owner`) that were silently modifying data during `INSERT` operations. These modifications violated strict `CHECK` constraints in the RLS policies (specifically `root_id IS NULL`).
 
-This trigger was found to be redundant, as the client-side `initialize_default_project` RPC already handles this responsibility securely. The trigger and its associated function were removed to rely on the robust RPC path.
+**Resolution:**
+- **Dropped Legacy Triggers**: Removed `trigger_maintain_task_root_id`, `trigger_propagate_task_root_id`, and `trg_auto_add_project_owner` (redundant logic handled by RPC/App).
+- **Refined RLS Policy**: Updated `tasks` INSERT policy to be robust against self-referential `root_id` assignments `(root_id IS NULL OR root_id = id)`.
+- **Cleaned Helper Functions**: Dropped and recreated `has_project_role` to resolve parameter name conflicts (`p_project_id` vs `pid`).
 
-- **Removed**: `trg_auto_add_project_owner` on `tasks` table.
-- **Removed**: `handle_new_project_creation` function.
-- **Secured**: `initialize_default_project` RPC explicitly owned by `postgres`.
+This "Nuclear Cleanup" ensures a clean separation of concerns: The Application/RPC handles business logic, and RLS strictly enforces permissions without interference from legacy database logic.
+
+## 1b. Date Picker UX Overhaul
+
+The previous date picker implementation required excessive clicks to navigate to future dates (vital for long-term project planning).
+
+**Improvements:**
+- **Smart Defaults**: Date picker now opens 3 months in the future by default.
+- **Dropdown Navigation**: Added intuitive Year/Month dropdowns for rapid traversal.
+- **Bounds Protection**: Disabled past dates to prevent invalid project launches.
+- **Visual Polish**: Adjusted calendar styles for better readability in the modal.
+
+```mermaid
+graph TD
+    A[User clicks 'Pick Date'] --> B{Default View}
+    B -->|Current Date| C[Old Behavior: Too many clicks]
+    B -->|Today + 3 Months| D[New Behavior: Immediate context]
+    D --> E[Year/Month Dropdowns]
+    E --> F[Rapid Selection]
+```
 
 ---
 
@@ -393,6 +413,7 @@ graph LR
 |:---------|:---------|
 | **Unit / Integration** | Project creation + RLS path · Recursive hierarchy rendering · Drag reorder & reparent · Date inheritance math · Optimistic rollback correctness · Auth stability regression |
 | **End-to-End** | Auth + security gates · Golden-path journeys (project creation, task CRUD) · Drag-and-drop interactions · Theme integrity |
+| **Manual Verification** | **Verifed** Project Creation (User ID mismatch resolved) · **Verified** Date Picker UX (Future dates, Dropdowns) · **Verified** Sidebar Navigation updates |
 
 ---
 

@@ -138,8 +138,8 @@ mindmap
         get_invite_details
         initialize_default_project
       2 Triggers
-        Auto Phase Unlock
-        Auto Owner Assignment
+        handle_updated_at (Auto Timestamp)
+        trigger_phase_unlock (Auto Phase Unlock)
     Frontend Shell
       React 19 + Vite 7
       Provider Tree
@@ -761,5 +761,13 @@ All items from the Gap Analysis have been implemented across 5 atomic waves. Eac
 | 8.1 | Fix Sidebar "New Project/Template" buttons (were stubs) | `ProjectSidebarContainer.jsx` | ✅ |
 | 8.2 | URL-driven modal state (`?action=new-project`) | `Dashboard.jsx` | ✅ |
 | 8.3 | Dedicated `CreateTemplateModal` with categories | `CreateTemplateModal.jsx` | ✅ |
-| 8.4 | Fix `tasks_with_primary_resource` view permissions (RLS bug) | `schema.sql` | ✅ |
 | 8.5 | Added indexes for `creator` and `assignee_id` | `schema.sql` | ✅ |
+
+### Wave 7: Final RLS Hardening & UX Polish
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 9.1 | **Zombie Trigger Removal**: Dropped `trigger_maintain_task_root_id` (caused 403s) | `schema.sql` (migrations) | ✅ |
+| 9.2 | **RLS Insert Policy**: Updated to allow self-referential `root_id` | `schema.sql` | ✅ |
+| 9.3 | **Date Picker UX**: Added Year/Month dropdowns + 3-month future default | `CreateProjectModal.jsx` | ✅ |
+| 9.4 | **Sidebar Active State**: Fixed "My Projects" highlighting | `SidebarNavItem.jsx` | ✅ |
