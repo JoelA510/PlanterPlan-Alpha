@@ -246,10 +246,8 @@ export const planter = {
         if (!response.ok) return null;
         const user = await response.json();
         return user;
-      } catch (e) {
-        if (e.name === 'AbortError') {
-          console.warn('[PlanterClient] auth.me() timed out');
-        }
+      } catch {
+        console.warn('[PlanterClient] auth.me() timed out');
         return null;
       }
     },
@@ -273,7 +271,7 @@ export const planter = {
 
 
     Project: {
-      ...createEntityClient('tasks', '*, name:title, launch_date:due_date, owner_id:creator'),
+      ...createEntityClient('tasks', '*,name:title,launch_date:due_date,owner_id:creator'),
       // Override list to filter for Root Tasks (Projects)
       list: async () => {
         return retry(async () => {
@@ -289,15 +287,12 @@ export const planter = {
             // Fallback to client if raw fails? No, client is definitely broken.
             throw err;
           }
-        }).catch(err => {
-          console.error('[PlanterClient] Project.list failed after retries:', err);
-          return [];
         });
       },
       // Override create for specific mapping
       create: async (projectData) => {
         return retry(async () => {
-          console.log('[PlanterClient] Creating project (Raw Fetch):', projectData);
+          // console.log('[PlanterClient] Creating project (Raw Fetch):', projectData);
 
           const userId = projectData.creator;
 
@@ -317,7 +312,7 @@ export const planter = {
             creator: userId, // Required for RLS
           };
 
-          console.log('[PlanterClient] FINAL PAYLOAD (Tasks Table):', JSON.stringify(taskPayload, null, 2));
+          // console.log('[PlanterClient] FINAL PAYLOAD (Tasks Table):', JSON.stringify(taskPayload, null, 2));
 
           const data = await rawSupabaseFetch(
             'tasks?select=*,name:title,launch_date:due_date,owner_id:creator',
@@ -343,8 +338,8 @@ export const planter = {
             // Optimization: Server-side filtering using 'creator' column
             // We only fetch what we need.
             const query =
-              `tasks?select=*,name:title,launch_date:due_date,owner_id:creator` +
-              `&creator=eq.${userId}` +
+              `tasks?select=*,project_id:root_id,name:title,launch_date:due_date,owner_id:creator` +
+              `&creator=eq.${encodeURIComponent(userId)}` +
               `&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`;
 
             const data = await rawSupabaseFetch(
@@ -403,7 +398,7 @@ export const planter = {
           const queryString = queryParams.join('&');
           const data = await rawSupabaseFetch(`tasks?${queryString}`, { method: 'GET' });
           return data || [];
-        }).catch(() => []);
+        });
       },
       // Custom methods
       addMember: async (projectId, userId, role) => {
