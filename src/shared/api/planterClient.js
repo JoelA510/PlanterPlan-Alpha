@@ -337,10 +337,9 @@ export const planter = {
           try {
             // Optimization: Server-side filtering using 'creator' column
             // We only fetch what we need.
-            const enc = encodeURIComponent;
             const query =
               `tasks?select=*,project_id:root_id,name:title,launch_date:due_date,owner_id:creator` +
-              `&creator=eq.${enc(userId)}` +
+              `&creator=eq.${encodeURIComponent(userId)}` +
               `&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`;
 
             const data = await rawSupabaseFetch(

@@ -252,7 +252,7 @@ Rollback:
 
 4. Settings
 
-* Update profile works (expects `planter.auth.updateProfile` wired to `supabase.auth.updateUser`)  (see Supabase docs for `updateUser`) [https://supabase.com/docs/reference/javascript/auth-updateuser](https://supabase.com/docs/reference/javascript/auth-updateuser)
+* Update profile works (expects `planter.auth.updateProfile` wired to `supabase.auth.updateUser`) (see [Supabase docs for `updateUser`](https://supabase.com/docs/reference/javascript/auth-updateuser))
 
 5. Invites
 
