@@ -158,28 +158,35 @@ const createEntityClient = (tableName, select = '*') => ({
 
 
 
-// Helper to get token from Supabase auth session (primary) or localStorage (fallback)
+// Helper to get token from Supabase auth session (primary) or deterministic localStorage (fallback)
 const getSupabaseToken = async () => {
   // Primary: use official Supabase client session
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.access_token) return session.access_token;
   } catch (e) {
-    console.warn('[PlanterClient] getSession() failed, falling back to localStorage scan', e);
+    console.warn('[PlanterClient] getSession() failed, falling back to localStorage', e);
   }
-  // Fallback: localStorage scan for legacy or edge cases
+
+  // Fallback: Deterministic localStorage lookup
   if (typeof window === 'undefined') return null;
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-      try {
-        const session = JSON.parse(localStorage.getItem(key));
+
+  // 1. Try generic "sb-<ref>-auth-token" pattern if URL is standard
+  try {
+    const urlStr = import.meta.env.VITE_SUPABASE_URL; // e.g. https://xyz.supabase.co
+    if (urlStr) {
+      const url = new URL(urlStr);
+      const ref = url.hostname.split('.')[0]; // xyz
+      const key = `sb-${ref}-auth-token`;
+      const item = localStorage.getItem(key);
+      if (item) {
+        const session = JSON.parse(item);
         return session?.access_token;
-      } catch (e) {
-        console.warn('[PlanterClient] Failed to parse session key', key, e);
       }
     }
-  }
+  } catch (e) { /* ignore */ }
+
+  // 2. Legacy scan (Limit loop if absolutely necessary, but prefer strict)
   return null;
 };
 
@@ -251,6 +258,16 @@ export const planter = {
       // Returns empty promise
       return Promise.resolve();
     },
+    updateProfile: async (attributes) => {
+      return retry(async () => {
+        // Use official SDK for safe metadata updates
+        const { data, error } = await supabase.auth.updateUser({
+          data: attributes,
+        });
+        if (error) throw error;
+        return data;
+      });
+    },
   },
   entities: {
 
@@ -321,33 +338,28 @@ export const planter = {
         return retry(async () => {
           const from = (page - 1) * pageSize;
           const to = from + pageSize - 1;
-          const rangeHeader = `${from}-${to}`;
 
           try {
-            // Strategy: Fetch ALL visible projects (like Dashboard) and filter client-side.
-            // This avoids potential PostgREST filtering issues or 'creator' column quirks.
+            // Optimization: Server-side filtering using 'creator' column
+            // We only fetch what we need.
+            const query =
+              `tasks?select=*,name:title,launch_date:due_date,owner_id:creator` +
+              `&creator=eq.${userId}` +
+              `&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`;
+
             const data = await rawSupabaseFetch(
-              `tasks?select=*,name:title,launch_date:due_date,owner_id:creator&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`,
+              query,
               {
                 method: 'GET',
-                headers: { 'Range': rangeHeader }
+                headers: { 'Range': `${from}-${to}` }
               }
             );
 
-            // Client-side filter for 'My Projects'
-            console.warn('[DEBUG_SIDEBAR] listByCreator Raw Data Length:', (data || []).length);
-            if (data?.length > 0) {
-              console.warn('[DEBUG_SIDEBAR] Sample Project Keys:', Object.keys(data[0]));
-              console.warn('[DEBUG_SIDEBAR] Sample Project Creator/Owner:', { creator: data[0].creator, owner_id: data[0].owner_id });
-            }
-            const filtered = (data || []).filter(p => (p.creator === userId || p.owner_id === userId));
-            console.warn('[DEBUG_SIDEBAR] Filtered Data Length:', filtered.length, 'UserId:', userId);
-
-            return filtered;
+            return data || [];
           } catch (err) {
             console.error('[PlanterClient] listByCreator failed:', err);
-            // Return empty array to prevent UI crash, but log error
-            return [];
+            // Propagate error to let React Query / UI handle it
+            throw err;
           }
         });
       },

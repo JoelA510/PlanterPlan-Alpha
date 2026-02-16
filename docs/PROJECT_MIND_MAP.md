@@ -134,7 +134,7 @@ mindmap
         is_admin
         has_project_role
         clone_project_template
-        invite_user_to_project
+        invite_user_to_project (Hardened)
         get_invite_details
         initialize_default_project
       2 Triggers
@@ -782,3 +782,14 @@ All items from the Gap Analysis have been implemented across 5 atomic waves. Eac
 | 10.2 | **Locator Precision**: Hardened Date Picker & Settings selectors against DOM churn | `golden-paths.spec.ts` | ✅ |
 | 10.3 | **Flow Alignment**: Updated Sidebar tests to handle "Choose Template" modal | `sidebar-actions.spec.ts` | ✅ |
 | 10.4 | **Stateful Mocking**: Implemented in-memory mutation for `PATCH` requests to support atomic drag-drop limits | `drag-drop.spec.ts` | ✅ |
+
+### Wave 9: Database Harmonization & Security Hardening
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 11.1 | **Privilege Violation Fix**: Hardened `invite_user_to_project` to prevent Editors from inviting Owners | `schema.sql` (migrations) | ✅ |
+| 11.2 | **RLS Lockdown**: Secure `project_invites` INSERT policy to strict Role Hierarchy | `schema.sql` (migrations) | ✅ |
+| 11.3 | **Profile Update**: Added `updateProfile` adapter to PlanterClient | `planterClient.js` | ✅ |
+| 11.4 | **Project Creation**: Hotfixed `createProject` service to use `createProjectWithDefaults` | `projectService.js` | ✅ |
+| 11.5 | **Auth Stability**: Monotonic sequence counter in `AuthContext` to prevent race conditions | `AuthContext.jsx` | ✅ |
+| 11.6 | **Perf Optimization**: Server-side filtering in `listByCreator` | `planterClient.js` | ✅ |

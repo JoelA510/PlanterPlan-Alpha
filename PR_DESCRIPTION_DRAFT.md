@@ -436,3 +436,23 @@ To ensure reliability in CI environments, the Playwright suite was hardened to s
 
 - Client-side RBAC controls are **UX enforcement only**; server-side RLS remains the security boundary.
 - `SECURITY DEFINER` RPCs should be audited for least-privilege configuration (`search_path`, input validation, no user-controlled SQL).
+
+---
+
+## 11. Database Harmonization & Security Hardening
+
+Following a deep research audit, a dedicated harmonization wave addressed critical security and stability vectors:
+
+### Security Fixes
+- **Privilege Escalation**: Hardened `invite_user_to_project` RPC to prevent Editors from assigning Owner roles.
+- **RLS Lockdown**: Updated `project_invites` INSERT policy to strictly enforce role hierarchy (Editors cannot create Owner invites).
+- **Tabnabbing Protection**: Enforced `rel="noopener noreferrer"` for all external links via DOMPurify hook.
+
+### Stability & Performance
+- **Auth Race Conditions**: Implemented monotonic sequence counters in `AuthContext` to prevent stale RPC responses from overwriting valid auth state.
+- **Server-Side Filtering**: Optimized `listByCreator` to filter by `creator=eq.UID` at the database level, replacing inefficient client-side filtering.
+- **Functional Fixes**: Resolved broken project creation flow by standardizing on `createProjectWithDefaults` and added missing `updateProfile` method to API client.
+
+**Verification**:
+- `golden-paths.spec.ts` verified Project Creation fixes.
+- `team-collaboration.spec.ts` verified the Invitation flow and permissions.

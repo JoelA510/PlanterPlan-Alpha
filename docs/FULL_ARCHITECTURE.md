@@ -1,6 +1,6 @@
 # PlanterPlan — Complete Architecture Reference
 
-> **Last Updated**: 2026-02-11  
+> **Last Updated**: 2026-02-15  
 > **Status**: Alpha (Refactoring Phase)  
 > **Commit**: HEAD on `main`
 

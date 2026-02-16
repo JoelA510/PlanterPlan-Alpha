@@ -12,6 +12,10 @@ test.describe('Security: RLS Enforcement', () => {
         // If the anon key is in the 'sb_publishable_' format, PostgREST might reject it
         // unless it's sent along with a valid JWT. For local testing, we prefer a signed JWT.
         if (anonKey.startsWith('sb_') || !anonKey.includes('.')) {
+            if (supabaseUrl && supabaseUrl.includes('supabase.co')) {
+                test.skip(true, 'Skipping security test: Cannot use mock/placeholder keys against production Supabase.');
+                return;
+            }
             // Sign a local anon JWT using the known secret (matches local supabase default)
             anonKey = signJWT({
                 role: 'anon',
