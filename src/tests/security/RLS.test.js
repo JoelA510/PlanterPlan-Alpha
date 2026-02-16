@@ -6,6 +6,8 @@ import 'dotenv/config';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
+console.log('RLS Test running against:', SUPABASE_URL);
+
 const shouldRun = SUPABASE_URL && SUPABASE_ANON_KEY;
 
 if (!shouldRun) {
@@ -90,6 +92,7 @@ describe.runIf(shouldRun)('Security: RLS & Access Control', () => {
                     title: 'Security Test Project',
                     origin: 'instance',
                     root_id: null, // It will be its own root
+                    parent_task_id: null,
                     creator: authData.user.id
                 })
                 .select()

@@ -207,6 +207,10 @@ const rawSupabaseFetch = async (endpoint, options = {}, explicitToken = null) =>
     throw new Error(`Supabase Raw Error (${response.status}): ${text}`);
   }
 
+  if (response.status === 204) {
+    return null;
+  }
+
   return await response.json();
 };
 
@@ -429,6 +433,7 @@ export const planter = {
     Milestone: createEntityClient('tasks'),
     TaskWithResources: createEntityClient('tasks_with_primary_resource'),
     TaskResource: createEntityClient('task_resources'),
+    TeamMember: createEntityClient('project_members'),
   },
   /**
    * Execute a remote procedure call (RPC)

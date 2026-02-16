@@ -10,8 +10,21 @@
 | `react` | `19.x` | No `forwardRef`. Use `useActionState` for form actions. Strict hydration checks. |
 | `react-router` | `v7` | Ensure routes are defined in the new data-router format if modifying `App.jsx`. |
 | `date-engine` | Custom | **NEVER** do raw date math. ALWAYS use `src/shared/lib/date-engine`. (See [ARC-034]). |
+| `playwright` | `1.58` | Use `VITE_E2E_MODE=true` on port 3010. Mocks must handle query params with wildcards (`**/tasks*`). |
 
 ## 2. Production Findings (Active Rules & Patterns)
+
+### [TEST-002] E2E Mock State Persistence
+- **Context**: Tests for stateful actions (like drag-and-drop or status updates) failed because `GET` requests after `PATCH` returned the original static JSON.
+- **Rule**: **Mocks Must Have Memory.** For stateful flows, modify an in-memory variable within the `page.route` handler and return that variable in subsequent `GET` calls.
+
+### [TEST-003] Route Priority & Wildcards
+- **Context**: Specific route patterns like `**/tasks?*` were ignored because a generic `**/tasks` handler was defined earlier or matched first.
+- **Rule**: **Specific Before Generic.** Define narrow routes (e.g., `**/tasks?select=*`) before catch-alls. Use `*` wildcards for query parameters (e.g., `**/rest/v1/tasks*`).
+
+### [TEST-004] Selector Precision
+- **Context**: `getByRole('gridcell', { name: '15' })` failed because the accessible name was "May 15, 2026".
+- **Rule**: **Use Exact Text for Numbers.** Use `getByText('15', { exact: true })` when targeting calendar dates or distinct numeric values.
 
 ### [DOCS-001] External-Facing PR Descriptions
 - **Context**: PR descriptions contained internal jargon ("Master Review", "Orchestrator") confusing to external reviewers.

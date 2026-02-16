@@ -66,13 +66,17 @@ export default function Project() {
     milestones,
     tasks,
     teamMembers,
+    projectHierarchy, // Added projectHierarchy
   } = useProjectData(projectId);
 
   // [NEW] RBAC Logic
   const currentMember = teamMembers?.find((m) => m.user_id === user?.id);
   const userRole = currentMember?.role || ROLES.VIEWER;
-  const canEdit = [ROLES.OWNER, ROLES.EDITOR, ROLES.ADMIN].includes(userRole);
-  const canInvite = [ROLES.OWNER, ROLES.ADMIN].includes(userRole);
+
+
+  const canEdit = userRole === ROLES.OWNER || userRole === ROLES.ADMIN || userRole === ROLES.EDITOR;
+  const canInvite = userRole === ROLES.OWNER || userRole === ROLES.ADMIN || userRole === ROLES.EDITOR;
+  const canManageSettings = userRole === ROLES.OWNER || userRole === ROLES.ADMIN;
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }) => planter.entities.Task.update(id, data),
@@ -122,9 +126,8 @@ export default function Project() {
   const activePhase = selectedPhase || sortedPhases[0];
   // [PERF] Memoize sorted milestones
   const projectMilestones = useMemo(() =>
-    milestones?.filter((m) => m.project_id === projectId)
-      .sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) || [],
-    [milestones, projectId]
+    milestones?.sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) || [],
+    [milestones]
   );
 
   const phaseMilestones = projectMilestones
@@ -273,6 +276,7 @@ export default function Project() {
           tasks={tasks}
           teamMembers={teamMembers}
           canInvite={canInvite}
+          canManageSettings={canManageSettings}
           onInviteMember={() => setShowInviteModal(true)}
         />
 
@@ -289,14 +293,15 @@ export default function Project() {
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">Phases</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {sortedPhases.map((phase) => (
-                    <PhaseCard
-                      key={phase.id}
-                      phase={phase}
-                      tasks={tasks}
-                      milestones={milestones.filter((m) => m.parent_task_id === phase.id)}
-                      isActive={activePhase?.id === phase.id}
-                      onClick={() => setSelectedPhase(phase)}
-                    />
+                    <div key={phase.id}>
+                      <PhaseCard
+                        phase={phase}
+                        tasks={tasks}
+                        milestones={milestones.filter((m) => m.parent_task_id === phase.id)}
+                        isActive={activePhase?.id === phase.id}
+                        onClick={() => setSelectedPhase(phase)}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -330,13 +335,13 @@ export default function Project() {
                           key={milestone.id}
                           milestone={milestone}
                           tasks={tasks.map(mapTaskWithState)}
-                          onTaskUpdate={handleTaskUpdate}
+                          onTaskUpdate={canEdit ? handleTaskUpdate : null}
                           onToggleExpand={handleToggleExpand}
-                          onAddTask={(m) => setAddTaskModal({ open: true, milestone: m })}
-                          onAddChildTask={handleStartInlineAdd}
+                          onAddTask={canEdit ? (m) => setAddTaskModal({ open: true, milestone: m }) : null}
+                          onAddChildTask={canEdit ? handleStartInlineAdd : null}
                           onTaskClick={handleTaskClick}
                           phase={activePhase}
-                          onInlineCommit={handleInlineCommit}
+                          onInlineCommit={canEdit ? handleInlineCommit : null}
                           onInlineCancel={() => setInlineAddingParentId(null)}
                           canEdit={canEdit}
                         />
@@ -350,7 +355,7 @@ export default function Project() {
 
           {/* People Tab */}
           {activeTab === 'people' && (
-            <PeopleList projectId={projectId} />
+            <PeopleList projectId={projectId} canEdit={canEdit} />
           )}
 
         </div>

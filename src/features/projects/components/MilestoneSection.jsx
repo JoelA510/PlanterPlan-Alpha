@@ -77,16 +77,16 @@ export default function MilestoneSection({
               {milestoneTasks.length === 0 ? (
                 <div className="py-8 text-center">
                   <p className="text-slate-500 mb-4">No tasks yet</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onAddTask(milestone)}
-                    disabled={!canEdit}
-                    title={!canEdit ? "You need permissions to add tasks" : undefined}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Task
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onAddTask(milestone)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Task
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2 pt-4">
@@ -104,17 +104,17 @@ export default function MilestoneSection({
                         onInlineCancel={onInlineCancel}
                       />
                     ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-slate-500 hover:text-slate-700 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={() => onAddTask(milestone)}
-                    disabled={!canEdit}
-                    title={!canEdit ? "You need permissions to add tasks" : undefined}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Task
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-slate-500 hover:text-slate-700 mt-2"
+                      onClick={() => onAddTask(milestone)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Task
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

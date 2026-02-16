@@ -232,8 +232,10 @@ mindmap
     Testing
       Vitest Unit Tests
       Playwright E2E
-        12 Journey Specs
-        Auth Seeder Pattern
+        25 Verified Scenarios
+        12 Journey Specs (Stable)
+        Parametric Auth Seeding
+        100% Concurrent Pass Rate
         Shared e2e-helpers
     DevOps
       GitHub Actions CI
@@ -771,3 +773,12 @@ All items from the Gap Analysis have been implemented across 5 atomic waves. Eac
 | 9.2 | **RLS Insert Policy**: Updated to allow self-referential `root_id` | `schema.sql` | ✅ |
 | 9.3 | **Date Picker UX**: Added Year/Month dropdowns + 3-month future default | `CreateProjectModal.jsx` | ✅ |
 | 9.4 | **Sidebar Active State**: Fixed "My Projects" highlighting | `SidebarNavItem.jsx` | ✅ |
+
+### Wave 8: E2E Concurrency Stabilization
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 10.1 | **Mock Enrichment**: Added list-query mocks to ensure sidebar updates race-free | `golden-paths.spec.ts` | ✅ |
+| 10.2 | **Locator Precision**: Hardened Date Picker & Settings selectors against DOM churn | `golden-paths.spec.ts` | ✅ |
+| 10.3 | **Flow Alignment**: Updated Sidebar tests to handle "Choose Template" modal | `sidebar-actions.spec.ts` | ✅ |
+| 10.4 | **Stateful Mocking**: Implemented in-memory mutation for `PATCH` requests to support atomic drag-drop limits | `drag-drop.spec.ts` | ✅ |

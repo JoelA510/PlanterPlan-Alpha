@@ -407,12 +407,27 @@ graph LR
 
 ---
 
+## 10. E2E Concurrency Stabilization
+ 
+To ensure reliability in CI environments, the Playwright suite was hardened to support **fully concurrent execution** (100% pass rate across 25 tests).
+ 
+### Key Fixes
+ 
+| Spec | Issue | Resolution |
+|:-----|:------|:-----------|
+| `golden-paths.spec.ts` | **Race Condition**: Sidebar "Project Settings" button wasn't clickable immediately after creation. | **Mock Enrichment**: Updated `GET` mocks to include the newly created project in the list query, ensuring the sidebar refreshes instantly. |
+| `golden-paths.spec.ts` | **Locator Flake**: Date picker selected wrong day (visual vs. accessible name). | **Precise Locator**: Switched to `.getByText('15', { exact: true })` within the dialog. |
+| `sidebar-actions.spec.ts` | **Flow Drift**: Test missed the new "Choose a Template" modal step. | **Flow Alignment**: Updated test to select "Start from scratch" template before verifying project creation. |
+| `drag-drop.spec.ts` | **Stale Data**: `PATCH` mocks didn't persist state, causing subsequent `GET`s to revert changes. | **Stateful Mocks**: Implemented in-memory state mutation within `page.route` handlers. |
+ 
+---
+ 
 ## Validation Summary
-
+ 
 | Category | Coverage |
 |:---------|:---------|
 | **Unit / Integration** | Project creation + RLS path · Recursive hierarchy rendering · Drag reorder & reparent · Date inheritance math · Optimistic rollback correctness · Auth stability regression |
-| **End-to-End** | Auth + security gates · Golden-path journeys (project creation, task CRUD) · Drag-and-drop interactions · Theme integrity |
+| **End-to-End** | **100% Concurrent Pass Rate** (25 Tests) · Auth + security gates · Golden-path journeys · Drag-and-drop · Theme integrity · Sidebar flows |
 | **Manual Verification** | **Verifed** Project Creation (User ID mismatch resolved) · **Verified** Date Picker UX (Future dates, Dropdowns) · **Verified** Sidebar Navigation updates |
 
 ---

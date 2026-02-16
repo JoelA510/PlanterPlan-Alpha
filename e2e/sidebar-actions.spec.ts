@@ -8,62 +8,58 @@ test.describe('Sidebar Actions', () => {
         // Debug logging
         page.on('console', msg => console.log(`[Browser Console] ${msg.text()}`));
 
-        // Defines a session
         const session = createSession('OWNER', OWNER_ID);
-
-        // 1. Setup Auth Mocks
         await setupCommonMocks(page, session);
 
-        // 2. Setup App State (bypass login)
         await page.addInitScript(() => {
             window.localStorage.setItem('gettingStartedDismissed', 'true');
         });
         await setupAuthenticatedState(page, session);
 
-        // 3. Mock Data
-        // Project.listByCreator calls 'tasks' table
-        await page.route('**/rest/v1/tasks*', async route => {
-            if (route.request().method() === 'GET') {
-                await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-            } else {
-                await route.continue();
-            }
-        });
-        await page.route('**/rest/v1/team_members*', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-        });
-        await page.route('**/rest/v1/project_members*', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+        const projectData = { id: '00000000-0000-0000-0000-000000000011', title: 'Test Project', creator: OWNER_ID, status: 'active', created_at: new Date().toISOString() };
+
+        // Mock Projects list
+        await page.route(url => url.toString().includes('tasks') && url.toString().includes('origin=eq.instance') && !url.toString().includes('id=eq.'), route => {
+            return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
         });
 
-        // 4. Mock Project/Template Creation endpoints if needed (modals just need to open)
+        await page.route('**/rest/v1/team_members*', route => route.fulfill({ status: 200, body: '[]' }));
+        await page.route('**/rest/v1/project_members*', route => route.fulfill({ status: 200, body: '[]' }));
+        await page.route('**/rest/v1/profiles*', route => route.fulfill({ status: 200, body: '[]' }));
     });
 
     test('Sidebar "New Project" button opens CreateProjectModal', async ({ page }) => {
-        await page.goto('/dashboard');
+        await page.goto('/dashboard', { waitUntil: 'networkidle' });
         await page.setViewportSize({ width: 1920, height: 1080 });
 
-        // Wait for sidebar to load and auth to settle
+        // Wait for dashboard heading to ensure load
+        await expect(page.getByRole('heading', { name: /Dashboard/i }).first()).toBeVisible({ timeout: 15000 });
+
         const newProjectBtn = page.getByTestId('sidebar-new-project-btn');
-        await expect(newProjectBtn).toBeVisible({ timeout: 15000 });
+        await expect(newProjectBtn).toBeVisible();
+        await newProjectBtn.click({ force: true });
 
-        await newProjectBtn.click();
+        // Select template first
+        await expect(page.getByText('Choose a Template').first()).toBeVisible();
+        await page.getByRole('button', { name: 'Start from scratch' }).click();
 
-        await expect(page.getByRole('dialog').getByText('Create New Project')).toBeVisible({ timeout: 15000 });
-        await page.getByRole('button', { name: 'Close' }).click().catch(() => page.keyboard.press('Escape'));
+        // Now expect Create Project/Project Details modal
+        await expect(page.getByText('Project Details').first()).toBeVisible();
+
+        // Close modal
+        await page.keyboard.press('Escape');
     });
 
     test('Sidebar "New Template" button opens CreateTemplateModal', async ({ page }) => {
-        await page.goto('/dashboard');
+        await page.goto('/dashboard', { waitUntil: 'networkidle' });
         await page.setViewportSize({ width: 1920, height: 1080 });
 
-        const newTemplateBtn = page.getByTestId('sidebar-new-template-btn');
-        await expect(newTemplateBtn).toBeVisible({ timeout: 15000 });
+        await expect(page.getByRole('heading', { name: /Dashboard/i }).first()).toBeVisible({ timeout: 15000 });
 
+        const newTemplateBtn = page.getByTestId('sidebar-new-template-btn');
+        await expect(newTemplateBtn).toBeVisible({ timeout: 10000 });
         await newTemplateBtn.click();
 
-        await expect(page.getByRole('dialog').getByText('Create New Template')).toBeVisible({ timeout: 15000 });
-        // The category selector might be "Select Category" or similar, "Task Checklist" is one option
-        // Let's just check for the modal title which is unique enough
+        await expect(page.getByRole('dialog').getByText(/Create New Template/i)).toBeVisible({ timeout: 15000 });
     });
 });

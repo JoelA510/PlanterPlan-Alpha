@@ -30,7 +30,6 @@ export async function inviteMemberByEmail(projectId, email, role) {
 export async function getUserProjects(userId, page = 1, pageSize = 20) {
   // Use safe listByCreator method from planter client (Raw Fetch)
   try {
-    console.warn('[DEBUG_SIDEBAR] getUserProjects called with:', userId);
     const data = await planter.entities.Project.listByCreator(userId, page, pageSize);
     return { data, error: null };
   } catch (error) {
@@ -42,7 +41,6 @@ export async function getUserProjects(userId, page = 1, pageSize = 20) {
 export async function getJoinedProjects(userId) {
   // Use safe listJoined method from planter client (Raw Fetch)
   try {
-    console.warn('[DEBUG_SIDEBAR] getJoinedProjects called with:', userId);
     const data = await planter.entities.Project.listJoined(userId);
     return { data, error: null };
   } catch (error) {

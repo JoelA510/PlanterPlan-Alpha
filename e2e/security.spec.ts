@@ -1,28 +1,43 @@
 import { test, expect } from '@playwright/test';
+import { signJWT } from './fixtures/e2e-helpers';
 
 test.describe('Security: RLS Enforcement', () => {
 
     test('Anonymous user cannot access tasks via REST API', async ({ request }) => {
-        // Attempt to fetch tasks without an Authorization header
-        // Supabase (PostgREST) should return 401 Unauthorized OR an empty list if public access is disabled/RLS is on
-        // Ideally, we want 401 or RLS filtering to 0 items.
+        // Suppress console logs in the runner unless we fail
+        // Fetch URL and Key from env
+        const supabaseUrl = process.env.VITE_SUPABASE_URL;
+        let anonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
 
-        const response = await request.get(`${process.env.VITE_SUPABASE_URL}/rest/v1/tasks`, {
+        // If the anon key is in the 'sb_publishable_' format, PostgREST might reject it
+        // unless it's sent along with a valid JWT. For local testing, we prefer a signed JWT.
+        if (anonKey.startsWith('sb_') || !anonKey.includes('.')) {
+            // Sign a local anon JWT using the known secret (matches local supabase default)
+            anonKey = signJWT({
+                role: 'anon',
+                iss: 'supabase',
+                iat: Math.floor(Date.now() / 1000),
+                exp: Math.floor(Date.now() / 1000) + 3600
+            });
+        }
+
+        const response = await request.get(`${supabaseUrl}/rest/v1/tasks`, {
             headers: {
-                // No Authorization header
-                'apikey': process.env.VITE_SUPABASE_ANON_KEY || ''
+                'apikey': anonKey,
+                'Authorization': `Bearer ${anonKey}`
             }
         });
 
-        // If RLS is ON and no policy allows anon select, it returns empty list []
-        // If RLS is OFF, it returns ALL tasks (Critical Failure)
+        if (!response.ok()) {
+            const body = await response.text();
+            console.error(`Security Test Failed: Status ${response.status()}, Body: ${body}`);
+            console.log(`URL: ${supabaseUrl}/rest/v1/tasks`);
+        }
 
         expect(response.ok()).toBeTruthy();
         const tasks = await response.json();
 
-        // ASSERTION: Anonymous user should see ZERO tasks
+        // ASSERTION: Anonymous user should see ZERO tasks due to RLS
         expect(tasks.length).toBe(0);
     });
-
-    // TODO: Add authenticated cross-tenant test once we have two test users
 });

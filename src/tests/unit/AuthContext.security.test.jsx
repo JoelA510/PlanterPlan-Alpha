@@ -25,6 +25,17 @@ const TestComponent = () => {
 describe('AuthContext Security Fallback', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+
+        // Mock window.location to simulate production (non-local) environment
+        // This ensures the isLocal check in AuthContext returns false
+        Object.defineProperty(window, 'location', {
+            value: {
+                hostname: 'production-app.com',
+                href: 'https://production-app.com',
+            },
+            writable: true // Allow other tests to change it if needed
+        });
+
         // Default auth setup: Simulate immediate callback execution
         supabase.auth.onAuthStateChange.mockImplementation((callback) => {
             // Simulate the initial session check that Supabase does

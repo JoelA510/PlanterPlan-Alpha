@@ -744,13 +744,14 @@ Key test files:
 
 | Suite | Coverage |
 |-------|----------|
-| `golden-paths.spec.ts` | Login → Dashboard → Project → Board → Task details |
+| `golden-paths.spec.ts` | Project Creation, Date Picker, Sidebar flows |
+| `sidebar-actions.spec.ts` | Template selection, Modal flows |
+| `drag-drop.spec.ts` | Drag persistence, Date inheritance |
 | `auth.spec.ts` | Login, logout, session persistence |
 | `theme-integrity.spec.ts` | Dark/light mode across all views |
 | `security.spec.ts` | Unauthorized access prevention |
-| `simple.spec.ts` | Smoke test (page loads) |
 
-Playwright is configured to target `localhost:3000` with the Chromium project.
+Playwright is configured to target `localhost:3010` (Isolated E2E Mode) with the Chromium project.
 
 ---
 

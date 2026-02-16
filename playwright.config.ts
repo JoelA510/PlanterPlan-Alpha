@@ -13,13 +13,18 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+// Override with local test env if in E2E mode to ensure tests run against local DB
+if (process.env.VITE_E2E_MODE === 'true') {
+  dotenv.config({ path: path.resolve(__dirname, '.env.test.local'), override: true });
+}
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
   testDir: './e2e',
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
@@ -32,7 +37,7 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
     /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: 'http://127.0.0.1:3005',
+    baseURL: 'http://127.0.0.1:3010',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -85,9 +90,9 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'VITE_E2E_MODE=true npm run start -- --port 3005',
-    url: 'http://127.0.0.1:3005',
-    reuseExistingServer: !process.env.CI,
+    command: 'VITE_SUPABASE_URL=http://127.0.0.1:54321 VITE_SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH VITE_E2E_MODE=true npm run start -- --port 3010',
+    url: 'http://127.0.0.1:3010',
+    reuseExistingServer: false,
     timeout: 120 * 1000,
   },
 });

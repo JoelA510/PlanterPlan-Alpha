@@ -79,7 +79,7 @@ export async function setupAuthenticatedState(
     page: Page,
     session: ReturnType<typeof createSession>,
 ) {
-    await page.goto('/');
+    await page.goto('http://127.0.0.1:3010/', { waitUntil: 'networkidle', timeout: 60000 });
     await expect(page.getByTestId('auth-seeder-active')).toBeAttached({ timeout: 30000 });
     await page.evaluate((s) => {
         window.dispatchEvent(new CustomEvent('SEED_AUTH', { detail: { session: s } }));

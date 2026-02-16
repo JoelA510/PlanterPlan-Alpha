@@ -37,7 +37,7 @@ const statusColors = {
   [PROJECT_STATUS.PAUSED]: 'bg-slate-100 text-slate-700',
 };
 
-export default function ProjectHeader({ project, tasks = [], teamMembers = [], onInviteMember }) {
+export default function ProjectHeader({ project, tasks = [], teamMembers = [], onInviteMember, canInvite = false, canManageSettings = false }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const Icon = templateIcons[project.template] || Rocket;
   const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
@@ -63,7 +63,7 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-card-foreground">{project.name}</h1>
+                <h1 className="text-2xl font-bold text-card-foreground">{project.name || project.title}</h1>
                 <Badge className={statusColors[project.status]}>
                   {project.status?.replace('_', ' ')}
                 </Badge>
@@ -78,10 +78,12 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
               <span className="lg:hidden">Search</span>
               <span className="hidden lg:inline text-muted-foreground text-xs">⌘K</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setIsEditModalOpen(true)}>
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
+            {canManageSettings && (
+              <Button variant="ghost" size="sm" onClick={() => setIsEditModalOpen(true)}>
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={() => exportProjectToCSV(project, tasks)}>
               <Download className="w-4 h-4 mr-2" />
               Export
@@ -98,10 +100,12 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
                 Team
               </Button>
             </Link>
-            <Button variant="default" size="sm" onClick={onInviteMember} className="ml-2 bg-brand-500 hover:bg-brand-600 text-white">
-              <Users className="w-4 h-4 mr-2" />
-              Invite
-            </Button>
+            {canInvite && (
+              <Button variant="default" size="sm" onClick={onInviteMember} className="ml-2 bg-brand-500 hover:bg-brand-600 text-white">
+                <Users className="w-4 h-4 mr-2" />
+                Invite
+              </Button>
+            )}
           </div>
         </div>
 
