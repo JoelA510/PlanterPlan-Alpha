@@ -246,10 +246,8 @@ export const planter = {
         if (!response.ok) return null;
         const user = await response.json();
         return user;
-      } catch (e) {
-        if (e.name === 'AbortError') {
-          console.warn('[PlanterClient] auth.me() timed out');
-        }
+      } catch {
+        console.warn('[PlanterClient] auth.me() timed out');
         return null;
       }
     },

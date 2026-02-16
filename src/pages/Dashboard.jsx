@@ -46,10 +46,12 @@ export default function Dashboard() {
   useEffect(() => {
     const action = searchParams.get('action');
     if (action === 'new-project') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowCreateModal(true);
       searchParams.delete('action');
       setSearchParams(searchParams, { replace: true });
     } else if (action === 'new-template') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowTemplateModal(true);
       searchParams.delete('action');
       setSearchParams(searchParams, { replace: true });

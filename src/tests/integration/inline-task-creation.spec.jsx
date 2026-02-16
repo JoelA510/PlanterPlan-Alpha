@@ -5,15 +5,16 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import Project from '@pages/Project';
 import { useProjectData } from '@features/projects/hooks/useProjectData';
 import { useTaskSubscription } from '@features/tasks/hooks/useTaskSubscription';
-import { projectService } from '@features/projects/services/projectService';
 import { planter } from '@shared/api/planterClient';
-import { DndContext } from '@dnd-kit/core';
 
 // Mocks
 vi.mock('@features/projects/hooks/useProjectData');
 vi.mock('@features/tasks/hooks/useTaskSubscription');
 vi.mock('@features/projects/services/projectService');
 vi.mock('@shared/api/planterClient');
+vi.mock('@app/contexts/AuthContext', () => ({
+    useAuth: () => ({ user: { id: 'test-user' } })
+}));
 
 // Mock child components to isolate Project.jsx logic
 vi.mock('@features/projects/components/ProjectHeader', () => ({
@@ -78,7 +79,7 @@ describe('Inline Task Creation', () => {
             phases: [{ id: 'ph1', position: 1, title: 'Phase 1' }],
             milestones: [{ id: 'm1', parent_task_id: 'ph1', position: 1, title: 'Milestone 1' }],
             tasks: mockTasks,
-            teamMembers: [],
+            teamMembers: [{ user_id: 'test-user', role: 'owner' }],
         });
         useTaskSubscription.mockImplementation(() => { });
         planter.entities.Task.create.mockResolvedValue({ data: { id: 'new-task' }, error: null });
