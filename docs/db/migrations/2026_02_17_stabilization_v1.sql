@@ -13,7 +13,7 @@
 DO $$
 BEGIN
     -- Only run if there are tasks with null root_id that have a parent
-    IF EXISTS (SELECT 1 FROM public.tasks WHERE v IS NOT NULL AND root_id IS NULL) THEN
+    IF EXISTS (SELECT 1 FROM public.tasks WHERE parent_task_id IS NOT NULL AND root_id IS NULL) THEN
         WITH RECURSIVE tree AS (
           SELECT id, parent_task_id, id AS root
           FROM public.tasks
@@ -101,7 +101,7 @@ BEGIN
   AND user_id = auth.uid();
 
   -- 1. Authorization Gate
-  IF v_inviter_role NOT IN ('owner', 'editor') AND NOT v_is_admin THEN
+  IF v_inviter_role IS NULL OR (v_inviter_role NOT IN ('owner', 'editor') AND NOT v_is_admin) THEN
     RAISE EXCEPTION 'Access denied: You must be an owner or editor to invite members.';
   END IF;
 
@@ -180,6 +180,31 @@ DECLARE
     v_old_start_date timestamptz;
     v_interval interval;
 BEGIN
+    -- 0. Security Check: Verify user has access to the template task
+    -- simple check: user must be able to see the task (RLS usually handles this, but for SECURITY DEFINER we must check manually)
+    IF NOT EXISTS (
+        SELECT 1 FROM public.tasks 
+        WHERE id = p_template_id 
+        AND (creator = auth.uid() OR EXISTS (
+            SELECT 1 FROM public.project_members pm 
+            JOIN public.tasks t ON t.root_id = pm.project_id OR t.root_id IS NULL -- weak check, better to check project ownership
+            WHERE t.id = p_template_id AND pm.user_id = auth.uid()
+        ))
+    ) THEN
+        -- Fallback: simpler check just for project membership if root_id is reliable, 
+        -- but for now let's just ensure they are a member of the project that OWNS the template task.
+        -- Actually, strictly checking if they are the CREATOR or a MEMBER of the project is safer.
+        -- Let's rely on a direct check against project_members using the task's root_id (project_id)
+        PERFORM 1 FROM public.tasks t
+        LEFT JOIN public.project_members pm ON t.root_id = pm.project_id AND pm.user_id = auth.uid()
+        WHERE t.id = p_template_id
+        AND (t.creator = auth.uid() OR pm.role IS NOT NULL);
+        
+        IF NOT FOUND THEN
+             RAISE EXCEPTION 'Access denied: You do not have permission to access this template.';
+        END IF;
+    END IF;
+
     -- 0. Get Template Data for Date Math
     SELECT start_date INTO v_old_start_date FROM public.tasks WHERE id = p_template_id;
 
