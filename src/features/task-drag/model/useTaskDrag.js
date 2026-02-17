@@ -156,6 +156,7 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, updateTaskStatus, han
               description: `Moved "${activeTask.title}" to new parent.`,
             });
           }
+          await fetchTasks();
         } catch (e) {
           console.error('Failed to persist move', e);
           if (commitOptimisticUpdate) {

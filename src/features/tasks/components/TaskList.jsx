@@ -208,7 +208,12 @@ const TaskList = () => {
                 disableDrag={joinedProjects.some((jp) => jp.id === activeProjectId)}
                 hydrationError={hydrationError}
                 onInviteMember={() => handleOpenInvite(activeProject)}
-                onStatusChange={(taskId, status) => updateTask(taskId, { status })}
+                onStatusChange={(taskId, status) =>
+                  updateTask(taskId, {
+                    status,
+                    is_complete: status === 'completed',
+                  })
+                }
               />
             )}
           </div>
