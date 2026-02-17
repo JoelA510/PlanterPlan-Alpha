@@ -122,6 +122,21 @@ mindmap
         Raw Fetch to REST API
         Entity Client Factory
         6 Registered Entities
+        - [x] **Wave 9: Security & Permissions**
+          - [x] Verified RLS for `tasks` (Owner/Editor write, Viewer read).
+          - [x] Verified `project_members` policies (Owner/Admin only).
+          - [x] Verified `invite_user_to_project` RPC (Editor escalation check).
+          - [x] Verified `project_invites` table policy (Direct insert protection).
+
+        - [x] **Wave 10: Stabilization & Integrity (v1.0)**
+          - [x] **Root ID Integrity**:
+            - [x] Backfilled `root_id` for all existing tasks.
+            - [x] Added `set_root_id_from_parent` trigger for auto-maintenance.
+            - [x] Added `tasks_root_id_required_for_children` CHECK constraint.
+          - [x] **Date Logic**:
+            - [x] Fixed `clone_project_template` to correctly shift dates based on new start date.
+          - [x] **Schema Consolidation**:
+            - [x] Merged all migrations into `docs/db/schema.sql`.
         auth.updateProfile adapter
       Supabase PostgreSQL
         tasks table
