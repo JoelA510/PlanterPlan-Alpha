@@ -95,9 +95,14 @@ export const updateTaskPosition = async (taskId, newPosition, parentId) => {
 export const updateTasksBatch = async (updates) => {
   if (!updates || updates.length === 0) return;
 
-  const { error } = await planter.entities.Task.upsert(updates);
+  // Use parallel updates instead of upsert to avoid RLS "INSERT" permission errors on existing rows
+  try {
+    const updatePromises = updates.map(({ id, ...data }) =>
+      planter.entities.Task.update(id, data)
+    );
 
-  if (error) {
+    await Promise.all(updatePromises);
+  } catch (error) {
     console.error('Failed to batch update tasks:', error);
     throw error;
   }
