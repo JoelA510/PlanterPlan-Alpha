@@ -15,7 +15,14 @@ export async function inviteMember(projectId, userId, role) {
 }
 
 export async function inviteMemberByEmail(projectId, email, role) {
-  return await planter.entities.Project.addMemberByEmail(projectId, email, role);
+  try {
+    return await planter.entities.Project.addMemberByEmail(projectId, email, role);
+  } catch (error) {
+    if (error.code === '42501' || (error.message && error.message.includes('policy'))) {
+      throw new Error('Access denied: You must be an Owner to manage members.');
+    }
+    throw error;
+  }
 }
 
 // --- Projects (Queries) ---
