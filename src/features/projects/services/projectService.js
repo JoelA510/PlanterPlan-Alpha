@@ -15,7 +15,14 @@ export async function inviteMember(projectId, userId, role) {
 }
 
 export async function inviteMemberByEmail(projectId, email, role) {
-  return await planter.entities.Project.addMemberByEmail(projectId, email, role);
+  try {
+    return await planter.entities.Project.addMemberByEmail(projectId, email, role);
+  } catch (error) {
+    if (error.code === '42501' || (error.message && error.message.includes('policy'))) {
+      throw new Error('Access denied: You must be an Owner to manage members.');
+    }
+    throw error;
+  }
 }
 
 // --- Projects (Queries) ---
@@ -30,7 +37,6 @@ export async function inviteMemberByEmail(projectId, email, role) {
 export async function getUserProjects(userId, page = 1, pageSize = 20) {
   // Use safe listByCreator method from planter client (Raw Fetch)
   try {
-    console.warn('[DEBUG_SIDEBAR] getUserProjects called with:', userId);
     const data = await planter.entities.Project.listByCreator(userId, page, pageSize);
     return { data, error: null };
   } catch (error) {
@@ -42,7 +48,6 @@ export async function getUserProjects(userId, page = 1, pageSize = 20) {
 export async function getJoinedProjects(userId) {
   // Use safe listJoined method from planter client (Raw Fetch)
   try {
-    console.warn('[DEBUG_SIDEBAR] getJoinedProjects called with:', userId);
     const data = await planter.entities.Project.listJoined(userId);
     return { data, error: null };
   } catch (error) {
@@ -98,19 +103,20 @@ export async function updateProjectStatus(projectId, status) {
 
 // --- Projects (Mutations) ---
 
-
 /**
- * Creates a new project with default phases, milestones, and tasks.
- * @param {Object} projectData - The project data (name, launch_date, etc.)
- * @returns {Promise<Object>} - The created project object
+ * Direct Project Creation to bypass Entity wrapper issues.
+ * Retains strict RLS compatibility via RPC.
  */
+// Migrated to usage of createProjectWithDefaults to ensure consistency and proper initialization
+export async function createProject(projectData) {
+  return await createProjectWithDefaults(projectData);
+}
+
 export async function createProjectWithDefaults(projectData) {
   // Get creator from arguments (preferred) or fallback to auth
   let creatorId = projectData.creator;
   let token = projectData._token;
 
-  // We can't use supabase.auth calls here if we want to be pure.
-  // But we need the USER ID.
   if (!creatorId) {
     const me = await planter.auth.me();
     creatorId = me?.id;
@@ -131,8 +137,11 @@ export async function createProjectWithDefaults(projectData) {
     _token: token
   });
 
+  if (!project?.id) {
+    throw new Error('Project creation failed: no ID returned from database.');
+  }
+
   // 2. Initialize default structure via Server-Side RPC
-  console.log('[ProjectService] Initializing default project via RPC...', { projectId: project.id, creatorId });
   const { error } = await planter.rpc('initialize_default_project', {
     p_project_id: project.id,
     p_creator_id: creatorId
@@ -143,7 +152,6 @@ export async function createProjectWithDefaults(projectData) {
     // Rollback: Delete the project if initialization fails to prevent orphans
     try {
       await planter.entities.Project.delete(project.id);
-      console.warn('Rolled back project creation due to initialization failure.');
     } catch (rollbackError) {
       console.error('CRITICAL: Failed to rollback project creation:', rollbackError);
     }

@@ -101,6 +101,10 @@ describe('CreateProjectModal', () => {
             const titleInput = screen.getByLabelText(/project name/i);
             fireEvent.change(titleInput, { target: { value: 'Test Church Plant' } });
 
+            // Also select a launch date, which is required
+            fireEvent.click(screen.getByRole('button', { name: /pick a date/i }));
+            fireEvent.click(screen.getByText('15')); // Select 15th of current month (Mocked or default)
+
             // Submit
             const createBtn = screen.getByRole('button', { name: /create project/i });
             fireEvent.click(createBtn);
@@ -112,6 +116,7 @@ describe('CreateProjectModal', () => {
             // CRITICAL ASSERTION: Verify `title` field is present (not `name`)
             const calledWith = mockOnCreate.mock.calls[0][0];
             expect(calledWith).toHaveProperty('title', 'Test Church Plant');
+            expect(calledWith).toHaveProperty('launch_date'); // Ensure date is passed
             expect(calledWith).not.toHaveProperty('name'); // Should NOT have legacy field
         });
 
@@ -130,6 +135,10 @@ describe('CreateProjectModal', () => {
                 target: { value: 'My Project' },
             });
 
+            // Should select date
+            fireEvent.click(screen.getByRole('button', { name: /pick a date/i }));
+            fireEvent.click(screen.getByText('15'));
+
             fireEvent.click(screen.getByRole('button', { name: /create project/i }));
 
             await waitFor(() => {
@@ -144,33 +153,30 @@ describe('CreateProjectModal', () => {
 
     describe('UI State Management', () => {
         it('disables Create button when title is empty', async () => {
-            renderModal();
+            // Since we switched to onSubmit validation, button is NOT disabled.
+            // We can check if clicking creates or shows error.
+            const mockOnCreate = vi.fn();
+            renderModal({ onCreate: mockOnCreate });
 
             fireEvent.click(screen.getByText('Multiplication'));
-
-            await waitFor(() => {
-                expect(screen.getByRole('button', { name: /create project/i })).toBeInTheDocument();
-            });
+            await waitFor(() => expect(screen.getByRole('button', { name: /create project/i })).toBeInTheDocument());
 
             const createBtn = screen.getByRole('button', { name: /create project/i });
-            expect(createBtn).toBeDisabled();
+            fireEvent.click(createBtn);
+
+            // Should NOT call onCreate because title is empty
+            expect(mockOnCreate).not.toHaveBeenCalled();
         });
 
         it('enables Create button when title is provided', async () => {
+            // This test is somewhat redundant if button is always enabled, 
+            // but checking interactivity is fine.
             renderModal();
-
             fireEvent.click(screen.getByText('Multiplication'));
-
-            await waitFor(() => {
-                expect(screen.getByLabelText(/project name/i)).toBeInTheDocument();
-            });
-
-            fireEvent.change(screen.getByLabelText(/project name/i), {
-                target: { value: 'New Church' },
-            });
+            await waitFor(() => expect(screen.getByLabelText(/project name/i)).toBeInTheDocument());
 
             const createBtn = screen.getByRole('button', { name: /create project/i });
-            expect(createBtn).not.toBeDisabled();
+            expect(createBtn).toBeEnabled();
         });
 
         it('resets form after successful creation', async () => {
@@ -187,6 +193,9 @@ describe('CreateProjectModal', () => {
             fireEvent.change(screen.getByLabelText(/project name/i), {
                 target: { value: 'Test Church' },
             });
+
+            fireEvent.click(screen.getByRole('button', { name: /pick a date/i }));
+            fireEvent.click(screen.getByText('15'));
 
             fireEvent.click(screen.getByRole('button', { name: /create project/i }));
 

@@ -43,11 +43,6 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) 
 
     const { user } = useAuth(); // Need user for filtering
 
-    if (userProjects?.length > 0) {
-        console.warn('[DEBUG_UI] Sidebar Render - User:', user?.id ? 'Present' : 'MISSING', 'Project Count:', userProjects.length);
-        if (userProjects[0]) console.warn('[DEBUG_UI] First Project Creator:', userProjects[0].creator, 'User ID:', user?.id);
-    }
-
     // Split userProjects into Owned and Joined
     const ownedProjects = userProjects?.filter(p => (p.creator === user?.id || p.owner_id === user?.id)) || [];
     const joinedProjs = userProjects?.filter(p => (p.creator !== user?.id && p.owner_id !== user?.id)) || [];
@@ -57,13 +52,11 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) 
     };
 
     const handleNewProjectClick = () => {
-        navigate('/dashboard');
-        // In a real app, this might open the create modal on the dashboard
-        // For now, we redirect to dashboard where the FAB/Button is.
+        navigate('/dashboard?action=new-project');
     };
 
     const handleNewTemplateClick = () => {
-        navigate('/dashboard');
+        navigate('/dashboard?action=new-template');
     };
 
     return (

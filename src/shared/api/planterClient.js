@@ -1,5 +1,4 @@
-// import { supabase } from '@app/supabaseClient'; // Singleton appears broken in browser environment (AbortError)
-// import { createClient } from '@supabase/supabase-js'; // REMOVED to avoid Multiple GoTrueClient conflict
+import { supabase } from '@app/supabaseClient';
 import { retry } from '../lib/retry.js';
 
 const getEnv = (key) => {
@@ -159,27 +158,41 @@ const createEntityClient = (tableName, select = '*') => ({
 
 
 
-// Helper to get token from localStorage (bypass broken supabase client)
-const getSupabaseToken = () => {
+// Helper to get token from Supabase auth session (primary) or deterministic localStorage (fallback)
+const getSupabaseToken = async () => {
+  // Primary: use official Supabase client session
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) return session.access_token;
+  } catch (e) {
+    console.warn('[PlanterClient] getSession() failed, falling back to localStorage', e);
+  }
+
+  // Fallback: Deterministic localStorage lookup
   if (typeof window === 'undefined') return null;
-  // Scan for Supabase session key
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-      try {
-        const session = JSON.parse(localStorage.getItem(key));
+
+  // 1. Try generic "sb-<ref>-auth-token" pattern if URL is standard
+  try {
+    const urlStr = import.meta.env.VITE_SUPABASE_URL; // e.g. https://xyz.supabase.co
+    if (urlStr) {
+      const url = new URL(urlStr);
+      const ref = url.hostname.split('.')[0]; // xyz
+      const key = `sb-${ref}-auth-token`;
+      const item = localStorage.getItem(key);
+      if (item) {
+        const session = JSON.parse(item);
         return session?.access_token;
-      } catch (e) {
-        console.warn('[PlanterClient] Failed to parse session key', key, e);
       }
     }
-  }
+  } catch (e) { /* ignore */ }
+
+  // 2. Legacy scan (Limit loop if absolutely necessary, but prefer strict)
   return null;
 };
 
 // Raw Fetch Wrapper for robustness against Supabase Client AbortErrors
 const rawSupabaseFetch = async (endpoint, options = {}, explicitToken = null) => {
-  const token = explicitToken || getSupabaseToken();
+  const token = explicitToken || await getSupabaseToken();
   if (!token) throw new Error('No auth token available for raw fetch');
 
   const url = `${supabaseUrl}/rest/v1/${endpoint}`;
@@ -201,6 +214,10 @@ const rawSupabaseFetch = async (endpoint, options = {}, explicitToken = null) =>
     throw new Error(`Supabase Raw Error (${response.status}): ${text}`);
   }
 
+  if (response.status === 204) {
+    return null;
+  }
+
   return await response.json();
 };
 
@@ -210,7 +227,7 @@ export const planter = {
     // We provide placeholder me() to not break existing calls, but implementation usually handled by Context.
     me: async () => {
       // console.warn('[PlanterClient] auth.me() called - falling back to direct fetch'); // Removed: This is now the primary method.
-      const token = getSupabaseToken();
+      const token = await getSupabaseToken();
       if (!token) return null;
       try {
         const controller = new AbortController();
@@ -229,10 +246,8 @@ export const planter = {
         if (!response.ok) return null;
         const user = await response.json();
         return user;
-      } catch (e) {
-        if (e.name === 'AbortError') {
-          console.warn('[PlanterClient] auth.me() timed out');
-        }
+      } catch {
+        console.warn('[PlanterClient] auth.me() timed out');
         return null;
       }
     },
@@ -241,12 +256,22 @@ export const planter = {
       // Returns empty promise
       return Promise.resolve();
     },
+    updateProfile: async (attributes) => {
+      return retry(async () => {
+        // Use official SDK for safe metadata updates
+        const { data, error } = await supabase.auth.updateUser({
+          data: attributes,
+        });
+        if (error) throw error;
+        return data;
+      });
+    },
   },
   entities: {
 
 
     Project: {
-      ...createEntityClient('tasks', '*, name:title, launch_date:due_date, owner_id:creator'),
+      ...createEntityClient('tasks', '*,name:title,launch_date:due_date,owner_id:creator'),
       // Override list to filter for Root Tasks (Projects)
       list: async () => {
         return retry(async () => {
@@ -262,15 +287,12 @@ export const planter = {
             // Fallback to client if raw fails? No, client is definitely broken.
             throw err;
           }
-        }).catch(err => {
-          console.error('[PlanterClient] Project.list failed after retries:', err);
-          return [];
         });
       },
       // Override create for specific mapping
       create: async (projectData) => {
         return retry(async () => {
-          console.log('[PlanterClient] Creating project (Raw Fetch):', projectData);
+          // console.log('[PlanterClient] Creating project (Raw Fetch):', projectData);
 
           const userId = projectData.creator;
 
@@ -285,9 +307,12 @@ export const planter = {
             due_date: cleanProjectData.launch_date,
             origin: 'instance',
             parent_task_id: null,
+            root_id: null, // Critical for RLS "Proect" detection
             status: cleanProjectData.status || 'planning',
             creator: userId, // Required for RLS
           };
+
+          // console.log('[PlanterClient] FINAL PAYLOAD (Tasks Table):', JSON.stringify(taskPayload, null, 2));
 
           const data = await rawSupabaseFetch(
             'tasks?select=*,name:title,launch_date:due_date,owner_id:creator',
@@ -308,33 +333,28 @@ export const planter = {
         return retry(async () => {
           const from = (page - 1) * pageSize;
           const to = from + pageSize - 1;
-          const rangeHeader = `${from}-${to}`;
 
           try {
-            // Strategy: Fetch ALL visible projects (like Dashboard) and filter client-side.
-            // This avoids potential PostgREST filtering issues or 'creator' column quirks.
+            // Optimization: Server-side filtering using 'creator' column
+            // We only fetch what we need.
+            const query =
+              `tasks?select=*,project_id:root_id,name:title,launch_date:due_date,owner_id:creator` +
+              `&creator=eq.${encodeURIComponent(userId)}` +
+              `&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`;
+
             const data = await rawSupabaseFetch(
-              `tasks?select=*,name:title,launch_date:due_date,owner_id:creator&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`,
+              query,
               {
                 method: 'GET',
-                headers: { 'Range': rangeHeader }
+                headers: { 'Range': `${from}-${to}` }
               }
             );
 
-            // Client-side filter for 'My Projects'
-            console.warn('[DEBUG_SIDEBAR] listByCreator Raw Data Length:', (data || []).length);
-            if (data?.length > 0) {
-              console.warn('[DEBUG_SIDEBAR] Sample Project Keys:', Object.keys(data[0]));
-              console.warn('[DEBUG_SIDEBAR] Sample Project Creator/Owner:', { creator: data[0].creator, owner_id: data[0].owner_id });
-            }
-            const filtered = (data || []).filter(p => (p.creator === userId || p.owner_id === userId));
-            console.warn('[DEBUG_SIDEBAR] Filtered Data Length:', filtered.length, 'UserId:', userId);
-
-            return filtered;
+            return data || [];
           } catch (err) {
             console.error('[PlanterClient] listByCreator failed:', err);
-            // Return empty array to prevent UI crash, but log error
-            return [];
+            // Propagate error to let React Query / UI handle it
+            throw err;
           }
         });
       },
@@ -378,7 +398,7 @@ export const planter = {
           const queryString = queryParams.join('&');
           const data = await rawSupabaseFetch(`tasks?${queryString}`, { method: 'GET' });
           return data || [];
-        }).catch(() => []);
+        });
       },
       // Custom methods
       addMember: async (projectId, userId, role) => {
@@ -394,15 +414,7 @@ export const planter = {
         return { data: data?.[0], error: null };
       },
       addMemberByEmail: async (projectId, email, role) => {
-        // 1. Get User by Email (from profiles table)
-        const users = await rawSupabaseFetch(`profiles?select=id&email=eq.${email}`, { method: 'GET' });
-        const user = users?.[0];
-
-        if (user) {
-          return await planter.entities.Project.addMember(projectId, user.id, role);
-        }
-
-        // 2. RPC call for invite
+        // 1. RPC call for invite (handles both existing and new users logic)
         // RPC via Raw Fetch: POST /rpc/function_name
         const data = await rawSupabaseFetch('rpc/invite_user_to_project', {
           method: 'POST',
@@ -420,6 +432,7 @@ export const planter = {
     Milestone: createEntityClient('tasks'),
     TaskWithResources: createEntityClient('tasks_with_primary_resource'),
     TaskResource: createEntityClient('task_resources'),
+    TeamMember: createEntityClient('project_members'),
   },
   /**
    * Execute a remote procedure call (RPC)

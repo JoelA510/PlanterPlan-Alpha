@@ -1,5 +1,12 @@
 import DOMPurify from 'dompurify';
 
+// Enforce security for external links (Tabnabbing protection)
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node?.getAttribute && node.getAttribute('target') === '_blank') {
+        node.setAttribute('rel', 'noopener noreferrer');
+    }
+});
+
 /**
  * Sanitizes HTML to prevent XSS attacks.
  * Allows safe HTML tags but strips scripts, iframes, and dangerous attributes.

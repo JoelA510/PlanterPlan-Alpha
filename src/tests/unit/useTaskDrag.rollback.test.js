@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useTaskDrag } from '../../features/tasks/hooks/useTaskDrag';
+import { useTaskDrag } from '../../features/task-drag/model/useTaskDrag';
 import { PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 
 // Mock dependencies
@@ -11,7 +11,7 @@ vi.mock('@dnd-kit/core', () => ({
     KeyboardSensor: 'KeyboardSensor',
 }));
 
-vi.mock('@features/tasks/services/positionService', () => ({
+vi.mock('../../features/task-drag/lib/positionService', () => ({
     calculateNewPosition: vi.fn(),
     renormalizePositions: vi.fn(),
     updateTaskPosition: vi.fn(),

@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { planter } from '@shared/api/planterClient';
 import { createProjectWithDefaults, updateProjectStatus } from '@features/projects/services/projectService'; // Service import
 import { useAuth } from '@app/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@shared/ui/use-toast';
 import { Button } from '@shared/ui/button';
 import { Plus, FolderKanban, Loader2, LayoutGrid, Kanban } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import ProjectCard from '@features/dashboard/components/ProjectCard';
 import CreateProjectModal from '@features/dashboard/components/CreateProjectModal';
+import CreateTemplateModal from '@features/dashboard/components/CreateTemplateModal';
 import StatsOverview from '@features/dashboard/components/StatsOverview';
 import ProjectPipelineBoard from '@features/dashboard/components/ProjectPipelineBoard';
 import OnboardingWizard from '@features/onboarding/components/OnboardingWizard';
@@ -26,22 +29,71 @@ const item = {
 
 export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'pipeline'
-  const [wizardDismissed, setWizardDismissed] = useState(false); // Enable dismissing the wizard
+  const [wizardDismissed, setWizardDismissed] = useState(() => {
+    return localStorage.getItem('gettingStartedDismissed') === 'true';
+  });
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: projects = [], isLoading: loadingProjects } = useQuery({
+  // Auto-open modal when navigated with ?action=new-project or ?action=new-template
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'new-project') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowCreateModal(true);
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    } else if (action === 'new-template') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowTemplateModal(true);
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const { data: projects = [], isLoading: loadingProjects, isError, error } = useQuery({
     queryKey: ['projects'],
     queryFn: () => planter.entities.Project.list('-created_date'),
     enabled: !!user,
   });
 
-  const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: () => planter.entities.Task.list(),
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ['allTasks'],
+    queryFn: () => planter.entities.Task.listByCreator(user?.id),
     enabled: !!user,
   });
+
+  // [PERF] Memoize filtered tasks to prevent re-computation on every render
+  const activeProjects = useMemo(() => {
+    return Array.isArray(projects) ? projects.filter(p => p.status === 'active') : [];
+  }, [projects]);
+
+  const filteredTasks = useMemo(() => {
+    if (!Array.isArray(allTasks)) return [];
+
+    // 1. Filter by Project (if selected)
+    let tasks = selectedProjectId
+      ? allTasks.filter(t => t.project_id === selectedProjectId)
+      : allTasks;
+
+    // 2. Filter by Search Query
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      tasks = tasks.filter(t =>
+        t.title.toLowerCase().includes(lowerQuery) ||
+        t.description?.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    return tasks;
+  }, [allTasks, selectedProjectId, searchQuery]);
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['teamMembers'],
@@ -56,6 +108,9 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
     },
+    onError: (error) => {
+      toast({ title: 'Failed to create project', description: error.message, variant: 'destructive' });
+    }
   });
 
   const updateStatusMutation = useMutation({
@@ -65,16 +120,42 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
     },
     onError: (error) => {
-      console.error('Failed to update project status:', error);
-      // Optional: Add toast notification here
+      toast({
+        title: 'Failed to move project',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const createTemplateMutation = useMutation({
+    mutationFn: (templateData) => planter.entities.Task.create({ ...templateData, creator: user?.id, origin: 'template', parent_task_id: null }),
+    onSuccess: () => {
+      toast({ title: 'Template created', description: 'Your new template is ready.' });
+      queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Templates are in sidebar
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to create template', description: error.message, variant: 'destructive' });
     }
   });
 
   const handleCreateProject = async (projectData) => {
     try {
-      await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+      const project = await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+      // Redirect to the new project board
+      if (project?.id) {
+        navigate(`/project/${project.id}`);
+      }
     } catch (error) {
-      console.error('Create project failed:', error);
+      // Error handled by onError in useMutation
+    }
+  };
+
+  const handleCreateTemplate = async (templateData) => {
+    try {
+      await createTemplateMutation.mutateAsync({ ...templateData, creator: user?.id });
+    } catch (error) {
+      // Error handled via Mutation onError
     }
   };
 
@@ -82,19 +163,35 @@ export default function Dashboard() {
     try {
       await updateStatusMutation.mutateAsync({ projectId, status: newStatus });
     } catch (error) {
-      console.error('Status move failed:', error);
+      // Error handled by onError in useMutation, no need for console.error here
       // If we had optimistic UI, we'd roll back here.
       // Since we rely on refetch, we might just need to ensure the board resets if error.
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     }
   };
 
-  if (loadingProjects || authLoading) {
 
+  if (loadingProjects || authLoading) {
+    console.log('[Dashboard] Rendering Loader');
     return (
       <DashboardLayout>
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+  console.log('[Dashboard] Rendering Content');
+
+  if (isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <p className="text-destructive font-medium">Failed to load projects</p>
+          <p className="text-muted-foreground text-sm">{error?.message}</p>
+          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ['projects'] })}>
+            Retry
+          </Button>
         </div>
       </DashboardLayout>
     );
@@ -149,11 +246,18 @@ export default function Dashboard() {
               <GettingStartedWidget
                 project={projects[0]} // Primary/First project
                 teamMembers={teamMembers.filter(m => m.project_id === projects[0].id)}
-                onDismiss={() => { }}
+                onDismiss={() => {
+                  setWizardDismissed(true);
+                  // Optional: Persist to localStorage if we want it to survive reloads
+                  // localStorage.setItem('gettingStartedDismissed', 'true'); 
+                  // For now, session-based dismissal (until refresh) is acceptable, 
+                  // but let's persist it to be robust as requested.
+                  localStorage.setItem('gettingStartedDismissed', 'true');
+                }}
               />
             )}
-            <MobileAgenda tasks={tasks} />
-            <StatsOverview projects={projects} tasks={tasks} teamMembers={teamMembers} />
+            <MobileAgenda tasks={filteredTasks} />
+            <StatsOverview projects={projects} tasks={filteredTasks} teamMembers={teamMembers} />
           </div>
         )}
 
@@ -183,7 +287,7 @@ export default function Dashboard() {
           ) : viewMode === 'pipeline' ? (
             <ProjectPipelineBoard
               projects={projects}
-              tasks={tasks}
+              tasks={filteredTasks}
               teamMembers={teamMembers}
               onStatusChange={handleStatusChange}
             />
@@ -209,7 +313,7 @@ export default function Dashboard() {
                       >
                         <ProjectCard
                           project={project}
-                          tasks={tasks.filter((t) => t.project_id === project.id)}
+                          tasks={filteredTasks.filter((t) => t.project_id === project.id)}
                           teamMembers={teamMembers.filter((m) => m.project_id === project.id)}
                         />
                       </motion.div>
@@ -233,7 +337,7 @@ export default function Dashboard() {
                         >
                           <ProjectCard
                             project={project}
-                            tasks={tasks.filter((t) => t.project_id === project.id)}
+                            tasks={filteredTasks.filter((t) => t.project_id === project.id)}
                             teamMembers={teamMembers.filter((m) => m.project_id === project.id)}
                           />
                         </motion.div>
@@ -249,6 +353,12 @@ export default function Dashboard() {
           open={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateProject}
+        />
+
+        <CreateTemplateModal
+          open={showTemplateModal}
+          onClose={() => setShowTemplateModal(false)}
+          onCreate={handleCreateTemplate}
         />
 
         <OnboardingWizard

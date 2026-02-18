@@ -81,6 +81,8 @@ CREATE INDEX IF NOT EXISTS idx_tasks_root_id ON public.tasks(root_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON public.tasks(parent_task_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_is_locked ON public.tasks(is_locked);
 CREATE INDEX IF NOT EXISTS idx_tasks_is_premium ON public.tasks(is_premium);
+CREATE INDEX IF NOT EXISTS idx_tasks_creator ON public.tasks(creator);
+CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON public.tasks(assignee_id);
 
 -- ----------------------------------------------------------------------------
 -- PROJECT MEMBERS Table
@@ -142,6 +144,22 @@ CREATE TABLE IF NOT EXISTS public.people (
 );
 CREATE INDEX IF NOT EXISTS idx_people_project_id ON public.people(project_id);
 
+-- ----------------------------------------------------------------------------
+-- TASK RESOURCES Table
+-- Resources attached to tasks (files, links, text)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.task_resources (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  resource_type text,
+  resource_url text,
+  resource_text text,
+  storage_path text,
+  storage_bucket text,
+  created_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_task_resources_task_id ON public.task_resources(task_id);
+
 
 
 -- ============================================================================
@@ -161,6 +179,9 @@ SELECT
     NULL::text as storage_path,
     NULL::text as resource_name
 FROM public.tasks t;
+
+-- View Grants (required for PostgREST / Supabase API access)
+GRANT SELECT ON public.tasks_with_primary_resource TO authenticated, anon, service_role;
 
 -- MASTER LIBRARY View
 CREATE OR REPLACE VIEW public.view_master_library AS
@@ -187,6 +208,8 @@ SELECT
     t.primary_resource_id as resource_id
 FROM public.tasks t
 WHERE t.origin = 'template';
+
+GRANT SELECT ON public.view_master_library TO authenticated, anon, service_role;
 
 -- ============================================================================
 -- 3. FUNCTIONS & TRIGGERS
@@ -217,6 +240,9 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO service_role;
 
 -- RLS Helper: has_project_role
 -- Note: Uses p_project_id for clarity
@@ -264,7 +290,20 @@ DECLARE
     v_new_root_id uuid;
     v_top_new_id uuid;
     v_tasks_count int;
+    v_old_start_date timestamptz;
+    v_interval interval;
 BEGIN
+    -- 0. Get Template Data for Date Math
+    SELECT start_date INTO v_old_start_date FROM public.tasks WHERE id = p_template_id;
+
+    -- Calculate Interval Offset if both dates exist
+    IF p_start_date IS NOT NULL AND v_old_start_date IS NOT NULL THEN
+        -- Calculate difference. casting to date removes time component which is usually safer for "whole day" shifts
+        v_interval := (p_start_date::date - v_old_start_date::date) * '1 day'::interval;
+    ELSE
+        v_interval := '0 days'::interval;
+    END IF;
+
     -- 1. Create Temp Table for ID Mapping (Task)
     CREATE TEMP TABLE IF NOT EXISTS temp_task_map (
         old_id uuid PRIMARY KEY,
@@ -320,9 +359,19 @@ BEGIN
         CASE WHEN t.id = p_template_id AND p_description IS NOT NULL THEN p_description ELSE t.description END,
         t.status, t.position,
         t.notes, t.purpose, t.actions, false, t.days_from_start, 
-        -- Set Dates for Root if provided
-        CASE WHEN t.id = p_template_id THEN p_start_date ELSE null END,
-        CASE WHEN t.id = p_template_id THEN p_due_date ELSE null END
+        -- Set Dates:
+        -- 1. If Root: Use provided p_start_date (or original if null, but usually we want override)
+        -- 2. If Child: Shift by v_interval
+        CASE 
+            WHEN t.id = p_template_id THEN p_start_date 
+            WHEN t.start_date IS NOT NULL THEN t.start_date + v_interval
+            ELSE null 
+        END,
+        CASE 
+            WHEN t.id = p_template_id THEN p_due_date 
+            WHEN t.due_date IS NOT NULL THEN t.due_date + v_interval
+            ELSE null 
+        END
     FROM public.tasks t
     JOIN temp_task_map m ON t.id = m.old_id
     LEFT JOIN temp_task_map mp ON t.parent_task_id = mp.old_id;
@@ -383,14 +432,45 @@ DECLARE
   v_user_id uuid;
   v_invite_id uuid;
   v_token uuid;
+  v_inviter_role text;
+  v_is_admin boolean;
 BEGIN
-  IF NOT public.has_project_role(p_project_id, auth.uid(), ARRAY['owner', 'editor']) AND NOT public.is_admin(auth.uid()) THEN
+  -- Check if user is admin
+  v_is_admin := public.is_admin(auth.uid());
+
+  -- Get Inviter's Role
+  SELECT role INTO v_inviter_role
+  FROM public.project_members
+  WHERE project_id = p_project_id
+  AND user_id = auth.uid();
+
+  -- 1. Authorization Gate
+  IF v_inviter_role NOT IN ('owner', 'editor') AND NOT v_is_admin THEN
     RAISE EXCEPTION 'Access denied: You must be an owner or editor to invite members.';
+  END IF;
+
+  -- 2. Privilege Escalation Check (Editor cannot invite Owner)
+  IF v_inviter_role = 'editor' AND p_role = 'owner' THEN
+     RAISE EXCEPTION 'Access denied: Editors cannot assign the Owner role.';
   END IF;
 
   SELECT id INTO v_user_id FROM auth.users WHERE email = p_email;
 
   IF v_user_id IS NOT NULL THEN
+    -- Existing User Logic
+    
+    -- 3. Update Protection (Editor cannot change an existing Owner's role)
+    IF v_inviter_role = 'editor' THEN
+        IF EXISTS (
+            SELECT 1 FROM public.project_members 
+            WHERE project_id = p_project_id 
+            AND user_id = v_user_id 
+            AND role = 'owner'
+        ) THEN
+            RAISE EXCEPTION 'Access denied: Editors cannot modify an Owner.';
+        END IF;
+    END IF;
+
     INSERT INTO public.project_members (project_id, user_id, role)
     VALUES (p_project_id, v_user_id, p_role)
     ON CONFLICT (project_id, user_id) DO UPDATE
@@ -401,6 +481,7 @@ BEGIN
       'user_id', v_user_id
     );
   ELSE
+    -- Non-existing User (Invite) Logic
     INSERT INTO public.project_invites (project_id, email, role)
     VALUES (p_project_id, p_email, p_role)
     ON CONFLICT (project_id, email) DO UPDATE
@@ -415,6 +496,9 @@ BEGIN
   END IF;
 END;
 $$;
+
+GRANT EXECUTE ON FUNCTION public.invite_user_to_project(uuid, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.invite_user_to_project(uuid, text, text) TO service_role;
 
 -- Get Invite Details (Secure RPC for Anon)
 CREATE OR REPLACE FUNCTION public.get_invite_details(p_token uuid)
@@ -489,131 +573,420 @@ AFTER UPDATE OF status ON public.tasks
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_phase_completion();
 
+-- Auto-update updated_at timestamp
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_tasks_updated_at ON public.tasks;
+CREATE TRIGGER trg_tasks_updated_at
+  BEFORE UPDATE ON public.tasks
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_people_updated_at ON public.people;
+CREATE TRIGGER trg_people_updated_at
+  BEFORE UPDATE ON public.people
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- Auto-add creator as owner for Root Projects
+
+
+-- Trigger: auto-set NEW.root_id from parent (covers inserts + reparenting)
+CREATE OR REPLACE FUNCTION public.set_root_id_from_parent()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- If we are inserting/updating a child (has parent) and no root_id is provided (or we want to force it)
+  -- Actually, we should probably FORCE it to match the parent's root_id (or parent's id if parent is root)
+  IF NEW.parent_task_id IS NOT NULL THEN
+    SELECT COALESCE(root_id, id)
+    INTO NEW.root_id
+    FROM public.tasks
+    WHERE id = NEW.parent_task_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_root_id_from_parent ON public.tasks;
+CREATE TRIGGER trg_set_root_id_from_parent
+BEFORE INSERT OR UPDATE OF parent_task_id ON public.tasks
+FOR EACH ROW EXECUTE FUNCTION public.set_root_id_from_parent();
+
+-- Constraint: any child must have root_id
+-- Added IF NOT EXISTS logic purely for safety if re-run, but standard CREATE is fine for schema.sql
+ALTER TABLE public.tasks
+  DROP CONSTRAINT IF EXISTS tasks_root_id_required_for_children;
+
+ALTER TABLE public.tasks
+  ADD CONSTRAINT tasks_root_id_required_for_children
+  CHECK (parent_task_id IS NULL OR root_id IS NOT NULL);
+
+
+
+-- Initialize Default Project RPC
+CREATE OR REPLACE FUNCTION public.initialize_default_project(
+    p_project_id uuid,
+    p_creator_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_phase_id uuid;
+    v_milestone_id uuid;
+    v_task_count int := 0;
+BEGIN
+    -- 0. PRE-FLIGHT: Security Check
+    IF auth.uid() <> p_creator_id THEN
+        RAISE EXCEPTION 'Access Denied: You can only create projects for yourself.';
+    END IF;
+
+    -- 0. CRITICAL: Security Bootstrap
+    INSERT INTO public.project_members (project_id, user_id, role)
+    VALUES (p_project_id, p_creator_id, 'owner')
+    ON CONFLICT (project_id, user_id) DO NOTHING;
+
+    -- 1. Discovery Phase
+    INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, settings, origin, status, is_premium)
+    VALUES (p_project_id, p_project_id, p_creator_id, 1, 'Discovery', 'Assess calling, gather resources, foundation', '{"color": "blue", "icon": "compass"}'::jsonb, 'instance', 'not_started', false)
+    RETURNING id INTO v_phase_id;
+    
+        -- Milestones for Discovery
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status)
+        VALUES (p_project_id, v_phase_id, p_creator_id, 1, 'Personal Assessment', 'Evaluate your calling and readiness', 'instance', 'not_started')
+        RETURNING id INTO v_milestone_id;
+            INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+            (p_project_id, v_milestone_id, p_creator_id, 1, 'Review and complete assessment', 'high', 'not_started', 'instance'),
+            (p_project_id, v_milestone_id, p_creator_id, 2, 'Schedule planning meeting', 'medium', 'not_started', 'instance');
+            v_task_count := v_task_count + 2;
+
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status)
+        VALUES (p_project_id, v_phase_id, p_creator_id, 2, 'Family Preparation', 'Prepare your family for the journey', 'instance', 'not_started')
+        RETURNING id INTO v_milestone_id;
+            INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+            (p_project_id, v_milestone_id, p_creator_id, 1, 'Family vision night', 'high', 'not_started', 'instance'),
+            (p_project_id, v_milestone_id, p_creator_id, 2, 'Discuss expectations', 'medium', 'not_started', 'instance');
+            v_task_count := v_task_count + 2;
+
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status)
+        VALUES (p_project_id, v_phase_id, p_creator_id, 3, 'Resource Gathering', 'Identify available resources and support', 'instance', 'not_started')
+        RETURNING id INTO v_milestone_id;
+            INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+            (p_project_id, v_milestone_id, p_creator_id, 1, 'List potential partners', 'high', 'not_started', 'instance'),
+            (p_project_id, v_milestone_id, p_creator_id, 2, 'Research planting grants', 'medium', 'not_started', 'instance'),
+            (p_project_id, v_milestone_id, p_creator_id, 3, 'Create budget draft', 'high', 'not_started', 'instance');
+            v_task_count := v_task_count + 3;
+
+    -- 2. Planning Phase
+    INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, settings, origin, status, is_premium)
+    VALUES (p_project_id, p_project_id, p_creator_id, 2, 'Planning', 'Develop strategy, vision, and initial team', '{"color": "purple", "icon": "map"}'::jsonb, 'instance', 'not_started', false)
+    RETURNING id INTO v_phase_id;
+
+        -- Milestones for Planning
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status)
+        VALUES (p_project_id, v_phase_id, p_creator_id, 1, 'Vision Development', 'Clarify your vision and mission', 'instance', 'not_started')
+        RETURNING id INTO v_milestone_id;
+            INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+            (p_project_id, v_milestone_id, p_creator_id, 1, 'Write vision statement', 'high', 'not_started', 'instance'),
+            (p_project_id, v_milestone_id, p_creator_id, 2, 'Define core values', 'high', 'not_started', 'instance');
+            v_task_count := v_task_count + 2;
+
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status)
+        VALUES (p_project_id, v_phase_id, p_creator_id, 2, 'Strategic Planning', 'Develop your launch strategy', 'instance', 'not_started')
+        RETURNING id INTO v_milestone_id;
+            INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+            (p_project_id, v_milestone_id, p_creator_id, 1, 'Demographic study', 'high', 'not_started', 'instance'),
+            (p_project_id, v_milestone_id, p_creator_id, 2, 'Define target audience', 'medium', 'not_started', 'instance');
+            v_task_count := v_task_count + 2;
+            
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status)
+        VALUES (p_project_id, v_phase_id, p_creator_id, 3, 'Core Team Building', 'Recruit and develop your core team', 'instance', 'not_started')
+        RETURNING id INTO v_milestone_id;
+            INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+            (p_project_id, v_milestone_id, p_creator_id, 1, 'Host interest meetings', 'high', 'not_started', 'instance'),
+            (p_project_id, v_milestone_id, p_creator_id, 2, 'Start small group', 'medium', 'not_started', 'instance');
+            v_task_count := v_task_count + 2;
+
+    -- 3. Preparation Phase
+    INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, settings, origin, status, is_premium)
+    VALUES (p_project_id, p_project_id, p_creator_id, 3, 'Preparation', 'Build systems, recruit team, prepare for launch', '{"color": "orange", "icon": "wrench"}'::jsonb, 'instance', 'not_started', false)
+    RETURNING id INTO v_phase_id;
+        
+        -- Milestones
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 1, 'Systems Setup', 'Establish operational systems', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+             INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+             (p_project_id, v_milestone_id, p_creator_id, 1, 'Select ChMS', 'medium', 'not_started', 'instance'),
+             (p_project_id, v_milestone_id, p_creator_id, 2, 'Setup bank account', 'high', 'not_started', 'instance');
+             v_task_count := v_task_count + 2;
+
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 2, 'Facility Planning', 'Secure meeting location', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+             INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+             (p_project_id, v_milestone_id, p_creator_id, 1, 'Visit potential venues', 'high', 'not_started', 'instance'),
+             (p_project_id, v_milestone_id, p_creator_id, 2, 'Sign lease/agreement', 'high', 'not_started', 'instance');
+             v_task_count := v_task_count + 2;
+
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 3, 'Ministry Development', 'Develop key ministry areas', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+             INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+             (p_project_id, v_milestone_id, p_creator_id, 1, 'Kids ministry strategy', 'medium', 'not_started', 'instance'),
+             (p_project_id, v_milestone_id, p_creator_id, 2, 'Worship team auditions', 'medium', 'not_started', 'instance');
+             v_task_count := v_task_count + 2;
+
+    -- 4. Pre-Launch Phase
+    INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, settings, origin, status, is_premium)
+    VALUES (p_project_id, p_project_id, p_creator_id, 4, 'Pre-Launch', 'Final preparations, preview services, marketing', '{"color": "green", "icon": "rocket"}'::jsonb, 'instance', 'not_started', false)
+    RETURNING id INTO v_phase_id;
+        
+        -- Milestones
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 1, 'Preview Services', 'Host preview gatherings', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+             INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+             (p_project_id, v_milestone_id, p_creator_id, 1, 'Plan first preview service', 'high', 'not_started', 'instance'),
+             (p_project_id, v_milestone_id, p_creator_id, 2, 'Debrief preview service', 'medium', 'not_started', 'instance');
+             v_task_count := v_task_count + 2;
+
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 2, 'Marketing Launch', 'Begin community outreach', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+             INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+             (p_project_id, v_milestone_id, p_creator_id, 1, 'Launch social media ads', 'medium', 'not_started', 'instance'),
+             (p_project_id, v_milestone_id, p_creator_id, 2, 'Send mailers', 'medium', 'not_started', 'instance');
+             v_task_count := v_task_count + 2;
+             
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 3, 'Final Preparations', 'Complete all launch requirements', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+             INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES
+             (p_project_id, v_milestone_id, p_creator_id, 1, 'Order connection cards', 'high', 'not_started', 'instance'),
+             (p_project_id, v_milestone_id, p_creator_id, 2, 'Finalize volunteer schedule', 'high', 'not_started', 'instance');
+             v_task_count := v_task_count + 2;
+
+    -- 5. Launch Phase
+    INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, settings, origin, status, is_premium)
+    VALUES (p_project_id, p_project_id, p_creator_id, 5, 'Launch', 'Grand opening and initial growth phase', '{"color": "yellow", "icon": "zap"}'::jsonb, 'instance', 'not_started', false)
+    RETURNING id INTO v_phase_id;
+        -- Milestones
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 1, 'Launch Week', 'Execute your launch plan', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+             INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, priority, status, origin) VALUES (p_project_id, v_milestone_id, p_creator_id, 1, 'Launch Sunday!', 'high', 'not_started', 'instance');
+             v_task_count := v_task_count + 1;
+
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 2, 'First Month', 'Establish weekly rhythms', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 3, 'Guest Follow-up', 'Connect with visitors', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+
+    -- 6. Growth Phase
+    INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, settings, origin, status, is_premium)
+    VALUES (p_project_id, p_project_id, p_creator_id, 6, 'Growth', 'Establish systems, develop leaders, expand reach', '{"color": "pink", "icon": "trending-up"}'::jsonb, 'instance', 'not_started', false)
+    RETURNING id INTO v_phase_id;
+        -- Milestones
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 1, 'Leadership Development', 'Train and empower leaders', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 2, 'Ministry Expansion', 'Launch additional ministries', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+        INSERT INTO public.tasks (root_id, parent_task_id, creator, position, title, description, origin, status) VALUES 
+        (p_project_id, v_phase_id, p_creator_id, 3, 'Future Planning', 'Plan for multiplication', 'instance', 'not_started') RETURNING id INTO v_milestone_id;
+
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'project_id', p_project_id,
+        'tasks_created', v_task_count
+    );
+END;
+$$;
+
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION public.initialize_default_project(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.initialize_default_project(uuid, uuid) TO service_role;
+
 -- ============================================================================
 -- 4. ROW LEVEL SECURITY (RLS)
 -- ============================================================================
 
--- TASKS Policies
+-- TASKS Table Policies
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "Enable read access for all users" ON public.tasks;
 CREATE POLICY "Enable read access for all users" ON public.tasks 
 FOR SELECT USING (
-    -- 1. Direct Ownership (Creator) - Fast verification
-    creator = auth.uid()
+    creator = (select auth.uid())
     OR 
-    -- 2. Project Membership (via Root ID or Self ID) - Role verification
-    -- We check COALESCE(root_id, id) to handle both Root Projects and Child Tasks
-    public.has_project_role(COALESCE(root_id, id), auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited'])
+    public.has_project_role(COALESCE(root_id, id), (select auth.uid()), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited'])
 );
 
 DROP POLICY IF EXISTS "Enable insert for authenticated users within project" ON public.tasks;
 CREATE POLICY "Enable insert for authenticated users within project" ON public.tasks 
 FOR INSERT WITH CHECK (
-    -- Allow authenticated users to create Root Projects (Must claim ownership)
-    (auth.role() = 'authenticated' AND root_id IS NULL AND parent_task_id IS NULL AND creator = auth.uid())
-    OR
-    -- Must have write access to the project (Root ID)
-    public.has_project_role(root_id, auth.uid(), ARRAY['owner', 'editor'])
+    (
+        (auth.role() = 'authenticated' AND root_id IS NULL AND parent_task_id IS NULL AND creator = (select auth.uid()))
+        OR
+        public.has_project_role(root_id, (select auth.uid()), ARRAY['owner', 'editor'])
+    )
+    AND 
+    (
+        origin IS DISTINCT FROM 'template' 
+        OR 
+        public.is_admin((select auth.uid()))
+    )
 );
 
 DROP POLICY IF EXISTS "Enable update for users" ON public.tasks;
 CREATE POLICY "Enable update for users" ON public.tasks 
 FOR UPDATE USING (
-    creator = auth.uid()
-    OR 
-    public.has_project_role(COALESCE(root_id, id), auth.uid(), ARRAY['owner', 'editor'])
+    (
+        creator = (select auth.uid())
+        OR 
+        public.has_project_role(COALESCE(root_id, id), (select auth.uid()), ARRAY['owner', 'editor'])
+    )
+    AND 
+    (
+        origin IS DISTINCT FROM 'template' 
+        OR 
+        public.is_admin((select auth.uid()))
+    )
 );
 
 DROP POLICY IF EXISTS "Enable delete for users" ON public.tasks;
 CREATE POLICY "Enable delete for users" ON public.tasks 
 FOR DELETE USING (
-    creator = auth.uid()
+    creator = (select auth.uid())
     OR 
-    public.has_project_role(COALESCE(root_id, id), auth.uid(), ARRAY['owner', 'editor'])
+    public.has_project_role(COALESCE(root_id, id), (select auth.uid()), ARRAY['owner', 'editor'])
 );
 
--- PROJECT MEMBERS Policies
+-- ============================================================================
+-- PROJECT MEMBERS Table Policies
+-- ============================================================================
+
 ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "View project members" ON public.project_members;
 CREATE POLICY "View project members" ON public.project_members
   FOR SELECT USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
-    public.is_admin(auth.uid())
+    public.has_project_role(project_id, (select auth.uid()), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin((select auth.uid()))
   );
   
 DROP POLICY IF EXISTS "Enable all for authenticated users" ON public.project_members;
 CREATE POLICY "Enable all for authenticated users" ON public.project_members 
 FOR ALL USING (
-    -- Only Owners can manage members
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner'])
+    public.has_project_role(project_id, (select auth.uid()), ARRAY['owner'])
     OR
-    public.is_admin(auth.uid())
+    public.is_admin((select auth.uid()))
 );
 
--- PROJECT INVITES Policies
+-- ============================================================================
+-- PROJECT INVITES Table Policies
+-- ============================================================================
+
 ALTER TABLE public.project_invites ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "View invites for project members" ON public.project_invites;
 CREATE POLICY "View invites for project members" ON public.project_invites
   FOR SELECT USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
-    public.is_admin(auth.uid())
+    public.has_project_role(project_id, (select auth.uid()), ARRAY['owner', 'editor']) OR
+    public.is_admin((select auth.uid()))
   );
 
 DROP POLICY IF EXISTS "Create invites for project members" ON public.project_invites;
 CREATE POLICY "Create invites for project members" ON public.project_invites
   FOR INSERT WITH CHECK (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
-    public.is_admin(auth.uid())
+    public.is_admin((select auth.uid()))
+    OR public.has_project_role(project_id, (select auth.uid()), ARRAY['owner'])
+    OR (
+      public.has_project_role(project_id, (select auth.uid()), ARRAY['editor'])
+      AND role <> 'owner'
+    )
   );
 
 DROP POLICY IF EXISTS "Delete invites for project members" ON public.project_invites;
 CREATE POLICY "Delete invites for project members" ON public.project_invites
   FOR DELETE USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
-    public.is_admin(auth.uid())
+    public.has_project_role(project_id, (select auth.uid()), ARRAY['owner', 'editor']) OR
+    public.is_admin((select auth.uid()))
   );
 
+-- ============================================================================
+-- PEOPLE Table Policies
+-- ============================================================================
 
-
--- PEOPLE Policies
 ALTER TABLE public.people ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "View people for project members" ON public.people;
 CREATE POLICY "View people for project members" ON public.people
   FOR SELECT USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
-    public.is_admin(auth.uid())
+    public.has_project_role(project_id, (select auth.uid()), ARRAY['owner', 'editor', 'coach', 'viewer', 'limited']) OR
+    public.is_admin((select auth.uid()))
   );
 
 DROP POLICY IF EXISTS "Manage people for owners and editors" ON public.people;
 CREATE POLICY "Manage people for owners and editors" ON public.people
   FOR ALL USING (
-    public.has_project_role(project_id, auth.uid(), ARRAY['owner', 'editor']) OR
-    public.is_admin(auth.uid())
+    public.has_project_role(project_id, (select auth.uid()), ARRAY['owner', 'editor']) OR
+    public.is_admin((select auth.uid()))
   );
 
+-- ============================================================================
+-- TASK RELATIONSHIPS Table Policies
+-- ============================================================================
 
-
--- TASK RELATIONSHIPS Policies
 ALTER TABLE public.task_relationships ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "View relationships" ON public.task_relationships;
 CREATE POLICY "View relationships" ON public.task_relationships
     FOR SELECT
     USING (
-        EXISTS (
-            SELECT 1 FROM public.project_members
-            WHERE project_members.project_id = task_relationships.project_id
-            AND project_members.user_id = auth.uid()
-        )
+        public.has_project_role(project_id, (select auth.uid()), ARRAY['owner','editor','coach','viewer','limited'])
+        OR public.is_admin((select auth.uid()))
     );
 
 DROP POLICY IF EXISTS "Manage relationships" ON public.task_relationships;
 CREATE POLICY "Manage relationships" ON public.task_relationships
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM public.project_members
-            WHERE project_members.project_id = task_relationships.project_id
-            AND project_members.user_id = auth.uid()
-            AND project_members.role IN ('owner', 'editor')
-        )
+        public.has_project_role(project_id, (select auth.uid()), ARRAY['owner','editor'])
+        OR public.is_admin((select auth.uid()))
     );
+
+-- ============================================================================
+-- TASK RESOURCES Table Policies
+-- ============================================================================
+
+ALTER TABLE public.task_resources ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "View resources" ON public.task_resources;
+CREATE POLICY "View resources" ON public.task_resources
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.tasks t
+      WHERE t.id = task_resources.task_id
+      AND (t.creator = (select auth.uid())
+        OR public.has_project_role(COALESCE(t.root_id, t.id), (select auth.uid()), ARRAY['owner','editor','coach','viewer','limited']))
+    )
+    OR public.is_admin((select auth.uid()))
+  );
+
+DROP POLICY IF EXISTS "Manage resources" ON public.task_resources;
+CREATE POLICY "Manage resources" ON public.task_resources
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.tasks t
+      WHERE t.id = task_resources.task_id
+      AND (t.creator = (select auth.uid())
+        OR public.has_project_role(COALESCE(t.root_id, t.id), (select auth.uid()), ARRAY['owner','editor']))
+    )
+    OR public.is_admin((select auth.uid()))
+  );
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.task_resources TO authenticated;
+GRANT ALL ON public.task_resources TO service_role;

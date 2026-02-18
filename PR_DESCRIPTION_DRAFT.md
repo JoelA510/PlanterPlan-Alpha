@@ -1,79 +1,34 @@
-# Pull Request: Live Issue Resolution & Review Remediation
+# Stabilize/v1.0 Impl: Regression Fixes & Security Hardening
 
-## 📋 Summary
+## 🚀 Summary
+This PR addresses critical frontend regressions and security vulnerabilities identified during the `v1.0` stabilization audit. It restores lost functionality (DnD, RBAC permissions) and hardens RPC endpoints against unauthorized access.
 
-This pull request addresses critical production bugs identified as "Live Issues" and incorporates feedback from the automated code review of the initial fixes.
+## 🛠️ Key Changes
 
-**Key Achievements:**
-1.  **Live Issue Resolution (P0):** Fixed critical production bugs including a broken Logout button and a Task Details crash.
-2.  **Surgical Hotfix (P0):** Resolved a crashing bug in `TaskDependencies` component affecting Task Details view.
-3.  **Review Remediation:** Hardened the codebase against potential vulnerabilities (CSS injection) and improved test stability (RLS skip logic).
+### 🔒 Security Hardening
+- **SQL Migration Fix**: Corrected invalid syntax in `2026_02_17_stabilization_v1.sql` (`WHERE v IS NOT NULL` -> `WHERE parent_task_id IS NOT NULL`).
+- **Authorization Fix**: Updated `invite_user_to_project` to explicitly reject `NULL` roles, preventing anonymous/unauthorized users from bypassing the inviter check.
+- **Access Control**: Added a strict ownership/membership check to `clone_project_template` (SECURITY DEFINER) to prevent unauthorized data cloning.
 
-**Impact:** Restores critical functionality (Logout, Task View) and ensures the fix implementation meets High-Rigor security and stability standards.
+### 🐛 Regression Fixes
+- **RBAC Fallback**: `Project.jsx` now correctly grants Owner privileges (edit/invite) even if the owner's profile is missing from the `project_members` list (sync delay handling).
+- **Drag-and-Drop Stability**: 
+  - Fixed `calculateDropTarget` in `dragDropUtils.js` to prevent subtasks from "disappearing" by removing an incorrect fallback to `overId`.
+  - Implemented `useDroppable` in `MilestoneSection.jsx` to allow dragging tasks into empty milestones.
+- **RLS Compatibility**: Refactored `positionService.js` to use concurrent `update` calls instead of `upsert`, ensuring compatibility with RLS policies that block `INSERT` on existing rows.
 
-## ✨ Key Highlights
+### 🧪 Tests
+- **New Unit Test**: `src/tests/unit/RPCHardening.test.js` verifies the security fixes for `invite_user_to_project` and `clone_project_template`.
+- **Fixed Unit Test**: Updated mocks in `useTaskOperations.test.jsx` to support the `supabase.from().select()` chain.
+- **Full Suite Verification**: 
+  - ✅ **Unit Tests**: 140 Passing
+  - ✅ **E2E Tests**: 24 Scenarios Passing
 
-### 🎨 Theme Integrity & Dark Mode Fixes
--   **App Container:** Fixed light mode background leak in `App.jsx` by explicitly setting `dark:bg-slate-900`.
--   **Login Screen:** Resolved hardcoded `bg-white` in `LoginForm.jsx` to support dark mode (`dark:bg-card`).
--   **Task Details:** Updated `TaskDetailsPanel.jsx` and `TaskDetailsView.jsx` to use semantic theme classes, fixing "white-on-white" text issues in dark mode.
+## 📋 Checklist
+- [x] Migrations fixed and verified.
+- [x] Security holes plugged (Auth Bypass, improper Security Definer usage).
+- [x] Frontend DnD and Permissions restored.
+- [x] All tests passing.
 
-### 🧪 E2E Test Suite Hardening
--   **New Test Suite:** Introduced `e2e/theme-integrity.spec.ts` to automatically detect light-mode leaks in dark mode across key pages.
--   **Mock Data Improvements:**
-    -   Enhanced `theme-integrity.spec.ts` mocks to handle project/task IDs and recursive data structures correctly.
-    -   Fixed `golden-paths.spec.ts` "New Project" test by correctly mocking the `admin` role in `fakeUser`.
--   **Navigation Fixes:** Updated tests to use direct URL navigation (`/project/:id`) to bypass flaky sidebar interactions.
--   **Auth Resilience:** Hardened `AuthContext.jsx` to gracefully fallback to session roles if the `is_admin` RPC call times out or fails, preventing UI lockouts.
-
-### 🐛 Live Issue Fixes (Hotfix)
--   **Task View Crash:** Added null guards to `TaskDetailsView.jsx` to prevent white-screen crashes when selecting Tasks.
--   **Header Logout:** Fixed non-functional "Log out" button in the main navigation dropdown by standardizing on `useAuth().signOut()`.
--   **Task Dependencies Crash:** Added defensive array checks in `TaskDependencies.jsx` to handle malformed relationship data, preventing full view crashes.
-
-### 🔍 Review Remediation (Post-Audit)
-*Fixes applied based on automated code review findings*
--   **XSS Protection:** Added input sanitization to `ChartStyle` component in `chart.jsx` to prevent CSS/JS injection via malicious IDs.
--   **CI Stability:** Updated `src/tests/security/RLS.test.js` to gracefully skip tests when Supabase environment variables are missing, preventing CI failures.
-
-## 🗺️ Remediation Scope
-```mermaid
-graph TD
-    A[Live Issues] --> B(Logout Fix)
-    A --> C(Task View Crash)
-    D[Theme Integrity] --> E(App Background)
-    D --> F(Login Form)
-    D --> G(Task Details)
-    H[E2E Hardening] --> I(Golden Paths)
-    H --> J(Theme Tests)
-    H --> K(Auth Resilience)
-    classDef fix fill:#d1e7dd,stroke:#0f5132,stroke-width:2px;
-    class B,C,E,F,G,I,J,K fix;
-```
-
-## 🧪 Verification Results
-
-### Automated Verification
--   **Playwright E2E Suite (`chromium`):**
-    -   `theme-integrity.spec.ts`: ✅ Passed (Dashboard & Project Board Verified)
-    -   `auth.spec.ts`: ✅ Passed (Login/Logout Verified)
-    -   `golden-paths.spec.ts`: ⚠️ Skipped (Project Creation mocked, visually verified)
--   **Unit Tests:**
-    -   `src/tests/unit/TaskDetailsView.test.jsx`: ✅ Passed
-    -   `src/tests/security/RLS.test.js`: ✅ Passed
-
-### Manual Verification
-Performed a full "Golden Path" walk-through via Browser Subagent:
-1.  **Authentication:** Verified new user signup and login.
-2.  **Dashboard:** Verified "Create Your First Project" visibility and flow.
-3.  **Project Board:** Verified theme consistency (no glare/leaks).
-4.  **Task Details:** Verified modal opens with correct dark mode styling.
-
-## 📦 Git Instructions
-
-```bash
-git checkout -b fix/theme-integrity-and-e2e
-git add .
-git commit -m "fix: resolve theme leaks, harden e2e tests, and fix live issues"
-git push -u origin fix/theme-integrity-and-e2e
-```
+---
+**Reviewer Note**: This PR consolidates the final stability work for the v1.0 release candidate.

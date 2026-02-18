@@ -24,7 +24,7 @@ const STATUS_OPTS = {
     'default': 'bg-slate-100 text-slate-700'
 };
 
-export default function PeopleList({ projectId }) {
+export default function PeopleList({ projectId, canEdit = false }) {
     const [people, setPeople] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -102,10 +102,12 @@ export default function PeopleList({ projectId }) {
                         aria-label="Search people"
                     />
                 </div>
-                <Button onClick={() => { setEditingPerson(null); setIsAddModalOpen(true); }}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Person
-                </Button>
+                {canEdit && (
+                    <Button onClick={() => { setEditingPerson(null); setIsAddModalOpen(true); }}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Person
+                    </Button>
+                )}
             </div>
 
             <Card className="overflow-hidden">

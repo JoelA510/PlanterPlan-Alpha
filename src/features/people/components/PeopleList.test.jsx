@@ -51,7 +51,7 @@ describe('PeopleList', () => {
     });
 
     it('opens add person modal', async () => {
-        render(<PeopleList projectId="123" />);
+        render(<PeopleList projectId="123" canEdit={true} />);
         await screen.findByText('John Doe');
 
         // Find the trigger button (initially only one 'Add Person' text or use getAllByText if needed)

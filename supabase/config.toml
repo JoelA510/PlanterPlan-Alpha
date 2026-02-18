@@ -129,6 +129,8 @@ jwt_expiry = 3600
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
 # signing_keys_path = "./signing_keys.json"
+# Explicitly set JWT secret to match E2E tests
+jwt_secret = "super-secret-jwt-token-with-at-least-32-characters-long"
 # If disabled, the refresh token will never expire.
 enable_refresh_token_rotation = true
 # Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.

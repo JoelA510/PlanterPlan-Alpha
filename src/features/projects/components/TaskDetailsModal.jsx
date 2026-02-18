@@ -9,7 +9,8 @@ export default function TaskDetailsModal({
     onEditTask,
     onDeleteTask,
     onTaskUpdated,
-    allProjectTasks = []
+    allProjectTasks = [],
+    canEdit = true
 }) {
     if (!task) return null;
 
@@ -33,6 +34,7 @@ export default function TaskDetailsModal({
                         onDeleteTask={onDeleteTask}
                         onTaskUpdated={onTaskUpdated}
                         allProjectTasks={allProjectTasks} // Pass through for dependencies
+                        canEdit={canEdit}
                     />
                 </div>
             </DialogContent>

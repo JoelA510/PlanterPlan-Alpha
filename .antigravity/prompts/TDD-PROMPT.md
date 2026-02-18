@@ -7,7 +7,7 @@
 **EXECUTION CONSTRAINTS:**
 1.  **Test Harness:** Use `vitest` (Mock data: `src/tests/fixtures/complexProject.json`).
 2.  **No Implementation Yet:** You are currently in the **RED** phase. Do not write the implementation file until the test file exists and fails.
-3.  **Modernity Check:** Verify your test imports match the React 19 patterns acknowledged during System Boot.
+3.  **Modernity Check:** Verify test imports match the Stack versions defined in `.antigravity/instructions.md`.
 
 **STEPS:**
 1.  **Map:** Confirm target directory.

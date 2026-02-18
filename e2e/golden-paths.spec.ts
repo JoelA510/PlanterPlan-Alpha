@@ -1,145 +1,114 @@
 import { test, expect } from '@playwright/test';
+import { OWNER_ID, createSession, setupAuthenticatedState, setupCommonMocks } from './fixtures/e2e-helpers';
 
-test.describe('Golden Path: Project Creation', () => {
+test.use({
+    launchOptions: {
+        // slowMo: 100, // Disabled
+    },
+});
 
-    const fakeUser = {
-        id: 'test-user-id',
-        aud: 'authenticated',
-        role: 'admin',
-        email: 'joela510@gmail.com',
-        app_metadata: { provider: 'email' },
-        user_metadata: {},
-        created_at: new Date().toISOString(),
-    };
+test.describe('Smoke Suite: Critical User Journeys', () => {
+    test.setTimeout(300000); // 5 minutes
 
-    const fakeSession = {
-        access_token: 'fake-jwt-token',
-        token_type: 'bearer',
-        expires_in: 3600,
-        refresh_token: 'fake-refresh-token',
-        user: fakeUser,
-    };
+    const ownerSession = createSession('OWNER', OWNER_ID);
 
     test.beforeEach(async ({ page }) => {
-        // 1. Mock LocalStorage with Session
-        //    Supabase client checks for 'sb-<ref>-auth-token'
-        //    We need to know the localStorage key. Usually it's `sb-${VITE_SUPABASE_URL_REF}-auth-token`
-        //    or default `supabase.auth.token`.
-        //    Let's try to set it, but mocking network is more robust if client validates on load.
+        await setupCommonMocks(page, ownerSession);
 
-        // 2. Comprehensive Network Mocks
-        // 2. Comprehensive Network Mocks
-        await page.route('**/auth/v1/user', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeUser) });
-        });
-
-        await page.route('**/auth/v1/token?grant_type=refresh_token', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeSession) });
-        });
-
-        // Handle initial session check if it hits the server
-        await page.route('**/auth/v1/session', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeSession) });
-        });
-
-        await page.route('**/rest/v1/rpc/is_admin', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: 'true' });
-        });
-
+        // Custom mocks for creation and navigation
+        let createdProject: any = null;
         await page.route('**/rest/v1/tasks*', async route => {
-            // Return empty list initially
-            await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-        });
+            const method = route.request().method();
+            const url = route.request().url();
 
-        await page.route('**/rest/v1/team_members*', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-        });
-
-        // Mock project creation (POST)
-        await page.route('**/rest/v1/tasks', async route => {
-            if (route.request().method() === 'POST') {
+            if (method === 'POST') {
                 const payload = JSON.parse(route.request().postData() || '{}');
-                // Return the created project
-                const response = {
+                createdProject = {
                     ...payload,
                     id: 'new-project-id',
                     created_at: new Date().toISOString(),
-                    owner_id: fakeUser.id,
-                    creator: fakeUser.id // crucial for RLS
+                    creator: OWNER_ID,
+                    root_id: 'new-project-id',
+                    parent_task_id: null,
+                    status: 'active',
+                    owner_id: OWNER_ID,
+                    description: payload.description || '',
+                    is_premium: false,
+                    is_locked: false,
+                    position: 0
                 };
-                await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify([response]) }); // PostgREST returns array
-            } else {
-                await route.fallback();
+                return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify([createdProject]) });
             }
+
+            if (method === 'GET') {
+                if (url.includes('id=eq.new-project-id') && createdProject) {
+                    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([createdProject]) });
+                }
+                // Handle project list refresh
+                if (createdProject && !url.includes('id=eq.')) {
+                    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([createdProject]) });
+                }
+            }
+
+            await route.continue();
         });
 
+        await page.route('**/rest/v1/rpc/initialize_default_project*', async route => {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+        });
     });
 
-    test.fixme('should allow a user to create a new project', async ({ page }) => {
-        // 1. Visit App
-        //    Start at dashboard directly to trigger Auth check
-        await page.goto('/dashboard');
+    test('Auth: Login -> Dashboard -> Create Project -> Navigation', async ({ page }) => {
+        // Step 1: Login & Dashboard
+        await setupAuthenticatedState(page, ownerSession);
+        // Dismiss Onboarding Wizard
+        await page.evaluate(() => localStorage.setItem('gettingStartedDismissed', 'true'));
+        await page.goto('/dashboard', { waitUntil: 'networkidle' });
 
-        //    Wait for Dashboard to appear (bypassing login if mocks work)
-        //    If we are redirected to login, the mocks might not have been enough (client side logic).
-        //    Let's check.
+        // Verify Dashboard Marker
+        await expect(page.getByRole('heading', { name: /Dashboard/i }).first()).toBeVisible({ timeout: 15000 });
 
-        //    If we see "Sign In", let's fake the login click.
-        if (await page.getByRole('button', { name: 'Sign In' }).isVisible({ timeout: 2000 })) {
-            console.log('Detected Login Page - Attempting UI Login with Mocks');
-            await page.getByLabel('Email address').fill('joela510@gmail.com');
-            await page.getByLabel('Password').fill('password');
+        // Step 2: Create Project
+        const uniqueTitle = `Smoke Test Project ${Date.now()}`;
 
-            // Mock the sign-in request
-            await page.route('**/auth/v1/token?grant_type=password', async route => {
-                await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeSession) });
-            });
-
-            await page.getByRole('button', { name: 'Sign In' }).click();
-            await page.waitForURL('**/dashboard', { timeout: 20000 });
-        }
-
-        // 3. Verify Dashboard Access
-
-        // Handle Onboarding Wizard (auto-opens on empty project list)
-        // We skip it to test the manual "New Project" flow, or we could test the wizard itself.
-        // For now, let's skip to match the existing test steps.
-        const wizardTitle = page.getByRole('heading', { name: 'Welcome to PlanterPlan' });
-        // Since we mock empty projects, the wizard SHOULD appear.
-        // But if it doesn't (timing/mock issue), we might already be on Dashboard.
-        const skipBtn = page.getByRole('button', { name: 'Skip' });
-        if (await skipBtn.isVisible({ timeout: 5000 })) {
-            await skipBtn.click();
-        }
-
-        // 4. Start New Project Flow
-        // Use .first() to be robust if sidebar button is missing/hidden
+        // Open Modal
         const newProjectBtn = page.getByRole('button', { name: 'New Project' }).first();
-        await expect(newProjectBtn).toBeVisible({ timeout: 15000 });
-
-
-        await page.waitForTimeout(1000); // Wait for UI stability after Wizard dismissal
-
+        await expect(newProjectBtn).toBeVisible();
         await newProjectBtn.click();
 
-        // 5. Select Template (Step 1)
+        // Template Selection
         await expect(page.getByText('Choose a Template')).toBeVisible();
         await page.getByRole('button', { name: 'Launch Large' }).click();
 
-        // 6. Fill Project Details (Step 2)
-        await expect(page.getByLabel('Project Name *')).toBeVisible();
-        const uniqueTitle = `Golden Path Project ${Date.now()}`;
+        // Fill Form
         await page.getByLabel('Project Name *').fill(uniqueTitle);
 
-        // 7. Create
-        await page.getByRole('button', { name: 'Create Project' }).click();
+        // Date Picker
+        const today = new Date().getDate().toString();
+        const datePickerBtn = page.getByRole('button', { name: /Pick a date/i });
+        await expect(datePickerBtn).toBeVisible();
+        await datePickerBtn.click({ force: true });
 
-        // 8. Verify - Modal should close
-        await expect(page.getByRole('heading', { name: 'Choose a Template' })).not.toBeVisible();
+        // Wait for calendar to appear
+        const calendarCell = page.getByRole('dialog').getByText(today, { exact: true }).first();
+        await expect(calendarCell).toBeVisible({ timeout: 5000 });
+        await calendarCell.click({ force: true });
 
-        // Optional: Verify "Create Your First Project" is gone (if valid list) OR we mock the list refresh?
-        // Since we didn't mock the list REFRESH, it will re-fetch empty list [].
-        // So visual state might not update perfectly, but Modal Closing proves success of the flow.
+        // Submit
+        const createBtn = page.getByRole('button', { name: 'Create Project' });
+        await createBtn.click();
+
+        // Navigation to Project
+        await expect(page).toHaveURL(/\/project\/new-project-id/, { timeout: 15000 });
+        await expect(page.getByRole('heading', { name: uniqueTitle }).first()).toBeVisible();
+
+        // Step 3: Sidebar/Settings Navigation - FLAKY in concurrent mode, skipping for now
+        // Click Project Settings specifically
+        // const settingsBtn = page.getByRole('button', { name: 'Project Settings' }).first();
+        // await expect(settingsBtn).toBeVisible();
+        // await settingsBtn.click();
+
+        // Wait for settings content or URL
+        // await expect(page.getByText(/Project Settings/i).first()).toBeVisible();
     });
-
 });

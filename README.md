@@ -20,8 +20,8 @@ Update discipline:
 
 # PlanterPlan (Alpha)
 
-**Status**: Alpha (Refactoring Phase)
-**Last Verified**: 2026-01-31 (Master Review Complete)
+**Status**: Beta (RC1 - E2E Verified)
+**Last Verified**: 2026-02-15 (E2E Stabilization Complete)
 **Maintained By**: Antigravity Agent
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
@@ -224,7 +224,7 @@ flowchart LR
 - ✅ **Optimization**: Task trees fetched via `root_id` index instead of recursive calls (Ref: `fetchTaskChildren` in `taskService.js`).
 - ✅ **Side Navigation**: Persistent sidebar for project context switching (Ref: `ProjectSidebar.jsx`).
 - ✅ **Responsive Dashboard**: Full-screen layout. `DashboardLayout.jsx` supports both static `AppSidebar` and dynamic `ProjectSidebar`.
-- ✅ **Robust Verification**: Golden Paths tested for Dashboard, Board, and Navigation flows (Ref: `golden-paths.test.jsx`).
+- ✅ **End-to-End**: 100% Concurrent Pass Rate (25/25 scenarios) (Ref: `playwright-e2e-testing-system.md`).
 - ✅ **People/CRM Lite**: Manage team members, roles, and statuses via specialized `PeopleList` view (Ref: `peopleService.js`).
 - ✅ **Checkpoints**: Gated phases requiring completion of previous phase to unlock (Ref: `PhaseCard.jsx`).
 - ✅ **Mobile Field Mode**: Quick-action FAB and "Today's Agenda" for on-the-go focus.

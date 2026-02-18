@@ -47,7 +47,7 @@
 ## 4. Testing & Verification
 
 - **Unit/Integration**: `npm test` (Vitest).
-- **Golden Path Tests**: `src/tests/integration/golden-paths.test.jsx`.
+- **Golden Path Tests**: `e2e/golden-paths.spec.ts` (Playwright).
 - **Linting**: `npm run lint` (Zero-tolerance for errors).
 
 ## 5. Deployment / Build

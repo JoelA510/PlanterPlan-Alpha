@@ -33,7 +33,7 @@ export default function AppSidebar({ onClose, currentProject, className }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-6" data-testid="app-sidebar-nav">
           {useMemo(() => navigationItems.map((section) => (
             <div key={section.title}>
               <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">

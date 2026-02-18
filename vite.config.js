@@ -17,6 +17,8 @@ export default defineConfig({
       '@pages': path.resolve(__dirname, './src/pages'),
       '@shared': path.resolve(__dirname, './src/shared'),
       '@layouts': path.resolve(__dirname, './src/layouts'),
+      '@entities': path.resolve(__dirname, './src/entities'),
+      '@widgets': path.resolve(__dirname, './src/widgets'),
       // Stashed aliases (for compatibility with new Planter components)
       '@': path.resolve(__dirname, './src'),
       styles: path.resolve(__dirname, './src/styles'),
@@ -43,7 +45,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
   },
   server: {
-    open: true,
+    open: false,
     port: 3000,
     host: '127.0.0.1',
   },

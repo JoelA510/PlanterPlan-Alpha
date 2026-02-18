@@ -4,7 +4,7 @@ import { formatDisplayDate } from '@shared/lib/date-engine';
 
 import { useAuth } from '@app/contexts/AuthContext';
 
-const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated, ...props }) => {
+const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated, canEdit = true, ...props }) => {
   const { user } = useAuth();
 
   if (!task) {
@@ -44,7 +44,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
         >
           Email Task
         </button>
-        {onEditTask && (
+        {onEditTask && canEdit && (
           <button
             type="button"
             onClick={() => onEditTask(task)}
@@ -53,7 +53,7 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
             Edit Task
           </button>
         )}
-        {onDeleteTask && (
+        {onDeleteTask && canEdit && (
           <button
             type="button"
             onClick={() => onDeleteTask(task)}
@@ -117,78 +117,80 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       </div>
       <div className="h-px bg-slate-100 my-4"></div>
 
-      {isLocked ? (
-        <div className="p-8 text-center bg-muted/30 border-2 border-dashed border-border rounded-xl my-6">
-          <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+      {
+        isLocked ? (
+          <div className="p-8 text-center bg-muted/30 border-2 border-dashed border-border rounded-xl my-6">
+            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <h3 className="text-lg font-bold text-card-foreground mb-2">Premium Content Locked</h3>
+            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+              This content is part of the Premium PlanterPlan curriculum. Upgrade to unlock full access to detailed guides, resources, and templates.
+            </p>
+            <button className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm transition-colors">
+              Upgrade to Premium
+            </button>
           </div>
-          <h3 className="text-lg font-bold text-card-foreground mb-2">Premium Content Locked</h3>
-          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-            This content is part of the Premium PlanterPlan curriculum. Upgrade to unlock full access to detailed guides, resources, and templates.
-          </p>
-          <button className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm transition-colors">
-            Upgrade to Premium
-          </button>
-        </div>
-      ) : (
-        <>
-          {/* 3. Main Content - Increased Line Height & Padding */}
-          {
-            task.description && (
-              <div className="detail-section mb-6">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">
-                  Overview
-                </h3>
-                <p className="text-slate-600 dark:text-muted-foreground leading-relaxed text-sm">{task.description}</p>
-              </div>
-            )
-          }
-          {/* Purpose - The Why */}
-          {
-            task.purpose && (
-              <div className="detail-section mb-6">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">
-                  Purpose (The Why)
-                </h3>
-                <div className="p-4 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900 text-slate-700 dark:text-indigo-200 leading-relaxed text-sm">
-                  {task.purpose}
+        ) : (
+          <>
+            {/* 3. Main Content - Increased Line Height & Padding */}
+            {
+              task.description && (
+                <div className="detail-section mb-6">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">
+                    Overview
+                  </h3>
+                  <p className="text-slate-600 dark:text-muted-foreground leading-relaxed text-sm">{task.description}</p>
                 </div>
-              </div>
-            )
-          }
-          {/* Actions - The What */}
-          {
-            task.actions && (
-              <div className="detail-section mb-6">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">
-                  Action Steps (The What)
-                </h3>
-                <div className="p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 text-slate-700 dark:text-green-200 leading-relaxed text-sm whitespace-pre-wrap">
-                  {task.actions}
+              )
+            }
+            {/* Purpose - The Why */}
+            {
+              task.purpose && (
+                <div className="detail-section mb-6">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">
+                    Purpose (The Why)
+                  </h3>
+                  <div className="p-4 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900 text-slate-700 dark:text-indigo-200 leading-relaxed text-sm">
+                    {task.purpose}
+                  </div>
                 </div>
-              </div>
-            )
-          }
-          {
-            task.notes && (
-              <div className="detail-section mb-6">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">Notes</h3>
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900 text-slate-700 dark:text-amber-200 text-sm italic">
-                  {task.notes}
+              )
+            }
+            {/* Actions - The What */}
+            {
+              task.actions && (
+                <div className="detail-section mb-6">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">
+                    Action Steps (The What)
+                  </h3>
+                  <div className="p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 text-slate-700 dark:text-green-200 leading-relaxed text-sm whitespace-pre-wrap">
+                    {task.actions}
+                  </div>
                 </div>
-              </div>
-            )
-          }
-          {/* 4. Resources Section */}
-          <div className="mb-6 pt-4 border-t border-slate-100">
-            <TaskResources
-              taskId={task.id}
-              primaryResourceId={task.primary_resource_id}
-              onUpdate={onTaskUpdated}
-            />
-          </div>
-        </>
-      )}
+              )
+            }
+            {
+              task.notes && (
+                <div className="detail-section mb-6">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2 uppercase tracking-wide">Notes</h3>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900 text-slate-700 dark:text-amber-200 text-sm italic">
+                    {task.notes}
+                  </div>
+                </div>
+              )
+            }
+            {/* 4. Resources Section */}
+            <div className="mb-6 pt-4 border-t border-slate-100">
+              <TaskResources
+                taskId={task.id}
+                primaryResourceId={task.primary_resource_id}
+                onUpdate={onTaskUpdated}
+              />
+            </div>
+          </>
+        )
+      }
 
       <div className="h-px bg-slate-100 my-4"></div>
       {/* 5. Dates Grid */}
@@ -220,26 +222,28 @@ const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTas
       <TaskDependencies task={task} allProjectTasks={props.allProjectTasks || []} />
 
       {/* 5.6 Subtasks List */}
-      {task.children && task.children.length > 0 && (
-        <div className="detail-section mb-6">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">Subtasks</h3>
-          <div className="space-y-2">
-            {task.children.map((child) => (
-              <div key={child.id} className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${child.is_complete ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
-                  <span className={`text-sm font-medium ${child.is_complete ? 'text-muted-foreground line-through' : 'text-card-foreground'}`}>
-                    {child.title}
-                  </span>
+      {
+        task.children && task.children.length > 0 && (
+          <div className="detail-section mb-6">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">Subtasks</h3>
+            <div className="space-y-2">
+              {task.children.map((child) => (
+                <div key={child.id} className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${child.is_complete ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
+                    <span className={`text-sm font-medium ${child.is_complete ? 'text-muted-foreground line-through' : 'text-card-foreground'}`}>
+                      {child.title}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* 6. Child Task Button */} {
-        onAddChildTask && canHaveChildren && (
+        onAddChildTask && canHaveChildren && canEdit && (
           <div className="detail-section mb-8">
             <button
               type="button"

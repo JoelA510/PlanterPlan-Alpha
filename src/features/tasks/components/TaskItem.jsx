@@ -5,10 +5,13 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@shared/lib/utils';
-import ErrorBoundary from '@shared/ui/ErrorBoundary';
+import { ErrorBoundary } from 'react-error-boundary';
+import ErrorFallback from '@shared/ui/ErrorFallback';
 import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
 import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
+// [NEW] Inline Task Input
+import InlineTaskInput from './InlineTaskInput';
 
 const TaskItem = ({
   task,
@@ -25,6 +28,10 @@ const TaskItem = ({
   onDelete = null,
   hideExpansion = false,
   disableDrag = false,
+  // [NEW] Inline Props
+  isAddingInline = false,
+  onInlineCommit,
+  onInlineCancel,
 }) => {
   const hasChildren = task.children && task.children.length > 0;
   const indentWidth = level * 20;
@@ -35,7 +42,7 @@ const TaskItem = ({
   const showChevron = !hideExpansion && canHaveChildren && (hasChildren || forceShowChevron);
 
   // Dnd-kit droppable
-  const { setNodeRef: setDroppableNodeRef } = useDroppable({
+  const { setNodeRef: setDroppableNodeRef, isOver } = useDroppable({
     id: `child-context-${task.id}`,
     data: {
       type: 'container',
@@ -48,7 +55,9 @@ const TaskItem = ({
     if (
       e.target.closest('.expand-button') ||
       e.target.closest('select') ||
-      e.target.closest('button')
+      e.target.closest('button') ||
+      // [NEW] Ignore clicks inside valid inputs to prevent closing/navigation
+      e.target.closest('input')
     ) {
       return;
     }
@@ -72,14 +81,16 @@ const TaskItem = ({
         className={cn(
           'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
           'bg-card text-card-foreground', // Default card styles
-          isSelected
+          isOver && 'ring-2 ring-brand-400 bg-brand-50 dark:bg-brand-900/40 z-10', // Drop Target feedback
+          isSelected && !isOver
             ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-100 dark:bg-brand-900/40 dark:border-brand-400 dark:ring-brand-900/50'
-            : 'border-border hover:border-brand-300 dark:hover:border-brand-700',
+            : !isOver && 'border-border hover:border-brand-300 dark:hover:border-brand-700',
           isLocked && 'opacity-70 bg-muted/30 dark:bg-slate-900/50',
           level === 0 && 'border-l-4 border-l-brand-600 dark:border-l-brand-500'
         )}
         style={{ marginLeft: `${indentWidth}px` }}
         onClick={!isLocked ? handleCardClick : undefined}
+        data-testid={`task-row-${task.id}`}
       >
         <div className="flex items-center justify-between gap-4">
           {/* LEFT SIDE: Drag Handle, Expand, Info */}
@@ -87,7 +98,7 @@ const TaskItem = ({
             {!disableDrag && (
               <button
                 className={cn(
-                  'mr-2 p-1 rounded transition-colors flex-shrink-0',
+                  'mr-2 p-1 rounded transition-colors flex-shrink-0 cursor-grab active:cursor-grabbing',
                   isLocked
                     ? 'cursor-not-allowed opacity-30 text-slate-400'
                     : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
@@ -183,6 +194,17 @@ const TaskItem = ({
             strategy={verticalListSortingStrategy}
             id={`sortable-context-${task.id}`}
           >
+            {/* [NEW] Inline Input renders BEFORE children */}
+            {isAddingInline && (
+              <div className="ml-6 mb-2">
+                <InlineTaskInput
+                  onCommit={(title) => onInlineCommit(task.id, title)}
+                  onCancel={onInlineCancel}
+                  level={level + 1}
+                />
+              </div>
+            )}
+
             {task.children && task.children.length > 0 ? (
               task.children.map((child) => (
                 <SortableTaskItem
@@ -197,12 +219,19 @@ const TaskItem = ({
                   onToggleExpand={onToggleExpand}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  // Pass Props Down
+                  isAddingInline={child.isAddingInline}
+                  onInlineCommit={onInlineCommit}
+                  onInlineCancel={onInlineCancel}
                 />
               ))
             ) : (
-              <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
-                Drop subtasks here
-              </div>
+              // Only show "Drop here" if NOT adding inline and truly empty
+              !isAddingInline && (
+                <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
+                  Drop subtasks here
+                </div>
+              )
             )}
           </SortableContext>
         </div>
@@ -247,7 +276,10 @@ export const SortableTaskItem = function SortableTaskItem({ task, level, ...prop
         isDragging && 'shadow-xl rounded-xl z-50'
       )}
     >
-      <ErrorBoundary name={`Task-${task.id}`}>
+      <ErrorBoundary
+        FallbackComponent={ErrorFallback}
+        onReset={() => window.location.reload()}
+      >
         <TaskItem
           task={task}
           level={level}

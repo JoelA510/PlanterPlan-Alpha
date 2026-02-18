@@ -4,8 +4,10 @@ import { Badge } from '@shared/ui/badge';
 import { Progress } from '@shared/ui/progress';
 import { ChevronRight, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDroppable } from '@dnd-kit/core';
+import { cn } from '@shared/lib/utils';
 import { TASK_STATUS } from '@app/constants/index';
-import TaskItem from '@features/tasks/components/TaskItem'; // UPDATED
+import TaskItem from '@features/tasks/components/TaskItem';
 
 export default function MilestoneSection({
   milestone,
@@ -14,8 +16,20 @@ export default function MilestoneSection({
   onAddTask,
   onAddChildTask,
   onTaskClick,
+  onInlineCommit,
+  onInlineCancel,
+  canEdit = true, // Default to true if not passed for backward compat
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: `milestone-context-${milestone.id}`,
+    data: {
+      type: 'container',
+      parentId: milestone.id,
+      origin: 'milestone', // or task? but it acts as a parent container
+    },
+  });
 
   const milestoneTasks = tasks.filter((t) => t.parent_task_id === milestone.id);
   const completedTasks = milestoneTasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
@@ -23,7 +37,13 @@ export default function MilestoneSection({
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "border rounded-xl overflow-hidden transition-all duration-200",
+        isOver ? "border-brand-400 bg-brand-50/50 dark:bg-brand-900/20 ring-2 ring-brand-200 dark:ring-brand-800" : "border-slate-200 bg-white shadow-sm hover:shadow-md"
+      )}
+    >
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
@@ -74,10 +94,16 @@ export default function MilestoneSection({
               {milestoneTasks.length === 0 ? (
                 <div className="py-8 text-center">
                   <p className="text-slate-500 mb-4">No tasks yet</p>
-                  <Button variant="outline" size="sm" onClick={() => onAddTask(milestone)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Task
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onAddTask(milestone)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Task
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2 pt-4">
@@ -90,17 +116,22 @@ export default function MilestoneSection({
                         onTaskClick={onTaskClick}
                         onStatusChange={(id, status) => onTaskUpdate(id, { status })}
                         onAddChildTask={onAddChildTask}
+                        isAddingInline={task.isAddingInline}
+                        onInlineCommit={onInlineCommit}
+                        onInlineCancel={onInlineCancel}
                       />
                     ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-slate-500 hover:text-slate-700 mt-2"
-                    onClick={() => onAddTask(milestone)}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Task
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-slate-500 hover:text-slate-700 mt-2"
+                      onClick={() => onAddTask(milestone)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Task
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

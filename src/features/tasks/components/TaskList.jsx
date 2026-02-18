@@ -6,7 +6,9 @@ import NewProjectForm from '@features/projects/components/NewProjectForm';
 import NewTaskForm from '@features/tasks/components/NewTaskForm';
 import TaskDetailsView from '@features/tasks/components/TaskDetailsView';
 import InviteMemberModal from '@features/projects/components/InviteMemberModal';
-import ErrorBoundary from '@shared/ui/ErrorBoundary';
+import { ErrorBoundary } from 'react-error-boundary';
+import ErrorFallback from '@shared/ui/ErrorFallback';
+
 import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@layouts/DashboardLayout';
@@ -206,7 +208,12 @@ const TaskList = () => {
                 disableDrag={joinedProjects.some((jp) => jp.id === activeProjectId)}
                 hydrationError={hydrationError}
                 onInviteMember={() => handleOpenInvite(activeProject)}
-                onStatusChange={(taskId, status) => updateTask(taskId, { status })}
+                onStatusChange={(taskId, status) =>
+                  updateTask(taskId, {
+                    status,
+                    is_complete: status === 'completed',
+                  })
+                }
               />
             )}
           </div>
@@ -251,7 +258,10 @@ const TaskList = () => {
 
 // Export wrapped component
 const TaskListWithErrorBoundary = (props) => (
-  <ErrorBoundary name="@features/tasks/components/TaskList">
+  <ErrorBoundary
+    FallbackComponent={ErrorFallback}
+    onReset={() => window.location.reload()}
+  >
     <TaskList {...props} />
   </ErrorBoundary>
 );
