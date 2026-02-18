@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { inviteMember } from './projectService';
+
 import { planter } from '../../../shared/api/planterClient';
 
 // Mock planter client
@@ -36,18 +36,7 @@ describe('Project Service: Permissions', () => {
 
         planter.entities.Project.addMemberByEmail.mockRejectedValue(policyError);
 
-        // inviteMemberByEmail in projectService.js is just a pass-through:
-        // export async function inviteMemberByEmail(projectId, email, role) {
-        //   return await planter.entities.Project.addMemberByEmail(projectId, email, role);
-        // }
-        // Wait, projectService.js does NOT wrap inviteMemberByEmail in try/catch mapping like inviteMember!
-        // CHECK projectService.js again.
-
-        // If it doesn't wrap, then this test will fail expecting the user-friendly error.
-        // We should probably update projectService.js to handle this too, OR confirm if valid.
-        // Let's assume we WANT consistency and update projectService.js too.
-
-        // Now that we've standardized the service, it should throw the friendly error.
+        // Standardized service should throw the friendly error.
         await expect(inviteMemberByEmail('p1', 'email@test.com', 'editor'))
             .rejects
             .toThrow('Access denied: You must be an Owner to manage members.');
