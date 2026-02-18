@@ -1,78 +1,137 @@
-import { describe, it, expect, vi } from 'vitest';
-import { deepCloneTask } from './taskCloneService'; // Expecting this to be exported or I might need to import from taskService
-import { prepareDeepClone } from '../../../shared/lib/treeHelpers';
-import { createMockTask } from '../../../shared/test/factories';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { deepCloneTask } from './taskCloneService';
 
-// Note: deepCloneTask is likely just a wrapper around prepareDeepClone + DB insertion.
-// Since we are unit testing logic, we should test `prepareDeepClone` primarily as it contains the business logic for ID generation and mapping.
-// The service itself just calls Supabase. 
-// However, the objectives asked for `src/features/tasks/services/taskCloneService.test.js`.
-// I will test `prepareDeepClone` here as the core logic, effectively fulfilling the "Clone Logic" requirement without needing a complex service mock if the logic is separated.
-// If I really want to test the Service, I need to mock `planter`. 
-// Let's test the Logic (helpers) as that is P0 deterministic unit test.
-// And checking `taskService.js`, it exports `deepCloneTask` from `./taskCloneService`.
-// I'll assume `prepareDeepClone` is the heavy lifter.
+describe('taskCloneService: deepCloneTask', () => {
+    let mockClient;
 
-describe('Clone Logic: prepareDeepClone', () => {
-    it('should generate new IDs for all tasks', () => {
-        const root = createMockTask({ id: 'root', parent_task_id: null });
-        const child = createMockTask({ id: 'c1', parent_task_id: 'root' });
-
-        const tasks = [root, child];
-
-        const { newTasks, idMap } = prepareDeepClone(
-            tasks,
-            'root', // rootId to clone
-            'new-parent-id', // newParentId
-            'instance', // newOrigin
-            'new-creator-id' // creatorId
-        );
-
-        expect(newTasks).toHaveLength(2);
-
-        // Check IDs changed
-        expect(newTasks[0].id).not.toBe('root');
-        expect(newTasks[1].id).not.toBe('c1');
-
-        // Check Map validity
-        expect(idMap['root']).toBe(newTasks[0].id);
-        expect(idMap['c1']).toBe(newTasks[1].id);
+    beforeEach(() => {
+        mockClient = {
+            rpc: vi.fn(),
+        };
     });
 
-    it('should remap parent_task_id correctly', () => {
-        const root = createMockTask({ id: 'old-root', parent_task_id: null });
-        const child1 = createMockTask({ id: 'old-c1', parent_task_id: 'old-root' });
-        const child2 = createMockTask({ id: 'old-c2', parent_task_id: 'old-c1' }); // Grandchild
+    it('should call clone_project_template RPC with correct parameters', async () => {
+        // Mock success
+        mockClient.rpc.mockResolvedValue({ data: { new_root_id: 'new-root' }, error: null });
 
-        const tasks = [root, child1, child2];
+        const params = {
+            templateId: 'tmpl-1',
+            newParentId: 'parent-1',
+            newOrigin: 'instance',
+            userId: 'user-1',
+        };
 
-        const { newTasks, idMap } = prepareDeepClone(
-            tasks,
-            'old-root',
-            'destination-parent', // e.g. null if becoming a new project root
+        const result = await deepCloneTask(
+            params.templateId,
+            params.newParentId,
+            params.newOrigin,
+            params.userId,
+            {}, // no overrides
+            mockClient
+        );
+
+        expect(mockClient.rpc).toHaveBeenCalledWith('clone_project_template', {
+            p_template_id: 'tmpl-1',
+            p_new_parent_id: 'parent-1',
+            p_new_origin: 'instance',
+            p_user_id: 'user-1',
+        });
+        expect(result.data).toEqual({ new_root_id: 'new-root' });
+    });
+
+    it('should include overrides in RPC params when provided', async () => {
+        mockClient.rpc.mockResolvedValue({ data: {}, error: null });
+
+        const overrides = {
+            title: 'New Title',
+            start_date: '2026-01-01',
+        };
+
+        await deepCloneTask(
+            'tmpl-1',
+            null,
             'instance',
-            'creator'
+            'user-1',
+            overrides,
+            mockClient
         );
 
-        const newRoot = newTasks.find(t => t.id === idMap['old-root']);
-        const newC1 = newTasks.find(t => t.id === idMap['old-c1']);
-        const newC2 = newTasks.find(t => t.id === idMap['old-c2']);
-
-        // Root should point to destination parent
-        expect(newRoot.parent_task_id).toBe('destination-parent');
-
-        // Child 1 should point to New Root
-        expect(newC1.parent_task_id).toBe(newRoot.id);
-
-        // Child 2 should point to New Child 1
-        expect(newC2.parent_task_id).toBe(newC1.id);
+        expect(mockClient.rpc).toHaveBeenCalledWith('clone_project_template', {
+            p_template_id: 'tmpl-1',
+            p_new_parent_id: null,
+            p_new_origin: 'instance',
+            p_user_id: 'user-1',
+            p_title: 'New Title',
+            p_start_date: '2026-01-01',
+        });
     });
 
-    it('should set origin and creator', () => {
-        const root = createMockTask({ id: 'root' });
-        const { newTasks } = prepareDeepClone([root], 'root', null, 'template', 'user-1');
+    it('should handle Date objects in overrides', async () => {
+        mockClient.rpc.mockResolvedValue({ data: {}, error: null });
 
-        expect(newTasks[0].origin).toBe('template');
-        expect(newTasks[0].creator).toBe('user-1');
+        const dateObj = new Date('2026-05-05T00:00:00Z');
+        const overrides = {
+            due_date: dateObj
+        };
+
+        await deepCloneTask(
+            'tmpl-1',
+            null,
+            'instance',
+            'user-1',
+            overrides,
+            mockClient
+        );
+
+        expect(mockClient.rpc).toHaveBeenCalledWith('clone_project_template', expect.objectContaining({
+            p_due_date: dateObj
+        }));
+    });
+
+    it('should omit undefined overrides', async () => {
+        mockClient.rpc.mockResolvedValue({ data: {}, error: null });
+
+        const overrides = {
+            title: undefined,
+            description: 'Desc',
+        };
+
+        await deepCloneTask(
+            'tmpl-1',
+            null,
+            'instance',
+            'user-1',
+            overrides,
+            mockClient
+        );
+
+        expect(mockClient.rpc).toHaveBeenCalledWith('clone_project_template', expect.objectContaining({
+            p_description: 'Desc'
+        }));
+
+        // Should NOT have p_title
+        const callArgs = mockClient.rpc.mock.calls[0][1];
+        expect(callArgs).not.toHaveProperty('p_title');
+    });
+
+    it('should return error if RPC fails', async () => {
+        const mockError = new Error('RPC Failed');
+        mockClient.rpc.mockResolvedValue({ data: null, error: mockError });
+
+        // Assuming implementation catches and returns { data: null, error }
+        // Or console.errors. The implementation:
+        // if (error) throw error;
+        // catch (error) { return { data: null, error }; }
+
+        const result = await deepCloneTask(
+            'tmpl-1',
+            null,
+            'instance',
+            'user-1',
+            {},
+            mockClient
+        );
+
+        expect(result.error).toBe(mockError);
     });
 });

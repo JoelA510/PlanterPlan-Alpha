@@ -270,3 +270,32 @@ If AbortErrors persist after implementing retries:
 - **Context**: Dynamic SQL sorting via `rpc` exposed potential injection vectors.
 - **Rule**: **Allowlist Sort Columns.** Validate sort parameters against a strict set of allowed column names before passing them to the database query.
 
+### [UI-006] Sidebar State Synchronization
+- **Date**: 2026-02-06
+- **Context**: "New Project" and "New Template" buttons in the sidebar were static stubs, leading to dead clicks.
+- **Rule**: **URL-Driven State.** Use query parameters (`?action=new-project`) to drive modal visibility. This decouples the sidebar from specific modal implementations and enables deep linking.
+
+### [DB-009] The "Zombie Trigger" Anti-Pattern
+- **Date**: 2026-02-08
+- **Context**: A deprecated trigger (`trigger_maintain_task_root_id`) remained in the schema, causing 403 Forbidden errors during task inserts because it tried to enforce old logic that conflicted with new RLS policies.
+- **Rule**: **Audit Triggers on Schema Changes.** When refactoring logic (e.g., moving from triggers to RPCs or app-side logic), explicitly DROP obsolete triggers. They do not disappear on their own.
+
+### [TEST-005] E2E Mock Enrichment for Race Conditions
+- **Date**: 2026-02-10
+- **Context**: Sidebar project lists were empty during tests because the mock network layer returned data faster than the React Component could mount and subscribe, or vice-versa.
+- **Rule**: **Stateful Mocks.** Mocks must simulate server latency and persistence. Use `page.route` to intercept requests and return a stable, in-memory state that persists across navigations, rather than returning static JSON fixtures.
+
+### [SEC-005] RPC Privilege Escalation
+- **Date**: 2026-02-16
+- **Context**: The `invite_user_to_project` RPC allowed an `editor` to invite an `owner`, effectively bypassing RBAC hierarchy.
+- **Rule**: **Enforce Hierarchy in SQL.** DB functions that modify permissions must check the *invoker's* role against the *target* role. `IF auth.role() = 'editor' AND target_role = 'owner' THEN RAISE EXCEPTION`.
+
+### [DB-010] Root ID Integrity & Recursion
+- **Date**: 2026-02-17
+- **Context**: Recursive lookups for project association were causing performance issues and RLS complexity. Orphaned tasks missing `root_id` broke the hierarchy.
+- **Rule**: **Denormalize Root Context.** Every task MUST have a `root_id` (pointing to the project root) or be a root itself. Enforce this via `CHECK` constraints and maintain it via `TRIGGER` to allow O(1) project-scoped queries.
+
+### [DB-011] Schema Consolidation
+- **Date**: 2026-02-17
+- **Context**: Dozens of migration files made it hard to understand the current state of the database.
+- **Rule**: **Consolidate for Release.** Periodically merge all incremental migrations into a single, authoritative `schema.sql` file to serve as the source of truth for fresh deployments.

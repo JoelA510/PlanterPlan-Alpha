@@ -23,7 +23,9 @@ export const calculateDropTarget = (allTasks, active, over, activeOrigin) => {
 
     if (overData.type === 'container') {
         // Dropped into an empty container or specifically a container zone
-        newParentId = overData.parentId; // This might be a task ID or null (for root/project)
+        // STRICT: Use overData.parentId. If it's a container, the 'id' of the container (overId) might be synthetic.
+        // We rely on the container correctly surfacing the target parentId in its data.
+        newParentId = overData.parentId ?? null;
         targetOrigin = overData.origin;
 
         // Safety check: verify parent exists if it's not a root drop (and not null)

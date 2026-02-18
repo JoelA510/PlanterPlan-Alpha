@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { inviteMember } from './projectService';
+
 import { planter } from '../../../shared/api/planterClient';
 
 // Mock planter client
@@ -8,10 +8,13 @@ vi.mock('../../../shared/api/planterClient', () => ({
         entities: {
             Project: {
                 addMember: vi.fn(),
+                addMemberByEmail: vi.fn(),
             },
         },
     },
 }));
+
+import { inviteMember, inviteMemberByEmail } from './projectService';
 
 describe('Project Service: Permissions', () => {
 
@@ -26,6 +29,19 @@ describe('Project Service: Permissions', () => {
             .rejects
             .toThrow('Access denied: You must be an Owner to manage members.');
     });
+
+    it('should throw a user-friendly error when RLS Policy violation (Email Invite)', async () => {
+        // Mock a generic policy error
+        const policyError = new Error('new row violates row-level security policy for table "project_invites"');
+
+        planter.entities.Project.addMemberByEmail.mockRejectedValue(policyError);
+
+        // Standardized service should throw the friendly error.
+        await expect(inviteMemberByEmail('p1', 'email@test.com', 'editor'))
+            .rejects
+            .toThrow('Access denied: You must be an Owner to manage members.');
+    });
+
 
     it('should throw a user-friendly error when RLS Policy violation is detected in message', async () => {
         // Mock a generic policy error

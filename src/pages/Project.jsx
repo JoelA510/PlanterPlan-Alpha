@@ -69,9 +69,10 @@ export default function Project() {
     projectHierarchy, // Added projectHierarchy
   } = useProjectData(projectId);
 
-  // [NEW] RBAC Logic
+  // [NEW] RBAC Logic with Owner Fallback
+  const isOwnerByProject = project?.owner_id === user?.id || project?.creator === user?.id;
   const currentMember = teamMembers?.find((m) => m.user_id === user?.id);
-  const userRole = currentMember?.role || ROLES.VIEWER;
+  const userRole = currentMember?.role || (isOwnerByProject ? ROLES.OWNER : ROLES.VIEWER);
 
 
   const canEdit = userRole === ROLES.OWNER || userRole === ROLES.ADMIN || userRole === ROLES.EDITOR;

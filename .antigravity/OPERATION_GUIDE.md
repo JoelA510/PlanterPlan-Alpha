@@ -9,7 +9,7 @@
 | :--- | :--- | :--- | :--- |
 | **`.antigravity/instructions.md`** | **Global Truth** | **Manual Update.** Change when Date, Tech Stack (e.g., React 20), or Architecture constraints change. | *Edit File Manually* |
 | **`.antigravity/tasks/todo.md`** | **Session Focus** | **Manual Update.** Edit before starting a TDD session to set the Agent's objective. | *Edit File Manually* |
-| **`tasks/lessons.md`** | **Long-Term Memory** | **Agent Update.** The agent writes here after `06-log-lesson`. | *Read Only* |
+| **`LESSONS.md`** | **Long-Term Memory** | **Agent Update.** The agent writes here after `06-log-lesson`. | *Read Only* |
 | **`.antigravity/prompts/SYSTEM-BOOT-PROMPT.md`** | **Session Boot** | **Start of Session.** Run immediately to load the Persona and Rules. | `@[.antigravity/prompts/SYSTEM-BOOT-PROMPT.md]` |
 
 ---

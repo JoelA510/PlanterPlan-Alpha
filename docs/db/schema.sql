@@ -290,7 +290,20 @@ DECLARE
     v_new_root_id uuid;
     v_top_new_id uuid;
     v_tasks_count int;
+    v_old_start_date timestamptz;
+    v_interval interval;
 BEGIN
+    -- 0. Get Template Data for Date Math
+    SELECT start_date INTO v_old_start_date FROM public.tasks WHERE id = p_template_id;
+
+    -- Calculate Interval Offset if both dates exist
+    IF p_start_date IS NOT NULL AND v_old_start_date IS NOT NULL THEN
+        -- Calculate difference. casting to date removes time component which is usually safer for "whole day" shifts
+        v_interval := (p_start_date::date - v_old_start_date::date) * '1 day'::interval;
+    ELSE
+        v_interval := '0 days'::interval;
+    END IF;
+
     -- 1. Create Temp Table for ID Mapping (Task)
     CREATE TEMP TABLE IF NOT EXISTS temp_task_map (
         old_id uuid PRIMARY KEY,
@@ -346,9 +359,19 @@ BEGIN
         CASE WHEN t.id = p_template_id AND p_description IS NOT NULL THEN p_description ELSE t.description END,
         t.status, t.position,
         t.notes, t.purpose, t.actions, false, t.days_from_start, 
-        -- Set Dates for Root if provided
-        CASE WHEN t.id = p_template_id THEN p_start_date ELSE null END,
-        CASE WHEN t.id = p_template_id THEN p_due_date ELSE null END
+        -- Set Dates:
+        -- 1. If Root: Use provided p_start_date (or original if null, but usually we want override)
+        -- 2. If Child: Shift by v_interval
+        CASE 
+            WHEN t.id = p_template_id THEN p_start_date 
+            WHEN t.start_date IS NOT NULL THEN t.start_date + v_interval
+            ELSE null 
+        END,
+        CASE 
+            WHEN t.id = p_template_id THEN p_due_date 
+            WHEN t.due_date IS NOT NULL THEN t.due_date + v_interval
+            ELSE null 
+        END
     FROM public.tasks t
     JOIN temp_task_map m ON t.id = m.old_id
     LEFT JOIN temp_task_map mp ON t.parent_task_id = mp.old_id;
@@ -409,14 +432,45 @@ DECLARE
   v_user_id uuid;
   v_invite_id uuid;
   v_token uuid;
+  v_inviter_role text;
+  v_is_admin boolean;
 BEGIN
-  IF NOT public.has_project_role(p_project_id, auth.uid(), ARRAY['owner', 'editor']) AND NOT public.is_admin(auth.uid()) THEN
+  -- Check if user is admin
+  v_is_admin := public.is_admin(auth.uid());
+
+  -- Get Inviter's Role
+  SELECT role INTO v_inviter_role
+  FROM public.project_members
+  WHERE project_id = p_project_id
+  AND user_id = auth.uid();
+
+  -- 1. Authorization Gate
+  IF v_inviter_role NOT IN ('owner', 'editor') AND NOT v_is_admin THEN
     RAISE EXCEPTION 'Access denied: You must be an owner or editor to invite members.';
+  END IF;
+
+  -- 2. Privilege Escalation Check (Editor cannot invite Owner)
+  IF v_inviter_role = 'editor' AND p_role = 'owner' THEN
+     RAISE EXCEPTION 'Access denied: Editors cannot assign the Owner role.';
   END IF;
 
   SELECT id INTO v_user_id FROM auth.users WHERE email = p_email;
 
   IF v_user_id IS NOT NULL THEN
+    -- Existing User Logic
+    
+    -- 3. Update Protection (Editor cannot change an existing Owner's role)
+    IF v_inviter_role = 'editor' THEN
+        IF EXISTS (
+            SELECT 1 FROM public.project_members 
+            WHERE project_id = p_project_id 
+            AND user_id = v_user_id 
+            AND role = 'owner'
+        ) THEN
+            RAISE EXCEPTION 'Access denied: Editors cannot modify an Owner.';
+        END IF;
+    END IF;
+
     INSERT INTO public.project_members (project_id, user_id, role)
     VALUES (p_project_id, v_user_id, p_role)
     ON CONFLICT (project_id, user_id) DO UPDATE
@@ -427,6 +481,7 @@ BEGIN
       'user_id', v_user_id
     );
   ELSE
+    -- Non-existing User (Invite) Logic
     INSERT INTO public.project_invites (project_id, email, role)
     VALUES (p_project_id, p_email, p_role)
     ON CONFLICT (project_id, email) DO UPDATE
@@ -538,6 +593,40 @@ CREATE TRIGGER trg_people_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- Auto-add creator as owner for Root Projects
+
+
+-- Trigger: auto-set NEW.root_id from parent (covers inserts + reparenting)
+CREATE OR REPLACE FUNCTION public.set_root_id_from_parent()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- If we are inserting/updating a child (has parent) and no root_id is provided (or we want to force it)
+  -- Actually, we should probably FORCE it to match the parent's root_id (or parent's id if parent is root)
+  IF NEW.parent_task_id IS NOT NULL THEN
+    SELECT COALESCE(root_id, id)
+    INTO NEW.root_id
+    FROM public.tasks
+    WHERE id = NEW.parent_task_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_root_id_from_parent ON public.tasks;
+CREATE TRIGGER trg_set_root_id_from_parent
+BEFORE INSERT OR UPDATE OF parent_task_id ON public.tasks
+FOR EACH ROW EXECUTE FUNCTION public.set_root_id_from_parent();
+
+-- Constraint: any child must have root_id
+-- Added IF NOT EXISTS logic purely for safety if re-run, but standard CREATE is fine for schema.sql
+ALTER TABLE public.tasks
+  DROP CONSTRAINT IF EXISTS tasks_root_id_required_for_children;
+
+ALTER TABLE public.tasks
+  ADD CONSTRAINT tasks_root_id_required_for_children
+  CHECK (parent_task_id IS NULL OR root_id IS NOT NULL);
+
 
 
 -- Initialize Default Project RPC
@@ -812,8 +901,12 @@ CREATE POLICY "View invites for project members" ON public.project_invites
 DROP POLICY IF EXISTS "Create invites for project members" ON public.project_invites;
 CREATE POLICY "Create invites for project members" ON public.project_invites
   FOR INSERT WITH CHECK (
-    public.has_project_role(project_id, (select auth.uid()), ARRAY['owner', 'editor']) OR
     public.is_admin((select auth.uid()))
+    OR public.has_project_role(project_id, (select auth.uid()), ARRAY['owner'])
+    OR (
+      public.has_project_role(project_id, (select auth.uid()), ARRAY['editor'])
+      AND role <> 'owner'
+    )
   );
 
 DROP POLICY IF EXISTS "Delete invites for project members" ON public.project_invites;

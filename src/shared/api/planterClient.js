@@ -414,15 +414,7 @@ export const planter = {
         return { data: data?.[0], error: null };
       },
       addMemberByEmail: async (projectId, email, role) => {
-        // 1. Get User by Email (from profiles table)
-        const users = await rawSupabaseFetch(`profiles?select=id&email=eq.${email}`, { method: 'GET' });
-        const user = users?.[0];
-
-        if (user) {
-          return await planter.entities.Project.addMember(projectId, user.id, role);
-        }
-
-        // 2. RPC call for invite
+        // 1. RPC call for invite (handles both existing and new users logic)
         // RPC via Raw Fetch: POST /rpc/function_name
         const data = await rawSupabaseFetch('rpc/invite_user_to_project', {
           method: 'POST',
