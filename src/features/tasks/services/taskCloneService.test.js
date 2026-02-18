@@ -66,6 +66,28 @@ describe('taskCloneService: deepCloneTask', () => {
         });
     });
 
+    it('should handle Date objects in overrides', async () => {
+        mockClient.rpc.mockResolvedValue({ data: {}, error: null });
+
+        const dateObj = new Date('2026-05-05T00:00:00Z');
+        const overrides = {
+            due_date: dateObj
+        };
+
+        await deepCloneTask(
+            'tmpl-1',
+            null,
+            'instance',
+            'user-1',
+            overrides,
+            mockClient
+        );
+
+        expect(mockClient.rpc).toHaveBeenCalledWith('clone_project_template', expect.objectContaining({
+            p_due_date: dateObj
+        }));
+    });
+
     it('should omit undefined overrides', async () => {
         mockClient.rpc.mockResolvedValue({ data: {}, error: null });
 

@@ -136,7 +136,14 @@ mindmap
           - [x] **Date Logic**:
             - [x] Fixed `clone_project_template` to correctly shift dates based on new start date.
           - [x] **Schema Consolidation**:
-            - [x] Merged all migrations into `docs/db/schema.sql`.
+            - [x] Merged `harden_invites` and `stabilization_v1` into `docs/db/schema.sql`.
+            - [x] Verified and removed redundant `remove_project_creation_trigger` and `fix_rls_policy`.
+            - [x] Verified and removed redundant `remove_project_creation_trigger` and `fix_rls_policy`.
+            - [x] Removed temporary artifacts (`remote_schema_dump`, `schema_drift`).
+            - [x] **Security Hardening**:
+              - [x] Secured `invite_user_to_project` against NULL inviter role (auth bypass).
+              - [x] Secured `clone_project_template` with strict ownership checks.
+              - [x] Verified via `RPCHardening.test.js`.
         auth.updateProfile adapter
       Supabase PostgreSQL
         tasks table
@@ -246,6 +253,7 @@ mindmap
       Lucide Icons
     Testing
       Vitest Unit Tests
+        src/tests/unit/RPCHardening.test.js (New)
       Playwright E2E
         25 Verified Scenarios
         12 Journey Specs (Stable)
