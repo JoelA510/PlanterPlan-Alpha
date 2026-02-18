@@ -20,8 +20,8 @@ Update discipline:
 
 # PlanterPlan (Alpha)
 
-**Status**: Beta (RC1 - E2E Verified)
-**Last Verified**: 2026-02-15 (E2E Stabilization Complete)
+**Status**: Beta (Refactoring - Round 2 Complete)
+**Last Verified**: 2026-02-18 (Hooks Decomposition & Stack Upgrade)
 **Maintained By**: Antigravity Agent
 **Commit**: HEAD
 **Primary audience**: code reviewers, project managers
@@ -45,11 +45,12 @@ src/
 ├── features/       # Business domains
 ├── tasks/
 │   ├── components/
-│   ├── hooks/
+│   ├── hooks/      # Decomposed logic (useTaskTree, useTaskDragAndDrop)
 │   └── services/
 └── projects/
 ├── shared/         # Reusable code with NO business logic
-│   ├── lib/        # Pure functions (date-engine, formatters)
+│   ├── lib/        # Pure functions
+│   │   └── date-engine/  # Payload & date calculation logic
 │   └── ui/         # Dumb components (Button, Modal)
 ├── pages/          # Route views composing features
 └── styles/         # Tailwind CSS v4 globals
@@ -153,7 +154,7 @@ For detailed Component Diagrams and Data Flow visualizations, please see the **[
 
 ### 4.1 Tech Stack
 
-- **Frontend**: React 18, Vite, Tailwind CSS v4
+- **Frontend**: React 19, Vite 7, Tailwind CSS v4
 - **Testing**: Vitest, React Testing Library
 - **State**: React Context (Auth, Organization, Task)
 - **Database**: Supabase (Postgres) + Row Level Security (RLS) is enabled on `public.tasks` and `public.project_members`.
@@ -232,16 +233,14 @@ flowchart LR
 - ✅ **List Virtualization ⚡**: Smooth scrolling for projects with 50+ tasks (Ref: [ProjectListView.jsx](./src/features/tasks/components/ProjectListView.jsx)).
 - ✅ **View-As Switcher 👁️**: Admin preview mode for role testing (Ref: [ViewAsContext.jsx](./src/app/contexts/ViewAsContext.jsx)).
 
-
-
 ### 5.2 Known Limitations
 
 - ⚠️ **Recursive Fetching**: The `fetchTaskChildren` implementation performs an in-memory BFS rather than a recursive DB query, which may limit performance on very large trees.
   - Evidence: [src/services/taskService.js#L148-L208](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/services/taskService.js#L148-L208)
 
-### 5.3 Technical Debt (Brutal Honesty)
+### 5.3 Technical Debt & Active Refactoring
 
-- **Debt Cleanup Phase Completed** (2026-01-26):
-  - `budget` and `inventory` features deprecated and removed.
-  - Design component migration verified.
-  - `task-card.css` consolidated into Tailwind.
+- **Active**: Hook Decomposition (Decomposed `useTaskBoard` "God Hook" into `useTaskTree`, `useProjectSelection`, `useTaskDragAndDrop`).
+- **Active**: Date Logic Centralization (Extracted payload logic to `shared/lib/date-engine/payloadHelpers.js`).
+- **Known Debt**:
+  - **Supabase SDK vs Raw Fetch**: We use strict raw fetch for architectural purity, which adds boilerplate (Ref: `planterClient.js`).
