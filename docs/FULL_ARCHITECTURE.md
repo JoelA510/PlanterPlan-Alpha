@@ -265,13 +265,15 @@ graph LR
 | `useProjectMutations` | Projects | Create, update, delete projects with optimistic updates |
 | `useProjectRealtime` | Projects | Supabase Realtime subscription for project changes |
 | `useUserProjects` | Projects | Current user's owned + joined projects |
-| `useTaskBoard` | Tasks | **Facade hook** composing drag, operations, queries for the board |
+| `useTaskBoard` | Tasks | **Facade hook** composing tree, drag, and selection logic |
 | `useTaskQuery` | Tasks | React Query wrappers for task data fetching |
-| `useTaskMutations` | Tasks | Task CRUD with cache invalidation |
+| `useTaskMutations` | Tasks | Task CRUD using `payloadHelpers` for date logic |
 | `useTaskSubscription` | Tasks | Realtime listener → query invalidation |
-| `useTaskOperations` | Tasks | High-level task operations (status, position) |
+| `useTaskOperations` | Tasks | **Facade Data Access** combining Query, Mutations, and Subscriptions |
+| `useProjectSelection` | Tasks | Manages active project state, URL syncing, and hydration |
+| `useTaskTree` | Tasks | Builds hierarchical tree and manages expansion state |
+| `useTaskDragAndDrop` | Tasks | dnd-kit integration for drag-and-drop operations |
 | `useTaskForm` | Tasks | Form state management for task create/edit |
-| `useTaskDrag` | Tasks | dnd-kit integration for drag-and-drop |
 
 ---
 

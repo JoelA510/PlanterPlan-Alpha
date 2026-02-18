@@ -1,13 +1,23 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
-import { useTaskDrag } from '@features/task-drag';
 import { useToast } from '@app/contexts/ToastContext';
-import { separateTasksByOrigin } from '@shared/lib/viewHelpers';
-import { buildTree } from '@shared/lib/treeHelpers';
 import { inviteMember } from '@features/projects/services/projectService';
 import { ROLES } from '@app/constants/index';
 
+// Composed Hooks
+import { useProjectSelection } from './useProjectSelection';
+import { useTaskTree } from './useTaskTree';
+import { useTaskDragAndDrop } from './useTaskDragAndDrop';
+
+// Extract this because it's used in the logic but was implicit before
+import { useParams } from 'react-router-dom';
+
 export const useTaskBoard = () => {
+  // 0. Routing Context
+  const { projectId: urlProjectId } = useParams();
+  const { addToast } = useToast();
+
+  // 1. Data & Operations (Base Layer)
   const {
     tasks,
     setTasks,
@@ -25,111 +35,58 @@ export const useTaskBoard = () => {
     fetchProjectDetails,
     refreshProjectDetails,
     findTask,
-    // Pagination
     hasMore,
     isFetchingMore,
     loadMoreProjects,
     ...rest // Capture handleOptimisticUpdate
   } = useTaskOperations();
 
-  const { addToast } = useToast();
+  // 2. Project Selection & Hydration
+  const { activeProjectId, handleSelectProject, hydrationError, setHydrationError } = useProjectSelection({
+    urlProjectId,
+    instanceTasks: useMemo(() => tasks.filter(t => t.origin === 'instance'), [tasks]), // Optimization: pass filtered or raw? useProjectSelection filters anyway.
+    templateTasks: useMemo(() => tasks.filter(t => t.origin === 'template'), [tasks]),
+    joinedProjects,
+    hydratedProjects,
+    fetchProjectDetails,
+    loading,
+  });
 
-  // Flatten all known tasks for DnD context
-  const allTasks = useMemo(() => {
-    const descendants = Object.values(hydratedProjects).flat();
-    return [...tasks, ...descendants];
-  }, [tasks, hydratedProjects]);
+  // 3. Tree Structure & Expansion
+  const { instanceTasks, templateTasks, activeProject, expandedTaskIds, handleToggleExpand } = useTaskTree({
+    tasks,
+    hydratedProjects,
+    activeProjectId,
+    joinedProjects
+  });
 
-  const { sensors, handleDragEnd } = useTaskDrag({
-    tasks: allTasks, // Pass ALL tasks so DnD works for subtasks too
+  // 4. Drag & Drop
+  const { sensors, handleDragEnd, allTasks } = useTaskDragAndDrop({
+    tasks,
+    hydratedProjects,
     setTasks,
     fetchTasks,
     currentUserId,
-    updateTaskStatus: (taskId, status) => updateTask(taskId, { status }),
-    handleOptimisticUpdate: rest.handleOptimisticUpdate, // Pass the new helper
-    commitOptimisticUpdate: rest.commitOptimisticUpdate, // Pass the commit helper for rollback
+    updateTask,
+    handleOptimisticUpdate: rest.handleOptimisticUpdate,
+    commitOptimisticUpdate: rest.commitOptimisticUpdate,
   });
 
-  // UI State
+  // 5. UI State (Forms, Modals) - Kept here for now as "Board UI State"
   const [showForm, setShowForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskFormState, setTaskFormState] = useState(null);
   const [inviteModalProject, setInviteModalProject] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Expansion State (UI only, decoupled from data)
-  const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
+  // --- Handlers (Adapters for UI) ---
 
-  // --- Active Project Logic ---
-  const [activeProjectId, setActiveProjectId] = useState(null);
-  const [hydrationError, setHydrationError] = useState(null);
-
-  // --- Derived State via Helper (must be before activeProject) ---
-  const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
-
-  const activeProject = useMemo(() => {
-    if (!activeProjectId) return null;
-
-    // Find the root project (Owned or Joined)
-    const rootProject =
-      instanceTasks.find((t) => t.id === activeProjectId) ||
-      templateTasks.find((t) => t.id === activeProjectId) ||
-      joinedProjects.find((t) => t.id === activeProjectId);
-
-    if (!rootProject) return null;
-
-    // Check if we have children in cache
-    const childrenFlat = hydratedProjects[activeProjectId];
-
-    let childrenTree = [];
-    if (childrenFlat) {
-      childrenTree = buildTree(childrenFlat, activeProjectId);
-    }
-
-    // Apply expansion state recursively helper
-    const applyExpansion = (nodes) => {
-      return nodes.map((node) => ({
-        ...node,
-        isExpanded: expandedTaskIds.has(node.id),
-        children: applyExpansion(node.children || []),
-      }));
-    };
-
-    const projectWithTree = {
-      ...rootProject,
-      children: applyExpansion(childrenTree),
-      isExpanded: expandedTaskIds.has(rootProject.id),
-    };
-
-    return projectWithTree;
-  }, [
-    activeProjectId,
-    instanceTasks,
-    templateTasks,
-    joinedProjects,
-    hydratedProjects,
-    expandedTaskIds,
-  ]);
-
-  const handleSelectProject = useCallback(
-    async (project) => {
-      setActiveProjectId(project.id);
-      setSelectedTask(null);
-      setShowForm(false);
-      setHydrationError(null);
-
-      // Always try to hydrate/fetch details if not present
-      if (!hydratedProjects[project.id]) {
-        try {
-          await fetchProjectDetails(project.id);
-        } catch (err) {
-          console.error('[TaskList] Failed to hydrate project:', err);
-          setHydrationError('Failed to load project tasks.');
-        }
-      }
-    },
-    [hydratedProjects, fetchProjectDetails]
-  );
+  const handleSelectProjectWrapper = useCallback((project) => {
+    handleSelectProject(project);
+    // Reset UI state on project switch
+    setSelectedTask(null);
+    setShowForm(false);
+  }, [handleSelectProject]);
 
   const handleTaskClick = (task) => {
     setSelectedTask(task);
@@ -138,16 +95,6 @@ export const useTaskBoard = () => {
   };
 
   const getTaskById = useCallback((taskId) => findTask(taskId), [findTask]);
-
-  // --- Expansion State Handler ---
-  const handleToggleExpand = useCallback((task, expanded) => {
-    setExpandedTaskIds((prev) => {
-      const next = new Set(prev);
-      if (expanded) next.add(task.id);
-      else next.delete(task.id);
-      return next;
-    });
-  }, []);
 
   const handleAddChildTask = (parentTask) => {
     setTaskFormState({
@@ -235,7 +182,6 @@ export const useTaskBoard = () => {
           refreshProjectDetails(parent.root_id || parent.id);
         }
       }
-
       setTaskFormState(null);
       addToast('Task saved successfully', 'success');
     } catch (err) {
@@ -275,7 +221,7 @@ export const useTaskBoard = () => {
     isSaving,
 
     // Handlers
-    handleSelectProject,
+    handleSelectProject: handleSelectProjectWrapper,
     handleTaskClick,
     handleToggleExpand,
     handleAddChildTask,
@@ -286,7 +232,7 @@ export const useTaskBoard = () => {
     handleProjectSubmit,
     handleTaskSubmit,
     getTaskById,
-    fetchTasks, // Exposed for TaskDetailsView
+    fetchTasks,
     updateTask,
 
     // DND

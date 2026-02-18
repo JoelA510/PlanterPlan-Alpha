@@ -387,11 +387,13 @@ flowchart TD
 
     subgraph "Hooks"
         H1[useTaskMutations]
-        H2[useTaskDrag]
+        H2[useTaskDragAndDrop]
         H3[useTaskBoard]
         H4[useTaskQuery]
         H5[useTaskForm]
         H6[useTaskOperations]
+        H7[useTaskTree]
+        H8[useProjectSelection]
     end
 
     subgraph "Services"

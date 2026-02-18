@@ -2,8 +2,9 @@ import { useCallback } from 'react';
 import { supabase } from '@app/supabaseClient';
 import { planter } from '@shared/api/planterClient';
 import { deepCloneTask, updateParentDates } from '@features/tasks/services/taskService';
-import { calculateScheduleFromOffset, toIsoDate } from '@shared/lib/date-engine';
 import { POSITION_STEP } from '@app/constants/index';
+// Replaced inline date logic with helpers
+import { constructCreatePayload, constructUpdatePayload } from '@shared/lib/date-engine/payloadHelpers';
 
 export const useTaskMutations = ({
   tasks,
@@ -78,34 +79,12 @@ export const useTaskMutations = ({
         }
 
         if (formState.mode === 'edit' && formState.taskId) {
-          let scheduleUpdates = {};
-          if (origin === 'instance') {
-            if (parsedDays !== null) {
-              scheduleUpdates = calculateScheduleFromOffset(
-                contextTasks,
-                formState.parentId,
-                parsedDays
-              );
-            }
-            if (hasManualDates) {
-              scheduleUpdates = {
-                start_date: manualStartDate,
-                due_date: manualDueDate || manualStartDate || scheduleUpdates.due_date || null,
-              };
-            }
-            if (!hasManualDates && parsedDays === null) scheduleUpdates = {};
-          }
-
-          const updates = {
-            title: formData.title,
-            description: formData.description ?? null,
-            notes: formData.notes ?? null,
-            purpose: formData.purpose ?? null,
-            actions: formData.actions ?? null,
-            days_from_start: parsedDays,
-            updated_at: new Date().toISOString(),
-            ...scheduleUpdates,
-          };
+          const currentTask = findTask(formState.taskId) || {};
+          const updates = constructUpdatePayload(formData, currentTask, {
+            origin,
+            parentId: formState.parentId,
+            contextTasks
+          });
 
           const { error: updateError } = await planter.entities.Task.update(formState.taskId, updates);
           if (updateError) throw updateError;
@@ -128,33 +107,14 @@ export const useTaskMutations = ({
         const maxPosition =
           siblings.length > 0 ? Math.max(...siblings.map((task) => task.position ?? 0)) : 0;
 
-        const insertPayload = {
-          title: formData.title,
-          description: formData.description ?? null,
-          notes: formData.notes ?? null,
-          purpose: formData.purpose ?? null,
-          actions: formData.actions ?? null,
-          days_from_start: parsedDays,
+        const insertPayload = constructCreatePayload(formData, {
           origin,
-          creator: user.id,
-          parent_task_id: parentId,
-          position: maxPosition + POSITION_STEP,
-          is_complete: false,
-          root_id: rootId,
-        };
-
-        if (origin === 'instance') {
-          if (parsedDays !== null)
-            Object.assign(
-              insertPayload,
-              calculateScheduleFromOffset(contextTasks, parentId, parsedDays)
-            );
-          if (hasManualDates) {
-            insertPayload.start_date = manualStartDate;
-            insertPayload.due_date =
-              manualDueDate || manualStartDate || insertPayload.due_date || null;
-          }
-        }
+          parentId,
+          rootId,
+          contextTasks,
+          userId: user.id,
+          maxPosition
+        });
 
         if (formData.templateId) {
           const { data: newTasks, error: cloneError } = await deepCloneTask(
