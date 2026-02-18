@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@app/supabaseClient';
+import { supabase } from '@/shared/db/client';
 
 /**
  * Hook to subscribe to real-time changes for tasks within a specific project context.

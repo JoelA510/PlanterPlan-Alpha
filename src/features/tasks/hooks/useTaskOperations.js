@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { useTaskQuery } from '@features/tasks/hooks/useTaskQuery';
-import { useTaskMutations } from '@features/tasks/hooks/useTaskMutations';
-import { useProjectMutations } from '@features/projects/hooks/useProjectMutations';
-import { useTaskSubscription } from '@features/tasks/hooks/useTaskSubscription';
-import { separateTasksByOrigin } from '@shared/lib/viewHelpers';
+import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
+import { useTaskMutations } from '@/features/tasks/hooks/useTaskMutations';
+import { useProjectMutations } from '@/features/projects/hooks/useProjectMutations';
+import { useTaskSubscription } from '@/features/tasks/hooks/useTaskSubscription';
+import { separateTasksByOrigin } from '@/shared/lib/viewHelpers';
 
 export const useTaskOperations = () => {
   const query = useTaskQuery();

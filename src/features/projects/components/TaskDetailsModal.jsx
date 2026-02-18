@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@shared/ui/dialog';
-import TaskDetailsView from '@features/tasks/components/TaskDetailsView';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 
 export default function TaskDetailsModal({
     task,

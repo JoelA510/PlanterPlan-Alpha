@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Card } from '@shared/ui/card';
-import { Progress } from '@shared/ui/progress';
+import { Card } from '@/shared/ui/card';
+import { Progress } from '@/shared/ui/progress';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, Circle, ArrowRight, X } from 'lucide-react';
 import { useState } from 'react';

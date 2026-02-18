@@ -1,4 +1,4 @@
-import { planter } from '@shared/api/planterClient';
+import { planter } from '@/shared/api/planterClient';
 
 
 // --- Membership ---

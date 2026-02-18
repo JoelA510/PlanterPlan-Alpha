@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { createPageUrl } from '@shared/lib/utils';
-import { Button } from '@shared/ui/button';
-import { Badge } from '@shared/ui/badge';
-import { Progress } from '@shared/ui/progress';
+import { createPageUrl } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/button';
+import { Badge } from '@/shared/ui/badge';
+import { Progress } from '@/shared/ui/progress';
 import { format } from 'date-fns';
 import {
   ArrowLeft,
@@ -20,9 +20,9 @@ import {
   Search,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { TASK_STATUS, PROJECT_STATUS } from '@app/constants/index';
+import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
 import EditProjectModal from './EditProjectModal';
-import { exportProjectToCSV } from '@shared/lib/export-utils';
+import { exportProjectToCSV } from '@/shared/lib/export-utils';
 
 const templateIcons = {
   launch_large: Rocket,

@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@shared/ui/dialog';
-import { Button } from '@shared/ui/button';
-import { Input } from '@shared/ui/input';
-import { Textarea } from '@shared/ui/textarea';
-import { Label } from '@shared/ui/label';
-import { Calendar } from '@shared/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@shared/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Textarea } from '@/shared/ui/textarea';
+import { Label } from '@/shared/ui/label';
+import { Calendar } from '@/shared/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
-import { cn } from '@shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
 
 export default function AddTaskModal({ open, onClose, onAdd, milestone, parentTask, teamMembers = [] }) {
   const [loading, setLoading] = useState(false);

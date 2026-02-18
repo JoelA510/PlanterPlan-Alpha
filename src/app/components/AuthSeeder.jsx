@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { supabase } from '@app/supabaseClient';
-import { useAuth } from '@app/contexts/AuthContext';
+import { supabase } from '@/shared/db/client';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 /**
  * AuthSeeder is a utility component for E2E tests.

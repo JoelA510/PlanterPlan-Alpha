@@ -1,4 +1,4 @@
-import { supabase } from '@app/supabaseClient';
+import { supabase } from '@/shared/db/client';
 import { retry } from '../lib/retry.js';
 
 const getEnv = (key) => {

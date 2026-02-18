@@ -1,4 +1,4 @@
-import { TASK_STATUS } from '@app/constants/index';
+import { TASK_STATUS } from '@/app/constants/index';
 import { useCallback } from 'react';
 
 const getStatusStyle = (status) => {

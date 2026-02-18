@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@shared/lib/utils';
-import { planter } from '@shared/api/planterClient';
+import { createPageUrl } from '@/shared/lib/utils';
+import { planter } from '@/shared/api/planterClient';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@shared/ui/button';
-import { Card } from '@shared/ui/card';
-import { Progress } from '@shared/ui/progress';
+import { Button } from '@/shared/ui/button';
+import { Card } from '@/shared/ui/card';
+import { Progress } from '@/shared/ui/progress';
 import {
   ArrowLeft,
   Loader2,
@@ -30,8 +30,8 @@ import {
   Legend,
 } from 'recharts';
 
-import DashboardLayout from '@layouts/DashboardLayout';
-import { TASK_STATUS } from '@app/constants/index';
+import DashboardLayout from '@/layouts/DashboardLayout';
+import { TASK_STATUS } from '@/app/constants/index';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 

@@ -1,4 +1,4 @@
-import TaskFormFields from '@features/tasks/components/TaskFormFields';
+import TaskFormFields from '@/features/tasks/components/TaskFormFields';
 
 const EditTaskForm = ({
   formData,

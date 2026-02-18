@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import BoardColumn from './BoardColumn';
-import { TASK_STATUS } from '@app/constants/index';
+import { TASK_STATUS } from '@/app/constants/index';
 
 const COLUMNS = [
     { id: TASK_STATUS.TODO, title: 'To Do' },

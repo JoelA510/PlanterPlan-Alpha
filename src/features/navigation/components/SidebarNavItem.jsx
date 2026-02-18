@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { TASK_STATUS } from '@app/constants/index';
-import RoleIndicator from '@shared/ui/RoleIndicator';
+import { TASK_STATUS } from '@/app/constants/index';
+import RoleIndicator from '@/shared/ui/RoleIndicator';
 
 /**
  * SidebarNavItem - Lightweight navigation item for sidebar

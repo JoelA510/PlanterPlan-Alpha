@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@shared/ui/card';
-import { Button } from '@shared/ui/button';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
 import { Calendar, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { TASK_STATUS } from '@app/constants/index';
+import { TASK_STATUS } from '@/app/constants/index';
 
 export default function MobileAgenda({ tasks = [] }) {
     const navigate = useNavigate();

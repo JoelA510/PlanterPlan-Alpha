@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { useTaskForm } from '@features/tasks/hooks/useTaskForm';
-import MasterLibrarySearch from '@features/library/components/MasterLibrarySearch';
+import { useTaskForm } from '@/features/tasks/hooks/useTaskForm';
+import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
 
 const initialState = {
   title: '',

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { cn } from '@shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = {
   light: '',

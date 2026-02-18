@@ -1,67 +1,33 @@
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-eslint-report.json
-
-# production
-/build
-
-# environment
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# IDE & Editor
-.vscode/
-*.code-workspace
-PlanterPlan.code-workspace
-.DS_Store
-
 # Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-*.log
+pnpm-debug.log*
+lerna-debug.log*
 
-# Documentation
-PR_DESCRIPTION_DRAFT.md
+node_modules
+dist
+dist-ssr
+*.local
+.env*
+/archive/*
 
-# Context
-/Context
-/recovery
-supabase/.temp/
-
-# Recovery & One-time Scripts
-*seed_recovery.sql
-*recover_db.js
-feedback.md
-code_review_draft.md
-
-
-# Temporary Lint Logs
-lint_errors*.txt
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Playwright
-node_modules/
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
-
-# Local Agent Artifacts
-master_remediation_plan.md
-implementation_plan.md
-task.md
-walkthrough.md
-PR_DESCRIPTION_DRAFT.md
-lint_output.txt
-.vercel
-greenfield.md
-refactor.md

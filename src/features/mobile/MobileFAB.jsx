@@ -1,11 +1,11 @@
 import { Plus } from 'lucide-react';
-import { Button } from '@shared/ui/button';
+import { Button } from '@/shared/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@shared/ui/dropdown-menu';
+} from '@/shared/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 
 export default function MobileFAB({ onAddTask }) {

@@ -5,9 +5,9 @@ import {
   buildTree,
   mergeChildrenIntoTree,
   updateTaskInTree,
-} from '@shared/lib/treeHelpers';
-import { fetchTaskChildren, updateTaskStatus, updateTaskPosition } from '@features/tasks/services/taskService';
-import { POSITION_STEP } from '@app/constants/index';
+} from '@/shared/lib/treeHelpers';
+import { fetchTaskChildren, updateTaskStatus, updateTaskPosition } from '@/features/tasks/services/taskService';
+import { POSITION_STEP } from '@/app/constants/index';
 
 // Extracting logic from MasterLibraryList.jsx
 export const useTreeState = (rootTasks) => {

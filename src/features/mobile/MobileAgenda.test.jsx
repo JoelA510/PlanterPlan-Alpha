@@ -1,18 +1,18 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import MobileAgenda from './MobileAgenda';
-import { TASK_STATUS } from '@app/constants/index';
+import { TASK_STATUS } from '@/app/constants/index';
 
 // Mock dependencies
 vi.mock('react-router-dom', () => ({
     useNavigate: () => vi.fn(),
 }));
 
-vi.mock('@shared/ui/card', () => ({
+vi.mock('@/shared/ui/card', () => ({
     Card: ({ children, className }) => <div className={className}>{children}</div>,
 }));
 
-vi.mock('@shared/ui/button', () => ({
+vi.mock('@/shared/ui/button', () => ({
     Button: ({ children, className, onClick }) => (
         <button className={className} onClick={onClick}>{children}</button>
     ),

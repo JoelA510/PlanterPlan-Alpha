@@ -1,24 +1,24 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { planter } from '@shared/api/planterClient';
-import { createProjectWithDefaults, updateProjectStatus } from '@features/projects/services/projectService'; // Service import
-import { useAuth } from '@app/contexts/AuthContext';
+import { planter } from '@/shared/api/planterClient';
+import { createProjectWithDefaults, updateProjectStatus } from '@/features/projects/services/projectService'; // Service import
+import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@shared/ui/use-toast';
-import { Button } from '@shared/ui/button';
+import { useToast } from '@/shared/ui/use-toast';
+import { Button } from '@/shared/ui/button';
 import { Plus, FolderKanban, Loader2, LayoutGrid, Kanban } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-import ProjectCard from '@features/dashboard/components/ProjectCard';
-import CreateProjectModal from '@features/dashboard/components/CreateProjectModal';
-import CreateTemplateModal from '@features/dashboard/components/CreateTemplateModal';
-import StatsOverview from '@features/dashboard/components/StatsOverview';
-import ProjectPipelineBoard from '@features/dashboard/components/ProjectPipelineBoard';
-import OnboardingWizard from '@features/onboarding/components/OnboardingWizard';
-import GettingStartedWidget from '@features/onboarding/components/GettingStartedWidget';
-import MobileAgenda from '@features/mobile/MobileAgenda';
+import ProjectCard from '@/features/dashboard/components/ProjectCard';
+import CreateProjectModal from '@/features/dashboard/components/CreateProjectModal';
+import CreateTemplateModal from '@/features/dashboard/components/CreateTemplateModal';
+import StatsOverview from '@/features/dashboard/components/StatsOverview';
+import ProjectPipelineBoard from '@/features/dashboard/components/ProjectPipelineBoard';
+import OnboardingWizard from '@/features/onboarding/components/OnboardingWizard';
+import GettingStartedWidget from '@/features/onboarding/components/GettingStartedWidget';
+import MobileAgenda from '@/features/mobile/MobileAgenda';
 
-import DashboardLayout from '@layouts/DashboardLayout';
+import DashboardLayout from '@/layouts/DashboardLayout';
 
 
 

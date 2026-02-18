@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
-import { planter } from '@shared/api/planterClient';
+import { planter } from '@/shared/api/planterClient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
-import { useToast } from '@shared/ui/use-toast';
-import { useAuth } from '@app/contexts/AuthContext';
-import { TASK_STATUS, ROLES } from '@app/constants/index';
+import { useToast } from '@/shared/ui/use-toast';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { TASK_STATUS, ROLES } from '@/app/constants/index';
 import { createPortal } from 'react-dom';
 import {
   DndContext,
@@ -17,20 +17,20 @@ import {
   closestCorners
 } from '@dnd-kit/core';
 
-import ProjectHeader from '@features/projects/components/ProjectHeader';
-import ProjectTabs from '@features/projects/components/ProjectTabs';
+import ProjectHeader from '@/features/projects/components/ProjectHeader';
+import ProjectTabs from '@/features/projects/components/ProjectTabs';
 
-import { useProjectData } from '@features/projects/hooks/useProjectData';
-import PeopleList from '@features/people/components/PeopleList';
+import { useProjectData } from '@/features/projects/hooks/useProjectData';
+import PeopleList from '@/features/people/components/PeopleList';
 
-import DashboardLayout from '@layouts/DashboardLayout';
-import PhaseCard from '@features/projects/components/PhaseCard';
-import MilestoneSection from '@features/projects/components/MilestoneSection';
-import AddTaskModal from '@features/projects/components/AddTaskModal';
-import TaskDetailsModal from '@features/projects/components/TaskDetailsModal';
-import InviteMemberModal from '@features/projects/components/InviteMemberModal';
-import { useTaskSubscription } from '@features/tasks/hooks/useTaskSubscription';
-import { resolveDragAssign } from '@features/projects/utils/dragUtils';
+import DashboardLayout from '@/layouts/DashboardLayout';
+import PhaseCard from '@/features/projects/components/PhaseCard';
+import MilestoneSection from '@/features/projects/components/MilestoneSection';
+import AddTaskModal from '@/features/projects/components/AddTaskModal';
+import TaskDetailsModal from '@/features/projects/components/TaskDetailsModal';
+import InviteMemberModal from '@/features/projects/components/InviteMemberModal';
+import { useTaskSubscription } from '@/features/tasks/hooks/useTaskSubscription';
+import { resolveDragAssign } from '@/features/projects/utils/dragUtils';
 
 export default function Project() {
   const { id: projectId } = useParams();

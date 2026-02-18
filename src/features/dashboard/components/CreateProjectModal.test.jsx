@@ -13,7 +13,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CreateProjectModal from './CreateProjectModal';
 
 // Mock the planterClient
-vi.mock('@shared/api/planterClient', () => ({
+vi.mock('@/shared/api/planterClient', () => ({
     planter: {
         entities: {
             Project: {

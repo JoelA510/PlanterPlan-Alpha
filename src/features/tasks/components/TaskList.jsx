@@ -2,22 +2,22 @@ import { useMemo, useEffect } from 'react';
 import { DndContext, closestCorners } from '@dnd-kit/core';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import NewProjectForm from '@features/projects/components/NewProjectForm';
-import NewTaskForm from '@features/tasks/components/NewTaskForm';
-import TaskDetailsView from '@features/tasks/components/TaskDetailsView';
-import InviteMemberModal from '@features/projects/components/InviteMemberModal';
+import NewProjectForm from '@/features/projects/components/NewProjectForm';
+import NewTaskForm from '@/features/tasks/components/NewTaskForm';
+import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
+import InviteMemberModal from '@/features/projects/components/InviteMemberModal';
 import { ErrorBoundary } from 'react-error-boundary';
-import ErrorFallback from '@shared/ui/ErrorFallback';
+import ErrorFallback from '@/shared/ui/ErrorFallback';
 
-import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
+import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@layouts/DashboardLayout';
-import TaskDetailsPanel from '@features/tasks/components/TaskDetailsPanel';
-import EmptyProjectState from '@features/tasks/components/EmptyProjectState';
-import StatusCard from '@shared/ui/StatusCard';
+import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
+import EmptyProjectState from '@/features/tasks/components/EmptyProjectState';
+import StatusCard from '@/shared/ui/StatusCard';
 
 // Hooks & Utils
-import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
+import { useTaskBoard } from '@/features/tasks/hooks/useTaskBoard';
 
 const TaskList = () => {
   const { projectId } = useParams();

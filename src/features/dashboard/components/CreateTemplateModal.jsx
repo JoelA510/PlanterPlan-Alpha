@@ -5,13 +5,13 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
-} from '@shared/ui/dialog';
-import { Button } from '@shared/ui/button';
-import { Input } from '@shared/ui/input';
-import { Textarea } from '@shared/ui/textarea';
-import { Label } from '@shared/ui/label';
+} from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Textarea } from '@/shared/ui/textarea';
+import { Label } from '@/shared/ui/label';
 import { Loader2, FileText, BookTemplate, Layers } from 'lucide-react';
-import { cn } from '@shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
 import { motion } from 'framer-motion';
 
 const TEMPLATE_CATEGORIES = [

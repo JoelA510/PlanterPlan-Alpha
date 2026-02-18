@@ -1,4 +1,4 @@
-import { planter } from '@shared/api/planterClient';
+import { planter } from '@/shared/api/planterClient';
 import { POSITION_STEP } from '@app/constants/index';
 const MIN_GAP = 2; // Minimum gap before triggering renormalization
 

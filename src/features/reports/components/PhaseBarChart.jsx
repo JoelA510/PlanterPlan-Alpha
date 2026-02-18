@@ -1,13 +1,13 @@
 import { memo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Card } from '@shared/ui/card';
+import { Card } from '@/shared/ui/card';
 import {
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
     ChartLegend,
     ChartLegendContent
-} from '@shared/ui/chart';
+} from '@/shared/ui/chart';
 
 const chartConfig = {
     completed: {

@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
-import { supabase } from '@app/supabaseClient';
+import { supabase } from '@/shared/db/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { deepCloneTask, deleteTask } from '@features/tasks/services/taskService';
-import { createProject as createProjectService } from '@features/projects/services/projectService';
-import { toIsoDate, recalculateProjectDates } from '@shared/lib/date-engine';
+import { deepCloneTask, deleteTask } from '@/features/tasks/services/taskService';
+import { createProject as createProjectService } from '@/features/projects/services/projectService';
+import { toIsoDate, recalculateProjectDates } from '@/shared/lib/date-engine';
 
 export const useProjectMutations = ({ tasks, fetchTasks }) => {
   const queryClient = useQueryClient();

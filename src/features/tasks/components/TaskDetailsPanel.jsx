@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import NewProjectForm from '@features/projects/components/NewProjectForm';
-import NewTaskForm from '@features/tasks/components/NewTaskForm';
-import TaskDetailsView from '@features/tasks/components/TaskDetailsView';
+import NewProjectForm from '@/features/projects/components/NewProjectForm';
+import NewTaskForm from '@/features/tasks/components/NewTaskForm';
+import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 import { X } from 'lucide-react';
 
 const getPanelTitle = (showForm, taskFormState, taskBeingEdited, selectedTask, parentTaskForForm) => {

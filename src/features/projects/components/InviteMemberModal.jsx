@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ReactDOM from 'react-dom';
-import { inviteMember, inviteMemberByEmail } from '@features/projects/services/projectService';
-import { ROLES } from '@app/constants/index';
+import { inviteMember, inviteMemberByEmail } from '@/features/projects/services/projectService';
+import { ROLES } from '@/app/constants/index';
 import { Loader2 } from 'lucide-react';
 
 const InviteMemberModal = ({ project, onClose, onInviteSuccess }) => {

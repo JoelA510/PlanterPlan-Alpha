@@ -1,11 +1,11 @@
-import { sanitizeHTML } from '@shared/lib/sanitize';
-import { Card } from '@shared/ui/card';
-import { Progress } from '@shared/ui/progress';
+import { sanitizeHTML } from '@/shared/lib/sanitize';
+import { Card } from '@/shared/ui/card';
+import { Progress } from '@/shared/ui/progress';
 
 import { ChevronRight, CheckCircle2, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from '@shared/lib/utils';
-import { TASK_STATUS } from '@app/constants/index';
+import { cn } from '@/shared/lib/utils';
+import { TASK_STATUS } from '@/app/constants/index';
 
 const phaseColors = {
   1: {

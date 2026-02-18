@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@shared/lib/utils';
-import { Card } from '@shared/ui/card';
-import { Badge } from '@shared/ui/badge';
-import { Progress } from '@shared/ui/progress';
+import { createPageUrl } from '@/shared/lib/utils';
+import { Card } from '@/shared/ui/card';
+import { Badge } from '@/shared/ui/badge';
+import { Progress } from '@/shared/ui/progress';
 import { format } from 'date-fns';
 import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch, FolderKanban } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { TASK_STATUS, PROJECT_STATUS } from '@app/constants/index';
-import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
-import { sanitizeHTML } from '@shared/lib/sanitize';
+import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
+import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
+import { sanitizeHTML } from '@/shared/lib/sanitize';
 
 const templateIcons = {
   launch_large: Rocket,

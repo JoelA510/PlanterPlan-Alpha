@@ -3,13 +3,13 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TasksPage from './TasksPage';
 import { BrowserRouter } from 'react-router-dom';
-import { ToastProvider } from '@app/contexts/ToastContext';
+import { ToastProvider } from '@/app/contexts/ToastContext';
 
 // Mock dependencies
-import { planter } from '@shared/api/planterClient';
-import { useTaskMutations } from '@features/tasks/hooks/useTaskMutations';
+import { planter } from '@/shared/api/planterClient';
+import { useTaskMutations } from '@/features/tasks/hooks/useTaskMutations';
 
-vi.mock('@shared/api/planterClient', () => ({
+vi.mock('@/shared/api/planterClient', () => ({
   planter: {
     entities: {
       Task: {
@@ -19,16 +19,16 @@ vi.mock('@shared/api/planterClient', () => ({
   },
 }));
 
-vi.mock('@features/tasks/hooks/useTaskMutations', () => ({
+vi.mock('@/features/tasks/hooks/useTaskMutations', () => ({
   useTaskMutations: vi.fn(),
 }));
 
-vi.mock('@layouts/DashboardLayout', () => ({
+vi.mock('@/layouts/DashboardLayout', () => ({
   default: ({ children }) => <div>{children}</div>,
 }));
 
 // Mock TaskList to expose delete functionality for testing
-vi.mock('@features/tasks/components/TaskList', () => ({
+vi.mock('@/features/tasks/components/TaskList', () => ({
   default: ({ tasks }) => (
     <div data-testid="task-list">
       {tasks.map((task) => (

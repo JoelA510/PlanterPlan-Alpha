@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useTaskDrag } from '@features/task-drag';
+import { useTaskDrag } from '@/features/task-drag';
 
 /**
  * useTaskDragAndDrop

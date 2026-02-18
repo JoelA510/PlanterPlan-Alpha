@@ -3,6 +3,7 @@
 > **Last Updated**: 2026-02-15  
 > **Status**: Alpha (Refactoring Phase)  
 > **Commit**: HEAD on `main`
+> **Specification**: [spec.md](../spec.md)
 
 ---
 
@@ -124,7 +125,10 @@ PlanterPlan-Alpha/
 │   │   ├── projects/        # Project CRUD, membership, phases
 │   │   ├── reports/         # Project reporting (print view)
 │   │   ├── task-drag/       # Drag-and-drop logic (dnd-kit)
-│   │   └── tasks/           # Task CRUD, board, list, details
+│   │   └── tasks/           # Core Task Domain
+│   │       ├── components/  # TaskTree, TaskRow, TaskDetails
+│   │       ├── hooks/       # useTaskTree, useTaskDetails
+│   │       └── services/    # taskService
 │   │
 │   ├── shared/              # @shared — Reusable, domain-agnostic
 │   │   ├── api/             # planterClient.js (Supabase adapter)
@@ -334,13 +338,16 @@ The largest domain. Manages the core task lifecycle.
 
 ```
 tasks/
-├── components/          # 16 components + board subdirectory
-│   ├── TaskList.jsx     # Main dashboard: sidebar + task view + details panel
-│   ├── TaskItem.jsx     # Single task row with inline editing
-│   ├── TaskDetailsView.jsx  # Full task detail panel
-│   ├── TaskDetailsPanel.jsx # Wrapper for details slide-out
+├── components/          # 20+ components + board subdirectory
+│   ├── TaskTree/        # Recursive Tree Logic
+│   │   ├── TaskTree.tsx     # Tree root & DndContext
+│   │   ├── TaskRow.tsx      # Recursive row (Logic)
+│   │   ├── TaskRowUI.tsx    # Row presentation
+│   │   └── TaskActions.tsx  # Atomic action buttons
+│   ├── TaskDetails/     # Side Panel
+│   │   └── TaskDetails.tsx  # View/Edit attributes
 │   ├── ProjectTasksView.jsx # Task list filtered by project
-│   ├── ProjectListView.jsx  # Virtualized list (react-virtuoso)
+│   ├── ProjectListView.jsx  # Virtualized list
 │   ├── TaskResources.jsx    # File/link attachments
 │   ├── TaskDependencies.jsx # Relationship management UI
 │   ├── InlineTaskInput.jsx  # Quick-add task inline
@@ -349,7 +356,11 @@ tasks/
 │   │   ├── BoardColumn.jsx       # Status column
 │   │   └── BoardTaskCard.jsx     # Draggable task card
 │   └── ... (forms, controls, selects)
-├── hooks/               # 8 hooks (see §6)
+├── hooks/               # 10 hooks (see §6)
+│   ├── useTaskTree.ts       # Tree structural logic
+│   ├── useTaskTreeDnD.ts    # Drag logic + Cycle Detection
+│   ├── useTaskDetails.ts    # Single task fetcher
+│   └── ...
 ├── services/
 │   ├── taskService.js       # Hierarchy, CRUD, relationships, date propagation
 │   ├── taskCloneService.js  # Deep clone logic (calls clone_project_template RPC)
@@ -818,6 +829,18 @@ Playwright is configured to target `localhost:3010` (Isolated E2E Mode) with the
 **Decision**: All permission checks are done via `has_project_role()` PostgreSQL function called from RLS policies, not application code.
 
 **Rationale**: Security is enforced at the database level. Even if the frontend is bypassed, unauthorized operations are blocked by RLS. The `SECURITY DEFINER` flag ensures the functions run with appropriate privileges.
+
+---
+
+### ADR-7: Atomic Task Tree Components
+
+**Decision**: The Task Tree is decomposed into atomic, recursive components (`TaskTree`, `TaskRow`, `TaskActions`) rather than a monolithic `TaskList`. `TaskDetails` sets side-by-side with the tree via `ProjectView` layout state.
+
+**Rationale**: 
+1. **Performance**: Isolating `TaskRow` allows `React.memo` to prevent re-rendering the entire tree when one task updates.
+2. **Safety**: Drag-and-drop logic (`useTaskTreeDnD`) is separated from rendering, enabling strict validation (Cycle Detection) before any state mutation.
+3. **Maintainability**: `TaskActions` encapsulates the complex menu/button logic, reducing noise in the main row component.
+
 
 ---
 

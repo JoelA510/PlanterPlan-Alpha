@@ -8,15 +8,15 @@
  */
 
 import { Eye, ChevronDown, Check } from 'lucide-react';
-import { useViewAs } from '@app/contexts/ViewAsContext';
-import { Button } from '@shared/ui/button';
+import { useViewAs } from '@/app/contexts/ViewAsContext';
+import { Button } from '@/shared/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@shared/ui/dropdown-menu';
+} from '@/shared/ui/dropdown-menu';
 
 export default function ViewAsSelector() {
     const {

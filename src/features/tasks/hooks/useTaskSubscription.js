@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '@app/supabaseClient';
+import { supabase } from '@/shared/db/client';
 import { useQueryClient } from '@tanstack/react-query';
 
 export const useTaskSubscription = ({

@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
+import { useTaskOperations } from '@/features/tasks/hooks/useTaskOperations';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient({
@@ -13,7 +13,7 @@ const wrapper = ({ children }) => (
 );
 
 // Mock supabaseClient
-vi.mock('@app/supabaseClient', () => ({
+vi.mock('@/shared/db/client', () => ({
   supabase: {
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user' } } }),
@@ -33,7 +33,7 @@ vi.mock('@app/supabaseClient', () => ({
 }));
 
 // Mock planter for useTaskMutations
-vi.mock('@shared/api/planterClient', () => ({
+vi.mock('@/shared/api/planterClient', () => ({
   planter: {
     entities: {
       Task: {
@@ -49,20 +49,20 @@ vi.mock('@shared/api/planterClient', () => ({
 }));
 
 // Mock dependencies
-vi.mock('@features/tasks/services/taskService', () => ({
+vi.mock('@/features/tasks/services/taskService', () => ({
   fetchTaskChildren: vi.fn(),
   deepCloneTask: vi.fn(),
   updateParentDates: vi.fn(),
 }));
 
-vi.mock('@features/projects/services/projectService', () => ({
+vi.mock('@/features/projects/services/projectService', () => ({
   getUserProjects: vi.fn().mockResolvedValue({ data: [], count: 0 }),
   getJoinedProjects: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
-import { planter } from '@shared/api/planterClient';
+import { planter } from '@/shared/api/planterClient';
 
-describe('@features/tasks/hooks/useTaskOperations', () => {
+describe('@/features/tasks/hooks/useTaskOperations', () => {
   it('renders without crashing', () => {
     const { result } = renderHook(() => useTaskOperations(), { wrapper });
     expect(result.current).toBeDefined();

@@ -7,9 +7,9 @@ import {
     ChartTooltipContent,
     ChartLegend,
     ChartLegendContent
-} from '@shared/ui/chart';
-import { TASK_STATUS } from '@app/constants/index';
-import { CHART_COLORS } from '@app/constants/colors';
+} from '@/shared/ui/chart';
+import { TASK_STATUS } from '@/app/constants/index';
+import { CHART_COLORS } from '@/app/constants/colors';
 
 const StatusPieChart = ({ tasks }) => {
     const data = useMemo(() => {

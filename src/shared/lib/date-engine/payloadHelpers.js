@@ -1,5 +1,5 @@
 import { calculateScheduleFromOffset, toIsoDate } from './index';
-import { POSITION_STEP } from '@app/constants/index';
+import { POSITION_STEP } from '@/app/constants/index';
 
 /**
  * Constructs the payload for updating an existing task.

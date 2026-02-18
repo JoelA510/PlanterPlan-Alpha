@@ -16,7 +16,7 @@ import {
     CommandList,
     CommandSeparator,
     CommandShortcut,
-} from '@shared/ui/command';
+} from '@/shared/ui/command';
 
 export function CommandPalette({ projects = [] }) {
     const [open, setOpen] = useState(false);

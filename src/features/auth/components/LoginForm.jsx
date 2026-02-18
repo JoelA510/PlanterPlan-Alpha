@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useAuth } from '@app/contexts/AuthContext';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@shared/ui/use-toast';
+import { useToast } from '@/shared/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const LoginForm = () => {

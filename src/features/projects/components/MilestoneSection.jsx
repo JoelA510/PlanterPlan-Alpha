@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Button } from '@shared/ui/button';
-import { Badge } from '@shared/ui/badge';
-import { Progress } from '@shared/ui/progress';
+import { Button } from '@/shared/ui/button';
+import { Badge } from '@/shared/ui/badge';
+import { Progress } from '@/shared/ui/progress';
 import { ChevronRight, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDroppable } from '@dnd-kit/core';
-import { cn } from '@shared/lib/utils';
-import { TASK_STATUS } from '@app/constants/index';
-import TaskItem from '@features/tasks/components/TaskItem';
+import { cn } from '@/shared/lib/utils';
+import { TASK_STATUS } from '@/app/constants/index';
+import TaskItem from '@/features/tasks/components/TaskItem';
 
 export default function MilestoneSection({
   milestone,

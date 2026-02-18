@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { planter } from '@shared/api/planterClient';
+import { planter } from '@/shared/api/planterClient';
 
 /**
  * Hook to fetch project metadata, hierarchy (phases/milestones/tasks), and team members.

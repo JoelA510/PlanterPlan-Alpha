@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableBoardTaskCard from './BoardTaskCard';
-import { cn } from '@shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
 
 const BoardColumn = ({ id, title, tasks, onTaskClick, className, parentId }) => {
     const { setNodeRef, isOver } = useDroppable({

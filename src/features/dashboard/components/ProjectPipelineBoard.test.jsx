@@ -1,15 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ProjectPipelineBoard from './ProjectPipelineBoard';
-import { PROJECT_STATUS } from '@app/constants/index';
+import { PROJECT_STATUS } from '@/app/constants/index';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock generic components to simplify rendering
-vi.mock('@features/dashboard/components/ProjectCard', () => ({
+vi.mock('@/features/dashboard/components/ProjectCard', () => ({
     default: ({ project }) => <div data-testid={`project-card-${project.id}`}>{project.name}</div>,
 }));
 
-vi.mock('@features/projects/hooks/useProjectRealtime', () => ({
+vi.mock('@/features/projects/hooks/useProjectRealtime', () => ({
     useProjectRealtime: vi.fn(),
 }));
 

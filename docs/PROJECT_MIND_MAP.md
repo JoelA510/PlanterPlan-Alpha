@@ -13,19 +13,19 @@ Every file that gives meaningful context about this project, organized by role.
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [FULL_ARCHITECTURE.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/FULL_ARCHITECTURE.md) | **Single Source of Truth** — 900+ line deep reference covering tech stack, FSD structure, provider tree, API adapter, all 11 feature domains, DB schema, security model, realtime flow, ADRs, and legacy component diagrams | 🔴 Critical |
-| [repo-context.yaml](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/repo-context.yaml) | Machine-readable semantic dependency graph, behavior specs, contracts, state machines, and health metrics | 🔴 Critical |
-| [AGENT_CONTEXT.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/AGENT_CONTEXT.md) | Quick-start codebase map for AI agents — directory structure, key patterns, golden path files | 🔵 Useful |
-
+| [FULL_ARCHITECTURE.md](FULL_ARCHITECTURE.md) | **Single Source of Truth** — 900+ line deep reference covering tech stack, FSD structure, provider tree, API adapter, all 11 feature domains, DB schema, security model, realtime flow, ADRs, and legacy component diagrams | 🔴 Critical |
+| [repo-context.yaml](../repo-context.yaml) | Machine-readable semantic dependency graph, behavior specs, contracts, state machines, and health metrics | 🔴 Critical |
+| [AGENT_CONTEXT.md](AGENT_CONTEXT.md) | Quick-start codebase map for AI agents — directory structure, key patterns, golden path files | 🔵 Useful |
+r
 ---
 
 ### 📊 Product & Roadmap
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [README.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/README.md) | Project overview, setup instructions, feature summary | 🔴 Critical |
-| [roadmap.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/roadmap.md) | Full project history timeline, UX workflow status, future phases (5–11), and feature parity checklist | 🔴 Critical |
-| [deep-research-report.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/deep-research-report.md) | Deep competitive/market research analysis | 🟡 Reference |
+| [README.md](../README.md) | Project overview, setup instructions, feature summary | 🔴 Critical |
+| [spec.md](../spec.md) | Full project spec, roadmap, and status checklist | 🔴 Critical |
+| [deep-research-report.md](../deep-research-report.md) | Deep competitive/market research analysis | 🟡 Reference |
 
 ---
 
@@ -33,9 +33,9 @@ Every file that gives meaningful context about this project, organized by role.
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [schema.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/schema.sql) | **Full DDL** — 37K of tables, views, indexes, RLS policies, RPCs, triggers | 🔴 Critical |
-| [one_time_setup.sql](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/db/one_time_setup.sql) | Initial DB bootstrap script | 🟡 Reference |
-| [config.toml](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/supabase/config.toml) | Supabase local config (auth, API, storage, realtime settings) | 🟡 Reference |
+| [schema.sql](db/schema.sql) | **Full DDL** — 37K of tables, views, indexes, RLS policies, RPCs, triggers | 🔴 Critical |
+| [one_time_setup.sql](db/one_time_setup.sql) | Initial DB bootstrap script | 🟡 Reference |
+| [config.toml](../supabase/config.toml) | Supabase local config (auth, API, storage, realtime settings) | 🟡 Reference |
 
 ---
 
@@ -43,10 +43,10 @@ Every file that gives meaningful context about this project, organized by role.
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [testing-strategy.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/operations/testing-strategy.md) | Detailed testing methodology and patterns | 🔵 Useful |
-| [playwright-e2e-testing-system.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/playwright-e2e-testing-system.md) | E2E infrastructure reference (69K) | 🟡 Reference |
-| [e2e-helpers.ts](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/fixtures/e2e-helpers.ts) | Centralized test auth/mock helpers | 🔵 Useful |
-| [agent-test-scripts.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/operations/agent-test-scripts.md) | Structured manual test scripts for AI agents | 🟢 Low |
+| [testing-strategy.md](operations/testing-strategy.md) | Detailed testing methodology and patterns | 🔵 Useful |
+| [playwright-e2e-testing-system.md](../playwright-e2e-testing-system.md) | E2E infrastructure reference (69K) | 🟡 Reference |
+| [e2e-helpers.ts](../e2e/fixtures/e2e-helpers.ts) | Centralized test auth/mock helpers | 🔵 Useful |
+| [agent-test-scripts.md](operations/agent-test-scripts.md) | Structured manual test scripts for AI agents | 🟢 Low |
 
 ---
 
@@ -54,11 +54,11 @@ Every file that gives meaningful context about this project, organized by role.
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [local_development.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/operations/local_development.md) | Local dev setup guide | 🔵 Useful |
-| [SAFE_MIGRATION.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/docs/operations/SAFE_MIGRATION.md) | Database migration safety procedures | 🟡 Reference |
-| [playwright.config.ts](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/playwright.config.ts) | E2E test runner configuration | 🔵 Useful |
-| [vite.config.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/vite.config.js) | Build system, path aliases, chunk splitting | 🔵 Useful |
-| [package.json](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/package.json) | Dependencies, scripts, project metadata | 🔵 Useful |
+| [local_development.md](operations/local_development.md) | Local dev setup guide | 🔵 Useful |
+| [SAFE_MIGRATION.md](operations/SAFE_MIGRATION.md) | Database migration safety procedures | 🟡 Reference |
+| [playwright.config.ts](../playwright.config.ts) | E2E test runner configuration | 🔵 Useful |
+| [vite.config.js](../vite.config.js) | Build system, path aliases, chunk splitting | 🔵 Useful |
+| [package.json](../package.json) | Dependencies, scripts, project metadata | 🔵 Useful |
 
 ---
 
@@ -66,11 +66,11 @@ Every file that gives meaningful context about this project, organized by role.
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [.env](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.env) | Supabase URL/Key, test credentials | 🔵 Useful |
-| [eslint.config.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/eslint.config.js) | Linting rules | 🟢 Low |
-| [jsconfig.json](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/jsconfig.json) | Path alias resolution for IDE | 🟢 Low |
-| [dependabot.yml](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.github/dependabot.yml) | Automated dependency updates | 🟢 Low |
-| [pull_request_template.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.github/pull_request_template.md) | PR template | 🟢 Low |
+| [.env](../.env) | Supabase URL/Key, test credentials | 🔵 Useful |
+| [eslint.config.js](../eslint.config.js) | Linting rules | 🟢 Low |
+| [jsconfig.json](../jsconfig.json) | Path alias resolution for IDE | 🟢 Low |
+| [dependabot.yml](../.github/dependabot.yml) | Automated dependency updates | 🟢 Low |
+| [pull_request_template.md](../.github/pull_request_template.md) | PR template | 🟢 Low |
 
 ---
 
@@ -78,9 +78,9 @@ Every file that gives meaningful context about this project, organized by role.
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [DEBT_REPORT.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/DEBT_REPORT.md) | Technical debt log | 🟡 Reference |
-| [LESSONS.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/LESSONS.md) | Engineering lessons learned — 260 entries of hard-won knowledge (17K) | 🔴 Critical |
-| [TODO.md](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/TODO.md) | Active backlog items | 🔵 Useful |
+| [DEBT_REPORT.md](../DEBT_REPORT.md) | Technical debt log | 🟡 Reference |
+| [LESSONS.md](../LESSONS.md) | Engineering lessons learned — 260 entries of hard-won knowledge (17K) | 🔴 Critical |
+| [TODO.md](../TODO.md) | Active backlog items | 🔵 Useful |
 
 ---
 
@@ -88,10 +88,11 @@ Every file that gives meaningful context about this project, organized by role.
 
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
-| [App.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/app/App.jsx) | Root component — provider tree, routing, AuthSeeder | 🔴 Critical |
-| [planterClient.js](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/shared/api/planterClient.js) | API adapter layer — all data access | 🔴 Critical |
-| [main.jsx](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/main.jsx) | Vite entry point | 🟡 Reference |
-| [globals.css](file:///home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/src/styles/globals.css) | Tailwind v4 theme tokens & design system | 🔵 Useful |
+| [App.jsx](../src/app/App.jsx) | Root component — provider tree, routing, AuthSeeder | 🔴 Critical |
+| [planterClient.js](../src/shared/api/planterClient.js) | API adapter layer — all data access | 🔴 Critical |
+| [TaskTree.tsx](../src/features/tasks/components/TaskTree/TaskTree.tsx) | Core Task Tree logic & recursion | 🔴 Critical |
+| [main.jsx](../src/main.jsx) | Vite entry point | 🟡 Reference |
+| [globals.css](../src/styles/globals.css) | Tailwind v4 theme tokens & design system | 🔵 Useful |
 
 ---
 
@@ -199,16 +200,15 @@ mindmap
         GettingStarted dismiss persist
         Coming Soon tab badges
         Loading states on modals
-    Feature Domains
-      Tasks Domain
-        Task CRUD
-        Board View
-        List View
-        Phase View
-        Drag and Drop
-        Task Dependencies
-        Task Resources
-        Inline Task Input
+      Feature Domains
+        Tasks Domain
+          Task Tree (Recursive)
+          Task Row (Logic/UI Split)
+          Task Details Panel
+          Task Actions
+          Drag and Drop (Cycle Detection)
+          Task Resources
+          Inline Task Input
       Projects Domain
         Create from Scratch
         Create from Template
@@ -380,16 +380,16 @@ flowchart TD
         T4[Delete Task]
         T5[Drag & Drop Task]
         T6[Inline Add Task]
-        T7[View Task Details]
+        T7[Select Task (Details Panel)]
         T8[Add Dependency]
         T9[Attach Resource]
     end
 
     subgraph "Hooks"
         H1[useTaskMutations]
-        H2[useTaskDragAndDrop]
+        H2[useTaskTreeDnD]
         H3[useTaskBoard]
-        H4[useTaskQuery]
+        H4[useTaskDetails]
         H5[useTaskForm]
         H6[useTaskOperations]
         H7[useTaskTree]
@@ -421,13 +421,18 @@ flowchart TD
         RT[Realtime Broadcast]
         DATE[Date Cascade]
         POS[Position Recalc]
+        CYCLE[Cycle Detection] // New
     end
 
     T1 --> H1 --> TS2 --> PC_TC --> DB_T2
     T2 --> H1 --> TS2 --> PC_TU --> DB_T2
     T3 --> H6 --> TS2 --> PC_TU --> DB_T2
     T4 --> H1 --> TS2 --> PC_TD --> DB_T2
-    T5 --> H2 --> OPT --> POS --> PC_TU --> DB_T2
+    
+    T5 --> H2 --> CYCLE
+    CYCLE -->|Valid| OPT --> POS --> PC_TU --> DB_T2
+    CYCLE -->|Invalid| OPT -->|Revert| OPT
+
     T6 --> H5 --> H1
     T7 --> H4 --> PC_TF --> DB_T2
     T8 --> TS2 --> DB_REL
@@ -744,7 +749,7 @@ All items from the Gap Analysis have been implemented across 5 atomic waves. Eac
 | # | Item | File(s) | Status |
 |:--|:-----|:--------|:------:|
 | 6.2 | Global `QueryClient` defaults (`staleTime: 2min`, `retry: 1`, `refetchOnWindowFocus: false`) | `main.jsx` | ✅ |
-| 6.3 | Standardize on `react-error-boundary` (removed custom `ErrorBoundary.jsx`) | `App.jsx`, `TaskList.jsx`, `TaskItem.jsx` | ✅ |
+| 6.3 | Standardize on `react-error-boundary` (removed custom `ErrorBoundary.jsx`) | `App.jsx`, `TaskTree.tsx`, `TaskRow.tsx` | ✅ |
 
 ### Wave 3: RBAC Guards & UX Completeness
 
@@ -808,6 +813,7 @@ All items from the Gap Analysis have been implemented across 5 atomic waves. Eac
 | 10.3 | **Flow Alignment**: Updated Sidebar tests to handle "Choose Template" modal | `sidebar-actions.spec.ts` | ✅ |
 | 10.4 | **Stateful Mocking**: Implemented in-memory mutation for `PATCH` requests to support atomic drag-drop limits | `drag-drop.spec.ts` | ✅ |
 
+
 ### Wave 9: Database Harmonization & Security Hardening
 
 | # | Item | File(s) | Status |
@@ -818,3 +824,13 @@ All items from the Gap Analysis have been implemented across 5 atomic waves. Eac
 | 11.4 | **Project Creation**: Hotfixed `createProject` service to use `createProjectWithDefaults` | `projectService.js` | ✅ |
 | 11.5 | **Auth Stability**: Monotonic sequence counter in `AuthContext` to prevent race conditions | `AuthContext.jsx` | ✅ |
 | 11.6 | **Perf Optimization**: Server-side filtering in `listByCreator` | `planterClient.js` | ✅ |
+
+### Wave 10: Task Tree Refactoring & Hardening
+
+| # | Item | File(s) | Status |
+|:--|:-----|:--------|:------:|
+| 12.1 | **Component Extraction**: `TaskTree` extracted from `ProjectView` | `TaskTree.tsx` | ✅ |
+| 12.2 | **Component Decomposition**: `TaskRow` split into Logic + UI | `TaskRow.tsx`, `TaskRowUI.tsx` | ✅ |
+| 12.3 | **DnD Hardening**: Cycle Detection preventing invalid drops | `useTaskTreeDnD.ts` | ✅ |
+| 12.4 | **Action Isolation**: `TaskActions` component for atomic operations | `TaskActions.tsx` | ✅ |
+| 12.5 | **Detail View**: `TaskDetails` side panel integration | `TaskDetails.tsx`, `ProjectView.tsx` | ✅ |

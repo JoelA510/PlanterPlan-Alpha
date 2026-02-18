@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
-import { useToast } from '@app/contexts/ToastContext';
-import { inviteMember } from '@features/projects/services/projectService';
-import { ROLES } from '@app/constants/index';
+import { useTaskOperations } from '@/features/tasks/hooks/useTaskOperations';
+import { useToast } from '@/app/contexts/ToastContext';
+import { inviteMember } from '@/features/projects/services/projectService';
+import { ROLES } from '@/app/constants/index';
 
 // Composed Hooks
 import { useProjectSelection } from './useProjectSelection';

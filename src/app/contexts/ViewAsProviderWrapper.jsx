@@ -5,9 +5,9 @@
  * Checks if current user has admin privileges and provides appropriate role.
  */
 
-import { useAuth } from '@app/contexts/AuthContext';
-import { ViewAsProvider } from '@app/contexts/ViewAsContext';
-import { ROLES } from '@app/constants/index';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { ViewAsProvider } from '@/app/contexts/ViewAsContext';
+import { ROLES } from '@/app/constants/index';
 
 /**
  * Determines user's global role for View-As purposes.

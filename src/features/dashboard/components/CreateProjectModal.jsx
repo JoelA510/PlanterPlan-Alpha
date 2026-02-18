@@ -5,13 +5,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@shared/ui/dialog';
-import { Button } from '@shared/ui/button';
-import { Input } from '@shared/ui/input';
-import { Textarea } from '@shared/ui/textarea';
-import { Label } from '@shared/ui/label';
-import { Calendar } from '@shared/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@shared/ui/popover';
+} from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Textarea } from '@/shared/ui/textarea';
+import { Label } from '@/shared/ui/label';
+import { Calendar } from '@/shared/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { format } from 'date-fns';
 import {
   Calendar as CalendarIcon,
@@ -21,11 +21,11 @@ import {
   Loader2,
   CheckCircle2,
 } from 'lucide-react';
-import { cn } from '@shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PROJECT_STATUS } from '@app/constants/index';
+import { PROJECT_STATUS } from '@/app/constants/index';
 import { z } from 'zod';
-import { projectSchema } from '@entities/project/model';
+import { projectSchema } from '@/entities/project/model';
 
 
 

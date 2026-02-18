@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { buildTree } from '@shared/lib/treeHelpers';
-import { separateTasksByOrigin } from '@shared/lib/viewHelpers';
+import { buildTree } from '@/shared/lib/treeHelpers';
+import { separateTasksByOrigin } from '@/shared/lib/viewHelpers';
 
 /**
  * useTaskTree

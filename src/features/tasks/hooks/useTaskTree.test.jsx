@@ -4,14 +4,14 @@ import { useTaskTree } from './useTaskTree';
 
 // Mock helpers if complex, but they are pure functions, so we can rely on real logic or simple mocks if separateTasksByOrigin is complex.
 // Since separateTasksByOrigin is imported, let's mock it to control inputs.
-import { separateTasksByOrigin } from '@shared/lib/viewHelpers';
-import { buildTree } from '@shared/lib/treeHelpers';
+import { separateTasksByOrigin } from '@/shared/lib/viewHelpers';
+import { buildTree } from '@/shared/lib/treeHelpers';
 
-vi.mock('@shared/lib/viewHelpers', () => ({
+vi.mock('@/shared/lib/viewHelpers', () => ({
     separateTasksByOrigin: vi.fn(),
 }));
 
-vi.mock('@shared/lib/treeHelpers', () => ({
+vi.mock('@/shared/lib/treeHelpers', () => ({
     buildTree: vi.fn(),
 }));
 

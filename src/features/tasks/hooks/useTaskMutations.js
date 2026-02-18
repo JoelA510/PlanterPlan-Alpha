@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
-import { supabase } from '@app/supabaseClient';
-import { planter } from '@shared/api/planterClient';
-import { deepCloneTask, updateParentDates } from '@features/tasks/services/taskService';
-import { POSITION_STEP } from '@app/constants/index';
+import { supabase } from '@/shared/db/client';
+import { planter } from '@/shared/api/planterClient';
+import { deepCloneTask, updateParentDates } from '@/features/tasks/services/taskService';
+import { POSITION_STEP } from '@/app/constants/index';
 // Replaced inline date logic with helpers
-import { constructCreatePayload, constructUpdatePayload } from '@shared/lib/date-engine/payloadHelpers';
+import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
 
 export const useTaskMutations = ({
   tasks,

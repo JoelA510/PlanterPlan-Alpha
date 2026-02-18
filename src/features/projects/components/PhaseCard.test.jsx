@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import PhaseCard from './PhaseCard';
-import { TASK_STATUS } from '@app/constants/index';
+import { TASK_STATUS } from '@/app/constants/index';
 
 // Mock dependencies
 vi.mock('framer-motion', () => ({
@@ -10,7 +10,7 @@ vi.mock('framer-motion', () => ({
     },
 }));
 
-vi.mock('@shared/ui/card', () => ({
+vi.mock('@/shared/ui/card', () => ({
     Card: ({ children, className, onClick }) => (
         <div className={className} onClick={onClick} role="article">
             {children}
@@ -18,7 +18,7 @@ vi.mock('@shared/ui/card', () => ({
     ),
 }));
 
-vi.mock('@shared/ui/progress', () => ({
+vi.mock('@/shared/ui/progress', () => ({
     Progress: ({ value, className }) => (
         <div data-testid="progress" data-value={value} className={className} />
     ),

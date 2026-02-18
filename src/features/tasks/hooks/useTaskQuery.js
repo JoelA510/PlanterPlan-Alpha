@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase } from '@app/supabaseClient';
-import { useAuth } from '@app/contexts/AuthContext';
-import { fetchTaskChildren } from '@features/tasks/services/taskService';
-import { getJoinedProjects, getUserProjects } from '@features/projects/services/projectService';
+import { supabase } from '@/shared/db/client';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { fetchTaskChildren } from '@/features/tasks/services/taskService';
+import { getJoinedProjects, getUserProjects } from '@/features/projects/services/projectService';
 
 const PAGE_SIZE = 20;
 

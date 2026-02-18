@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Calendar, Link as LinkIcon } from 'lucide-react';
-import RoleIndicator from '@shared/ui/RoleIndicator';
+import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { format, isPast, isToday } from 'date-fns';
 
 /**

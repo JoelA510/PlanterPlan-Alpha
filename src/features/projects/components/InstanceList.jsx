@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { FolderPlus } from 'lucide-react';
-import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
-import { PROJECT_STATUS } from '@app/constants/index';
+import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
+import { PROJECT_STATUS } from '@/app/constants/index';
 
 const InstanceList = ({
   tasks,

@@ -1,4 +1,4 @@
-import { ROLES } from '@app/constants/index';
+import { ROLES } from '@/app/constants/index';
 const RoleIndicator = ({ role }) => {
   const normalizedRole = role ? role.toLowerCase() : ROLES.VIEWER;
   const roleColors = {

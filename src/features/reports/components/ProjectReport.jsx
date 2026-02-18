@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import DashboardLayout from '@layouts/DashboardLayout';
-import ProjectSidebar from '@features/navigation/components/ProjectSidebar';
-import ProjectHeader from '@features/projects/components/ProjectHeader';
-import { useTaskBoard } from '@features/tasks/hooks/useTaskBoard';
-import { getProjectWithStats } from '@features/projects/services/projectService';
+import DashboardLayout from '@/layouts/DashboardLayout';
+import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
+import ProjectHeader from '@/features/projects/components/ProjectHeader';
+import { useTaskBoard } from '@/features/tasks/hooks/useTaskBoard';
+import { getProjectWithStats } from '@/features/projects/services/projectService';
 import { Loader2 } from 'lucide-react';
 // PieChart logic moved to StatusPieChart
 // Removed hardcoded CHART_COLORS
-import StatusPieChart from '@features/reports/components/StatusPieChart';
+import StatusPieChart from '@/features/reports/components/StatusPieChart';
 
 const ProjectReport = () => {
   const { projectId } = useParams();

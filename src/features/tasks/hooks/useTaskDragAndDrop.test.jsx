@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react';
 import { useTaskDragAndDrop } from './useTaskDragAndDrop';
 
 // Mock dependencies
-vi.mock('@features/task-drag', () => ({
+vi.mock('@/features/task-drag', () => ({
     useTaskDrag: vi.fn(() => ({
         sensors: ['sensor-1'],
         handleDragEnd: 'handle-drag-end-fn'
