@@ -581,7 +581,6 @@ erDiagram
 | Trigger | Event | Action |
 |---------|-------|--------|
 | `trg_unlock_next_phase` | `AFTER UPDATE OF status ON tasks` | When a phase is completed, unlocks the next sibling phase by position |
-| `trg_auto_add_project_owner` | `AFTER INSERT ON tasks` | Auto-adds creator as `owner` in `project_members` for root projects |
 | `handle_phase_completion()` | (backing function) | Sets `is_locked = false` on the next task by position |
 
 ---

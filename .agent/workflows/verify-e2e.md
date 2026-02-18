@@ -1,11 +1,25 @@
+```
 ---
 description: Run the full E2E test suite using the Hybrid Verification strategy (Automated + Agentic).
 ---
 
-1. **Automated Verification**:
-   - Run the `/run-e2e` workflow to execute every spec file individually.
-   - Review the summary table for any FAIL results.
-   - *Note*: If the environment blocks output capture, proceed to step 2 as the primary verification.
+1.  **Preparation**: Ensure the local server is running on port 3000.
+    ```bash
+    // turbo
+    npm run dev &
+    sleep 5
+    ```
+
+2.  **Automated Execution**: Run the Playwright test suite.
+    ```bash
+    // turbo
+    npx playwright test
+    ```
+
+3.  **Analysis**: Review the test results.
+    - If all tests pass: Proceed to manual verification or deployment.
+    - If tests fail: Analyze the failure logs and screenshots to determine the cause.
+ the primary verification.
 
 2. **Agentic Verification (Browser)**:
    - Identify critical flows to test from `docs/operations/agent-test-scripts.md`.
