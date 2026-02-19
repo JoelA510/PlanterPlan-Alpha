@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTaskDetails } from '@/features/tasks/hooks/useTaskDetails'
 import { useUpdateTask } from '@/features/tasks/hooks/useTaskMutations'
-import { X, Save } from 'lucide-react'
+import { X, Save, Mail, Lock, Crown } from 'lucide-react'
+import TaskResources from '../../TaskResources'
 
 interface TaskDetailsProps {
     taskId: string
@@ -44,22 +45,40 @@ export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
     return (
         <div className="h-full bg-white border-l border-gray-200 flex flex-col shadow-xl">
             {/* Header */}
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Task Details</span>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-                    <X size={18} />
-                </button>
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Task Details</span>
+                    {task.is_premium && <Crown size={14} className="text-amber-500" aria-label="Premium Task" />}
+                    {task.is_locked && <Lock size={14} className="text-gray-400" aria-label="Locked Task" />}
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => window.location.href = `mailto:?subject=Task: ${encodeURIComponent(task.title)}&body=${encodeURIComponent(task.description || '')}`}
+                        className="text-gray-400 hover:text-brand-600 p-1 hover:bg-gray-100 rounded transition-colors"
+                        title="Email Task"
+                    >
+                        <Mail size={18} />
+                    </button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors">
+                        <X size={18} />
+                    </button>
+                </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
                 {/* Status Badge */}
-                <div>
+                <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${task.is_complete ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
                         {task.status || 'todo'}
                     </span>
+                    {task.is_premium && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                            Premium
+                        </span>
+                    )}
                 </div>
 
                 {/* Title Input */}
@@ -83,6 +102,11 @@ export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
                         className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                         placeholder="Add more details..."
                     />
+                </div>
+
+                {/* Resources Section */}
+                <div className="pt-6 border-t border-gray-100">
+                    <TaskResources taskId={task.id} primaryResourceId={task.primary_resource_id} />
                 </div>
 
                 {/* Metadata */}
