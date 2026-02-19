@@ -177,7 +177,7 @@ export default function CreateProjectModal({ open, onClose, onCreate }) {
                     className={cn(
                       'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
                       formData.template === template.id
-                        ? 'bg-gradient-to-br from-brand-500 to-brand-600 shadow-md shadow-brand-500/20 scale-110'
+                        ? 'bg-brand-500 shadow-md shadow-brand-500/20 scale-110'
                         : 'bg-muted group-hover:bg-brand-100 dark:group-hover:bg-brand-900/50 group-hover:scale-105'
                     )}
                   >

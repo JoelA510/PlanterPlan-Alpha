@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { TEST_USERS } from '../fixtures/test-users';
 import { OWNER_ID, createSession, setupCommonMocks, setupAuthenticatedState } from '../fixtures/e2e-helpers';
 
 test.describe('Journey: Template to Project Instantiation', () => {

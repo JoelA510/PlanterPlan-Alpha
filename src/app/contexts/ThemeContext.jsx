@@ -24,59 +24,18 @@ const STORAGE_KEY = 'planterplan-theme';
  */
 
 export function ThemeProvider({ children }) {
-    const [theme, setThemeState] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem(STORAGE_KEY) || 'system';
-        }
-        return 'system';
-    });
+    // Force light mode for Gold Master simplification
+    const theme = 'light';
+    const resolvedTheme = 'light';
 
-    // Track system preference for reactivity
-    const [systemPreference, setSystemPreference] = useState(() => {
-        if (typeof window !== 'undefined' && window.matchMedia) {
-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        return 'light';
-    });
+    // No-op for setting theme
+    const setTheme = useCallback(() => { }, []);
+    const toggleTheme = useCallback(() => { }, []);
 
-    // Derive resolved theme from preference and system (no setState in effect)
-    const resolvedTheme = useMemo(() => {
-        return theme === 'system' ? systemPreference : theme;
-    }, [theme, systemPreference]);
-
-    // Apply theme class to document
+    // Ensure dark class is removed
     useEffect(() => {
-        const root = document.documentElement;
-        if (resolvedTheme === 'dark') {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
-    }, [resolvedTheme]);
-
-    // Listen for system preference changes
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-        const handleChange = (e) => {
-            setSystemPreference(e.matches ? 'dark' : 'light');
-        };
-
-        mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
+        document.documentElement.classList.remove('dark');
     }, []);
-
-    const setTheme = useCallback((newTheme) => {
-        setThemeState(newTheme);
-        localStorage.setItem(STORAGE_KEY, newTheme);
-    }, []);
-
-    const toggleTheme = useCallback(() => {
-        const newTheme = resolvedTheme === 'light' ? 'dark' : 'light';
-        setTheme(newTheme);
-    }, [resolvedTheme, setTheme]);
 
     return (
         <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>

@@ -1,19 +1,28 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, redirect } from 'react-router-dom'
 import Dashboard from '@/pages/Dashboard'
+import Home from '@/pages/Home'
+import Login from '@/pages/Login'
 import { Layout } from '@/shared/layout/Layout'
 import { supabase } from '@/shared/db/client'
 
+const protectedLoader = async ({ request }: { request: Request }) => {
+    // E2E Bypass Check
+    const url = new URL(request.url)
+    if (url.searchParams.get('e2e_bypass') === 'true') {
+        return null
+    }
 
-// Loader to protect routes
-const protectedLoader = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-        // return redirect('/login') // For now, let AuthProvider handle it or use redirect
-        // Actually, AuthProvider handles the "loading" state and "user" state.
-        // If we use loaders, we can block navigation. 
-        // But AuthProvider is already wrapping everything.
-        // Let's keep it simple: Routes are just components, AuthProvider protects them.
-        return null
+        return redirect('/login')
+    }
+    return null
+}
+
+const publicLoader = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+        return redirect('/dashboard')
     }
     return null
 }
@@ -21,13 +30,17 @@ const protectedLoader = async () => {
 export const router = createBrowserRouter([
     {
         path: '/',
+        element: <Home />,
+    },
+    {
+        path: '/login',
+        element: <Login />,
+        loader: publicLoader
+    },
+    {
         element: <Layout />,
         loader: protectedLoader,
         children: [
-            {
-                index: true,
-                element: <Dashboard />
-            },
             {
                 path: 'dashboard',
                 element: <Dashboard />

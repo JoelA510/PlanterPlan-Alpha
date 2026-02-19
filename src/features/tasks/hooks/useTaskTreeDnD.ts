@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
     DragEndEvent,
     DragOverEvent,
@@ -6,7 +6,6 @@ import {
 } from '@dnd-kit/core'
 
 import { TaskNode } from '@/shared/lib/tree-helpers'
-import { useUpdateTask } from './useTaskMutations'
 
 export function useTaskTreeDnD(initialTree: TaskNode[]) {
     // Helper to traverse and populate map

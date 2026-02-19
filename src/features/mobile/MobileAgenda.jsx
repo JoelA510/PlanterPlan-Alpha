@@ -23,7 +23,7 @@ export default function MobileAgenda({ tasks = [] }) {
 
     return (
         <div className="md:hidden mb-6">
-            <Card className="bg-gradient-to-br from-brand-600 to-brand-700 text-white border-none shadow-lg">
+            <Card className="bg-brand-600 text-white border-none shadow-lg">
                 <div className="p-4">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">

@@ -28,9 +28,11 @@ test.describe('Journey: Project Management', () => {
             const method = route.request().method();
             const url = route.request().url();
 
-            // Handle both Project Metadata fetch (often typically by ID) and Hierarchy fetch (by root_id)
+            // Handle both Project Metadata fetch (typically by ID) and Hierarchy fetch (by root_id)
             if (method === 'GET') {
-                if (url.includes('parent_task_id=is.null') || url.includes(`root_id=eq.${projectId}`)) {
+                if (url.includes('parent_task_id=is.null') ||
+                    url.includes(`root_id=eq.${projectId}`) ||
+                    url.includes(`id=eq.${projectId}`)) {
                     return route.fulfill({ body: JSON.stringify(projectData) });
                 }
             }
@@ -52,7 +54,13 @@ test.describe('Journey: Project Management', () => {
 
         // 1. Go to Project Board
         await page.goto(`/project/${projectId}`);
-        await expect(page.getByRole('heading', { name: /Manageable Project/i })).toBeVisible({ timeout: 10000 });
+        try {
+            await expect(page.getByRole('heading', { name: /Manageable Project/i })).toBeVisible({ timeout: 10000 });
+        } catch (e) {
+            console.log('--- PAGE CONTENT DUMP ---');
+            console.log(await page.content());
+            throw e; // Re-throw to fail test
+        }
 
         // 2. Open Settings Modal
         await page.getByRole('button', { name: /Settings/i }).click({ force: true });
@@ -106,7 +114,7 @@ test.describe('Journey: Project Management', () => {
         await modal.getByRole('button', { name: /Delete Project/i }).click();
 
         // Start Delete Flow
-        const initialDeleteBtn = modal.getByRole('button', { name: /Delete Project/i }).first();
+        // const initialDeleteBtn = modal.getByRole('button', { name: /Delete Project/i }).first();
         // Wait, EditProjectModal has a "Delete Project" button that reveals confirmation
         // But getByRole might find multiple? One in Danger Zone, one triggers confirm.
 
@@ -124,7 +132,8 @@ test.describe('Journey: Project Management', () => {
         await modal.getByRole('button', { name: /Yes, Delete/i }).click();
 
         // Should redirect to dashboard
-        await expect(page).toHaveURL(/dashboard/);
+        // Should redirect to dashboard (visible content check)
+        await expect(page.locator('h1').filter({ hasText: 'Dashboard' })).toBeVisible();
 
         // Verify DELETE was actually called
         expect(deleted).toBe(true);

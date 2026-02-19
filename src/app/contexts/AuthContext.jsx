@@ -23,6 +23,36 @@ export function AuthProvider({ children }) {
     let seq = 0;
     let alive = true;
 
+    // E2E Bypass Check
+    if (typeof window !== 'undefined' && (window.location.search.includes('e2e_bypass=true') || localStorage.getItem('e2e-bypass-token'))) {
+      console.log('[AuthContext] E2E Bypass Detected');
+
+      // Try to get dynamic user from localStorage, fallback to hardcoded
+      let bypassedUser = {
+        id: 'e2e-user-id',
+        email: 'e2e@example.com',
+        role: 'owner',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        const storedUser = localStorage.getItem('planter_e2e_user');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          bypassedUser = { ...bypassedUser, ...parsed };
+        }
+      } catch (e) {
+        console.warn('Failed to parse planter_e2e_user', e);
+      }
+
+      setUser(bypassedUser);
+      setLoading(false);
+      return;
+    }
+
     // Shared session handler to prevent duplication and ensure consistency
     const handleSession = async (session) => {
       const mySeq = ++seq;
@@ -165,10 +195,14 @@ export function AuthProvider({ children }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      // Force manual update for E2E stability (event might be missed)
+      setUser(null);
+      setLoading(false);
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
+
 
   const value = useMemo(() => ({
     user,

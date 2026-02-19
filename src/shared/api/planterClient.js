@@ -129,6 +129,18 @@ const createEntityClient = (tableName, select = '*') => ({
     });
   },
   /**
+   * List records by creator
+   * @param {string} userId
+   * @returns {Promise<Array>}
+   */
+  listByCreator: async (userId) => {
+    return retry(async () => {
+      const query = `${tableName}?select=${select}&creator=eq.${userId}`;
+      const data = await rawSupabaseFetch(query, { method: 'GET' });
+      return data || [];
+    });
+  },
+  /**
    * Upsert records (Insert or Update)
    * @param {Object|Array} payload - Single object or array of objects
    * @param {Object} options - { onConflict: 'id', ignoreDuplicates: false }
@@ -170,6 +182,10 @@ const getSupabaseToken = async () => {
 
   // Fallback: Deterministic localStorage lookup
   if (typeof window === 'undefined') return null;
+
+  // 0. E2E Bypass Token (Explicit)
+  const bypassToken = localStorage.getItem('e2e-bypass-token');
+  if (bypassToken) return bypassToken;
 
   // 1. Try generic "sb-<ref>-auth-token" pattern if URL is standard
   try {

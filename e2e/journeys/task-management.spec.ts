@@ -11,7 +11,9 @@ import { OWNER_ID, createSession, setupAuthenticatedState, setupCommonMocks } fr
 test.describe('Journey: Task Management', () => {
     const ownerSession = createSession('OWNER', OWNER_ID);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async function setupMembersMock(page: any, ...projectIds: string[]) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await page.route('**/rest/v1/project_members*', (route: any) => {
             const members = projectIds.map(pid => ({ project_id: pid, user_id: OWNER_ID, role: 'owner' }));
             return route.fulfill({ status: 200, body: JSON.stringify(members) });
@@ -22,6 +24,7 @@ test.describe('Journey: Task Management', () => {
         test.setTimeout(60000);
         const projectId = '00000000-0000-0000-0000-000000000040';
         const projectData = { id: projectId, title: 'Test Project', name: 'Test Project', creator: OWNER_ID, status: 'active', created_at: new Date().toISOString() };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const testProjectTasks: any[] = [
             { id: '40000000-0000-0000-0000-000000000001', title: 'Phase 1', status: 'not_started', parent_task_id: projectId, root_id: projectId, position: 1000, creator: OWNER_ID },
             { id: '40000000-0000-0000-0000-000000000002', title: 'Milestone 1', status: 'not_started', parent_task_id: '40000000-0000-0000-0000-000000000001', root_id: projectId, position: 1000, creator: OWNER_ID },
@@ -30,6 +33,7 @@ test.describe('Journey: Task Management', () => {
 
         await setupCommonMocks(page, ownerSession);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await page.route('**/rest/v1/tasks*', async (route: any) => {
             const url = route.request().url();
             const method = route.request().method();
@@ -108,6 +112,7 @@ test.describe('Journey: Task Management', () => {
 
         await setupCommonMocks(page, ownerSession);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await page.route('**/rest/v1/tasks*', async (route: any) => {
             const url = route.request().url();
             const method = route.request().method();

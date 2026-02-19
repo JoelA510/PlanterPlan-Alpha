@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
         const now = new Date().toISOString();
 
         // Update tasks that are past due and not complete
-        const { data, error, count } = await supabase
+        const { data, error } = await supabase
             .from('tasks')
             .update({ status: 'overdue', updated_at: now })
             .lt('due_date', now)

@@ -33,7 +33,7 @@ import { useTaskSubscription } from '@/features/tasks/hooks/useTaskSubscription'
 import { resolveDragAssign } from '@/features/projects/utils/dragUtils';
 
 export default function Project() {
-  const { id: projectId } = useParams();
+  const { projectId } = useParams();
 
   const [activeTab, setActiveTab] = useState('board');
   const [selectedPhase, setSelectedPhase] = useState(null);

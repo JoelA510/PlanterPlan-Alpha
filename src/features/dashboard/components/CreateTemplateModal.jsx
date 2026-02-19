@@ -128,7 +128,7 @@ export default function CreateTemplateModal({ open, onClose, onCreate }) {
                                         className={cn(
                                             'w-10 h-10 rounded-lg flex items-center justify-center transition-all',
                                             formData.template === cat.id
-                                                ? 'bg-gradient-to-br from-brand-500 to-brand-600 shadow-md shadow-brand-500/20'
+                                                ? 'bg-brand-500 shadow-md shadow-brand-500/20'
                                                 : 'bg-muted group-hover:bg-brand-100 dark:group-hover:bg-brand-900/50'
                                         )}
                                     >

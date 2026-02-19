@@ -138,7 +138,7 @@ function PipelineColumn({ column, tasks, teamMembers }) {
     });
 
     return (
-        <div ref={setNodeRef} className={`flex-1 w-0 min-w-0 flex flex-col h-full rounded-xl bg-gradient-to-br ${column.gradient} border border-brand-100/50 dark:border-slate-800`}>
+        <div ref={setNodeRef} className={`flex-1 w-0 min-w-0 flex flex-col h-full rounded-xl bg-slate-50 border border-brand-100/50`}>
             {/* Header */}
             {/* Header */}
             {/* Header */}

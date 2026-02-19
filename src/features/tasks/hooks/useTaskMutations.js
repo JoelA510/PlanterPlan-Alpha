@@ -5,6 +5,7 @@ import { deepCloneTask, updateParentDates } from '@/features/tasks/services/task
 import { POSITION_STEP } from '@/app/constants/index';
 // Replaced inline date logic with helpers
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
+import { toIsoDate } from '@/shared/lib/date-engine';
 
 export const useTaskMutations = ({
   tasks,

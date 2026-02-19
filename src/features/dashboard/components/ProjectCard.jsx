@@ -31,7 +31,7 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }) => {
         <Card className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card h-full flex flex-col justify-between overflow-hidden">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
+              <div className="w-12 h-12 flex-shrink-0 bg-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
                 <Icon className="w-6 h-6 text-white" />
               </div>
               <div className="min-w-0 flex-1">
