@@ -164,7 +164,13 @@ mindmap
         handle_updated_at (Auto Timestamp)
         trigger_phase_unlock (Auto Phase Unlock)
     Frontend Shell
-      React 19 + Vite 7
+      React 18.3.1 (ADR-002) + TypeScript + Vite 7
+      Feature-Sliced Design (FSD)
+        @app
+        @pages
+        @features
+        @shared
+        @entities
       Provider Tree
         ThemeProvider
         AuthProvider

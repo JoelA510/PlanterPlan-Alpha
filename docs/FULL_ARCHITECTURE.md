@@ -69,7 +69,8 @@ graph LR
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
-| **Runtime** | React | 19 | UI framework |
+| **Runtime** | React | 18.3.1 | UI framework (ADR-002) |
+| **Language** | TypeScript | 5.x | Core utilities & type safety |
 | **Build** | Vite | 7 | Dev server, bundler, HMR |
 | **Styling** | Tailwind CSS | v4 | Utility-first CSS |
 | **Component Primitives** | Radix UI | Various | Accessible headless UI primitives |
