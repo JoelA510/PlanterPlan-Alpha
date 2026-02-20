@@ -17,7 +17,7 @@ export function Layout() {
 
     if (loading) return <div className="flex h-screen items-center justify-center">Loading session...</div>
 
-    const userRole = user?.app_metadata?.role || user?.user_metadata?.role || 'viewer'
+    const userRole = (user?.app_metadata?.role as string) || (user?.user_metadata?.role as string) || 'viewer'
 
     return (
         <ViewAsProvider userRole={userRole}>

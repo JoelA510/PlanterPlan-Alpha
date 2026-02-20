@@ -5,6 +5,24 @@ import { X, Save, Mail, Lock, Crown } from 'lucide-react'
 import TaskResources from '@/features/tasks/components/TaskResources'
 import { formatDisplayDate } from '@/shared/lib/date-engine'
 
+interface TaskData {
+    id: string;
+    title: string;
+    description?: string;
+    purpose?: string;
+    actions?: string;
+    notes?: string;
+    status?: string;
+    is_complete?: boolean;
+    is_premium?: boolean;
+    is_locked?: boolean;
+    start_date?: string;
+    due_date?: string;
+    created_at?: string;
+    updated_at?: string;
+    primary_resource_id?: string;
+}
+
 interface TaskDetailsProps {
     taskId: string
     onClose: () => void
@@ -12,7 +30,7 @@ interface TaskDetailsProps {
 
 export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
     const { data, isLoading, error } = useTaskDetails(taskId)
-    const task = data as any
+    const task = data as TaskData | null
     const { mutate: updateTask } = useUpdateTask()
 
     // Local state for editing form
@@ -166,7 +184,7 @@ export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
                                 Start Date
                             </span>
                             <span className="text-sm font-bold text-card-foreground tracking-tight">
-                                {formatDisplayDate(task.start_date)}
+                                {task.start_date ? formatDisplayDate(task.start_date) : '-'}
                             </span>
                         </div>
                         <div className="p-4 bg-card border border-border rounded-lg shadow-sm flex flex-col gap-1">
@@ -174,7 +192,7 @@ export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
                                 Due Date
                             </span>
                             <span className="text-sm font-bold text-card-foreground tracking-tight">
-                                {formatDisplayDate(task.due_date)}
+                                {task.due_date ? formatDisplayDate(task.due_date) : '-'}
                             </span>
                         </div>
                     </div>
@@ -189,12 +207,12 @@ export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
                 <div className="pt-4 border-t border-gray-100 dark:border-border text-xs text-gray-400 dark:text-muted-foreground space-y-1">
                     <div className="flex justify-between">
                         <span>Created</span>
-                        <span className="font-mono">{formatDisplayDate(task.created_at)}</span>
+                        <span className="font-mono">{task.created_at ? formatDisplayDate(task.created_at) : '-'}</span>
                     </div>
                     {task.updated_at && (
                         <div className="flex justify-between">
                             <span>Updated</span>
-                            <span className="font-mono">{formatDisplayDate(task.updated_at)}</span>
+                            <span className="font-mono">{task.updated_at ? formatDisplayDate(task.updated_at) : ''}</span>
                         </div>
                     )}
                     <div className="flex justify-between mt-2">

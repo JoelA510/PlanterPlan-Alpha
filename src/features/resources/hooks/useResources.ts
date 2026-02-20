@@ -15,9 +15,10 @@ export function useAddResource() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: (data: any) => planterClient.entities.TaskResource.create(data),
+        mutationFn: (data: unknown) => planterClient.entities.TaskResource.create(data as object),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['resources', variables.task_id] })
+            const taskId = Array.isArray(variables) ? variables[0]?.task_id : (variables as Record<string, unknown>)?.task_id;
+            if (taskId) queryClient.invalidateQueries({ queryKey: ['resources', taskId] })
         }
     })
 }

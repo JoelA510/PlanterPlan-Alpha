@@ -80,7 +80,7 @@ export function ResourceList({ taskId }: { taskId: string }) {
 
             <div className="space-y-2">
                 {resources?.length === 0 && <p className="text-sm text-gray-400 italic">No resources yet.</p>}
-                {resources?.map((resource: any) => (
+                {resources?.map((resource: { id: string; resource_url?: string; resource_text?: string }) => (
                     <div key={resource.id} className="flex items-center justify-between text-sm group">
                         <a
                             href={resource.resource_url || '#'}
