@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTaskDetails } from '@/features/tasks/hooks/useTaskDetails'
 import { useUpdateTask } from '@/features/tasks/hooks/useTaskMutations'
 import { X, Save, Mail, Lock, Crown } from 'lucide-react'
-import TaskResources from '../../TaskResources'
+import TaskResources from '@/features/tasks/components/TaskResources'
 import { formatDisplayDate } from '@/shared/lib/date-engine'
 
 interface TaskDetailsProps {
@@ -11,7 +11,8 @@ interface TaskDetailsProps {
 }
 
 export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
-    const { data: task, isLoading, error } = useTaskDetails(taskId)
+    const { data, isLoading, error } = useTaskDetails(taskId)
+    const task = data as any
     const { mutate: updateTask } = useUpdateTask()
 
     // Local state for editing form
@@ -181,7 +182,7 @@ export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
 
                 {/* Resources Section */}
                 <div className="pt-6 border-t border-gray-100 dark:border-border">
-                    <TaskResources taskId={task.id} primaryResourceId={task.primary_resource_id} />
+                    <TaskResources taskId={task.id} primaryResourceId={task.primary_resource_id} onUpdate={() => { }} />
                 </div>
 
                 {/* Metadata */}

@@ -26,7 +26,7 @@ export function useTaskTree(rootId: string | null) {
             ]);
 
             const allTasks = [...(children || [])];
-            if (root && !allTasks.some((t: { id: string }) => t.id === root.id)) {
+            if (root && !allTasks.some((t: any) => t.id === (root as any).id)) {
                 allTasks.push(root);
             }
 

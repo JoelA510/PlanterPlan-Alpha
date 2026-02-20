@@ -1,26 +1,34 @@
-import { useInsertMutation, useUpdateMutation, useDeleteMutation } from '@supabase-cache-helpers/postgrest-react-query'
-import { supabase } from '@/shared/db/client'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { planter as planterClient } from '@/shared/api/planterClient'
 
 export function useCreateTask() {
-    return useInsertMutation(
-        supabase.from('tasks'),
-        ['id'], // Return columns to identify the row
-        null,   // Options (e.g. metadata)
-    )
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: (data: any) => planterClient.entities.Task.create(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tasks'] })
+        }
+    })
 }
 
 export function useUpdateTask() {
-    return useUpdateMutation(
-        supabase.from('tasks'),
-        ['id'],
-        null
-    )
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: (data: any) => planterClient.entities.Task.update(data.id, data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['tasks'] })
+            queryClient.invalidateQueries({ queryKey: ['task', variables.id] })
+        }
+    })
 }
 
 export function useDeleteTask() {
-    return useDeleteMutation(
-        supabase.from('tasks'),
-        ['id'],
-        null
-    )
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: (data: any) => planterClient.entities.Task.delete(data.id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tasks'] })
+            queryClient.invalidateQueries({ queryKey: ['task'] })
+        }
+    })
 }

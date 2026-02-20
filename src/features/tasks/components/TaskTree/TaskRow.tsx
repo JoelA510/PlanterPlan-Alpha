@@ -3,7 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { TaskNode } from '@/shared/lib/tree-helpers'
 import { useCreateTask, useUpdateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations'
-import { useAuth } from '@/features/auth/AuthProvider'
+import { useAuth } from '@/app/contexts/AuthContext'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useTaskTree } from '@/features/tasks/hooks/useTasks'
 

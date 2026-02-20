@@ -6,8 +6,11 @@ import {
 } from '@dnd-kit/core'
 
 import { TaskNode } from '@/shared/lib/tree-helpers'
+import { useUpdateTask } from './useTaskMutations'
 
 export function useTaskTreeDnD(initialTree: TaskNode[]) {
+    const { mutate: updateTask } = useUpdateTask()
+    const [activeId, setActiveId] = useState<string | null>(null)
     // Helper to traverse and populate map
     const deriveItems = (nodes: TaskNode[]) => {
         const newItems: Record<string, string[]> = {}

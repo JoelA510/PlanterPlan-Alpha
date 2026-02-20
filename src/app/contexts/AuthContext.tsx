@@ -1,7 +1,25 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/shared/db/client';
 
-export const AuthContext = createContext({});
+export interface User {
+  id: string;
+  email: string;
+  role?: string;
+  app_metadata?: any;
+  user_metadata?: any;
+  aud?: string;
+  created_at?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  signUp: (email: string, password: string, userData?: any) => Promise<{ data: any; error: any }>;
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
+  signOut: () => Promise<void>;
+}
+
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -11,11 +29,9 @@ export const useAuth = () => {
   return context;
 };
 
-
-
-export function AuthProvider({ children }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   console.log('AuthContext loaded v2 - TIMEOUT 2000ms');
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,7 +70,7 @@ export function AuthProvider({ children }) {
     }
 
     // Shared session handler to prevent duplication and ensure consistency
-    const handleSession = async (session) => {
+    const handleSession = async (session: any) => {
       const mySeq = ++seq;
 
       if (!session?.user) {
@@ -67,15 +83,15 @@ export function AuthProvider({ children }) {
       // Optimistically set user with existing role (or default) to prevent UI flicker
       // Preservation Strategy: Use existing user role if ID matches, else session role, else null.
       setUser(prev => {
-        const existingRole = (prev?.id === session.user.id) ? prev.role : (session.user.role || null);
-        return { ...session.user, role: existingRole };
+        const existingRole = (prev?.id === session.user.id) ? prev!.role : (session.user.role || null);
+        return { ...session.user, role: existingRole } as User;
       });
 
       try {
         console.log('AuthContext: checking admin status for', session.user.id);
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-        const callWithTimeout = (promise, ms = 10000) => {
+        const callWithTimeout = (promise: Promise<any>, ms = 10000) => {
           return Promise.race([
             promise,
             new Promise((_, reject) => setTimeout(() => {
@@ -87,21 +103,22 @@ export function AuthProvider({ children }) {
         if (isLocal) {
           console.log('[AuthContext] E2E Mode: Setting User immediately, RPC in background');
           // In local dev, default to owner if no role set
-          setUser(prev => ({ ...prev, role: prev.role || 'owner' }));
+          setUser(prev => prev ? ({ ...prev, role: prev.role || 'owner' } as User) : null);
           setLoading(false);
 
           // Run in background without await
-          supabase.rpc('is_admin', { p_user_id: session.user.id }).then(({ data: isAdmin }) => {
+          const rpcPromise = supabase.rpc('is_admin', { p_user_id: session.user.id }) as unknown as Promise<any>;
+          rpcPromise.then(({ data: isAdmin }) => {
             if (!alive || mySeq !== seq) return;
-            if (isAdmin) setUser(prev => ({ ...prev, role: 'admin' }));
-          }).catch(e => console.warn('Background RPC failed', e));
+            if (isAdmin) setUser(prev => prev ? ({ ...prev, role: 'admin' } as User) : null);
+          }).catch((e: any) => console.warn('Background RPC failed', e));
           return;
         }
 
         const { data: isAdmin, error: rpcError } = await callWithTimeout(
-          supabase.rpc('is_admin', { p_user_id: session.user.id }),
+          supabase.rpc('is_admin', { p_user_id: session.user.id }) as unknown as Promise<any>,
           30000
-        ).catch(err => {
+        ).catch((err: any) => {
           console.error('AuthContext: RPC Timed out or crashed', err);
           return { error: err };
         });
@@ -114,8 +131,8 @@ export function AuthProvider({ children }) {
           // Only default to 'viewer' if we have absolutely no role information
           setUser(prev => ({
             ...session.user,
-            role: prev?.role || session.user.role || 'viewer'
-          }));
+            role: prev?.role || (session.user as any).role || 'viewer'
+          } as User));
         } else {
           console.log('[AuthContext] Setting User (Admin/Owner)');
           setUser({
@@ -123,13 +140,13 @@ export function AuthProvider({ children }) {
             role: isAdmin ? 'admin' : 'owner'
           });
         }
-      } catch (rpcCrash) {
+      } catch (rpcCrash: any) {
         console.error('AuthContext: RPC crashed', rpcCrash);
         if (alive && mySeq === seq) {
           setUser(prev => ({
             ...session.user,
-            role: prev?.role || session.user.role || 'viewer'
-          }));
+            role: prev?.role || (session.user as any).role || 'viewer'
+          } as User));
         }
       } finally {
         if (alive && mySeq === seq) {
@@ -160,7 +177,7 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const signUp = async (email, password, userData = {}) => {
+  const signUp = async (email: string, password: string, userData: any = {}) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -172,12 +189,12 @@ export function AuthProvider({ children }) {
 
       if (error) throw error;
       return { data, error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { data: null, error };
     }
   };
 
-  const signIn = async (email, password) => {
+  const signIn = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -186,7 +203,7 @@ export function AuthProvider({ children }) {
 
       if (error) throw error;
       return { data, error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { data: null, error };
     }
   };
@@ -198,7 +215,7 @@ export function AuthProvider({ children }) {
       // Force manual update for E2E stability (event might be missed)
       setUser(null);
       setLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing out:', error);
     }
   };

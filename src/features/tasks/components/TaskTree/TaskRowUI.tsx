@@ -9,7 +9,7 @@ interface TaskRowUIProps {
     node: TaskNode
     isDragging: boolean
     dragAttributes: DraggableAttributes
-    dragListeners: SyntheticListenerMap
+    dragListeners: SyntheticListenerMap | undefined
     setNodeRef: (node: HTMLElement | null) => void
     style: React.CSSProperties
     onToggle: () => void
