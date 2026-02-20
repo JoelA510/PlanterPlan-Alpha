@@ -1,4 +1,4 @@
-# Pull Request: v1.1 Gold Master Integration & Architectural Restoration
+# Deconstruction Integration & Architectural Restoration
 
 ## 📋 Summary
 
@@ -11,6 +11,7 @@ This pull request represents a massive architectural overhaul and stabilization 
 - **TypeScript & React 18 Adoption (ADR-002):** Strategically downgraded to React 18 to resolve intractable compatibility issues with drag-and-drop and UI libraries. Simultaneously, we introduced TypeScript (`.ts`/`.tsx`) for critical paths, significantly improving type safety across hooks and components.
 - **Network Resilience Restored:** Removed the unstable `@supabase-cache-helpers` dependency. Data fetching now relies on standard `@tanstack/react-query` hooks powered by our custom `planterClient.js` and `rawSupabaseFetch`, effectively enforcing `[NET-005]` abort resilience and timeout protections.
 - **UI & Security Parity:** Reinstated full dark mode support via semantic CSS variables and restored missing task detail fields. Crucially, we resurrected and modernized security unit tests (`RLS.test.js`, `XSS.test.jsx`, `RPCHardening.test.js`), proving our defenses against privilege escalation and unauthorized access.
+- **Dependency Pruning (Bundle Optimization):** Conducted a deep audit of the `package.json` and successfully uninstalled 12 completely unused `@radix-ui/*` primitives, along with deprecated cache helpers, vastly reducing node_modules bloat.
 
 ## 🗺️ Roadmap Progress
 
@@ -23,6 +24,8 @@ This pull request represents a massive architectural overhaul and stabilization 
 | DEV-102 | Theme Restoration | 2 | ✅ Done | Context restored, globals.css patched |
 | DEV-103 | Task Details UI | 3 | ✅ Done | Restored purpose/action/date fields |
 | DEV-104 | Security Tests | 4 | ✅ Done | RLS/XSS/RPC tests passing independently |
+| DEV-105 | Bundle Optimization | 5 | ✅ Done | Pruned 12 unused Radix UI packages |
+| DEV-106 | Test Restoration Complete | 5 | ✅ Done | Integrated XSS/RLS/AuthContext to Vitest |
 
 ## 🏗️ Architecture Decisions
 

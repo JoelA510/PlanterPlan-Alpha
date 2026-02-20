@@ -145,6 +145,12 @@ mindmap
               - [x] Secured `invite_user_to_project` against NULL inviter role (auth bypass).
               - [x] Secured `clone_project_template` with strict ownership checks.
               - [x] Verified via `RPCHardening.test.js`.
+        
+        - [x] **Wave 11: Security Restorations & Bundle Cleanup**
+          - [x] Pruned 12 unused `@radix-ui` dependencies and `@supabase-cache-helpers` to drastically reduce bundle size.
+          - [x] Restored `XSS.test.jsx` targeting modern FSD `TaskActions`.
+          - [x] Restored `RLS.test.js` checking authenticated role access in Vitest.
+          - [x] Restored `AuthContext.security.test.jsx` default safeguards.
         auth.updateProfile adapter
       Supabase PostgreSQL
         tasks table
@@ -260,6 +266,9 @@ mindmap
     Testing
       Vitest Unit Tests
         src/tests/unit/RPCHardening.test.js (New)
+        src/tests/unit/XSS.test.jsx (Restored)
+        src/tests/security/RLS.test.js (Restored)
+        src/tests/unit/AuthContext.security.test.jsx (Restored)
       Playwright E2E
         25 Verified Scenarios
         12 Journey Specs (Stable)

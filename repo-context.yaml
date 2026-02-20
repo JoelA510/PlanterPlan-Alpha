@@ -164,7 +164,7 @@ health_metrics:
       - "Virtualization needed for 1000+ tasks"
       
   test_coverage:
-    high: ["E2E (Golden Path)", "Auth Integration"]
+    high: ["E2E (Golden Path)", "Auth Integration", "Security Boundary (XSS, RLS, AuthContext fallback)"]
     moderate: ["Task Tree Logic", "DnD Interactions"]
     
   performance:

@@ -329,3 +329,8 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-19
 - **Context**: E2E tests were failing because the mock AuthContext didn't properly handle signout or bypass states consistently across test runs.
 - **Rule**: **Auth Mocks Must Be Fully Featured.** When mocking authentication for tests, ensure that login, logout, and token expiration flows are robustly simulated to prevent cascading failures in subsequent test blocks.
+
+### [TEST-007] Vitest JS vs TS Parsing
+- **Date**: 2026-02-19
+- **Context**: The `XSS.test.jsx` file failed to compile during `npm test` due to an `Expected ")" but found ":"` error caused by leftover TypeScript typings (`: { children: React.ReactNode }`) bridging into a `.jsx` file.
+- **Rule**: **Match File Extensions Strictly.** Do not use TypeScript type syntax in files with a `.js` or `.jsx` extension, as Vite's esbuild loader will instantly fail to parse them during test runs.
