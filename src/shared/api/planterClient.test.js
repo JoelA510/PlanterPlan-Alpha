@@ -9,7 +9,10 @@ describe('planterClient', () => {
         vi.clearAllMocks();
         // Mock localStorage for token
         const localStorageMock = {
-            getItem: vi.fn().mockReturnValue(JSON.stringify({ access_token: 'mock-token' })),
+            getItem: vi.fn((key) => {
+                if (key === 'e2e-bypass-token') return null;
+                return JSON.stringify({ access_token: 'mock-token' });
+            }),
             length: 1,
             key: vi.fn().mockReturnValue('sb-test-auth-token')
         };

@@ -60,6 +60,10 @@ vi.mock('@/features/projects/services/projectService', () => ({
   getJoinedProjects: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
+vi.mock('@/app/contexts/AuthContext', () => ({
+  useAuth: vi.fn().mockReturnValue({ user: { id: 'test-user', role: 'admin' } })
+}));
+
 import { planter } from '@/shared/api/planterClient';
 
 describe('@/features/tasks/hooks/useTaskOperations', () => {
