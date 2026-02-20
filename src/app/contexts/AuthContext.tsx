@@ -207,13 +207,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Clear bypass tokens so we don't auto-login again
+      const isBypass = typeof window !== 'undefined' &&
+        (window.location.search.includes('e2e_bypass=true') || localStorage.getItem('e2e-bypass-token') || localStorage.getItem('planter_e2e_user'));
+
+      if (isBypass) {
+        localStorage.removeItem('e2e-bypass-token');
+        localStorage.removeItem('planter_e2e_user');
+      } else {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+      }
+
+      // Always forcibly clear known tokens for complete logout safety, especially in E2E
+      if (typeof window !== 'undefined') {
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+
       // Force manual update for E2E stability (event might be missed)
       setUser(null);
       setLoading(false);
     } catch (error: unknown) {
       console.error('Error signing out:', error);
+      setUser(null);
+      setLoading(false);
     }
   };
 

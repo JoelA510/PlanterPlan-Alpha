@@ -1,6 +1,6 @@
 # PlanterPlan — Complete Architecture Reference
 
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-02-20  
 > **Status**: Alpha (Refactoring Phase)  
 > **Commit**: HEAD on `main`
 > **Specification**: [spec.md](../spec.md)
@@ -136,7 +136,7 @@ PlanterPlan-Alpha/
 │   │   ├── lib/             # Pure utilities (date-engine, tree, validation)
 │   │   ├── model/           # Shared data models
 │   │   ├── test/            # Test utilities
-│   │   └── ui/              # 54 Radix-based design system components
+│   │   └── ui/              # 35 active design system components (Radix-based)
 │   │
 │   ├── pages/               # @pages — Route-level views (7)
 │   │   ├── Dashboard.jsx
@@ -678,20 +678,20 @@ sequenceDiagram
 
 ## 12. Shared UI Component Library
 
-The `src/shared/ui/` directory contains **54 reusable components** built on Radix UI primitives + Tailwind CSS, following the shadcn/ui pattern.
+The `src/shared/ui/` directory contains **35 active components** built on Radix UI primitives + Tailwind CSS, following the shadcn/ui pattern. (Pruned in Wave 12).
 
 ### Component Categories
 
 | Category | Components |
 |----------|-----------|
-| **Layout** | `Card`, `Separator`, `AspectRatio`, `ScrollArea`, `Resizable` |
-| **Navigation** | `Breadcrumb`, `NavigationMenu`, `Tabs`, `Pagination`, `Menubar` |
-| **Data Display** | `Table`, `Badge`, `Avatar`, `Progress`, `Skeleton`, `Chart` |
-| **Feedback** | `Alert`, `AlertDialog`, `Toast`, `Toaster`, `Sonner` |
-| **Forms** | `Button`, `Input`, `Textarea`, `Label`, `Checkbox`, `RadioGroup`, `Select`, `Switch`, `Slider`, `Calendar`, `InputOTP`, `Form` |
-| **Overlays** | `Dialog`, `Sheet`, `Drawer`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `ContextMenu` |
-| **Composition** | `Accordion`, `Collapsible`, `Carousel`, `ToggleGroup`, `Command`, `CommandPalette` |
-| **App-Specific** | `ErrorBoundary`, `ErrorFallback`, `EmptyState`, `StatusCard`, `RoleIndicator` |
+| **Layout** | `Card`, `AspectRatio`, `ScrollArea` |
+| **Navigation** | `NavigationMenu`, `Tabs`, `Menubar` |
+| **Data Display** | `Table`, `Badge`, `Avatar`, `Progress`, `Chart` |
+| **Feedback** | `StatusCard` |
+| **Forms** | `Button`, `Input`, `Textarea`, `Label`, `RadioGroup`, `Select`, `Switch`, `Slider`, `Calendar` |
+| **Overlays** | `Dialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `ContextMenu` |
+| **Composition** | `Accordion`, `Collapsible`, `ToggleGroup`, `Command`, `CommandPalette` |
+| **App-Specific** | `ErrorBoundary`, `ErrorFallback`, `RoleIndicator` |
 
 ### Design System Utilities
 
