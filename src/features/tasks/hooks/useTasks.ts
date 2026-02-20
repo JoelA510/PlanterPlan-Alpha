@@ -1,31 +1,38 @@
-import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
-import { supabase } from '@/shared/db/client'
-
-// No manual keys needed!
+import { useQuery } from '@tanstack/react-query';
+import { planter } from '@/shared/api/planterClient';
 
 export function useRootTasks() {
-    return useQuery(
-        supabase
-            .from('tasks')
-            .select('*')
-            .is('parent_task_id', null)
-            .order('created_at', { ascending: false })
-    )
+    return useQuery({
+        queryKey: ['tasks', 'root'],
+        queryFn: async () => {
+            const data = await planter.entities.Task.filter({ parent_task_id: null });
+            // Sort by created_at descending
+            return (data || []).sort((a: { created_at: string }, b: { created_at: string }) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+        }
+    });
 }
 
 export function useTaskTree(rootId: string | null) {
-    // Construct a valid query always, but disable it if rootId is null.
-    // We use a dummy ID if null to satisfy the builder constraints if strictly typed, 
-    // but supabase-js builder is usually lenient.
-    const targetId = rootId ?? '00000000-0000-0000-0000-000000000000'
+    return useQuery({
+        queryKey: ['tasks', 'tree', rootId],
+        queryFn: async () => {
+            if (!rootId) return [];
 
-    const query = supabase
-        .from('tasks')
-        .select('*')
-        .or(`root_id.eq.${targetId},id.eq.${targetId}`)
-        .order('position')
+            const [children, root] = await Promise.all([
+                planter.entities.Task.filter({ root_id: rootId }),
+                planter.entities.Task.get(rootId)
+            ]);
 
-    return useQuery(query, {
+            const allTasks = [...(children || [])];
+            if (root && !allTasks.some((t: { id: string }) => t.id === root.id)) {
+                allTasks.push(root);
+            }
+
+            // sort by position ascending
+            return allTasks.sort((a: { position?: number }, b: { position?: number }) => (a.position || 0) - (b.position || 0));
+        },
         enabled: !!rootId
-    })
+    });
 }

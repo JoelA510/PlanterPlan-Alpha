@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import TaskItem from '../../features/tasks/components/TaskItem';
-import ProjectCard from '../../features/dashboard/components/ProjectCard';
-import PhaseCard from '../../features/projects/components/PhaseCard';
+import TaskItem from '@/features/tasks/components/TaskItem';
+import ProjectCard from '@/features/dashboard/components/ProjectCard';
+import PhaseCard from '@/features/projects/components/PhaseCard';
 import { BrowserRouter } from 'react-router-dom';
 
 // Mock dependencies
-vi.mock('../../features/task-drag/model/useTaskDrag', () => ({
+vi.mock('@/features/task-drag/model/useTaskDrag', () => ({
     useTaskDrag: () => ({
         attributes: {},
         listeners: {},
@@ -18,7 +18,7 @@ vi.mock('../../features/task-drag/model/useTaskDrag', () => ({
     }),
 }));
 
-vi.mock('../../features/auth/hooks/useUser', () => ({
+vi.mock('@/features/auth/hooks/useUser', () => ({
     useUser: () => ({
         user: { id: 'u1', role: 'owner' },
         isAdmin: true,

@@ -1,11 +1,11 @@
 
 import { describe, it, expect, vi } from 'vitest';
-import { planter } from '../../shared/api/planterClient';
-import { inviteMemberByEmail } from '../../features/projects/services/projectService';
-import { deepCloneTask } from '../../features/tasks/services/taskCloneService';
+import { planter } from '@/shared/api/planterClient';
+import { inviteMemberByEmail } from '@/features/projects/services/projectService';
+import { deepCloneTask } from '@/features/tasks/services/taskCloneService';
 
 // Mock planter client
-vi.mock('../../shared/api/planterClient', () => ({
+vi.mock('@/shared/api/planterClient', () => ({
     planter: {
         entities: {
             Project: {

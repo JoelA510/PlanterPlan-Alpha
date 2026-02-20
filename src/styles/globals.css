@@ -99,7 +99,59 @@
 }
 
 /* Dark Mode Variables */
+.dark {
+  --color-primary: #fb923c;
+  --color-primary-foreground: #1e293b;
 
+  --color-secondary: #334155;
+  --color-secondary-foreground: #f8fafc;
+
+  --color-brand-50: #431407;
+  --color-brand-100: #7c2d12;
+  --color-brand-200: #9a3412;
+  --color-brand-300: #c2410c;
+  --color-brand-400: #ea580c;
+  --color-brand-500: #f97316;
+  --color-brand-600: #fb923c;
+  --color-brand-700: #fdba74;
+  --color-brand-800: #fed7aa;
+  --color-brand-900: #ffedd5;
+  --color-brand-950: #fff7ed;
+
+  --color-accent: #334155;
+  --color-accent-foreground: #f8fafc;
+
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #1e293b;
+
+  --color-muted: #334155;
+  --color-muted-foreground: #94a3b8;
+
+  --color-card: #1e293b;
+  --color-card-foreground: #f8fafc;
+
+  --color-popover: #1e293b;
+  --color-popover-foreground: #f8fafc;
+
+  --color-border: #334155;
+  --color-input: #475569;
+  --color-ring: #fb923c;
+
+  /* Semantic Variables (Dark Map) */
+  --color-foreground: #f8fafc;
+  /* Slate 50 */
+  --color-text-secondary: #94a3b8;
+  /* Slate 400 */
+  --color-background: #0f172a;
+  /* Slate 900 */
+  --color-brand-primary: #f97316;
+  /* Orange 500 */
+  --color-brand-primary-soft: #431407;
+  /* Orange 950 */
+  --color-surface: var(--color-card);
+  --color-surface-foreground: var(--color-card-foreground);
+  --color-border-subtle: var(--color-secondary);
+}
 
 /* Component Classes (Extracted to reduce file size) */
 @layer components {
