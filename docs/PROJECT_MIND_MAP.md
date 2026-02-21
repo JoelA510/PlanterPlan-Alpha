@@ -152,7 +152,7 @@ mindmap
           - [x] Restored `RLS.test.js` checking authenticated role access in Vitest.
           - [x] Restored `AuthContext.security.test.jsx` default safeguards.
         
-        - [x] **Wave 12: Gold Master Cleanup (v1.1)**
+        - [x] **Wave 12: Repo Polish (v1.1)**
           - [x] **E2E Stabilization**: Fixed flaky logout in `auth.spec.ts` via stateful mocks and `dispatchEvent`.
           - [x] **Dependency Pruning**: Purged 19 orphaned components from `src/shared/ui/` and 11 unreferenced NPM packages.
           - [x] **ADR Sync**: Finalized ADR-002 validating React 18.3.1 for release.

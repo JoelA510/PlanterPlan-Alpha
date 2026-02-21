@@ -1,8 +1,8 @@
-# Gold Master Polish & Architectural Finalization (v1.1)
+# Repo Polish & Architectural Finalization (v1.1)
 
 ## 📋 Summary
 
-This pull request completes the **Gold Master Polish** for the PlanterPlan v1.1 release. It focuses on stabilizing critical authentication flows, pruning the UI library of orphaned components to optimize bundle size, and synchronizing all high-level documentation (Mind Map, Architecture Reference, and ADRs) to reflect the current stable state of the application.
+This pull request completes the a **Polishing** process for the ongoing PlanterPlan refactor effort. It focuses on stabilizing critical authentication flows, pruning the UI library of orphaned components to optimize bundle size, and synchronizing all high-level documentation (Mind Map, Architecture Reference, and ADRs) to reflect the current stable state of the application.
 
 ## ✨ Highlights
 
@@ -75,7 +75,7 @@ By moving from 54 to 35 active components, we have prioritized maintainability. 
 
 ### 📐 Documentation
 - `docs/ADR/002-downgrade-react.md` - Now marked as **Validated / Final**.
-- `docs/PROJECT_MIND_MAP.md` - See **Wave 12** logs.
+- `docs/PROJECT_MIND_MAP.md` - See **Wave 12 & 13** logs.
 
 ## 🧪 Verification Results
 
