@@ -36,7 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let alive = true;
 
     // E2E Bypass Check
-    if (typeof window !== 'undefined' && (window.location.search.includes('e2e_bypass=true') || localStorage.getItem('e2e-bypass-token'))) {
+    const isE2EMode = import.meta.env.VITE_E2E_MODE === 'true';
+    if (isE2EMode && typeof window !== 'undefined' && (window.location.search.includes('e2e_bypass=true') || localStorage.getItem('e2e-bypass-token'))) {
       console.log('[AuthContext] E2E Bypass Detected');
 
       // Try to get dynamic user from localStorage, fallback to hardcoded
@@ -89,12 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
         const callWithTimeout = <T,>(promise: Promise<T>, ms = 10000): Promise<T> => {
-          return Promise.race([
-            promise,
-            new Promise<T>((_, reject) => setTimeout(() => {
+          let timer: ReturnType<typeof setTimeout>;
+          const timeoutPromise = new Promise<T>((_, reject) => {
+            timer = setTimeout(() => {
               reject(new Error(`RPC Timeout after ${ms}ms`));
-            }, ms))
-          ]);
+            }, ms);
+          });
+          return Promise.race([promise, timeoutPromise]).finally(() => {
+            if (timer) clearTimeout(timer);
+          });
         };
 
         if (isLocal) {
@@ -207,13 +211,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Clear bypass tokens so we don't auto-login again
+      const isBypass = typeof window !== 'undefined' &&
+        (window.location.search.includes('e2e_bypass=true') || localStorage.getItem('e2e-bypass-token') || localStorage.getItem('planter_e2e_user'));
+
+      if (isBypass) {
+        localStorage.removeItem('e2e-bypass-token');
+        localStorage.removeItem('planter_e2e_user');
+      } else {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+      }
+
+      // Always forcibly clear known tokens for complete logout safety, especially in E2E
+      if (typeof window !== 'undefined') {
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+
       // Force manual update for E2E stability (event might be missed)
       setUser(null);
       setLoading(false);
     } catch (error: unknown) {
       console.error('Error signing out:', error);
+      // RE-THROW without clearing state to prevent desync
+      throw error;
     }
   };
 

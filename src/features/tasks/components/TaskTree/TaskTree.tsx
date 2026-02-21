@@ -27,7 +27,20 @@ export function TaskTree({ projectId, tasks, onSelectTask }: TaskTreeProps) {
         return buildTaskTree(tasks, projectId)
     }, [tasks, projectId])
 
-    const projectNode = tree.find(n => n.id === projectId)
+    // O(1) Lookup optimization: Flatten the tree into a Map
+    const nodesMap = useMemo(() => {
+        const map = new Map<string, TaskNode>()
+        const flatten = (nodes: TaskNode[]) => {
+            for (const node of nodes) {
+                map.set(node.id, node)
+                if (node.children) flatten(node.children)
+            }
+        }
+        flatten(tree)
+        return map
+    }, [tree])
+
+    const projectNode = nodesMap.get(projectId)
     const initialItems = useMemo(() => projectNode ? [projectNode] : [], [projectNode])
 
     const {
@@ -64,7 +77,7 @@ export function TaskTree({ projectId, tasks, onSelectTask }: TaskTreeProps) {
                 <SortableContext items={rootChildIds} strategy={verticalListSortingStrategy}>
                     <div className="space-y-3 min-h-[50px] p-2 bg-gray-50/50 rounded-lg border border-transparent hover:border-blue-100/50 transition-colors">
                         {rootChildIds.map(id => {
-                            const treeNode = findNodeInTree(tree, id)
+                            const treeNode = nodesMap.get(id)
                             if (!treeNode) return null
 
                             // Pass onSelectTask to top-level rows
@@ -91,15 +104,4 @@ export function TaskTree({ projectId, tasks, onSelectTask }: TaskTreeProps) {
             </DndContext>
         </div>
     )
-}
-
-function findNodeInTree(nodes: TaskNode[], id: string): TaskNode | null {
-    for (const node of nodes) {
-        if (node.id === id) return node
-        if (node.children) {
-            const found = findNodeInTree(node.children, id)
-            if (found) return found
-        }
-    }
-    return null
 }

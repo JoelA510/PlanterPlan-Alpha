@@ -6,7 +6,7 @@
 **Environment:** Anti-Gravity IDE (Strict Mode)
 
 ## 🛠️ Tech Stack (The "Modernity" Protocol)
-* **React:** v19.x (No `forwardRef`, use `useActionState`, strict hydration)
+* **React:** v18.3.1 (Downgraded per ADR-002 for dnd-kit stability. Do NOT use React 19 hooks).
 * **Tailwind:** v4.x (CSS-first configuration, semantic variables)
 * **Vite:** v7.x (IPv6 safety, native ESM)
 * **Supabase:** v2.x (RLS enabled, strict types)

@@ -334,3 +334,56 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-19
 - **Context**: The `XSS.test.jsx` file failed to compile during `npm test` due to an `Expected ")" but found ":"` error caused by leftover TypeScript typings (`: { children: React.ReactNode }`) bridging into a `.jsx` file.
 - **Rule**: **Match File Extensions Strictly.** Do not use TypeScript type syntax in files with a `.js` or `.jsx` extension, as Vite's esbuild loader will instantly fail to parse them during test runs.
+### [SEC-048] E2E Bypass Protection
+- **Date**: 2026-02-20
+- **Context**: Bypassing MFA or Auth for E2E tests is necessary but dangerous if leaked to production.
+- **Rule**: **Double-Guard Test Bypasses.** Always wrap bypass code in `import.meta.env.VITE_E2E_MODE === 'true'`. Never allow bypass tokens to be active in the standard production build, even if the token is present in the environment.
+
+### [FE-046] Hook Decomposition (The "God Hook" Teardown)
+- **Date**: 2026-02-20
+- **Context**: Monolithic hooks (like `useTaskBoard.js`) that compose multiple sub-hooks cause all consumers to re-render whenever ANY sub-state changes (e.g., a simple form toggle).
+- **Rule**: **Compose at the Component Level.** Prefer direct hook consumption in specialized components over a centralized "God Hook". This isolates re-renders and makes dependencies explicit.
+
+### [PERF-026] O(N) Tree Rendering in React
+- **Date**: 2026-02-20
+- **Context**: Recursive tree rendering (like `TaskTree.tsx`) can bottleneck with O(N²) searching if lookups for nodes happen inside the map loop.
+- **Rule**: **Flatten for Rendering.** In recursive components, use `useMemo` to create a flat `Map<ID, Node>` lookup table. This ensures O(1) access during the nested render loop, preventing UI lag in deep trees.
+
+### [SEC-049] Zero-DSIH Title Policy
+- **Date**: 2026-02-20
+- **Context**: Project and Task titles were using `dangerouslySetInnerHTML` for basic text display, opening up XSS vectors.
+- **Rule**: **No Rich Text for Titles.** Titles and simple names MUST be rendered as standard JSX text nodes `{title}`. If sanitization is needed for description fields, use `dompurify` and strictly wrap the component.
+
+### [API-005] Granular Cache Invalidation
+- **Date**: 2026-02-20
+- **Context**: Invalidating global keys like `['tasks']` caused massive re-fetching across the entire app for small updates.
+- **Rule**: **Target the Tree.** Use granular invalidation targeting specific entity IDs (`['task', id]`) or project tree roots (`['tasks', 'tree', rootId]`) to preserve network efficiency and UI snappiness.
+
+### [PERF-027] Invalidation vs Cache Removal
+- **Date**: 2026-02-21
+- **Context**: `invalidateQueries` for a deleted task triggers a redundant fetch that is known to return 404 or empty data.
+- **Rule**: **Purge Deletions.** For deleted entities, use `queryClient.removeQueries({ queryKey: ['task', id] })`. Only use `invalidateQueries` for lists or trees where the membership has changed but the container still exists.
+
+### [UI-042] Cross-Feature State Reset
+- **Date**: 2026-02-21
+- **Context**: Switching projects in the sidebar left the Task Details panel open with data from the previous project, leading to stale UI and potential data corruption.
+- **Rule**: **Navigation is a State Reset.** When switching primary contexts (e.g., Projects), explicitly clear all dependent UI state (Selection, Form visibility, Edit state). Use wrapper handlers to enforce this consistently across all entry points (Sidebar, Breadcrumbs, etc).
+### [ARC-035] Library Adoption vs Architectural Safeguards (ADR-2)
+- **Date**: 2026-02-19
+- **Context**: Attempting to use `@supabase-cache-helpers` violated ADR-2 because it bypassed our `rawSupabaseFetch` wrapper, losing abort resilience and timeout protections.
+- **Rule**: **Audit Library Internal Fetching.** Before adopting data-fetching helpers, verify they utilize the project's standard adapter or can be configured to do so. If they force a direct dependency on a library we've wrapped (like `supabase-js`), they are forbidden.
+
+### [TEST-008] Robust Date Selection in Playwright/Vitest
+- **Date**: 2026-02-21
+- **Context**: `CreateProjectModal` tests hung because they tried to click a generic "15" text which appeared multiple times in the calendar (previous/next month overlaps).
+- **Rule**: **Use ARIA Roles for Calendar Days.** Use `getByRole('button', { name: /15/ })` to specifically target the interactive day button. Avoid `getByText` for numbers in grid contexts to prevent ambiguity.
+
+### [PERF-028] Full-Tree Aggregation for DnD Context
+- **Date**: 2026-02-21
+- **Context**: Subtasks were not draggable because the `allTasks` useMemo only included top-level items from `hydratedProjects`.
+- **Rule**: **Aggregate all Draggable Entities.** The `useTaskDragAndDrop` hook must explicitly flatten or aggregate root tasks + hydrated descendants into a single unique ID map for `dnd-kit` to correctly resolve targets.
+
+### [DX-013] Strict Typing for Mutations
+- **Date**: 2026-02-21
+- **Context**: Use of `any` in `useTaskMutations.ts` allowed payload mismatches that were only caught at runtime.
+- **Rule**: **No `any` in Data Writing.** Mutation payloads MUST have explicit interfaces (e.g., `TaskPayload`). This ensures that UI form state and API contracts stay synchronized.

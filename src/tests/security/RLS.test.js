@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import 'dotenv/config';
 
 // Load env vars (Vitest loads .env automatically)
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;

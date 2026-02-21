@@ -1,39 +1,27 @@
-# Current Task & Execution Plan: Gold Master Integration (v1.1 Delta)
+# Current Task & Execution Plan: Architectural & Security Hardening
 
-## 📍 Current Objective
-> **Summary:** Address the deep architectural regressions discovered in the `main` vs `gold-master` analysis while preserving FSD and TypeScript improvements.
-> **Status:** `READY`
+## 🛡️ Phase 1: Security & Auth State [COMPLETED 2026-02-20 | 5ad1122]
+*Context: Hardening the authentication layer against bypasses and memory leaks.*
+- **Target:** `src/app/contexts/AuthContext.tsx` & `src/shared/api/planterClient.js`
+- **Action 1 (Bypass):** Wrap `e2e-bypass-token` and `planter_e2e_user` checks in `import.meta.env.VITE_E2E_MODE === 'true'`.
+- **Action 2 (Desync):** In `signOut()`, move `setUser(null)` and `setLoading(false)` to only execute on success. Re-throw errors in the catch block without clearing state.
+- **Action 3 (Memory Leak):** In `callWithTimeout`, append `.finally(() => clearTimeout(timer))` to clear the pending timer.
 
----
+## 📡 Phase 2: Data Layer & React Query [COMPLETED 2026-02-20 | 43eb009]
+*Context: Preventing over-fetching and unbounded WebSocket broadcasts.*
+- **Target:** `src/features/tasks/hooks/useTaskMutations.ts` & `src/features/projects/hooks/useProjectRealtime.js`
+- **Action 1 (Query):** Update `useUpdateTask` and `useCreateTask`. Stop invalidating the generic `['tasks']` array. Instead, invalidate the specific task (`['task', variables.id]`) and its parent tree (`['tasks', 'tree', variables.root_id]`). *Check our query key factory to ensure exact string matching.*
+- **Action 2 (Realtime):** In `useProjectRealtime`, if `projectId` is null, default the filter to `creator=eq.${userId}` to scope the broadcast to the active user.
 
-## ✅ Phase 1: Network Stability (The ADR-2 Fix) (COMPLETED)
-*Context: `gold-master` introduced `@supabase-cache-helpers` which bypasses our custom `rawSupabaseFetch` timeout/abort protections defined in `planterClient.js`.*
-- **Pre-Check:** Establish **Rollback Strategy**: Backup current `useTasks.ts` and `useMembers.ts` state. If regressions escalate, `git checkout HEAD -- <files>` immediately.
-- **Analyze:** Review `src/features/tasks/hooks/useTasks.ts` and `src/features/members/hooks/useMembers.ts`.
-- **Refactor:** Remove `@supabase-cache-helpers/postgrest-react-query`. Revert these hooks to use standard `@tanstack/react-query` combined with the safe `planter.entities.*` fetchers from `src/shared/api/planterClient.js`. Ensure adherence to `[NET-005] Transient Network Abort Resilience` and optimistic UI protections.
-- **Cleanup:** Run `npm uninstall @supabase-cache-helpers/postgrest-react-query`.
+## ⚡ Phase 3: UI Rendering Pipeline [COMPLETED 2026-02-20 | 08ec308]
+*Context: Resolving O(N²) bottlenecks and XSS risks in display components.*
+- **Target:** `TaskTree.tsx`, `TaskItem.jsx`, `ProjectCard.jsx`
+- **Action 1 (O(N²) Fix):** In `TaskTree.tsx`, implement a `useMemo` that flattens `tree` into a `Map<string, TaskNode>`. Use this Map for O(1) lookups inside the `rootChildIds.map` render loop instead of recursive searching.
+- **Action 2 (XSS/DOM):** In `TaskItem.jsx` and `ProjectCard.jsx`, remove `dangerouslySetInnerHTML` and `sanitizeHTML` for `task.title`. Render it directly as a standard React text node `{task.title}`.
 
-## ✅ Phase 2: Theme Restoration (COMPLETED)
-*Context: The refactor hardcoded the theme to light mode.*
-- **Restore:** Open `src/app/contexts/ThemeContext.jsx`.
-- **Fix:** Remove the hardcoded `const theme = 'light';` and empty `setTheme` functions. Restore the `localStorage` and `window.matchMedia` system preference logic from the `main` branch.
-- **Audit (Blue Phase):** Trigger **Anti-Gravity Preview** to perform a visual check against the "Modern Clean SaaS" aesthetic `[UI-025] Theme-Reactive Surface Standardization`. Ensure semantic variables (e.g., `bg-slate-50`, `bg-brand-500`) bind correctly in Dark Mode.
-
-## ✅ Phase 3: Task Details Completion (COMPLETED)
-*Context: The initial restoration missed several text fields.*
-- **Update:** Open `src/features/tasks/components/TaskDetails/TaskDetails.tsx`.
-- **Add Fields:** Ensure the UI renders the `purpose`, `actions`, `notes`, `start_date`, and `due_date` fields from the task object (matching the layout previously found in `TaskDetailsView.jsx`).
-- **Constraint Check:** Enforce **Zero FSD Violations**. Date additions MUST be handled exclusively via `src/shared/lib/date-engine` per `[ARC-034]`. Validate field names strictly match database entities per `[FE-045]`.
-
-## ✅ Phase 4: Security Test Restoration (COMPLETED)
-*Context: Critical security boundary tests were deleted in the refactor.*
-- **Restore (Red):** Retrieve the following files from the `main` branch history and place them in the `gold-master` tree:
-    - `src/tests/security/RLS.test.js`
-    - `src/tests/unit/XSS.test.jsx`
-    - `src/tests/unit/RPCHardening.test.js`
-- **Implement (Green):** Resolve any test failures caused by the `gold-master` architectural shifts until all pass (`npm test`).
-- **Refactor (Yellow):** Analyze test code to ensure it respects the `[SEC-002/043]` and `[SEC-044]` lessons.
-
-## ✅ Phase 5: Verification & Release
-- **Modernity Audit & Lint:** Run `npm run lint` to ensure zero warnings (`max-warnings=0` constraint).
-- **E2E Stability (Hybrid Verification):** Utilize the Agentic E2E testing protocol. Execute the `/verify-e2e` workflow instead of a blind headless run, isolating `e2e/v2-golden.spec.ts` inside the bounded agent loop to handle any unpredicted `gold-master` race conditions.
+## 🏗️ Phase 4: The "God Hook" Teardown [COMPLETED 2026-02-20 | 9772306]
+*Context: Decomposing `useTaskBoard.js` to prevent massive tree re-renders.*
+- **Target:** `src/features/tasks/hooks/useTaskBoard.js` & `src/features/tasks/components/TaskList.jsx`
+- **Action 1 (Analyze):** Identify the 4 underlying hooks composed within `useTaskBoard.js`.
+- **Action 2 (Refactor):** Strip `TaskList.jsx` down to only handle layout and URL state (`useParams`).
+- **Action 3 (Distribute):** Push the specific hook calls (e.g., `useTaskTree`) directly down into the child components (`ProjectTasksView`, etc.) that actually consume that state. Delete `useTaskBoard.js` when complete.

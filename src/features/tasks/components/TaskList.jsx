@@ -17,30 +17,72 @@ import EmptyProjectState from '@/features/tasks/components/EmptyProjectState';
 import StatusCard from '@/shared/ui/StatusCard';
 
 // Hooks & Utils
-import { useTaskBoard } from '@/features/tasks/hooks/useTaskBoard';
+import { useTaskOperations } from '@/features/tasks/hooks/useTaskOperations';
+import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
+import { useTaskTree } from '@/features/tasks/hooks/useTaskTree';
+import { useTaskDragAndDrop } from '@/features/tasks/hooks/useTaskDragAndDrop';
+import { useTaskBoardUI } from '@/features/tasks/hooks/useTaskBoardUI';
 
 const TaskList = () => {
-  const { projectId } = useParams();
+  const { projectId: urlProjectId } = useParams();
   const navigate = useNavigate();
 
+  // 1. Core Data Layer
   const {
-    // Data
+    tasks,
+    setTasks,
     joinedProjects,
-    instanceTasks,
-    templateTasks,
     loading,
     error,
     joinedError,
-    activeProjectId,
-    activeProject,
-    hydrationError,
-
-    // Pagination
+    currentUserId,
+    fetchTasks,
+    createProject,
+    createTaskOrUpdate,
+    deleteTask,
+    updateTask,
+    fetchProjectDetails,
+    refreshProjectDetails,
+    findTask,
     hasMore,
     isFetchingMore,
     loadMoreProjects,
+    ...mutationUtils
+  } = useTaskOperations();
 
-    // UI State
+  // 2. Project Selection Layer
+  const { activeProjectId, handleSelectProject, hydrationError } = useProjectSelection({
+    urlProjectId,
+    instanceTasks: useMemo(() => tasks.filter(t => t.origin === 'instance'), [tasks]),
+    templateTasks: useMemo(() => tasks.filter(t => t.origin === 'template'), [tasks]),
+    joinedProjects,
+    hydratedProjects: mutationUtils.hydratedProjects,
+    fetchProjectDetails,
+    loading,
+  });
+
+  // 3. Tree & UI Structure Layer
+  const { activeProject, handleToggleExpand, instanceTasks, templateTasks } = useTaskTree({
+    tasks,
+    hydratedProjects: mutationUtils.hydratedProjects,
+    activeProjectId,
+    joinedProjects,
+  });
+
+  // 4. Interaction Layer (DnD)
+  const { sensors, handleDragEnd } = useTaskDragAndDrop({
+    tasks,
+    hydratedProjects: mutationUtils.hydratedProjects,
+    setTasks,
+    fetchTasks,
+    currentUserId,
+    updateTask,
+    handleOptimisticUpdate: mutationUtils.handleOptimisticUpdate,
+    commitOptimisticUpdate: mutationUtils.commitOptimisticUpdate,
+  });
+
+  // 5. UI State & Orchestration Layer
+  const {
     showForm,
     setShowForm,
     selectedTask,
@@ -49,69 +91,42 @@ const TaskList = () => {
     setTaskFormState,
     inviteModalProject,
     setInviteModalProject,
-
-    // Handlers
-    handleSelectProject,
     handleTaskClick,
-    handleToggleExpand,
     handleAddChildTask,
     handleEditTask,
     handleDeleteById,
     handleOpenInvite,
     handleProjectSubmit,
     handleTaskSubmit,
-    getTaskById,
-    fetchTasks,
-    onDeleteTaskWrapper,
-    updateTask,
-
-    // DND
-    sensors,
-    handleDragEnd,
-  } = useTaskBoard();
-
-  // Sync URL projectId with internal state
-  useEffect(() => {
-    if (projectId && projectId !== activeProjectId && !loading) {
-      // Find the project object
-      const project =
-        instanceTasks.find((p) => p.id === projectId) ||
-        templateTasks.find((p) => p.id === projectId) ||
-        joinedProjects.find((p) => p.id === projectId);
-
-      if (project) {
-        handleSelectProject(project);
-      }
-    } else if (!projectId && activeProjectId) {
-      // If navigating to root dashboard, clear selection?
-      // For now, let's allow state to persist or reset?
-      // Better to check if we conceptually "left" the project.
-      // If we are at /dashboard, activeProjectId should probably be null.
-      // But clearing it might flicker. Let's leave it unless explicit.
-      // Actually, if I click "Dashboard" link, I go to /dashboard.
-      // I expect "No Project Selected".
-      // But handleSelectProject is internal.
-      // We don't have a "clearSelection" exposed easily except handleSelectProject(null) which might crash if it expects object.
-      // Let's modify handleSelectProject in useTaskBoard later if needed.
-    }
-  }, [
-    projectId,
+    onDeleteTaskWrapper
+  } = useTaskBoardUI({
+    currentUserId,
+    createProject,
+    createTaskOrUpdate,
+    deleteTask,
+    refreshProjectDetails,
+    findTask,
     activeProjectId,
-    loading,
-    instanceTasks,
-    templateTasks,
-    joinedProjects,
-    handleSelectProject,
-  ]);
+  });
+
+  // URL Syncing and Sidebar management continues as before...
+  const handleSelectProjectWrapper = (project) => {
+    handleSelectProject(project);
+    setSelectedTask(null);
+    setShowForm(false);
+    setTaskFormState(null);
+    navigate(`/project/${project.id}`);
+  };
 
   // --- Render Helpers ---
+
+  const getTaskById = (taskId) => findTask(taskId);
 
   const parentTaskForForm = taskFormState?.parentId ? getTaskById(taskFormState.parentId) : null;
   const taskBeingEdited =
     taskFormState?.mode === 'edit' && taskFormState.taskId
       ? getTaskById(taskFormState.taskId)
       : null;
-  const isTaskFormOpen = Boolean(taskFormState);
 
   const panelTitle = useMemo(() => {
     if (showForm) return 'New Project';
@@ -130,7 +145,6 @@ const TaskList = () => {
     return 'Details';
   }, [showForm, taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
 
-  // Define sidebar to pass to layout
   const sidebarContent = (
     <ProjectSidebar
       joinedProjects={joinedProjects}
@@ -138,13 +152,9 @@ const TaskList = () => {
       templateTasks={templateTasks}
       joinedError={joinedError}
       error={error}
-      handleSelectProject={(project) => {
-        handleSelectProject(project);
-        navigate(`/project/${project.id}`);
-      }}
+      handleSelectProject={handleSelectProjectWrapper}
       selectedTaskId={activeProjectId}
-      loading={loading && instanceTasks.length === 0} // Show skeleton if loading initial data
-      // Pagination props
+      loading={loading && instanceTasks.length === 0}
       hasMore={hasMore}
       isFetchingMore={isFetchingMore}
       onLoadMore={loadMoreProjects}
