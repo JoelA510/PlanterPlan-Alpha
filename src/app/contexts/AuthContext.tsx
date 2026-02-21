@@ -36,7 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let alive = true;
 
     // E2E Bypass Check
-    if (typeof window !== 'undefined' && (window.location.search.includes('e2e_bypass=true') || localStorage.getItem('e2e-bypass-token'))) {
+    const isE2EMode = import.meta.env.VITE_E2E_MODE === 'true';
+    if (isE2EMode && typeof window !== 'undefined' && (window.location.search.includes('e2e_bypass=true') || localStorage.getItem('e2e-bypass-token'))) {
       console.log('[AuthContext] E2E Bypass Detected');
 
       // Try to get dynamic user from localStorage, fallback to hardcoded
@@ -89,12 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
         const callWithTimeout = <T,>(promise: Promise<T>, ms = 10000): Promise<T> => {
-          return Promise.race([
-            promise,
-            new Promise<T>((_, reject) => setTimeout(() => {
+          let timer: ReturnType<typeof setTimeout>;
+          const timeoutPromise = new Promise<T>((_, reject) => {
+            timer = setTimeout(() => {
               reject(new Error(`RPC Timeout after ${ms}ms`));
-            }, ms))
-          ]);
+            }, ms);
+          });
+          return Promise.race([promise, timeoutPromise]).finally(() => {
+            if (timer) clearTimeout(timer);
+          });
         };
 
         if (isLocal) {
@@ -233,8 +237,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     } catch (error: unknown) {
       console.error('Error signing out:', error);
-      setUser(null);
-      setLoading(false);
+      // RE-THROW without clearing state to prevent desync
+      throw error;
     }
   };
 
