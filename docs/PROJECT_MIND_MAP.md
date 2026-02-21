@@ -156,6 +156,12 @@ mindmap
           - [x] **E2E Stabilization**: Fixed flaky logout in `auth.spec.ts` via stateful mocks and `dispatchEvent`.
           - [x] **Dependency Pruning**: Purged 19 orphaned components from `src/shared/ui/` and 11 unreferenced NPM packages.
           - [x] **ADR Sync**: Finalized ADR-002 validating React 18.3.1 for release.
+
+        - [x] **Wave 13: Architectural & Security Hardening**
+          - [x] **Auth Hardening**: Wrapped E2E bypasses in `VITE_E2E_MODE` and fixed `signOut` desync.
+          - [x] **Data Performance**: Implemented granular React Query invalidation and O(1) tree rendering maps.
+          - [x] **XSS Restoration**: Removed all `dangerouslySetInnerHTML` from titles/cards.
+          - [x] **Decomposition**: Successfully deconstructed `useTaskBoard.js` "God Hook" into atomic features.
         auth.updateProfile adapter
       Supabase PostgreSQL
         tasks table

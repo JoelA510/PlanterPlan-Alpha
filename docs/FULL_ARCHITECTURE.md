@@ -270,14 +270,11 @@ graph LR
 | `useProjectMutations` | Projects | Create, update, delete projects with optimistic updates |
 | `useProjectRealtime` | Projects | Supabase Realtime subscription for project changes |
 | `useUserProjects` | Projects | Current user's owned + joined projects |
-| `useTaskBoard` | Tasks | **Facade hook** composing tree, drag, and selection logic |
-| `useTaskQuery` | Tasks | React Query wrappers for task data fetching |
-| `useTaskMutations` | Tasks | Task CRUD using `payloadHelpers` for date logic |
-| `useTaskSubscription` | Tasks | Realtime listener → query invalidation |
 | `useTaskOperations` | Tasks | **Facade Data Access** combining Query, Mutations, and Subscriptions |
 | `useProjectSelection` | Tasks | Manages active project state, URL syncing, and hydration |
 | `useTaskTree` | Tasks | Builds hierarchical tree and manages expansion state |
 | `useTaskDragAndDrop` | Tasks | dnd-kit integration for drag-and-drop operations |
+| `useTaskBoardUI` | Tasks | Manages UI-specific state (modals, forms, selected items) for the board |
 | `useTaskForm` | Tasks | Form state management for task create/edit |
 
 ---
@@ -891,9 +888,9 @@ graph TD
     Hook -->|Fetches| Supabase[(Supabase DB)]
 ```
 
-### 17.2 Task List Facade
+### 17.2 Task List Composition
 
-The `TaskList` (`src/features/tasks/components/TaskList.jsx`) serves as the main application dashboard logic.
+The `TaskList` (`src/features/tasks/components/TaskList.jsx`) now directly composes specialized hooks for optimal re-rendering.
 
 ```mermaid
 graph TD
@@ -905,18 +902,19 @@ graph TD
         Empty[NoProjectSelected]
     end
 
-    subgraph Facade [Logic Facade]
-        Hook[useTaskBoard Hook]
+    subgraph Composition [Logic Composition]
+        UTO[useTaskOperations]
+        UPS[useProjectSelection]
+        UTT[useTaskTree]
+        UDND[useTaskDragAndDrop]
+        UBUI[useTaskBoardUI]
     end
 
-    subgraph Internals [Internal Hooks]
-        Drag[useTaskDrag]
-        Ops[useTaskOperations]
-    end
-
-    List -->|Delegates Logic| Hook
-    Hook -->|Composes| Drag
-    Hook -->|Composes| Ops
+    List -->|Data| UTO
+    List -->|Project Context| UPS
+    List -->|Hierarchy| UTT
+    List -->|Drag Events| UDND
+    List -->|UI State| UBUI
 
     List -->|Renders| Sidebar
     List -->|Renders| MainView
