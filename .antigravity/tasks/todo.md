@@ -19,7 +19,7 @@
 - **Action 1 (O(N²) Fix):** In `TaskTree.tsx`, implement a `useMemo` that flattens `tree` into a `Map<string, TaskNode>`. Use this Map for O(1) lookups inside the `rootChildIds.map` render loop instead of recursive searching.
 - **Action 2 (XSS/DOM):** In `TaskItem.jsx` and `ProjectCard.jsx`, remove `dangerouslySetInnerHTML` and `sanitizeHTML` for `task.title`. Render it directly as a standard React text node `{task.title}`.
 
-## 🏗️ Phase 4: The "God Hook" Teardown
+## 🏗️ Phase 4: The "God Hook" Teardown [COMPLETED 2026-02-20 | 9772306]
 *Context: Decomposing `useTaskBoard.js` to prevent massive tree re-renders.*
 - **Target:** `src/features/tasks/hooks/useTaskBoard.js` & `src/features/tasks/components/TaskList.jsx`
 - **Action 1 (Analyze):** Identify the 4 underlying hooks composed within `useTaskBoard.js`.
