@@ -1,5 +1,4 @@
 // src/components/molecules/TaskItem.jsx
-import { sanitizeHTML } from '@/shared/lib/sanitize';
 import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -149,8 +148,9 @@ const TaskItem = ({
               <span
                 className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate"
                 title={task.title}
-                dangerouslySetInnerHTML={{ __html: sanitizeHTML(task.title) }}
-              />
+              >
+                {task.title}
+              </span>
               {task.duration && (
                 <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 whitespace-nowrap flex-shrink-0">
                   {task.duration}
