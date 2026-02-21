@@ -7,7 +7,7 @@
 - **Action 2 (Desync):** In `signOut()`, move `setUser(null)` and `setLoading(false)` to only execute on success. Re-throw errors in the catch block without clearing state.
 - **Action 3 (Memory Leak):** In `callWithTimeout`, append `.finally(() => clearTimeout(timer))` to clear the pending timer.
 
-## 📡 Phase 2: Data Layer & React Query
+## 📡 Phase 2: Data Layer & React Query [COMPLETED 2026-02-20 | 43eb009]
 *Context: Preventing over-fetching and unbounded WebSocket broadcasts.*
 - **Target:** `src/features/tasks/hooks/useTaskMutations.ts` & `src/features/projects/hooks/useProjectRealtime.js`
 - **Action 1 (Query):** Update `useUpdateTask` and `useCreateTask`. Stop invalidating the generic `['tasks']` array. Instead, invalidate the specific task (`['task', variables.id]`) and its parent tree (`['tasks', 'tree', variables.root_id]`). *Check our query key factory to ensure exact string matching.*
