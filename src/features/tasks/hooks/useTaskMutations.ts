@@ -43,7 +43,7 @@ export function useDeleteTask() {
             } else {
                 queryClient.invalidateQueries({ queryKey: ['tasks', 'root'] })
             }
-            queryClient.invalidateQueries({ queryKey: ['task', variables.id] })
+            queryClient.removeQueries({ queryKey: ['task', variables.id] })
         }
     })
 }
