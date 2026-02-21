@@ -13,7 +13,7 @@
 - **Action 1 (Query):** Update `useUpdateTask` and `useCreateTask`. Stop invalidating the generic `['tasks']` array. Instead, invalidate the specific task (`['task', variables.id]`) and its parent tree (`['tasks', 'tree', variables.root_id]`). *Check our query key factory to ensure exact string matching.*
 - **Action 2 (Realtime):** In `useProjectRealtime`, if `projectId` is null, default the filter to `creator=eq.${userId}` to scope the broadcast to the active user.
 
-## ⚡ Phase 3: UI Rendering Pipeline
+## ⚡ Phase 3: UI Rendering Pipeline [COMPLETED 2026-02-20 | 08ec308]
 *Context: Resolving O(N²) bottlenecks and XSS risks in display components.*
 - **Target:** `TaskTree.tsx`, `TaskItem.jsx`, `ProjectCard.jsx`
 - **Action 1 (O(N²) Fix):** In `TaskTree.tsx`, implement a `useMemo` that flattens `tree` into a `Map<string, TaskNode>`. Use this Map for O(1) lookups inside the `rootChildIds.map` render loop instead of recursive searching.
