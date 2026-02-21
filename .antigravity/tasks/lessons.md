@@ -358,3 +358,13 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-20
 - **Context**: Invalidating global keys like `['tasks']` caused massive re-fetching across the entire app for small updates.
 - **Rule**: **Target the Tree.** Use granular invalidation targeting specific entity IDs (`['task', id]`) or project tree roots (`['tasks', 'tree', rootId]`) to preserve network efficiency and UI snappiness.
+
+### [PERF-027] Invalidation vs Cache Removal
+- **Date**: 2026-02-21
+- **Context**: `invalidateQueries` for a deleted task triggers a redundant fetch that is known to return 404 or empty data.
+- **Rule**: **Purge Deletions.** For deleted entities, use `queryClient.removeQueries({ queryKey: ['task', id] })`. Only use `invalidateQueries` for lists or trees where the membership has changed but the container still exists.
+
+### [UI-042] Cross-Feature State Reset
+- **Date**: 2026-02-21
+- **Context**: Switching projects in the sidebar left the Task Details panel open with data from the previous project, leading to stale UI and potential data corruption.
+- **Rule**: **Navigation is a State Reset.** When switching primary contexts (e.g., Projects), explicitly clear all dependent UI state (Selection, Form visibility, Edit state). Use wrapper handlers to enforce this consistently across all entry points (Sidebar, Breadcrumbs, etc).

@@ -114,6 +114,8 @@ const TaskList = () => {
     handleSelectProject(project);
     setSelectedTask(null);
     setShowForm(false);
+    setTaskFormState(null);
+    navigate(`/project/${project.id}`);
   };
 
   // --- Render Helpers ---
@@ -150,10 +152,7 @@ const TaskList = () => {
       templateTasks={templateTasks}
       joinedError={joinedError}
       error={error}
-      handleSelectProject={(project) => {
-        handleSelectProject(project);
-        navigate(`/project/${project.id}`);
-      }}
+      handleSelectProject={handleSelectProjectWrapper}
       selectedTaskId={activeProjectId}
       loading={loading && instanceTasks.length === 0}
       hasMore={hasMore}
