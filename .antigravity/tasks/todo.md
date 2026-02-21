@@ -1,20 +1,27 @@
-# Current Task & Execution Plan: Gold Master Polish
+# Current Task & Execution Plan: Architectural & Security Hardening
 
-## 📍 Current Objective
-> **Summary:** Finalize the gold-master integration by resolving E2E flakiness, removing unused dependencies, and syncing documentation.
-> **Status:** `READY`
+## 🛡️ Phase 1: Security & Auth State [COMPLETED 2026-02-20 | 5ad1122]
+*Context: Hardening the authentication layer against bypasses and memory leaks.*
+- **Target:** `src/app/contexts/AuthContext.tsx` & `src/shared/api/planterClient.js`
+- **Action 1 (Bypass):** Wrap `e2e-bypass-token` and `planter_e2e_user` checks in `import.meta.env.VITE_E2E_MODE === 'true'`.
+- **Action 2 (Desync):** In `signOut()`, move `setUser(null)` and `setLoading(false)` to only execute on success. Re-throw errors in the catch block without clearing state.
+- **Action 3 (Memory Leak):** In `callWithTimeout`, append `.finally(() => clearTimeout(timer))` to clear the pending timer.
 
----
+## 📡 Phase 2: Data Layer & React Query
+*Context: Preventing over-fetching and unbounded WebSocket broadcasts.*
+- **Target:** `src/features/tasks/hooks/useTaskMutations.ts` & `src/features/projects/hooks/useProjectRealtime.js`
+- **Action 1 (Query):** Update `useUpdateTask` and `useCreateTask`. Stop invalidating the generic `['tasks']` array. Instead, invalidate the specific task (`['task', variables.id]`) and its parent tree (`['tasks', 'tree', variables.root_id]`). *Check our query key factory to ensure exact string matching.*
+- **Action 2 (Realtime):** In `useProjectRealtime`, if `projectId` is null, default the filter to `creator=eq.${userId}` to scope the broadcast to the active user.
 
-## 🧪 Phase 1: E2E Logout Flakiness
-*Context: `e2e/auth.spec.ts` occasionally fails on the logout step because the headless browser navigates before the Supabase session is fully cleared.*
-- **Fix:** Open `e2e/auth.spec.ts`. Refactor the "Sign Out" step to explicitly wait for the network request to `/auth/v1/logout` to complete before asserting the redirect to the login page.
+## ⚡ Phase 3: UI Rendering Pipeline
+*Context: Resolving O(N²) bottlenecks and XSS risks in display components.*
+- **Target:** `TaskTree.tsx`, `TaskItem.jsx`, `ProjectCard.jsx`
+- **Action 1 (O(N²) Fix):** In `TaskTree.tsx`, implement a `useMemo` that flattens `tree` into a `Map<string, TaskNode>`. Use this Map for O(1) lookups inside the `rootChildIds.map` render loop instead of recursive searching.
+- **Action 2 (XSS/DOM):** In `TaskItem.jsx` and `ProjectCard.jsx`, remove `dangerouslySetInnerHTML` and `sanitizeHTML` for `task.title`. Render it directly as a standard React text node `{task.title}`.
 
-## 🧹 Phase 2: Dependency Audit
-*Context: The refactor introduced several Radix UI packages that are not currently utilized in the application.*
-- **Audit:** Scan the codebase to see if the following components are actually imported anywhere outside of `src/shared/ui`: `accordion`, `collapsible`, `context-menu`, `hover-card`, `menubar`, `navigation-menu`, `scroll-area`, `slider`, `toggle-group`.
-- **Cleanup:** Delete the unused `.jsx` files from `src/shared/ui/` and run `npm uninstall` for their corresponding `@radix-ui/react-*` packages to reduce bundle size and vulnerability surface area.
-
-## 📝 Phase 3: Documentation Sync
-*Context: We need to finalize the ADR for the React downgrade.*
-- **Update:** Open `docs/ADR/002-downgrade-react.md`. Ensure it clearly states that React 18.3.1 is the permanent target until `dnd-kit` releases a stable React 19 compatible version.
+## 🏗️ Phase 4: The "God Hook" Teardown
+*Context: Decomposing `useTaskBoard.js` to prevent massive tree re-renders.*
+- **Target:** `src/features/tasks/hooks/useTaskBoard.js` & `src/features/tasks/components/TaskList.jsx`
+- **Action 1 (Analyze):** Identify the 4 underlying hooks composed within `useTaskBoard.js`.
+- **Action 2 (Refactor):** Strip `TaskList.jsx` down to only handle layout and URL state (`useParams`).
+- **Action 3 (Distribute):** Push the specific hook calls (e.g., `useTaskTree`) directly down into the child components (`ProjectTasksView`, etc.) that actually consume that state. Delete `useTaskBoard.js` when complete.
