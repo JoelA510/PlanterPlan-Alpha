@@ -4,7 +4,7 @@ import { planter as planterClient } from '@/shared/api/planterClient'
 export function useCreateTask() {
     const queryClient = useQueryClient()
     return useMutation({
-        mutationFn: (data: Record<string, unknown>) => planterClient.entities.Task.create(data),
+        mutationFn: (data: any) => planterClient.entities.Task.create(data),
         onSuccess: (_, variables) => {
             const rootId = variables.root_id as string | undefined;
             if (rootId) {
@@ -24,6 +24,8 @@ export function useUpdateTask() {
             const rootId = variables.root_id as string | undefined;
             if (rootId) {
                 queryClient.invalidateQueries({ queryKey: ['tasks', 'tree', rootId] })
+            } else {
+                queryClient.invalidateQueries({ queryKey: ['tasks', 'root'] })
             }
             queryClient.invalidateQueries({ queryKey: ['task', variables.id] })
         }

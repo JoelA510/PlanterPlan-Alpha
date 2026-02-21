@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import { useAuth } from '@/app/contexts/AuthContext';
 
