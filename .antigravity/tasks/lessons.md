@@ -368,3 +368,22 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-21
 - **Context**: Switching projects in the sidebar left the Task Details panel open with data from the previous project, leading to stale UI and potential data corruption.
 - **Rule**: **Navigation is a State Reset.** When switching primary contexts (e.g., Projects), explicitly clear all dependent UI state (Selection, Form visibility, Edit state). Use wrapper handlers to enforce this consistently across all entry points (Sidebar, Breadcrumbs, etc).
+### [ARC-035] Library Adoption vs Architectural Safeguards (ADR-2)
+- **Date**: 2026-02-19
+- **Context**: Attempting to use `@supabase-cache-helpers` violated ADR-2 because it bypassed our `rawSupabaseFetch` wrapper, losing abort resilience and timeout protections.
+- **Rule**: **Audit Library Internal Fetching.** Before adopting data-fetching helpers, verify they utilize the project's standard adapter or can be configured to do so. If they force a direct dependency on a library we've wrapped (like `supabase-js`), they are forbidden.
+
+### [TEST-008] Robust Date Selection in Playwright/Vitest
+- **Date**: 2026-02-21
+- **Context**: `CreateProjectModal` tests hung because they tried to click a generic "15" text which appeared multiple times in the calendar (previous/next month overlaps).
+- **Rule**: **Use ARIA Roles for Calendar Days.** Use `getByRole('button', { name: /15/ })` to specifically target the interactive day button. Avoid `getByText` for numbers in grid contexts to prevent ambiguity.
+
+### [PERF-028] Full-Tree Aggregation for DnD Context
+- **Date**: 2026-02-21
+- **Context**: Subtasks were not draggable because the `allTasks` useMemo only included top-level items from `hydratedProjects`.
+- **Rule**: **Aggregate all Draggable Entities.** The `useTaskDragAndDrop` hook must explicitly flatten or aggregate root tasks + hydrated descendants into a single unique ID map for `dnd-kit` to correctly resolve targets.
+
+### [DX-013] Strict Typing for Mutations
+- **Date**: 2026-02-21
+- **Context**: Use of `any` in `useTaskMutations.ts` allowed payload mismatches that were only caught at runtime.
+- **Rule**: **No `any` in Data Writing.** Mutation payloads MUST have explicit interfaces (e.g., `TaskPayload`). This ensures that UI form state and API contracts stay synchronized.

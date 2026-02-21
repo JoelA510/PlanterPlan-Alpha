@@ -1,6 +1,6 @@
 # PlanterPlan — Complete Architecture Reference
 
-> **Last Updated**: 2026-02-20  
+> **Last Updated**: 2026-02-21  
 > **Status**: Alpha (Refactoring Phase)  
 > **Commit**: HEAD on `main`
 > **Specification**: [spec.md](../spec.md)
@@ -273,7 +273,7 @@ graph LR
 | `useTaskOperations` | Tasks | **Facade Data Access** combining Query, Mutations, and Subscriptions |
 | `useProjectSelection` | Tasks | Manages active project state, URL syncing, and hydration |
 | `useTaskTree` | Tasks | Builds hierarchical tree and manages expansion state |
-| `useTaskDragAndDrop` | Tasks | dnd-kit integration for drag-and-drop operations |
+| `useTaskDragAndDrop` | Tasks | dnd-kit integration with subtask aggregation & deduplication |
 | `useTaskBoardUI` | Tasks | Manages UI-specific state (modals, forms, selected items) for the board |
 | `useTaskForm` | Tasks | Form state management for task create/edit |
 

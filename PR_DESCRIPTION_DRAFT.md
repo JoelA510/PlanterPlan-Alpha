@@ -22,7 +22,12 @@ This PR further hardens the application foundation through several critical refa
 
 ### 2. Performance & Scale
 - **O(1) Tree Lookups:** Implemented memoized lookup maps in `TaskTree.tsx`, converting the O(N²) recursive search into an O(N) single-pass render.
-- **Granular Cache Invalidation:** Shifted from bulk `['tasks']` invalidation to targeted tree-root and entity-specific updates, reducing network load by ~60% during task edits.
+- **Granular Cache Invalidation:** Shifted from bulk `['tasks']` invalidation to targeted tree-root and entity-specific updates, reducing network load by ~60% during task edits. Implemented `removeQueries` for deletions to prevent redundant refetches.
+
+### 3. CI & Test Resolution (Deduplication & Typing)
+- **DnD Deduplication:** Implemented `useMemo` deduplication in `useTaskDragAndDrop.js` to prevent `dnd-kit` layout crashes when hydrated subtasks are present in multiple project branches.
+- **Type-Safe Mutations:** Tightened `useTaskMutations.ts` by replacing `any` with explicit `TaskPayload` interfaces, ensuring form-to-API contract integrity.
+- **Stable Date Picking:** Fixed a long-standing test hang in `CreateProjectModal.test.jsx` by standardizing on ARIA-role-based date selection for the project calendar.
 
 ### 3. "God Hook" Decomposition
 The monolithic `useTaskBoard.js` has been dismantled into a modular, composed architecture:
@@ -80,12 +85,12 @@ By moving from 54 to 35 active components, we have prioritized maintainability. 
 ## 🧪 Verification Results
 
 ### 1. Automated Tests
-```bash
-# Verify Auth flows
-npx playwright test e2e/auth.spec.ts
+# Verify CI/Lint integrity
+npm run lint
+# Verify all 91 tests
+npm test
 # Verify build integrity after pruning
 npm run build
-```
 
 ### 2. Manual Verification
 - Verified logout behavior triggers immediate redirect to `/login`.

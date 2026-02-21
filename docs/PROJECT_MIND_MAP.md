@@ -1,6 +1,6 @@
 # PlanterPlan — Project Mind Map
 
-> **Last Updated**: 2026-02-20  
+> **Last Updated**: 2026-02-21  
 > **Purpose**: A complete catalog of context files + a visual breakdown of all actions, data flows, and component interactions across the application.
 
 ---
@@ -162,6 +162,7 @@ mindmap
           - [x] **Data Performance**: Implemented granular React Query invalidation and O(1) tree rendering maps.
           - [x] **XSS Restoration**: Removed all `dangerouslySetInnerHTML` from titles/cards.
           - [x] **Decomposition**: Successfully deconstructed `useTaskBoard.js` "God Hook" into atomic features.
+          - [x] **CI Resolution**: Fixed Type-Safety (useTaskMutations), DnD Deduplication, and test hangs (CreateProjectModal).
         auth.updateProfile adapter
       Supabase PostgreSQL
         tasks table
