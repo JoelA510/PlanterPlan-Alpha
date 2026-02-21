@@ -19,10 +19,20 @@ export const useTaskDragAndDrop = ({
     commitOptimisticUpdate
 }) => {
 
-    // Flatten all known tasks for DnD context (Roots + Hydrated Subtasks)
+    // Flatten and deduplicate all known tasks for DnD context (Roots + Hydrated Subtasks)
     const allTasks = useMemo(() => {
         const descendants = Object.values(hydratedProjects).flat();
-        return [...tasks, ...descendants];
+        const combined = [...tasks, ...descendants];
+
+        // Deduplicate by ID to prevent DnD-kit layout issues
+        const seen = new Map();
+        combined.forEach(t => {
+            if (t?.id && !seen.has(t.id)) {
+                seen.set(t.id, t);
+            }
+        });
+
+        return Array.from(seen.values());
     }, [tasks, hydratedProjects]);
 
     // Use the existing shared drag hook

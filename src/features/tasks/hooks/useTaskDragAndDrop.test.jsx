@@ -40,6 +40,10 @@ describe('useTaskDragAndDrop', () => {
                 { id: 'task-2', title: 'Task 2', origin: 'instance', parent_task_id: 'proj-1', root_id: 'proj-1' },
                 { id: 'subtask-1', title: 'Subtask 1', origin: 'instance', parent_task_id: 'task-1', root_id: 'proj-1' },
             ],
+            // Simulate overlapping hydration (e.g. child was also hydrated separately)
+            'task-1': [
+                { id: 'subtask-1', title: 'Subtask 1', origin: 'instance', parent_task_id: 'task-1', root_id: 'proj-1' },
+            ]
         },
         setTasks: vi.fn(),
         fetchTasks: vi.fn(),
