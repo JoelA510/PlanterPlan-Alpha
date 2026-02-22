@@ -1,8 +1,8 @@
-import TaskResources from '@features/tasks/components/TaskResources';
-import TaskDependencies from '@features/tasks/components/TaskDependencies';
-import { formatDisplayDate } from '@shared/lib/date-engine';
+import TaskResources from '@/features/tasks/components/TaskResources';
+import TaskDependencies from '@/features/tasks/components/TaskDependencies';
+import { formatDisplayDate } from '@/shared/lib/date-engine';
 
-import { useAuth } from '@app/contexts/AuthContext';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 const TaskDetailsView = ({ task, onAddChildTask, onEditTask, onDeleteTask, onTaskUpdated, canEdit = true, ...props }) => {
   const { user } = useAuth();

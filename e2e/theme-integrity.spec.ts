@@ -23,7 +23,7 @@ async function scanForLightModeLeaks(page: Page, contextName: string) {
             // Parse RGB
             const rgbMatch = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
             if (rgbMatch) {
-                const [_, r, g, b] = rgbMatch.map(Number);
+                const [, r, g, b] = rgbMatch.map(Number);
 
                 // HEURISTIC: If it's effectively white/bright in Dark Mode, it's a bug.
                 // We allow some transparency, but fully opaque white is usually bad.

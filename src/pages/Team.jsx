@@ -1,26 +1,26 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@shared/lib/utils';
-import { planter } from '@shared/api/planterClient';
+import { createPageUrl } from '@/shared/lib/utils';
+import { planter } from '@/shared/api/planterClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@shared/ui/button';
-import { Card } from '@shared/ui/card';
-import { Input } from '@shared/ui/input';
-import { Badge } from '@shared/ui/badge';
-import { useToast } from '@shared/ui/use-toast';
+import { Button } from '@/shared/ui/button';
+import { Card } from '@/shared/ui/card';
+import { Input } from '@/shared/ui/input';
+import { Badge } from '@/shared/ui/badge';
+import { useToast } from '@/shared/ui/use-toast';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@shared/ui/dialog';
+} from '@/shared/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@shared/ui/dropdown-menu';
+} from '@/shared/ui/dropdown-menu';
 import {
   ArrowLeft,
   Mail,
@@ -31,7 +31,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import DashboardLayout from '@layouts/DashboardLayout';
+import DashboardLayout from '@/layouts/DashboardLayout';
 
 export default function Team() {
   const urlParams = new URLSearchParams(window.location.search);

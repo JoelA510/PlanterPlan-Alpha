@@ -1,4 +1,4 @@
-import { getHighlightSegments } from '@shared/lib/highlightMatches';
+import { getHighlightSegments } from '@/shared/lib/highlightMatches';
 
 describe('getHighlightSegments', () => {
   it('returns original text when query is empty', () => {

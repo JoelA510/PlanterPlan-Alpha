@@ -19,6 +19,7 @@ test.describe('Journey: Master Library', () => {
         const phaseId = '60000000-0000-0000-0000-000000000001';
         const msId = '60000000-0000-0000-0000-000000000002';
         const projectData = { id: projectId, title: 'Library Project', name: 'Library Project', creator: OWNER_ID, status: 'active', created_at: new Date().toISOString() };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const tasksData: any[] = [
             { id: phaseId, title: 'Phase 1', root_id: projectId, parent_task_id: projectId, status: 'not_started', position: 1000, creator: OWNER_ID },
             { id: msId, title: 'Milestone 1', root_id: projectId, parent_task_id: phaseId, status: 'not_started', position: 1000, creator: OWNER_ID },

@@ -11,7 +11,7 @@
  */
 
 import { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import { ROLES } from '@app/constants/index';
+import { ROLES } from '@/app/constants/index';
 
 const ViewAsContext = createContext(undefined);
 

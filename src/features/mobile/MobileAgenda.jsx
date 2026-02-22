@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@shared/ui/card';
-import { Button } from '@shared/ui/button';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
 import { Calendar, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { TASK_STATUS } from '@app/constants/index';
+import { TASK_STATUS } from '@/app/constants/index';
 
 export default function MobileAgenda({ tasks = [] }) {
     const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function MobileAgenda({ tasks = [] }) {
 
     return (
         <div className="md:hidden mb-6">
-            <Card className="bg-gradient-to-br from-brand-600 to-brand-700 text-white border-none shadow-lg">
+            <Card className="bg-brand-600 text-white border-none shadow-lg">
                 <div className="p-4">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">

@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Card } from '@shared/ui/card';
-import { Button } from '@shared/ui/button';
-import { Input } from '@shared/ui/input';
-import { Badge } from '@shared/ui/badge';
+import { Card } from '@/shared/ui/card';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Badge } from '@/shared/ui/badge';
 import { Plus, Search, Mail, Phone, MoreHorizontal, Loader2 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import AddPersonModal from './AddPersonModal';
-import { useToast } from '@shared/ui/use-toast';
+import { useToast } from '@/shared/ui/use-toast';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@shared/ui/dropdown-menu';
+} from '@/shared/ui/dropdown-menu';
 
 const STATUS_OPTS = {
     'New': 'bg-brand-100 text-brand-700',

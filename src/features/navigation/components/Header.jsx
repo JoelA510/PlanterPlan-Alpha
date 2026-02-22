@@ -1,19 +1,19 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@shared/lib/utils';
-import { Button } from '@shared/ui/button';
+import { createPageUrl } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@shared/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@shared/ui/avatar';
+} from '@/shared/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight, Moon, Sun } from 'lucide-react';
-import { planter } from '@shared/api/planterClient';
-import { useUser } from '@features/auth/hooks/useUser';
-import { useAuth } from '@app/contexts/AuthContext';
-import { useTheme } from '@app/contexts/ThemeContext';
+import { planter } from '@/shared/api/planterClient';
+import { useUser } from '@/features/auth/hooks/useUser';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useTheme } from '@/app/contexts/ThemeContext';
 import ViewAsSelector from './ViewAsSelector';
 
 export default function Header({ onMenuToggle, showMenuButton = false }) {

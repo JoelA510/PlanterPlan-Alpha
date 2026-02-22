@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { updateProjectStatus } from './projectService';
-import { planter } from '@shared/api/planterClient';
+import { planter } from '@/shared/api/planterClient';
 
 // Mock planter client
-vi.mock('@shared/api/planterClient', () => ({
+vi.mock('@/shared/api/planterClient', () => ({
   planter: {
     entities: {
       Project: {

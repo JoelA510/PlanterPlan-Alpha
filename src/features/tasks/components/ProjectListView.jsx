@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { Virtuoso } from 'react-virtuoso';
-import TaskItem, { SortableTaskItem } from '@features/tasks/components/TaskItem';
+import TaskItem, { SortableTaskItem } from '@/features/tasks/components/TaskItem';
 
 /**
  * Threshold for enabling virtualization.

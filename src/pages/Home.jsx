@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@shared/lib/utils';
-import { Button } from '@shared/ui/button';
+import { createPageUrl } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/button';
 import { motion } from 'framer-motion';
 import {
   CheckCircle2,

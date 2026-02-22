@@ -95,7 +95,6 @@
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900 font-sans antialiased;
-    @apply dark:bg-slate-900 dark:text-slate-100;
   }
 }
 
@@ -158,7 +157,6 @@
 @layer components {
   .btn-primary {
     @apply px-4 py-2 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20;
-    @apply dark:bg-brand-500 dark:hover:bg-brand-400;
   }
 
   .btn-secondary {

@@ -2,10 +2,10 @@ import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
 import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable, useDraggable } from '@dnd-kit/core';
-import { PROJECT_STATUS } from '@app/constants/index';
-import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
-import ProjectCard from '@features/dashboard/components/ProjectCard';
-import { useProjectRealtime } from '@features/projects/hooks/useProjectRealtime';
+import { PROJECT_STATUS } from '@/app/constants/index';
+import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
+import ProjectCard from '@/features/dashboard/components/ProjectCard';
+import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
 
 const COLUMNS = [
     { id: PROJECT_STATUS.PLANNING, title: 'Planning', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING] },
@@ -138,7 +138,7 @@ function PipelineColumn({ column, tasks, teamMembers }) {
     });
 
     return (
-        <div ref={setNodeRef} className={`flex-1 w-0 min-w-0 flex flex-col h-full rounded-xl bg-gradient-to-br ${column.gradient} border border-brand-100/50 dark:border-slate-800`}>
+        <div ref={setNodeRef} className={`flex-1 w-0 min-w-0 flex flex-col h-full rounded-xl bg-slate-50 border border-brand-100/50`}>
             {/* Header */}
             {/* Header */}
             {/* Header */}

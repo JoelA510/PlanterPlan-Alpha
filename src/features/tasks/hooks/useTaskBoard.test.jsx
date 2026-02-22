@@ -11,11 +11,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useTaskBoard } from './useTaskBoard';
-import { AuthContext } from '@app/contexts/AuthContext';
-import { ToastProvider } from '@app/contexts/ToastContext';
+import { AuthContext } from '@/app/contexts/AuthContext';
+import { ToastProvider } from '@/app/contexts/ToastContext';
 
 // Mock useTaskOperations
-vi.mock('@features/tasks/hooks/useTaskOperations', () => ({
+vi.mock('@/features/tasks/hooks/useTaskOperations', () => ({
     useTaskOperations: vi.fn(() => ({
         tasks: [
             { id: 'proj-1', title: 'Project 1', origin: 'instance', parent_task_id: null },
@@ -53,7 +53,7 @@ const mockHandleDragEnd = vi.fn();
 const mockTaskDragResult = { sensors: [], handleDragEnd: mockHandleDragEnd };
 let capturedTasksPassedToDrag = [];
 
-vi.mock('@features/task-drag', () => ({
+vi.mock('@/features/task-drag', () => ({
     useTaskDrag: vi.fn((props) => {
         capturedTasksPassedToDrag = props.tasks;
         return mockTaskDragResult;
@@ -61,7 +61,7 @@ vi.mock('@features/task-drag', () => ({
 }));
 
 // Mock ToastContext
-vi.mock('@app/contexts/ToastContext', () => ({
+vi.mock('@/app/contexts/ToastContext', () => ({
     useToast: () => ({ addToast: vi.fn() }),
     ToastProvider: ({ children }) => children,
 }));

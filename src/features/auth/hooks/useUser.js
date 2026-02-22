@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { planter } from '@shared/api/planterClient';
+import { planter } from '@/shared/api/planterClient';
 
 export function useUser() {
   return useQuery({

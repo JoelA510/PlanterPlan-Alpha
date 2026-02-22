@@ -13,12 +13,12 @@ vi.mock('../services/peopleService', () => ({
     },
 }));
 
-vi.mock('@shared/ui/use-toast', () => ({
+vi.mock('@/shared/ui/use-toast', () => ({
     useToast: () => ({ toast: vi.fn() }),
 }));
 
 // Mock UI components
-vi.mock('@shared/ui/dialog', () => ({
+vi.mock('@/shared/ui/dialog', () => ({
     Dialog: ({ open, children }) => open ? <div>{children}</div> : null,
     DialogContent: ({ children }) => <div>{children}</div>,
     DialogHeader: ({ children }) => <div>{children}</div>,
@@ -26,7 +26,7 @@ vi.mock('@shared/ui/dialog', () => ({
     DialogFooter: ({ children }) => <div>{children}</div>,
 }));
 
-vi.mock('@shared/ui/dropdown-menu', () => ({
+vi.mock('@/shared/ui/dropdown-menu', () => ({
     DropdownMenu: ({ children }) => <div>{children}</div>,
     DropdownMenuTrigger: ({ children }) => <div>{children}</div>,
     DropdownMenuContent: ({ children }) => <div>{children}</div>,

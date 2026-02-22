@@ -79,12 +79,39 @@ export async function setupAuthenticatedState(
     page: Page,
     session: ReturnType<typeof createSession>,
 ) {
-    await page.goto('/', { waitUntil: 'networkidle', timeout: 60000 });
-    await expect(page.getByTestId('auth-seeder-active')).toBeAttached({ timeout: 30000 });
+    // Navigate first to establish origin for localStorage
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+    // Inject Auth State via LocalStorage (matches AuthContext logic)
     await page.evaluate((s) => {
-        window.dispatchEvent(new CustomEvent('SEED_AUTH', { detail: { session: s } }));
+        localStorage.setItem('e2e-bypass-token', 'mock-token-legacy');
+        localStorage.setItem('planter_e2e_user', JSON.stringify(s.user));
+
+        // Inject Supabase Session for Router/Client (matches VITE_SUPABASE_URL from .env)
+        // Ref: zqgoeblsbbtlbcvweisr
+        const sbSession = {
+            access_token: s.access_token,
+            refresh_token: s.refresh_token,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+            expires_in: 3600,
+            token_type: 'bearer',
+            user: s.user
+        };
+        localStorage.setItem('sb-zqgoeblsbbtlbcvweisr-auth-token', JSON.stringify(sbSession));
     }, session);
-    await expect(page.getByTestId('auth-user-seeded')).toBeAttached({ timeout: 40000 });
+
+    // Inject Stability CSS via InitScript (Persistent across navigations)
+    await page.addInitScript(() => {
+        const style = document.createElement('style');
+        style.innerHTML = `* { opacity: 1 !important; transform: none !important; transition: none !important; animation: none !important; }`;
+        document.head.appendChild(style);
+    });
+
+    // Reload to apply auth state and scripts
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    // Verify successful login (Dashboard visible)
+    await expect(page.locator('h1').filter({ hasText: 'Dashboard' })).toBeVisible({ timeout: 30000 });
 }
 
 // ---------------------------------------------------------------------------
@@ -105,5 +132,17 @@ export async function setupCommonMocks(
     );
     await page.route('**/rest/v1/rpc/is_admin', (route) =>
         route.fulfill({ status: 200, body: 'true' }),
+    );
+
+    // Default mocks for data to prevent 401 leaks
+    // Tests can override these by calling page.route() *after* setupCommonMocks (Playwright checks LIFO)
+    await page.route(new RegExp('.*/rest/v1/tasks.*'), (route) =>
+        route.fulfill({ status: 200, body: '[]' })
+    );
+    await page.route(new RegExp('.*/rest/v1/project_members.*'), (route) =>
+        route.fulfill({ status: 200, body: '[]' })
+    );
+    await page.route('**/rest/v1/rpc/invite_user_to_project', (route) =>
+        route.fulfill({ status: 200, body: '{}' })
     );
 }

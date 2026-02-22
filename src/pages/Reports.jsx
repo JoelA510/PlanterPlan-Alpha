@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@shared/lib/utils';
-import { planter } from '@shared/api/planterClient';
+import { createPageUrl } from '@/shared/lib/utils';
+import { planter } from '@/shared/api/planterClient';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@shared/ui/button';
-import { Card } from '@shared/ui/card';
-import { Progress } from '@shared/ui/progress';
+import { Button } from '@/shared/ui/button';
+import { Card } from '@/shared/ui/card';
+import { Progress } from '@/shared/ui/progress';
 import {
   ArrowLeft,
   Loader2,
@@ -30,8 +30,8 @@ import {
   Legend,
 } from 'recharts';
 
-import DashboardLayout from '@layouts/DashboardLayout';
-import { TASK_STATUS } from '@app/constants/index';
+import DashboardLayout from '@/layouts/DashboardLayout';
+import { TASK_STATUS } from '@/app/constants/index';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
@@ -219,7 +219,7 @@ export default function Reports() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card className="p-8 mb-10 border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-md hover:shadow-xl transition-all duration-300">
+                <Card className="p-8 mb-10 border border-slate-200 bg-slate-50/50 shadow-md hover:shadow-xl transition-all duration-300">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h3 className="text-xl font-bold text-foreground">Overall Progress</h3>

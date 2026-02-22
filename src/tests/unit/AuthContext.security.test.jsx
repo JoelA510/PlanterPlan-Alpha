@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { AuthProvider, AuthContext } from '../../app/contexts/AuthContext';
-import { supabase } from '../../app/supabaseClient';
+import { AuthProvider, AuthContext } from '@/app/contexts/AuthContext';
+import { supabase } from '@/shared/db/client';
 import React, { useContext } from 'react';
 
 // Mock Supabase
-vi.mock('../../app/supabaseClient', () => ({
+vi.mock('@/shared/db/client', () => ({
     supabase: {
         auth: {
             getSession: vi.fn(),
@@ -32,6 +32,7 @@ describe('AuthContext Security Fallback', () => {
             value: {
                 hostname: 'production-app.com',
                 href: 'https://production-app.com',
+                search: '',
             },
             writable: true // Allow other tests to change it if needed
         });

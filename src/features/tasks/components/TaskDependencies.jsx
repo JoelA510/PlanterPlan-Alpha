@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getTaskRelationships, addRelationship, removeRelationship } from '@features/tasks/services/taskService';
-import { getTasksForUser } from '@features/tasks/services/taskService'; // Or fallback to prop
-import { Button } from '@shared/ui/button';
+import { getTaskRelationships, addRelationship, removeRelationship } from '@/features/tasks/services/taskService';
+import { getTasksForUser } from '@/features/tasks/services/taskService'; // Or fallback to prop
+import { Button } from '@/shared/ui/button';
 import { Link2, Trash2, ArrowRight } from 'lucide-react';
 import {
     Command,
@@ -11,13 +11,13 @@ import {
     CommandInput,
     CommandItem,
     CommandList,
-} from "@shared/ui/command";
+} from "@/shared/ui/command";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
-} from "@shared/ui/popover";
-import { cn } from '@shared/lib/utils';
+} from "@/shared/ui/popover";
+import { cn } from '@/shared/lib/utils';
 import { Check } from 'lucide-react';
 
 export default function TaskDependencies({ task, allProjectTasks }) {

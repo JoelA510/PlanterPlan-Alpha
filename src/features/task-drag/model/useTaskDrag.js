@@ -5,7 +5,7 @@ import { updateTasksBatch } from '../lib/positionService';
 import { calculateDropTarget } from '../lib/dragDropUtils';
 import { calculateDateDeltas } from '../lib/dateInheritance';
 import { addDays, differenceInCalendarDays, parseISO, isValid, format } from 'date-fns';
-import { toast } from '@shared/ui/use-toast';
+import { toast } from '@/shared/ui/use-toast';
 
 export const useTaskDrag = ({ tasks, setTasks, fetchTasks, updateTaskStatus, handleOptimisticUpdate, commitOptimisticUpdate }) => {
   const [moveError, setMoveError] = useState(null);

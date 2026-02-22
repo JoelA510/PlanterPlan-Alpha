@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { useTaskOperations } from '@features/tasks/hooks/useTaskOperations';
-import { useUserProjects } from '@features/projects/hooks/useUserProjects';
-import { useAuth } from '@app/contexts/AuthContext';
+import { useTaskOperations } from '@/features/tasks/hooks/useTaskOperations';
+import { useUserProjects } from '@/features/projects/hooks/useUserProjects';
+import { useAuth } from '@/app/contexts/AuthContext';
 import ProjectSidebar from './ProjectSidebar';
 
 export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) {

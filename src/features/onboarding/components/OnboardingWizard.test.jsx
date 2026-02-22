@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import OnboardingWizard from './OnboardingWizard';
 
 // Mocks
-vi.mock('@shared/ui/dialog', () => ({
+vi.mock('@/shared/ui/dialog', () => ({
     Dialog: ({ open, children }) => open ? <div>{children}</div> : null,
     DialogContent: ({ children }) => <div>{children}</div>,
     DialogHeader: ({ children }) => <div>{children}</div>,

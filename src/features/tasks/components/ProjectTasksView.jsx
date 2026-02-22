@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useDroppable } from '@dnd-kit/core';
 import { LayoutList, KanbanSquare } from 'lucide-react';
-import ProjectHeader from '@features/projects/components/ProjectHeader';
+import ProjectHeader from '@/features/projects/components/ProjectHeader';
 import ProjectListView from './ProjectListView';
 import ProjectBoardView from './board/ProjectBoardView';
 

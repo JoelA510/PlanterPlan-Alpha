@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@app/contexts/AuthContext';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { getJoinedProjects, getUserProjects } from '../services/projectService';
 
 export function useUserProjects() {

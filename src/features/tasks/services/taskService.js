@@ -1,5 +1,5 @@
-import { planter } from '@shared/api/planterClient';
-import { calculateMinMaxDates } from '@shared/lib/date-engine';
+import { planter } from '@/shared/api/planterClient';
+import { calculateMinMaxDates } from '@/shared/lib/date-engine';
 export { deepCloneTask } from './taskCloneService';
 
 // --- Hierarchy Operations ---
@@ -46,7 +46,7 @@ export const fetchTaskChildren = async (taskId) => {
 
 // --- Core CRUD Operations ---
 
-import { validateSortColumn } from '@shared/lib/validation';
+import { validateSortColumn } from '@/shared/lib/validation';
 
 export const getTasksForUser = async (userId, { sortColumn = 'position', sortOrder = 'asc' } = {}) => {
   try {

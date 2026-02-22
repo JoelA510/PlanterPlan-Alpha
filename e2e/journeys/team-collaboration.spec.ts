@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { TEST_USERS } from '../fixtures/test-users';
 import {
     OWNER_ID, EDITOR_ID, VIEWER_ID,
     createSession, setupAuthenticatedState, setupCommonMocks,
@@ -51,19 +50,26 @@ test.describe('Journey: Team Collaboration', () => {
 
         await setupCommonMocks(page, ownerSession);
 
-        // Mock Projects list
+        // Mock Projects list (filter by instance origin)
         await page.route(url => url.toString().includes('tasks') && url.toString().includes('origin=eq.instance') && !url.toString().includes('id=eq.'), route => {
             return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
         });
 
-        // Mock Hierarchy/Tasks
-        await page.route(new RegExp(`/rest/v1/tasks.*root_id=eq\\.${projectId}`), async route => {
-            return route.fulfill({ status: 200, body: JSON.stringify(tasksData) });
-        });
+        // Mock Hierarchy/Tasks (root_id check)
+        await page.route('**/rest/v1/tasks*', async route => {
+            const url = route.request().url();
 
-        // Mock Metadata
-        await page.route(new RegExp(`/rest/v1/tasks.*[?&]id=eq\\.${projectId}`), async route => {
-            return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
+            // Check root_id BEFORE id to match hierarchy call
+            if (url.includes(`root_id=eq.${projectId}`)) {
+                return route.fulfill({ status: 200, body: JSON.stringify(tasksData) });
+            }
+
+            // Check metadata fetch via id=eq
+            if (url.includes(`id=eq.${projectId}`)) {
+                return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
+            }
+
+            return route.fulfill({ status: 200, body: '[]' });
         });
 
         // Mock Members
@@ -97,12 +103,15 @@ test.describe('Journey: Team Collaboration', () => {
 
         await setupCommonMocks(page, editorSession);
 
-        await page.route(new RegExp(`/rest/v1/tasks.*root_id=eq\\.${projectId}`), async route => {
-            return route.fulfill({ status: 200, body: JSON.stringify(tasksData) });
-        });
-
-        await page.route(new RegExp(`/rest/v1/tasks.*[?&]id=eq\\.${projectId}`), async route => {
-            return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
+        await page.route('**/rest/v1/tasks*', async route => {
+            const url = route.request().url();
+            if (url.includes(`root_id=eq.${projectId}`)) {
+                return route.fulfill({ status: 200, body: JSON.stringify(tasksData) });
+            }
+            if (url.includes(`id=eq.${projectId}`)) {
+                return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
+            }
+            return route.fulfill({ status: 200, body: '[]' });
         });
 
         // Mock Members
@@ -132,12 +141,15 @@ test.describe('Journey: Team Collaboration', () => {
 
         await setupCommonMocks(page, viewerSession);
 
-        await page.route(new RegExp(`/rest/v1/tasks.*root_id=eq\\.${projectId}`), async route => {
-            return route.fulfill({ status: 200, body: JSON.stringify(tasksData) });
-        });
-
-        await page.route(new RegExp(`/rest/v1/tasks.*[?&]id=eq\\.${projectId}`), async route => {
-            return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
+        await page.route('**/rest/v1/tasks*', async route => {
+            const url = route.request().url();
+            if (url.includes(`root_id=eq.${projectId}`)) {
+                return route.fulfill({ status: 200, body: JSON.stringify(tasksData) });
+            }
+            if (url.includes(`id=eq.${projectId}`)) {
+                return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
+            }
+            return route.fulfill({ status: 200, body: '[]' });
         });
 
         // Mock Members

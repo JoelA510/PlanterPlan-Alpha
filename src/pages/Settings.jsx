@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@app/contexts/AuthContext';
-import { planter } from '@shared/api/planterClient';
-import { Button } from '@shared/ui/button';
-import { Input } from '@shared/ui/input';
-import { Label } from '@shared/ui/label';
-import { useToast } from '@shared/ui/use-toast';
-import { Switch } from '@shared/ui/switch';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { planter } from '@/shared/api/planterClient';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
+import { useToast } from '@/shared/ui/use-toast';
+import { Switch } from '@/shared/ui/switch';
 import {
   User,
   Lock,
@@ -13,7 +13,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import DashboardLayout from '@layouts/DashboardLayout';
+import DashboardLayout from '@/layouts/DashboardLayout';
 
 export default function Settings() {
   const { user } = useAuth();

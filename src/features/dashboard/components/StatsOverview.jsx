@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
-import { cn } from '@shared/lib/utils';
-import { Card } from '@shared/ui/card';
+import { cn } from '@/shared/lib/utils';
+import { Card } from '@/shared/ui/card';
 import { FolderKanban, CheckCircle2, Clock, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { TASK_STATUS } from '@app/constants/index';
+import { TASK_STATUS } from '@/app/constants/index';
 import { useMemo } from 'react';
 
 export default function StatsOverview({ projects, tasks, teamMembers }) {

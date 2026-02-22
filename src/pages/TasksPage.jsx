@@ -2,12 +2,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { DndContext, closestCorners, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { planter } from '@shared/api/planterClient';
-import DashboardLayout from '@layouts/DashboardLayout';
-import TaskItem from '@features/tasks/components/TaskItem';
+import { planter } from '@/shared/api/planterClient';
+import DashboardLayout from '@/layouts/DashboardLayout';
+import TaskItem from '@/features/tasks/components/TaskItem';
 import { Loader2, List, LayoutGrid } from 'lucide-react';
-import { useTaskMutations } from '@features/tasks/hooks/useTaskMutations';
-import ProjectBoardView from '@features/tasks/components/board/ProjectBoardView';
+import { useTaskMutations } from '@/features/tasks/hooks/useTaskMutations';
+import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView';
 
 export default function TasksPage() {
   const queryClient = useQueryClient();

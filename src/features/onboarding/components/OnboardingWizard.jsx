@@ -6,16 +6,16 @@ import {
     DialogTitle,
     DialogDescription,
     DialogFooter
-} from '@shared/ui/dialog';
-import { Button } from '@shared/ui/button';
-import { Input } from '@shared/ui/input';
-import { Label } from '@shared/ui/label';
-import { RadioGroup, RadioGroupItem } from '@shared/ui/radio-group';
+} from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { Loader2, ArrowRight, Calendar as CalendarIcon, X } from 'lucide-react';
-import { Calendar } from '@shared/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@shared/ui/popover';
+import { Calendar } from '@/shared/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { format } from 'date-fns';
-import { cn } from '@shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
 
 export default function OnboardingWizard({ open, onCreateProject, onDismiss }) {
     const [step, setStep] = useState(1);

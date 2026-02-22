@@ -16,6 +16,7 @@ test.describe('Smoke Suite: Critical User Journeys', () => {
         await setupCommonMocks(page, ownerSession);
 
         // Custom mocks for creation and navigation
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let createdProject: any = null;
         await page.route('**/rest/v1/tasks*', async route => {
             const method = route.request().method();

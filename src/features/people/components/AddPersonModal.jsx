@@ -5,12 +5,12 @@ import {
     DialogHeader,
     DialogTitle,
     DialogFooter
-} from '@shared/ui/dialog';
-import { Button } from '@shared/ui/button';
-import { Input } from '@shared/ui/input';
-import { Label } from '@shared/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select';
-import { Textarea } from '@shared/ui/textarea';
+} from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import { Textarea } from '@/shared/ui/textarea';
 import { Loader2 } from 'lucide-react';
 
 export default function AddPersonModal({ open, onClose, onSave, initialData = null }) {

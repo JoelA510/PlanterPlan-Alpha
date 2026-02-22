@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
-import { useTaskForm } from '@features/tasks/hooks/useTaskForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@shared/ui/dialog';
-import { Button } from '@shared/ui/button';
-import { Label } from '@shared/ui/label';
-import { Input } from '@shared/ui/input';
-import { Textarea } from '@shared/ui/textarea';
-import { useProjectMutations } from '@features/projects/hooks/useProjectMutations';
-import { toIsoDate } from '@shared/lib/date-engine';
+import { useTaskForm } from '@/features/tasks/hooks/useTaskForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
+import { Label } from '@/shared/ui/label';
+import { Input } from '@/shared/ui/input';
+import { Textarea } from '@/shared/ui/textarea';
+import { useProjectMutations } from '@/features/projects/hooks/useProjectMutations';
+import { toIsoDate } from '@/shared/lib/date-engine';
 
 export default function EditProjectModal({ project, isOpen, onClose }) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);

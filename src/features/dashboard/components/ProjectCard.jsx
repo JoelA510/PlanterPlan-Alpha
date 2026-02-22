@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@shared/lib/utils';
-import { Card } from '@shared/ui/card';
-import { Badge } from '@shared/ui/badge';
-import { Progress } from '@shared/ui/progress';
+import { createPageUrl } from '@/shared/lib/utils';
+import { Card } from '@/shared/ui/card';
+import { Badge } from '@/shared/ui/badge';
+import { Progress } from '@/shared/ui/progress';
 import { format } from 'date-fns';
 import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch, FolderKanban } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { TASK_STATUS, PROJECT_STATUS } from '@app/constants/index';
-import { PROJECT_STATUS_COLORS } from '@app/constants/colors';
-import { sanitizeHTML } from '@shared/lib/sanitize';
+import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
+import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
+import { sanitizeHTML } from '@/shared/lib/sanitize';
 
 const templateIcons = {
   launch_large: Rocket,
@@ -31,7 +31,7 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }) => {
         <Card className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card h-full flex flex-col justify-between overflow-hidden">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
+              <div className="w-12 h-12 flex-shrink-0 bg-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
                 <Icon className="w-6 h-6 text-white" />
               </div>
               <div className="min-w-0 flex-1">

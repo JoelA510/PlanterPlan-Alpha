@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { createPageUrl } from '@shared/lib/utils';
-import { Button } from '@shared/ui/button';
-import { Badge } from '@shared/ui/badge';
-import { Progress } from '@shared/ui/progress';
+import { createPageUrl } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/button';
+import { Badge } from '@/shared/ui/badge';
+import { Progress } from '@/shared/ui/progress';
 import { format } from 'date-fns';
 import {
   ArrowLeft,
@@ -20,9 +20,9 @@ import {
   Search,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { TASK_STATUS, PROJECT_STATUS } from '@app/constants/index';
+import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
 import EditProjectModal from './EditProjectModal';
-import { exportProjectToCSV } from '@shared/lib/export-utils';
+import { exportProjectToCSV } from '@/shared/lib/export-utils';
 
 const templateIcons = {
   launch_large: Rocket,
@@ -58,7 +58,7 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
             </Button>
           </Link>
           <div className="flex items-center gap-4 flex-1">
-            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
+            <div className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20">
               <Icon className="w-7 h-7 text-white" />
             </div>
             <div>

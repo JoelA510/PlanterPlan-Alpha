@@ -1,6 +1,6 @@
 
 import PropTypes from 'prop-types';
-import SidebarNavItem from '@features/navigation/components/SidebarNavItem';
+import SidebarNavItem from '@/features/navigation/components/SidebarNavItem';
 
 const JoinedProjectsList = ({ projects, error, handleTaskClick, selectedTaskId }) => {
   return (
