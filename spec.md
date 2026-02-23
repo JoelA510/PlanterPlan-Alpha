@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.0.0 (Alpha)
-> **Last Updated**: 2026-02-18
+> **Version**: 1.1.0 (Hardened)
+> **Last Updated**: 2026-02-20
 > **Status**: Active Development
 
 ---
@@ -96,8 +96,8 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 ## 4. Non-Functional Requirements
 
 ### 4.1 Performance
-- **Tree Rendering**: Support for 500+ tasks without UI lag (virtualization planned for >1000).
-- **Network**: All data fetching must use `stale-while-revalidate` caching (React Query).
+- **Tree Rendering**: Support for 500+ tasks without UI lag via O(1) lookup maps and memoized trees.
+- **Network**: All data fetching uses `stale-while-revalidate` (React Query) with granular cache invalidation.
 - **Bundle Size**: Initial load < 200KB (gzip).
 
 ### 4.2 Security
