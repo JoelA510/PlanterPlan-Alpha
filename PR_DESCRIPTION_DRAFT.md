@@ -1,18 +1,4 @@
-# Repo Polish & Architectural Finalization (v1.1)
-
-## 📋 Summary
-
-This pull request completes the a **Polishing** process for the ongoing PlanterPlan refactor effort. It focuses on stabilizing critical authentication flows, pruning the UI library of orphaned components to optimize bundle size, and synchronizing all high-level documentation (Mind Map, Architecture Reference, and ADRs) to reflect the current stable state of the application.
-
-## ✨ Highlights
-
-- **E2E Logout Stabilization:** Resolved intermittent failures in `auth.spec.ts` caused by race conditions in the mocked Supabase environment. Implemented stateful mocks and a manual localStorage cleanup loop in `AuthContext.tsx` to ensure 100% test reliability.
-- **Dependency & Component Pruning:** Conducted a recursive audit of `src/shared/ui/` and identified 19 orphaned components (e.g., `alert-dialog`, `carousel`, `pagination`). Deleted these files and uninstalled 11 unreferenced NPM packages, significantly reducing the application's footprint.
-- **Documentation & ADR Sync:** Updated `PROJECT_MIND_MAP.md` and `FULL_ARCHITECTURE.md` to reflect the current FSD structure and the pruned component count (35 items). Formally finalized **ADR 002**, designating React 18.3.1 as the validated stable engine for the v1.1 release.
-- **Visual & UI Integrity:** Verified that all remaining 35 UI components are correctly integrated and that the application maintains full theme integrity in both light and dark modes.
-
-## 🛡️ Architectural & Security Hardening (Wave 13)
-
+Team 
 This PR further hardens the application foundation through several critical refactors:
 
 ### 1. Security & Auth Resilience
@@ -63,6 +49,7 @@ This decomposition prevents the "everything re-renders" problem where a simple m
 | POL-002 | UI Pruning | ✅ Done | 19 orphaned files removed; 11 packages uninstalled |
 | POL-003 | ADR-002 Finalization | ✅ Done | React 18.3.1 validated for Gold Master |
 | POL-004 | Doc Synchronization | ✅ Done | Mind Map and Architecture docs fully updated |
+| POL-005 | UI Simplification | ✅ Done | Removed My Tasks & Dark Mode, Merged Dashboard views |
 
 ## 🏗️ Technical Decisions & Corrections
 

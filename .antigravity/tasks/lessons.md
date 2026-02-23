@@ -387,3 +387,13 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-21
 - **Context**: Use of `any` in `useTaskMutations.ts` allowed payload mismatches that were only caught at runtime.
 - **Rule**: **No `any` in Data Writing.** Mutation payloads MUST have explicit interfaces (e.g., `TaskPayload`). This ensures that UI form state and API contracts stay synchronized.
+
+### [TEST-009] CI Placeholder Bypasses
+- **Date**: 2026-02-22
+- **Context**: RLS tests ran against `placeholder.supabase.co` during the CI build check, causing unexpected auth failures because the environment variables were technically marked as truthy (`SUPABASE_URL=placeholder.supabase.co`).
+- **Rule**: **Check for Placeholders explicitly.** Conditions like `if (SUPABASE_URL)` are insufficient when CI/CD injects placeholder text. You must explicitly filter out known mock values when bypassing or skipping tests.
+
+### [UI-043] Radical Simplification (The Feature Diet)
+- **Date**: 2026-02-22
+- **Context**: Advanced features like Dark Mode and custom Dashboard views (Grid/Pipeline toggles) were causing outsized maintenance burden and compounding bugs (e.g., Theme Toggle re-rendering race conditions, unresponsive recharts).
+- **Rule**: **Subtract Before You Add.** In an MVP/Alpha stage, aggressive trimming pays off. By forcing light mode and unifying on a single Pipeline view, we drastically reduced state complexity, fixed multiple bugs instantly, and streamlined cognitive load for the user. When in doubt, kill the feature.

@@ -15,6 +15,15 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/app/contexts/AuthContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
 
 import {
   BarChart,
@@ -56,11 +65,23 @@ const reports = {
 export default function Reports() {
   const urlParams = new URLSearchParams(window.location.search);
   const projectId = urlParams.get('project');
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: project } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res) => res[0]),
     enabled: !!projectId,
+  });
+
+  // Fetch all projects for the picker
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ['projects', user?.id],
+    queryFn: async () => {
+      // Assuming a straightforward generic fetch for MVP. Should mirror Dashboard's fetch in reality.
+      return planter.entities.Project.filter({});
+    },
+    enabled: !!user,
   });
 
   const { data: phases = [] } = useQuery({
@@ -180,10 +201,34 @@ export default function Reports() {
               <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
                 <BarChart className="w-8 h-8 text-slate-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900">Select a Project</h3>
-              <p className="text-slate-500 max-w-sm text-center mt-2">
-                Please select a project from the sidebar to view its detailed reports and analytics.
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Select a Project</h3>
+              <p className="text-slate-500 max-w-sm text-center mb-6">
+                Choose a project below to view its detailed reports and analytics.
               </p>
+
+              <div className="w-full max-w-sm">
+                <Select
+                  onValueChange={(value) => {
+                    navigate(`/reports?project=${value}`);
+                  }}
+                >
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue placeholder="Select a project..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allProjects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                    {allProjects.length === 0 && (
+                      <SelectItem value="none" disabled>
+                        No projects available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           ) : (
             <>
