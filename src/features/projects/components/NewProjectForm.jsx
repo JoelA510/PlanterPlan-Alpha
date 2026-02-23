@@ -1,8 +1,20 @@
-import { useCallback } from 'react';
-import { useTaskForm } from '@/features/tasks/hooks/useTaskForm';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
 
-const initialState = {
+const projectSchema = z.object({
+  title: z.string().min(1, 'Project title is required'),
+  description: z.string().optional(),
+  purpose: z.string().optional(),
+  actions: z.string().optional(),
+  notes: z.string().optional(),
+  start_date: z.string().min(1, 'Start date is required'),
+  templateId: z.string().nullable().optional(),
+});
+
+const defaultValues = {
   title: '',
   description: '',
   purpose: '',
@@ -13,39 +25,42 @@ const initialState = {
 };
 
 const NewProjectForm = ({ onSubmit, onCancel }) => {
-  const validate = useCallback((data) => {
-    const newErrors = {};
-
-    if (!data.title?.trim()) {
-      newErrors.title = 'Project title is required';
-    }
-
-    if (!data.start_date) {
-      newErrors.start_date = 'Start date is required';
-    }
-
-    return newErrors;
-  }, []);
+  const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
 
   const {
-    formData,
-    setFormData,
-    errors,
-    isSubmitting,
-    lastAppliedTaskTitle,
-    handleChange,
-    handleApplyFromLibrary,
-    handleSubmit: hookSubmit,
-  } = useTaskForm(initialState, validate);
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(projectSchema),
+    defaultValues,
+  });
 
-  const handleFormSubmit = (e) => {
-    hookSubmit(e, onSubmit, () => {
-      setFormData(initialState);
-    });
+  const handleApplyFromLibrary = (task) => {
+    if (!task) return;
+    setValue('title', task.title || '', { shouldValidate: true });
+    setValue('description', task.description || '', { shouldValidate: true });
+    setValue('purpose', task.purpose || '', { shouldValidate: true });
+    setValue('actions', task.actions || '', { shouldValidate: true });
+    setValue('notes', task.notes || '', { shouldValidate: true });
+    setValue('templateId', task.id || null, { shouldValidate: true });
+    setLastAppliedTaskTitle(task.title);
+  };
+
+  const handleFormSubmit = async (data) => {
+    try {
+      await onSubmit(data);
+      reset(defaultValues);
+      setLastAppliedTaskTitle('');
+    } catch (e) {
+      console.error('Submission failed', e);
+    }
   };
 
   return (
-    <form onSubmit={handleFormSubmit} className="project-form">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="project-form">
       <div className="form-group">
         <MasterLibrarySearch
           mode="copy"
@@ -61,8 +76,8 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         </div>
       )}
 
-      {/* General error message */}
-      {errors.submit && <div className="form-error-banner">{errors.submit}</div>}
+      {/* General error message handling (can be expanded) */}
+      {errors.root?.submit && <div className="form-error-banner">{errors.root.submit.message}</div>}
 
       {/* Title Field */}
       <div className="form-group">
@@ -72,14 +87,12 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         <input
           type="text"
           id="title"
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
+          autoFocus
           className={`form-input ${errors.title ? 'error' : ''}`}
           placeholder="Enter project title"
-          autoFocus
+          {...register('title')}
         />
-        {errors.title && <span className="form-error">{errors.title}</span>}
+        {errors.title && <span className="form-error">{errors.title.message}</span>}
       </div>
 
       {/* Description Field */}
@@ -89,12 +102,10 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         </label>
         <textarea
           id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
           className="form-textarea"
           placeholder="Describe this project..."
           rows="4"
+          {...register('description')}
         />
       </div>
 
@@ -105,12 +116,10 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         </label>
         <textarea
           id="purpose"
-          name="purpose"
-          value={formData.purpose}
-          onChange={handleChange}
           className="form-textarea"
           placeholder="Why is this project being created?"
           rows="3"
+          {...register('purpose')}
         />
       </div>
 
@@ -121,12 +130,10 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
         <input
           type="date"
           id="start_date"
-          name="start_date"
-          value={formData.start_date}
-          onChange={handleChange}
           className={`form-input ${errors.start_date ? 'error' : ''}`}
+          {...register('start_date')}
         />
-        {errors.start_date && <span className="form-error">{errors.start_date}</span>}
+        {errors.start_date && <span className="form-error">{errors.start_date.message}</span>}
       </div>
 
       <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">
@@ -134,7 +141,7 @@ const NewProjectForm = ({ onSubmit, onCancel }) => {
           Cancel
         </button>
         <button type="submit" className="btn-primary" disabled={isSubmitting}>
-          {isSubmitting ? 'Create Project' : 'Create Project'}
+          {isSubmitting ? 'Creating...' : 'Create Project'}
         </button>
       </div>
     </form>

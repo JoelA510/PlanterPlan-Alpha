@@ -32,15 +32,33 @@ export function useProjectData(projectId) {
 
     // Derived State
     const { phases, milestones, tasks } = useMemo(() => {
-        const _phases = projectHierarchy.filter((t) => t.parent_task_id === projectId);
-        const _milestones = projectHierarchy.filter((t) => _phases.some((p) => p.id === t.parent_task_id));
+        // Build an adjacency map and categorizations in a single O(N) pass
+        const phaseIds = new Set();
+        const milestoneIds = new Set();
 
-        // Tasks are any items that are below the milestone level (Root Tasks + Subtasks)
-        const _tasks = projectHierarchy.filter((t) =>
-            !_phases.some(p => p.id === t.id) &&
-            !_milestones.some(m => m.id === t.id) &&
-            t.parent_task_id !== projectId
-        );
+        const _phases = [];
+        const _milestones = [];
+        const _tasks = [];
+
+        // Step 1: Initialize phase relationships first so milestones can find them
+        for (const t of projectHierarchy) {
+            if (t.parent_task_id === projectId) {
+                phaseIds.add(t.id);
+                _phases.push(t);
+            }
+        }
+
+        // Step 2: Categorize milestones and tasks in one pass
+        for (const t of projectHierarchy) {
+            if (t.parent_task_id !== projectId) {
+                if (phaseIds.has(t.parent_task_id)) {
+                    milestoneIds.add(t.id);
+                    _milestones.push(t);
+                } else {
+                    _tasks.push(t);
+                }
+            }
+        }
 
         return { phases: _phases, milestones: _milestones, tasks: _tasks };
     }, [projectHierarchy, projectId]); // Recalculate only when raw data or query ID changes

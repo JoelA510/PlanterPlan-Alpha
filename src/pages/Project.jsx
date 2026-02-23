@@ -17,6 +17,13 @@ import {
   closestCorners
 } from '@dnd-kit/core';
 
+import {
+  useCreateTask,
+  useUpdateTask,
+  useDeleteTask,
+  useAssignTaskMember
+} from '@/features/tasks/hooks/useTaskMutations';
+
 import ProjectHeader from '@/features/projects/components/ProjectHeader';
 import ProjectTabs from '@/features/projects/components/ProjectTabs';
 
@@ -79,49 +86,10 @@ export default function Project() {
   const canInvite = userRole === ROLES.OWNER || userRole === ROLES.ADMIN || userRole === ROLES.EDITOR;
   const canManageSettings = userRole === ROLES.OWNER || userRole === ROLES.ADMIN;
 
-  const updateTaskMutation = useMutation({
-    mutationFn: ({ id, data }) => planter.entities.Task.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
-    },
-    onError: (error) => {
-      toast({ title: 'Failed to update task', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const deleteTaskMutation = useMutation({
-    mutationFn: (id) => planter.entities.Task.delete(id),
-    onSuccess: () => {
-      setSelectedTask(null);
-      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
-      toast({ title: 'Task deleted', variant: 'default' });
-    },
-    onError: (error) => {
-      toast({ title: 'Failed to delete task', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const assignMemberMutation = useMutation({
-    mutationFn: ({ taskId, userId }) => planter.entities.Task.addMember(taskId, userId, 'viewer'),
-    onSuccess: () => {
-      toast({ title: 'Member assigned to task', variant: 'default' });
-      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
-    },
-    onError: (err) => {
-      console.error(err);
-      toast({ title: 'Failed to assign member', description: err.message || 'API might be missing', variant: 'destructive' });
-    }
-  });
-
-  const createTaskMutation = useMutation({
-    mutationFn: (data) => planter.entities.Task.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
-    },
-    onError: (error) => {
-      toast({ title: 'Failed to create task', description: error.message, variant: 'destructive' });
-    },
-  });
+  const _updateTask = useUpdateTask();
+  const _deleteTask = useDeleteTask();
+  const _assignMember = useAssignTaskMember();
+  const _createTask = useCreateTask();
 
   const sortedPhases = [...phases].sort((a, b) => (a.position || 0) - (b.position || 0));
   const activePhase = selectedPhase || sortedPhases[0];
@@ -136,7 +104,11 @@ export default function Project() {
     .sort((a, b) => (a.position || 0) - (b.position || 0));
 
   const handleTaskUpdate = (taskId, data) => {
-    updateTaskMutation.mutate({ id: taskId, data });
+    _updateTask.mutate({ id: taskId, ...data, root_id: projectId }, {
+      onError: (error) => {
+        toast({ title: 'Failed to update task', description: error.message, variant: 'destructive' });
+      }
+    });
   };
 
   const handleTaskClick = (task) => {
@@ -172,7 +144,7 @@ export default function Project() {
       delete payload.milestone;
       const parentId = addTaskModal.parentTask?.id || addTaskModal.milestone?.id;
 
-      await createTaskMutation.mutateAsync({
+      await _createTask.mutateAsync({
         ...payload,
         root_id: projectId,
         status: TASK_STATUS.TODO,
@@ -212,7 +184,7 @@ export default function Project() {
 
   const handleInlineCommit = async (parentId, title) => {
     try {
-      await createTaskMutation.mutateAsync({
+      await _createTask.mutateAsync({
         title,
         root_id: projectId,
         status: 'todo', // Use lowercase default or constant
@@ -250,7 +222,15 @@ export default function Project() {
     const { active, over } = event;
     const assignment = resolveDragAssign(active, over, tasks);
     if (assignment) {
-      assignMemberMutation.mutate(assignment);
+      _assignMember.mutate({ ...assignment, root_id: projectId }, {
+        onSuccess: () => {
+          toast({ title: 'Member assigned to task', variant: 'default' });
+        },
+        onError: (err) => {
+          console.error(err);
+          toast({ title: 'Failed to assign member', description: err.message || 'API might be missing', variant: 'destructive' });
+        }
+      });
     }
   };
 
@@ -395,10 +375,18 @@ export default function Project() {
         onEditTask={() => { }}
         onDeleteTask={(t) => {
           if (window.confirm(`Delete "${t.title || 'this task'}"? This cannot be undone.`)) {
-            deleteTaskMutation.mutate(t.id);
+            _deleteTask.mutate({ id: t.id, root_id: projectId }, {
+              onSuccess: () => {
+                setSelectedTask(null);
+                toast({ title: 'Task deleted', variant: 'default' });
+              },
+              onError: (error) => {
+                toast({ title: 'Failed to delete task', description: error.message, variant: 'destructive' });
+              }
+            });
           }
         }}
-        onTaskUpdated={(id, data) => updateTaskMutation.mutate({ id, data })}
+        onTaskUpdated={(id, data) => handleTaskUpdate(id, data)}
         allProjectTasks={tasks}
         canEdit={canEdit}
       />

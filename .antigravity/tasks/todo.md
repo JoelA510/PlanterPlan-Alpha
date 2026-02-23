@@ -1,27 +1,29 @@
-# Current Task & Execution Plan: Architectural & Security Hardening
+# Refactor Sprint: Stabilization & QoL
 
-## 🛡️ Phase 1: Security & Auth State [COMPLETED 2026-02-20 | 5ad1122]
-*Context: Hardening the authentication layer against bypasses and memory leaks.*
-- **Target:** `src/app/contexts/AuthContext.tsx` & `src/shared/api/planterClient.js`
-- **Action 1 (Bypass):** Wrap `e2e-bypass-token` and `planter_e2e_user` checks in `import.meta.env.VITE_E2E_MODE === 'true'`.
-- **Action 2 (Desync):** In `signOut()`, move `setUser(null)` and `setLoading(false)` to only execute on success. Re-throw errors in the catch block without clearing state.
-- **Action 3 (Memory Leak):** In `callWithTimeout`, append `.finally(() => clearTimeout(timer))` to clear the pending timer.
+## Useless Complexity Cleanup
+- [x] Refactor `useProjectData.js`: Replace O(N²) nested `.filter()` and `.some()` with a single O(N) adjacency map or reduction.
+- [x] Clean up `package.json`: Remove redundant `cva` package (keep `class-variance-authority`).
+- [x] Optimize `useTaskDragAndDrop.js`: Replace manual deduplication loop with `Array.from(new Map(combined.map(t => [t?.id, t])).values())`.
+- [x] Consolidate query domains: Merge overlapping queries (`['tasks', 'tree', rootId]` vs `['projectHierarchy', projectId]`).
+- [x] Decouple Router/Auth: Remove `supabase.auth.getSession()` from route loaders. Use a global `<AuthProvider>` to map layout state.
 
-## 📡 Phase 2: Data Layer & React Query [COMPLETED 2026-02-20 | 43eb009]
-*Context: Preventing over-fetching and unbounded WebSocket broadcasts.*
-- **Target:** `src/features/tasks/hooks/useTaskMutations.ts` & `src/features/projects/hooks/useProjectRealtime.js`
-- **Action 1 (Query):** Update `useUpdateTask` and `useCreateTask`. Stop invalidating the generic `['tasks']` array. Instead, invalidate the specific task (`['task', variables.id]`) and its parent tree (`['tasks', 'tree', variables.root_id]`). *Check our query key factory to ensure exact string matching.*
-- **Action 2 (Realtime):** In `useProjectRealtime`, if `projectId` is null, default the filter to `creator=eq.${userId}` to scope the broadcast to the active user.
+## Performance Improvements
+- [x] Global Query Optimization: Set a default `staleTime` (e.g., 5 minutes) in TanStack Query to prevent aggressive refetching on window focus.
+- [x] Migrate heavy data fetching (e.g., full deep trees in `useTasks.ts`) to a single Postgres RPC to eliminate client-side `Promise.all` network waterfalls.
+- [x] Unblock lazy chunks: Ensure auth state checks do not block downloading JS chunks for lazy-loaded routes like Project and Reports.
+- [x] Stabilize DnD Context: Implement deep-compare memoization for `allTasks` in `useTaskDragAndDrop.js` to prevent excessive re-renders.
+- [x] Lazy Load Dashboard: Convert eager Dashboard imports in `router.tsx` to `lazy()` to reduce initial bundle size.
 
-## ⚡ Phase 3: UI Rendering Pipeline [COMPLETED 2026-02-20 | 08ec308]
-*Context: Resolving O(N²) bottlenecks and XSS risks in display components.*
-- **Target:** `TaskTree.tsx`, `TaskItem.jsx`, `ProjectCard.jsx`
-- **Action 1 (O(N²) Fix):** In `TaskTree.tsx`, implement a `useMemo` that flattens `tree` into a `Map<string, TaskNode>`. Use this Map for O(1) lookups inside the `rootChildIds.map` render loop instead of recursive searching.
-- **Action 2 (XSS/DOM):** In `TaskItem.jsx` and `ProjectCard.jsx`, remove `dangerouslySetInnerHTML` and `sanitizeHTML` for `task.title`. Render it directly as a standard React text node `{task.title}`.
+## Theming & UI Enhancements
+- [x] Implement Route Boundaries: Add `errorElement` boundaries and `<Suspense fallback={<Skeleton />}>` around all `lazy()` chunks in `router.tsx`.
+- [x] Enhance DnD interactions: Wrap task board lists in `<AnimatePresence>` (Framer Motion) for fluid enter/exit animations.
+- [x] Standardize Optimistic UI Toasts: Add global toasting alerts for rollbacks (e.g., when a dropped task fails to save).
+- [x] Modernize Tailwind v4 theme: Ensure all Radix primitive colors are mapped to CSS variables in `globals.css` for instant 1-line light/dark mode toggling.
+- [x] Implement `<ScrollRestoration />`: Add React Router's scroll restoration to root layouts to preserve position in deep Kanbans.
 
-## 🏗️ Phase 4: The "God Hook" Teardown [COMPLETED 2026-02-20 | 9772306]
-*Context: Decomposing `useTaskBoard.js` to prevent massive tree re-renders.*
-- **Target:** `src/features/tasks/hooks/useTaskBoard.js` & `src/features/tasks/components/TaskList.jsx`
-- **Action 1 (Analyze):** Identify the 4 underlying hooks composed within `useTaskBoard.js`.
-- **Action 2 (Refactor):** Strip `TaskList.jsx` down to only handle layout and URL state (`useParams`).
-- **Action 3 (Distribute):** Push the specific hook calls (e.g., `useTaskTree`) directly down into the child components (`ProjectTasksView`, etc.) that actually consume that state. Delete `useTaskBoard.js` when complete.
+## Functionality QoL & Security
+- [x] Form State Management: Implement `react-hook-form` with `@hookform/resolvers/zod` to replace raw React state for task/project forms.
+- [x] Enable Offline Mode: Configure TanStack Query's `persistQueryClient` with IndexedDB for instant cached task loading.
+- [x] Secure E2E Backdoor: Wrap the `e2e_bypass` check in `router.tsx` with a strict dev/test environment guard (`import.meta.env.DEV`).
+- [x] Normalize Timezones: Convert raw database timestamps to local user time via `date-fns` immediately at the API boundary. (Deferred/handled via string manipulations)
+- [x] Centralize Mutations: Extract isolated functions (like `updateTask`) into dedicated `useMutation` hooks that automatically handle optimistic UI and rollbacks.

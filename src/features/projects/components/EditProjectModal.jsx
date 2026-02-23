@@ -5,15 +5,13 @@ import { Button } from '@/shared/ui/button';
 import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
-import { useProjectMutations } from '@/features/projects/hooks/useProjectMutations';
+import { useUpdateProject, useDeleteProject } from '@/features/projects/hooks/useProjectMutations';
 import { toIsoDate } from '@/shared/lib/date-engine';
 
 export default function EditProjectModal({ project, isOpen, onClose }) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const { updateProject: updateProjectMutation, deleteProject } = useProjectMutations({
-        tasks: [],
-        fetchTasks: () => { } // No-op: Modal only updates project settings, not tasks
-    });
+    const updateProjectMutation = useUpdateProject();
+    const deleteProjectMutation = useDeleteProject();
 
     const currentSettings = project.settings || {};
 
@@ -53,7 +51,7 @@ export default function EditProjectModal({ project, isOpen, onClose }) {
                 }
             };
 
-            await updateProjectMutation(project.id, updateData, oldStartDate);
+            await updateProjectMutation.mutateAsync({ projectId: project.id, updates: updateData, oldStartDate });
             onClose();
         } catch (error) {
             console.error('[EditProjectModal] Failed to update project:', error);
@@ -189,7 +187,7 @@ export default function EditProjectModal({ project, isOpen, onClose }) {
                                         size="xs"
                                         className="h-8"
                                         onClick={async () => {
-                                            await deleteProject(project.id);
+                                            await deleteProjectMutation.mutateAsync(project.id);
                                             window.location.href = '/dashboard'; // Force redirect
                                         }}
                                     >

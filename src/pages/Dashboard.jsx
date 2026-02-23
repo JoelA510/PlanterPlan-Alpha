@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { planter } from '@/shared/api/planterClient';
-import { createProjectWithDefaults, updateProjectStatus } from '@/features/projects/services/projectService'; // Service import
+import { createProjectWithDefaults, updateProjectStatus } from '@/features/projects/services/projectService';
+import { useCreateProject, useUpdateProjectStatus, useCreateTemplate } from '@/features/projects/hooks/useProjectMutations';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/shared/ui/use-toast';
@@ -100,61 +101,28 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  const createProjectMutation = useMutation({
-    mutationFn: createProjectWithDefaults,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
-    },
-    onError: (error) => {
-      toast({ title: 'Failed to create project', description: error.message, variant: 'destructive' });
-    }
-  });
-
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ projectId, status }) => updateProjectStatus(projectId, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Sync Sidebar
-    },
-    onError: (error) => {
-      toast({
-        title: 'Failed to move project',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  });
-
-  const createTemplateMutation = useMutation({
-    mutationFn: (templateData) => planter.entities.Task.create({ ...templateData, creator: user?.id, origin: 'template', parent_task_id: null }),
-    onSuccess: () => {
-      toast({ title: 'Template created', description: 'Your new template is ready.' });
-      queryClient.invalidateQueries({ queryKey: ['userProjects'] }); // Templates are in sidebar
-    },
-    onError: (error) => {
-      toast({ title: 'Failed to create template', description: error.message, variant: 'destructive' });
-    }
-  });
+  const createProjectMutation = useCreateProject();
+  const updateStatusMutation = useUpdateProjectStatus();
+  const createTemplateMutation = useCreateTemplate();
 
   const handleCreateProject = async (projectData) => {
     try {
-      const project = await createProjectMutation.mutateAsync({ ...projectData, creator: user?.id });
+      const project = await createProjectMutation.mutateAsync(projectData);
       // Redirect to the new project board
       if (project?.id) {
         navigate(`/project/${project.id}`);
       }
     } catch (error) {
-      // Error handled by onError in useMutation
+      toast({ title: 'Failed to create project', description: error.message, variant: 'destructive' });
     }
   };
 
   const handleCreateTemplate = async (templateData) => {
     try {
-      await createTemplateMutation.mutateAsync({ ...templateData, creator: user?.id });
+      await createTemplateMutation.mutateAsync(templateData);
+      toast({ title: 'Template created', description: 'Your new template is ready.' });
     } catch (error) {
-      // Error handled via Mutation onError
+      toast({ title: 'Failed to create template', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -162,9 +130,7 @@ export default function Dashboard() {
     try {
       await updateStatusMutation.mutateAsync({ projectId, status: newStatus });
     } catch (error) {
-      // Error handled by onError in useMutation, no need for console.error here
-      // If we had optimistic UI, we'd roll back here.
-      // Since we rely on refetch, we might just need to ensure the board resets if error.
+      toast({ title: 'Failed to move project', description: error.message, variant: 'destructive' });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     }
   };

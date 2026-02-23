@@ -1,7 +1,14 @@
-const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFields }) => {
+import { useFormContext } from 'react-hook-form';
+
+const TaskFormFields = ({ origin, renderExtraFields }) => {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext();
+
   return (
     <>
-      {errors.submit && <div className="form-error-banner">{errors.submit}</div>}
+      {errors.root?.submit && <div className="form-error-banner">{errors.root.submit.message}</div>}
 
       <div className="form-group">
         <label htmlFor="title" className="form-label">
@@ -10,14 +17,12 @@ const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFie
         <input
           type="text"
           id="title"
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
+          autoFocus
           className={`form-input ${errors.title ? 'error' : ''}`}
           placeholder="Enter task title"
-          autoFocus
+          {...register('title')}
         />
-        {errors.title && <span className="form-error">{errors.title}</span>}
+        {errors.title && <span className="form-error">{errors.title.message}</span>}
       </div>
 
       <div className="form-group">
@@ -26,12 +31,10 @@ const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFie
         </label>
         <textarea
           id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
           className="form-textarea"
           placeholder="Describe the task..."
           rows="3"
+          {...register('description')}
         />
       </div>
 
@@ -41,12 +44,10 @@ const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFie
         </label>
         <textarea
           id="notes"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
           className="form-textarea"
           placeholder="Internal notes, hints, or context..."
           rows="2"
+          {...register('notes')}
         />
       </div>
 
@@ -56,12 +57,10 @@ const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFie
         </label>
         <textarea
           id="purpose"
-          name="purpose"
-          value={formData.purpose ?? ''}
-          onChange={handleChange}
           className="form-textarea"
           placeholder="Why is this task needed?"
           rows="2"
+          {...register('purpose')}
         />
       </div>
 
@@ -71,12 +70,10 @@ const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFie
         </label>
         <textarea
           id="actions"
-          name="actions"
-          value={formData.actions ?? ''}
-          onChange={handleChange}
           className="form-textarea"
           placeholder="Specific actions to take..."
           rows="2"
+          {...register('actions')}
         />
       </div>
 
@@ -90,18 +87,16 @@ const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFie
               <input
                 type="number"
                 id="days_from_start"
-                name="days_from_start"
-                value={formData.days_from_start}
-                onChange={handleChange}
                 className={`form-input pl-10 ${errors.days_from_start ? 'error' : ''}`}
                 placeholder="0"
                 min="0"
+                {...register('days_from_start', { valueAsNumber: true })}
               />
               <div className="pointer-events-none absolute left-0 top-0 flex h-full w-10 items-center justify-center text-slate-400">
                 <span className="text-sm font-medium">T+</span>
               </div>
             </div>
-            {errors.days_from_start && <span className="form-error">{errors.days_from_start}</span>}
+            {errors.days_from_start && <span className="form-error">{errors.days_from_start.message}</span>}
             <p className="mt-1 text-xs text-slate-500">
               Auto-calculates dates based on project start
             </p>
@@ -125,10 +120,8 @@ const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFie
                 <input
                   type="date"
                   id="start_date"
-                  name="start_date"
-                  value={formData.start_date}
-                  onChange={handleChange}
                   className="form-input"
+                  {...register('start_date')}
                 />
               </div>
 
@@ -139,12 +132,10 @@ const TaskFormFields = ({ formData, errors, handleChange, origin, renderExtraFie
                 <input
                   type="date"
                   id="due_date"
-                  name="due_date"
-                  value={formData.due_date}
-                  onChange={handleChange}
                   className={`form-input ${errors.due_date ? 'error' : ''}`}
+                  {...register('due_date')}
                 />
-                {errors.due_date && <span className="form-error">{errors.due_date}</span>}
+                {errors.due_date && <span className="form-error">{errors.due_date.message}</span>}
               </div>
             </div>
           </div>

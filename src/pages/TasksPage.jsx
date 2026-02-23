@@ -6,7 +6,7 @@ import { planter } from '@/shared/api/planterClient';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import TaskItem from '@/features/tasks/components/TaskItem';
 import { Loader2, List, LayoutGrid } from 'lucide-react';
-import { useTaskMutations } from '@/features/tasks/hooks/useTaskMutations';
+import { useTaskActions } from '@/features/tasks/hooks/useTaskActions';
 import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView';
 
 export default function TasksPage() {
@@ -22,7 +22,7 @@ export default function TasksPage() {
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'board'
 
   // We still need mutation capabilities for the TaskList
-  const { updateTask } = useTaskMutations({
+  const { updateTask } = useTaskActions({
     tasks,
     fetchTasks: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
     refreshProjectDetails: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),

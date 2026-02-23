@@ -159,6 +159,11 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, updateTaskStatus, han
           await fetchTasks();
         } catch (e) {
           console.error('Failed to persist move', e);
+          toast({
+            title: "Task Move Failed",
+            description: "An error occurred while saving the reorder. Reverting changes...",
+            variant: "destructive",
+          });
           if (commitOptimisticUpdate) {
             // Revert all affected tasks... logic is complex here for revert.
             // Simpler to rely on refetch for severe errors.
@@ -170,6 +175,11 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, updateTaskStatus, han
 
       } catch (globalError) {
         console.error('Unexpected error in handleDragEnd:', globalError);
+        toast({
+          title: "Unexpected Error",
+          description: "An unexpected error occurred during drag and drop. Reverting...",
+          variant: "destructive",
+        });
         fetchTasks();
       }
     },

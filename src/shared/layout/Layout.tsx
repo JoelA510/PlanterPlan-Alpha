@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useLocation, useNavigate, ScrollRestoration } from 'react-router-dom'
 import { LayoutDashboard, LogOut } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { ViewAsProvider } from '@/app/contexts/ViewAsContext'
@@ -21,6 +21,7 @@ export function Layout() {
 
     return (
         <ViewAsProvider userRole={userRole}>
+            <ScrollRestoration />
             <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
                 {/* Sidebar */}
                 <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">

@@ -2,11 +2,8 @@ import MasterLibrarySearch from '@/features/library/components/MasterLibrarySear
 import TaskFormFields from '@/features/tasks/components/TaskFormFields';
 
 const CreateTaskForm = ({
-  formData,
-  errors,
   isSubmitting,
   lastAppliedTaskTitle,
-  handleChange,
   handleApplyFromLibrary,
   handleSubmit,
   onCancel,
@@ -48,12 +45,7 @@ const CreateTaskForm = ({
         </div>
       )}
 
-      <TaskFormFields
-        formData={formData}
-        errors={errors}
-        handleChange={handleChange}
-        origin={origin}
-      />
+      <TaskFormFields origin={origin} />
 
       <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">
         <button type="button" onClick={onCancel} className="btn-secondary" disabled={isSubmitting}>

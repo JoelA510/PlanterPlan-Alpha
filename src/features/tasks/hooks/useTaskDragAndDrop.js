@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useDeepCompareMemo } from 'use-deep-compare';
 import { useTaskDrag } from '@/features/task-drag';
 
 /**
@@ -20,19 +20,12 @@ export const useTaskDragAndDrop = ({
 }) => {
 
     // Flatten and deduplicate all known tasks for DnD context (Roots + Hydrated Subtasks)
-    const allTasks = useMemo(() => {
+    const allTasks = useDeepCompareMemo(() => {
         const descendants = Object.values(hydratedProjects).flat();
         const combined = [...tasks, ...descendants];
 
         // Deduplicate by ID to prevent DnD-kit layout issues
-        const seen = new Map();
-        combined.forEach(t => {
-            if (t?.id && !seen.has(t.id)) {
-                seen.set(t.id, t);
-            }
-        });
-
-        return Array.from(seen.values());
+        return Array.from(new Map(combined.map(t => [t?.id, t])).values());
     }, [tasks, hydratedProjects]);
 
     // Use the existing shared drag hook

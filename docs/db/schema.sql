@@ -990,3 +990,22 @@ CREATE POLICY "Manage resources" ON public.task_resources
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.task_resources TO authenticated;
 GRANT ALL ON public.task_resources TO service_role;
+
+-- ============================================================================
+-- 5. OPTIMIZED DATA FETCHING RPCs 
+-- ============================================================================
+
+-- Fetch an entire project task tree (root + all children) in a single optimized query
+CREATE OR REPLACE FUNCTION public.get_task_tree(p_root_id UUID)
+RETURNS SETOF public.tasks
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT * FROM public.tasks 
+    WHERE id = p_root_id OR root_id = p_root_id
+    ORDER BY position ASC NULLS LAST;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_task_tree(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_task_tree(uuid) TO service_role;

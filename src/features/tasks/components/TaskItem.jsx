@@ -7,6 +7,7 @@ import { cn } from '@/shared/lib/utils';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from '@/shared/ui/ErrorFallback';
 import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
 // [NEW] Inline Task Input
@@ -194,45 +195,60 @@ const TaskItem = ({
             strategy={verticalListSortingStrategy}
             id={`sortable-context-${task.id}`}
           >
-            {/* [NEW] Inline Input renders BEFORE children */}
-            {isAddingInline && (
-              <div className="ml-6 mb-2">
-                <InlineTaskInput
-                  onCommit={(title) => onInlineCommit(task.id, title)}
-                  onCancel={onInlineCancel}
-                  level={level + 1}
-                />
-              </div>
-            )}
+            <AnimatePresence mode="popLayout">
+              {/* [NEW] Inline Input renders BEFORE children */}
+              {isAddingInline && (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                  className="ml-6 mb-2"
+                >
+                  <InlineTaskInput
+                    onCommit={(title) => onInlineCommit(task.id, title)}
+                    onCancel={onInlineCancel}
+                    level={level + 1}
+                  />
+                </motion.div>
+              )}
 
-            {task.children && task.children.length > 0 ? (
-              task.children.map((child) => (
-                <SortableTaskItem
-                  key={child.id}
-                  task={child}
-                  level={level + 1}
-                  onTaskClick={onTaskClick}
-                  selectedTaskId={selectedTaskId}
-                  onAddChildTask={onAddChildTask}
-                  onInviteMember={onInviteMember}
-                  onStatusChange={onStatusChange}
-                  onToggleExpand={onToggleExpand}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  // Pass Props Down
-                  isAddingInline={child.isAddingInline}
-                  onInlineCommit={onInlineCommit}
-                  onInlineCancel={onInlineCancel}
-                />
-              ))
-            ) : (
-              // Only show "Drop here" if NOT adding inline and truly empty
-              !isAddingInline && (
-                <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
-                  Drop subtasks here
-                </div>
-              )
-            )}
+              {task.children && task.children.length > 0 ? (
+                task.children.map((child) => (
+                  <motion.div
+                    key={child.id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                  >
+                    <SortableTaskItem
+                      task={child}
+                      level={level + 1}
+                      onTaskClick={onTaskClick}
+                      selectedTaskId={selectedTaskId}
+                      onAddChildTask={onAddChildTask}
+                      onInviteMember={onInviteMember}
+                      onStatusChange={onStatusChange}
+                      onToggleExpand={onToggleExpand}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      // Pass Props Down
+                      isAddingInline={child.isAddingInline}
+                      onInlineCommit={onInlineCommit}
+                      onInlineCancel={onInlineCancel}
+                    />
+                  </motion.div>
+                ))
+              ) : (
+                // Only show "Drop here" if NOT adding inline and truly empty
+                !isAddingInline && (
+                  <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
+                    Drop subtasks here
+                  </div>
+                )
+              )}
+            </AnimatePresence>
           </SortableContext>
         </div>
       )}

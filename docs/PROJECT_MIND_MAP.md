@@ -169,6 +169,12 @@ mindmap
           - [x] **Navigation Streamlined**: Removed `My Tasks` from global taxonomy.
           - [x] **Dashboard Merged**: Consolidated Grid and Pipeline views into a single, permanent pipeline view tracking top-level stats.
           - [x] **Reporting Access**: Added `Select` dropdown to global Reports view for direct project selection.
+
+        - [x] **Wave 15: State & Mutation Centralization**
+          - [x] **Form State**: Replaced raw React state with `react-hook-form` + `@hookform/resolvers/zod` for tasks and projects.
+          - [x] **Offline Cache**: Configured TanStack Query `persistQueryClient` with IndexedDB.
+          - [x] **Mutation Hooks**: Extracted all project and task mutations into dedicated `useProjectMutations.ts` and `useTaskMutations.ts` hooks with built-in optimistic UI and rollbacks.
+          - [x] **Legacy Hooks**: Preserved complex `TaskList` wrapper logic in `useTaskActions.js` to decouple it from pure query logic.
         auth.updateProfile adapter
       Supabase PostgreSQL
         tasks table

@@ -107,31 +107,47 @@ export default function MilestoneSection({
                 </div>
               ) : (
                 <div className="space-y-2 pt-4">
-                  {milestoneTasks
-                    .sort((a, b) => (a.order || 0) - (b.order || 0))
-                    .map((task) => (
-                      <TaskItem
-                        key={task.id}
-                        task={task}
-                        onTaskClick={onTaskClick}
-                        onStatusChange={(id, status) => onTaskUpdate(id, { status })}
-                        onAddChildTask={onAddChildTask}
-                        isAddingInline={task.isAddingInline}
-                        onInlineCommit={onInlineCommit}
-                        onInlineCancel={onInlineCancel}
-                      />
-                    ))}
-                  {canEdit && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-slate-500 hover:text-slate-700 mt-2"
-                      onClick={() => onAddTask(milestone)}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Task
-                    </Button>
-                  )}
+                  <AnimatePresence mode="popLayout">
+                    {milestoneTasks
+                      .sort((a, b) => (a.order || 0) - (b.order || 0))
+                      .map((task) => (
+                        <motion.div
+                          key={task.id}
+                          layout
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                        >
+                          <TaskItem
+                            task={task}
+                            onTaskClick={onTaskClick}
+                            onStatusChange={(id, status) => onTaskUpdate(id, { status })}
+                            onAddChildTask={onAddChildTask}
+                            isAddingInline={task.isAddingInline}
+                            onInlineCommit={onInlineCommit}
+                            onInlineCancel={onInlineCancel}
+                          />
+                        </motion.div>
+                      ))}
+                    {canEdit && (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-slate-500 hover:text-slate-700 mt-2"
+                          onClick={() => onAddTask(milestone)}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Task
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </div>

@@ -154,6 +154,16 @@
 - **Context**: Deep links didn't update navigation state.
 - **Rule**: Sync UI state with URL params (`useParams`) in a `useEffect`.
 
+### [FE-047] Decoupling Mutations from UI Wrappers
+- **Date**: 2026-02-23
+- **Context**: `useTaskMutations` used to contain both raw API calls *and* complex UI-specific rollback/refresh logic for the `TaskList` component, making it impossible to use safely in simple isolated forms.
+- **Rule**: **Separate API from Orchestration.** Pure mutation hooks (`useTaskMutations.ts`) should only handle standard TanStack `onMutate`/`onError` cache updates. Complex, orchestrating UI wrappers (e.g., refreshing multiple unrelated contexts on drop) belong in a separate layer (e.g., `useTaskActions.js`).
+
+### [TS-001] Implicit Return Types in Legacy JS Services
+- **Date**: 2026-02-23
+- **Context**: Porting JS services to TS hooks caused `Property 'data' does not exist on type 'Object'` because the underlying `createEntityClient` returned an untyped generic object.
+- **Rule**: **Cast unknown legacy returns.** When wrapping legacy untyped JS functions in new TS files, explicitly cast the return type (`as any` or a specific interface) to satisfy the compiler until the base service is rewritten in TS. Do not block iterative TypeScript adoption over legacy JS boundaries.
+
 ## Development Findings (Historical Context & Deprecated Patterns)
 
 ### [CSS-028/030] Manual Tailwind Emulation Pitfalls

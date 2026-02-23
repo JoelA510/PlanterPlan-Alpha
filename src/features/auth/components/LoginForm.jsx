@@ -1,12 +1,18 @@
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/shared/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
 const LoginForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -14,16 +20,27 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const onSubmit = async (data) => {
     setLoading(true);
 
     try {
       let result;
       if (isSignUp) {
-        result = await signUp(email, password);
+        result = await signUp(data.email, data.password);
       } else {
-        result = await signIn(email, password);
+        result = await signIn(data.email, data.password);
       }
 
       if (result.error) {
@@ -52,7 +69,7 @@ const LoginForm = () => {
           </p>
         </div>
 
-        <form className="bg-white dark:bg-card py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit}>
+        <form className="bg-white dark:bg-card py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-foreground">
@@ -60,14 +77,14 @@ const LoginForm = () => {
               </label>
               <input
                 id="email"
-                name="email"
                 type="email"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 dark:border-input placeholder-slate-400 dark:bg-background dark:text-foreground rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500"
+                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-slate-300 dark:border-input'} placeholder-slate-400 dark:bg-background dark:text-foreground rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500`}
                 placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register('email')}
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+              )}
             </div>
 
             <div>
@@ -76,14 +93,14 @@ const LoginForm = () => {
               </label>
               <input
                 id="password"
-                name="password"
                 type="password"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-slate-300 dark:border-input placeholder-slate-400 dark:bg-background dark:text-foreground rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500"
+                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-slate-300 dark:border-input'} placeholder-slate-400 dark:bg-background dark:text-foreground rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500`}
                 placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register('password')}
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
+              )}
             </div>
 
             <div>

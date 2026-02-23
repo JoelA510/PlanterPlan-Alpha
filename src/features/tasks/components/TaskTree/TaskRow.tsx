@@ -101,7 +101,7 @@ interface ConnectedTaskRowProps {
 
 export function ConnectedTaskRow({ id, rootId, items, onSelectTask }: ConnectedTaskRowProps) {
     const { data: tasks } = useTaskTree(rootId)
-    const node = tasks?.find(t => t.id === id)
+    const node = tasks?.find((t: any) => t.id === id)
 
     if (!node) return null
 

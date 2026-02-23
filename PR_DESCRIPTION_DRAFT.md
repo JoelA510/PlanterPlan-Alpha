@@ -15,6 +15,11 @@ This PR further hardens the application foundation through several critical refa
 - **Type-Safe Mutations:** Tightened `useTaskMutations.ts` by replacing `any` with explicit `TaskPayload` interfaces, ensuring form-to-API contract integrity.
 - **Stable Date Picking:** Fixed a long-standing test hang in `CreateProjectModal.test.jsx` by standardizing on ARIA-role-based date selection for the project calendar.
 
+### 4. Data Flow & Form Architecture (Wave 15)
+- **Zod & React Hook Form:** Migrated all major creation modals away from raw, unvalidated React state to `react-hook-form` paired with `@hookform/resolvers/zod`. This strictly types payload boundaries before they ever reach the network layer.
+- **Decoupled Mutations:** Ripped out legacy orchestration monoliths. Extracted pure API writes into `useTaskMutations.ts` and `useProjectMutations.ts` using TanStack's `onMutate` and `onError` for flawless optimistic UI. Relegated complex UI-specific rollback/refresh logic (like dragging a task and updating dependent branches) into a distinct `useTaskActions.js` wrapper.
+- **Offline Resilience:** Configured `persistQueryClient` with IndexedDB, enabling near-instant, cached loads of the task tree even under poor network conditions.
+
 ### 3. "God Hook" Decomposition
 The monolithic `useTaskBoard.js` has been dismantled into a modular, composed architecture:
 

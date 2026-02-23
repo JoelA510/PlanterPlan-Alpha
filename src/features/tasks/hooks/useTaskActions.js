@@ -7,7 +7,7 @@ import { POSITION_STEP } from '@/app/constants/index';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
 import { toIsoDate } from '@/shared/lib/date-engine';
 
-export const useTaskMutations = ({
+export const useTaskActions = ({
   tasks,
   fetchTasks,
   fetchProjects,

@@ -1,11 +1,33 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-primary: #f97316;
-  --color-primary-foreground: #ffffff;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 
-  --color-secondary: #f1f5f9;
-  --color-secondary-foreground: #0f172a;
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
   /* Brand Aliases (Rule 30) */
   --color-brand-50: #fff7ed;
@@ -20,48 +42,14 @@
   --color-brand-900: #7c2d12;
   --color-brand-950: #431407;
 
-  --color-accent: #f1f5f9;
-  --color-accent-foreground: #0f172a;
-
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #f8fafc;
-
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-
-  --color-card: #ffffff;
-  --color-card-foreground: #0f172a;
-
-  --color-popover: #ffffff;
-  --color-popover-foreground: #0f172a;
-
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #f97316;
   --color-white-alpha-80: rgba(255, 255, 255, 0.8);
   --color-white-alpha-10: rgba(255, 255, 255, 0.1);
 
-  /* Semantic Variables used in layouts */
-  --color-foreground: #0f172a;
-  /* Slate 900 */
-  --color-text-secondary: #64748b;
-  /* Slate 500 */
-  --color-background: #f8fafc;
-  /* Slate 50 */
-  --color-brand-primary: #f97316;
-  /* Orange 500 */
-  --color-brand-primary-soft: #fff7ed;
-  /* Orange 50 */
-
   /* Strict Semantic Tokens (Rules.md Section 3) */
-  --color-surface-bg: #f8fafc;
-  /* Slate 50 */
-  --color-panel-bg: #ffffff;
-  /* White */
+  --color-surface-bg: var(--background);
+  --color-panel-bg: var(--card);
   --color-error-bg: #fff1f2;
-  /* Rose 50 */
   --color-error-text: #be123c;
-  /* Rose 700 */
 
   --radius-lg: 0.5rem;
   --radius-md: calc(0.5rem - 2px);
@@ -74,7 +62,6 @@
     from {
       height: 0;
     }
-
     to {
       height: var(--radix-accordion-content-height);
     }
@@ -84,73 +71,65 @@
     from {
       height: var(--radix-accordion-content-height);
     }
-
     to {
       height: 0;
     }
   }
 }
 
-/* Base Styles */
 @layer base {
-  body {
-    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+  :root {
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    --primary: #f97316;
+    --primary-foreground: #ffffff;
+    --secondary: #f1f5f9;
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --accent: #f1f5f9;
+    --accent-foreground: #0f172a;
+    --destructive: #ef4444;
+    --destructive-foreground: #f8fafc;
+    --border: #e2e8f0;
+    --input: #e2e8f0;
+    --ring: #f97316;
+    --radius: 0.5rem;
   }
-}
 
-/* Dark Mode Variables */
-.dark {
-  --color-primary: #fb923c;
-  --color-primary-foreground: #1e293b;
+  .dark {
+    --background: #0f172a;
+    --foreground: #f8fafc;
+    --card: #1e293b;
+    --card-foreground: #f8fafc;
+    --popover: #1e293b;
+    --popover-foreground: #f8fafc;
+    --primary: #fb923c;
+    --primary-foreground: #1e293b;
+    --secondary: #334155;
+    --secondary-foreground: #f8fafc;
+    --muted: #334155;
+    --muted-foreground: #94a3b8;
+    --accent: #334155;
+    --accent-foreground: #f8fafc;
+    --destructive: #f87171;
+    --destructive-foreground: #1e293b;
+    --border: #334155;
+    --input: #475569;
+    --ring: #fb923c;
+  }
 
-  --color-secondary: #334155;
-  --color-secondary-foreground: #f8fafc;
+  * {
+    @apply border-border;
+  }
 
-  --color-brand-50: #431407;
-  --color-brand-100: #7c2d12;
-  --color-brand-200: #9a3412;
-  --color-brand-300: #c2410c;
-  --color-brand-400: #ea580c;
-  --color-brand-500: #f97316;
-  --color-brand-600: #fb923c;
-  --color-brand-700: #fdba74;
-  --color-brand-800: #fed7aa;
-  --color-brand-900: #ffedd5;
-  --color-brand-950: #fff7ed;
-
-  --color-accent: #334155;
-  --color-accent-foreground: #f8fafc;
-
-  --color-destructive: #f87171;
-  --color-destructive-foreground: #1e293b;
-
-  --color-muted: #334155;
-  --color-muted-foreground: #94a3b8;
-
-  --color-card: #1e293b;
-  --color-card-foreground: #f8fafc;
-
-  --color-popover: #1e293b;
-  --color-popover-foreground: #f8fafc;
-
-  --color-border: #334155;
-  --color-input: #475569;
-  --color-ring: #fb923c;
-
-  /* Semantic Variables (Dark Map) */
-  --color-foreground: #f8fafc;
-  /* Slate 50 */
-  --color-text-secondary: #94a3b8;
-  /* Slate 400 */
-  --color-background: #0f172a;
-  /* Slate 900 */
-  --color-brand-primary: #f97316;
-  /* Orange 500 */
-  --color-brand-primary-soft: #431407;
-  /* Orange 950 */
-  --color-surface: var(--color-card);
-  --color-surface-foreground: var(--color-card-foreground);
-  --color-border-subtle: var(--color-secondary);
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
 }
 
 /* Component Classes (Extracted to reduce file size) */

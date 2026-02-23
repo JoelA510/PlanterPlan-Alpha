@@ -24,15 +24,15 @@ const formatDueDate = (dateString) => {
  * Get date color based on urgency
  */
 const getDateColor = (dateString) => {
-    if (!dateString) return 'text-slate-400 dark:text-slate-500';
+    if (!dateString) return 'text-slate-400';
     try {
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return 'text-slate-400 dark:text-slate-500';
-        if (isPast(date) && !isToday(date)) return 'text-rose-600 dark:text-rose-400';
-        if (isToday(date)) return 'text-amber-600 dark:text-amber-400';
-        return 'text-slate-500 dark:text-slate-400';
+        if (isNaN(date.getTime())) return 'text-slate-400';
+        if (isPast(date) && !isToday(date)) return 'text-rose-600';
+        if (isToday(date)) return 'text-amber-600';
+        return 'text-slate-500';
     } catch {
-        return 'text-slate-400 dark:text-slate-500';
+        return 'text-slate-400';
     }
 };
 
@@ -42,7 +42,7 @@ const BoardTaskCard = memo(({ task, onClick, dragHandleProps, style, isDragging 
 
     return (
         <div
-            className={`bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md dark:hover:shadow-slate-900/50 transition-shadow cursor-pointer group mb-2 ${isDragging ? 'opacity-50 ring-2 ring-brand-500' : ''}`}
+            className={`bg-white p-3 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group mb-2 ${isDragging ? 'opacity-50 ring-2 ring-brand-500' : ''}`}
             style={style}
             onClick={() => onClick(task)}
         >
@@ -50,13 +50,13 @@ const BoardTaskCard = memo(({ task, onClick, dragHandleProps, style, isDragging 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                         <button
-                            className="cursor-grab active:cursor-grabbing text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                            className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 p-0.5 rounded hover:bg-slate-100"
                             {...dragHandleProps}
                         >
                             <GripVertical className="w-4 h-4" />
                         </button>
                         {task.resource_type && (
-                            <span className="p-1 rounded bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300">
+                            <span className="p-1 rounded bg-brand-50 text-brand-700">
                                 <LinkIcon className="w-3 h-3" />
                             </span>
                         )}
@@ -64,22 +64,28 @@ const BoardTaskCard = memo(({ task, onClick, dragHandleProps, style, isDragging 
 
                     {/* Breadcrumbs - Hierarchy Context */}
                     {task.breadcrumbs && (
-                        <div className="mb-0.5 text-xs text-slate-400 dark:text-slate-500 font-medium truncate" title={task.breadcrumbs}>
+                        <div className="mb-0.5 text-xs text-slate-400 font-medium truncate" title={task.breadcrumbs}>
                             {task.breadcrumbs}
                         </div>
                     )}
 
-                    <h4 className="text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-3 leading-snug">
+                    <h4 className="text-sm font-medium text-slate-800 line-clamp-3 leading-snug">
                         {task.title}
                     </h4>
                 </div>
-                {task.membership_role && <RoleIndicator role={task.membership_role} size="sm" />}
+
+                {/* Flex-shrink container forces badge to remain uniform without squishing */}
+                {task.membership_role && (
+                    <div className="flex-shrink-0 pt-0.5">
+                        <RoleIndicator role={task.membership_role} size="sm" />
+                    </div>
+                )}
             </div>
 
             {/* Footer: Subtasks + Due Date */}
             <div className="mt-2 flex items-center justify-between text-xs">
                 {task.children && task.children.length > 0 ? (
-                    <div className="text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                    <div className="text-slate-400 flex items-center gap-1">
                         <span className="font-semibold">{task.children.length}</span> subtasks
                     </div>
                 ) : (

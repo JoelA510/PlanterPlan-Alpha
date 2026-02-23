@@ -14,24 +14,24 @@ export function useRootTasks() {
     });
 }
 
+import { supabase } from '@/shared/db/client';
+
 export function useTaskTree(rootId: string | null) {
     return useQuery({
-        queryKey: ['tasks', 'tree', rootId],
+        queryKey: ['projectHierarchy', rootId],
         queryFn: async () => {
             if (!rootId) return [];
 
-            const [children, root] = await Promise.all([
-                planter.entities.Task.filter({ root_id: rootId }),
-                planter.entities.Task.get(rootId)
-            ]);
+            const { data, error } = await supabase.rpc('get_task_tree' as any, {
+                p_root_id: rootId
+            });
 
-            const allTasks = [...(children || [])];
-            if (root && !allTasks.some((t: { id: string }) => t.id === (root as { id: string }).id)) {
-                allTasks.push(root);
+            if (error) {
+                console.error("[useTaskTree] RPC Error:", error);
+                throw error;
             }
 
-            // sort by position ascending
-            return allTasks.sort((a: { position?: number }, b: { position?: number }) => (a.position || 0) - (b.position || 0));
+            return data || [];
         },
         enabled: !!rootId
     });

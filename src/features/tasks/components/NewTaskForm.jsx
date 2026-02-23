@@ -1,5 +1,7 @@
-import { useEffect, useCallback } from 'react';
-import { useTaskForm } from '@/features/tasks/hooks/useTaskForm';
+import { useState, useEffect } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import CreateTaskForm from '@/features/tasks/components/CreateTaskForm';
 import EditTaskForm from '@/features/tasks/components/EditTaskForm';
 
@@ -7,6 +9,32 @@ const extractDateInput = (value) => {
   if (!value) return '';
   return value.slice(0, 10);
 };
+
+// We create a factory for the schema so we can access `origin` if we need dynamic rules, 
+// but currently origin is mostly used for conditional rendering in the UI.
+const getTaskSchema = (origin) => z.object({
+  title: z.string().min(1, 'Task title is required'),
+  description: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  purpose: z.string().optional().nullable(),
+  actions: z.string().optional().nullable(),
+  days_from_start: z.number().min(0, 'Days from start must be zero or greater').optional().or(z.nan()).or(z.string().transform(val => val === '' ? undefined : Number(val))),
+  start_date: z.string().optional().nullable(),
+  due_date: z.string().optional().nullable(),
+  templateId: z.string().nullable().optional(),
+}).refine((data) => {
+  if (origin === 'instance' && data.start_date && data.due_date) {
+    const start = new Date(`${data.start_date}T00:00:00.000Z`);
+    const due = new Date(`${data.due_date}T00:00:00.000Z`);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(due.getTime()) && due < start) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: 'Due date cannot be before start date',
+  path: ['due_date']
+});
 
 const createInitialState = (task) => ({
   title: task?.title ?? '',
@@ -16,8 +44,8 @@ const createInitialState = (task) => ({
   actions: task?.actions ?? '',
   days_from_start:
     task?.days_from_start !== null && task?.days_from_start !== undefined
-      ? String(task.days_from_start)
-      : '',
+      ? Number(task.days_from_start)
+      : undefined,
   start_date: extractDateInput(task?.start_date),
   due_date: extractDateInput(task?.due_date),
   templateId: null,
@@ -33,97 +61,72 @@ const NewTaskForm = ({
   enableLibrarySearch = true,
 }) => {
   const isEditMode = Boolean(initialTask);
+  const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
 
-  const validate = useCallback(
-    (data) => {
-      const newErrors = {};
+  const methods = useForm({
+    resolver: zodResolver(getTaskSchema(origin)),
+    defaultValues: createInitialState(initialTask),
+  });
 
-      if (!data.title?.trim()) {
-        newErrors.title = 'Task title is required';
-      }
+  const { reset, handleSubmit, setValue, formState: { isSubmitting } } = methods;
 
-      if (
-        data.days_from_start !== '' &&
-        data.days_from_start !== undefined &&
-        data.days_from_start !== null
-      ) {
-        const value = Number(data.days_from_start);
-        if (Number.isNaN(value) || value < 0) {
-          newErrors.days_from_start = 'Days from start must be zero or greater';
-        }
-      }
-
-      if (origin === 'instance') {
-        if (data.start_date && data.due_date) {
-          const start = new Date(`${data.start_date}T00:00:00.000Z`);
-          const due = new Date(`${data.due_date}T00:00:00.000Z`);
-
-          if (!Number.isNaN(start.getTime()) && !Number.isNaN(due.getTime()) && due < start) {
-            newErrors.due_date = 'Due date cannot be before start date';
-          }
-        }
-      }
-
-      return newErrors;
-    },
-    [origin]
-  );
-
-  const {
-    formData,
-    setFormData,
-    errors,
-    isSubmitting,
-    lastAppliedTaskTitle,
-    handleChange,
-    handleApplyFromLibrary,
-    handleSubmit: hookSubmit,
-  } = useTaskForm(createInitialState(initialTask), validate);
-
-  // Update form data when initialTask changes (for re-use)
+  // Reset form when initialTask changes (e.g., editing a different task)
   useEffect(() => {
-    setFormData(createInitialState(initialTask));
-  }, [initialTask, setFormData]);
+    reset(createInitialState(initialTask));
+    setLastAppliedTaskTitle('');
+  }, [initialTask, reset]);
 
-  const handleFormSubmit = (e) => {
-    hookSubmit(e, onSubmit, () => {
-      if (!isEditMode) {
-        setFormData(createInitialState(null));
-      }
-    });
+  const handleApplyFromLibrary = (task) => {
+    if (!task) return;
+    setValue('title', task.title || '', { shouldValidate: true });
+    setValue('description', task.description || '', { shouldValidate: true });
+    setValue('purpose', task.purpose || '', { shouldValidate: true });
+    setValue('actions', task.actions || '', { shouldValidate: true });
+    setValue('notes', task.notes || '', { shouldValidate: true });
+    setValue('templateId', task.id || null, { shouldValidate: true });
+    if (task.days_from_start !== null && task.days_from_start !== undefined) {
+      setValue('days_from_start', Number(task.days_from_start), { shouldValidate: true });
+    }
+    setLastAppliedTaskTitle(task.title);
   };
 
-  if (isEditMode) {
-    return (
-      <EditTaskForm
-        formData={formData}
-        errors={errors}
-        isSubmitting={isSubmitting}
-        handleChange={handleChange}
-        handleSubmit={handleFormSubmit}
-        onCancel={onCancel}
-        origin={origin}
-        submitLabel={submitLabel}
-        parentTask={parentTask}
-      />
-    );
-  }
+  const handleFormSubmit = async (data) => {
+    try {
+      await onSubmit(data);
+      if (!isEditMode) {
+        reset(createInitialState(null));
+        setLastAppliedTaskTitle('');
+      }
+    } catch (e) {
+      console.error("Task submission failed:", e);
+    }
+  };
 
   return (
-    <CreateTaskForm
-      formData={formData}
-      errors={errors}
-      isSubmitting={isSubmitting}
-      lastAppliedTaskTitle={lastAppliedTaskTitle}
-      handleChange={handleChange}
-      handleApplyFromLibrary={handleApplyFromLibrary}
-      handleSubmit={handleFormSubmit}
-      onCancel={onCancel}
-      origin={origin}
-      submitLabel={submitLabel}
-      enableLibrarySearch={enableLibrarySearch}
-      parentTask={parentTask}
-    />
+    <FormProvider {...methods}>
+      {isEditMode ? (
+        <EditTaskForm
+          isSubmitting={isSubmitting}
+          handleSubmit={handleSubmit(handleFormSubmit)}
+          onCancel={onCancel}
+          origin={origin}
+          submitLabel={submitLabel}
+          parentTask={parentTask}
+        />
+      ) : (
+        <CreateTaskForm
+          isSubmitting={isSubmitting}
+          lastAppliedTaskTitle={lastAppliedTaskTitle}
+          handleApplyFromLibrary={handleApplyFromLibrary}
+          handleSubmit={handleSubmit(handleFormSubmit)}
+          onCancel={onCancel}
+          origin={origin}
+          submitLabel={submitLabel}
+          enableLibrarySearch={enableLibrarySearch}
+          parentTask={parentTask}
+        />
+      )}
+    </FormProvider>
   );
 };
 

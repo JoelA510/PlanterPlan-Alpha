@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
-import { useTaskMutations } from '@/features/tasks/hooks/useTaskMutations';
-import { useProjectMutations } from '@/features/projects/hooks/useProjectMutations';
+import { useTaskActions } from '@/features/tasks/hooks/useTaskActions';
+
 import { useTaskSubscription } from '@/features/tasks/hooks/useTaskSubscription';
 import { separateTasksByOrigin } from '@/shared/lib/viewHelpers';
 
@@ -13,7 +13,7 @@ export const useTaskOperations = () => {
     [query.tasks]
   );
 
-  const mutations = useTaskMutations({
+  const mutations = useTaskActions({
     tasks: query.tasks,
     fetchTasks: query.fetchTasks,
     fetchProjects: query.fetchProjects,
@@ -31,17 +31,14 @@ export const useTaskOperations = () => {
     currentUserId: query.currentUserId,
   });
 
-  const projectMutations = useProjectMutations({
-    tasks: query.tasks,
-    fetchTasks: query.fetchTasks,
-  });
+
 
   return {
     ...query,
     instanceTasks,
     templateTasks,
     ...mutations,
-    ...projectMutations,
+
     handleOptimisticUpdate: query.handleOptimisticUpdate,
     commitOptimisticUpdate: query.commitOptimisticUpdate,
   };

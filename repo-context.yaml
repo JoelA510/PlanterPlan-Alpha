@@ -59,7 +59,7 @@ modules:
       - "Fetches project details and members"
       - "Manages layout logic (sidebar, details panel)"
     dependencies:
-      strong: [useProject, useProjectMembers]
+      strong: [useProject, useProjectMembers, useProjectMutations]
 
   # BUSINESS LOGIC HOOKS
   TaskHooks:
@@ -74,6 +74,9 @@ modules:
       useTaskMutations:
         capabilities: ["CRUD operations", "Optimistic state updates", "Toast notifications"]
         provides: "createTask, updateTask, deleteTask"
+      useTaskActions:
+        capabilities: ["Complex UI orchestration", "Drag-and-drop rollbacks", "Cache refreshing"]
+        provides: "createTaskOrUpdate, deleteTask, updateTask"
       useTaskDetails:
         capabilities: ["Fetches single task details", "Resource management"]
         provides: "task, isLoading, updateTask"
