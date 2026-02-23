@@ -163,6 +163,12 @@ mindmap
           - [x] **XSS Restoration**: Removed all `dangerouslySetInnerHTML` from titles/cards.
           - [x] **Decomposition**: Successfully deconstructed `useTaskBoard.js` "God Hook" into atomic features.
           - [x] **CI Resolution**: Fixed Type-Safety (useTaskMutations), DnD Deduplication, and test hangs (CreateProjectModal).
+
+        - [x] **Wave 14: Radical UI Simplification & Cleanup**
+          - [x] **Dark Mode Removed**: Forced Light Theme across the app to stabilize UI state.
+          - [x] **Navigation Streamlined**: Removed `My Tasks` from global taxonomy.
+          - [x] **Dashboard Merged**: Consolidated Grid and Pipeline views into a single, permanent pipeline view tracking top-level stats.
+          - [x] **Reporting Access**: Added `Select` dropdown to global Reports view for direct project selection.
         auth.updateProfile adapter
       Supabase PostgreSQL
         tasks table
@@ -190,7 +196,7 @@ mindmap
         @shared
         @entities
       Provider Tree
-        ThemeProvider
+        ThemeProvider (Light Mode Only)
         AuthProvider
         ViewAsWrapper
         ToastProvider
