@@ -18,7 +18,8 @@ export function useCreateTask() {
     return useMutation({
         mutationFn: (data: TaskPayload | TaskPayload[]) => planterClient.entities.Task.create(data),
         onSuccess: (_, variables) => {
-            const rootId = variables.root_id as string | undefined;
+            const firstVar = Array.isArray(variables) ? variables[0] : variables;
+            const rootId = firstVar?.root_id as string | undefined;
             if (rootId) {
                 queryClient.invalidateQueries({ queryKey: ['tasks', 'tree', rootId] })
             } else {
