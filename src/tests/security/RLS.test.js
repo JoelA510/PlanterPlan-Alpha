@@ -7,11 +7,16 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
 console.log('RLS Test running against:', SUPABASE_URL);
 
-const shouldRun = SUPABASE_URL && SUPABASE_ANON_KEY;
+const isPlaceholder = SUPABASE_URL?.includes('placeholder.supabase.co');
+const shouldRun = SUPABASE_URL && SUPABASE_ANON_KEY && !isPlaceholder;
 const hasCredentials = process.env.TEST_USER_EMAIL && process.env.TEST_USER_PASSWORD;
 
 if (!shouldRun) {
-    console.warn('Skipping RLS tests: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
+    if (isPlaceholder) {
+        console.warn('Skipping RLS tests: Detected placeholder VITE_SUPABASE_URL');
+    } else {
+        console.warn('Skipping RLS tests: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
+    }
 } else if (!hasCredentials) {
     console.warn('Skipping Authenticated RLS tests: Missing TEST_USER_EMAIL or TEST_USER_PASSWORD');
 }
