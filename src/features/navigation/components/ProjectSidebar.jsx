@@ -74,12 +74,6 @@ const ProjectSidebar = ({
           icon={<LayoutDashboard className="w-5 h-5" />}
         />
         <GlobalNavItem
-          label="My Tasks"
-          isActive={location.pathname === '/tasks'}
-          onClick={() => handleGlobalNav('/tasks')}
-          icon={<CheckSquare className="w-5 h-5" />}
-        />
-        <GlobalNavItem
           label="Reports"
           isActive={location.pathname === '/reports'}
           onClick={() => handleGlobalNav(selectedTaskId ? `/reports?project=${selectedTaskId}` : '/reports')}

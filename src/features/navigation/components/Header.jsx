@@ -72,21 +72,6 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
             {/* View-As Role Switcher (only for privileged users) */}
             {user && <ViewAsSelector />}
 
-            {/* Theme Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-            >
-              {resolvedTheme === 'dark' ? (
-                <Sun className="w-5 h-5" />
-              ) : (
-                <Moon className="w-5 h-5" />
-              )}
-            </Button>
-
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

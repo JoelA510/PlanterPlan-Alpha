@@ -24,59 +24,19 @@ const STORAGE_KEY = 'planterplan-theme';
  */
 
 export function ThemeProvider({ children }) {
-    const [theme, setThemeState] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem(STORAGE_KEY) || 'system';
-        }
-        return 'system';
-    });
+    // Force light theme and remove system preference tracking to simplify UI
+    const theme = 'light';
+    const resolvedTheme = 'light';
 
-    // Track system preference for reactivity
-    const [systemPreference, setSystemPreference] = useState(() => {
-        if (typeof window !== 'undefined' && window.matchMedia) {
-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        return 'light';
-    });
-
-    // Derive resolved theme from preference and system (no setState in effect)
-    const resolvedTheme = useMemo(() => {
-        return theme === 'system' ? systemPreference : theme;
-    }, [theme, systemPreference]);
-
-    // Apply theme class to document
+    // Ensure document never has 'dark' class
     useEffect(() => {
         const root = document.documentElement;
-        if (resolvedTheme === 'dark') {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
-    }, [resolvedTheme]);
-
-    // Listen for system preference changes
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-        const handleChange = (e) => {
-            setSystemPreference(e.matches ? 'dark' : 'light');
-        };
-
-        mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
+        root.classList.remove('dark');
+        localStorage.setItem(STORAGE_KEY, 'light');
     }, []);
 
-    const setTheme = useCallback((newTheme) => {
-        setThemeState(newTheme);
-        localStorage.setItem(STORAGE_KEY, newTheme);
-    }, []);
-
-    const toggleTheme = useCallback(() => {
-        const newTheme = resolvedTheme === 'light' ? 'dark' : 'light';
-        setTheme(newTheme);
-    }, [resolvedTheme, setTheme]);
+    const setTheme = useCallback(() => { }, []);
+    const toggleTheme = useCallback(() => { }, []);
 
     return (
         <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>

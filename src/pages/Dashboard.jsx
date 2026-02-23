@@ -30,7 +30,6 @@ const item = {
 export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'pipeline'
   const [wizardDismissed, setWizardDismissed] = useState(() => {
     return localStorage.getItem('gettingStartedDismissed') === 'true';
   });
@@ -212,23 +211,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-card border border-border rounded-lg p-1 flex items-center">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-muted text-card-foreground' : 'text-muted-foreground hover:text-card-foreground'}`}
-                title="Grid View"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('pipeline')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'pipeline' ? 'bg-muted text-card-foreground' : 'text-muted-foreground hover:text-card-foreground'}`}
-                title="Pipeline View"
-              >
-                <Kanban className="w-4 h-4" />
-              </button>
-            </div>
-
             <Button
               onClick={() => setShowCreateModal(true)}
               className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20 dark:shadow-orange-500/10"
@@ -239,27 +221,21 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Stats */}
-        {viewMode === 'grid' && (
-          <div className="mb-8 flex-shrink-0">
-            {projects.length > 0 && (
-              <GettingStartedWidget
-                project={projects[0]} // Primary/First project
-                teamMembers={teamMembers.filter(m => m.project_id === projects[0].id)}
-                onDismiss={() => {
-                  setWizardDismissed(true);
-                  // Optional: Persist to localStorage if we want it to survive reloads
-                  // localStorage.setItem('gettingStartedDismissed', 'true'); 
-                  // For now, session-based dismissal (until refresh) is acceptable, 
-                  // but let's persist it to be robust as requested.
-                  localStorage.setItem('gettingStartedDismissed', 'true');
-                }}
-              />
-            )}
-            <MobileAgenda tasks={filteredTasks} />
-            <StatsOverview projects={projects} tasks={filteredTasks} teamMembers={teamMembers} />
-          </div>
-        )}
+        {/* Stats and Top Widgets */}
+        <div className="mb-8 flex-shrink-0">
+          {projects.length > 0 && (
+            <GettingStartedWidget
+              project={projects[0]} // Primary/First project
+              teamMembers={teamMembers.filter((m) => m.project_id === projects[0].id)}
+              onDismiss={() => {
+                setWizardDismissed(true);
+                localStorage.setItem('gettingStartedDismissed', 'true');
+              }}
+            />
+          )}
+          <MobileAgenda tasks={filteredTasks} />
+          <StatsOverview projects={projects} tasks={filteredTasks} teamMembers={teamMembers} />
+        </div>
 
         {/* Content Area */}
         <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
@@ -276,76 +252,18 @@ export default function Dashboard() {
               <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                 Start your church planting journey by creating your first project
               </p>
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-orange-500 hover:bg-orange-600"
-              >
+              <Button onClick={() => setShowCreateModal(true)} className="bg-orange-500 hover:bg-orange-600">
                 <Plus className="w-5 h-5 mr-2" />
                 Create Your First Project
               </Button>
             </motion.div>
-          ) : viewMode === 'pipeline' ? (
+          ) : (
             <ProjectPipelineBoard
               projects={projects}
               tasks={filteredTasks}
               teamMembers={teamMembers}
               onStatusChange={handleStatusChange}
             />
-          ) : (
-            <>
-              {/* Primary Projects */}
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold text-card-foreground mb-4">Primary Projects</h2>
-                <motion.div
-                  className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  {projects
-                    .filter((p) => p.project_type === 'primary' || !p.project_type)
-                    .map((project, index) => (
-                      <motion.div
-                        key={project.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        variants={item}
-                      >
-                        <ProjectCard
-                          project={project}
-                          tasks={filteredTasks.filter((t) => t.project_id === project.id)}
-                          teamMembers={teamMembers.filter((m) => m.project_id === project.id)}
-                        />
-                      </motion.div>
-                    ))}
-                </motion.div>
-              </div>
-
-              {/* Secondary Projects */}
-              {projects.filter((p) => p.project_type === 'secondary').length > 0 && (
-                <div>
-                  <h2 className="text-xl font-semibold text-card-foreground mb-4">Secondary Projects</h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {projects
-                      .filter((p) => p.project_type === 'secondary')
-                      .map((project, index) => (
-                        <motion.div
-                          key={project.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                        >
-                          <ProjectCard
-                            project={project}
-                            tasks={filteredTasks.filter((t) => t.project_id === project.id)}
-                            teamMembers={teamMembers.filter((m) => m.project_id === project.id)}
-                          />
-                        </motion.div>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </>
           )}
         </div>
 
