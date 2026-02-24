@@ -103,7 +103,9 @@ describe('CreateProjectModal', () => {
 
             // Also select a launch date, which is required
             fireEvent.click(screen.getByRole('button', { name: /pick a date/i }));
-            fireEvent.click(screen.getByText('15')); // Select 15th of current month (Mocked or default)
+            // Use a more specific selector for the day to avoid ambiguity
+            const day15 = screen.getByRole('button', { name: /15/ });
+            fireEvent.click(day15);
 
             // Submit
             const createBtn = screen.getByRole('button', { name: /create project/i });
@@ -137,7 +139,8 @@ describe('CreateProjectModal', () => {
 
             // Should select date
             fireEvent.click(screen.getByRole('button', { name: /pick a date/i }));
-            fireEvent.click(screen.getByText('15'));
+            const day15 = screen.getByRole('button', { name: /15/ });
+            fireEvent.click(day15);
 
             fireEvent.click(screen.getByRole('button', { name: /create project/i }));
 
@@ -195,7 +198,8 @@ describe('CreateProjectModal', () => {
             });
 
             fireEvent.click(screen.getByRole('button', { name: /pick a date/i }));
-            fireEvent.click(screen.getByText('15'));
+            const day15 = screen.getByRole('button', { name: /15/ });
+            fireEvent.click(day15);
 
             fireEvent.click(screen.getByRole('button', { name: /create project/i }));
 

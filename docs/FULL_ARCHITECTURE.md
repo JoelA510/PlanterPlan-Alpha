@@ -1,6 +1,6 @@
 # PlanterPlan — Complete Architecture Reference
 
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-02-21  
 > **Status**: Alpha (Refactoring Phase)  
 > **Commit**: HEAD on `main`
 > **Specification**: [spec.md](../spec.md)
@@ -136,7 +136,7 @@ PlanterPlan-Alpha/
 │   │   ├── lib/             # Pure utilities (date-engine, tree, validation)
 │   │   ├── model/           # Shared data models
 │   │   ├── test/            # Test utilities
-│   │   └── ui/              # 54 Radix-based design system components
+│   │   └── ui/              # 35 active design system components (Radix-based)
 │   │
 │   ├── pages/               # @pages — Route-level views (7)
 │   │   ├── Dashboard.jsx
@@ -198,7 +198,7 @@ graph TD
 
 | Provider | File | Responsibility |
 |----------|------|----------------|
-| **ThemeProvider** | `contexts/ThemeContext.jsx` | Dark/light mode with system sync + persistent toggle |
+| **ThemeProvider** | `contexts/ThemeContext.jsx` | Forced Light mode context (dark mode removed for UX simplicity) |
 | **AuthProvider** | `contexts/AuthContext.jsx` | Supabase JWT session, user state, admin role check via RPC |
 | **ViewAsProviderWrapper** | `contexts/ViewAsProviderWrapper.jsx` | Admin "View As" role impersonation |
 | **ToastProvider** | `contexts/ToastContext.jsx` | Global toast notification system |
@@ -213,7 +213,7 @@ Routing uses **React Router DOM v7** with lazy-loaded pages, a `ProtectedRoute` 
 |-------|---------------|---------------|-------|
 | `/` | `Home` | No | Redirects to `/dashboard` if authenticated |
 | `/login` | `LoginForm` | No | Redirects to `/dashboard` if authenticated |
-| `/dashboard` | `DashboardPage` | ✅ | Main hub: project list, stats, pipeline |
+| `/dashboard` | `DashboardPage` | ✅ | Main hub: consolidated pipeline board and stats |
 | `/project/:id` | `ProjectPage` | ✅ | Single project with tabs (Board, List, Phases, People) |
 | `/reports` | `ReportsPage` | ✅ | Lazy loaded |
 | `/settings` | `SettingsPage` | ✅ | Lazy loaded |
@@ -258,7 +258,7 @@ graph LR
 | Context | Key State | Consumers |
 |---------|-----------|-----------|
 | **AuthContext** | `user`, `loading`, `signIn()`, `signOut()`, `signUp()` | All protected routes, service calls |
-| **ThemeContext** | `theme` (light/dark/system), `toggleTheme()` | Layout components, all styled elements |
+| **ThemeContext** | `theme` (light) | Layout components, all styled elements |
 | **ViewAsContext** | `viewAsRole`, `setViewAs()` | Admin tools, permission-gated UI |
 | **ToastContext** | Toast queue, `showToast()` | Any component needing user feedback |
 
@@ -270,14 +270,11 @@ graph LR
 | `useProjectMutations` | Projects | Create, update, delete projects with optimistic updates |
 | `useProjectRealtime` | Projects | Supabase Realtime subscription for project changes |
 | `useUserProjects` | Projects | Current user's owned + joined projects |
-| `useTaskBoard` | Tasks | **Facade hook** composing tree, drag, and selection logic |
-| `useTaskQuery` | Tasks | React Query wrappers for task data fetching |
-| `useTaskMutations` | Tasks | Task CRUD using `payloadHelpers` for date logic |
-| `useTaskSubscription` | Tasks | Realtime listener → query invalidation |
 | `useTaskOperations` | Tasks | **Facade Data Access** combining Query, Mutations, and Subscriptions |
 | `useProjectSelection` | Tasks | Manages active project state, URL syncing, and hydration |
 | `useTaskTree` | Tasks | Builds hierarchical tree and manages expansion state |
-| `useTaskDragAndDrop` | Tasks | dnd-kit integration for drag-and-drop operations |
+| `useTaskDragAndDrop` | Tasks | dnd-kit integration with subtask aggregation & deduplication |
+| `useTaskBoardUI` | Tasks | Manages UI-specific state (modals, forms, selected items) for the board |
 | `useTaskForm` | Tasks | Form state management for task create/edit |
 
 ---
@@ -400,12 +397,11 @@ projects/
 
 ### 8.3 Dashboard (`features/dashboard/`)
 
-Main landing experience after login.
+Main landing experience after login. Consolidated into a single Pipeline view.
 
 | Component | Purpose |
 |-----------|---------|
 | `CreateProjectModal` | Template selection + project creation wizard |
-| `ProjectCard` | Uniform project tile with progress indicator |
 | `ProjectPipelineBoard` | Pipeline/kanban view of all projects by status |
 | `StatsOverview` | Summary cards (total projects, tasks, completion %) |
 
@@ -415,10 +411,10 @@ Dual-sidebar navigation system.
 
 | Component | Purpose |
 |-----------|---------|
-| `AppSidebar` | Global sidebar: Dashboard, Reports, Settings, Team links |
+| `AppSidebar` | Global sidebar: Dashboard, Reports, Settings, Team links (My Tasks removed) |
 | `ProjectSidebar` | Context-aware sidebar showing project tree |
 | `ProjectSidebarContainer` | Wrapper managing sidebar state |
-| `Header` | Top header bar with user menu and theme toggle |
+| `Header` | Top header bar with user menu |
 | `ViewAsSelector` | Admin role impersonation dropdown |
 | `SidebarNavItem` / `GlobalNavItem` | Reusable nav link components |
 
@@ -442,6 +438,7 @@ Contact management for church planting teams.
 - `ProjectReport` — Print-ready project view with completion statistics
 - `ReportCard` — Summary card for report listings
 - `ReportExport` — Export functionality
+- `Select` — Dropdown for picking a project to view its report directly
 
 ### 8.8 Mobile (`features/mobile/`)
 
@@ -678,20 +675,20 @@ sequenceDiagram
 
 ## 12. Shared UI Component Library
 
-The `src/shared/ui/` directory contains **54 reusable components** built on Radix UI primitives + Tailwind CSS, following the shadcn/ui pattern.
+The `src/shared/ui/` directory contains **35 active components** built on Radix UI primitives + Tailwind CSS, following the shadcn/ui pattern. (Pruned in Wave 12).
 
 ### Component Categories
 
 | Category | Components |
 |----------|-----------|
-| **Layout** | `Card`, `Separator`, `AspectRatio`, `ScrollArea`, `Resizable` |
-| **Navigation** | `Breadcrumb`, `NavigationMenu`, `Tabs`, `Pagination`, `Menubar` |
-| **Data Display** | `Table`, `Badge`, `Avatar`, `Progress`, `Skeleton`, `Chart` |
-| **Feedback** | `Alert`, `AlertDialog`, `Toast`, `Toaster`, `Sonner` |
-| **Forms** | `Button`, `Input`, `Textarea`, `Label`, `Checkbox`, `RadioGroup`, `Select`, `Switch`, `Slider`, `Calendar`, `InputOTP`, `Form` |
-| **Overlays** | `Dialog`, `Sheet`, `Drawer`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `ContextMenu` |
-| **Composition** | `Accordion`, `Collapsible`, `Carousel`, `ToggleGroup`, `Command`, `CommandPalette` |
-| **App-Specific** | `ErrorBoundary`, `ErrorFallback`, `EmptyState`, `StatusCard`, `RoleIndicator` |
+| **Layout** | `Card`, `AspectRatio`, `ScrollArea` |
+| **Navigation** | `NavigationMenu`, `Tabs`, `Menubar` |
+| **Data Display** | `Table`, `Badge`, `Avatar`, `Progress`, `Chart` |
+| **Feedback** | `StatusCard` |
+| **Forms** | `Button`, `Input`, `Textarea`, `Label`, `RadioGroup`, `Select`, `Switch`, `Slider`, `Calendar` |
+| **Overlays** | `Dialog`, `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `ContextMenu` |
+| **Composition** | `Accordion`, `Collapsible`, `ToggleGroup`, `Command`, `CommandPalette` |
+| **App-Specific** | `ErrorBoundary`, `ErrorFallback`, `RoleIndicator` |
 
 ### Design System Utilities
 
@@ -891,9 +888,9 @@ graph TD
     Hook -->|Fetches| Supabase[(Supabase DB)]
 ```
 
-### 17.2 Task List Facade
+### 17.2 Task List Composition
 
-The `TaskList` (`src/features/tasks/components/TaskList.jsx`) serves as the main application dashboard logic.
+The `TaskList` (`src/features/tasks/components/TaskList.jsx`) now directly composes specialized hooks for optimal re-rendering.
 
 ```mermaid
 graph TD
@@ -905,18 +902,19 @@ graph TD
         Empty[NoProjectSelected]
     end
 
-    subgraph Facade [Logic Facade]
-        Hook[useTaskBoard Hook]
+    subgraph Composition [Logic Composition]
+        UTO[useTaskOperations]
+        UPS[useProjectSelection]
+        UTT[useTaskTree]
+        UDND[useTaskDragAndDrop]
+        UBUI[useTaskBoardUI]
     end
 
-    subgraph Internals [Internal Hooks]
-        Drag[useTaskDrag]
-        Ops[useTaskOperations]
-    end
-
-    List -->|Delegates Logic| Hook
-    Hook -->|Composes| Drag
-    Hook -->|Composes| Ops
+    List -->|Data| UTO
+    List -->|Project Context| UPS
+    List -->|Hierarchy| UTT
+    List -->|Drag Events| UDND
+    List -->|UI State| UBUI
 
     List -->|Renders| Sidebar
     List -->|Renders| MainView

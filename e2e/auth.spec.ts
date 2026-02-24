@@ -32,8 +32,14 @@ test.describe('Authentication Flow', () => {
             await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeSession) });
         });
 
+        let isLoggedOut = false;
+
         await page.route('**/auth/v1/session', async route => {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeSession) });
+            if (isLoggedOut) {
+                await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session: null }) });
+            } else {
+                await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeSession) });
+            }
         });
 
         await page.route('**/rest/v1/rpc/is_admin', async route => {
@@ -41,6 +47,7 @@ test.describe('Authentication Flow', () => {
         });
 
         await page.route('**/auth/v1/logout', async route => {
+            isLoggedOut = true;
             await route.fulfill({ status: 204, body: '' });
         });
 
@@ -99,11 +106,14 @@ test.describe('Authentication Flow', () => {
             // Wait for sidebar/nav to be stable
             const signOutBtn = page.locator('aside').getByRole('button', { name: /Sign Out/i }).first();
             await expect(signOutBtn).toBeVisible({ timeout: 10000 });
-            await signOutBtn.click({ force: true });
+
+            // Supabase client uses POST to /logout. We mock it in beforeEach.
+            // Dispatch click directly because main element tends to intercept pointer events in headless mode
+            await signOutBtn.dispatchEvent('click');
         });
 
         await test.step('5. Verify Logout', async () => {
-            // Should return to login screen
+            // Wait for the login screen to render
             await expect(page).toHaveURL(/.*\/login/);
             await expect(page.getByText('Sign in with Magic Link')).toBeVisible({ timeout: 10000 });
         });

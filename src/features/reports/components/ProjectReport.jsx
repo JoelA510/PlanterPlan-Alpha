@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
 import ProjectHeader from '@/features/projects/components/ProjectHeader';
-import { useTaskBoard } from '@/features/tasks/hooks/useTaskBoard';
+import { useTaskOperations } from '@/features/tasks/hooks/useTaskOperations';
+import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
 import { getProjectWithStats } from '@/features/projects/services/projectService';
 import { Loader2 } from 'lucide-react';
 // PieChart logic moved to StatusPieChart
@@ -11,50 +12,62 @@ import { Loader2 } from 'lucide-react';
 import StatusPieChart from '@/features/reports/components/StatusPieChart';
 
 const ProjectReport = () => {
-  const { projectId } = useParams();
+  const { projectId: urlProjectId } = useParams();
   const navigate = useNavigate();
 
-  // Reuse the main hook to get sidebar data
+  // 1. Core Data Layer
   const {
+    tasks,
     joinedProjects,
-    instanceTasks,
-    templateTasks,
     loading,
     error,
     joinedError,
+    fetchProjectDetails,
     hasMore,
     isFetchingMore,
     loadMoreProjects,
-    handleOpenInvite,
-    handleAddChildTask,
-  } = useTaskBoard();
+    ...mutationUtils
+  } = useTaskOperations();
+
+  // 2. Project Selection Layer (Sidebar sync)
+  const { activeProjectId, handleSelectProject } = useProjectSelection({
+    urlProjectId,
+    instanceTasks: useMemo(() => tasks.filter(t => t.origin === 'instance'), [tasks]),
+    templateTasks: useMemo(() => tasks.filter(t => t.origin === 'template'), [tasks]),
+    joinedProjects,
+    hydratedProjects: mutationUtils.hydratedProjects,
+    fetchProjectDetails,
+    loading,
+  });
+
+  // Derived lists for sidebar
+  const instanceTasks = useMemo(() => tasks.filter(t => t.origin === 'instance'), [tasks]);
+  const templateTasks = useMemo(() => tasks.filter(t => t.origin === 'template'), [tasks]);
+
+  const handleOpenInvite = () => { };
+  const handleAddChildTask = () => { };
 
   // Fetch project details specifically for the report
   const [project, setProject] = useState(null);
 
   useEffect(() => {
     const fetchProject = async () => {
-      if (!projectId) return;
-      const { data, error } = await getProjectWithStats(projectId);
+      if (!urlProjectId) return;
+      const { data, error } = await getProjectWithStats(urlProjectId);
 
       if (data) setProject(data);
       else if (error) console.error('Error fetching project report:', error);
     };
     fetchProject();
-  }, [projectId]);
-
-  // Handle sidebar navigation
-  const onSelectProject = (proj) => {
-    navigate(`/project/${proj.id}`);
-  };
+  }, [urlProjectId]);
 
   const sidebar = (
     <ProjectSidebar
       joinedProjects={joinedProjects}
       instanceTasks={instanceTasks}
       templateTasks={templateTasks}
-      handleSelectProject={onSelectProject}
-      selectedTaskId={projectId} // Use projectId from URL as selected
+      handleSelectProject={handleSelectProject}
+      selectedTaskId={urlProjectId} // Use urlProjectId from URL as selected
       loading={loading}
       error={error}
       joinedError={joinedError}

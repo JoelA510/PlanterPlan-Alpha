@@ -51,7 +51,7 @@ export function SortableTaskRow({ node, rootId, items, onSelectTask }: TaskRowPr
             title,
             parent_task_id: node.id,
             root_id: rootId,
-            creator: user?.id ?? null,
+            creator: user?.id ?? undefined,
             status: 'todo'
         }])
     }
