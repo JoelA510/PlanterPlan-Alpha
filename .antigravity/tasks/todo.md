@@ -31,7 +31,10 @@
 ## Repository Context Size Reduction
 - [x] Phase 1: Aggressive `.gitignore` Policies (e.g. `package-lock.json`, test artifacts).
 - [x] Phase 2: Documentation Relocation (Moved `FULL_ARCHITECTURE.md`, `PROJECT_MIND_MAP.md`, `lessons.md`, `schema.sql` to `.ai-ignore/docs/`).
-- [ ] Phase 3: Code Refactoring & De-duplication.
+- [x] Phase 3: Code Refactoring & De-duplication.
   - [x] Split `src/shared/db/types.ts` into `database.types.ts` vs `app.types.ts`.
   - [x] Refactor monolithic components: Extract mapping/API logic from `src/pages/Project.jsx` and `src/pages/Reports.jsx`.
   - [x] Modularize E2E Test Suites (`template-to-project.spec.ts`, `task-management.spec.ts`) using Page Object Models (POMs).
+  - [x] Refactor monolithic components: Extract state/API logic from `src/pages/Dashboard.jsx` into `useDashboard.ts` and convert to strict `Dashboard.tsx`.
+  - [x] Refactor monolithic components: Extract state/API logic from `src/pages/Team.jsx` into `useTeam.ts` and convert to strict `Team.tsx`.
+  - [x] Refactor monolithic components: Extract state/API logic from `src/pages/Settings.jsx` into `useSettings.ts` and convert to strict `Settings.tsx`.
