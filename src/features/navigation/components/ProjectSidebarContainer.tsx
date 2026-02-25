@@ -4,11 +4,15 @@ import { useUserProjects } from '@/features/projects/hooks/useUserProjects';
 import { useAuth } from '@/app/contexts/AuthContext';
 import ProjectSidebar from './ProjectSidebar';
 
-export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) {
+export interface ProjectSidebarContainerProps {
+    onNavClick?: () => void;
+    selectedTaskId?: string | null;
+}
+
+export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }: ProjectSidebarContainerProps) {
     const navigate = useNavigate();
     const { data: userProjects, isLoading: projectsLoading } = useUserProjects();
     const {
-        // templateTasks from useTaskOperations (Manual) - REPLACING with userProjects
         templateTasks = [],
         loading: tasksLoading,
         error,
@@ -18,36 +22,13 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }) 
         isFetchingMore,
     } = useTaskOperations();
 
-    // useUserProjects returns ALL projects (owned + joined).
-    // ProjectSidebar expects `instanceTasks` (Owned) and `joinedProjects` (Joined) SEPARATELY?
-    // Let's check ProjectSidebar.jsx again.
-    // It renders InstanceList (instanceTasks) then JoinedProjectsList (joinedProjects).
-    // If useUserProjects returns ALL, we need to split them if we want to maintain the UI distinction.
-    // useUserProjects maps them into a single Map to dedup.
-    // Implementation:
-    // const { data: owned } = await getUserProjects(user.id);
-    // const { data: joined } = await getJoinedProjects(user.id);
-    // return Array.from(projectMap.values());
-
-    // So userProjects is a MIXED list.
-    // ProjectSidebar might need refactoring if it expects split.
-    // Or we filter here.
-    // We need currentUserId to filter 'owned' vs 'joined'.
-    // useTaskOperations exposes currentUserId!
-
-    // But wait, useUserProjects is cleaner. 
-    // If I use userProjects, I need to know which are owned vs joined.
-    // Project objects have `creator` (owner_id).
-    // I can filter userProjects by `creator === user.id`.
-
-
     const { user } = useAuth(); // Need user for filtering
 
     // Split userProjects into Owned and Joined
     const ownedProjects = userProjects?.filter(p => (p.creator === user?.id || p.owner_id === user?.id)) || [];
     const joinedProjs = userProjects?.filter(p => (p.creator !== user?.id && p.owner_id !== user?.id)) || [];
 
-    const handleSelectProject = (project) => {
+    const handleSelectProject = (project: Record<string, unknown>) => {
         navigate(`/project/${project.id}`);
     };
 

@@ -50,7 +50,7 @@
     5. Delete the two old `.jsx` files using `git rm`.
     6. Run your standard type checks to verify.
 
-- [ ] **6. Refactor useTaskQuery**
+- [/] **6. Refactor useTaskQuery**
   - *Effect*: Rewrite `useTaskQuery.js` to rely entirely on React Query, dropping manual state management and shrinking it from ~180 to ~15 lines. Convert to `.ts`.
   - *Agent Prompt*: Refactor our task querying hook to eliminate manual state management. Follow these steps:
     1. Rename `src/features/tasks/hooks/useTaskQuery.js` to `.ts`.
