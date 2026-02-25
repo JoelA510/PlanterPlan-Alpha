@@ -47,9 +47,9 @@ const LoginForm = () => {
       } else {
         navigate('/dashboard');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(isSignUp ? 'Sign up failed' : 'Login failed', {
-        description: err.message || 'An unexpected error occurred',
+        description: err instanceof Error ? err.message : 'An unexpected error occurred',
       });
     } finally {
       setLoading(false);
@@ -119,6 +119,39 @@ const LoginForm = () => {
                 {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
               </button>
             </div>
+
+            {import.meta.env.DEV && (
+              <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-4 text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Dev Mode Shortcut:</p>
+                {import.meta.env.VITE_TEST_EMAIL && import.meta.env.VITE_TEST_PASSWORD ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const result = await signIn(
+                          import.meta.env.VITE_TEST_EMAIL as string,
+                          import.meta.env.VITE_TEST_PASSWORD as string
+                        );
+                        if (result.error) throw result.error;
+                        navigate('/dashboard');
+                      } catch (err: unknown) {
+                        toast.error('Dev Login Failed', {
+                          description: err instanceof Error ? err.message : 'An unexpected error occurred',
+                        });
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="text-xs text-brand-600 underline hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+                  >
+                    (Auto-Login as Test User)
+                  </button>
+                ) : (
+                  <span className="text-xs text-slate-400 dark:text-slate-500">(Configure .env for Dev Login)</span>
+                )}
+              </div>
+            )}
           </div>
         </form>
       </div>

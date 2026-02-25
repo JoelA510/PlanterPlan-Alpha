@@ -84,7 +84,7 @@
     3. Open `src/pages/Project.tsx` and remove the DnD context wrappers surrounding the layout.
     4. Run `npx tsc --noEmit` to verify.
 
-- [/] **10. Delete useTaskOperations**
+- [x] **10. Delete useTaskOperations**
   - *Effect*: Remove the facade hook `useTaskOperations.js` and direct consumers to use standard React Query mutations directly.
   - *Agent Prompt*: Remove unnecessary facade hooks:
     1. Delete `src/features/tasks/hooks/useTaskOperations.js` using `git rm`.
@@ -92,7 +92,7 @@
     3. ANY `.jsx` files touched during this refactor must be strictly converted to `.tsx`.
     4. Run `npx tsc --noEmit` to verify the data flow.
 
-- [ ] **11. Delete Login.tsx**
+- [/] **11. Delete Login.tsx**
   - *Effect*: Eliminate the duplicate login wrapper. Determine if `LoginForm` is the gold master and update the router.
   - *Agent Prompt*: Consolidate the authentication views:
     1. Evaluate `src/pages/Login.tsx` and `src/features/auth/components/LoginForm.jsx`.

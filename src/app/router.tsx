@@ -1,7 +1,7 @@
-import { createBrowserRouter,  } from 'react-router-dom'
+import { createBrowserRouter, } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import Home from '@/pages/Home'
-import Login from '@/pages/Login'
+import LoginForm from '@/features/auth/components/LoginForm'
 import { Layout } from '@/shared/layout/Layout'
 // Removed blocking loader imports: import { supabase } from '@/shared/db/client'
 
@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
     },
     {
         path: '/login',
-        element: <Login />,
+        element: <LoginForm />,
     },
     {
         element: <Layout />,
