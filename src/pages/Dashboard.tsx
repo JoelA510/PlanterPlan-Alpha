@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/shared/ui/use-toast';
+import { toast } from 'sonner';
 import { Button } from '@/shared/ui/button';
 import { Plus, FolderKanban, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -21,7 +21,6 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 export default function Dashboard() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
-    const { toast } = useToast();
 
     const { state, data, actions } = useDashboard();
 
@@ -36,16 +35,16 @@ export default function Dashboard() {
                 navigate(`/project/${project.id}`);
             }
         } catch (error: any) {
-            toast({ title: 'Failed to create project', description: error.message, variant: 'destructive' });
+            toast.error('Failed to create project', { description: error.message });
         }
     };
 
     const handleCreateTemplate = async (templateData: Parameters<typeof createTemplateMutation.mutateAsync>[0]) => {
         try {
             await createTemplateMutation.mutateAsync(templateData);
-            toast({ title: 'Template created', description: 'Your new template is ready.' });
+            toast.success('Template created', { description: 'Your new template is ready.' });
         } catch (error: any) {
-            toast({ title: 'Failed to create template', description: error.message, variant: 'destructive' });
+            toast.error('Failed to create template', { description: error.message });
         }
     };
 
@@ -53,7 +52,7 @@ export default function Dashboard() {
         try {
             await updateStatusMutation.mutateAsync({ projectId, status: newStatus });
         } catch (error: any) {
-            toast({ title: 'Failed to move project', description: error.message, variant: 'destructive' });
+            toast.error('Failed to move project', { description: error.message });
             queryClient.invalidateQueries({ queryKey: ['projects'] });
         }
     };

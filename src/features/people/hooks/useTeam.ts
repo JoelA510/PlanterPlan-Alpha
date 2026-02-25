@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
-import { useToast } from '@/shared/ui/use-toast';
+import { toast } from 'sonner';
 import type { Database } from '@/shared/db/database.types';
 
 type TeamMemberRow = Database['public']['Tables']['project_members']['Row'];
@@ -8,7 +8,6 @@ type ProjectRow = Database['public']['Tables']['projects']['Row'];
 
 export function useTeam(projectId: string | null) {
     const queryClient = useQueryClient();
-    const { toast } = useToast();
 
     const { data: project } = useQuery<ProjectRow>({
         queryKey: ['project', projectId],
@@ -32,7 +31,7 @@ export function useTeam(projectId: string | null) {
         mutationFn: (id: string) => planter.entities.TeamMember.delete(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['teamMembers', projectId || 'all'] });
-            toast({ title: 'Member removed successfully' });
+            toast.success('Member removed successfully');
         },
     });
 
@@ -40,7 +39,7 @@ export function useTeam(projectId: string | null) {
         mutationFn: (data: { project_id: string | null, name: string, email: string, role: string }) => planter.entities.TeamMember.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['teamMembers', projectId || 'all'] });
-            toast({ title: 'Member added successfully' });
+            toast.success('Member added successfully');
         },
     });
 

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/shared/ui/use-toast';
+import { toast } from 'sonner';
 import { TASK_STATUS } from '@/app/constants/index';
 import { resolveDragAssign } from '@/features/projects/utils/dragUtils';
 
@@ -14,7 +14,6 @@ import {
 import type { TaskRow, PersonRow } from '@/shared/db/app.types';
 
 export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] = []) {
-    const { toast } = useToast();
     const queryClient = useQueryClient();
 
     const [activeTab, setActiveTab] = useState('board');
@@ -34,7 +33,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
     const handleTaskUpdate = (taskId: string, data: any) => {
         _updateTask.mutate({ id: taskId, ...data, root_id: projectId }, {
             onError: (error: Error) => {
-                toast({ title: 'Failed to update task', description: error.message, variant: 'destructive' });
+                toast.error('Failed to update task', { description: error.message });
             }
         });
     };
@@ -81,9 +80,9 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
             }
 
             setAddTaskModal({ open: false, milestone: null, parentTask: null });
-            toast({ title: 'Task created successfully', variant: 'default' });
+            toast.success('Task created successfully');
         } catch (error: any) {
-            toast({ title: 'Failed to create task', description: error.message, variant: 'destructive' });
+            toast.error('Failed to create task', { description: error.message });
         }
     };
 
@@ -105,7 +104,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
             });
             setInlineAddingParentId(null);
         } catch (e) {
-            toast({ title: 'Failed to create task', variant: 'destructive' });
+            toast.error('Failed to create task');
         }
     };
 
@@ -121,8 +120,8 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
         const assignment = resolveDragAssign(active, over, tasks);
         if (assignment) {
             _assignMember.mutate({ ...assignment, root_id: projectId }, {
-                onSuccess: () => toast({ title: 'Member assigned to task', variant: 'default' }),
-                onError: (err: Error) => toast({ title: 'Failed to assign member', description: err.message, variant: 'destructive' })
+                onSuccess: () => toast.success('Member assigned to task'),
+                onError: (err: Error) => toast.error('Failed to assign member', { description: err.message })
             });
         }
     };
@@ -132,9 +131,9 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
             _deleteTask.mutate({ id: t.id, root_id: projectId }, {
                 onSuccess: () => {
                     setSelectedTask(null);
-                    toast({ title: 'Task deleted', variant: 'default' });
+                    toast.success('Task deleted');
                 },
-                onError: (error: Error) => toast({ title: 'Failed to delete task', description: error.message, variant: 'destructive' })
+                onError: (error: Error) => toast.error('Failed to delete task', { description: error.message })
             });
         }
     };

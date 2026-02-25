@@ -14,9 +14,13 @@ import { planter } from '@/shared/api/planterClient';
 import { useUser } from '@/features/auth/hooks/useUser';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useTheme } from '@/app/contexts/ThemeContext';
-import ViewAsSelector from './ViewAsSelector';
 
-export default function Header({ onMenuToggle, showMenuButton = false }) {
+interface HeaderProps {
+  onMenuToggle?: () => void;
+  showMenuButton?: boolean;
+}
+
+export default function Header({ onMenuToggle, showMenuButton = false }: HeaderProps) {
   const { data: user } = useUser();
   const location = useLocation();
   const { resolvedTheme, toggleTheme } = useTheme();
@@ -69,9 +73,6 @@ export default function Header({ onMenuToggle, showMenuButton = false }) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* View-As Role Switcher (only for privileged users) */}
-            {user && <ViewAsSelector />}
-
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

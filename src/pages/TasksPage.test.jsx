@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TasksPage from './TasksPage';
 import { BrowserRouter } from 'react-router-dom';
-import { ToastProvider } from '@/app/contexts/ToastContext';
 
 // Mock dependencies
 import { planter } from '@/shared/api/planterClient';
@@ -65,9 +64,7 @@ describe('TasksPage', () => {
     render(
       <QueryClientProvider client={createTestQueryClient()}>
         <BrowserRouter>
-          <ToastProvider>
-            <TasksPage />
-          </ToastProvider>
+          <TasksPage />
         </BrowserRouter>
       </QueryClientProvider>
     );
@@ -85,9 +82,7 @@ describe('TasksPage', () => {
     render(
       <QueryClientProvider client={createTestQueryClient()}>
         <BrowserRouter>
-          <ToastProvider>
-            <TasksPage />
-          </ToastProvider>
+          <TasksPage />
         </BrowserRouter>
       </QueryClientProvider>
     );
@@ -102,9 +97,7 @@ describe('TasksPage', () => {
     render(
       <QueryClientProvider client={createTestQueryClient()}>
         <BrowserRouter>
-          <ToastProvider>
-            <TasksPage />
-          </ToastProvider>
+          <TasksPage />
         </BrowserRouter>
       </QueryClientProvider>
     );

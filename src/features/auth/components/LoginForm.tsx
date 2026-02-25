@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/shared/ui/use-toast';
+import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
@@ -18,7 +18,6 @@ const LoginForm = () => {
 
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const {
     register,
@@ -32,7 +31,7 @@ const LoginForm = () => {
     },
   });
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
     setLoading(true);
 
     try {
@@ -48,11 +47,9 @@ const LoginForm = () => {
       } else {
         navigate('/dashboard');
       }
-    } catch (err) {
-      toast({
-        title: isSignUp ? 'Sign up failed' : 'Login failed',
+    } catch (err: any) {
+      toast.error(isSignUp ? 'Sign up failed' : 'Login failed', {
         description: err.message || 'An unexpected error occurred',
-        variant: 'destructive',
       });
     } finally {
       setLoading(false);

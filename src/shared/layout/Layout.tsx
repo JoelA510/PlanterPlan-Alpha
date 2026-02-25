@@ -1,7 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate, ScrollRestoration } from 'react-router-dom'
 import { LayoutDashboard, LogOut } from 'lucide-react'
 import { useAuth } from '@/app/contexts/AuthContext'
-import { ViewAsProvider } from '@/app/contexts/ViewAsContext'
 import { useEffect } from 'react'
 
 export function Layout() {
@@ -15,12 +14,8 @@ export function Layout() {
         }
     }, [user, loading, navigate])
 
-    if (loading) return <div className="flex h-screen items-center justify-center">Loading session...</div>
-
-    const userRole = (user?.app_metadata?.role as string) || (user?.user_metadata?.role as string) || 'viewer'
-
     return (
-        <ViewAsProvider userRole={userRole}>
+        <>
             <ScrollRestoration />
             <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
                 {/* Sidebar */}
@@ -61,7 +56,7 @@ export function Layout() {
                     <Outlet />
                 </main>
             </div>
-        </ViewAsProvider>
+        </>
     )
 }
 

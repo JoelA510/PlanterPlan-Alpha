@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { planter } from '@/shared/api/planterClient';
-import { useToast } from '@/shared/ui/use-toast';
+import { toast } from 'sonner';
 
 export interface UserProfile {
     full_name: string;
@@ -14,7 +14,6 @@ export interface UserProfile {
 
 export function useSettings() {
     const { user } = useAuth();
-    const { toast } = useToast();
 
     const [loading, setLoading] = useState(false);
     const [avatarError, setAvatarError] = useState('');
@@ -55,16 +54,13 @@ export function useSettings() {
                 email_frequency: profile.email_frequency,
             });
 
-            toast({
-                title: "Settings saved",
+            toast.success("Settings saved", {
                 description: "Your profile has been updated successfully.",
             });
         } catch (error) {
             console.error('Error updating profile:', error);
-            toast({
-                title: "Error",
+            toast.error("Error", {
                 description: "Failed to update settings. Please try again.",
-                variant: "destructive",
             });
         } finally {
             setLoading(false);

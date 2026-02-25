@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useToast } from '@/app/contexts/ToastContext';
+import { toast } from 'sonner';
 
 interface UseTaskBoardUIProps {
     currentUserId: string | null;
@@ -20,8 +20,6 @@ export const useTaskBoardUI = ({
     findTask,
     activeProjectId,
 }: UseTaskBoardUIProps) => {
-    const { addToast } = useToast();
-
     // UI State
     const [showForm, setShowForm] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -72,13 +70,13 @@ export const useTaskBoardUI = ({
                 }
                 if (selectedTask?.id === task.id) setSelectedTask(null);
                 if (taskFormState?.taskId === task.id) setTaskFormState(null);
-                addToast('Task deleted successfully', 'success');
+                toast.success('Task deleted successfully');
             } catch (err) {
                 console.error('Failed to delete task:', err);
-                addToast('Failed to delete task', 'error');
+                toast.error('Failed to delete task');
             }
         },
-        [deleteTask, selectedTask, taskFormState, refreshProjectDetails, addToast]
+        [deleteTask, selectedTask, taskFormState, refreshProjectDetails]
     );
 
     const handleDeleteById = useCallback(
@@ -101,11 +99,11 @@ export const useTaskBoardUI = ({
             await createProject(formData);
             // Member assignment happens automatically in the creation RPC now.
 
-            addToast('Project created successfully!', 'success');
+            toast.success('Project created successfully!');
             setShowForm(false);
         } catch (err) {
             console.error('Failed to create project:', err);
-            addToast('Failed to create project. Please try again.', 'error');
+            toast.error('Failed to create project. Please try again.');
         } finally {
             setIsSaving(false);
         }
@@ -124,10 +122,10 @@ export const useTaskBoardUI = ({
                 }
             }
             setTaskFormState(null);
-            addToast('Task saved successfully', 'success');
+            toast.success('Task saved successfully');
         } catch (err) {
             console.error('Failed to save task:', err);
-            addToast('Failed to save task. Please try again.', 'error');
+            toast.error('Failed to save task. Please try again.');
         } finally {
             setIsSaving(false);
         }

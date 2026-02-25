@@ -15,10 +15,6 @@ import ThemeContext from '../../app/contexts/ThemeContext';
 // Let's assume standard behavior: we mock values, but use standard context objects if possible.
 // Since we are validating structure, let's inject mocks for the values.
 
-// Mock setup for Contexts
-const MockToastContext = React.createContext({});
-const MockViewAsContext = React.createContext({});
-
 /**
  * Custom render function that wraps the UI in necessary providers.
  * 
@@ -26,8 +22,6 @@ const MockViewAsContext = React.createContext({});
  * @param {Object} options - Custom options.
  * @param {Object} options.authContextValue - Overrides for AuthContext.
  * @param {Object} options.themeContextValue - Overrides for ThemeContext.
- * @param {Object} options.toastContextValue - Overrides for ToastContext.
- * @param {Object} options.viewAsContextValue - Overrides for ViewAsContext.
  * @param {string} options.route - Initial route for MemoryRouter.
  * @returns {Object} Result from RTL's render.
  */
@@ -36,8 +30,6 @@ export const renderWithProviders = (
     {
         authContextValue = {},
         themeContextValue = {},
-        toastContextValue = {},
-        viewAsContextValue = {},
         route = '/',
         ...renderOptions
     } = {}
@@ -60,29 +52,12 @@ export const renderWithProviders = (
         ...themeContextValue,
     };
 
-    const defaultToast = {
-        toast: vi.fn(),
-        dismiss: vi.fn(),
-        ...toastContextValue,
-    };
-
-    const defaultViewAs = {
-        viewAsRole: null, // null means viewing as self
-        setViewAsRole: vi.fn(),
-        ...viewAsContextValue,
-    };
-
     const Wrapper = ({ children }) => {
         return (
             <MemoryRouter initialEntries={[route]}>
                 <AuthContext.Provider value={defaultAuth}>
                     <ThemeContext.Provider value={defaultTheme}>
-                        {/* Using basic contexts for now to avoid import errors if files are moved */}
-                        <MockToastContext.Provider value={defaultToast}>
-                            <MockViewAsContext.Provider value={defaultViewAs}>
-                                {children}
-                            </MockViewAsContext.Provider>
-                        </MockToastContext.Provider>
+                        {children}
                     </ThemeContext.Provider>
                 </AuthContext.Provider>
             </MemoryRouter>
@@ -100,7 +75,5 @@ export const renderWithProviders = (
 // For now, these generic exports allow the `health.test.jsx` to verify the provider hierarchy works.
 export const TestContexts = {
     AuthContext,
-    ThemeContext,
-    MockToastContext,
-    MockViewAsContext
+    ThemeContext
 };

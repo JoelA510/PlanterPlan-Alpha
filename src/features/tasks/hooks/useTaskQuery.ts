@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/shared/db/client';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { fetchTaskChildren } from '@/features/tasks/services/taskService';
 import { planter } from '@/shared/api/planterClient';
 
 const PAGE_SIZE = 20;
@@ -120,7 +119,7 @@ export const useTaskQuery = () => {
         async (projectId: string) => {
             if (hydratedProjects[projectId]) return;
             try {
-                const { data: descendants, error } = await fetchTaskChildren(projectId);
+                const { data: descendants, error } = await planter.entities.Task.fetchChildren(projectId);
                 if (error) throw error;
 
                 // Store flattened children
@@ -137,7 +136,7 @@ export const useTaskQuery = () => {
 
     const refreshProjectDetails = useCallback(async (projectId: string) => {
         try {
-            const { data: descendants, error } = await fetchTaskChildren(projectId);
+            const { data: descendants, error } = await planter.entities.Task.fetchChildren(projectId);
             if (error) throw error;
             const children = descendants.filter((t: any) => t.id !== projectId);
 

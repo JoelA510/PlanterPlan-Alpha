@@ -31,7 +31,7 @@
     4. Once all consumers are updated, delete the four service files using `git rm`.
     5. Verify the build integrity by running `npx tsc --noEmit`.
 
-- [ ] **4. Delete Duplicate Contexts**
+- [x] **4. Delete Duplicate Contexts**
   - *Effect*: Delete ViewAs context architecture entirely. Delete custom `use-toast.jsx` context and wire consumers directly to `sonner`.
   - *Agent Prompt*: Remove redundant context providers to shrink the app wrapper:
     1. Delete `src/app/contexts/ViewAsContext.jsx`, `src/app/contexts/ViewAsProviderWrapper.jsx`, and `features/navigation/components/ViewAsSelector.jsx` using `git rm`. Remove their references from the main app tree.
