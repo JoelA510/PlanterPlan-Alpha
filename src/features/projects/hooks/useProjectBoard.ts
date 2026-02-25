@@ -1,0 +1,157 @@
+import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/shared/ui/use-toast';
+import { TASK_STATUS } from '@/app/constants/index';
+import { resolveDragAssign } from '@/features/projects/utils/dragUtils';
+
+import {
+    useCreateTask,
+    useUpdateTask,
+    useDeleteTask,
+    useAssignTaskMember
+} from '@/features/tasks/hooks/useTaskMutations';
+
+import type { TaskRow, PersonRow } from '@/shared/db/app.types';
+
+export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] = []) {
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+
+    const [activeTab, setActiveTab] = useState('board');
+    const [selectedPhase, setSelectedPhase] = useState<TaskRow | null>(null);
+    const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+    const [addTaskModal, setAddTaskModal] = useState<{ open: boolean; milestone: TaskRow | null; parentTask?: TaskRow | null }>({ open: false, milestone: null, parentTask: null });
+    const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
+    const [activeDragMember, setActiveDragMember] = useState<PersonRow | null>(null);
+    const [inlineAddingParentId, setInlineAddingParentId] = useState<string | null>(null);
+    const [showInviteModal, setShowInviteModal] = useState(false);
+
+    const _updateTask = useUpdateTask();
+    const _deleteTask = useDeleteTask();
+    const _assignMember = useAssignTaskMember();
+    const _createTask = useCreateTask();
+
+    const handleTaskUpdate = (taskId: string, data: any) => {
+        _updateTask.mutate({ id: taskId, ...data, root_id: projectId }, {
+            onError: (error: Error) => {
+                toast({ title: 'Failed to update task', description: error.message, variant: 'destructive' });
+            }
+        });
+    };
+
+    const handleTaskClick = (task: TaskRow) => setSelectedTask(task);
+
+    const handleToggleExpand = (task: TaskRow, isExpanded: boolean) => {
+        setExpandedTaskIds((prev) => {
+            const newSet = new Set(prev);
+            if (isExpanded) newSet.add(task.id);
+            else newSet.delete(task.id);
+            return newSet;
+        });
+    };
+
+    // Heavy mapping logic extracted
+    const mapTaskWithState = (task: TaskRow): any => ({
+        ...task,
+        isExpanded: expandedTaskIds.has(task.id) || inlineAddingParentId === task.id,
+        isAddingInline: inlineAddingParentId === task.id,
+        children: tasks
+            .filter((t) => t.parent_task_id === task.id)
+            .map(mapTaskWithState)
+            .sort((a, b) => (a.position || 0) - (b.position || 0)),
+    });
+
+    const handleAddTask = async (taskData: any) => {
+        try {
+            if (!addTaskModal.milestone) return;
+
+            const payload = { ...taskData };
+            delete payload.milestone;
+            const parentId = addTaskModal.parentTask?.id || addTaskModal.milestone?.id;
+
+            await _createTask.mutateAsync({
+                ...payload,
+                root_id: projectId,
+                status: TASK_STATUS.TODO,
+                parent_task_id: parentId,
+            });
+
+            if (addTaskModal.parentTask) {
+                setExpandedTaskIds((prev) => new Set(prev).add(addTaskModal.parentTask!.id));
+            }
+
+            setAddTaskModal({ open: false, milestone: null, parentTask: null });
+            toast({ title: 'Task created successfully', variant: 'default' });
+        } catch (error: any) {
+            toast({ title: 'Failed to create task', description: error.message, variant: 'destructive' });
+        }
+    };
+
+    const handleStartInlineAdd = (parentTask: TaskRow) => {
+        setInlineAddingParentId(parentTask.id);
+        setExpandedTaskIds((prev) => new Set(prev).add(parentTask.id));
+    };
+
+    const handleInlineCommit = async (parentId: string, title: string) => {
+        try {
+            await _createTask.mutateAsync({
+                title,
+                root_id: projectId,
+                status: 'todo',
+                parent_task_id: parentId,
+                origin: 'instance',
+                priority: 'medium',
+                description: '',
+            });
+            setInlineAddingParentId(null);
+        } catch (e) {
+            toast({ title: 'Failed to create task', variant: 'destructive' });
+        }
+    };
+
+    const handleDragStart = (event: any) => {
+        if (event.active.data.current?.type === 'User') {
+            setActiveDragMember(event.active.data.current.member);
+        }
+    };
+
+    const handleDragEnd = (event: any) => {
+        setActiveDragMember(null);
+        const { active, over } = event;
+        const assignment = resolveDragAssign(active, over, tasks);
+        if (assignment) {
+            _assignMember.mutate({ ...assignment, root_id: projectId }, {
+                onSuccess: () => toast({ title: 'Member assigned to task', variant: 'default' }),
+                onError: (err: Error) => toast({ title: 'Failed to assign member', description: err.message, variant: 'destructive' })
+            });
+        }
+    };
+
+    const handleDeleteTask = (t: TaskRow) => {
+        if (window.confirm(`Delete "${t.title || 'this task'}"? This cannot be undone.`)) {
+            _deleteTask.mutate({ id: t.id, root_id: projectId }, {
+                onSuccess: () => {
+                    setSelectedTask(null);
+                    toast({ title: 'Task deleted', variant: 'default' });
+                },
+                onError: (error: Error) => toast({ title: 'Failed to delete task', description: error.message, variant: 'destructive' })
+            });
+        }
+    };
+
+    return {
+        state: {
+            activeTab, selectedPhase, selectedTask, addTaskModal, activeDragMember, showInviteModal, inlineAddingParentId
+        },
+        actions: {
+            setActiveTab, setSelectedPhase, setSelectedTask, setAddTaskModal, setShowInviteModal, setInlineAddingParentId
+        },
+        handlers: {
+            handleTaskUpdate, handleTaskClick, handleToggleExpand, handleAddTask,
+            handleStartInlineAdd, handleInlineCommit, handleDragStart, handleDragEnd, handleDeleteTask
+        },
+        computed: {
+            mapTaskWithState
+        }
+    };
+}

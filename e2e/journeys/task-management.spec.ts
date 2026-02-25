@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { OWNER_ID, createSession, setupAuthenticatedState, setupCommonMocks } from '../fixtures/e2e-helpers';
+import { ProjectPage } from '../poms/ProjectPage';
 
 /**
  * Task Management Journey E2E Test
@@ -39,14 +40,10 @@ test.describe('Journey: Task Management', () => {
             const method = route.request().method();
 
             if (method === 'GET') {
-                // IMPORTANT: Check root_id BEFORE id — substring collision prevention
                 if (url.includes('root_id=eq.')) {
                     return route.fulfill({ status: 200, body: JSON.stringify(testProjectTasks) });
                 }
-                if (url.includes(`id=eq.${projectId}`)) {
-                    return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
-                }
-                if (url.includes('origin=eq.instance')) {
+                if (url.includes(`id=eq.${projectId}`) || url.includes('origin=eq.instance')) {
                     return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
                 }
                 return route.continue();
@@ -71,33 +68,19 @@ test.describe('Journey: Task Management', () => {
 
         await setupMembersMock(page, projectId);
         await setupAuthenticatedState(page, ownerSession);
-        await page.goto(`/project/${projectId}`);
 
-        // Verify project loaded with hierarchy
-        await expect(page.getByRole('heading', { name: 'Test Project' })).toBeVisible({ timeout: 15000 });
-        await expect(page.getByText('Phase 1').first()).toBeVisible({ timeout: 10000 });
-        await expect(page.getByText('Milestone 1').first()).toBeVisible({ timeout: 10000 });
-        await expect(page.getByText('Pre-existing Task').first()).toBeVisible({ timeout: 10000 });
+        const projectPage = new ProjectPage(page);
+        await projectPage.goto(projectId);
 
-        // Click the Add Task button — the ghost button at the bottom of the milestone task list
-        const addBtn = page.getByRole('button', { name: /Add Task/i }).first();
-        await expect(addBtn).toBeVisible({ timeout: 5000 });
-        await addBtn.click();
+        await projectPage.verifyProjectLoaded('Test Project');
+        // Await other components implicitly loaded
+        await projectPage.verifyTaskVisible('Phase 1');
+        await projectPage.verifyTaskVisible('Pre-existing Task');
 
-        // Wait for the AddTaskModal dialog to open
-        const dialog = page.getByRole('dialog');
-        await expect(dialog).toBeVisible({ timeout: 5000 });
+        await projectPage.openAddTaskModal();
+        await projectPage.fillAndSubmitTask('Validated New Task');
 
-        // Fill the title input inside the dialog
-        const titleInput = dialog.locator('#title');
-        await expect(titleInput).toBeVisible({ timeout: 3000 });
-        await titleInput.fill('Validated New Task');
-
-        // Click the submit button inside the dialog
-        await dialog.getByRole('button', { name: 'Add Task' }).click();
-
-        // Verify the new task appears
-        await expect(page.getByText('Validated New Task').first()).toBeVisible({ timeout: 10000 });
+        await projectPage.verifyTaskVisible('Validated New Task');
     });
 
     test('Owner can change task status', async ({ page }) => {
@@ -118,14 +101,10 @@ test.describe('Journey: Task Management', () => {
             const method = route.request().method();
 
             if (method === 'GET') {
-                // IMPORTANT: Check root_id BEFORE id
                 if (url.includes('root_id=eq.')) {
                     return route.fulfill({ status: 200, body: JSON.stringify(tasksData) });
                 }
-                if (url.includes(`id=eq.${projectId}`)) {
-                    return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
-                }
-                if (url.includes('origin=eq.instance')) {
+                if (url.includes(`id=eq.${projectId}`) || url.includes('origin=eq.instance')) {
                     return route.fulfill({ status: 200, body: JSON.stringify([projectData]) });
                 }
                 return route.continue();
@@ -133,11 +112,8 @@ test.describe('Journey: Task Management', () => {
 
             if (method === 'PATCH') {
                 const postData = route.request().postDataJSON();
-                // Update the mock data so subsequent GETs return updated state
                 const task = tasksData.find(t => url.includes(`id=eq.${t.id}`));
-                if (task && postData.status) {
-                    task.status = postData.status;
-                }
+                if (task && postData.status) task.status = postData.status;
                 return route.fulfill({ status: 200, body: JSON.stringify([{ id: '41000000-0000-0000-0000-000000000003', ...postData }]) });
             }
             return route.fulfill({ body: '[]' });
@@ -145,21 +121,12 @@ test.describe('Journey: Task Management', () => {
 
         await setupMembersMock(page, projectId);
         await setupAuthenticatedState(page, ownerSession);
-        await page.goto(`/project/${projectId}`);
 
-        await expect(page.getByText('Mutable Task').first()).toBeVisible({ timeout: 15000 });
+        const projectPage = new ProjectPage(page);
+        await projectPage.goto(projectId);
 
-        // TaskStatusSelect uses a native <select> element.
-        // Locate via data-testid on the containing task row.
-        const taskRow = page.locator('[data-testid="task-row-41000000-0000-0000-0000-000000000003"]');
-        const statusSelect = taskRow.locator('select');
-        await expect(statusSelect).toBeVisible({ timeout: 5000 });
-
-        // Native select: use selectOption to change value
-        await statusSelect.selectOption('in_progress');
-
-        // Wait for React to re-render after the mutation + query invalidation
-        await expect(statusSelect).toHaveValue('in_progress', { timeout: 10000 });
+        await projectPage.verifyTaskVisible('Mutable Task');
+        await projectPage.changeTaskStatus('41000000-0000-0000-0000-000000000003', 'in_progress');
     });
 
     test('Project Isolation: Tasks do not leak between projects', async ({ page }) => {
@@ -171,10 +138,8 @@ test.describe('Journey: Task Management', () => {
 
         await setupCommonMocks(page, ownerSession);
 
-        // Consolidated route handler with correct priority ordering
         await page.route('**/rest/v1/tasks*', async (route) => {
             const url = route.request().url();
-            // IMPORTANT: Check root_id BEFORE id — substring collision prevention
             if (url.includes(`root_id=eq.${p1Id}`)) return route.fulfill({ body: JSON.stringify([{ id: '42000000-0000-0000-0000-000000000002', title: 'Unique Task A', root_id: p1Id, parent_task_id: p1Id, creator: OWNER_ID }]) });
             if (url.includes(`root_id=eq.${p2Id}`)) return route.fulfill({ body: JSON.stringify([{ id: '43000000-0000-0000-0000-000000000002', title: 'Unique Task B', root_id: p2Id, parent_task_id: p2Id, creator: OWNER_ID }]) });
             if (url.includes(`id=eq.${p1Id}`)) return route.fulfill({ body: JSON.stringify([p1Data]) });
@@ -186,12 +151,14 @@ test.describe('Journey: Task Management', () => {
         await setupMembersMock(page, p1Id, p2Id);
         await setupAuthenticatedState(page, ownerSession);
 
-        await page.goto(`/project/${p1Id}`);
-        await expect(page.getByText('Unique Task A').first()).toBeVisible({ timeout: 20000 });
-        await expect(page.getByText('Unique Task B')).not.toBeVisible();
+        const projectPage = new ProjectPage(page);
 
-        await page.goto(`/project/${p2Id}`);
-        await expect(page.getByText('Unique Task B').first()).toBeVisible({ timeout: 20000 });
-        await expect(page.getByText('Unique Task A')).not.toBeVisible();
+        await projectPage.goto(p1Id);
+        await projectPage.verifyTaskVisible('Unique Task A');
+        await projectPage.verifyTaskNotVisible('Unique Task B');
+
+        await projectPage.goto(p2Id);
+        await projectPage.verifyTaskVisible('Unique Task B');
+        await projectPage.verifyTaskNotVisible('Unique Task A');
     });
 });

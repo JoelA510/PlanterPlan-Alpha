@@ -1,6 +1,4 @@
-import { Database } from '@/shared/db/types'
-
-type Task = Database['public']['Tables']['tasks']['Row']
+import type { TaskRow as Task } from '@/shared/db/app.types'
 
 export type TaskNode = Task & {
     children: TaskNode[]

@@ -27,3 +27,11 @@
 - [x] Secure E2E Backdoor: Wrap the `e2e_bypass` check in `router.tsx` with a strict dev/test environment guard (`import.meta.env.DEV`).
 - [x] Normalize Timezones: Convert raw database timestamps to local user time via `date-fns` immediately at the API boundary. (Deferred/handled via string manipulations)
 - [x] Centralize Mutations: Extract isolated functions (like `updateTask`) into dedicated `useMutation` hooks that automatically handle optimistic UI and rollbacks.
+
+## Repository Context Size Reduction
+- [x] Phase 1: Aggressive `.gitignore` Policies (e.g. `package-lock.json`, test artifacts).
+- [x] Phase 2: Documentation Relocation (Moved `FULL_ARCHITECTURE.md`, `PROJECT_MIND_MAP.md`, `lessons.md`, `schema.sql` to `.ai-ignore/docs/`).
+- [ ] Phase 3: Code Refactoring & De-duplication.
+  - [x] Split `src/shared/db/types.ts` into `database.types.ts` vs `app.types.ts`.
+  - [x] Refactor monolithic components: Extract mapping/API logic from `src/pages/Project.jsx` and `src/pages/Reports.jsx`.
+  - [x] Modularize E2E Test Suites (`template-to-project.spec.ts`, `task-management.spec.ts`) using Page Object Models (POMs).

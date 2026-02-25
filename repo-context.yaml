@@ -59,7 +59,7 @@ modules:
       - "Fetches project details and members"
       - "Manages layout logic (sidebar, details panel)"
     dependencies:
-      strong: [useProject, useProjectMembers, useProjectMutations]
+      strong: [useProject, useProjectMembers, useProjectMutations, useProjectBoard, useProjectReports]
 
   # BUSINESS LOGIC HOOKS
   TaskHooks:

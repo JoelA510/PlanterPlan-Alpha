@@ -11,9 +11,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { TaskNode, buildTaskTree } from '@/shared/lib/tree-helpers'
 import { useTaskTreeDnD } from '@/features/tasks/hooks/useTaskTreeDnD'
 import { SortableTaskRow } from './TaskRow'
-import { Database } from '@/shared/db/types'
-
-type Task = Database['public']['Tables']['tasks']['Row']
+import type { TaskRow as Task } from '@/shared/db/app.types'
 
 interface TaskTreeProps {
     projectId: string

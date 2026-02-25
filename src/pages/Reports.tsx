@@ -1,21 +1,12 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/shared/lib/utils';
 import { planter } from '@/shared/api/planterClient';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Progress } from '@/shared/ui/progress';
-import {
-  ArrowLeft,
-  Loader2,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Circle,
-  TrendingUp,
-} from 'lucide-react';
+import { ArrowLeft, Loader2, BarChart, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
 import {
   Select,
@@ -26,7 +17,7 @@ import {
 } from '@/shared/ui/select';
 
 import {
-  BarChart,
+  BarChart as RechartsBarChart,
   Bar,
   XAxis,
   YAxis,
@@ -40,27 +31,10 @@ import {
 } from 'recharts';
 
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { TASK_STATUS } from '@/app/constants/index';
+import { useProjectReports } from '@/features/projects/hooks/useProjectReports';
+import type { TaskRow } from '@/shared/db/app.types';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
-// Mock Data (since we are just styling now)
-const reports = {
-  projectProgress: [
-    { name: 'Alpha', progress: 75 },
-    { name: 'Beta', progress: 45 },
-    { name: 'Gamma', progress: 90 },
-  ],
-  taskDistribution: [
-    { name: 'To Do', value: 10 },
-    { name: 'In Progress', value: 20 },
-    { name: 'Done', value: 30 },
-  ],
-  upcomingDeadlines: [
-    { id: 1, title: 'Launch', project: 'Alpha', date: '2023-10-01', priority: 'High' },
-    { id: 2, title: 'Test', project: 'Beta', date: '2023-10-05', priority: 'Medium' },
-  ],
-};
 
 export default function Reports() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -70,17 +44,13 @@ export default function Reports() {
 
   const { data: project } = useQuery({
     queryKey: ['project', projectId],
-    queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res) => res[0]),
+    queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res: any) => res[0]),
     enabled: !!projectId,
   });
 
-  // Fetch all projects for the picker
   const { data: allProjects = [] } = useQuery({
     queryKey: ['projects', user?.id],
-    queryFn: async () => {
-      // Assuming a straightforward generic fetch for MVP. Should mirror Dashboard's fetch in reality.
-      return planter.entities.Project.filter({});
-    },
+    queryFn: async () => planter.entities.Project.filter({}),
     enabled: !!user,
   });
 
@@ -90,79 +60,20 @@ export default function Reports() {
     enabled: !!projectId,
   });
 
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [], isLoading } = useQuery<TaskRow[]>({
     queryKey: ['tasks', projectId],
     queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
     enabled: !!projectId,
   });
 
-  // Calculate stats
-  const tasksByStatus = {
-    completed: tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length,
-    in_progress: tasks.filter((t) => t.status === TASK_STATUS.IN_PROGRESS).length,
-    not_started: tasks.filter((t) => t.status === TASK_STATUS.TODO).length,
-    blocked: tasks.filter((t) => t.status === TASK_STATUS.BLOCKED).length,
-  };
-
-  const statsConfig = [
-    {
-      label: 'Completed',
-      value: tasksByStatus.completed,
-      icon: CheckCircle2,
-      borderClass: 'border-green-200',
-      bgClass: 'bg-green-100',
-      hoverBgClass: 'bg-green-500',
-      textClass: 'text-green-600',
-    },
-    {
-      label: 'In Progress',
-      value: tasksByStatus.in_progress,
-      icon: Clock,
-      borderClass: 'border-orange-200',
-      bgClass: 'bg-orange-100',
-      hoverBgClass: 'bg-orange-500',
-      textClass: 'text-orange-600',
-    },
-    {
-      label: 'Not Started',
-      value: tasksByStatus.not_started,
-      icon: Circle,
-      borderClass: 'border-indigo-200',
-      bgClass: 'bg-indigo-100',
-      hoverBgClass: 'bg-indigo-500',
-      textClass: 'text-indigo-600',
-    },
-    {
-      label: 'Blocked',
-      value: tasksByStatus.blocked,
-      icon: AlertTriangle,
-      borderClass: 'border-red-200',
-      bgClass: 'bg-red-100',
-      hoverBgClass: 'bg-red-500',
-      textClass: 'text-red-600',
-    },
-  ];
-
-
-  const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
-
-  const phaseData = sortedPhases.map((phase) => {
-    const phaseTasks = tasks.filter((t) => t.phase_id === phase.id);
-    const completed = phaseTasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
-    const total = phaseTasks.length;
-    return {
-      name: `Phase ${phase.order}`,
-      fullName: phase.name,
-      completed,
-      remaining: total - completed,
-      total,
-      progress: total > 0 ? Math.round((completed / total) * 100) : 0,
-    };
-  });
-
-  const totalTasks = tasks.length;
-  const completedTasks = tasksByStatus.completed;
-  const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const {
+    statsConfig,
+    overallProgress,
+    completedTasks,
+    totalTasks,
+    phaseData,
+    reports,
+  } = useProjectReports(tasks, phases);
 
   if (isLoading) {
     return (
@@ -175,7 +86,7 @@ export default function Reports() {
   }
 
   return (
-    <DashboardLayout selectedTaskId={projectId}>
+    <DashboardLayout selectedTaskId={projectId || undefined}>
       <div className="min-h-screen bg-slate-50">
         <div className="bg-white border-b border-slate-200 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 py-8">
@@ -216,7 +127,7 @@ export default function Reports() {
                     <SelectValue placeholder="Select a project..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {allProjects.map((p) => (
+                    {allProjects.map((p: any) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}
                       </SelectItem>
@@ -232,7 +143,6 @@ export default function Reports() {
             </div>
           ) : (
             <>
-              {/* Overview Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                 {statsConfig.map((stat, index) => (
                   <motion.div
@@ -258,7 +168,6 @@ export default function Reports() {
                 ))}
               </div>
 
-              {/* Overall Progress */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -285,7 +194,7 @@ export default function Reports() {
                 <h2 className="text-lg font-semibold text-foreground mb-4">Project Overview</h2>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={reports.projectProgress}>
+                    <RechartsBarChart data={reports.projectProgress}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                       <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
                       <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
@@ -294,7 +203,7 @@ export default function Reports() {
                         contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
                       />
                       <Bar dataKey="progress" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
+                    </RechartsBarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -314,7 +223,7 @@ export default function Reports() {
                           paddingAngle={5}
                           dataKey="value"
                         >
-                          {reports.taskDistribution.map((entry, index) => (
+                          {reports.taskDistribution.map((entry: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -330,7 +239,7 @@ export default function Reports() {
                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                   <h2 className="text-lg font-semibold text-foreground mb-4">Upcoming Deadlines</h2>
                   <div className="space-y-4">
-                    {reports.upcomingDeadlines.map((task) => (
+                    {reports.upcomingDeadlines.map((task: any) => (
                       <div key={task.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
                         <div>
                           <h4 className="font-medium text-foreground">{task.title}</h4>
@@ -349,7 +258,6 @@ export default function Reports() {
                 </div>
               </div>
 
-              {/* Phase Details */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

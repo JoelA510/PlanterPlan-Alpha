@@ -407,3 +407,13 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-22
 - **Context**: Advanced features like Dark Mode and custom Dashboard views (Grid/Pipeline toggles) were causing outsized maintenance burden and compounding bugs (e.g., Theme Toggle re-rendering race conditions, unresponsive recharts).
 - **Rule**: **Subtract Before You Add.** In an MVP/Alpha stage, aggressive trimming pays off. By forcing light mode and unifying on a single Pipeline view, we drastically reduced state complexity, fixed multiple bugs instantly, and streamlined cognitive load for the user. When in doubt, kill the feature.
+
+### [TEST-010] E2E Page Object Models (POMs)
+- **Date**: 2026-02-24
+- **Context**: As E2E tests grew, route logic, setup mocks, and generic page assertions (like "wait for dashboard") became heavily duplicated across `template-to-project.spec.ts` and `task-management.spec.ts`.
+- **Rule**: **Adopt POMs Early.** Extract repetitive UI locators and assertion chains into Page Object Models (e.g., `DashboardPage`, `ProjectPage`) to ensure test files remain focused solely on business logic and journey flow.
+
+### [PERF-029] Repository Context Size Constraints
+- **Date**: 2026-02-24
+- **Context**: LLM agent operations became sluggish and token-heavy due to automatically reading massive historical documentation (like 37K line `schema.sql` or 900+ line architecture maps) on every query.
+- **Rule**: **Hide Static Context.** Use `.ai-ignore/docs/` directories or aggressive `.gitignore` policies for massive reference files. Only load deep architectural context when explicitly auditing those systems, keeping the active working tree minimal.
