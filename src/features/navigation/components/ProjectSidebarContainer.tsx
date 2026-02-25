@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useTaskOperations } from '@/features/tasks/hooks/useTaskOperations';
+import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useUserProjects } from '@/features/projects/hooks/useUserProjects';
 import { useAuth } from '@/app/contexts/AuthContext';
 import ProjectSidebar from './ProjectSidebar';
@@ -13,14 +13,16 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }: 
     const navigate = useNavigate();
     const { data: userProjects, isLoading: projectsLoading } = useUserProjects();
     const {
-        templateTasks = [],
+        tasks = [],
         loading: tasksLoading,
         error,
         joinedError,
         loadMoreProjects,
         hasMore,
         isFetchingMore,
-    } = useTaskOperations();
+    } = useTaskQuery();
+
+    const templateTasks = tasks.filter((t: any) => t.origin === 'template');
 
     const { user } = useAuth(); // Need user for filtering
 

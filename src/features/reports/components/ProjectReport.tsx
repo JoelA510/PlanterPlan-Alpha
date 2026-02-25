@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
 import ProjectHeader from '@/features/projects/components/ProjectHeader';
-import { useTaskOperations } from '@/features/tasks/hooks/useTaskOperations';
+import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
 import { planter } from '@/shared/api/planterClient';
 import { Loader2 } from 'lucide-react';
@@ -17,15 +17,17 @@ const ProjectReport: React.FC = () => {
     const {
         tasks,
         joinedProjects,
+        hydratedProjects,
         loading,
         error,
         joinedError,
-        fetchProjectDetails,
         hasMore,
         isFetchingMore,
         loadMoreProjects,
-        ...mutationUtils
-    } = useTaskOperations() as any;
+        refetchProjects,
+    } = useTaskQuery() as any;
+
+    const fetchProjectDetails = () => refetchProjects();
 
     // 2. Project Selection Layer (Sidebar sync)
     const { activeProjectId, handleSelectProject } = useProjectSelection({
@@ -33,7 +35,7 @@ const ProjectReport: React.FC = () => {
         instanceTasks: useMemo(() => tasks.filter((t: any) => t.origin === 'instance'), [tasks]),
         templateTasks: useMemo(() => tasks.filter((t: any) => t.origin === 'template'), [tasks]),
         joinedProjects,
-        hydratedProjects: mutationUtils.hydratedProjects,
+        hydratedProjects,
         fetchProjectDetails,
         loading,
     });

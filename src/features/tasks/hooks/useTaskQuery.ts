@@ -126,5 +126,6 @@ export const useTaskQuery = () => {
         isFetchingMore: isFetchingNextPage,
         loadMoreProjects: fetchNextPage,
         refetchProjects,
+        findTask,
     };
 };

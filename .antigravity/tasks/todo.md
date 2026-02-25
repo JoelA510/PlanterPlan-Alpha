@@ -84,7 +84,7 @@
     3. Open `src/pages/Project.tsx` and remove the DnD context wrappers surrounding the layout.
     4. Run `npx tsc --noEmit` to verify.
 
-- [ ] **10. Delete useTaskOperations**
+- [/] **10. Delete useTaskOperations**
   - *Effect*: Remove the facade hook `useTaskOperations.js` and direct consumers to use standard React Query mutations directly.
   - *Agent Prompt*: Remove unnecessary facade hooks:
     1. Delete `src/features/tasks/hooks/useTaskOperations.js` using `git rm`.

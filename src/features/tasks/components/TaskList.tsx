@@ -17,7 +17,9 @@ import EmptyProjectState from '@/features/tasks/components/EmptyProjectState';
 import StatusCard from '@/shared/ui/StatusCard';
 
 // Hooks & Utils
-import { useTaskOperations } from '@/features/tasks/hooks/useTaskOperations';
+import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
+import { useCreateTask, useUpdateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
+import { useCreateProject } from '@/features/projects/hooks/useProjectMutations';
 import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
 import { useTaskTree } from '@/features/tasks/hooks/useTaskTree';
 import { useTaskDragAndDrop } from '@/features/tasks/hooks/useTaskDragAndDrop';
@@ -30,25 +32,41 @@ const TaskList = () => {
     // 1. Core Data Layer
     const {
         tasks,
-        setTasks,
         joinedProjects,
+        hydratedProjects,
         loading,
         error,
         joinedError,
         currentUserId,
-        fetchTasks,
-        createProject,
-        createTaskOrUpdate,
-        deleteTask,
-        updateTask,
-        fetchProjectDetails,
-        refreshProjectDetails,
-        findTask,
         hasMore,
         isFetchingMore,
         loadMoreProjects,
-        ...mutationUtils
-    } = useTaskOperations();
+        refetchProjects,
+        findTask,
+    } = useTaskQuery();
+
+    const { mutateAsync: createProjectAsync } = useCreateProject();
+    const { mutateAsync: createTaskAsync } = useCreateTask();
+    const { mutateAsync: updateTaskAsync } = useUpdateTask();
+    const { mutateAsync: deleteTaskAsync } = useDeleteTask();
+
+    const createProject = async (data: any) => createProjectAsync(data);
+    const createTaskOrUpdate = async (data: any, state: any) => {
+        if (state?.mode === 'create') {
+            return createTaskAsync(data);
+        } else {
+            return updateTaskAsync(data);
+        }
+    };
+    const deleteTask = async (task: any) => deleteTaskAsync({ id: task.id, root_id: task.root_id });
+
+    // Legacy stubs for contexts that expect manual state manipulation
+    const fetchTasks = () => refetchProjects();
+    const fetchProjectDetails = () => refetchProjects();
+    const refreshProjectDetails = () => refetchProjects();
+    const setTasks = () => { };
+    const handleOptimisticUpdate = () => { };
+    const commitOptimisticUpdate = () => { };
 
     // 2. Project Selection Layer
     const { activeProjectId, handleSelectProject, hydrationError } = useProjectSelection({
@@ -56,7 +74,7 @@ const TaskList = () => {
         instanceTasks: useMemo(() => tasks.filter((t: Record<string, unknown>) => t.origin === 'instance'), [tasks]),
         templateTasks: useMemo(() => tasks.filter((t: Record<string, unknown>) => t.origin === 'template'), [tasks]),
         joinedProjects,
-        hydratedProjects: (mutationUtils as Record<string, unknown>).hydratedProjects,
+        hydratedProjects: hydratedProjects,
         fetchProjectDetails,
         loading,
     });
@@ -64,7 +82,7 @@ const TaskList = () => {
     // 3. Tree & UI Structure Layer
     const { activeProject, handleToggleExpand, instanceTasks, templateTasks } = useTaskTree({
         tasks,
-        hydratedProjects: (mutationUtils as Record<string, unknown>).hydratedProjects,
+        hydratedProjects: hydratedProjects,
         activeProjectId,
         joinedProjects,
     });
@@ -72,13 +90,13 @@ const TaskList = () => {
     // 4. Interaction Layer (DnD)
     const { sensors, handleDragEnd } = useTaskDragAndDrop({
         tasks,
-        hydratedProjects: (mutationUtils as Record<string, unknown>).hydratedProjects,
+        hydratedProjects: hydratedProjects,
         setTasks,
         fetchTasks,
         currentUserId,
-        updateTask,
-        handleOptimisticUpdate: (mutationUtils as Record<string, unknown>).handleOptimisticUpdate,
-        commitOptimisticUpdate: (mutationUtils as Record<string, unknown>).commitOptimisticUpdate,
+        updateTask: updateTaskAsync,
+        handleOptimisticUpdate,
+        commitOptimisticUpdate,
     });
 
     // 5. UI State & Orchestration Layer
@@ -198,7 +216,8 @@ const TaskList = () => {
                                 hydrationError={hydrationError}
                                 onInviteMember={() => handleOpenInvite(activeProject)}
                                 onStatusChange={(taskId: string, status: string) =>
-                                    updateTask(taskId, {
+                                    updateTaskAsync({
+                                        id: taskId,
                                         status,
                                         is_complete: status === 'completed',
                                     })
