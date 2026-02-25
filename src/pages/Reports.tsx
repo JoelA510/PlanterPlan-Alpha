@@ -30,7 +30,6 @@ import {
   Legend,
 } from 'recharts';
 
-import DashboardLayout from '@/layouts/DashboardLayout';
 import { useProjectReports } from '@/features/projects/hooks/useProjectReports';
 import type { TaskRow } from '@/shared/db/app.types';
 
@@ -77,16 +76,16 @@ export default function Reports() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout selectedTaskId={projectId || undefined}>
+    <>
       <div className="min-h-screen bg-slate-50">
         <div className="bg-white border-b border-slate-200 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 py-8">
@@ -296,6 +295,6 @@ export default function Reports() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

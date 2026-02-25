@@ -8,7 +8,6 @@ import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard';
 import ProjectHeader from '@/features/projects/components/ProjectHeader';
 import ProjectTabs from '@/features/projects/components/ProjectTabs';
 import PeopleList from '@/features/people/components/PeopleList';
-import DashboardLayout from '@/layouts/DashboardLayout';
 import PhaseCard from '@/features/projects/components/PhaseCard';
 import MilestoneSection from '@/features/projects/components/MilestoneSection';
 import TaskDetailsModal from '@/features/projects/components/TaskDetailsModal';
@@ -114,16 +113,16 @@ export default function Project() {
 
   if (loadingProject || !project) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout selectedTaskId={projectId}>
+    <>
       <ProjectHeader
         project={project}
         tasks={tasks}
@@ -226,6 +225,6 @@ export default function Project() {
           onInviteSuccess={() => { }}
         />
       )}
-    </DashboardLayout>
+    </>
   );
 }

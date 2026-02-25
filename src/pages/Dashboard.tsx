@@ -16,8 +16,6 @@ import ProjectPipelineBoard from '@/features/dashboard/components/ProjectPipelin
 import OnboardingWizard from '@/features/onboarding/components/OnboardingWizard';
 import GettingStartedWidget from '@/features/onboarding/components/GettingStartedWidget';
 import MobileAgenda from '@/features/mobile/MobileAgenda';
-import DashboardLayout from '@/layouts/DashboardLayout';
-
 export default function Dashboard() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
@@ -59,17 +57,17 @@ export default function Dashboard() {
 
     if (state.isLoading) {
         return (
-            <DashboardLayout>
+            <>
                 <div className="flex justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
                 </div>
-            </DashboardLayout>
+            </>
         );
     }
 
     if (state.isError) {
         return (
-            <DashboardLayout>
+            <>
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                     <p className="text-destructive font-medium">Failed to load projects</p>
                     <p className="text-muted-foreground text-sm">{state.error?.message}</p>
@@ -77,12 +75,12 @@ export default function Dashboard() {
                         Retry
                     </Button>
                 </div>
-            </DashboardLayout>
+            </>
         );
     }
 
     return (
-        <DashboardLayout>
+        <>
             <div className="w-full px-4 py-8 h-[calc(100vh-64px)] flex flex-col">
                 {/* Header */}
                 <motion.div
@@ -168,6 +166,6 @@ export default function Dashboard() {
                     onDismiss={actions.handleDismissWizard}
                 />
             </div>
-        </DashboardLayout>
+        </>
     );
 }

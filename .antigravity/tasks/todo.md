@@ -99,7 +99,7 @@
     2. Delete the duplicate wrapper using `git rm`. If `LoginForm.jsx` is the primary component, rename it to `.tsx`, enforce strict types, and update `src/app/router.tsx` to point directly to it instead of the deleted page.
     3. Verify routing and types using `npx tsc --noEmit`.
 
-- [/] **12. Delete useTaskSubscription**
+- [x] **12. Delete useTaskSubscription**
   - *Effect*: Remove the duplicate real-time hook and consolidate all subscription logic into `useProjectRealtime.js`.
   - *Agent Prompt*: Consolidate real-time subscriptions:
     1. Delete `src/features/tasks/hooks/useTaskSubscription.js` using `git rm`.
@@ -107,7 +107,7 @@
     3. Convert any touched `.jsx` files to `.tsx` during this update.
     4. Run `npx tsc --noEmit`.
 
-- [ ] **13. Delete Layout.tsx**
+- [/] **13. Delete Layout.tsx**
   - *Effect*: Remove the duplicate layout wrapper to ensure `DashboardLayout` is the single source of truth for the app shell.
   - *Agent Prompt*: Remove duplicate layout wrappers:
     1. Delete `src/shared/layout/Layout.tsx` using `git rm`.

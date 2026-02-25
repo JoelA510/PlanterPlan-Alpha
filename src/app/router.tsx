@@ -2,7 +2,7 @@ import { createBrowserRouter, } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import Home from '@/pages/Home'
 import LoginForm from '@/features/auth/components/LoginForm'
-import { Layout } from '@/shared/layout/Layout'
+import DashboardLayout from '@/layouts/DashboardLayout'
 // Removed blocking loader imports: import { supabase } from '@/shared/db/client'
 
 // Simple loading fallback
@@ -42,7 +42,7 @@ export const router = createBrowserRouter([
         element: <LoginForm />,
     },
     {
-        element: <Layout />,
+        element: <DashboardLayout />,
         loader: e2eBypassLoader,
         errorElement: <GlobalErrorBoundary />,
         children: [

@@ -9,7 +9,6 @@ import {
     Loader2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import DashboardLayout from '@/layouts/DashboardLayout';
 import { useSettings } from '@/features/settings/hooks/useSettings';
 
 export default function Settings() {
@@ -17,7 +16,7 @@ export default function Settings() {
     const { profile, loading, avatarError } = state;
 
     return (
-        <DashboardLayout>
+        <>
             <div className="max-w-4xl mx-auto px-4 py-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-foreground tracking-tight">Settings</h1>
@@ -165,6 +164,6 @@ export default function Settings() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

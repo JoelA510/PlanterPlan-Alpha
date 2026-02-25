@@ -2,8 +2,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { DndContext, closestCorners, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import type { DragEndEvent } from '@dnd-kit/core';
+import type { TaskRow } from '@/shared/db/app.types';
 import { planter } from '@/shared/api/planterClient';
-import DashboardLayout from '@/layouts/DashboardLayout';
 import TaskItem from '@/features/tasks/components/TaskItem';
 import { Loader2, List, LayoutGrid } from 'lucide-react';
 import { useTaskActions } from '@/features/tasks/hooks/useTaskActions';
@@ -16,7 +17,7 @@ export default function TasksPage() {
     queryFn: () => planter.entities.Task.list(),
   });
 
-  const findTask = useCallback((id) => tasks.find((t) => t.id === id), [tasks]);
+  const findTask = useCallback((id: string) => tasks.find((t: TaskRow) => t.id === id), [tasks]);
 
   // State for View Mode
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'board'
@@ -44,7 +45,7 @@ export default function TasksPage() {
   );
 
   // Drag End Handler for Board View
-  const handleDragEnd = (event) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over) return;
@@ -66,16 +67,16 @@ export default function TasksPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -155,6 +156,6 @@ export default function TasksPage() {
           </div>
         </div>
       </DndContext>
-    </DashboardLayout>
+    </>
   );
 }

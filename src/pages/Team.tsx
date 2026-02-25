@@ -27,7 +27,6 @@ import {
     Phone,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import DashboardLayout from '@/layouts/DashboardLayout';
 import { useTeam } from '@/features/people/hooks/useTeam';
 
 export default function Team() {
@@ -40,16 +39,16 @@ export default function Team() {
 
     if (isLoading) {
         return (
-            <DashboardLayout>
+            <>
                 <div className="flex justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
                 </div>
-            </DashboardLayout>
+            </>
         );
     }
 
     return (
-        <DashboardLayout selectedTaskId={projectId}>
+        <>
             <div className="min-h-screen bg-background">
                 <div className="bg-card border-b border-border">
                     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -220,6 +219,6 @@ export default function Team() {
                     </DialogContent>
                 </Dialog>
             </div>
-        </DashboardLayout>
+        </>
     );
 }
