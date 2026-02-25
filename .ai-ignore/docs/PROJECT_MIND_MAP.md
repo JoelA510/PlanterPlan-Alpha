@@ -606,7 +606,6 @@ flowchart TD
         AS[AppSidebar]
         PS6[ProjectSidebar]
         MD_PROJ[CreateProjectModal]
-        MD_TMP[CreateTemplateModal]
     end
 
     D1 --> AC2 --> PS3 --> PC2
@@ -628,7 +627,7 @@ flowchart TD
     end
 
     PS6 --> URL_NEW_PROJ --> MD_PROJ
-    PS6 --> URL_NEW_TMP --> MD_TMP
+    PS6 --> URL_NEW_TMP --> MD_PROJ
 ```
 
 ### 3.7 Reporting & People Actions

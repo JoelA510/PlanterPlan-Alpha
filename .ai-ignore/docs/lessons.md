@@ -417,3 +417,8 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-24
 - **Context**: LLM agent operations became sluggish and token-heavy due to automatically reading massive historical documentation (like 37K line `schema.sql` or 900+ line architecture maps) on every query.
 - **Rule**: **Hide Static Context.** Use `.ai-ignore/docs/` directories or aggressive `.gitignore` policies for massive reference files. Only load deep architectural context when explicitly auditing those systems, keeping the active working tree minimal.
+
+### [UI-044] Modal De-duplication via mode Object
+- **Date**: 2026-02-24
+- **Context**: `CreateProjectModal` and `CreateTemplateModal` shared 90% of their UI and validation logic, leading to duplicated test maintenance and out-of-sync styling.
+- **Rule**: **Consolidate with Modes.** When two UI components handle nearly identical data models (e.g., creating a Project vs creating a Template), merge them into a single component using a `mode` prop (`mode="project" | "template"`) and conditionally render the divergent parts (like headers or category selectors).

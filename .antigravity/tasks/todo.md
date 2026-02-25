@@ -38,3 +38,4 @@
   - [x] Refactor monolithic components: Extract state/API logic from `src/pages/Dashboard.jsx` into `useDashboard.ts` and convert to strict `Dashboard.tsx`.
   - [x] Refactor monolithic components: Extract state/API logic from `src/pages/Team.jsx` into `useTeam.ts` and convert to strict `Team.tsx`.
   - [x] Refactor monolithic components: Extract state/API logic from `src/pages/Settings.jsx` into `useSettings.ts` and convert to strict `Settings.tsx`.
+  - [x] Phase 6: Modal De-duplication. Merged `CreateTemplateModal.jsx` into `CreateProjectModal.tsx` using a `mode` prop.

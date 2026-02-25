@@ -22,6 +22,7 @@ This PR further hardens the application foundation through several critical refa
 
 ### 5. Stabilization & Quality of Life
 - **Monolith Decomposition:** Refactored `Project.jsx` and `Reports.jsx` into strict `Project.tsx` and `Reports.tsx`, extracting all state and mapping logic into custom typed hooks (`useProjectBoard.ts`, `useProjectReports.ts`). 
+- **Modal De-duplication:** Merged `CreateTemplateModal.jsx` into `CreateProjectModal.tsx` via a `mode` prop, standardizing the form validation and significantly reducing duplicated UI logic.
 - **E2E Test Modularization:** Extracted brittle locators and repetitive user flows from heavy E2E tests (`template-to-project.spec.ts`, `task-management.spec.ts`) into reusable Page Object Models (`DashboardPage.ts`, `ProjectPage.ts`), drastically reducing test verbosity.
 - **Context Footprint Reduction:** Implemented aggressive `.gitignore` policies for test artifacts and relocated massive architectural documentation files (e.g., `FULL_ARCHITECTURE.md`, `PROJECT_MIND_MAP.md`, `schema.sql`) into an `.ai-ignore/` directory, saving hundreds of thousands of tokens of context space for smoother operations.
 

@@ -11,7 +11,6 @@ import { useCreateProject, useUpdateProjectStatus, useCreateTemplate } from '@/f
 
 // Components
 import CreateProjectModal from '@/features/dashboard/components/CreateProjectModal';
-import CreateTemplateModal from '@/features/dashboard/components/CreateTemplateModal';
 import StatsOverview from '@/features/dashboard/components/StatsOverview';
 import ProjectPipelineBoard from '@/features/dashboard/components/ProjectPipelineBoard';
 import OnboardingWizard from '@/features/onboarding/components/OnboardingWizard';
@@ -157,7 +156,8 @@ export default function Dashboard() {
                     onCreate={handleCreateProject}
                 />
 
-                <CreateTemplateModal
+                <CreateProjectModal
+                    mode="template"
                     open={state.showTemplateModal}
                     onClose={() => actions.setShowTemplateModal(false)}
                     onCreate={handleCreateTemplate}
