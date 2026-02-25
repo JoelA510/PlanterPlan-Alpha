@@ -1,11 +1,16 @@
 import { useMemo } from 'react';
-import PropTypes from 'prop-types';
 import NewProjectForm from '@/features/projects/components/NewProjectForm';
 import NewTaskForm from '@/features/tasks/components/NewTaskForm';
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 import { X } from 'lucide-react';
 
-const getPanelTitle = (showForm, taskFormState, taskBeingEdited, selectedTask, parentTaskForForm) => {
+const getPanelTitle = (
+    showForm?: boolean,
+    taskFormState?: Record<string, unknown>,
+    taskBeingEdited?: Record<string, unknown>,
+    selectedTask?: Record<string, unknown>,
+    parentTaskForForm?: Record<string, unknown>
+) => {
     if (showForm) return 'New Project';
     if (taskFormState) {
         if (taskFormState.mode === 'edit') {
@@ -22,6 +27,22 @@ const getPanelTitle = (showForm, taskFormState, taskBeingEdited, selectedTask, p
     return 'Details';
 };
 
+export interface TaskDetailsPanelProps {
+    showForm: boolean;
+    taskFormState?: Record<string, unknown>;
+    selectedTask?: Record<string, unknown>;
+    taskBeingEdited?: Record<string, unknown>;
+    parentTaskForForm?: Record<string, unknown>;
+    onClose: () => void;
+    handleProjectSubmit: (data: Record<string, unknown>) => Promise<void>;
+    handleTaskSubmit: (data: Record<string, unknown>) => Promise<void>;
+    setTaskFormState: (state: Record<string, unknown> | null) => void;
+    handleAddChildTask: (task: Record<string, unknown>) => void;
+    handleEditTask: (task: Record<string, unknown>) => void;
+    onDeleteTaskWrapper: (taskId: string) => Promise<void>;
+    fetchTasks: () => void;
+}
+
 export default function TaskDetailsPanel({
     showForm,
     taskFormState,
@@ -36,7 +57,7 @@ export default function TaskDetailsPanel({
     handleEditTask,
     onDeleteTaskWrapper,
     fetchTasks,
-}) {
+}: TaskDetailsPanelProps) {
     const panelTitle = useMemo(() => {
         return getPanelTitle(showForm, taskFormState, taskBeingEdited, selectedTask, parentTaskForForm);
     }, [showForm, taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
@@ -81,19 +102,3 @@ export default function TaskDetailsPanel({
         </aside>
     );
 }
-
-TaskDetailsPanel.propTypes = {
-    showForm: PropTypes.bool.isRequired,
-    taskFormState: PropTypes.object,
-    selectedTask: PropTypes.object,
-    taskBeingEdited: PropTypes.object,
-    parentTaskForForm: PropTypes.object,
-    onClose: PropTypes.func.isRequired,
-    handleProjectSubmit: PropTypes.func.isRequired,
-    handleTaskSubmit: PropTypes.func.isRequired,
-    setTaskFormState: PropTypes.func.isRequired,
-    handleAddChildTask: PropTypes.func.isRequired,
-    handleEditTask: PropTypes.func.isRequired,
-    onDeleteTaskWrapper: PropTypes.func.isRequired,
-    fetchTasks: PropTypes.func.isRequired,
-};

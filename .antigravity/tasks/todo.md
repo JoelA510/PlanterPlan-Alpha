@@ -40,7 +40,7 @@
     4. Convert any touched `.jsx` files to `.tsx` and type them properly.
     5. Verify the app compiles without the old contexts using `npx tsc --noEmit`.
 
-- [ ] **5. Merge Task Forms**
+- [x] **5. Merge Task Forms**
   - *Effect*: Merge `CreateTaskForm.jsx` + `EditTaskForm.jsx` into a single `TaskForm.tsx` that accepts an `initialData` prop.
   - *Agent Prompt*: Consolidate our task creation and editing UI:
     1. Analyze `features/tasks/components/CreateTaskForm.jsx` and `EditTaskForm.jsx`.
