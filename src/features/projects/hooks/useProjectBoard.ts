@@ -2,8 +2,6 @@ import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { TASK_STATUS } from '@/app/constants/index';
-import { resolveDragAssign } from '@/features/projects/utils/dragUtils';
-
 import {
     useCreateTask,
     useUpdateTask,
@@ -19,9 +17,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
     const [activeTab, setActiveTab] = useState('board');
     const [selectedPhase, setSelectedPhase] = useState<TaskRow | null>(null);
     const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
-    const [addTaskModal, setAddTaskModal] = useState<{ open: boolean; milestone: TaskRow | null; parentTask?: TaskRow | null }>({ open: false, milestone: null, parentTask: null });
     const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
-    const [activeDragMember, setActiveDragMember] = useState<PersonRow | null>(null);
     const [inlineAddingParentId, setInlineAddingParentId] = useState<string | null>(null);
     const [showInviteModal, setShowInviteModal] = useState(false);
 
@@ -49,7 +45,6 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
         });
     };
 
-    // Heavy mapping logic extracted
     const mapTaskWithState = (task: TaskRow): any => ({
         ...task,
         isExpanded: expandedTaskIds.has(task.id) || inlineAddingParentId === task.id,
@@ -59,32 +54,6 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
             .map(mapTaskWithState)
             .sort((a, b) => (a.position || 0) - (b.position || 0)),
     });
-
-    const handleAddTask = async (taskData: any) => {
-        try {
-            if (!addTaskModal.milestone) return;
-
-            const payload = { ...taskData };
-            delete payload.milestone;
-            const parentId = addTaskModal.parentTask?.id || addTaskModal.milestone?.id;
-
-            await _createTask.mutateAsync({
-                ...payload,
-                root_id: projectId,
-                status: TASK_STATUS.TODO,
-                parent_task_id: parentId,
-            });
-
-            if (addTaskModal.parentTask) {
-                setExpandedTaskIds((prev) => new Set(prev).add(addTaskModal.parentTask!.id));
-            }
-
-            setAddTaskModal({ open: false, milestone: null, parentTask: null });
-            toast.success('Task created successfully');
-        } catch (error: any) {
-            toast.error('Failed to create task', { description: error.message });
-        }
-    };
 
     const handleStartInlineAdd = (parentTask: TaskRow) => {
         setInlineAddingParentId(parentTask.id);
@@ -108,24 +77,6 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
         }
     };
 
-    const handleDragStart = (event: any) => {
-        if (event.active.data.current?.type === 'User') {
-            setActiveDragMember(event.active.data.current.member);
-        }
-    };
-
-    const handleDragEnd = (event: any) => {
-        setActiveDragMember(null);
-        const { active, over } = event;
-        const assignment = resolveDragAssign(active, over, tasks);
-        if (assignment) {
-            _assignMember.mutate({ ...assignment, root_id: projectId }, {
-                onSuccess: () => toast.success('Member assigned to task'),
-                onError: (err: Error) => toast.error('Failed to assign member', { description: err.message })
-            });
-        }
-    };
-
     const handleDeleteTask = (t: TaskRow) => {
         if (window.confirm(`Delete "${t.title || 'this task'}"? This cannot be undone.`)) {
             _deleteTask.mutate({ id: t.id, root_id: projectId }, {
@@ -140,14 +91,14 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
 
     return {
         state: {
-            activeTab, selectedPhase, selectedTask, addTaskModal, activeDragMember, showInviteModal, inlineAddingParentId
+            activeTab, selectedPhase, selectedTask, showInviteModal, inlineAddingParentId
         },
         actions: {
-            setActiveTab, setSelectedPhase, setSelectedTask, setAddTaskModal, setShowInviteModal, setInlineAddingParentId
+            setActiveTab, setSelectedPhase, setSelectedTask, setShowInviteModal, setInlineAddingParentId
         },
         handlers: {
-            handleTaskUpdate, handleTaskClick, handleToggleExpand, handleAddTask,
-            handleStartInlineAdd, handleInlineCommit, handleDragStart, handleDragEnd, handleDeleteTask
+            handleTaskUpdate, handleTaskClick, handleToggleExpand,
+            handleStartInlineAdd, handleInlineCommit, handleDeleteTask
         },
         computed: {
             mapTaskWithState

@@ -9,17 +9,29 @@ import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/app/constants/index';
 import TaskItem from '@/features/tasks/components/TaskItem';
 
+import { TaskRow } from '@/shared/db/app.types';
+
+export interface MilestoneSectionProps {
+  milestone: TaskRow;
+  tasks?: any[];
+  onTaskUpdate: (id: string, data: any) => void;
+  onAddChildTask?: (parent: TaskRow) => void;
+  onTaskClick: (task: TaskRow) => void;
+  onInlineCommit?: (parentId: string, title: string) => Promise<void>;
+  onInlineCancel?: () => void;
+  canEdit?: boolean;
+}
+
 export default function MilestoneSection({
   milestone,
   tasks = [],
   onTaskUpdate,
-  onAddTask,
   onAddChildTask,
   onTaskClick,
   onInlineCommit,
   onInlineCancel,
-  canEdit = true, // Default to true if not passed for backward compat
-}) {
+  canEdit = true,
+}: MilestoneSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const { setNodeRef, isOver } = useDroppable({
@@ -94,11 +106,11 @@ export default function MilestoneSection({
               {milestoneTasks.length === 0 ? (
                 <div className="py-8 text-center">
                   <p className="text-slate-500 mb-4">No tasks yet</p>
-                  {canEdit && (
+                  {canEdit && onAddChildTask && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => onAddTask(milestone)}
+                      onClick={() => onAddChildTask(milestone)}
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Task
@@ -129,7 +141,7 @@ export default function MilestoneSection({
                           />
                         </motion.div>
                       ))}
-                    {canEdit && (
+                    {canEdit && onAddChildTask && (
                       <motion.div
                         layout
                         initial={{ opacity: 0 }}
@@ -140,7 +152,7 @@ export default function MilestoneSection({
                           variant="ghost"
                           size="sm"
                           className="w-full text-slate-500 hover:text-slate-700 mt-2"
-                          onClick={() => onAddTask(milestone)}
+                          onClick={() => onAddChildTask(milestone)}
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           Add Task

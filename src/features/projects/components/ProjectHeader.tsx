@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import PropTypes from 'prop-types';
-import { createPageUrl } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
 import { Progress } from '@/shared/ui/progress';
@@ -23,21 +21,38 @@ import { motion } from 'framer-motion';
 import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
 import EditProjectModal from './EditProjectModal';
 import { exportProjectToCSV } from '@/shared/lib/export-utils';
+import { ProjectRow, TaskRow, PersonRow } from '@/shared/db/app.types';
 
-const templateIcons = {
+const templateIcons: Record<string, any> = {
   launch_large: Rocket,
   multisite: Building2,
   multiplication: GitBranch,
 };
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   [PROJECT_STATUS.PLANNING]: 'bg-indigo-100 text-indigo-700',
   [PROJECT_STATUS.IN_PROGRESS]: 'bg-brand-100 text-brand-700',
   [PROJECT_STATUS.LAUNCHED]: 'bg-emerald-100 text-emerald-700',
   [PROJECT_STATUS.PAUSED]: 'bg-slate-100 text-slate-700',
 };
 
-export default function ProjectHeader({ project, tasks = [], teamMembers = [], onInviteMember, canInvite = false, canManageSettings = false }) {
+export interface ProjectHeaderProps {
+  project: ProjectRow;
+  tasks?: TaskRow[];
+  teamMembers?: PersonRow[];
+  onInviteMember?: () => void;
+  canInvite?: boolean;
+  canManageSettings?: boolean;
+}
+
+export default function ProjectHeader({
+  project,
+  tasks = [],
+  teamMembers = [],
+  onInviteMember,
+  canInvite = false,
+  canManageSettings = false
+}: ProjectHeaderProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const Icon = templateIcons[project.template] || Rocket;
   const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
@@ -129,11 +144,21 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
             </span>
           </div>
 
-          {/* Draggable Avatars */}
+          {/* Static Avatars */}
           <div className="flex items-center -space-x-2 overflow-hidden py-1 pl-1">
-            {teamMembers.slice(0, 5).map(member => (
-              <DraggableAvatar key={member.id} member={member} />
-            ))}
+            {teamMembers.slice(0, 5).map(member => {
+              const displayName = member.first_name ? `${member.first_name} ${member.last_name}` : member.email;
+              const initials = (member.first_name?.[0] || '') + (member.last_name?.[0] || '') || '?';
+              return (
+                <div key={member.id} className="relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground z-10" title={displayName || 'Unknown'}>
+                  {member.avatar_url ? (
+                    <img src={member.avatar_url} alt={displayName || 'Unknown'} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <span>{initials}</span>
+                  )}
+                </div>
+              );
+            })}
             {teamMembers.length > 5 && (
               <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-white bg-slate-100 text-xs font-medium text-slate-500 z-0">
                 +{teamMembers.length - 5}
@@ -161,64 +186,4 @@ export default function ProjectHeader({ project, tasks = [], teamMembers = [], o
   );
 }
 
-ProjectHeader.propTypes = {
-  project: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
-    status: PropTypes.string.isRequired,
-    description: PropTypes.string,
-    template: PropTypes.string,
-    location: PropTypes.string,
-    launch_date: PropTypes.string,
-  }).isRequired,
-  tasks: PropTypes.arrayOf(PropTypes.object),
-  teamMembers: PropTypes.arrayOf(PropTypes.object),
-  onInviteMember: PropTypes.func, // Optional, sometimes undefined if not passed
-};
 
-import { useDraggable } from '@dnd-kit/core';
-
-function DraggableAvatar({ member }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `member-${member.id}`, // Unique ID
-    data: {
-      type: 'User',
-      member,
-    },
-  });
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
-
-  // Initials
-  const initials = (member.first_name?.[0] || '') + (member.last_name?.[0] || '') || '?';
-  const displayName = member.first_name ? `${member.first_name} ${member.last_name}` : member.email;
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className={`relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground cursor-grab active:cursor-grabbing hover:z-10 transition-transform ${isDragging ? 'opacity-50 z-50' : ''}`}
-      title={`Drag to assign ${displayName}`}
-    >
-      {member.avatar_url ? (
-        <img src={member.avatar_url} alt={displayName} className="w-full h-full rounded-full object-cover" />
-      ) : (
-        <span>{initials}</span>
-      )}
-    </div>
-  );
-}
-
-DraggableAvatar.propTypes = {
-  member: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    first_name: PropTypes.string,
-    last_name: PropTypes.string,
-    email: PropTypes.string,
-    avatar_url: PropTypes.string,
-  }).isRequired,
-};

@@ -8,7 +8,7 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 
-export default function MobileFAB({ onAddTask }) {
+export default function MobileFAB() {
     const navigate = useNavigate();
 
     return (
@@ -24,9 +24,7 @@ export default function MobileFAB({ onAddTask }) {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="mb-2">
-                    <DropdownMenuItem onClick={onAddTask} className="cursor-pointer">
-                        New Task
-                    </DropdownMenuItem>
+
                     <DropdownMenuItem onClick={() => navigate('/projects/new')} className="cursor-pointer">
                         New Project
                     </DropdownMenuItem>

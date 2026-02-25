@@ -50,7 +50,7 @@
     5. Delete the two old `.jsx` files using `git rm`.
     6. Run your standard type checks to verify.
 
-- [/] **6. Refactor useTaskQuery**
+- [x] **6. Refactor useTaskQuery**
   - *Effect*: Rewrite `useTaskQuery.js` to rely entirely on React Query, dropping manual state management and shrinking it from ~180 to ~15 lines. Convert to `.ts`.
   - *Agent Prompt*: Refactor our task querying hook to eliminate manual state management. Follow these steps:
     1. Rename `src/features/tasks/hooks/useTaskQuery.js` to `.ts`.
@@ -59,7 +59,7 @@
     4. Ensure the new TypeScript signature is strictly typed.
     5. Run `npx tsc --noEmit` to ensure no consumers are broken by this type and logic change.
 
-- [ ] **7. Delete JS Helpers**
+- [x] **7. Delete JS Helpers**
   - *Effect*: Delete `treeHelpers.js` and `viewHelpers.js`. Point any remaining consumers to the existing, strongly-typed `tree-helpers.ts`.
   - *Agent Prompt*: Clean up redundant helper files:
     1. Delete `src/shared/lib/treeHelpers.js` and `src/shared/lib/viewHelpers.js` using `git rm`.
@@ -68,7 +68,7 @@
     4. If any `.jsx` file is touched to update these imports, you MUST fully convert it to a `.tsx` file with proper interfaces.
     5. Verify the build integrity with `npx tsc --noEmit`.
 
-- [ ] **8. Delete AddTaskModal**
+- [x] **8. Delete AddTaskModal**
   - *Effect*: Remove the redundant task creation modal path and update `Project.tsx` to rely on the standard inline flow.
   - *Agent Prompt*: Eliminate duplicate task creation UI paths:
     1. Delete `src/features/projects/components/AddTaskModal.jsx` using `git rm`.
@@ -76,7 +76,7 @@
     3. Ensure the project page relies exclusively on the standard task creation flow (like `NewTaskForm` or `InlineTaskInput`) instead.
     4. Run `npx tsc --noEmit` to verify.
 
-- [ ] **9. Delete DraggableAvatar / DnD**
+- [x] **9. Delete DraggableAvatar / DnD**
   - *Effect*: Delete `dragUtils.js` and strip out non-functional Drag-and-Drop code from `ProjectHeader` and `Project.tsx`.
   - *Agent Prompt*: Strip out dead Drag-and-Drop (DnD) code from the project view:
     1. Delete `src/features/projects/utils/dragUtils.js` using `git rm`.

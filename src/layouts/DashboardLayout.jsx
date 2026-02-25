@@ -43,7 +43,7 @@ export default function DashboardLayout({ children, sidebar, selectedTaskId }) {
       )}
 
       <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)]">{children}</main>
-      <MobileFAB onAddTask={() => {/* Handler logic to open modal if global */ }} />
+      <MobileFAB />
     </div>
   );
 }
