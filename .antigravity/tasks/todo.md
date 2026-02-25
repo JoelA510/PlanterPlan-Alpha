@@ -107,7 +107,7 @@
     3. Convert any touched `.jsx` files to `.tsx` during this update.
     4. Run `npx tsc --noEmit`.
 
-- [/] **13. Delete Layout.tsx**
+- [x] **13. Delete Layout.tsx**
   - *Effect*: Remove the duplicate layout wrapper to ensure `DashboardLayout` is the single source of truth for the app shell.
   - *Agent Prompt*: Remove duplicate layout wrappers:
     1. Delete `src/shared/layout/Layout.tsx` using `git rm`.
@@ -115,7 +115,7 @@
     3. Convert `DashboardLayout.jsx` to `.tsx` with strict typing for its children props.
     4. Run `npx tsc --noEmit`.
 
-- [ ] **14. Delete TaskDetailsModal**
+- [/] **14. Delete TaskDetailsModal**
   - *Effect*: Remove the modal wrapper for task details to enforce the use of the sliding side panel UI.
   - *Agent Prompt*: Enforce a single UI pattern for task details:
     1. Delete `src/features/projects/components/TaskDetailsModal.jsx` using `git rm`.

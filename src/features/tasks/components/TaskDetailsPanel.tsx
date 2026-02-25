@@ -34,13 +34,13 @@ export interface TaskDetailsPanelProps {
     taskBeingEdited?: Record<string, unknown>;
     parentTaskForForm?: Record<string, unknown>;
     onClose: () => void;
-    handleProjectSubmit: (data: Record<string, unknown>) => Promise<void>;
-    handleTaskSubmit: (data: Record<string, unknown>) => Promise<void>;
-    setTaskFormState: (state: Record<string, unknown> | null) => void;
-    handleAddChildTask: (task: Record<string, unknown>) => void;
-    handleEditTask: (task: Record<string, unknown>) => void;
-    onDeleteTaskWrapper: (taskId: string) => Promise<void>;
-    fetchTasks: () => void;
+    handleProjectSubmit?: (data: Record<string, unknown>) => Promise<void>;
+    handleTaskSubmit?: (data: Record<string, unknown>) => Promise<void>;
+    setTaskFormState?: (state: Record<string, unknown> | null) => void;
+    handleAddChildTask?: (task: Record<string, unknown>) => void;
+    handleEditTask?: (task: Record<string, unknown>) => void;
+    onDeleteTaskWrapper?: (taskId: string) => Promise<void>;
+    fetchTasks?: () => void;
 }
 
 export default function TaskDetailsPanel({
@@ -77,9 +77,9 @@ export default function TaskDetailsPanel({
                 </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white dark:bg-card">
-                {showForm ? (
+                {showForm && handleProjectSubmit ? (
                     <NewProjectForm onSubmit={handleProjectSubmit} onCancel={onClose} />
-                ) : isTaskFormOpen ? (
+                ) : isTaskFormOpen && setTaskFormState ? (
                     <NewTaskForm
                         parentTask={parentTaskForForm}
                         initialTask={taskBeingEdited}
@@ -95,7 +95,7 @@ export default function TaskDetailsPanel({
                         onAddChildTask={handleAddChildTask}
                         onEditTask={handleEditTask}
                         onDeleteTask={onDeleteTaskWrapper}
-                        onTaskUpdated={fetchTasks}
+                        onTaskUpdated={fetchTasks || (() => { })}
                     />
                 ) : null}
             </div>
