@@ -92,14 +92,14 @@
     3. ANY `.jsx` files touched during this refactor must be strictly converted to `.tsx`.
     4. Run `npx tsc --noEmit` to verify the data flow.
 
-- [/] **11. Delete Login.tsx**
+- [x] **11. Delete Login.tsx**
   - *Effect*: Eliminate the duplicate login wrapper. Determine if `LoginForm` is the gold master and update the router.
   - *Agent Prompt*: Consolidate the authentication views:
     1. Evaluate `src/pages/Login.tsx` and `src/features/auth/components/LoginForm.jsx`.
     2. Delete the duplicate wrapper using `git rm`. If `LoginForm.jsx` is the primary component, rename it to `.tsx`, enforce strict types, and update `src/app/router.tsx` to point directly to it instead of the deleted page.
     3. Verify routing and types using `npx tsc --noEmit`.
 
-- [ ] **12. Delete useTaskSubscription**
+- [/] **12. Delete useTaskSubscription**
   - *Effect*: Remove the duplicate real-time hook and consolidate all subscription logic into `useProjectRealtime.js`.
   - *Agent Prompt*: Consolidate real-time subscriptions:
     1. Delete `src/features/tasks/hooks/useTaskSubscription.js` using `git rm`.

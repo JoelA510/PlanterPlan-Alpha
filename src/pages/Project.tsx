@@ -1,10 +1,7 @@
-import { useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useParams } from 'react-router-dom';
-import { useAuth } from '@/app/contexts/AuthContext';
-import { ROLES } from '@/app/constants/index';
-import { useTaskSubscription } from '@/features/tasks/hooks/useTaskSubscription';
+import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/shared/db/client';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard';
 
@@ -35,12 +32,65 @@ export default function Project() {
   const board = useProjectBoard(projectId, tasks || []);
   const { state, actions, handlers, computed } = board;
 
-  useTaskSubscription({
-    projectId: projectId || '',
-    refreshProjectDetails: () => {
-      // Intentionally abstracting away the query client access directly in the view
-    }
-  });
+  const queryClient = useQueryClient();
+  const lastUpdateRef = useRef(0);
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    const channel = supabase
+      .channel(`project-tasks:${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+        },
+        (payload: RealtimePostgresChangesPayload<TaskRow>) => {
+          const now = Date.now();
+          // Debounce bursts (e.g. cascade updates)
+          if (now - lastUpdateRef.current < 500) return;
+          lastUpdateRef.current = now;
+
+          // Note: payload.old is only fully populated if replica identity is set to full on the DB.
+          // Usually payload.new is what we care about for INSERT/UPDATE. We cast appropriately.
+          const newRecord = payload.new as TaskRow | undefined;
+          const oldRecord = payload.old as TaskRow | undefined;
+          const record = newRecord || oldRecord;
+
+          if (!record) return;
+
+          // We only care if:
+          // 1. It IS the project itself
+          // 2. Its root_id matches the project
+          // 3. Its parent_task_id matches the project (Direct child)
+          const isRelevant =
+            record.id === projectId ||
+            record.root_id === projectId ||
+            record.parent_task_id === projectId;
+
+          if (isRelevant) {
+            // Invalidate specific project hierarchy queries
+            queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+
+            // If it changed metadata that affects the header (name, dates), refresh project too
+            if (record.id === projectId || !record.root_id) {
+              queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+            }
+          }
+        }
+      )
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('[Project Realtime] Channel error:', err);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, queryClient]);
 
   const isOwnerByProject = project?.owner_id === user?.id || project?.creator === user?.id;
   const currentMember = teamMembers?.find((m: any) => m.user_id === user?.id);
