@@ -66,7 +66,7 @@ export default function MilestoneSection({
           </motion.div>
 
           <div className="text-left">
-            <h4 className="font-semibold text-slate-900">{milestone.title || milestone.name}</h4>
+            <h4 className="font-semibold text-slate-900">{milestone.title}</h4>
             {milestone.description && (
               <p className="text-sm text-slate-500 mt-0.5">{milestone.description}</p>
             )}

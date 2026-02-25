@@ -56,7 +56,7 @@ export function useUpdateProject() {
             const dbUpdates = {
                 title: updates.title,
                 description: updates.description,
-                due_date: updates.launch_date || updates.due_date,
+                due_date: updates.due_date,
                 start_date: updates.start_date,
                 updated_at: new Date().toISOString(),
                 location: updates.location,

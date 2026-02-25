@@ -102,14 +102,14 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
         title: string;
         description: string;
         template: string;
-        launch_date: Date | undefined;
+        due_date: Date | undefined;
         location: string;
         status: string;
     }>({
         title: '',
         description: '',
         template: '',
-        launch_date: undefined,
+        due_date: undefined,
         location: '',
         status: PROJECT_STATUS.PLANNING,
     });
@@ -178,7 +178,7 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
                 title: '',
                 description: '',
                 template: '',
-                launch_date: undefined,
+                due_date: undefined,
                 location: '',
                 status: PROJECT_STATUS.PLANNING,
             });
@@ -354,7 +354,7 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
                             {!isTemplateMode && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="launch_date" className={cn(errors.launch_date && "text-red-500")}>
+                                        <Label htmlFor="due_date" className={cn(errors.due_date && "text-red-500")}>
                                             Target Launch Date *
                                         </Label>
                                         <Popover>
@@ -363,21 +363,21 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
                                                     variant="outline"
                                                     className={cn(
                                                         'w-full justify-start text-left font-normal h-11',
-                                                        !formData.launch_date && 'text-muted-foreground',
-                                                        errors.launch_date && "border-red-500 text-red-500"
+                                                        !formData.due_date && 'text-muted-foreground',
+                                                        errors.due_date && "border-red-500 text-red-500"
                                                     )}
                                                 >
                                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {formData.launch_date ? format(formData.launch_date, 'PPP') : 'Pick a date'}
+                                                    {formData.due_date ? format(formData.due_date, 'PPP') : 'Pick a date'}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
                                                 <Calendar
                                                     mode="single"
-                                                    selected={formData.launch_date}
+                                                    selected={formData.due_date}
                                                     onSelect={(date) => {
-                                                        setFormData({ ...formData, launch_date: date });
-                                                        if (errors.launch_date) setErrors((prev) => ({ ...prev, launch_date: null }));
+                                                        setFormData({ ...formData, due_date: date });
+                                                        if (errors.due_date) setErrors((prev) => ({ ...prev, due_date: null }));
                                                     }}
                                                     defaultMonth={new Date(new Date().setMonth(new Date().getMonth() + 3))}
                                                     startMonth={new Date()}
@@ -388,8 +388,8 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
                                                 />
                                             </PopoverContent>
                                         </Popover>
-                                        {errors.launch_date && (
-                                            <p className="text-xs text-red-500 mt-1">{errors.launch_date}</p>
+                                        {errors.due_date && (
+                                            <p className="text-xs text-red-500 mt-1">{errors.due_date}</p>
                                         )}
                                     </div>
 

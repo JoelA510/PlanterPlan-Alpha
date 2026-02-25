@@ -7,8 +7,15 @@ import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { useUpdateProject, useDeleteProject } from '@/features/projects/hooks/useProjectMutations';
 import { toIsoDate } from '@/shared/lib/date-engine';
+import type { TaskRow } from '@/shared/db/app.types';
 
-export default function EditProjectModal({ project, isOpen, onClose }) {
+interface EditProjectModalProps {
+    project: TaskRow;
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export default function EditProjectModal({ project, isOpen, onClose }: EditProjectModalProps) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const updateProjectMutation = useUpdateProject();
     const deleteProjectMutation = useDeleteProject();
@@ -16,15 +23,15 @@ export default function EditProjectModal({ project, isOpen, onClose }) {
     const currentSettings = project.settings || {};
 
     const initialState = {
-        title: project.title || project.name || '',
+        title: project.title || '',
         description: project.description || '',
         start_date: toIsoDate(project.start_date || project.created_at),
         location: project.location || '',
         due_soon_threshold: currentSettings.due_soon_threshold || '3',
     };
 
-    const validate = useCallback((data) => {
-        const errors = {};
+    const validate = useCallback((data: any) => {
+        const errors: any = {};
         if (!data.title?.trim()) errors.title = 'Title is required';
         if (!data.start_date) errors.start_date = 'Start date is required';
         return errors;
@@ -38,7 +45,7 @@ export default function EditProjectModal({ project, isOpen, onClose }) {
         handleSubmit
     } = useTaskForm(initialState, validate);
 
-    const onSubmit = async (data) => {
+    const onSubmit = async (data: any) => {
         try {
             const oldStartDate = toIsoDate(project.start_date || project.created_at);
             const { due_soon_threshold, ...rest } = data;

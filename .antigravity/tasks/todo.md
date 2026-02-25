@@ -115,7 +115,7 @@
     3. Convert `DashboardLayout.jsx` to `.tsx` with strict typing for its children props.
     4. Run `npx tsc --noEmit`.
 
-- [/] **14. Delete TaskDetailsModal**
+- [x] **14. Delete TaskDetailsModal**
   - *Effect*: Remove the modal wrapper for task details to enforce the use of the sliding side panel UI.
   - *Agent Prompt*: Enforce a single UI pattern for task details:
     1. Delete `src/features/projects/components/TaskDetailsModal.jsx` using `git rm`.
@@ -123,7 +123,7 @@
     3. Convert `TaskDetailsPanel.jsx` to `.tsx` with strict prop interfaces.
     4. Verify the changes with `npx tsc --noEmit`.
 
-- [ ] **15. Remove DB Aliasing**
+- [x] **15. Remove DB Aliasing**
   - *Effect*: Stop PostgREST field aliasing in `planterClient.js`, use real database column names, and fix field mismatches in `ProjectCard`.
   - *Agent Prompt*: Eliminate API translation layers:
     1. Update `src/shared/api/planterClient.js` to remove entity aliases (`Phase`, `Milestone`, `TaskWithResources`). The client must return real database column names (`title`, `due_date`, `creator`).

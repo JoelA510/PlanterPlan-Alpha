@@ -43,7 +43,7 @@ export function useProjectReports(tasks: TaskRow[], phases: any[]) {
             const total = phaseTasks.length;
             return {
                 name: `Phase ${phase.order}`,
-                fullName: phase.name,
+                fullName: phase.title,
                 completed,
                 remaining: total - completed,
                 total,

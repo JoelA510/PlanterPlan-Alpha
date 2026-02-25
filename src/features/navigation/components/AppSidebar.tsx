@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { createPageUrl, cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { LayoutDashboard, BarChart3, Settings, HelpCircle, ChevronLeft } from 'lucide-react';
+import type { TaskRow } from '@/shared/db/app.types';
 
 const navigationItems = [
   {
@@ -18,7 +19,13 @@ const navigationItems = [
   },
 ];
 
-export default function AppSidebar({ onClose, currentProject, className }) {
+interface AppSidebarProps {
+  onClose: () => void;
+  currentProject: TaskRow | null;
+  className?: string;
+}
+
+export default function AppSidebar({ onClose, currentProject, className }: AppSidebarProps) {
   const location = useLocation();
 
   return (
@@ -77,7 +84,7 @@ export default function AppSidebar({ onClose, currentProject, className }) {
                 Current Project
               </h3>
               <div className="px-3 py-2 rounded-lg bg-muted/50">
-                <p className="text-sm font-medium text-card-foreground truncate">{currentProject.name}</p>
+                <p className="text-sm font-medium text-card-foreground truncate">{currentProject.title}</p>
                 <Link to={createPageUrl(`Project?id=${currentProject.id}`)}>
                   <Button
                     variant="link"

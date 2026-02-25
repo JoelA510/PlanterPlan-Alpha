@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
-import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable, useDraggable } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable, useDraggable, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { PROJECT_STATUS } from '@/app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
 import ProjectCard from '@/features/dashboard/components/ProjectCard';
 import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
+import type { TaskRow, PersonRow } from '@/shared/db/app.types';
 
 const COLUMNS = [
     { id: PROJECT_STATUS.PLANNING, title: 'Planning', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING] },
@@ -14,17 +14,24 @@ const COLUMNS = [
     { id: PROJECT_STATUS.PAUSED, title: 'Paused', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PAUSED] },
 ];
 
-export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onStatusChange }) {
+interface ProjectPipelineBoardProps {
+    projects: TaskRow[];
+    tasks: TaskRow[];
+    teamMembers: PersonRow[];
+    onStatusChange: (projectId: string, status: string) => void;
+}
+
+export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onStatusChange }: ProjectPipelineBoardProps) {
     // Enable Realtime Subscription for the board (global scope or all projects)
     // Since this is a "All Projects" board, we pass null to listen to all tasks we have access to
     // OR we could subscribe to 'tasks' globally.
     useProjectRealtime(); // No specific projectId means listen to all accessible task changes
 
-    const [activeProject, setActiveProject] = useState(null);
+    const [activeProject, setActiveProject] = useState<TaskRow | null>(null);
 
     const columns = useMemo(() => {
         // Optimization: Bucketize projects in one pass (O(N)) instead of filtering for every column
-        const buckets = projects.reduce((acc, project) => {
+        const buckets = projects.reduce((acc: Record<string, TaskRow[]>, project) => {
             const status = project.status || PROJECT_STATUS.PLANNING;
             if (!acc[status]) acc[status] = [];
             acc[status].push(project);
@@ -45,13 +52,13 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
         })
     );
 
-    const handleDragStart = (event) => {
+    const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
         const project = projects.find(p => p.id === active.id);
         setActiveProject(project);
     };
 
-    const handleDragEnd = (event) => {
+    const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         // Always clear active project first to ensure overlay is removed
         setActiveProject(null);
@@ -75,7 +82,7 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
             // Only trigger update if status changed
             const currentProject = projects.find(p => p.id === projectId);
             if (currentProject && (currentProject.status || PROJECT_STATUS.PLANNING) !== newStatus) {
-                onStatusChange(projectId, newStatus);
+                onStatusChange(projectId as string, newStatus);
             }
         }
     };
@@ -124,14 +131,19 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
     );
 }
 
-ProjectPipelineBoard.propTypes = {
-    projects: PropTypes.array.isRequired,
-    tasks: PropTypes.array.isRequired,
-    teamMembers: PropTypes.array.isRequired,
-    onStatusChange: PropTypes.func.isRequired
-};
+interface PipelineColumnProps {
+    column: {
+        id: string;
+        title: string;
+        projects: TaskRow[];
+        headerBg?: string;
+        headerContent?: string;
+    };
+    tasks: TaskRow[];
+    teamMembers: PersonRow[];
+}
 
-function PipelineColumn({ column, tasks, teamMembers }) {
+function PipelineColumn({ column, tasks, teamMembers }: PipelineColumnProps) {
     const { setNodeRef } = useDroppable({
         id: column.id,
         data: { type: 'Column', status: column.id }
@@ -173,14 +185,13 @@ function PipelineColumn({ column, tasks, teamMembers }) {
     );
 }
 
-PipelineColumn.propTypes = {
-    column: PropTypes.object.isRequired,
-    tasks: PropTypes.array.isRequired,
-    teamMembers: PropTypes.array.isRequired
-};
+interface DraggableProjectCardProps {
+    project: TaskRow;
+    tasks: TaskRow[];
+    teamMembers: PersonRow[];
+}
 
-
-function DraggableProjectCard({ project, tasks, teamMembers }) {
+function DraggableProjectCard({ project, tasks, teamMembers }: DraggableProjectCardProps) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: project.id,
         data: { type: 'Project', project }
@@ -203,7 +214,7 @@ function DraggableProjectCard({ project, tasks, teamMembers }) {
     }
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing touch-none focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-xl" aria-label={`Move project ${project.name}`}>
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing touch-none focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-xl" aria-label={`Move project ${project.title}`}>
             <ProjectCard
                 project={project}
                 tasks={tasks.filter(t => t.project_id === project.id)}
@@ -212,9 +223,3 @@ function DraggableProjectCard({ project, tasks, teamMembers }) {
         </div>
     );
 }
-
-DraggableProjectCard.propTypes = {
-    project: PropTypes.object.isRequired,
-    tasks: PropTypes.array.isRequired,
-    teamMembers: PropTypes.array.isRequired
-};

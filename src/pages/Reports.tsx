@@ -99,7 +99,7 @@ export default function Reports() {
                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
                   Reports & Analytics
                 </h1>
-                {project && <p className="text-slate-600 mt-1">{project.name}</p>}
+                {project && <p className="text-slate-600 mt-1">{project.title}</p>}
               </div>
             </div>
           </div>
@@ -128,7 +128,7 @@ export default function Reports() {
                   <SelectContent>
                     {allProjects.map((p: any) => (
                       <SelectItem key={p.id} value={p.id}>
-                        {p.name}
+                        {p.title}
                       </SelectItem>
                     ))}
                     {allProjects.length === 0 && (

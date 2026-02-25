@@ -287,14 +287,14 @@ export const planter = {
 
 
     Project: {
-      ...createEntityClient('tasks', '*,name:title,launch_date:due_date,owner_id:creator'),
+      ...createEntityClient('tasks', '*'),
       // Override list to filter for Root Tasks (Projects)
       list: async () => {
         return retry(async () => {
           // Use Raw Fetch to bypass potential client AbortErrors
           try {
             const data = await rawSupabaseFetch(
-              'tasks?select=*,name:title,launch_date:due_date,owner_id:creator&parent_task_id=is.null&origin=eq.instance&order=created_at.desc',
+              'tasks?select=*&parent_task_id=is.null&origin=eq.instance&order=created_at.desc',
               { method: 'GET' }
             );
             return data;
@@ -349,7 +349,7 @@ export const planter = {
           };
 
           const data = await rawSupabaseFetch(
-            'tasks?select=*,name:title,launch_date:due_date,owner_id:creator',
+            'tasks?select=*',
             {
               method: 'POST',
               headers: { 'Prefer': 'return=representation,headers=off' },
@@ -384,7 +384,7 @@ export const planter = {
       // Get project with computed stats
       getWithStats: async (projectId) => {
         return retry(async () => {
-          const projectQuery = `tasks?select=*,name:title,launch_date:due_date,owner_id:creator&id=eq.${projectId}`;
+          const projectQuery = `tasks?select=*&id=eq.${projectId}`;
           const pData = await rawSupabaseFetch(projectQuery, { method: 'GET' });
           const project = pData?.[0];
 
@@ -420,7 +420,7 @@ export const planter = {
             // Optimization: Server-side filtering using 'creator' column
             // We only fetch what we need.
             const query =
-              `tasks?select=*,project_id:root_id,name:title,launch_date:due_date,owner_id:creator` +
+              `tasks?select=*,project_id:root_id` +
               `&creator=eq.${encodeURIComponent(userId)}` +
               `&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`;
 
@@ -446,7 +446,7 @@ export const planter = {
           try {
             // PostgREST join syntax: select=project:tasks(*)
             // Note: We need to match the fields selected in getUserProjects/list
-            const query = `project_members?select=project:tasks(*,name:title,launch_date:due_date,owner_id:creator)&user_id=eq.${userId}`;
+            const query = `project_members?select=project:tasks(*)&user_id=eq.${userId}`;
 
             const data = await rawSupabaseFetch(query, { method: 'GET' });
 
@@ -466,7 +466,7 @@ export const planter = {
         return retry(async () => {
           // Manual query build for raw fetch
           let queryParams = [
-            'select=*,name:title,launch_date:due_date,owner_id:creator',
+            'select=*',
             'parent_task_id=is.null',
             'origin=eq.instance'
           ];

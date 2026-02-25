@@ -6,8 +6,9 @@ import { ChevronRight, CheckCircle2, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/app/constants/index';
+import type { TaskRow } from '@/shared/db/app.types';
 
-const phaseColors = {
+const phaseColors: Record<number, any> = {
   1: {
     bg: 'bg-brand-500',
     light: 'bg-brand-50 dark:bg-brand-950/30',
@@ -46,7 +47,15 @@ const phaseColors = {
   },
 };
 
-export default function PhaseCard({ phase, tasks = [], milestones = [], isActive, onClick }) {
+interface PhaseCardProps {
+  phase: TaskRow;
+  tasks?: TaskRow[];
+  milestones?: TaskRow[];
+  isActive?: boolean;
+  onClick?: () => void;
+}
+
+export default function PhaseCard({ phase, tasks = [], milestones = [], isActive, onClick }: PhaseCardProps) {
   const order = phase.position || phase.order;
   const colors = phaseColors[order] || phaseColors[1];
   const isLocked = phase.is_locked;
@@ -96,7 +105,7 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
             </div>
             <div>
               <h3 className={cn('font-semibold', isLocked ? 'text-muted-foreground' : 'text-card-foreground')}>
-                {phase.title || phase.name}
+                {phase.title}
               </h3>
               <p className="text-sm text-muted-foreground">{milestones.length} milestones</p>
             </div>

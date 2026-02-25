@@ -17,12 +17,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/shared/lib/utils';
 
-export default function OnboardingWizard({ open, onCreateProject, onDismiss }) {
+interface OnboardingWizardProps {
+    open: boolean;
+    onCreateProject: (data: any) => Promise<void>;
+    onDismiss?: () => void;
+}
+
+export default function OnboardingWizard({ open, onCreateProject, onDismiss }: OnboardingWizardProps) {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        launchDate: null,
+        launchDate: null as Date | null,
         template: 'launch_large'
     });
 
@@ -30,13 +36,13 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }) {
         setStep(step + 1);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         if (e) e.preventDefault();
         setLoading(true);
         try {
             await onCreateProject({
-                title: formData.name, // Changed to match standard prop name
-                launch_date: formData.launchDate,
+                title: formData.name,
+                due_date: formData.launchDate ? format(formData.launchDate, 'yyyy-MM-dd') : null,
                 template: formData.template, // Correctly passing the ID
                 status: 'planning'
             });

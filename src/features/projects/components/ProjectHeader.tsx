@@ -78,7 +78,7 @@ export default function ProjectHeader({
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-card-foreground">{project.name || project.title}</h1>
+                <h1 className="text-2xl font-bold text-card-foreground">{project.title}</h1>
                 <Badge className={statusColors[project.status]}>
                   {project.status?.replace('_', ' ')}
                 </Badge>
@@ -132,10 +132,10 @@ export default function ProjectHeader({
                 <span>{project.location}</span>
               </div>
             )}
-            {project.launch_date && (
+            {project.due_date && (
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-slate-400" />
-                <span>Launch: {format(new Date(project.launch_date), 'MMM d, yyyy')}</span>
+                <span>Launch: {format(new Date(project.due_date), 'MMM d, yyyy')}</span>
               </div>
             )}
             <Users className="w-4 h-4 text-slate-400" />

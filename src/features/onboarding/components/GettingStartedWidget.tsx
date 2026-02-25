@@ -4,15 +4,22 @@ import { Progress } from '@/shared/ui/progress';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, Circle, ArrowRight, X } from 'lucide-react';
 import { useState } from 'react';
+import type { TaskRow, PersonRow } from '@/shared/db/app.types';
 
-export default function GettingStartedWidget({ project, teamMembers, onDismiss }) {
+interface GettingStartedWidgetProps {
+    project: TaskRow | null;
+    teamMembers?: PersonRow[];
+    onDismiss?: () => void;
+}
+
+export default function GettingStartedWidget({ project, teamMembers, onDismiss }: GettingStartedWidgetProps) {
     const [isVisible, setIsVisible] = useState(true);
 
     if (!project) return null;
 
     const steps = [
         { label: 'Create your Project', completed: true },
-        { label: 'Set a Launch Date', completed: !!project.launch_date, action: 'Settings', link: `/project/${project.id}/settings` },
+        { label: 'Set a Launch Date', completed: !!project.due_date, action: 'Settings', link: `/project/${project.id}/settings` },
         { label: 'Invite a Team Member', completed: teamMembers && teamMembers.length > 0, action: 'Invite', link: `/project/${project.id}/team` },
         { label: 'Explore Phases', completed: false, action: 'View', link: `/project/${project.id}` }
     ];

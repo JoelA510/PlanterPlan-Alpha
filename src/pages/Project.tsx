@@ -94,7 +94,7 @@ export default function Project() {
     };
   }, [projectId, queryClient]);
 
-  const isOwnerByProject = project?.owner_id === user?.id || project?.creator === user?.id;
+  const isOwnerByProject = project?.creator === user?.id;
   const currentMember = teamMembers?.find((m: any) => m.user_id === user?.id);
   const userRole = currentMember?.role || (isOwnerByProject ? ROLES.OWNER : ROLES.VIEWER);
 

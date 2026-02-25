@@ -8,15 +8,22 @@ import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch, Fo
 import { motion } from 'framer-motion';
 import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
+import type { TaskRow, PersonRow } from '@/shared/db/app.types';
 
-const templateIcons = {
+const templateIcons: Record<string, any> = {
   launch_large: Rocket,
   multisite: Building2,
   multiplication: GitBranch,
 };
 
-const ProjectCard = ({ project, tasks = [], teamMembers = [] }) => {
-  const Icon = templateIcons[project.template_id] || FolderKanban;
+interface ProjectCardProps {
+  project: TaskRow;
+  tasks?: TaskRow[];
+  teamMembers?: PersonRow[];
+}
+
+const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps) => {
+  const Icon = templateIcons[project.settings?.template_id as string] || FolderKanban;
 
   const statusConfig = PROJECT_STATUS_COLORS[project.status] || PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING];
 
@@ -35,7 +42,7 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }) => {
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors truncate">
-                  {project.name}
+                  {project.title}
                 </h3>
                 <Badge
                   variant="secondary"
@@ -61,10 +68,10 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }) => {
                 <span>{project.location}</span>
               </div>
             )}
-            {project.launch_date && (
+            {project.due_date && (
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
-                <span>{format(new Date(project.launch_date), 'MMM d, yyyy')}</span>
+                <span>{format(new Date(project.due_date), 'MMM d, yyyy')}</span>
               </div>
             )}
             <div className="flex items-center gap-1.5">
