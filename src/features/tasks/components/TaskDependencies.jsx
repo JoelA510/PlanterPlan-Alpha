@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getTaskRelationships, addRelationship, removeRelationship } from '@/features/tasks/services/taskService';
-import { getTasksForUser } from '@/features/tasks/services/taskService'; // Or fallback to prop
+import { planter } from '@/shared/api/planterClient';
 import { Button } from '@/shared/ui/button';
 import { Link2, Trash2, ArrowRight } from 'lucide-react';
 import {
@@ -28,17 +27,17 @@ export default function TaskDependencies({ task, allProjectTasks }) {
     const { data: relationships = [] } = useQuery({
         queryKey: ['taskRelationships', task.id],
         queryFn: async () => {
-            const { data } = await getTaskRelationships(task.id);
+            const { data } = await planter.rpc('get_task_relationships', { p_task_id: task.id });
             return data || [];
         }
     });
 
     const addMutation = useMutation({
         mutationFn: async (targetTaskId) => {
-            return await addRelationship({
-                fromId: task.id,
-                toId: targetTaskId,
-                projectId: task.root_id,
+            return await planter.entities.TaskRelationship.create({
+                from_task_id: task.id,
+                to_task_id: targetTaskId,
+                project_id: task.root_id,
                 type: selectedType
             });
         },
@@ -49,7 +48,7 @@ export default function TaskDependencies({ task, allProjectTasks }) {
     });
 
     const removeMutation = useMutation({
-        mutationFn: removeRelationship,
+        mutationFn: (id) => planter.entities.TaskRelationship.delete(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['taskRelationships', task.id] });
         }

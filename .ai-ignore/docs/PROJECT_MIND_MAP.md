@@ -291,7 +291,6 @@ mindmap
       Recharts Visualization
       Lucide Icons
     Testing
-      Vitest Unit Tests
         src/tests/unit/RPCHardening.test.js (New)
         src/tests/unit/XSS.test.jsx (Restored)
         src/tests/security/RLS.test.js (Restored)
@@ -364,7 +363,7 @@ flowchart TD
         P7[View Project Phases]
     end
 
-    subgraph "Services"
+    subgraph "Legacy Services (DELETED wave 15)"
         PS[projectService]
         TS[taskService]
         TCS[taskCloneService]
@@ -438,7 +437,7 @@ flowchart TD
         H8[useProjectSelection]
     end
 
-    subgraph "Services"
+    subgraph "Legacy Services (DELETED wave 15)"
         TS2[taskService]
         TRS[taskResourcesService]
     end
@@ -497,8 +496,8 @@ flowchart TD
         M6["View As Role (Admin)"]
     end
 
-    subgraph "Services & RPCs"
-        PS2[projectService]
+    subgraph "Legacy Services & RPCs"
+        PS2[projectService DELETED]
         RPC2["invite_user_to_project RPC"]
         RPC3["has_project_role RPC"]
     end
@@ -551,7 +550,7 @@ flowchart TD
         LH3[useLibraryActions]
     end
 
-    subgraph "Services"
+    subgraph "Legacy Services (DELETED wave 15)"
         LS[libraryService]
         TCS2[taskCloneService]
     end
@@ -646,9 +645,9 @@ flowchart TD
         PE3[Update Contact Status]
     end
 
-    subgraph "Services"
+    subgraph "Legacy Services"
         RS[Report Components]
-        PES[peopleService]
+        PES[peopleService DELETED]
     end
 
     subgraph "Database"

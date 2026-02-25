@@ -1,14 +1,16 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/app/contexts/ToastContext';
-import { inviteMember } from '@/features/projects/services/projectService';
-import { ROLES } from '@/app/constants/index';
 
-/**
- * useTaskBoardUI
- * 
- * Manages the UI-specific state and orchestration for the Task Board,
- * such as form visibility, selected tasks, and mutation-toast integration.
- */
+interface UseTaskBoardUIProps {
+    currentUserId: string | null;
+    createProject: (data: any) => Promise<any>;
+    createTaskOrUpdate: (data: any, state: any) => Promise<any>;
+    deleteTask: (data: any) => Promise<any>;
+    refreshProjectDetails: (id: string) => void;
+    findTask: (id: string) => any;
+    activeProjectId?: string | null;
+}
+
 export const useTaskBoardUI = ({
     currentUserId,
     createProject,
@@ -17,24 +19,24 @@ export const useTaskBoardUI = ({
     refreshProjectDetails,
     findTask,
     activeProjectId,
-}) => {
+}: UseTaskBoardUIProps) => {
     const { addToast } = useToast();
 
     // UI State
     const [showForm, setShowForm] = useState(false);
-    const [selectedTask, setSelectedTask] = useState(null);
-    const [taskFormState, setTaskFormState] = useState(null);
-    const [inviteModalProject, setInviteModalProject] = useState(null);
+    const [selectedTask, setSelectedTask] = useState<any>(null);
+    const [taskFormState, setTaskFormState] = useState<any>(null);
+    const [inviteModalProject, setInviteModalProject] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
 
     // Handlers
-    const handleTaskClick = useCallback((task) => {
+    const handleTaskClick = useCallback((task: any) => {
         setSelectedTask(task);
         setShowForm(false);
         setTaskFormState(null);
     }, []);
 
-    const handleAddChildTask = useCallback((parentTask) => {
+    const handleAddChildTask = useCallback((parentTask: any) => {
         setTaskFormState({
             mode: 'create',
             origin: parentTask.origin,
@@ -44,7 +46,7 @@ export const useTaskBoardUI = ({
         setSelectedTask(null);
     }, []);
 
-    const handleEditTask = useCallback((task) => {
+    const handleEditTask = useCallback((task: any) => {
         setTaskFormState({
             mode: 'edit',
             origin: task.origin,
@@ -56,7 +58,7 @@ export const useTaskBoardUI = ({
     }, []);
 
     const onDeleteTaskWrapper = useCallback(
-        async (task) => {
+        async (task: any) => {
             const confirmed = window.confirm(
                 `Delete "${task.title}" and its subtasks? This action cannot be undone.`
             );
@@ -80,7 +82,7 @@ export const useTaskBoardUI = ({
     );
 
     const handleDeleteById = useCallback(
-        (taskId) => {
+        (taskId: string) => {
             const task = findTask(taskId);
             if (task) {
                 onDeleteTaskWrapper(task);
@@ -89,20 +91,16 @@ export const useTaskBoardUI = ({
         [findTask, onDeleteTaskWrapper]
     );
 
-    const handleOpenInvite = useCallback((project) => {
+    const handleOpenInvite = useCallback((project: any) => {
         setInviteModalProject(project);
     }, []);
 
-    const handleProjectSubmit = async (formData) => {
+    const handleProjectSubmit = async (formData: any) => {
         setIsSaving(true);
         try {
-            const newProject = await createProject(formData);
-            if (newProject) {
-                const newProjectId = newProject.new_root_id || newProject.id;
-                if (newProjectId && currentUserId) {
-                    await inviteMember(newProjectId, currentUserId, ROLES.OWNER);
-                }
-            }
+            await createProject(formData);
+            // Member assignment happens automatically in the creation RPC now.
+
             addToast('Project created successfully!', 'success');
             setShowForm(false);
         } catch (err) {
@@ -113,7 +111,7 @@ export const useTaskBoardUI = ({
         }
     };
 
-    const handleTaskSubmit = async (formData) => {
+    const handleTaskSubmit = async (formData: any) => {
         setIsSaving(true);
         try {
             await createTaskOrUpdate(formData, taskFormState);

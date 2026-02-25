@@ -422,3 +422,8 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-24
 - **Context**: `CreateProjectModal` and `CreateTemplateModal` shared 90% of their UI and validation logic, leading to duplicated test maintenance and out-of-sync styling.
 - **Rule**: **Consolidate with Modes.** When two UI components handle nearly identical data models (e.g., creating a Project vs creating a Template), merge them into a single component using a `mode` prop (`mode="project" | "template"`) and conditionally render the divergent parts (like headers or category selectors).
+
+### [ARC-036] The Abstraction Purge (Service Layer Deletion)
+- **Date**: 2026-02-25
+- **Context**: The `src/shared/api/services/` layer (e.g., `taskService`, `projectService`) was acting as a pure passthrough to `planterClient`, adding unnecessary boilerplate, complicating types, and increasing bundle size without providing unique business value.
+- **Rule**: **Eliminate Middlemen.** If an abstraction layer does nothing but forward arguments to an underlying generic client (like `planterClient`), delete it. Move domain-specific logic (like `fetchChildren` or `updateStatus`) directly onto the client's Entity definitions to centralize data access and simplify the architecture.

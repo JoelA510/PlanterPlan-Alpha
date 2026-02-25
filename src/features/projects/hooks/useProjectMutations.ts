@@ -1,8 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
-import { deepCloneTask, deleteTask as deleteTaskService } from '@/features/tasks/services/taskService';
-import { createProjectWithDefaults, updateProjectStatus as updateProjectStatusService } from '@/features/projects/services/projectService';
 import { toIsoDate, recalculateProjectDates } from '@/shared/lib/date-engine';
 
 export function useCreateProject() {
@@ -18,7 +16,7 @@ export function useCreateProject() {
             }
 
             if (formData.templateId) {
-                const { data: newTasks, error: cloneError } = (await deepCloneTask(
+                const { data: newTasks, error: cloneError } = (await planter.entities.Task.clone(
                     formData.templateId,
                     null,
                     'instance',
@@ -33,8 +31,9 @@ export function useCreateProject() {
                 if (cloneError) throw cloneError;
                 return newTasks;
             } else {
-                return await createProjectWithDefaults({
+                return await planter.entities.Project.create({
                     title: formData.title,
+                    description: formData.description,
                     start_date: projectStartDate,
                     creator: user.id
                 });
@@ -103,8 +102,7 @@ export function useDeleteProject() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (projectId: string) => {
-            const { error } = await deleteTaskService(projectId);
-            if (error) throw error;
+            await planter.entities.Project.delete(projectId);
             return true;
         },
         onSuccess: () => {
@@ -118,7 +116,7 @@ export function useDeleteProject() {
 export function useUpdateProjectStatus() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ projectId, status }: { projectId: string, status: string }) => updateProjectStatusService(projectId, status),
+        mutationFn: ({ projectId, status }: { projectId: string, status: string }) => planter.entities.Project.update(projectId, { status }),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['projects'] });
             queryClient.invalidateQueries({ queryKey: ['userProjects'] });
@@ -139,3 +137,4 @@ export function useCreateTemplate() {
         }
     });
 }
+

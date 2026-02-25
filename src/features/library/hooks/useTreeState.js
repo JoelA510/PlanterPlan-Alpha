@@ -6,7 +6,7 @@ import {
   mergeChildrenIntoTree,
   updateTaskInTree,
 } from '@/shared/lib/treeHelpers';
-import { fetchTaskChildren, updateTaskStatus, updateTaskPosition } from '@/features/tasks/services/taskService';
+import { planter } from '@/shared/api/planterClient';
 import { POSITION_STEP } from '@/app/constants/index';
 
 // Extracting logic from MasterLibraryList.jsx
@@ -46,7 +46,8 @@ export const useTreeState = (rootTasks) => {
       if (expanded && (!task.children || task.children.length === 0) && !loadingNodes[task.id]) {
         setLoadingNodes((prev) => ({ ...prev, [task.id]: true }));
         try {
-          const children = await fetchTaskChildren(task.id);
+          const { data: children, error } = await planter.entities.Task.fetchChildren(task.id);
+          if (error) throw error;
           const rawDescendants = children.filter((c) => c.id !== task.id);
           const nestedChildren = buildTree(rawDescendants, task.id);
 
@@ -87,7 +88,8 @@ export const useTreeState = (rootTasks) => {
     });
 
     try {
-      await updateTaskStatus(taskId, newStatus);
+      const { error } = await planter.entities.Task.updateStatus(taskId, newStatus);
+      if (error) throw error;
     } catch (err) {
       console.error('Failed to update status', err);
       // Revert logic
@@ -198,7 +200,7 @@ export const useTreeState = (rootTasks) => {
       // Yes, rely on default sort if we update position.
 
       // Side Effect: Trigger API
-      updateTaskPosition(activeId, newPosition, activeData.parent?.id)
+      planter.entities.Task.update(activeId, { position: newPosition, parent_task_id: activeData.parent?.id })
         .catch(err => {
           console.error("Reorder failed", err);
           // Revert would be complex here without deep clone backup.

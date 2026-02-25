@@ -128,8 +128,7 @@ PlanterPlan-Alpha/
 │   │   ├── task-drag/       # Drag-and-drop logic (dnd-kit)
 │   │   └── tasks/           # Core Task Domain
 │   │       ├── components/  # TaskTree, TaskRow, TaskDetails
-│   │       ├── hooks/       # useTaskTree, useTaskDetails
-│   │       └── services/    # taskService
+│   │       └── hooks/       # useTaskTree, useTaskDetails
 │   │
 │   ├── shared/              # @shared — Reusable, domain-agnostic
 │   │   ├── api/             # planterClient.js (Supabase adapter)
@@ -359,10 +358,6 @@ tasks/
 │   ├── useTaskTreeDnD.ts    # Drag logic + Cycle Detection
 │   ├── useTaskDetails.ts    # Single task fetcher
 │   └── ...
-├── services/
-│   ├── taskService.js       # Hierarchy, CRUD, relationships, date propagation
-│   ├── taskCloneService.js  # Deep clone logic (calls clone_project_template RPC)
-│   └── taskResourcesService.js  # File upload/download
 └── lib/
     └── (task-specific utilities)
 ```
@@ -387,11 +382,9 @@ projects/
 │   └── TaskDetailsModal.jsx    # Task detail in modal context
 ├── hooks/
 │   ├── useProjectData.js       # All project queries
-│   ├── useProjectMutations.js  # Create/update/delete
+│   ├── useProjectMutations.ts  # Create/update/delete
 │   ├── useProjectRealtime.js   # Realtime subscription
-│   └── useUserProjects.js      # User's project list
-├── services/
-│   └── projectService.js       # Membership, CRUD, stats, RPC calls
+│   └── useUserProjects.ts      # User's project list
 └── utils/
 ```
 
@@ -424,14 +417,12 @@ Master template library for browsing and cloning templates.
 
 - **Components**: `MasterLibraryList`, `MasterLibraryItem`, `MasterLibrarySearch`
 - **Hooks**: `useMasterLibrary`, `useMasterLibrarySearch`, `useLibraryActions`
-- **Services**: `libraryService`
 
 ### 8.6 People — CRM Lite (`features/people/`)
 
 Contact management for church planting teams.
 
 - **Components**: `PeopleList`, `PersonCard`, `AddPersonModal`
-- **Services**: `peopleService`
 
 ### 8.7 Reports (`features/reports/`)
 
@@ -744,8 +735,6 @@ Key test files:
 - `useTaskBoard.test.jsx` — Board hook logic
 - `PhaseCard.test.jsx` — Phase checkpoint behavior
 - `CreateProjectModal.test.jsx` — Project creation flow
-- `taskService.test.js` — Service layer
-- `taskCloneService.test.js` — Deep clone logic
 - `retry.test.js` — Fetch retry utility
 - `validation.test.js` — Input validation
 - `MobileAgenda.test.jsx` — Mobile agenda

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { getJoinedProjects, getUserProjects } from '../services/projectService';
+import { planter } from '@/shared/api/planterClient';
 
 export function useUserProjects() {
     const { user } = useAuth();
@@ -10,17 +10,17 @@ export function useUserProjects() {
         queryFn: async () => {
             if (!user) return [];
 
-            const { data: owned } = await getUserProjects(user.id);
-            const { data: joined } = await getJoinedProjects(user.id);
+            const owned = await planter.entities.Project.listByCreator(user.id);
+            const joined = await planter.entities.Project.listJoined(user.id);
 
             const projectMap = new Map();
 
-            if (owned) {
-                owned.forEach(p => projectMap.set(p.id, p));
+            if (owned && Array.isArray(owned)) {
+                owned.forEach((p: any) => projectMap.set(p.id, p));
             }
 
-            if (joined) {
-                joined.forEach(p => projectMap.set(p.id, p));
+            if (joined && Array.isArray(joined)) {
+                joined.forEach((p: any) => projectMap.set(p.id, p));
             }
 
             return Array.from(projectMap.values());

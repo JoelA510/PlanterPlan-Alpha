@@ -41,6 +41,10 @@ vi.mock('@/shared/api/planterClient', () => ({
         update: vi.fn(),
         delete: vi.fn(),
       },
+      Project: {
+        listByCreator: vi.fn().mockResolvedValue([]),
+        listJoined: vi.fn().mockResolvedValue([]),
+      }
     },
     auth: {
       getUser: vi.fn(),
@@ -48,17 +52,6 @@ vi.mock('@/shared/api/planterClient', () => ({
   },
 }));
 
-// Mock dependencies
-vi.mock('@/features/tasks/services/taskService', () => ({
-  fetchTaskChildren: vi.fn(),
-  deepCloneTask: vi.fn(),
-  updateParentDates: vi.fn(),
-}));
-
-vi.mock('@/features/projects/services/projectService', () => ({
-  getUserProjects: vi.fn().mockResolvedValue({ data: [], count: 0 }),
-  getJoinedProjects: vi.fn().mockResolvedValue({ data: [] }),
-}));
 
 vi.mock('@/app/contexts/AuthContext', () => ({
   useAuth: vi.fn().mockReturnValue({ user: { id: 'test-user', role: 'admin' } })

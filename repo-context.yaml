@@ -102,16 +102,13 @@ modules:
         capabilities: ["Side panel view", "Attribute editing", "Resource attachment"]
         dependencies: [useTaskDetails]
 
-  # SERVICE LAYER
+  # API CLIENT LAYER
   APIServices:
-    purpose: "Supabase data access via planterClient"
+    purpose: "Supabase data access via planterClient adapter"
     modules:
-      taskService:
-        capabilities: ["CRUD with RLS", "Tree fetching", "Batch updates"]
-        tables: ['tasks', 'task_relationships']
-      projectService:
-        capabilities: ["Project CRUD", "Member management", "Cloning logic"]
-        tables: ['projects', 'project_members']
+      planterClient:
+        capabilities: ["Entity CRUD with RLS", "Direct RPC execution", "Optimistic query structures"]
+        entities: ['Project', 'Task', 'TaskRelationship', 'TaskResource']
       resourceService:
         capabilities: ["File/Link attachment"]
         tables: ['task_resources']

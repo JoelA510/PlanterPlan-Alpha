@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
-import { deepCloneTask, updateParentDates } from '@/features/tasks/services/taskService';
 import { POSITION_STEP } from '@/app/constants/index';
 // Replaced inline date logic with helpers
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
@@ -95,7 +94,7 @@ export const useTaskActions = ({
 
           // Trigger Date Inheritance
           if (parentId && origin === 'instance') {
-            await updateParentDates(parentId);
+            await planter.entities.Task.updateParentDates(parentId);
             // Re-refresh to show parent updates?
             if (rootId) await refreshProjectDetails(rootId);
           }
@@ -118,7 +117,7 @@ export const useTaskActions = ({
         });
 
         if (formData.templateId) {
-          const { data: newTasks, error: cloneError } = await deepCloneTask(
+          const { data: newTasks, error: cloneError } = await planter.entities.Task.clone(
             formData.templateId,
             parentId,
             origin,
@@ -126,8 +125,8 @@ export const useTaskActions = ({
             {
               title: formData.title,
               description: formData.description,
-              start_date: hasManualDates ? manualStartDate : null,
-              due_date: hasManualDates ? manualDueDate || manualStartDate : null,
+              start_date: hasManualDates ? manualStartDate : undefined,
+              due_date: hasManualDates ? manualDueDate || manualStartDate : undefined,
             }
           );
           if (cloneError) throw cloneError;

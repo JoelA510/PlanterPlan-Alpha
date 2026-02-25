@@ -305,43 +305,109 @@ export const planter = {
           }
         });
       },
-      // Override create for specific mapping
+      // Override create for specific mapping and default initialization
       create: async (projectData) => {
         return retry(async () => {
-          // console.log('[PlanterClient] Creating project (Raw Fetch):', projectData);
-
-          const userId = projectData.creator;
-
-          // Extract explicit token if provided
+          let userId = projectData.creator;
           const explicitToken = projectData._token;
+
+          if (!userId) {
+            const token = explicitToken || await getSupabaseToken();
+            if (token) {
+              try {
+                const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+                  headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                  const user = await response.json();
+                  userId = user?.id;
+                }
+              } catch (e) { }
+            }
+          }
+
+          if (!userId) throw new Error('User must be logged in to create a project');
+
           const cleanProjectData = { ...projectData };
           delete cleanProjectData._token;
+
+          let isoLaunchDate = null;
+          if (cleanProjectData.launch_date || cleanProjectData.start_date) {
+            const d = new Date(cleanProjectData.launch_date || cleanProjectData.start_date);
+            if (!isNaN(d.getTime())) isoLaunchDate = d.toISOString().split('T')[0];
+          }
 
           const taskPayload = {
             title: cleanProjectData.title || cleanProjectData.name,
             description: cleanProjectData.description,
-            due_date: cleanProjectData.launch_date,
+            due_date: isoLaunchDate,
             origin: 'instance',
             parent_task_id: null,
-            root_id: null, // Critical for RLS "Proect" detection
+            root_id: null, // Critical for RLS "Project" detection
             status: cleanProjectData.status || 'planning',
             creator: userId, // Required for RLS
           };
-
-          // console.log('[PlanterClient] FINAL PAYLOAD (Tasks Table):', JSON.stringify(taskPayload, null, 2));
 
           const data = await rawSupabaseFetch(
             'tasks?select=*,name:title,launch_date:due_date,owner_id:creator',
             {
               method: 'POST',
-              headers: { 'Prefer': 'return=representation,headers=off' }, // Return single object not array? PostgREST returns array by default.
+              headers: { 'Prefer': 'return=representation,headers=off' },
               body: JSON.stringify(taskPayload)
             },
-            explicitToken // Pass explicit token
+            explicitToken
           );
 
-          // PostgREST returns an array for inserts. We need single object.
-          return data?.[0] || data;
+          const project = data?.[0] || data;
+
+          if (!project?.id) {
+            throw new Error('Project creation failed: no ID returned from database.');
+          }
+
+          // 2. Initialize default structure via Server-Side RPC
+          try {
+            await rawSupabaseFetch('rpc/initialize_default_project', {
+              method: 'POST',
+              body: JSON.stringify({ p_project_id: project.id, p_creator_id: userId })
+            }, explicitToken);
+          } catch (error) {
+            console.error('[PlanterClient] RPC Error:', error);
+            try {
+              await rawSupabaseFetch(`tasks?id=eq.${project.id}`, { method: 'DELETE' }, explicitToken);
+            } catch (r) { }
+            throw new Error('Project initialization failed. Please try again.');
+          }
+
+          return project;
+        });
+      },
+      // Get project with computed stats
+      getWithStats: async (projectId) => {
+        return retry(async () => {
+          const projectQuery = `tasks?select=*,name:title,launch_date:due_date,owner_id:creator&id=eq.${projectId}`;
+          const pData = await rawSupabaseFetch(projectQuery, { method: 'GET' });
+          const project = pData?.[0];
+
+          if (!project) throw new Error('Project not found');
+
+          const cData = await rawSupabaseFetch(`tasks?select=id,root_id,is_complete&root_id=eq.${projectId}`, { method: 'GET' });
+          const children = cData || [];
+
+          const totalTasks = children.length;
+          const completedTasks = children.filter(t => t.is_complete).length;
+
+          return {
+            data: {
+              ...project,
+              children,
+              stats: {
+                totalTasks,
+                completedTasks,
+                progress: totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0,
+              }
+            },
+            error: null
+          };
         });
       },
       // Safe list by creator (Raw Fetch)
@@ -443,12 +509,156 @@ export const planter = {
         return { data, error: null };
       },
     },
-    Task: createEntityClient('tasks'),
+    Task: {
+      ...createEntityClient('tasks'),
+      fetchChildren: async (taskId) => {
+        try {
+          const targetTask = await planter.entities.TaskWithResources.get(taskId);
+          if (!targetTask) throw new Error('Task not found');
+
+          const projectRootId = targetTask.root_id || targetTask.id;
+          const projectTasks = await planter.entities.TaskWithResources.filter({ root_id: projectRootId });
+
+          const descendants = [];
+          const queue = [taskId];
+          const visited = new Set([taskId]);
+
+          const rootTask = projectTasks.find((t) => t.id === taskId);
+          if (rootTask) descendants.push(rootTask);
+
+          while (queue.length > 0) {
+            const currentId = queue.shift();
+            const children = projectTasks.filter((t) => t.parent_task_id === currentId);
+
+            children.forEach((child) => {
+              if (!visited.has(child.id)) {
+                visited.add(child.id);
+                descendants.push(child);
+                queue.push(child.id);
+              }
+            });
+          }
+
+          return { data: descendants, error: null };
+        } catch (error) {
+          console.error('[PlanterClient.fetchChildren] Error:', error);
+          return { data: null, error };
+        }
+      },
+      updateStatus: async (taskId, status) => {
+        try {
+          const data = await planter.entities.Task.update(taskId, { status });
+
+          if (status === 'completed') {
+            const children = await planter.entities.Task.filter({ parent_task_id: taskId });
+            if (children && children.length > 0) {
+              await Promise.all(
+                children.map((child) => planter.entities.Task.updateStatus(child.id, 'completed'))
+              );
+            }
+          }
+          return { data, error: null };
+        } catch (error) {
+          console.error('[PlanterClient.updateStatus] Error:', error);
+          return { data: null, error: error?.message || error };
+        }
+      },
+      updateParentDates: async (parentId) => {
+        if (!parentId) return;
+        try {
+          const children = await planter.entities.Task.filter({ parent_task_id: parentId });
+
+          let start_date = null;
+          let due_date = null;
+
+          if (children && children.length > 0) {
+            const validStarts = children.map(t => new Date(t.start_date)).filter(d => !isNaN(d.getTime()));
+            const validEnds = children.map(t => new Date(t.due_date)).filter(d => !isNaN(d.getTime()));
+
+            if (validStarts.length > 0) {
+              start_date = new Date(Math.min(...validStarts.map(d => d.getTime()))).toISOString().split('T')[0];
+            }
+            if (validEnds.length > 0) {
+              due_date = new Date(Math.max(...validEnds.map(d => d.getTime()))).toISOString().split('T')[0];
+            }
+          }
+
+          const parent = await planter.entities.Task.update(parentId, {
+            start_date,
+            due_date,
+            updated_at: new Date().toISOString(),
+          });
+
+          if (parent && parent.parent_task_id) {
+            await planter.entities.Task.updateParentDates(parent.parent_task_id);
+          }
+        } catch (error) {
+          console.error('[PlanterClient.updateParentDates] Error:', error);
+        }
+      },
+      clone: async (templateId, newParentId, newOrigin, userId, overrides = {}) => {
+        try {
+          const rpcParams = {
+            p_template_id: templateId,
+            p_new_parent_id: newParentId,
+            p_new_origin: newOrigin,
+            p_user_id: userId,
+          };
+
+          if (overrides.title !== undefined) rpcParams.p_title = overrides.title;
+          if (overrides.description !== undefined) rpcParams.p_description = overrides.description;
+          if (overrides.start_date !== undefined) rpcParams.p_start_date = overrides.start_date;
+          if (overrides.due_date !== undefined) rpcParams.p_due_date = overrides.due_date;
+
+          const { data, error } = await planter.rpc('clone_project_template', rpcParams);
+          if (error) throw error;
+
+          return { data, error: null };
+        } catch (error) {
+          console.error('[PlanterClient.clone] Error:', error);
+          return { data: null, error };
+        }
+      }
+    },
+    TaskRelationship: createEntityClient('task_relationships'),
     Phase: createEntityClient('tasks'),
     Milestone: createEntityClient('tasks'),
-    TaskWithResources: createEntityClient('tasks_with_primary_resource'),
+    TaskWithResources: {
+      ...createEntityClient('tasks_with_primary_resource'),
+      listTemplates: async ({ from = 0, limit = 25, resourceType = null } = {}) => {
+        return retry(async () => {
+          const end = from + limit - 1;
+          let query = `tasks_with_primary_resource?select=*&origin=eq.template&parent_task_id=is.null&order=created_at.desc`;
+          if (resourceType && resourceType !== 'all') {
+            query += `&resource_type=eq.${resourceType}`;
+          }
+          const data = await rawSupabaseFetch(query, {
+            method: 'GET',
+            headers: { 'Range': `${from}-${end}` }
+          });
+          return { data: data || [], error: null };
+        });
+      },
+      searchTemplates: async ({ query, limit = 20, resourceType = null } = {}) => {
+        return retry(async () => {
+          const normalized = (query || '').trim().slice(0, 100);
+          if (!normalized) return { data: [], error: null };
+
+          const pattern = `"%${normalized.replace(/[\\%_]/g, (c) => `\\${c}`)}%"`;
+          let endpoint = `tasks_with_primary_resource?select=*&origin=eq.template&or=(title.ilike.${pattern},description.ilike.${pattern})&order=title.asc&limit=${limit}`;
+
+          if (resourceType && resourceType !== 'all') {
+            endpoint += `&resource_type=eq.${resourceType}`;
+          }
+
+          const data = await rawSupabaseFetch(endpoint, { method: 'GET' });
+          return { data: data || [], error: null };
+        });
+      }
+    },
     TaskResource: createEntityClient('task_resources'),
     TeamMember: createEntityClient('project_members'),
+    Person: createEntityClient('people'),
   },
   /**
    * Execute a remote procedure call (RPC)

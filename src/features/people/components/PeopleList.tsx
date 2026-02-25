@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import PropTypes from 'prop-types';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Badge } from '@/shared/ui/badge';
 import { Plus, Search, Mail, Phone, MoreHorizontal, Loader2 } from 'lucide-react';
-import { peopleService } from '../services/peopleService';
 import AddPersonModal from './AddPersonModal';
-import { useToast } from '@/shared/ui/use-toast';
+import { toast } from 'sonner';
+import { planter } from '@/shared/api/planterClient';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -15,7 +14,7 @@ import {
     DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 
-const STATUS_OPTS = {
+const STATUS_OPTS: Record<string, string> = {
     'New': 'bg-brand-100 text-brand-700',
     'Contacted': 'bg-indigo-100 text-indigo-700',
     'Meeting Scheduled': 'bg-purple-100 text-purple-700',
@@ -24,62 +23,85 @@ const STATUS_OPTS = {
     'default': 'bg-slate-100 text-slate-700'
 };
 
-export default function PeopleList({ projectId, canEdit = false }) {
-    const [people, setPeople] = useState([]);
+export interface Person {
+    id: string;
+    first_name: string;
+    last_name: string | null;
+    role: string | null;
+    status: string;
+    email: string | null;
+    phone: string | null;
+    project_id?: string;
+}
+
+interface PeopleListProps {
+    projectId: string;
+    canEdit?: boolean;
+}
+
+export default function PeopleList({ projectId, canEdit = false }: PeopleListProps) {
+    const [people, setPeople] = useState<Person[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [editingPerson, setEditingPerson] = useState(null);
-    const { toast } = useToast();
+    const [editingPerson, setEditingPerson] = useState<Person | null>(null);
 
     const loadPeople = useCallback(async () => {
         try {
-            const data = await peopleService.getPeople(projectId);
-            setPeople(data);
+            // Replaces peopleService.getPeople
+            const data = await planter.entities.Person.filter({ project_id: projectId });
+            // Sort client-side to mimic the previous server-side '.order('created_at', { ascending: false })' 
+            const sorted = (data || []).sort((a: any, b: any) =>
+                new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+            );
+            setPeople(sorted);
         } catch (error) {
             console.error(error);
-            toast({ title: 'Failed to load people', variant: 'destructive' });
+            toast.error('Failed to load people');
         } finally {
             setLoading(false);
         }
-    }, [projectId, toast]);
+    }, [projectId]);
 
     useEffect(() => {
         loadPeople();
     }, [loadPeople]);
 
-    const handleSave = async (personData) => {
+    const handleSave = async (personData: Partial<Person>) => {
         try {
             if (editingPerson) {
-                await peopleService.updatePerson(editingPerson.id, personData);
-                toast({ title: 'Person updated' });
+                // Replaces peopleService.updatePerson
+                await planter.entities.Person.update(editingPerson.id, personData);
+                toast.success('Person updated');
             } else {
-                await peopleService.addPerson({ ...personData, project_id: projectId });
-                toast({ title: 'Person added' });
+                // Replaces peopleService.addPerson
+                await planter.entities.Person.create({ ...personData, project_id: projectId });
+                toast.success('Person added');
             }
             loadPeople();
             setEditingPerson(null);
-        } catch (error) {
-            toast({ title: 'Error saving person', description: error.message, variant: 'destructive' });
+        } catch (error: any) {
+            toast.error('Error saving person: ' + error.message);
             throw error;
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this person?')) return;
         try {
-            await peopleService.deletePerson(id);
-            toast({ title: 'Person deleted' });
+            // Replaces peopleService.deletePerson
+            await planter.entities.Person.delete(id);
+            toast.success('Person deleted');
             loadPeople();
         } catch (error) {
-            toast({ title: 'Error deleting', variant: 'destructive' });
+            toast.error('Error deleting');
         }
     };
 
     const filteredPeople = useMemo(() => {
         return people.filter(p =>
-            (p.first_name + ' ' + p.last_name).toLowerCase().includes(search.toLowerCase()) ||
-            p.email?.toLowerCase().includes(search.toLowerCase())
+            ((p.first_name || '') + ' ' + (p.last_name || '')).toLowerCase().includes(search.toLowerCase()) ||
+            (p.email?.toLowerCase().includes(search.toLowerCase()))
         );
     }, [people, search]);
 
@@ -124,7 +146,7 @@ export default function PeopleList({ projectId, canEdit = false }) {
                     <tbody className="divide-y divide-slate-100">
                         {filteredPeople.length === 0 ? (
                             <tr>
-                                <td colSpan="5" className="px-4 py-8 text-center text-slate-500">
+                                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                                     No people found. Add someone to get started!
                                 </td>
                             </tr>
@@ -134,7 +156,7 @@ export default function PeopleList({ projectId, canEdit = false }) {
                                     <td className="px-4 py-3 font-medium text-slate-900">
                                         <div className="flex items-center gap-2">
                                             <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                                                {person.first_name[0]}{person.last_name ? person.last_name[0] : ''}
+                                                {person.first_name?.[0]}{person.last_name ? person.last_name[0] : ''}
                                             </div>
                                             {person.first_name} {person.last_name}
                                         </div>
@@ -186,7 +208,3 @@ export default function PeopleList({ projectId, canEdit = false }) {
         </div>
     );
 }
-
-PeopleList.propTypes = {
-    projectId: PropTypes.string.isRequired,
-};
