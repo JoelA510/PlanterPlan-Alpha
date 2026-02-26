@@ -27,6 +27,12 @@ This pull request represents a holistic stabilization and simplification of the 
 - **Architecture Simplification:** Centralized `DashboardLayout` inside the router, stripping sprawling wrappers from page roots. Removed legacy DB column aliasing in `planterClient.js` for 1:1 PostgREST mapping.
 - **Context Footprint Reduction:** Aggressively `.gitignore`d test artifacts and relocated massive architectural documentation files (e.g., `FULL_ARCHITECTURE.md`, `schema.sql`) into an `.ai-ignore/` directory, saving hundreds of thousands of tokens of context space.
 
+### 🌊 Wave 16: Architecture Polish & Stabilization
+- **Critical Routing & Auth:** Restored the React Router `loader` auth guard to securely block protected routes prior to rendering.
+- **Schema Integrity:** Fixed the PostgREST DB aliasing trap by enforcing direct Supabase column mapping (`name`, `launch_date`, `owner_id`) in `planterClient.js` and all UI consumers.
+- **TanStack Modernization:** Refactored manual state-based fetching in the Library domain to robust `@tanstack/react-query` implementations (`useQuery` with debouncing for search, and `useInfiniteQuery` for paginated templates).
+- **Strict Typing:** Audited the freshly converted `.tsx` components (`TaskDetailsPanel`, `ProjectCard`, etc.) to replace lazy `any` types with strict DB interfaces.
+
 ## 🗺️ Roadmap Progress
 
 | Item ID | Feature Name | Phase | Status | Notes |

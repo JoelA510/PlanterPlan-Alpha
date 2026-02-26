@@ -416,7 +416,7 @@ Dual-sidebar navigation system.
 Master template library for browsing and cloning templates.
 
 - **Components**: `MasterLibraryList`, `MasterLibraryItem`, `MasterLibrarySearch`
-- **Hooks**: `useMasterLibrary`, `useMasterLibrarySearch`, `useLibraryActions`
+- **Hooks**: `useMasterLibrary`, `useMasterLibrarySearch` (uses TanStack `useQuery` with debouncing), `useMasterLibraryTasks` (uses TanStack `useInfiniteQuery` for pagination), `useLibraryActions`
 
 ### 8.6 People — CRM Lite (`features/people/`)
 

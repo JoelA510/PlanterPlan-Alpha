@@ -6,7 +6,7 @@ import { supabase } from '@/shared/db/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard';
-import { ROLES } from '@/shared/constants';
+import { ROLES } from '@/app/constants';
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 

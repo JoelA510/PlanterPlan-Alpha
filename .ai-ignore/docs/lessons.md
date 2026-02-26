@@ -431,3 +431,8 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-25
 - **Context**: The `src/shared/api/services/` layer (e.g., `taskService`, `projectService`) was acting as a pure passthrough to `planterClient`, adding unnecessary boilerplate, complicating types, and increasing bundle size without providing unique business value.
 - **Rule**: **Eliminate Middlemen.** If an abstraction layer does nothing but forward arguments to an underlying generic client (like `planterClient`), delete it. Move domain-specific logic (like `fetchChildren` or `updateStatus`) directly onto the client's Entity definitions to centralize data access and simplify the architecture.
+
+### [ARC-037] PostgREST Aliasing Trap
+- **Date**: 2026-02-25
+- **Context**: Removing aliases from `.select('alias:actual_column')` without updating the frontend caused silent data failures because the UI still expected the old alias names (e.g., `title` instead of `name`, `due_date` instead of `launch_date`).
+- **Rule**: **Update DB Consumers on Alias Removal.** When reverting PostgREST aliasing to direct column mapping, you MUST audit and update all UI and hook consumers to use the actual database column names.

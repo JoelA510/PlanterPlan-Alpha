@@ -84,6 +84,14 @@ modules:
         capabilities: ["Graph traversal to prevent circular parent-child relationships"]
         provides: "validateMove(draggedId, newParentId)"
 
+  LibraryHooks:
+    purpose: "Library fetching and state"
+    modules:
+      useMasterLibrarySearch:
+        capabilities: ["TanStack useQuery", "Debounced search"]
+      useMasterLibraryTasks:
+        capabilities: ["TanStack useInfiniteQuery", "Paginated fetching"]
+
   # UI COMPONENTS
   TaskComponents:
     purpose: "Atomic task interface"
@@ -107,7 +115,7 @@ modules:
     purpose: "Supabase data access via planterClient adapter"
     modules:
       planterClient:
-        capabilities: ["Entity CRUD with RLS", "Direct RPC execution", "Optimistic query structures"]
+        capabilities: ["Entity CRUD with RLS", "Direct RPC execution", "Optimistic query structures", "Strict mapping to real DB schema columns (no PostgREST aliasing)"]
         entities: ['Project', 'Task', 'TaskRelationship', 'TaskResource']
 # ==========================================
 # 2. BEHAVIOR SPECIFICATIONS
