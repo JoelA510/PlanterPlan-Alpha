@@ -80,16 +80,20 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
     - [x] Manage Roles (Owner, Editor, Viewer)
     - [x] Member List Display
 
-### 3.4 UI/UX Polish (Phase 4)
+### 3.4 UI/UX Polish & Hardening (Phase 4)
 - [x] **Design System**
     - [x] Sidebar Navigation
     - [x] Header & Breadcrumbs
     - [x] Toast Notifications
     - [x] Responsive Layouts
-- [x] **Reliability**
+- [x] **Reliability & Type Safety**
     - [x] Error Boundaries
     - [x] Loading Skeletons
     - [x] Form Validation (Zod)
+    - [x] Strict TSX Components
+- [x] **Architecture Simplification**
+    - [x] UI Deduplication (Merged Modals)
+    - [x] Centralized Layout Routing
 
 ---
 

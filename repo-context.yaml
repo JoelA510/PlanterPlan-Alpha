@@ -103,16 +103,12 @@ modules:
         dependencies: [useTaskDetails]
 
   # API CLIENT LAYER
-  APIServices:
+  APIClientLayer:
     purpose: "Supabase data access via planterClient adapter"
     modules:
       planterClient:
         capabilities: ["Entity CRUD with RLS", "Direct RPC execution", "Optimistic query structures"]
         entities: ['Project', 'Task', 'TaskRelationship', 'TaskResource']
-      resourceService:
-        capabilities: ["File/Link attachment"]
-        tables: ['task_resources']
-
 # ==========================================
 # 2. BEHAVIOR SPECIFICATIONS
 # ==========================================

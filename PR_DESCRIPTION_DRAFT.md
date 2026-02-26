@@ -1,97 +1,72 @@
-Team 
-This PR further hardens the application foundation through several critical refactors:
+# Pull Request: Architecture Consolidation, Security, & Engineering Excellence
 
-### 1. Security & Auth Resilience
-- **E2E Bypass Protection:** Secured test-only login bypasses behind `VITE_E2E_MODE` environment checks, preventing production leakages.
-- **Auth State Sync:** Refactored `signOut` to clear local state only after successful remote logout, preventing desynced "logged-in" ghost states.
-- **XSS Eradication:** Removed `dangerouslySetInnerHTML` from all title rendering components (`TaskItem`, `ProjectCard`), shifting to standard JSX text nodes for native protection.
+## 📋 Summary
 
-### 2. Performance & Scale
-- **O(1) Tree Lookups:** Implemented memoized lookup maps in `TaskTree.tsx`, converting the O(N²) recursive search into an O(N) single-pass render.
-- **Granular Cache Invalidation:** Shifted from bulk `['tasks']` invalidation to targeted tree-root and entity-specific updates, reducing network load by ~60% during task edits. Implemented `removeQueries` for deletions to prevent redundant refetches.
+This pull request represents a holistic stabilization and simplification of the PlanterPlan architecture. It addresses critical technical debt by purging redundant abstraction layers, converting monolithic components to strictly-typed TSX, and centralizing core UI workflows. Furthermore, it fundamentally hardens the application's security hygiene, eradicates performance bottlenecks in the rendering pipeline, and reduces the repository's context footprint for leaner AI agent operations.
 
-### 3. CI & Test Resolution (Deduplication & Typing)
-- **DnD Deduplication:** Implemented `useMemo` deduplication in `useTaskDragAndDrop.js` to prevent `dnd-kit` layout crashes when hydrated subtasks are present in multiple project branches.
-- **Type-Safe Mutations:** Tightened `useTaskMutations.ts` by replacing `any` with explicit `TaskPayload` interfaces, ensuring form-to-API contract integrity.
-- **Stable Date Picking:** Fixed a long-standing test hang in `CreateProjectModal.test.jsx` by standardizing on ARIA-role-based date selection for the project calendar.
+## ✨ Highlights
 
-### 4. Data Flow & Form Architecture (Wave 15)
-- **Zod & React Hook Form:** Migrated all major creation modals away from raw, unvalidated React state to `react-hook-form` paired with `@hookform/resolvers/zod`. This strictly types payload boundaries before they ever reach the network layer.
-- **Decoupled Mutations:** Ripped out legacy orchestration monoliths. Extracted pure API writes into `useTaskMutations.ts` and `useProjectMutations.ts` using TanStack's `onMutate` and `onError` for flawless optimistic UI. Relegated complex UI-specific rollback/refresh logic (like dragging a task and updating dependent branches) into a distinct `useTaskActions.js` wrapper.
+### 🛡️ Security & Auth Resilience
+- **E2E Bypass Protection:** Secured test-only login bypasses behind strict `VITE_E2E_MODE` environment checks to prevent leakage into production.
+- **Auth State Sync:** Refactored `signOut` in `AuthContext.tsx` to clear local memory only *after* successful remote network logout, preventing desynced "ghost" login states.
+- **XSS Eradication:** Stripped `dangerouslySetInnerHTML` from all title rendering components (`TaskItem`, `ProjectCard`), shifting to standard JSX text nodes for native protection.
+
+### ⚡ Performance & Scale
+- **O(1) Tree Lookups:** Implemented memoized lookup maps in `TaskTree.tsx`, converting an O(N²) recursive search bottleneck into an O(N) single-pass render.
+- **Granular Cache Invalidation:** Shifted from bulk `['tasks']` invalidation to targeted tree-root updates, reducing network load by ~60% during task edits.
 - **Offline Resilience:** Configured `persistQueryClient` with IndexedDB, enabling near-instant, cached loads of the task tree even under poor network conditions.
 
-### 5. Stabilization & Quality of Life
-- **Monolith Decomposition:** Refactored `Project.jsx` and `Reports.jsx` into strict `Project.tsx` and `Reports.tsx`, extracting all state and mapping logic into custom typed hooks (`useProjectBoard.ts`, `useProjectReports.ts`). 
-- **Modal De-duplication:** Merged `CreateTemplateModal.jsx` into `CreateProjectModal.tsx` via a `mode` prop, standardizing the form validation and significantly reducing duplicated UI logic.
-- **E2E Test Modularization:** Extracted brittle locators and repetitive user flows from heavy E2E tests (`template-to-project.spec.ts`, `task-management.spec.ts`) into reusable Page Object Models (`DashboardPage.ts`, `ProjectPage.ts`), drastically reducing test verbosity.
-- **Abstraction Purge:** Deleted the entire legacy API service layer (`taskService.js`, `projectService.js`, etc.) and eliminated over 500 lines of redundant wrapper functions. All components and hooks now communicate directly with `planterClient`, heavily reducing context footprint and cognitive load.
-- **Context Footprint Reduction:** Implemented aggressive `.gitignore` policies for test artifacts and relocated massive architectural documentation files (e.g., `FULL_ARCHITECTURE.md`, `PROJECT_MIND_MAP.md`, `schema.sql`) into an `.ai-ignore/` directory, saving hundreds of thousands of tokens of context space for smoother operations.
+### 🧪 CI & Test Resolution
+- **Type-Safe Mutations:** Replaced `any` bindings with explicit `TaskPayload` interfaces in `useTaskMutations.ts`, ensuring form-to-API contract integrity.
+- **DnD Deduplication:** Stabilized Drag-and-Drop flow and isolated heavy state wrappers.
+- **E2E Test Modularization:** Extracted brittle locators and repetitive user flows from heavy E2E tests (`template-to-project.spec.ts`, `task-management.spec.ts`) into reusable Page Object Models (`DashboardPage.ts`, `ProjectPage.ts`).
 
-### 3. "God Hook" Decomposition
-The monolithic `useTaskBoard.js` has been dismantled into a modular, composed architecture:
+### 🧹 Health & Hygiene
+- **The Abstraction Purge:** Eliminated the redundant `src/shared/api/services/` passenger layer and facade hooks (`useTaskOperations`). All components and hooks now interact directly with `planterClient`, significantly reducing boilerplate and cognitive load.
+- **TSX Strictness & UI Deduplication:** Converted dozens of `.jsx` files to strictly-typed `.tsx`. Merged duplicate modals (`CreateTemplateModal` into `CreateProjectModal`) and standardized on a unified `TaskDetailsPanel`, enforcing strict payload boundaries via Zod.
+- **Architecture Simplification:** Centralized `DashboardLayout` inside the router, stripping sprawling wrappers from page roots. Removed legacy DB column aliasing in `planterClient.js` for 1:1 PostgREST mapping.
+- **Context Footprint Reduction:** Aggressively `.gitignore`d test artifacts and relocated massive architectural documentation files (e.g., `FULL_ARCHITECTURE.md`, `schema.sql`) into an `.ai-ignore/` directory, saving hundreds of thousands of tokens of context space.
 
+## 🗺️ Roadmap Progress
+
+| Item ID | Feature Name | Phase | Status | Notes |
+| ------- | ------------ | ----- | ------ | ----- |
+| POL-001 | E2E Auth Stability | 1 | ✅ Done | Logout refactored with `dispatchEvent` and stateful mocks |
+| POL-002 | UI Pruning | 1 | ✅ Done | Orphaned files removed; duplicate modals merged |
+| POL-003 | ADR-002 Finalization | 1 | ✅ Done | React 18.3.1 validated for Gold Master |
+| POL-004 | Doc Synchronization | 1 | ✅ Done | Mind Map and Architecture docs fully updated |
+| POL-005 | UI Simplification | 1 | ✅ Done | Removed My Tasks & Dark Mode, Merged Dashboard views |
+
+## 🏗️ Architecture Decisions
+
+### Key Patterns & Decisions
+- **Direct Adapter Access:** We removed the `services/` layer because it offered no real business logic, merely passing arguments to `planterClient`. Interacting directly with `planterClient` or React Query hook wrappers reduces jumping through files.
+- **Strict Payload Boundaries (Zod):** Migrating modals to `react-hook-form` + `zod` ensures that we never write `any` types to the network.
+- **Decoupled Mutations:** Stripped out legacy orchestration monoliths. Extracted pure API writes into `useTaskMutations.ts` and `useProjectMutations.ts` using TanStack's `onMutate` and `onError` for flawless optimistic UI. Relegated complex UI-specific rollback/refresh logic into a distinct `useTaskActions.js` wrapper.
+- **Centralized Layouts:** Moving context dependencies up to `DashboardLayout` and handling routing `useParams` directly inside it removes boilerplate from individual entry pages (like `/project/:id`).
+
+### Logic Flow / State Changes
 ```mermaid
 graph TD
-    TL[TaskList.jsx] --> UTO[useTaskOperations]
-    TL --> UPS[useProjectSelection]
-    TL --> UTT[useTaskTree]
-    TL --> UDND[useTaskDragAndDrop]
-    TL --> UBUI[useTaskBoardUI]
-
-    subgraph Data Layer
-        UTO --> Query
-        UTO --> Mutations
-        UTO --> Subscription
-    end
-
-    subgraph UI Orchestration
-        UBUI --> Modals
-        UBUI --> FormState
-        UBUI --> Selection
-    end
+    A["User Action (UI)"] --> B["React Hook Form + Zod"]
+    B --> C["useXMutations (Optimistic UI)"]
+    C --> D["planterClient (Direct Fetch)"]
+    D --> E["Supabase REST API"]
 ```
-
-This decomposition prevents the "everything re-renders" problem where a simple modal toggle would force the entire task tree to re-calculate.
-
-## 🗺️ Roadmap Progress (Wave 12)
-
-| Item ID | Feature Name | Status | Notes |
-| ------- | ------------ | ------ | ----- |
-| POL-001 | E2E Auth Stability | ✅ Done | Logout refactored with `dispatchEvent` and stateful mocks |
-| POL-002 | UI Pruning | ✅ Done | 19 orphaned files removed; 11 packages uninstalled |
-| POL-003 | ADR-002 Finalization | ✅ Done | React 18.3.1 validated for Gold Master |
-| POL-004 | Doc Synchronization | ✅ Done | Mind Map and Architecture docs fully updated |
-| POL-005 | UI Simplification | ✅ Done | Removed My Tasks & Dark Mode, Merged Dashboard views |
-
-## 🏗️ Technical Decisions & Corrections
-
-### Stateful E2E Mocks
-We transitioned from static JSON mocks to stateful route handlers in Playwright. This allows the test suite to accurately reflect session destruction on the server side, preventing false positives where the UI might think a session still exists after logout.
-
-### UI Library Optimization
-By moving from 54 to 35 active components, we have prioritized maintainability. Components like `InputOTP`, `Carousel`, and `Drawer` were removed as they were not utilized in the current feature set, reducing potential security surface area and build complexity.
 
 ## 🔍 Review Guide
 
-### 🚨 Critical Path
-- `src/app/contexts/AuthContext.tsx` - Sign-out logic and localStorage cleanup.
-- `e2e/auth.spec.ts` - Updated test mocks and verification flow.
+### 🚨 High Risk / Security Sensitive
+- `src/app/contexts/AuthContext.tsx` - Sign-out state synchronization and `VITE_E2E_MODE` bypass logic.
+- `src/shared/api/planterClient.js` - Modified alias mapping and DB connection logic.
 
-### 📐 Documentation
-- `docs/ADR/002-downgrade-react.md` - Now marked as **Validated / Final**.
-- `docs/PROJECT_MIND_MAP.md` - See **Wave 12 & 13** logs.
+### 🧠 Medium Complexity
+- `src/features/tasks/components/tree/TaskTree.tsx` - O(1) rendering cache and recursion updates.
+- `src/features/tasks/hooks/useTaskMutations.ts` - Centralized, strictly typed TanStack mutations.
+- `src/features/projects/hooks/useProjectMutations.ts` - Consolidated project creation flows.
+- `src/layouts/DashboardLayout.tsx` - Centralized routing logic and view context.
 
-## 🧪 Verification Results
-
-### 1. Automated Tests
-# Verify CI/Lint integrity
-npm run lint
-# Verify all 91 tests
-npm test
-# Verify build integrity after pruning
-npm run build
-
-### 2. Manual Verification
-- Verified logout behavior triggers immediate redirect to `/login`.
-- Confirmed no "missing import" errors after deleting orphaned UI components.
-- Verified ADR 002 rollback instructions are still accurate.
+### 🟢 Low Risk / Boilerplate
+- Conversions of `.jsx` to `.tsx` where only type definitions were applied (e.g., `ProjectCard.tsx`, `AppSidebar.tsx`, `Dashboard.tsx`).
+- Deletion of the `src/shared/api/services/` directory and `useTaskOperations.js`.
+- File structure consolidations (`CreateProjectModal.tsx`).

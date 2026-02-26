@@ -363,10 +363,10 @@ flowchart TD
         P7[View Project Phases]
     end
 
-    subgraph "Legacy Services (DELETED wave 15)"
-        PS[projectService]
-        TS[taskService]
-        TCS[taskCloneService]
+    subgraph "Mutations & Hooks"
+        PM[useProjectMutations]
+        TM[useTaskMutations]
+        TQ[React Query Hooks]
     end
 
     subgraph "planterClient"
@@ -391,23 +391,23 @@ flowchart TD
         SE_PHASES[Create 6 Default Phases]
     end
 
-    P1 --> PS --> PC_C --> DB_T
+    P1 --> PM --> PC_C --> DB_T
     PC_C --> PC_INIT --> SE_PHASES --> DB_T
     DB_T --> SE_MEMBER --> DB_PM
-    PS --> SE_NAV
-    PS --> SE_CACHE
+    PM --> SE_NAV
+    PM --> SE_CACHE
 
-    P2 --> TCS --> PC_CL --> DB_T
+    P2 --> PM --> PC_CL --> DB_T
     PC_CL --> SE_MEMBER
 
-    P_NEW_TMP --> TS --> PC_TC --> DB_T
+    P_NEW_TMP --> TM --> PC_TC --> DB_T
 
-    P3 --> PS --> PC_U --> DB_T --> SE_CACHE
-    P4 --> PS --> PC_D --> DB_T --> SE_CACHE
+    P3 --> PM --> PC_U --> DB_T --> SE_CACHE
+    P4 --> PM --> PC_D --> DB_T --> SE_CACHE
 
-    P5 --> TS --> PC_L --> DB_T
-    P6 --> TS --> PC_L
-    P7 --> TS --> PC_L
+    P5 --> TQ --> PC_L --> DB_T
+    P6 --> TQ --> PC_L
+    P7 --> TQ --> PC_L
 ```
 
 ### 3.3 Task CRUD Actions
@@ -437,17 +437,13 @@ flowchart TD
         H8[useProjectSelection]
     end
 
-    subgraph "Legacy Services (DELETED wave 15)"
-        TS2[taskService]
-        TRS[taskResourcesService]
-    end
-
     subgraph "planterClient"
         PC_TC["Task.create()"]
         PC_TU["Task.update()"]
         PC_TD["Task.delete()"]
         PC_TF["Task.filter()"]
         PC_TR["TaskResource.create()"]
+        PC_REL["TaskRelationship.create()"]
     end
 
     subgraph "Database"
@@ -465,10 +461,10 @@ flowchart TD
         CYCLE[Cycle Detection] // New
     end
 
-    T1 --> H1 --> TS2 --> PC_TC --> DB_T2
-    T2 --> H1 --> TS2 --> PC_TU --> DB_T2
-    T3 --> H6 --> TS2 --> PC_TU --> DB_T2
-    T4 --> H1 --> TS2 --> PC_TD --> DB_T2
+    T1 --> H1 --> PC_TC --> DB_T2
+    T2 --> H1 --> PC_TU --> DB_T2
+    T3 --> H6 --> PC_TU --> DB_T2
+    T4 --> H1 --> PC_TD --> DB_T2
     
     T5 --> H2 --> CYCLE
     CYCLE -->|Valid| OPT --> POS --> PC_TU --> DB_T2
@@ -476,8 +472,8 @@ flowchart TD
 
     T6 --> H5 --> H1
     T7 --> H4 --> PC_TF --> DB_T2
-    T8 --> TS2 --> DB_REL
-    T9 --> TRS --> PC_TR --> DB_RES
+    T8 --> PC_REL --> DB_REL
+    T9 --> PC_TR --> DB_RES
 
     DB_T2 --> RT --> CACHE
     DB_T2 --> DATE
@@ -496,8 +492,8 @@ flowchart TD
         M6["View As Role (Admin)"]
     end
 
-    subgraph "Legacy Services & RPCs"
-        PS2[projectService DELETED]
+    subgraph "Hooks & RPCs"
+        HM[useProjectMutations]
         RPC2["invite_user_to_project RPC"]
         RPC3["has_project_role RPC"]
     end
@@ -518,16 +514,16 @@ flowchart TD
         TOAST[Toast Notification]
     end
 
-    M1 --> PS2 --> PC_AME --> DB_PROF
+    M1 --> HM --> PC_AME --> DB_PROF
     PC_AME -->|User exists| PC_AM --> DB_PM2
     PC_AME -->|User not found| RPC2 --> DB_PI
 
-    M2 --> PS2 --> PC_AM --> DB_PM2
-    M3 --> PS2 --> DB_PM2
-    M4 --> PS2 --> DB_PM2
+    M2 --> HM --> PC_AM --> DB_PM2
+    M3 --> HM --> DB_PM2
+    M4 --> HM --> DB_PM2
 
     DB_PM2 --> RLS --> RPC3
-    PS2 --> TOAST
+    HM --> TOAST
 
     M5 --> DB_PM2
     M6 -->|ViewAsContext| RLS
@@ -550,11 +546,6 @@ flowchart TD
         LH3[useLibraryActions]
     end
 
-    subgraph "Legacy Services (DELETED wave 15)"
-        LS[libraryService]
-        TCS2[taskCloneService]
-    end
-
     subgraph "Database"
         DB_VML[("view_master_library (view)")]
         DB_T3[(tasks)]
@@ -564,10 +555,10 @@ flowchart TD
         PC_RPC["clone_project_template RPC"]
     end
 
-    L1 --> LH1 --> LS --> DB_VML
-    L2 --> LH2 --> LS --> DB_VML
-    L3 --> LH3 --> TCS2 --> PC_RPC --> DB_T3
-    L4 --> LH1 --> LS --> DB_T3
+    L1 --> LH1 --> DB_VML
+    L2 --> LH2 --> DB_VML
+    L3 --> LH3 --> PC_RPC --> DB_T3
+    L4 --> LH1 --> DB_T3
 ```
 
 ### 3.6 Dashboard & Navigation Actions

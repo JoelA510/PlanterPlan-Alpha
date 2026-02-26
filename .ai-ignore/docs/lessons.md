@@ -14,6 +14,10 @@
 
 ## 2. Production Findings (Active Rules & Patterns)
 
+### [ARC-035] The Abstraction Purge (Direct Adapter Access)
+- **Context**: A "service" layer (`projectService`, `taskService`) emerged that did nothing but pass arguments to `planterClient`, adding cognitive load and boilerplate without adding business value.
+- **Rule**: **Eliminate pure-passthrough layers.** Components and React Query hooks should interact directly with the unified adapter (`planterClient`). Strict `.jsx` to `.tsx` conversion acts as a forcing function to reveal dead code and untyped implicit dependencies.
+
 ### [TEST-002] E2E Mock State Persistence
 - **Context**: Tests for stateful actions (like drag-and-drop or status updates) failed because `GET` requests after `PATCH` returned the original static JSON.
 - **Rule**: **Mocks Must Have Memory.** For stateful flows, modify an in-memory variable within the `page.route` handler and return that variable in subsequent `GET` calls.

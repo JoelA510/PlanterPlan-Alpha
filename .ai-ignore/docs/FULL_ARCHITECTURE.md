@@ -147,7 +147,7 @@ PlanterPlan-Alpha/
 │   │   └── Team.jsx
 │   │
 │   ├── layouts/             # @layouts — Page layout shells
-│   │   ├── DashboardLayout.jsx  # Authenticated layout with sidebar
+│   │   ├── DashboardLayout.jsx  # Authenticated layout with sidebar, AuthGuard router logic, and useParams fetching
 │   │   └── PlanterLayout.jsx    # Minimal layout wrapper
 │   │
 │   ├── entities/            # @entities — Domain entity definitions
@@ -269,7 +269,8 @@ graph LR
 | `useProjectMutations` | Projects | Create, update, delete projects with optimistic updates |
 | `useProjectRealtime` | Projects | Supabase Realtime subscription for project changes |
 | `useUserProjects` | Projects | Current user's owned + joined projects |
-| `useTaskOperations` | Tasks | **Facade Data Access** combining Query, Mutations, and Subscriptions |
+| `useTaskMutations` | Tasks | Pure data mutations with optimistic UI rollbacks |
+| `useTaskActions` | Tasks | Complex UI orchestration and drag-and-drop rollbacks |
 | `useProjectSelection` | Tasks | Manages active project state, URL syncing, and hydration |
 | `useTaskTree` | Tasks | Builds hierarchical tree and manages expansion state |
 | `useTaskDragAndDrop` | Tasks | dnd-kit integration with subtask aggregation & deduplication |
@@ -286,7 +287,7 @@ All database operations go through `planterClient`, a custom adapter that wraps 
 
 ```mermaid
 graph TD
-    Service["Feature Services<br/>(taskService, projectService)"] -->|calls| PC["planterClient (planter)"]
+    Hooks["Business Hooks<br/>(useTaskMutations, useProjectMutations)"] -->|calls| PC["planterClient (planter)"]
 
     PC -->|"rawSupabaseFetch()"| REST["Supabase REST API<br/>(/rest/v1/*)"]
     PC -->|"rpc()"| RPC["Supabase RPC<br/>(/rest/v1/rpc/*)"]
@@ -379,7 +380,6 @@ projects/
 │   ├── InviteMemberModal.jsx   # Team member invitation
 │   ├── InstanceList.jsx        # List of project instances
 │   ├── JoinedProjectsList.jsx  # Projects user was invited to
-│   └── TaskDetailsModal.jsx    # Task detail in modal context
 ├── hooks/
 │   ├── useProjectData.js       # All project queries
 │   ├── useProjectMutations.ts  # Create/update/delete
