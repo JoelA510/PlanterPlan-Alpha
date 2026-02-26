@@ -10,7 +10,7 @@ import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
 import type { TaskRow, PersonRow } from '@/shared/db/app.types';
 
-const templateIcons: Record<string, any> = {
+const templateIcons: Record<string, React.ElementType> = {
   launch_large: Rocket,
   multisite: Building2,
   multiplication: GitBranch,
@@ -42,7 +42,7 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors truncate">
-                  {project.title}
+                  {project.name}
                 </h3>
                 <Badge
                   variant="secondary"
@@ -68,10 +68,10 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps
                 <span>{project.location}</span>
               </div>
             )}
-            {project.due_date && (
+            {project.launch_date && (
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
-                <span>{format(new Date(project.due_date), 'MMM d, yyyy')}</span>
+                <span>{format(new Date(project.launch_date), 'MMM d, yyyy')}</span>
               </div>
             )}
             <div className="flex items-center gap-1.5">

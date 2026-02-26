@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import useDebounce from '@/shared/lib/hooks/useDebounce';
 import { planter } from '@/shared/api/planterClient';
 
 const DEFAULT_SEARCH_LIMIT = 15;
-const initialState = {
-    results: [],
-    isLoading: false,
-    error: null,
-};
 
 interface UseMasterLibrarySearchProps {
     query?: string;
@@ -24,89 +19,36 @@ export const useMasterLibrarySearch = ({
     enabled = true,
     debounceMs = 300,
 }: UseMasterLibrarySearchProps = {}) => {
-    const [state, setState] = useState<{ results: any[]; isLoading: boolean; error: any | null }>(initialState);
     const debouncedQuery = useDebounce(query, debounceMs);
-    const latestRequestRef = useRef<number>(0);
-    const queryCache = useRef<Record<string, any[]>>({});
+    const trimmedQuery = typeof debouncedQuery === 'string' ? debouncedQuery.trim() : '';
 
-    const executeSearch = useCallback(
-        async (searchTerm: string) => {
-            // Check cache first
-            if (queryCache.current[searchTerm]) {
-                setState({
-                    results: queryCache.current[searchTerm],
-                    isLoading: false,
-                    error: null,
-                });
-                return;
+    const queryResult = useQuery({
+        queryKey: ['masterLibrarySearch', trimmedQuery, limit, resourceType],
+        queryFn: async () => {
+            if (!trimmedQuery) {
+                return [];
             }
-
-            const requestId = Date.now();
-            latestRequestRef.current = requestId;
-
-            setState((previous) => ({
-                ...previous,
-                isLoading: true,
-                error: null,
-            }));
-
-            try {
-                const { data: results, error: searchError } = await planter.entities.TaskWithResources.searchTemplates({
-                    query: searchTerm,
-                    limit,
-                    resourceType,
-                });
-
-                if (latestRequestRef.current !== requestId) {
-                    return;
-                }
-
-                if (searchError) {
-                    throw searchError;
-                }
-
-                // Cache the successful result
-                queryCache.current[searchTerm] = results || [];
-
-                setState({
-                    results: results || [],
-                    isLoading: false,
-                    error: null,
-                });
-            } catch (error: any) {
-                if (latestRequestRef.current !== requestId) {
-                    return;
-                }
-
-                setState({
-                    results: [],
-                    isLoading: false,
-                    error,
-                });
-            }
+            const { data, error } = await planter.entities.TaskWithResources.searchTemplates({
+                query: trimmedQuery,
+                limit,
+                resourceType,
+            });
+            if (error) throw error;
+            return data || [];
         },
-        [limit, resourceType]
-    );
+        enabled: enabled && !!trimmedQuery,
+        staleTime: 1000 * 60 * 5, // 5 minutes cache
+    });
 
-    useEffect(() => {
-        if (!enabled) {
-            setState(initialState);
-            return;
-        }
-
-        const trimmedQuery = typeof debouncedQuery === 'string' ? debouncedQuery.trim() : '';
-
-        if (!trimmedQuery) {
-            setState(initialState);
-            return;
-        }
-
-        executeSearch(trimmedQuery);
-    }, [debouncedQuery, enabled, executeSearch]);
+    const results = !trimmedQuery ? [] : (queryResult.data || []);
 
     return {
-        ...state,
-        hasResults: state.results.length > 0,
+        results,
+        isLoading: queryResult.isLoading && !!trimmedQuery,
+        isFetching: queryResult.isFetching,
+        error: queryResult.error,
+        hasResults: results.length > 0,
+        refetch: queryResult.refetch,
     };
 };
 

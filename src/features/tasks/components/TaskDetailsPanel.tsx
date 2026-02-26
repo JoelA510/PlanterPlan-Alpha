@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { TaskRow } from '@/shared/db/app.types';
 import NewProjectForm from '@/features/projects/components/NewProjectForm';
 import NewTaskForm from '@/features/tasks/components/NewTaskForm';
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
@@ -6,39 +7,39 @@ import { X } from 'lucide-react';
 
 const getPanelTitle = (
     showForm?: boolean,
-    taskFormState?: Record<string, unknown>,
-    taskBeingEdited?: Record<string, unknown>,
-    selectedTask?: Record<string, unknown>,
-    parentTaskForForm?: Record<string, unknown>
+    taskFormState?: { mode?: string; origin?: string } | null,
+    taskBeingEdited?: TaskRow,
+    selectedTask?: TaskRow,
+    parentTaskForForm?: TaskRow
 ) => {
     if (showForm) return 'New Project';
     if (taskFormState) {
         if (taskFormState.mode === 'edit') {
-            return taskBeingEdited ? `Edit ${taskBeingEdited.title}` : 'Edit Task';
+            return taskBeingEdited ? `Edit ${taskBeingEdited.name}` : 'Edit Task';
         }
         if (taskFormState.origin === 'template') {
             return parentTaskForForm
-                ? `New Template Task in ${parentTaskForForm.title}`
+                ? `New Template Task in ${parentTaskForForm.name}`
                 : 'New Template Task';
         }
-        return parentTaskForForm ? `New Task in ${parentTaskForForm.title}` : 'New Task';
+        return parentTaskForForm ? `New Task in ${parentTaskForForm.name}` : 'New Task';
     }
-    if (selectedTask) return selectedTask.title;
+    if (selectedTask) return selectedTask.name;
     return 'Details';
 };
 
 export interface TaskDetailsPanelProps {
     showForm: boolean;
-    taskFormState?: Record<string, unknown>;
-    selectedTask?: Record<string, unknown>;
-    taskBeingEdited?: Record<string, unknown>;
-    parentTaskForForm?: Record<string, unknown>;
+    taskFormState?: { mode?: string; origin?: string } | null;
+    selectedTask?: TaskRow;
+    taskBeingEdited?: TaskRow;
+    parentTaskForForm?: TaskRow;
     onClose: () => void;
     handleProjectSubmit?: (data: Record<string, unknown>) => Promise<void>;
     handleTaskSubmit?: (data: Record<string, unknown>) => Promise<void>;
-    setTaskFormState?: (state: Record<string, unknown> | null) => void;
-    handleAddChildTask?: (task: Record<string, unknown>) => void;
-    handleEditTask?: (task: Record<string, unknown>) => void;
+    setTaskFormState?: (state: { mode?: string; origin?: string } | null) => void;
+    handleAddChildTask?: (task: TaskRow) => void;
+    handleEditTask?: (task: TaskRow) => void;
     onDeleteTaskWrapper?: (taskId: string) => Promise<void>;
     fetchTasks?: () => void;
 }

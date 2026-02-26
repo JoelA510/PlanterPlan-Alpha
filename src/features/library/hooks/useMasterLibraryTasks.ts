@@ -1,95 +1,49 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
 
 const DEFAULT_LIMIT = 25;
 
-const initialState = {
-    tasks: [],
-    isLoading: false,
-    error: null,
-    hasMore: false,
-};
-
 interface UseMasterLibraryTasksProps {
-    page?: number;
     limit?: number;
     resourceType?: string | null;
     enabled?: boolean;
 }
 
 export const useMasterLibraryTasks = ({
-    page = 0,
     limit = DEFAULT_LIMIT,
     resourceType = 'all',
     enabled = true,
 }: UseMasterLibraryTasksProps = {}) => {
-    const [state, setState] = useState<{ tasks: any[]; isLoading: boolean; error: any | null; hasMore: boolean }>(initialState);
-    const latestRequestRef = useRef<number>(0);
-
-    const loadTasks = useCallback(
-        async () => {
-            const requestId = Date.now();
-            latestRequestRef.current = requestId;
-
-            setState((previous) => ({
-                ...previous,
-                isLoading: true,
-                error: null,
-            }));
-
-            const from = Math.max(0, page * limit);
-
-            try {
-                const { data: tasks, error: fetchError } = await planter.entities.TaskWithResources.listTemplates({
-                    from,
-                    limit,
-                    resourceType,
-                });
-
-                if (latestRequestRef.current !== requestId) {
-                    return;
-                }
-
-                if (fetchError) throw fetchError;
-
-                setState({
-                    tasks: tasks || [],
-                    isLoading: false,
-                    error: null,
-                    hasMore: (tasks || []).length === limit,
-                });
-
-            } catch (error: any) {
-                if (latestRequestRef.current !== requestId) {
-                    return;
-                }
-
-                setState((previous) => ({
-                    ...previous,
-                    isLoading: false,
-                    error,
-                }));
-            }
+    const queryResult = useInfiniteQuery({
+        queryKey: ['masterLibraryTasks', limit, resourceType],
+        queryFn: async ({ pageParam = 0 }) => {
+            const from = pageParam * limit;
+            const { data, error } = await planter.entities.TaskWithResources.listTemplates({
+                from,
+                limit,
+                resourceType,
+            });
+            if (error) throw error;
+            return {
+                data: data || [],
+                nextPage: (data || []).length === limit ? pageParam + 1 : undefined,
+            };
         },
-        [limit, page, resourceType]
-    );
+        getNextPageParam: (lastPage) => lastPage.nextPage,
+        initialPageParam: 0,
+        enabled,
+    });
 
-    const refresh = useCallback(() => {
-        loadTasks();
-    }, [loadTasks]);
-
-    useEffect(() => {
-        if (!enabled) {
-            setState(initialState);
-            return;
-        }
-
-        loadTasks();
-    }, [enabled, loadTasks]);
+    const tasks = queryResult.data?.pages.flatMap((page) => page.data) || [];
 
     return {
-        ...state,
-        refresh,
+        tasks,
+        isLoading: queryResult.isLoading,
+        isFetchingNextPage: queryResult.isFetchingNextPage,
+        hasNextPage: queryResult.hasNextPage,
+        fetchNextPage: queryResult.fetchNextPage,
+        error: queryResult.error,
+        refresh: queryResult.refetch,
     };
 };
 

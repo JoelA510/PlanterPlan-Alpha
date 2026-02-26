@@ -99,17 +99,17 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
     const [loading, setLoading] = useState<boolean>(false);
     const [errors, setErrors] = useState<Record<string, string | null>>({});
     const [formData, setFormData] = useState<{
-        title: string;
+        name: string;
         description: string;
         template: string;
-        due_date: Date | undefined;
+        launch_date: Date | undefined;
         location: string;
         status: string;
     }>({
-        title: '',
+        name: '',
         description: '',
         template: '',
-        due_date: undefined,
+        launch_date: undefined,
         location: '',
         status: PROJECT_STATUS.PLANNING,
     });
@@ -126,8 +126,8 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
         if (isTemplateMode) {
             // Simplify validation for template
             const newErrors: Record<string, string> = {};
-            if (!formData.title.trim()) {
-                newErrors.title = 'Template name is required';
+            if (!formData.name.trim()) {
+                newErrors.name = 'Template name is required';
             }
             if (Object.keys(newErrors).length > 0) {
                 setErrors(newErrors);
@@ -161,7 +161,7 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
 
         try {
             const payload = isTemplateMode ? {
-                title: formData.title.trim(),
+                name: formData.name.trim(),
                 description: formData.description.trim(),
                 template: formData.template || 'checklist',
                 origin: 'template',
@@ -175,10 +175,10 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
             // Reset form
             setStep(1);
             setFormData({
-                title: '',
+                name: '',
                 description: '',
                 template: '',
-                due_date: undefined,
+                launch_date: undefined,
                 location: '',
                 status: PROJECT_STATUS.PLANNING,
             });
@@ -322,21 +322,21 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
                             className="grid gap-5 py-4"
                         >
                             <div className="space-y-2">
-                                <Label htmlFor="title" className={cn(errors.title && "text-red-500")}>
+                                <Label htmlFor="name" className={cn(errors.name && "text-red-500")}>
                                     {isTemplateMode ? 'Template Name *' : 'Project Name *'}
                                 </Label>
                                 <Input
-                                    id="title"
+                                    id="name"
                                     placeholder={isTemplateMode ? "e.g., Sunday Service Prep" : "e.g., Grace Community Church"}
-                                    value={formData.title}
+                                    value={formData.name}
                                     onChange={(e) => {
-                                        setFormData({ ...formData, title: e.target.value });
-                                        if (errors.title) setErrors((prev) => ({ ...prev, title: null }));
+                                        setFormData({ ...formData, name: e.target.value });
+                                        if (errors.name) setErrors((prev) => ({ ...prev, name: null }));
                                     }}
-                                    className={cn("h-11", errors.title && "border-red-500 focus-visible:ring-red-500")}
+                                    className={cn("h-11", errors.name && "border-red-500 focus-visible:ring-red-500")}
                                 />
-                                {errors.title && (
-                                    <p className="text-xs text-red-500 mt-1">{errors.title}</p>
+                                {errors.name && (
+                                    <p className="text-xs text-red-500 mt-1">{errors.name}</p>
                                 )}
                             </div>
 
@@ -354,7 +354,7 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
                             {!isTemplateMode && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="due_date" className={cn(errors.due_date && "text-red-500")}>
+                                        <Label htmlFor="launch_date" className={cn(errors.launch_date && "text-red-500")}>
                                             Target Launch Date *
                                         </Label>
                                         <Popover>
@@ -363,21 +363,21 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
                                                     variant="outline"
                                                     className={cn(
                                                         'w-full justify-start text-left font-normal h-11',
-                                                        !formData.due_date && 'text-muted-foreground',
-                                                        errors.due_date && "border-red-500 text-red-500"
+                                                        !formData.launch_date && 'text-muted-foreground',
+                                                        errors.launch_date && "border-red-500 text-red-500"
                                                     )}
                                                 >
                                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {formData.due_date ? format(formData.due_date, 'PPP') : 'Pick a date'}
+                                                    {formData.launch_date ? format(formData.launch_date, 'PPP') : 'Pick a date'}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
                                                 <Calendar
                                                     mode="single"
-                                                    selected={formData.due_date}
+                                                    selected={formData.launch_date}
                                                     onSelect={(date) => {
-                                                        setFormData({ ...formData, due_date: date });
-                                                        if (errors.due_date) setErrors((prev) => ({ ...prev, due_date: null }));
+                                                        setFormData({ ...formData, launch_date: date });
+                                                        if (errors.launch_date) setErrors((prev) => ({ ...prev, launch_date: null }));
                                                     }}
                                                     defaultMonth={new Date(new Date().setMonth(new Date().getMonth() + 3))}
                                                     startMonth={new Date()}
@@ -388,8 +388,8 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
                                                 />
                                             </PopoverContent>
                                         </Popover>
-                                        {errors.due_date && (
-                                            <p className="text-xs text-red-500 mt-1">{errors.due_date}</p>
+                                        {errors.launch_date && (
+                                            <p className="text-xs text-red-500 mt-1">{errors.launch_date}</p>
                                         )}
                                     </div>
 

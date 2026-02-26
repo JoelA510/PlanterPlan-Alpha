@@ -338,14 +338,14 @@ export const planter = {
           }
 
           const taskPayload = {
-            title: cleanProjectData.title || cleanProjectData.name,
+            name: cleanProjectData.title || cleanProjectData.name,
             description: cleanProjectData.description,
-            due_date: isoLaunchDate,
+            launch_date: isoLaunchDate,
             origin: 'instance',
             parent_task_id: null,
             root_id: null, // Critical for RLS "Project" detection
             status: cleanProjectData.status || 'planning',
-            creator: userId, // Required for RLS
+            owner_id: userId, // Required for RLS
           };
 
           const data = await rawSupabaseFetch(
@@ -421,7 +421,7 @@ export const planter = {
             // We only fetch what we need.
             const query =
               `tasks?select=*,project_id:root_id` +
-              `&creator=eq.${encodeURIComponent(userId)}` +
+              `&owner_id=eq.${encodeURIComponent(userId)}` +
               `&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`;
 
             const data = await rawSupabaseFetch(
@@ -645,7 +645,7 @@ export const planter = {
           if (!normalized) return { data: [], error: null };
 
           const pattern = `"%${normalized.replace(/[\\%_]/g, (c) => `\\${c}`)}%"`;
-          let endpoint = `tasks_with_primary_resource?select=*&origin=eq.template&or=(title.ilike.${pattern},description.ilike.${pattern})&order=title.asc&limit=${limit}`;
+          let endpoint = `tasks_with_primary_resource?select=*&origin=eq.template&or=(name.ilike.${pattern},description.ilike.${pattern})&order=name.asc&limit=${limit}`;
 
           if (resourceType && resourceType !== 'all') {
             endpoint += `&resource_type=eq.${resourceType}`;

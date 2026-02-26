@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation, ScrollRestoration, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, ScrollRestoration, useParams } from 'react-router-dom';
 import { cn } from '@/shared/lib/utils';
 import Header from '@/features/navigation/components/Header';
 import ProjectSidebarContainer from '@/features/navigation/components/ProjectSidebarContainer';
@@ -13,7 +13,6 @@ export default function DashboardLayout({ sidebar }: { sidebar?: React.ReactNode
   const { user, loading } = useAuth();
   const { data: projects } = useUserProjects(user?.id);
   const navigate = useNavigate();
-  const location = useLocation();
   const { projectId } = useParams<{ projectId: string }>();
 
   useEffect(() => {

@@ -1,9 +1,9 @@
-import { createBrowserRouter, } from 'react-router-dom'
+import { createBrowserRouter, redirect } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import Home from '@/pages/Home'
 import LoginForm from '@/features/auth/components/LoginForm'
 import DashboardLayout from '@/layouts/DashboardLayout'
-// Removed blocking loader imports: import { supabase } from '@/shared/db/client'
+import { supabase } from '@/shared/db/client'
 
 // Simple loading fallback
 const PageLoader = () => (
@@ -20,14 +20,21 @@ const GlobalErrorBoundary = () => (
     </div>
 )
 
-const e2eBypassLoader = ({ request }: { request: Request }) => {
+const e2eBypassLoader = async ({ request }: { request: Request }) => {
+    if (import.meta.env.VITE_E2E_MODE === 'true') {
+        return null;
+    }
     if (import.meta.env.DEV) {
         const url = new URL(request.url)
         if (url.searchParams.get('e2e_bypass') === 'true') {
             return null
         }
     }
-    return null
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        return redirect('/login');
+    }
+    return null;
 }
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
