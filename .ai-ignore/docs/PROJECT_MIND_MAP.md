@@ -1,6 +1,6 @@
 # PlanterPlan — Project Mind Map
 
-> **Last Updated**: 2026-02-21  
+> **Last Updated**: 2026-02-26  
 > **Purpose**: A complete catalog of context files + a visual breakdown of all actions, data flows, and component interactions across the application.
 
 ---
@@ -89,7 +89,7 @@ r
 | File | Purpose | Priority |
 |:-----|:--------|:---------|
 | [App.jsx](../src/app/App.jsx) | Root component — provider tree, routing, AuthSeeder | 🔴 Critical |
-| [planterClient.js](../src/shared/api/planterClient.js) | API adapter layer — all data access | 🔴 Critical |
+| [planterClient.ts](../src/shared/api/planterClient.ts) | API adapter layer — all data access | 🔴 Critical |
 | [TaskTree.tsx](../src/features/tasks/components/TaskTree/TaskTree.tsx) | Core Task Tree logic & recursion | 🔴 Critical |
 | [main.jsx](../src/main.jsx) | Vite entry point | 🟡 Reference |
 | [globals.css](../src/styles/globals.css) | Tailwind v4 theme tokens & design system | 🔵 Useful |
@@ -178,6 +178,14 @@ mindmap
           - [x] **Component Decomposition**: Refactored `Project.jsx` and `Reports.jsx` to strict TSX, extracting logic to `useProjectBoard.ts` and `useProjectReports.ts`.
           - [x] **Test Modularization**: Implemented `DashboardPage` and `ProjectPage` POMs for robust Playwright E2E tests.
           - [x] **Context Optimization**: Relocated heavy documentation and aggressively `.gitignore`d test artifacts to shrink repository token footprint.
+
+        - [x] **Wave 15 (Code Review & Hardening)**
+          - [x] **Lint Cleanup**: 92 errors → 2 structural warnings only.
+          - [x] **FSD Fix**: Extracted `ROLES` & `POSITION_STEP` to `shared/constants/index.ts` (ADR-8).
+          - [x] **Date Safety**: Replaced raw date math in `planterClient.ts` with `calculateMinMaxDates()` (ADR-9).
+          - [x] **Form Type Safety**: Added `CreateProjectFormData` & `TaskFormData` interfaces; eliminated all `Record<string, unknown>` from form pipeline.
+          - [x] **Debt Tracking**: Filed GitHub Issues #129-#132 for remaining medium/low debt.
+          - [x] **Verification**: All 3 Golden Paths passed via browser testing.
         auth.updateProfile adapter
       Supabase PostgreSQL
         tasks table

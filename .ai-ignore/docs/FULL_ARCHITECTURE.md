@@ -1,8 +1,8 @@
 # PlanterPlan — Complete Architecture Reference
 
-> **Last Updated**: 2026-02-21  
-> **Status**: Alpha (Refactoring Phase)  
-> **Commit**: HEAD on `main`
+> **Last Updated**: 2026-02-26  
+> **Status**: Alpha (Stabilized — Strict Typing & FSD Enforced)  
+> **Commit**: HEAD on `feat/refactor-sprint-wave-15`
 > **Specification**: [spec.md](../spec.md)
 
 ---
@@ -82,7 +82,7 @@ graph LR
 | **Routing** | React Router DOM | 7 | Client-side navigation |
 | **Validation** | Zod | 4 | Schema validation |
 | **Sanitization** | DOMPurify | 3 | XSS protection for rich text |
-| **Dates** | date-fns | 4 | Date formatting & manipulation |
+| **Dates** | date-fns | 4 | Date formatting & manipulation (via `date-engine` wrapper — see ADR-9) |
 | **Backend** | Supabase | 2.95 | Auth, Postgres, Realtime, Storage |
 | **Unit Tests** | Vitest + RTL | 4 / 16 | Component & hook testing |
 | **E2E Tests** | Playwright | 1.58 | End-to-end browser testing |
@@ -93,7 +93,7 @@ graph LR
 
 ## 3. Directory Structure
 
-The codebase follows a modified **Feature-Sliced Design (FSD)** pattern with Vite path aliases.
+The codebase follows a modified **Feature-Sliced Design (FSD)** pattern with Vite path aliases. **FSD boundary rule (ADR-8):** `shared/` may never import from `app/` or `features/`. Constants shared across layers live in `shared/constants/index.ts`.
 
 ```
 PlanterPlan-Alpha/
@@ -131,8 +131,10 @@ PlanterPlan-Alpha/
 │   │       └── hooks/       # useTaskTree, useTaskDetails
 │   │
 │   ├── shared/              # @shared — Reusable, domain-agnostic
-│   │   ├── api/             # planterClient.js (Supabase adapter)
+│   │   ├── api/             # planterClient.ts (Supabase adapter)
 │   │   ├── lib/             # Pure utilities (date-engine, tree, validation)
+│   │   ├── constants/       # Canonical constants (ROLES, POSITION_STEP)
+│   │   ├── db/              # app.types.ts, database.types.ts
 │   │   ├── model/           # Shared data models
 │   │   ├── test/            # Test utilities
 │   │   └── ui/              # 35 active design system components (Radix-based)
@@ -281,9 +283,11 @@ graph LR
 
 ## 7. API Adapter Layer
 
-### `planterClient.js` — The Data Access Layer
+### `planterClient.ts` — The Data Access Layer
 
 All database operations go through `planterClient`, a custom adapter that wraps **raw `fetch()` calls** to the Supabase REST API. This was adopted to work around `AbortError` instability in the Supabase JS SDK's `fetch` implementation.
+
+> **Wave 15**: Converted from `.js` to `.ts` with strict typing. All date calculations now route through `date-engine/calculateMinMaxDates()` (ADR-9). Form payloads are typed via `CreateProjectFormData` and `TaskFormData` interfaces in `app.types.ts`.
 
 ```mermaid
 graph TD
@@ -827,6 +831,26 @@ Playwright is configured to target `localhost:3010` (Isolated E2E Mode) with the
 1. **Performance**: Isolating `TaskRow` allows `React.memo` to prevent re-rendering the entire tree when one task updates.
 2. **Safety**: Drag-and-drop logic (`useTaskTreeDnD`) is separated from rendering, enabling strict validation (Cycle Detection) before any state mutation.
 3. **Maintainability**: `TaskActions` encapsulates the complex menu/button logic, reducing noise in the main row component.
+
+---
+
+### ADR-8: FSD Boundary Enforcement
+
+**Decision**: `shared/` modules may **never** import from `app/` or `features/`. Constants needed across layers (like `ROLES` and `POSITION_STEP`) must live in `src/shared/constants/index.ts`.
+
+**Rationale**: Two files in `shared/` were importing from `app/constants/`, violating Feature-Sliced Design's unidirectional dependency rule. Extracting to `shared/constants/` with re-exports from `app/constants/` restores the correct flow while preserving backward compatibility.
+
+**Enforcement**: Lint and `tsc` will catch direct `@app/` imports from `shared/` paths.
+
+---
+
+### ADR-9: Canonical Date Engine
+
+**Decision**: All date manipulation — formatting, arithmetic, min/max aggregation — **must** route through `src/shared/lib/date-engine/`. Direct `new Date()` + `Math.min()`/`Math.max()` patterns are forbidden in application code.
+
+**Rationale**: `planterClient.ts` was performing 15 lines of raw `new Date()` min/max math in `updateParentDates()`, duplicating the canonical `calculateMinMaxDates()`. This creates drift risk for timezone handling and ISO formatting consistency.
+
+**Allowed exception**: `new Date()` for generating `toISOString()` timestamps (e.g., `created_at`) is acceptable.
 
 
 ---

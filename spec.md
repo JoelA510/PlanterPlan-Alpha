@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.1.0 (Hardened)
-> **Last Updated**: 2026-02-20
+> **Version**: 1.1.1 (Wave 15 — Code Review & Hardening)
+> **Last Updated**: 2026-02-26
 > **Status**: Active Development
 
 ---
@@ -94,6 +94,11 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Architecture Simplification**
     - [x] UI Deduplication (Merged Modals)
     - [x] Centralized Layout Routing
+- [x] **Code Quality (Wave 15)**
+    - [x] Lint Errors: 92 → 2 structural warnings
+    - [x] FSD Boundary Enforcement (ADR-8)
+    - [x] Date-Engine Consolidation (ADR-9)
+    - [x] Form Payload Type Safety (`CreateProjectFormData`, `TaskFormData`)
 
 ---
 

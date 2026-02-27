@@ -436,3 +436,13 @@ If AbortErrors persist after implementing retries:
 - **Date**: 2026-02-25
 - **Context**: Removing aliases from `.select('alias:actual_column')` without updating the frontend caused silent data failures because the UI still expected the old alias names (e.g., `title` instead of `name`, `due_date` instead of `launch_date`).
 - **Rule**: **Update DB Consumers on Alias Removal.** When reverting PostgREST aliasing to direct column mapping, you MUST audit and update all UI and hook consumers to use the actual database column names.
+
+### [TS-002] Generic `Record<string, unknown>` Erases Form Type Safety
+- **Date**: 2026-02-26
+- **Context**: During a lint cleanup, `any` was replaced with `Record<string, unknown>` in 20+ form handler locations. While this satisfied the linter, it erased compile-time type checking on structured form data payloads (e.g., `title`, `description`, `start_date` fields).
+- **Rule**: **Mirror Zod Schemas as Interfaces.** When forms use `react-hook-form` + `zod`, define corresponding TypeScript interfaces (`CreateProjectFormData`, `TaskFormData`) in the types file and use them as handler parameter types. `Record<string, unknown>` is only acceptable for truly dynamic key-value data.
+
+### [ARC-038] Date-Engine Consolidation (ADR-9)
+- **Date**: 2026-02-26
+- **Context**: `planterClient.ts` contained 15 lines of raw `new Date()` + `Math.min/max` + `.toISOString().split('T')[0]` logic in `updateParentDates()`, duplicating the canonical `calculateMinMaxDates()` utility in `date-engine/`.
+- **Rule**: **Route All Date Math Through date-engine.** Never use raw `new Date()` arithmetic in application code. The only allowed `new Date()` usage is for generating ISO timestamps (`created_at`). All formatting, shifting, and aggregation must go through `src/shared/lib/date-engine/`.

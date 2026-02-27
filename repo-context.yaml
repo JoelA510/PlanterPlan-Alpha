@@ -1,7 +1,7 @@
 # repo-context.yaml
 # PlanterPlan Task Management System
 # Generated from codebase analysis
-# Last Updated: 2026-02-22 (Post-UI Simplification)
+# Last Updated: 2026-02-26 (Post-Wave 15 Code Review & Surgical Refactors)
 # Specification: spec.md
 
 # ==========================================
@@ -115,8 +115,11 @@ modules:
     purpose: "Supabase data access via planterClient adapter"
     modules:
       planterClient:
-        capabilities: ["Entity CRUD with RLS", "Direct RPC execution", "Optimistic query structures", "Strict mapping to real DB schema columns (no PostgREST aliasing)"]
+        capabilities: ["Entity CRUD with RLS", "Direct RPC execution", "Optimistic query structures", "Strict mapping to real DB schema columns (no PostgREST aliasing)", "Date math routed through date-engine (ADR-9)", "Typed form payloads via CreateProjectFormData/TaskFormData"]
         entities: ['Project', 'Task', 'TaskRelationship', 'TaskResource']
+      sharedConstants:
+        capabilities: ["ROLES constant (as const)", "POSITION_STEP", "FSD boundary enforcement (ADR-8)"]
+        location: 'src/shared/constants/index.ts'
 # ==========================================
 # 2. BEHAVIOR SPECIFICATIONS
 # ==========================================
@@ -176,3 +179,16 @@ health_metrics:
       - "Atomic TaskRow components"
       - "React Query caching (2min staleTime)"
       - "Optimistic updates for DnD"
+      - "date-engine consolidation (no raw Date math)"
+
+  wave_status:
+    current: "Wave 17 (planned)"
+    last_completed: "Wave 15 (Code Review & Surgical Refactors)"
+    wave_15_highlights:
+      - "92 lint errors reduced to 2 structural warnings"
+      - "FSD boundary enforced via shared/constants extraction (ADR-8)"
+      - "All date math consolidated through date-engine (ADR-9)"
+      - "Form payload type safety restored (CreateProjectFormData, TaskFormData)"
+      - "planterClient.js converted to planterClient.ts"
+      - "4 GitHub issues filed for remaining debt (#129-#132)"
+      - "3 Golden Paths verified via browser testing"

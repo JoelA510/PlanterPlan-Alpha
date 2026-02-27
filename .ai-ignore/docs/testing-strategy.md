@@ -272,3 +272,35 @@ This is a regression risk list derived from the documented feature set and archi
 Current as of 2026-02-11.
 
 Confidence: 60% overall (high confidence for the workflow list and risks as described in README; low confidence for missing/extra tests and exact CI commands because source files and configs beyond README could not be retrieved here).
+
+---
+
+## Wave 15 Verification Addendum (2026-02-26)
+
+### Safety-Net Testing During Refactoring
+
+During the Sprint Wave 15 surgical refactors, a **safety-net approach** was used:
+
+1. **Pre-flight checks**: Before each code change, relevant unit tests were run to establish a baseline:
+   - `npx vitest run src/shared/lib/date-engine/` — 12/12 tests (date formatting, schedule calculation, min/max aggregation, null-safety regression)
+   - `npx tsc --noEmit` — 0 errors
+   - `npm run lint` — 2 structural warnings only (constant baseline)
+
+2. **Post-flight verification**: After each change, the same suite was re-run to confirm zero regressions.
+
+3. **Adversarial browser testing (Golden Paths)**: An autonomous browser agent navigated the live app (`localhost:5173`) to validate 3 critical paths:
+
+   | Path | Verification |
+   |------|-------------|
+   | A: Landing → Dashboard | Stats cards, project boards, sidebar all render |
+   | B: Project → Task Details | Task tree expands, detail panel opens with metadata |
+   | C: Reports → Settings → Dashboard | All pages render, breadcrumbs update, no crash |
+
+   Screenshots and recordings were captured as evidence. Pre-existing minor issues (React `Progress` prop warning, Supabase test-data 400/404) were confirmed as non-regressions.
+
+### Key Testing Patterns Validated
+
+- **Vitest as refactor safety net**: Running targeted unit tests before/after each surgical change catches regressions immediately, enabling confident single-file changes without full E2E overhead.
+- **Type-checker as integration test**: `tsc --noEmit` serves as a zero-cost integration test — any broken imports, missing types, or interface mismatches are caught instantly.
+- **Browser agent for visual regression**: Automated browser navigation validates that type-level changes haven't broken runtime rendering, component mounting, or navigation flows.
+
