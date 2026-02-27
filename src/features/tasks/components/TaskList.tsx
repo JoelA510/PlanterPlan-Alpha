@@ -2,9 +2,6 @@ import { useMemo } from 'react';
 import { DndContext, closestCorners } from '@dnd-kit/core';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import NewProjectForm from '@/features/projects/components/NewProjectForm';
-import NewTaskForm from '@/features/tasks/components/NewTaskForm';
-import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 import InviteMemberModal from '@/features/projects/components/InviteMemberModal';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from '@/shared/ui/ErrorFallback';
@@ -15,6 +12,7 @@ import DashboardLayout from '@layouts/DashboardLayout';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import EmptyProjectState from '@/features/tasks/components/EmptyProjectState';
 import StatusCard from '@/shared/ui/StatusCard';
+import { CreateProjectPayload, CreateTemplatePayload } from '@/features/dashboard/components/CreateProjectModal';
 
 // Hooks & Utils
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
@@ -23,7 +21,8 @@ import { useCreateProject } from '@/features/projects/hooks/useProjectMutations'
 import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
 import { useTaskTree } from '@/features/tasks/hooks/useTaskTree';
 import { useTaskDragAndDrop } from '@/features/tasks/hooks/useTaskDragAndDrop';
-import { useTaskBoardUI } from '@/features/tasks/hooks/useTaskBoardUI';
+import { useTaskBoardUI, TaskFormState } from '@/features/tasks/hooks/useTaskBoardUI';
+import { TaskRow, TaskInsert, TaskUpdate } from '@/shared/db/app.types';
 
 const TaskList = () => {
     const { projectId: urlProjectId } = useParams<{ projectId: string }>();
@@ -50,15 +49,15 @@ const TaskList = () => {
     const { mutateAsync: updateTaskAsync } = useUpdateTask();
     const { mutateAsync: deleteTaskAsync } = useDeleteTask();
 
-    const createProject = async (data: any) => createProjectAsync(data);
-    const createTaskOrUpdate = async (data: any, state: any) => {
+    const createProject = async (data: CreateProjectPayload | CreateTemplatePayload) => createProjectAsync(data);
+    const createTaskOrUpdate = async (data: TaskInsert | TaskUpdate, state: TaskFormState | null) => {
         if (state?.mode === 'create') {
-            return createTaskAsync(data);
+            return createTaskAsync(data as TaskInsert);
         } else {
-            return updateTaskAsync(data);
+            return updateTaskAsync(data as TaskUpdate & { id: string });
         }
     };
-    const deleteTask = async (task: any) => deleteTaskAsync({ id: task.id, root_id: task.root_id });
+    const deleteTask = async (task: TaskRow) => deleteTaskAsync({ id: task.id, root_id: task.root_id || undefined });
 
     // Legacy stubs for contexts that expect manual state manipulation
     const fetchTasks = () => refetchProjects();
@@ -71,8 +70,8 @@ const TaskList = () => {
     // 2. Project Selection Layer
     const { activeProjectId, handleSelectProject, hydrationError } = useProjectSelection({
         urlProjectId,
-        instanceTasks: useMemo(() => tasks.filter((t: Record<string, unknown>) => t.origin === 'instance'), [tasks]),
-        templateTasks: useMemo(() => tasks.filter((t: Record<string, unknown>) => t.origin === 'template'), [tasks]),
+        instanceTasks: useMemo(() => tasks.filter((t: TaskRow) => t.origin === 'instance'), [tasks]),
+        templateTasks: useMemo(() => tasks.filter((t: TaskRow) => t.origin === 'template'), [tasks]),
         joinedProjects,
         hydratedProjects: hydratedProjects,
         fetchProjectDetails,
@@ -127,7 +126,7 @@ const TaskList = () => {
         activeProjectId,
     });
 
-    const handleSelectProjectWrapper = (project: Record<string, unknown>) => {
+    const handleSelectProjectWrapper = (project: TaskRow) => {
         handleSelectProject(project);
         setSelectedTask(null);
         setShowForm(false);
@@ -212,7 +211,7 @@ const TaskList = () => {
                                 handleDeleteById={handleDeleteById}
                                 selectedTaskId={selectedTask?.id}
                                 onToggleExpand={handleToggleExpand}
-                                disableDrag={joinedProjects.some((jp: Record<string, unknown>) => jp.id === activeProjectId)}
+                                disableDrag={joinedProjects.some((jp: TaskRow) => jp.id === activeProjectId)}
                                 hydrationError={hydrationError}
                                 onInviteMember={() => handleOpenInvite(activeProject)}
                                 onStatusChange={(taskId: string, status: string) =>

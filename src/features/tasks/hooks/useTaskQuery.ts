@@ -2,6 +2,7 @@ import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-quer
 import { supabase } from '@/shared/db/client';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { planter } from '@/shared/api/planterClient';
+import { Project, Task } from '@/shared/db/app.types';
 
 const PAGE_SIZE = 20;
 
@@ -47,7 +48,7 @@ export const useTaskQuery = () => {
                 .is('parent_task_id', null)
                 .order('title', { ascending: true });
             if (error) throw error;
-            return data || [];
+            return (data || []) as Task[];
         },
         enabled: !!currentUserId,
     });
@@ -67,18 +68,18 @@ export const useTaskQuery = () => {
     });
 
     // Combine instances and templates into tasks
-    const tasks = [
+    const tasks: (Project | Task)[] = [
         ...(projectsData?.pages.flat() || []),
         ...(templates || [])
     ];
 
     const findTask = (id: string) => {
         if (!id) return null;
-        const inRoots = tasks.find((t: Record<string, unknown>) => t.id === id) || joinedProjects?.find((t: Record<string, unknown>) => t.id === id);
+        const inRoots = tasks.find((t) => t.id === id) || (joinedProjects as Project[])?.find((t) => t.id === id);
         if (inRoots) return inRoots;
 
-        for (const projTasks of Object.values(hydratedProjects as Record<string, Record<string, unknown>[]>)) {
-            const found = projTasks.find((t: Record<string, unknown>) => t.id === id);
+        for (const projTasks of Object.values(hydratedProjects as Record<string, Task[]>)) {
+            const found = projTasks.find((t) => t.id === id);
             if (found) return found;
         }
         return null;
@@ -112,7 +113,7 @@ export const useTaskQuery = () => {
     // Helper exposed for manual hydration elsewhere if needed, though React Query
     // manages cache now, we preserve the map in `useTaskOperations` or components.
     // For now, return a dummy object as actual hydration is handled separately.
-    const hydratedProjects = {};
+    const hydratedProjects: Record<string, Task[]> = {};
 
     return {
         tasks,

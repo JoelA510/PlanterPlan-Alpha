@@ -1,25 +1,20 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { TaskInsert, TaskUpdate, TaskRow } from '@/shared/db/app.types'
 import { planter as planterClient } from '@/shared/api/planterClient'
 
-interface TaskPayload {
-    id?: string;
-    title?: string;
-    description?: string;
-    status?: string;
+// We use TaskInsert/TaskUpdate but sometimes hooks pass custom subsets
+interface TaskMutationPayload extends Partial<TaskUpdate> {
+    id: string;
     root_id?: string;
-    parent_task_id?: string | null;
-    creator?: string;
-    origin?: string;
-    [key: string]: unknown;
 }
 
 export function useCreateTask() {
     const queryClient = useQueryClient()
     return useMutation({
-        mutationFn: (data: TaskPayload | TaskPayload[]) => planterClient.entities.Task.create(data),
+        mutationFn: (data: TaskInsert | TaskInsert[]) => planterClient.entities.Task.create(data),
         onSettled: (_, _error, variables) => {
             const firstVar = Array.isArray(variables) ? variables[0] : variables;
-            const rootId = firstVar?.root_id as string | undefined;
+            const rootId = (firstVar as TaskInsert).root_id;
             if (rootId) {
                 queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] })
             } else {
@@ -32,47 +27,45 @@ export function useCreateTask() {
 export function useUpdateTask() {
     const queryClient = useQueryClient()
     return useMutation({
-        mutationFn: (data: TaskPayload & { id: string }) => planterClient.entities.Task.update(data.id, data),
+        mutationFn: (data: TaskMutationPayload) => planterClient.entities.Task.update(data.id, data),
         onMutate: async (updatedTask) => {
-            const rootId = updatedTask.root_id as string | undefined;
+            const rootId = updatedTask.root_id;
             const targetKey = rootId ? ['projectHierarchy', rootId] : ['tasks', 'root'];
 
-            // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: targetKey });
             await queryClient.cancelQueries({ queryKey: ['task', updatedTask.id] });
 
-            // Snapshot the previous value
-            const previousTasks = queryClient.getQueryData(targetKey);
-            const previousTaskInfo = queryClient.getQueryData(['task', updatedTask.id]);
+            const previousTasks = queryClient.getQueryData<TaskRow[]>(targetKey);
+            const previousTaskInfo = queryClient.getQueryData<TaskRow>(['task', updatedTask.id]);
 
-            // Optimistically update to the new value
             if (previousTasks) {
-                queryClient.setQueryData(targetKey, (old: any) => {
+                queryClient.setQueryData<TaskRow[]>(targetKey, (old) => {
                     if (!Array.isArray(old)) return old;
                     return old.map(task =>
                         task.id === updatedTask.id
-                            ? { ...task, ...updatedTask }
+                            ? { ...task, ...updatedTask } as TaskRow
                             : task
                     );
                 });
             }
             if (previousTaskInfo) {
-                queryClient.setQueryData(['task', updatedTask.id], (old: any) => ({ ...old, ...updatedTask }));
+                queryClient.setQueryData<TaskRow>(['task', updatedTask.id], (old) => (old ? ({ ...old, ...updatedTask } as TaskRow) : undefined));
             }
 
             return { previousTasks, previousTaskInfo, rootId, updatedTaskId: updatedTask.id };
         },
-        onError: (_err, _newTodo, context: any) => {
-            const targetKey = context?.rootId ? ['projectHierarchy', context.rootId] : ['tasks', 'root'];
-            if (context?.previousTasks) {
-                queryClient.setQueryData(targetKey, context.previousTasks);
+        onError: (_err, _newTodo, context) => {
+            const ctx = context as { previousTasks?: TaskRow[], previousTaskInfo?: TaskRow, rootId?: string, updatedTaskId: string };
+            const targetKey = ctx?.rootId ? ['projectHierarchy', ctx.rootId] : ['tasks', 'root'];
+            if (ctx?.previousTasks) {
+                queryClient.setQueryData(targetKey, ctx.previousTasks);
             }
-            if (context?.previousTaskInfo) {
-                queryClient.setQueryData(['task', context.updatedTaskId], context.previousTaskInfo);
+            if (ctx?.previousTaskInfo) {
+                queryClient.setQueryData(['task', ctx.updatedTaskId], ctx.previousTaskInfo);
             }
         },
         onSettled: (_, _error, variables) => {
-            const rootId = variables.root_id as string | undefined;
+            const rootId = variables.root_id;
             if (rootId) {
                 queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] })
             } else {
@@ -93,10 +86,10 @@ export function useDeleteTask() {
 
             await queryClient.cancelQueries({ queryKey: targetKey });
 
-            const previousTasks = queryClient.getQueryData(targetKey);
+            const previousTasks = queryClient.getQueryData<TaskRow[]>(targetKey);
 
             if (previousTasks) {
-                queryClient.setQueryData(targetKey, (old: any) => {
+                queryClient.setQueryData<TaskRow[]>(targetKey, (old) => {
                     if (!Array.isArray(old)) return old;
                     return old.filter(task => task.id !== id);
                 });
@@ -104,10 +97,11 @@ export function useDeleteTask() {
 
             return { previousTasks, rootId };
         },
-        onError: (_err, _variables, context: any) => {
-            const targetKey = context?.rootId ? ['projectHierarchy', context.rootId] : ['tasks', 'root'];
-            if (context?.previousTasks) {
-                queryClient.setQueryData(targetKey, context.previousTasks);
+        onError: (_err, _variables, context) => {
+            const ctx = context as { previousTasks?: TaskRow[], rootId?: string };
+            const targetKey = ctx?.rootId ? ['projectHierarchy', ctx.rootId] : ['tasks', 'root'];
+            if (ctx?.previousTasks) {
+                queryClient.setQueryData(targetKey, ctx.previousTasks);
             }
         },
         onSettled: (_, _error, variables) => {
@@ -125,9 +119,14 @@ export function useDeleteTask() {
 export function useAssignTaskMember() {
     const queryClient = useQueryClient()
     return useMutation({
-        mutationFn: (data: { taskId: string, userId: string, root_id?: string }) => (planterClient.entities.Task as any).addMember(data.taskId, data.userId, 'viewer'),
+        mutationFn: (data: { taskId: string, userId: string, root_id?: string }) => {
+            if (planterClient.entities.Task.addMember) {
+                return planterClient.entities.Task.addMember(data.taskId, data.userId, 'viewer');
+            }
+            throw new Error('Task.addMember is not defined');
+        },
         onSuccess: (_, variables) => {
-            const rootId = variables.root_id as string | undefined;
+            const rootId = variables.root_id;
             if (rootId) {
                 queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] })
             } else {
@@ -136,4 +135,3 @@ export function useAssignTaskMember() {
         }
     })
 }
-

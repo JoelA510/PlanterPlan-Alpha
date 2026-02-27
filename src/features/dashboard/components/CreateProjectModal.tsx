@@ -32,11 +32,28 @@ import { z } from 'zod';
 import { projectSchema } from '@/entities/project/model';
 
 // Types
+export interface CreateProjectPayload {
+    name: string;
+    description: string;
+    template: string;
+    launch_date: Date | undefined;
+    location: string;
+    status: string;
+    templateId?: string;
+}
+
+export interface CreateTemplatePayload {
+    name: string;
+    description: string;
+    template: string;
+    origin: 'template';
+}
+
 export interface CreateProjectModalProps {
     mode?: 'project' | 'template';
     open: boolean;
     onClose: () => void;
-    onCreate: (data: any) => Promise<void>; // Any used here temporarily, will be refined if needed
+    onCreate: (data: CreateProjectPayload | CreateTemplatePayload) => Promise<void>;
 }
 
 interface TemplateOption {
@@ -184,9 +201,10 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
             });
             setErrors({});
             onClose();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[CreateProjectModal] Failed to create:', error);
-            setErrors({ root: error.message || 'Failed to create.' });
+            const message = error instanceof Error ? error.message : 'Failed to create.';
+            setErrors({ root: message });
         } finally {
             setLoading(false);
         }
@@ -198,7 +216,6 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
         onClose();
     };
 
-    const optionsToShow = isTemplateMode ? TEMPLATE_CATEGORIES : templates;
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>

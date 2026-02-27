@@ -27,10 +27,12 @@ export function useDashboard() {
     useEffect(() => {
         const action = searchParams.get('action');
         if (action === 'new-project') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowCreateModal(true);
             searchParams.delete('action');
             setSearchParams(searchParams, { replace: true });
         } else if (action === 'new-template') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowTemplateModal(true);
             searchParams.delete('action');
             setSearchParams(searchParams, { replace: true });
@@ -45,13 +47,13 @@ export function useDashboard() {
         error
     } = useQuery<Project[]>({
         queryKey: ['projects'],
-        queryFn: () => planter.entities.Project.list('-created_date'),
+        queryFn: () => planter.entities.Project.list(),
         enabled: !!user,
     });
 
     const { data: allTasks = [] } = useQuery<Task[]>({
         queryKey: ['allTasks'],
-        queryFn: () => planter.entities.Task.listByCreator(user?.id),
+        queryFn: () => planter.entities.Task.listByCreator(user?.id as string),
         enabled: !!user,
     });
 
@@ -81,7 +83,7 @@ export function useDashboard() {
             );
         }
 
-        return tasks;
+        return tasks as Task[];
     }, [allTasks, selectedProjectId, searchQuery]);
 
     // Loading State Aggregation

@@ -5,7 +5,7 @@ import { PROJECT_STATUS } from '@/app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
 import ProjectCard from '@/features/dashboard/components/ProjectCard';
 import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
-import type { TaskRow, PersonRow } from '@/shared/db/app.types';
+import type { Task, Project, TeamMemberRow } from '@/shared/db/app.types';
 
 const COLUMNS = [
     { id: PROJECT_STATUS.PLANNING, title: 'Planning', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING] },
@@ -15,9 +15,9 @@ const COLUMNS = [
 ];
 
 interface ProjectPipelineBoardProps {
-    projects: TaskRow[];
-    tasks: TaskRow[];
-    teamMembers: PersonRow[];
+    projects: Project[];
+    tasks: Task[];
+    teamMembers: TeamMemberRow[];
     onStatusChange: (projectId: string, status: string) => void;
 }
 
@@ -27,11 +27,11 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
     // OR we could subscribe to 'tasks' globally.
     useProjectRealtime(); // No specific projectId means listen to all accessible task changes
 
-    const [activeProject, setActiveProject] = useState<TaskRow | null>(null);
+    const [activeProject, setActiveProject] = useState<Project | null>(null);
 
     const columns = useMemo(() => {
         // Optimization: Bucketize projects in one pass (O(N)) instead of filtering for every column
-        const buckets = projects.reduce((acc: Record<string, TaskRow[]>, project) => {
+        const buckets = projects.reduce((acc: Record<string, Project[]>, project) => {
             const status = project.status || PROJECT_STATUS.PLANNING;
             if (!acc[status]) acc[status] = [];
             acc[status].push(project);
@@ -135,12 +135,12 @@ interface PipelineColumnProps {
     column: {
         id: string;
         title: string;
-        projects: TaskRow[];
+        projects: Project[];
         headerBg?: string;
         headerContent?: string;
     };
-    tasks: TaskRow[];
-    teamMembers: PersonRow[];
+    tasks: Task[];
+    teamMembers: TeamMemberRow[];
 }
 
 function PipelineColumn({ column, tasks, teamMembers }: PipelineColumnProps) {
@@ -186,9 +186,9 @@ function PipelineColumn({ column, tasks, teamMembers }: PipelineColumnProps) {
 }
 
 interface DraggableProjectCardProps {
-    project: TaskRow;
-    tasks: TaskRow[];
-    teamMembers: PersonRow[];
+    project: Project;
+    tasks: Task[];
+    teamMembers: TeamMemberRow[];
 }
 
 function DraggableProjectCard({ project, tasks, teamMembers }: DraggableProjectCardProps) {

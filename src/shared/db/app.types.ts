@@ -9,6 +9,10 @@ export type TaskRow = Database['public']['Tables']['tasks']['Row'];
 export type TaskInsert = Database['public']['Tables']['tasks']['Insert'];
 export type TaskUpdate = Database['public']['Tables']['tasks']['Update'];
 
+// Aliases for better DX
+export type Task = TaskRow;
+export type Project = TaskRow;
+
 // ----------------------------------------------------------------------------
 // People
 // ----------------------------------------------------------------------------
@@ -21,3 +25,4 @@ export type PersonUpdate = Database['public']['Tables']['people']['Update'];
 // ----------------------------------------------------------------------------
 export type TaskResourceRow = Database['public']['Tables']['task_resources']['Row'];
 export type TaskRelationshipRow = Database['public']['Tables']['task_relationships']['Row'];
+export type TeamMemberRow = Database['public']['Tables']['project_members']['Row'];

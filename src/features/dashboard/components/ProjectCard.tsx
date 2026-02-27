@@ -8,7 +8,7 @@ import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch, Fo
 import { motion } from 'framer-motion';
 import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
-import type { TaskRow, PersonRow } from '@/shared/db/app.types';
+import type { Project, Task, TeamMemberRow } from '@/shared/db/app.types';
 
 const templateIcons: Record<string, React.ElementType> = {
   launch_large: Rocket,
@@ -17,9 +17,9 @@ const templateIcons: Record<string, React.ElementType> = {
 };
 
 interface ProjectCardProps {
-  project: TaskRow;
-  tasks?: TaskRow[];
-  teamMembers?: PersonRow[];
+  project: Project;
+  tasks?: Task[];
+  teamMembers?: TeamMemberRow[];
 }
 
 const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps) => {

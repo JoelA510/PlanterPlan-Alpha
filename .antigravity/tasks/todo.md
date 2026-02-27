@@ -34,3 +34,13 @@
 - [x] **6. Refactor Library Tasks Hook**
   - *Effect*: Replace manual pagination state with TanStack's built-in infinite scrolling capabilities.
   - *Agent Prompt*: Refactor `src/features/library/hooks/useMasterLibraryTasks.ts`. Return a `@tanstack/react-query` `useInfiniteQuery` to handle paginated data fetch from `planter.entities.TaskWithResources.listTemplates`. Use `pageParam` to calculate the `from` offset. Ensure `getNextPageParam` correctly determines if there are more pages based on the `limit`.
+
+## Phase 4: Mass Typing & Lint Cleanup
+
+- [x] **7. Resolve Core Hook & API Types**
+  - *Effect*: Eliminate `any` in critical data flows to prevent runtime regressions.
+  - *Target*: `useTaskMutations.ts`, `useTaskBoardUI.ts`, `planterClient.ts`.
+
+- [x] **8. Resolve Component Debt & Lint Warnings**
+  - *Effect*: Reach 0 warnings/errors state for the production build.
+  - *Target*: `TaskList.tsx`, `Dashboard.tsx`, `Project.tsx` residuals, and unused imports.

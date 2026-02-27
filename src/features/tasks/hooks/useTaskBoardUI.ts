@@ -1,13 +1,22 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
+import { TaskRow } from '@/shared/db/app.types';
+
+interface TaskFormState {
+    mode: 'create' | 'edit';
+    origin?: string;
+    parentId?: string | null;
+    taskId?: string;
+}
+
 interface UseTaskBoardUIProps {
     currentUserId: string | null;
     createProject: (data: any) => Promise<any>;
-    createTaskOrUpdate: (data: any, state: any) => Promise<any>;
-    deleteTask: (data: any) => Promise<any>;
+    createTaskOrUpdate: (data: any, state: TaskFormState | null) => Promise<any>;
+    deleteTask: (data: TaskRow) => Promise<any>;
     refreshProjectDetails: (id: string) => void;
-    findTask: (id: string) => any;
+    findTask: (id: string) => TaskRow | null;
     activeProjectId?: string | null;
 }
 
@@ -22,32 +31,32 @@ export const useTaskBoardUI = ({
 }: UseTaskBoardUIProps) => {
     // UI State
     const [showForm, setShowForm] = useState(false);
-    const [selectedTask, setSelectedTask] = useState<any>(null);
-    const [taskFormState, setTaskFormState] = useState<any>(null);
-    const [inviteModalProject, setInviteModalProject] = useState<any>(null);
+    const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+    const [taskFormState, setTaskFormState] = useState<TaskFormState | null>(null);
+    const [inviteModalProject, setInviteModalProject] = useState<TaskRow | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
     // Handlers
-    const handleTaskClick = useCallback((task: any) => {
+    const handleTaskClick = useCallback((task: TaskRow) => {
         setSelectedTask(task);
         setShowForm(false);
         setTaskFormState(null);
     }, []);
 
-    const handleAddChildTask = useCallback((parentTask: any) => {
+    const handleAddChildTask = useCallback((parentTask: TaskRow) => {
         setTaskFormState({
             mode: 'create',
-            origin: parentTask.origin,
+            origin: parentTask.origin || undefined,
             parentId: parentTask.id,
         });
         setShowForm(false);
         setSelectedTask(null);
     }, []);
 
-    const handleEditTask = useCallback((task: any) => {
+    const handleEditTask = useCallback((task: TaskRow) => {
         setTaskFormState({
             mode: 'edit',
-            origin: task.origin,
+            origin: task.origin || undefined,
             parentId: task.parent_task_id || null,
             taskId: task.id,
         });
@@ -56,7 +65,7 @@ export const useTaskBoardUI = ({
     }, []);
 
     const onDeleteTaskWrapper = useCallback(
-        async (task: any) => {
+        async (task: TaskRow) => {
             const confirmed = window.confirm(
                 `Delete "${task.title}" and its subtasks? This action cannot be undone.`
             );
@@ -89,7 +98,7 @@ export const useTaskBoardUI = ({
         [findTask, onDeleteTaskWrapper]
     );
 
-    const handleOpenInvite = useCallback((project: any) => {
+    const handleOpenInvite = useCallback((project: TaskRow) => {
         setInviteModalProject(project);
     }, []);
 

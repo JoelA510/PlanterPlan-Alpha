@@ -2,21 +2,32 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
 import { toIsoDate, recalculateProjectDates } from '@/shared/lib/date-engine';
+import { TaskInsert, TaskUpdate } from '@/shared/db/app.types';
+
+export interface CreateProjectPayload {
+    title: string;
+    description?: string;
+    start_date?: string | Date;
+    templateId?: string;
+}
+
+export interface UpdateProjectPayload {
+    projectId: string;
+    updates: Partial<TaskUpdate> & { title?: string; description?: string; start_date?: string; due_date?: string; location?: string; settings?: any };
+    oldStartDate?: string | null;
+}
 
 export function useCreateProject() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (formData: any) => {
+        mutationFn: async (formData: CreateProjectPayload) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('User not authenticated');
 
             const projectStartDate = toIsoDate(formData.start_date);
-            if (!projectStartDate && !formData.templateId) {
-                // Optionally validate
-            }
 
             if (formData.templateId) {
-                const { data: newTasks, error: cloneError } = (await planter.entities.Task.clone(
+                const { data: newTasks, error: cloneError } = await planter.entities.Task.clone(
                     formData.templateId,
                     null,
                     'instance',
@@ -26,8 +37,8 @@ export function useCreateProject() {
                         description: formData.description,
                         start_date: projectStartDate || undefined,
                         due_date: projectStartDate || undefined,
-                    } as any
-                )) as any;
+                    }
+                );
                 if (cloneError) throw cloneError;
                 return newTasks;
             } else {
@@ -50,10 +61,10 @@ export function useCreateProject() {
 export function useUpdateProject() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async ({ projectId, updates, oldStartDate }: { projectId: string, updates: any, oldStartDate?: string | null }) => {
+        mutationFn: async ({ projectId, updates, oldStartDate }: UpdateProjectPayload) => {
             const { start_date: newStartDateStr } = updates;
 
-            const dbUpdates = {
+            const dbUpdates: TaskUpdate = {
                 title: updates.title,
                 description: updates.description,
                 due_date: updates.due_date,
@@ -61,7 +72,7 @@ export function useUpdateProject() {
                 updated_at: new Date().toISOString(),
                 location: updates.location,
                 settings: updates.settings,
-            };
+            } as TaskUpdate;
 
             let batchUpdates: any[] = [];
             if (newStartDateStr && oldStartDate && newStartDateStr !== oldStartDate) {
@@ -73,18 +84,10 @@ export function useUpdateProject() {
                 batchUpdates = recalculateProjectDates(projectTasks || [], newStartDateStr, oldStartDate);
             }
 
-            const { error } = await supabase
-                .from('tasks')
-                .update(dbUpdates)
-                .eq('id', projectId);
-
-            if (error) throw error;
+            await planter.entities.Project.update(projectId, dbUpdates);
 
             if (batchUpdates.length > 0) {
-                const { error: batchError } = await supabase
-                    .from('tasks')
-                    .upsert(batchUpdates);
-                if (batchError) console.error("Date recalc error", batchError);
+                await planter.entities.Task.upsert(batchUpdates);
             }
 
             return true;
@@ -128,7 +131,7 @@ export function useUpdateProjectStatus() {
 export function useCreateTemplate() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (templateData: any) => {
+        mutationFn: async (templateData: TaskInsert) => {
             const { data: { user } } = await supabase.auth.getUser();
             return planter.entities.Task.create({ ...templateData, creator: user?.id, origin: 'template', parent_task_id: null });
         },

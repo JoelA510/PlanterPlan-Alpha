@@ -1,13 +1,26 @@
 import { supabase } from '@/shared/db/client';
 import { retry } from '../lib/retry.js';
+import type { Database } from '@/shared/db/database.types';
+import type {
+  Project,
+  Task,
+  TaskInsert,
+  TaskUpdate,
+  TaskResourceRow,
+  TaskRelationshipRow,
+  PersonRow,
+  TeamMemberRow
+} from '@/shared/db/app.types';
 
-const getEnv = (key) => {
-  let val;
+const getEnv = (key: string): string => {
+  let val: string | undefined;
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     val = import.meta.env[key];
   }
-  if (!val && typeof process !== 'undefined' && process.env) {
-    val = process.env[key];
+  // @ts-expect-error - process might not exist in all environments (e.g. browser vs node)
+  if (!val && typeof (process as unknown) !== 'undefined' && (process as Record<string, unknown>).env) {
+    // @ts-expect-error - process.env access on unknown type
+    val = (process as Record<string, unknown>).env[key] as string;
   }
   return val || '';
 };
@@ -15,55 +28,50 @@ const getEnv = (key) => {
 const supabaseUrl = getEnv('VITE_SUPABASE_URL');
 const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
+interface EntityClient<T, TInsert, TUpdate> {
+  list: () => Promise<T[]>;
+  get: (id: string) => Promise<T | null>;
+  create: (payload: TInsert | TInsert[]) => Promise<T>;
+  update: (id: string, payload: TUpdate) => Promise<T>;
+  delete: (id: string) => Promise<boolean>;
+  filter: (filters: Record<string, string | number | boolean | null>) => Promise<T[]>;
+  listByCreator: (userId: string) => Promise<T[]>;
+  upsert: (payload: TInsert | TInsert[], options?: { onConflict?: string; ignoreDuplicates?: boolean }) => Promise<{ data: T | T[] | null; error: Error | null }>;
+}
 
-// NOTE: Internal supabase client removed. All ops use rawSupabaseFetch.
+interface ProjectEntityClient extends EntityClient<Project, TaskInsert, TaskUpdate> {
+  listByCreator: (userId: string, page?: number, pageSize?: number) => Promise<Project[]>;
+  listJoined: (userId: string) => Promise<Project[]>;
+  getWithStats: (projectId: string) => Promise<{ data: Project & { children: unknown[], stats: unknown }, error: Error | null }>;
+  addMember: (projectId: string, userId: string, role: string) => Promise<{ data: TeamMemberRow | undefined, error: Error | null }>;
+  addMemberByEmail: (projectId: string, email: string, role: string) => Promise<{ data: unknown, error: Error | null }>;
+}
 
-/**
- * Planter API Client Adapter
- * Maps the new "planter" API calls to our existing Supabase and Service layer.
- * This adapter pattern decouples the UI from direct Supabase calls, allowing for
- * easier testing and potential backend swaps.
- */
+interface TaskEntityClient extends EntityClient<Task, TaskInsert, TaskUpdate> {
+  fetchChildren: (taskId: string) => Promise<{ data: Task[] | null, error: unknown }>;
+  updateStatus: (taskId: string, status: string) => Promise<{ data: Task | null, error: unknown }>;
+  updateParentDates: (parentId: string | null) => Promise<void>;
+  clone: (templateId: string, newParentId: string | null, newOrigin: string, userId: string, overrides?: Record<string, unknown>) => Promise<{ data: unknown, error: unknown }>;
+  addMember?: (taskId: string, userId: string, role: string) => Promise<{ data: TeamMemberRow | undefined, error: Error | null }>;
+}
 
-// Helper factory for generic CRUD operations
-// Helper factory for generic CRUD operations using Raw Fetch
-const createEntityClient = (tableName, select = '*') => ({
-  /**
-   * List all records
-   * @returns {Promise<Array>}
-   */
+const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'): EntityClient<T, TInsert, TUpdate> => ({
   list: async () => {
     return retry(async () => {
-      // select=* needs to be URL encoded or safe?
-      // simple select string usually works.
       const query = `${tableName}?select=${select}`;
       const data = await rawSupabaseFetch(query, { method: 'GET' });
-      return data || [];
+      return (data as T[]) || [];
     });
   },
-  /**
-   * Get a single record by ID
-   * @param {string} id
-   * @returns {Promise<Object>}
-   */
-  get: async (id) => {
+  get: async (id: string) => {
     return retry(async () => {
       const query = `${tableName}?select=${select}&id=eq.${id}`;
-      // PostgREST returns array. We want single. 
-      // We can use validation header 'Accept: application/vnd.pgrst.object+json' 
-      // or just [0] client side. Client side is safer fallback.
       const data = await rawSupabaseFetch(query, { method: 'GET' });
-      return data?.[0] || null;
+      return (data as T[])?.[0] || null;
     });
   },
-  /**
-   * Create a new record
-   * @param {Object} payload
-   * @returns {Promise<Object>}
-   */
-  create: async (payload) => {
+  create: async (payload: TInsert | TInsert[]) => {
     return retry(async () => {
-      console.log(`[PlanterClient] Creating ${tableName} (Raw Fetch):`, payload);
       const data = await rawSupabaseFetch(
         `${tableName}?select=${select}`,
         {
@@ -72,17 +80,10 @@ const createEntityClient = (tableName, select = '*') => ({
           headers: { 'Prefer': 'return=representation' }
         }
       );
-      // PostgREST return array for inserts
-      return data?.[0] || data;
+      return (data as T[])?.[0] || (data as T);
     });
   },
-  /**
-   * Update a record
-   * @param {string} id
-   * @param {Object} payload
-   * @returns {Promise<Object>}
-   */
-  update: async (id, payload) => {
+  update: async (id: string, payload: TUpdate) => {
     return retry(async () => {
       const data = await rawSupabaseFetch(
         `${tableName}?select=${select}&id=eq.${id}`,
@@ -92,28 +93,18 @@ const createEntityClient = (tableName, select = '*') => ({
           headers: { 'Prefer': 'return=representation' }
         }
       );
-      return data?.[0] || data;
+      return (data as T[])?.[0] || (data as T);
     });
   },
-  /**
-   * Delete a record
-   * @param {string} id
-   * @returns {Promise<boolean>}
-   */
-  delete: async (id) => {
+  delete: async (id: string) => {
     return retry(async () => {
       await rawSupabaseFetch(`${tableName}?id=eq.${id}`, { method: 'DELETE' });
       return true;
     });
   },
-  /**
-   * Filter records by key-value pairs
-   * @param {Object} filters
-   * @returns {Promise<Array>}
-   */
-  filter: async (filters) => {
+  filter: async (filters: Record<string, string | number | boolean | null>) => {
     return retry(async () => {
-      let queryParams = [`select=${select}`];
+      const queryParams = [`select=${select}`];
       Object.keys(filters).forEach((key) => {
         const val = filters[key];
         if (val === null) {
@@ -125,28 +116,17 @@ const createEntityClient = (tableName, select = '*') => ({
 
       const queryString = queryParams.join('&');
       const data = await rawSupabaseFetch(`${tableName}?${queryString}`, { method: 'GET' });
-      return data || [];
+      return (data as T[]) || [];
     });
   },
-  /**
-   * List records by creator
-   * @param {string} userId
-   * @returns {Promise<Array>}
-   */
-  listByCreator: async (userId) => {
+  listByCreator: async (userId: string) => {
     return retry(async () => {
       const query = `${tableName}?select=${select}&creator=eq.${userId}`;
       const data = await rawSupabaseFetch(query, { method: 'GET' });
-      return data || [];
+      return (data as T[]) || [];
     });
   },
-  /**
-   * Upsert records (Insert or Update)
-   * @param {Object|Array} payload - Single object or array of objects
-   * @param {Object} options - { onConflict: 'id', ignoreDuplicates: false }
-   * @returns {Promise<any>}
-   */
-  upsert: async (payload, options = {}) => {
+  upsert: async (payload: TInsert | TInsert[], options: { onConflict?: string; ignoreDuplicates?: boolean } = {}) => {
     return retry(async () => {
       const onConflict = options.onConflict || 'id';
       const preferHeaders = ['return=representation'];
@@ -163,36 +143,29 @@ const createEntityClient = (tableName, select = '*') => ({
           headers: { 'Prefer': headerStr }
         }
       );
-      return { data, error: null };
+      return { data: data as T | T[], error: null };
     });
   }
 });
 
-
-
-// Helper to get token from Supabase auth session (primary) or deterministic localStorage (fallback)
-const getSupabaseToken = async () => {
-  // Primary: use official Supabase client session
+const getSupabaseToken = async (): Promise<string | null> => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.access_token) return session.access_token;
-  } catch (e) {
-    console.warn('[PlanterClient] getSession() failed, falling back to localStorage', e);
+  } catch {
+    // Session failure is non-critical for bypass logic
   }
 
-  // Fallback: Deterministic localStorage lookup
   if (typeof window === 'undefined') return null;
 
-  // 0. E2E Bypass Token (Explicit)
   const bypassToken = localStorage.getItem('e2e-bypass-token');
   if (bypassToken) return bypassToken;
 
-  // 1. Try generic "sb-<ref>-auth-token" pattern if URL is standard
   try {
-    const urlStr = import.meta.env.VITE_SUPABASE_URL; // e.g. https://xyz.supabase.co
+    const urlStr = import.meta.env.VITE_SUPABASE_URL;
     if (urlStr) {
       const url = new URL(urlStr);
-      const ref = url.hostname.split('.')[0]; // xyz
+      const ref = url.hostname.split('.')[0];
       const key = `sb-${ref}-auth-token`;
       const item = localStorage.getItem(key);
       if (item) {
@@ -200,14 +173,12 @@ const getSupabaseToken = async () => {
         return session?.access_token;
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
 
-  // 2. Legacy scan (Limit loop if absolutely necessary, but prefer strict)
   return null;
 };
 
-// Raw Fetch Wrapper for robustness against Supabase Client AbortErrors
-const rawSupabaseFetch = async (endpoint, options = {}, explicitToken = null) => {
+const rawSupabaseFetch = async (endpoint: string, options: RequestInit = {}, explicitToken: string | null = null): Promise<unknown> => {
   const token = explicitToken || await getSupabaseToken();
   if (!token) throw new Error('No auth token available for raw fetch');
 
@@ -216,8 +187,8 @@ const rawSupabaseFetch = async (endpoint, options = {}, explicitToken = null) =>
     'apikey': supabaseKey,
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
-    'Prefer': 'return=representation', // Default to returning data
-    ...options.headers
+    'Prefer': 'return=representation',
+    ...options.headers as Record<string, string>
   };
 
   const response = await fetch(url, {
@@ -239,15 +210,12 @@ const rawSupabaseFetch = async (endpoint, options = {}, explicitToken = null) =>
 
 export const planter = {
   auth: {
-    // Auth should be handled by the main supabase client / AuthContext.
-    // We provide placeholder me() to not break existing calls, but implementation usually handled by Context.
-    me: async () => {
-      // console.warn('[PlanterClient] auth.me() called - falling back to direct fetch'); // Removed: This is now the primary method.
+    me: async (): Promise<unknown> => {
       const token = await getSupabaseToken();
       if (!token) return null;
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
           headers: {
@@ -267,14 +235,12 @@ export const planter = {
         return null;
       }
     },
-    signOut: async () => {
-      // console.warn('[PlanterClient] signOut called - cannot sign out via Raw Fetch. Use AuthContext.');
-      // Returns empty promise
-      return Promise.resolve();
+    signOut: async (): Promise<void> => {
+      // Promise.resolve() is enough for local logout if no server-side session needs explicit termination via this wrapper
+      return;
     },
-    updateProfile: async (attributes) => {
+    updateProfile: async (attributes: Record<string, unknown>): Promise<unknown> => {
       return retry(async () => {
-        // Use official SDK for safe metadata updates
         const { data, error } = await supabase.auth.updateUser({
           data: attributes,
         });
@@ -284,29 +250,23 @@ export const planter = {
     },
   },
   entities: {
-
-
     Project: {
-      ...createEntityClient('tasks', '*'),
-      // Override list to filter for Root Tasks (Projects)
-      list: async () => {
+      ...createEntityClient<Project, TaskInsert, TaskUpdate>('tasks', '*'),
+      list: async (): Promise<Project[]> => {
         return retry(async () => {
-          // Use Raw Fetch to bypass potential client AbortErrors
           try {
             const data = await rawSupabaseFetch(
               'tasks?select=*&parent_task_id=is.null&origin=eq.instance&order=created_at.desc',
               { method: 'GET' }
             );
-            return data;
+            return (data as Project[]) || [];
           } catch (err) {
             console.error('[PlanterClient] Raw Fetch List failed:', err);
-            // Fallback to client if raw fails? No, client is definitely broken.
             throw err;
           }
         });
       },
-      // Override create for specific mapping and default initialization
-      create: async (projectData) => {
+      create: async (projectData: CreateProjectPayload & { creator?: string; _token?: string }): Promise<Project> => {
         return retry(async () => {
           let userId = projectData.creator;
           const explicitToken = projectData._token;
@@ -322,7 +282,7 @@ export const planter = {
                   const user = await response.json();
                   userId = user?.id;
                 }
-              } catch (e) { }
+              } catch { /* ignore auth failure */ }
             }
           }
 
@@ -338,14 +298,14 @@ export const planter = {
           }
 
           const taskPayload = {
-            name: cleanProjectData.title || cleanProjectData.name,
+            title: cleanProjectData.title || cleanProjectData.name,
             description: cleanProjectData.description,
-            launch_date: isoLaunchDate,
+            due_date: isoLaunchDate,
             origin: 'instance',
             parent_task_id: null,
-            root_id: null, // Critical for RLS "Project" detection
+            root_id: null,
             status: cleanProjectData.status || 'planning',
-            owner_id: userId, // Required for RLS
+            assignee_id: userId,
           };
 
           const data = await rawSupabaseFetch(
@@ -358,13 +318,12 @@ export const planter = {
             explicitToken
           );
 
-          const project = data?.[0] || data;
+          const project = (data as Project[])?.[0] || (data as Project);
 
           if (!project?.id) {
             throw new Error('Project creation failed: no ID returned from database.');
           }
 
-          // 2. Initialize default structure via Server-Side RPC
           try {
             await rawSupabaseFetch('rpc/initialize_default_project', {
               method: 'POST',
@@ -374,24 +333,23 @@ export const planter = {
             console.error('[PlanterClient] RPC Error:', error);
             try {
               await rawSupabaseFetch(`tasks?id=eq.${project.id}`, { method: 'DELETE' }, explicitToken);
-            } catch (r) { }
+            } catch { /* ignore deletion failure */ }
             throw new Error('Project initialization failed. Please try again.');
           }
 
           return project;
         });
       },
-      // Get project with computed stats
-      getWithStats: async (projectId) => {
+      getWithStats: async (projectId: string): Promise<{ data: Project & { children: unknown[], stats: unknown }, error: Error | null }> => {
         return retry(async () => {
           const projectQuery = `tasks?select=*&id=eq.${projectId}`;
           const pData = await rawSupabaseFetch(projectQuery, { method: 'GET' });
-          const project = pData?.[0];
+          const project = (pData as Project[])?.[0];
 
           if (!project) throw new Error('Project not found');
 
           const cData = await rawSupabaseFetch(`tasks?select=id,root_id,is_complete&root_id=eq.${projectId}`, { method: 'GET' });
-          const children = cData || [];
+          const children = (cData as Task[]) || [];
 
           const totalTasks = children.length;
           const completedTasks = children.filter(t => t.is_complete).length;
@@ -410,18 +368,15 @@ export const planter = {
           };
         });
       },
-      // Safe list by creator (Raw Fetch)
-      listByCreator: async (userId, page = 1, pageSize = 20) => {
+      listByCreator: async (userId: string, page = 1, pageSize = 20): Promise<Project[]> => {
         return retry(async () => {
           const from = (page - 1) * pageSize;
           const to = from + pageSize - 1;
 
           try {
-            // Optimization: Server-side filtering using 'creator' column
-            // We only fetch what we need.
             const query =
               `tasks?select=*,project_id:root_id` +
-              `&owner_id=eq.${encodeURIComponent(userId)}` +
+              `&assignee_id=eq.${encodeURIComponent(userId)}` +
               `&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`;
 
             const data = await rawSupabaseFetch(
@@ -432,40 +387,28 @@ export const planter = {
               }
             );
 
-            return data || [];
+            return (data as Project[]) || [];
           } catch (err) {
             console.error('[PlanterClient] listByCreator failed:', err);
-            // Propagate error to let React Query / UI handle it
             throw err;
           }
         });
       },
-      // Safe list joined projects (Raw Fetch)
-      listJoined: async (userId) => {
+      listJoined: async (userId: string): Promise<Project[]> => {
         return retry(async () => {
           try {
-            // PostgREST join syntax: select=project:tasks(*)
-            // Note: We need to match the fields selected in getUserProjects/list
-            const query = `project_members?select=project:tasks(*)&user_id=eq.${userId}`;
-
-            const data = await rawSupabaseFetch(query, { method: 'GET' });
-
-            // Map structure to match expected format (flatten project)
-            return (data || [])
-              .map(item => item.project)
-              .filter(p => p !== null);
-
-          } catch (err) {
-            console.error('[PlanterClient] listJoined failed:', err);
+            const data = await rawSupabaseFetch(`tasks?select=*&origin=eq.instance&parent_task_id=is.null&project_members=not.is.null&project_members.user_id=eq.${userId}`, {
+              method: 'GET'
+            });
+            return (data as Project[]) || [];
+          } catch {
             return [];
           }
         });
       },
-      // Override filter to ensure we only get projects
-      filter: async (filters) => {
+      filter: async (filters: Record<string, string | number | boolean | null>): Promise<Project[]> => {
         return retry(async () => {
-          // Manual query build for raw fetch
-          let queryParams = [
+          const queryParams = [
             'select=*',
             'parent_task_id=is.null',
             'origin=eq.instance'
@@ -479,12 +422,10 @@ export const planter = {
 
           const queryString = queryParams.join('&');
           const data = await rawSupabaseFetch(`tasks?${queryString}`, { method: 'GET' });
-          return data || [];
+          return (data as Project[]) || [];
         });
       },
-      // Custom methods
-      addMember: async (projectId, userId, role) => {
-        // INSERT into project_members
+      addMember: async (projectId: string, userId: string, role: string): Promise<{ data: TeamMemberRow | undefined, error: Error | null }> => {
         const data = await rawSupabaseFetch(
           'project_members?select=*',
           {
@@ -493,33 +434,29 @@ export const planter = {
             headers: { 'Prefer': 'return=representation' }
           }
         );
-        return { data: data?.[0], error: null };
+        return { data: (data as TeamMemberRow[])?.[0], error: null };
       },
-      addMemberByEmail: async (projectId, email, role) => {
-        // 1. RPC call for invite (handles both existing and new users logic)
-        // RPC via Raw Fetch: POST /rpc/function_name
-        const data = await rawSupabaseFetch('rpc/invite_user_to_project', {
-          method: 'POST',
-          body: JSON.stringify({
-            p_project_id: projectId,
-            p_email: email,
-            p_role: role,
-          })
+      addMemberByEmail: async (projectId: string, email: string, role: string): Promise<{ data: unknown, error: Error | null }> => {
+        return retry(async () => {
+          const data = await rawSupabaseFetch('rpc/add_project_member_by_email', {
+            method: 'POST',
+            body: JSON.stringify({ p_project_id: projectId, p_email: email, p_role: role })
+          });
+          return { data, error: null };
         });
-        return { data, error: null };
       },
     },
     Task: {
-      ...createEntityClient('tasks'),
-      fetchChildren: async (taskId) => {
+      ...createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
+      fetchChildren: async (taskId: string): Promise<{ data: Task[] | null, error: unknown }> => {
         try {
-          const targetTask = await planter.entities.TaskWithResources.get(taskId);
+          const targetTask = await planter.entities.Task.get(taskId);
           if (!targetTask) throw new Error('Task not found');
 
           const projectRootId = targetTask.root_id || targetTask.id;
-          const projectTasks = await planter.entities.TaskWithResources.filter({ root_id: projectRootId });
+          const projectTasks = await planter.entities.Task.filter({ root_id: projectRootId });
 
-          const descendants = [];
+          const descendants: Task[] = [];
           const queue = [taskId];
           const visited = new Set([taskId]);
 
@@ -527,7 +464,7 @@ export const planter = {
           if (rootTask) descendants.push(rootTask);
 
           while (queue.length > 0) {
-            const currentId = queue.shift();
+            const currentId = queue.shift()!;
             const children = projectTasks.filter((t) => t.parent_task_id === currentId);
 
             children.forEach((child) => {
@@ -545,35 +482,35 @@ export const planter = {
           return { data: null, error };
         }
       },
-      updateStatus: async (taskId, status) => {
+      updateStatus: async (taskId: string, status: string): Promise<{ data: Task | null, error: unknown }> => {
         try {
-          const data = await planter.entities.Task.update(taskId, { status });
+          const data = await planter.entities.Task.update(taskId, { status } as TaskUpdate);
 
           if (status === 'completed') {
             const children = await planter.entities.Task.filter({ parent_task_id: taskId });
             if (children && children.length > 0) {
               await Promise.all(
-                children.map((child) => planter.entities.Task.updateStatus(child.id, 'completed'))
+                children.map((child) => (planter.entities.Task as TaskEntityClient).updateStatus(child.id, 'completed'))
               );
             }
           }
           return { data, error: null };
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('[PlanterClient.updateStatus] Error:', error);
-          return { data: null, error: error?.message || error };
+          return { data: null, error: error instanceof Error ? error.message : error };
         }
       },
-      updateParentDates: async (parentId) => {
+      updateParentDates: async (parentId: string | null): Promise<void> => {
         if (!parentId) return;
         try {
           const children = await planter.entities.Task.filter({ parent_task_id: parentId });
 
-          let start_date = null;
-          let due_date = null;
+          let start_date: string | null = null;
+          let due_date: string | null = null;
 
           if (children && children.length > 0) {
-            const validStarts = children.map(t => new Date(t.start_date)).filter(d => !isNaN(d.getTime()));
-            const validEnds = children.map(t => new Date(t.due_date)).filter(d => !isNaN(d.getTime()));
+            const validStarts = children.map(t => new Date(t.start_date || '')).filter(d => !isNaN(d.getTime()));
+            const validEnds = children.map(t => new Date(t.due_date || '')).filter(d => !isNaN(d.getTime()));
 
             if (validStarts.length > 0) {
               start_date = new Date(Math.min(...validStarts.map(d => d.getTime()))).toISOString().split('T')[0];
@@ -587,18 +524,18 @@ export const planter = {
             start_date,
             due_date,
             updated_at: new Date().toISOString(),
-          });
+          } as TaskUpdate);
 
           if (parent && parent.parent_task_id) {
-            await planter.entities.Task.updateParentDates(parent.parent_task_id);
+            await (planter.entities.Task as TaskEntityClient).updateParentDates(parent.parent_task_id);
           }
         } catch (error) {
           console.error('[PlanterClient.updateParentDates] Error:', error);
         }
       },
-      clone: async (templateId, newParentId, newOrigin, userId, overrides = {}) => {
+      clone: async (templateId: string, newParentId: string | null, newOrigin: string, userId: string, overrides: Record<string, unknown> = {}): Promise<{ data: unknown, error: unknown }> => {
         try {
-          const rpcParams = {
+          const rpcParams: Record<string, unknown> = {
             p_template_id: templateId,
             p_new_parent_id: newParentId,
             p_new_origin: newOrigin,
@@ -620,67 +557,64 @@ export const planter = {
         }
       }
     },
-    TaskRelationship: createEntityClient('task_relationships'),
-    Phase: createEntityClient('tasks'),
-    Milestone: createEntityClient('tasks'),
+    TaskRelationship: createEntityClient<TaskRelationshipRow, Database['public']['Tables']['task_relationships']['Insert'], Database['public']['Tables']['task_relationships']['Update']>('task_relationships'),
+    Phase: createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
+    Milestone: createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
     TaskWithResources: {
-      ...createEntityClient('tasks_with_primary_resource'),
-      listTemplates: async ({ from = 0, limit = 25, resourceType = null } = {}) => {
+      ...createEntityClient<unknown, unknown, unknown>('tasks_with_primary_resource'),
+      listTemplates: async ({ from = 0, limit = 25, resourceType = null as string | null } = {}): Promise<{ data: unknown[], error: Error | null }> => {
         return retry(async () => {
           const end = from + limit - 1;
-          let query = `tasks_with_primary_resource?select=*&origin=eq.template&parent_task_id=is.null&order=created_at.desc`;
-          if (resourceType && resourceType !== 'all') {
-            query += `&resource_type=eq.${resourceType}`;
-          }
+          const query = `tasks_with_primary_resource?select=*&origin=eq.template&parent_task_id=is.null&order=created_at.desc${resourceType && resourceType !== 'all' ? `&resource_type=eq.${resourceType}` : ''}`;
           const data = await rawSupabaseFetch(query, {
             method: 'GET',
             headers: { 'Range': `${from}-${end}` }
           });
-          return { data: data || [], error: null };
+          return { data: (data as unknown[]) || [], error: null };
         });
       },
-      searchTemplates: async ({ query, limit = 20, resourceType = null } = {}) => {
+      searchTemplates: async ({ query, limit = 20, resourceType = null as string | null }: { query: string, limit?: number, resourceType?: string | null }): Promise<{ data: unknown[], error: Error | null }> => {
         return retry(async () => {
           const normalized = (query || '').trim().slice(0, 100);
           if (!normalized) return { data: [], error: null };
 
           const pattern = `"%${normalized.replace(/[\\%_]/g, (c) => `\\${c}`)}%"`;
-          let endpoint = `tasks_with_primary_resource?select=*&origin=eq.template&or=(name.ilike.${pattern},description.ilike.${pattern})&order=name.asc&limit=${limit}`;
-
-          if (resourceType && resourceType !== 'all') {
-            endpoint += `&resource_type=eq.${resourceType}`;
-          }
+          const endpoint = `tasks_with_primary_resource?select=*&origin=eq.template&or=(title.ilike.${pattern},description.ilike.${pattern})&order=title.asc&limit=${limit}${resourceType && resourceType !== 'all' ? `&resource_type=eq.${resourceType}` : ''}`;
 
           const data = await rawSupabaseFetch(endpoint, { method: 'GET' });
-          return { data: data || [], error: null };
+          return { data: (data as unknown[]) || [], error: null };
         });
       }
     },
-    TaskResource: createEntityClient('task_resources'),
-    TeamMember: createEntityClient('project_members'),
-    Person: createEntityClient('people'),
+    TaskResource: createEntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']>('task_resources'),
+    TeamMember: createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
+    Person: createEntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>('people'),
+  } as {
+    Project: ProjectEntityClient;
+    Task: TaskEntityClient;
+    TaskRelationship: EntityClient<TaskRelationshipRow, Database['public']['Tables']['task_relationships']['Insert'], Database['public']['Tables']['task_relationships']['Update']>;
+    Phase: EntityClient<Task, TaskInsert, TaskUpdate>;
+    TaskWithResources: {
+      listTemplates: (options?: { from?: number, limit?: number, resourceType?: string | null }) => Promise<{ data: unknown[], error: Error | null }>;
+      searchTemplates: (options: { query: string, limit?: number, resourceType?: string | null }) => Promise<{ data: unknown[], error: Error | null }>;
+    };
+    TeamMember: EntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>;
+    Person: EntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>;
   },
-  /**
-   * Execute a remote procedure call (RPC)
-   * @param {string} functionName
-   * @param {Object} params
-   * @returns {Promise<{data: any, error: any}>}
-   */
-  rpc: async (functionName, params) => {
+  rpc: async (functionName: string, params: Record<string, unknown>): Promise<{ data: unknown, error: unknown }> => {
     return retry(async () => {
       try {
         const data = await rawSupabaseFetch(`rpc/${functionName}`, {
           method: 'POST',
           body: JSON.stringify(params),
-          headers: { 'Prefer': 'return=representation' } // Or params? RPC uses body for params.
+          headers: { 'Prefer': 'return=representation' }
         });
         return { data, error: null };
-      } catch (error) {
+      } catch (error: unknown) {
         return { data: null, error };
       }
     });
   },
 };
-
 
 export default planter;

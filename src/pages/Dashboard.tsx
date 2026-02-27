@@ -32,8 +32,9 @@ export default function Dashboard() {
             if (project?.id) {
                 navigate(`/project/${project.id}`);
             }
-        } catch (error: any) {
-            toast.error('Failed to create project', { description: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Unknown error occurred';
+            toast.error('Failed to create project', { description: message });
         }
     };
 
@@ -41,16 +42,18 @@ export default function Dashboard() {
         try {
             await createTemplateMutation.mutateAsync(templateData);
             toast.success('Template created', { description: 'Your new template is ready.' });
-        } catch (error: any) {
-            toast.error('Failed to create template', { description: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Unknown error occurred';
+            toast.error('Failed to create template', { description: message });
         }
     };
 
     const handleStatusChange = async (projectId: string, newStatus: string) => {
         try {
             await updateStatusMutation.mutateAsync({ projectId, status: newStatus });
-        } catch (error: any) {
-            toast.error('Failed to move project', { description: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Unknown error occurred';
+            toast.error('Failed to move project', { description: message });
             queryClient.invalidateQueries({ queryKey: ['projects'] });
         }
     };

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import { cn } from '@/shared/lib/utils';
 import { Card } from '@/shared/ui/card';
 import { FolderKanban, CheckCircle2, Clock, Users } from 'lucide-react';
@@ -6,15 +5,22 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { TASK_STATUS } from '@/app/constants/index';
 import { useMemo } from 'react';
+import type { Project, Task, TeamMemberRow } from '@/shared/db/app.types';
 
-export default function StatsOverview({ projects, tasks, teamMembers }) {
+interface StatsOverviewProps {
+  projects: Project[];
+  tasks: Task[];
+  teamMembers: TeamMemberRow[];
+}
+
+export default function StatsOverview({ projects, tasks, teamMembers }: StatsOverviewProps) {
   const { totalProjects, completedTasks, totalTasks, pendingTasks } = useMemo(() => {
     return {
       totalProjects: projects.length,
       totalTasks: tasks.length,
       completedTasks: tasks.reduce((acc, t) => (t.status === TASK_STATUS.COMPLETED ? acc + 1 : acc), 0),
       pendingTasks: tasks.reduce(
-        (acc, t) => (t.status === TASK_STATUS.TODO || t.status === TASK_STATUS.IN_PROGRESS ? acc + 1 : acc),
+        (acc, t) => (t.status === (TASK_STATUS.TODO as string) || t.status === (TASK_STATUS.IN_PROGRESS as string) ? acc + 1 : acc),
         0
       ),
     };
@@ -110,8 +116,3 @@ export default function StatsOverview({ projects, tasks, teamMembers }) {
   );
 }
 
-StatsOverview.propTypes = {
-  projects: PropTypes.array.isRequired,
-  tasks: PropTypes.array.isRequired,
-  teamMembers: PropTypes.array.isRequired
-};

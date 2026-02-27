@@ -3,17 +3,7 @@ import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from '../../app/contexts/AuthContext';
 import ThemeContext from '../../app/contexts/ThemeContext';
-// Note: ToastContext and ViewAsContext are assumed to exist based on project structure patterns, 
-// but if they don't, we'll need to create standard mocks. 
-// For now, I'll mock them with generic contexts or just skip if the file paths are uncertain, 
-// but the requirement "AuthContext, ThemeContext, ToastContext, and ViewAsContext" was explicit.
-// Since I haven't read Toast/ViewAs files, I will create simple mock providers for them here 
-// to match the requested API signature without crashing if imports are wrong.
-// Actually, it's safer to just mock the contexts directly in the wrapper if the real ones aren't needed for the logic being tested.
-// But `renderWithProviders` usually accepts real contexts if they are purely logic, or mocks if they involve side effects.
-
-// Let's assume standard behavior: we mock values, but use standard context objects if possible.
-// Since we are validating structure, let's inject mocks for the values.
+// Providers: AuthContext + ThemeContext. Toast uses sonner (no context needed).
 
 /**
  * Custom render function that wraps the UI in necessary providers.
