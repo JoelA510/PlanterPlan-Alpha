@@ -1,11 +1,6 @@
-export const ROLES = {
-  OWNER: 'owner',
-  EDITOR: 'editor',
-  COACH: 'coach',
-  VIEWER: 'viewer',
-  LIMITED: 'limited',
-  ADMIN: 'admin',
-};
+// Re-export shared constants so existing `@/app/constants` consumers are unaffected.
+// Canonical definitions live in `src/shared/constants/index.ts`.
+export { ROLES, POSITION_STEP } from '@/shared/constants';
 
 export const TASK_ORIGIN = {
   INSTANCE: 'instance',
@@ -30,6 +25,3 @@ export const PROJECT_STATUS = {
 export const STORAGE_BUCKETS = {
   RESOURCES: 'resources',
 };
-
-// Position spacing for drag-and-drop reordering
-export const POSITION_STEP = 10000;
