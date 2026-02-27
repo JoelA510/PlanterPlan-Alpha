@@ -7,6 +7,7 @@ import { Plus, Search, Mail, Phone, MoreHorizontal, Loader2 } from 'lucide-react
 import AddPersonModal from './AddPersonModal';
 import { toast } from 'sonner';
 import { planter } from '@/shared/api/planterClient';
+import type { PersonRow } from '@/shared/db/app.types';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -51,12 +52,11 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
             // Replaces peopleService.getPeople
             const data = await planter.entities.Person.filter({ project_id: projectId });
             // Sort client-side to mimic the previous server-side '.order('created_at', { ascending: false })' 
-            const sorted = (data || []).sort((a: any, b: any) =>
+            const sorted = (data || []).sort((a: PersonRow, b: PersonRow) =>
                 new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
             );
             setPeople(sorted);
-        } catch (error) {
-            console.error(error);
+        } catch {
             toast.error('Failed to load people');
         } finally {
             setLoading(false);
@@ -80,8 +80,9 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
             }
             loadPeople();
             setEditingPerson(null);
-        } catch (error: any) {
-            toast.error('Error saving person: ' + error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            toast.error('Error saving person: ' + message);
             throw error;
         }
     };
@@ -93,7 +94,7 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
             await planter.entities.Person.delete(id);
             toast.success('Person deleted');
             loadPeople();
-        } catch (error) {
+        } catch {
             toast.error('Error deleting');
         }
     };

@@ -30,8 +30,8 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
         due_soon_threshold: currentSettings.due_soon_threshold || '3',
     };
 
-    const validate = useCallback((data: any) => {
-        const errors: any = {};
+    const validate = useCallback((data: Record<string, string>) => {
+        const errors: Record<string, string> = {};
         if (!data.title?.trim()) errors.title = 'Title is required';
         if (!data.start_date) errors.start_date = 'Start date is required';
         return errors;
@@ -45,7 +45,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
         handleSubmit
     } = useTaskForm(initialState, validate);
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: Record<string, string>) => {
         try {
             const oldStartDate = toIsoDate(project.start_date || project.created_at);
             const { due_soon_threshold, ...rest } = data;

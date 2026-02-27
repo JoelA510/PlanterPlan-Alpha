@@ -3,7 +3,7 @@ import { TASK_STATUS } from '@/app/constants/index';
 import { CheckCircle2, Clock, AlertTriangle, Circle } from 'lucide-react';
 import type { TaskRow } from '@/shared/db/app.types';
 
-export function useProjectReports(tasks: TaskRow[], phases: any[]) {
+export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
     return useMemo(() => {
         // Basic task counts
         const tasksByStatus = {
@@ -38,8 +38,8 @@ export function useProjectReports(tasks: TaskRow[], phases: any[]) {
 
         const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
         const phaseData = sortedPhases.map((phase) => {
-            const phaseTasks = tasks.filter((t: any) => t.phase_id === phase.id);
-            const completed = phaseTasks.filter((t: any) => t.status === TASK_STATUS.COMPLETED).length;
+            const phaseTasks = tasks.filter((t: TaskRow) => (t as TaskRow & { phase_id?: string }).phase_id === phase.id);
+            const completed = phaseTasks.filter((t: TaskRow) => t.status === TASK_STATUS.COMPLETED).length;
             const total = phaseTasks.length;
             return {
                 name: `Phase ${phase.order}`,

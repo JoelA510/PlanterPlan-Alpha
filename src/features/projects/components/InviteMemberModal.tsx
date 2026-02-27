@@ -38,16 +38,17 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
         setIsSubmitting(true);
         setError(null);
 
-        let result: any;
+        let result: { error?: string | { message?: string } };
         try {
             if (isEmail) {
                 result = await planter.entities.Project.addMemberByEmail(project.id, userId, role);
             } else {
                 result = await planter.entities.Project.addMember(project.id, userId, role);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const supaErr = err as { code?: string; message?: string };
             console.error('[InviteMemberModal] Exception during invite:', err);
-            if (err.code === '42501' || (err.message && err.message.includes('policy'))) {
+            if (supaErr.code === '42501' || (supaErr.message && supaErr.message.includes('policy'))) {
                 result = { error: 'Access denied: You must be an Owner to manage members.' };
             } else {
                 result = { error: err };

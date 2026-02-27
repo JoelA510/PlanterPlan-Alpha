@@ -28,18 +28,18 @@ vi.mock('sonner', () => ({
 
 // Mock UI components
 vi.mock('@/shared/ui/dialog', () => ({
-    Dialog: ({ open, children }: any) => open ? <div>{children}</div> : null,
-    DialogContent: ({ children }: any) => <div>{children}</div>,
-    DialogHeader: ({ children }: any) => <div>{children}</div>,
-    DialogTitle: ({ children }: any) => <h2>{children}</h2>,
-    DialogFooter: ({ children }: any) => <div>{children}</div>,
+    Dialog: ({ open, children }: { open?: boolean; children?: React.ReactNode }) => open ? <div>{children}</div> : null,
+    DialogContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    DialogHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    DialogTitle: ({ children }: { children?: React.ReactNode }) => <h2>{children}</h2>,
+    DialogFooter: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock('@/shared/ui/dropdown-menu', () => ({
-    DropdownMenu: ({ children }: any) => <div>{children}</div>,
-    DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
-    DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
-    DropdownMenuItem: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
+    DropdownMenu: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    DropdownMenuTrigger: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    DropdownMenuContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    DropdownMenuItem: ({ children, onClick }: { children?: React.ReactNode; onClick?: () => void }) => <button onClick={onClick}>{children}</button>,
 }));
 
 describe('PeopleList', () => {
@@ -49,7 +49,7 @@ describe('PeopleList', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        (planter.entities.Person.filter as any).mockResolvedValue(mockPeople);
+        vi.mocked(planter.entities.Person.filter).mockResolvedValue(mockPeople);
     });
 
     it('renders people list', async () => {

@@ -12,16 +12,15 @@ interface TaskFormState {
 
 interface UseTaskBoardUIProps {
     currentUserId: string | null;
-    createProject: (data: any) => Promise<any>;
-    createTaskOrUpdate: (data: any, state: TaskFormState | null) => Promise<any>;
-    deleteTask: (data: TaskRow) => Promise<any>;
+    createProject: (data: Record<string, unknown>) => Promise<TaskRow>;
+    createTaskOrUpdate: (data: Record<string, unknown>, state: TaskFormState | null) => Promise<TaskRow>;
+    deleteTask: (data: TaskRow) => Promise<void>;
     refreshProjectDetails: (id: string) => void;
     findTask: (id: string) => TaskRow | null;
     activeProjectId?: string | null;
 }
 
 export const useTaskBoardUI = ({
-    currentUserId,
     createProject,
     createTaskOrUpdate,
     deleteTask,
@@ -102,7 +101,7 @@ export const useTaskBoardUI = ({
         setInviteModalProject(project);
     }, []);
 
-    const handleProjectSubmit = async (formData: any) => {
+    const handleProjectSubmit = async (formData: Record<string, unknown>) => {
         setIsSaving(true);
         try {
             await createProject(formData);
@@ -118,7 +117,7 @@ export const useTaskBoardUI = ({
         }
     };
 
-    const handleTaskSubmit = async (formData: any) => {
+    const handleTaskSubmit = async (formData: Record<string, unknown>) => {
         setIsSaving(true);
         try {
             await createTaskOrUpdate(formData, taskFormState);

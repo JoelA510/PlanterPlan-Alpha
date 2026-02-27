@@ -24,7 +24,7 @@ import EditProjectModal from './EditProjectModal';
 import { exportProjectToCSV } from '@/shared/lib/export-utils';
 import { ProjectRow, TaskRow, PersonRow } from '@/shared/db/app.types';
 
-const templateIcons: Record<string, any> = {
+const templateIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   launch_large: Rocket,
   multisite: Building2,
   multiplication: GitBranch,

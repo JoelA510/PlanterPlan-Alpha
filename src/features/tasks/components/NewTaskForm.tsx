@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -69,6 +69,7 @@ const NewTaskForm = ({
 }: NewTaskFormProps) => {
     const isEditMode = Boolean(initialTask);
     const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
+    const prevInitialTaskRef = useRef(initialTask);
 
     const methods = useForm({
         resolver: zodResolver(getTaskSchema(origin)),
@@ -79,8 +80,15 @@ const NewTaskForm = ({
 
     useEffect(() => {
         reset(createInitialState(initialTask));
-        setLastAppliedTaskTitle('');
     }, [initialTask, reset]);
+
+    // Reset applied title when initialTask changes using ref comparison
+    if (prevInitialTaskRef.current !== initialTask) {
+        prevInitialTaskRef.current = initialTask;
+        if (lastAppliedTaskTitle !== '') {
+            setLastAppliedTaskTitle('');
+        }
+    }
 
     const handleApplyFromLibrary = (task: Record<string, unknown>) => {
         if (!task) return;

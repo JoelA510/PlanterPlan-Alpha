@@ -22,7 +22,7 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }: 
         isFetchingMore,
     } = useTaskQuery();
 
-    const templateTasks = tasks.filter((t: any) => t.origin === 'template');
+    const templateTasks = tasks.filter((t) => t.origin === 'template');
 
     const { user } = useAuth(); // Need user for filtering
 

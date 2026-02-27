@@ -13,7 +13,7 @@ export interface CreateProjectPayload {
 
 export interface UpdateProjectPayload {
     projectId: string;
-    updates: Partial<TaskUpdate> & { title?: string; description?: string; start_date?: string; due_date?: string; location?: string; settings?: any };
+    updates: Partial<TaskUpdate> & { title?: string; description?: string; start_date?: string; due_date?: string; location?: string; settings?: Record<string, unknown> };
     oldStartDate?: string | null;
 }
 
@@ -74,7 +74,7 @@ export function useUpdateProject() {
                 settings: updates.settings,
             } as TaskUpdate;
 
-            let batchUpdates: any[] = [];
+            let batchUpdates: Partial<TaskUpdate>[] = [];
             if (newStartDateStr && oldStartDate && newStartDateStr !== oldStartDate) {
                 const { data: projectTasks } = await supabase
                     .from('tasks')

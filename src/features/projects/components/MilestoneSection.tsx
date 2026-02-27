@@ -10,11 +10,19 @@ import { TASK_STATUS } from '@/app/constants/index';
 import TaskItem from '@/features/tasks/components/TaskItem';
 
 import { TaskRow } from '@/shared/db/app.types';
+import type { TaskUpdate } from '@/shared/db/app.types';
+
+interface TaskWithState extends TaskRow {
+  isExpanded?: boolean;
+  isAddingInline?: boolean;
+  children?: TaskWithState[];
+  order?: number;
+}
 
 export interface MilestoneSectionProps {
   milestone: TaskRow;
-  tasks?: any[];
-  onTaskUpdate: (id: string, data: any) => void;
+  tasks?: TaskWithState[];
+  onTaskUpdate: (id: string, data: Partial<TaskUpdate>) => void;
   onAddChildTask?: (parent: TaskRow) => void;
   onTaskClick: (task: TaskRow) => void;
   onInlineCommit?: (parentId: string, title: string) => Promise<void>;

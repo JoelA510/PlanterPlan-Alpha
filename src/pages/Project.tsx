@@ -18,7 +18,7 @@ import MilestoneSection from '@/features/projects/components/MilestoneSection';
 import InviteMemberModal from '@/features/projects/components/InviteMemberModal';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 
-import type { TaskRow } from '@/shared/db/app.types';
+import type { TaskRow, TeamMemberRow } from '@/shared/db/app.types';
 
 export default function Project() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -97,7 +97,7 @@ export default function Project() {
   }, [projectId, queryClient]);
 
   const isOwnerByProject = project?.creator === user?.id;
-  const currentMember = teamMembers?.find((m: any) => m.user_id === user?.id);
+  const currentMember = teamMembers?.find((m: TeamMemberRow) => m.user_id === user?.id);
   const userRole = currentMember?.role || (isOwnerByProject ? ROLES.OWNER : ROLES.VIEWER);
 
   const canEdit = userRole === ROLES.OWNER || userRole === ROLES.ADMIN || userRole === ROLES.EDITOR;
@@ -108,13 +108,13 @@ export default function Project() {
   const activePhase = state.selectedPhase || sortedPhases[0];
 
   const projectMilestones = useMemo(() =>
-    (milestones || []).sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()),
+    (milestones || []).sort((a: TaskRow, b: TaskRow) => new Date(a.due_date || '').getTime() - new Date(b.due_date || '').getTime()),
     [milestones]
   );
 
   const phaseMilestones = projectMilestones
-    .filter((m: any) => m.parent_task_id === activePhase?.id)
-    .sort((a: any, b: any) => (a.position || 0) - (b.position || 0));
+    .filter((m: TaskRow) => m.parent_task_id === activePhase?.id)
+    .sort((a: TaskRow, b: TaskRow) => (a.position || 0) - (b.position || 0));
 
   if (loadingProject || !project) {
     return (
@@ -150,11 +150,11 @@ export default function Project() {
                     {sortedPhases.map((phase) => (
                       <div key={phase.id}>
                         <PhaseCard
-                          phase={phase as any}
-                          tasks={tasks as any}
-                          milestones={milestones.filter((m: any) => m.parent_task_id === phase.id)}
+                          phase={phase}
+                          tasks={tasks}
+                          milestones={milestones.filter((m: TaskRow) => m.parent_task_id === phase.id)}
                           isActive={activePhase?.id === phase.id}
-                          onClick={() => actions.setSelectedPhase(phase as any)}
+                          onClick={() => actions.setSelectedPhase(phase)}
                         />
                       </div>
                     ))}
@@ -184,7 +184,7 @@ export default function Project() {
                           <p className="text-slate-500">No milestones in this phase yet</p>
                         </div>
                       ) : (
-                        phaseMilestones.map((milestone: any) => (
+                        phaseMilestones.map((milestone: TaskRow) => (
                           <MilestoneSection
                             key={milestone.id}
                             milestone={milestone}
@@ -215,16 +215,16 @@ export default function Project() {
         {state.selectedTask && (
           <TaskDetailsPanel
             showForm={false}
-            selectedTask={state.selectedTask as any}
+            selectedTask={state.selectedTask}
             onClose={() => actions.setSelectedTask(null)}
-            onDeleteTaskWrapper={async (taskId: string) => handlers.handleDeleteTask(state.selectedTask as any)}
+            onDeleteTaskWrapper={async () => handlers.handleDeleteTask(state.selectedTask!)}
           />
         )}
       </div>
 
       {state.showInviteModal && (
         <InviteMemberModal
-          project={project as any}
+          project={project}
           onClose={() => actions.setShowInviteModal(false)}
           onInviteSuccess={() => { }}
         />

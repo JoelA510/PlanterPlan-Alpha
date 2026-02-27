@@ -43,7 +43,7 @@ export default function Reports() {
 
   const { data: project } = useQuery({
     queryKey: ['project', projectId],
-    queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res: any) => res[0]),
+    queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res: TaskRow[]) => res[0]),
     enabled: !!projectId,
   });
 
@@ -126,7 +126,7 @@ export default function Reports() {
                     <SelectValue placeholder="Select a project..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {allProjects.map((p: any) => (
+                    {allProjects.map((p: TaskRow) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.title}
                       </SelectItem>
@@ -222,7 +222,7 @@ export default function Reports() {
                           paddingAngle={5}
                           dataKey="value"
                         >
-                          {reports.taskDistribution.map((entry: any, index: number) => (
+                          {reports.taskDistribution.map((_entry: { name: string; value: number }, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -238,7 +238,7 @@ export default function Reports() {
                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                   <h2 className="text-lg font-semibold text-foreground mb-4">Upcoming Deadlines</h2>
                   <div className="space-y-4">
-                    {reports.upcomingDeadlines.map((task: any) => (
+                    {reports.upcomingDeadlines.map((task: { id: string; title: string; project: string; date: string; priority: string }) => (
                       <div key={task.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
                         <div>
                           <h4 className="font-medium text-foreground">{task.title}</h4>

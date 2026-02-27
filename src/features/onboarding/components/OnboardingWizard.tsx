@@ -19,7 +19,7 @@ import { cn } from '@/shared/lib/utils';
 
 interface OnboardingWizardProps {
     open: boolean;
-    onCreateProject: (data: any) => Promise<void>;
+    onCreateProject: (data: { title: string; due_date: string | null; template: string; status: string }) => Promise<void>;
     onDismiss?: () => void;
 }
 

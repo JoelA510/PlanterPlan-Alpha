@@ -1,18 +1,15 @@
-import { useState, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { TASK_STATUS } from '@/app/constants/index';
+import { useState } from 'react';
+
 import {
     useCreateTask,
     useUpdateTask,
     useDeleteTask,
-    useAssignTaskMember
 } from '@/features/tasks/hooks/useTaskMutations';
 
-import type { TaskRow, PersonRow } from '@/shared/db/app.types';
+import { toast } from 'sonner';
+import type { TaskRow, TaskUpdate } from '@/shared/db/app.types';
 
 export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] = []) {
-    const queryClient = useQueryClient();
 
     const [activeTab, setActiveTab] = useState('board');
     const [selectedPhase, setSelectedPhase] = useState<TaskRow | null>(null);
@@ -23,10 +20,9 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
 
     const _updateTask = useUpdateTask();
     const _deleteTask = useDeleteTask();
-    const _assignMember = useAssignTaskMember();
     const _createTask = useCreateTask();
 
-    const handleTaskUpdate = (taskId: string, data: any) => {
+    const handleTaskUpdate = (taskId: string, data: Partial<TaskUpdate>) => {
         _updateTask.mutate({ id: taskId, ...data, root_id: projectId }, {
             onError: (error: Error) => {
                 toast.error('Failed to update task', { description: error.message });
@@ -45,7 +41,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
         });
     };
 
-    const mapTaskWithState = (task: TaskRow): any => ({
+    const mapTaskWithState = (task: TaskRow): TaskRow & { isExpanded: boolean; isAddingInline: boolean; children: ReturnType<typeof mapTaskWithState>[] } => ({
         ...task,
         isExpanded: expandedTaskIds.has(task.id) || inlineAddingParentId === task.id,
         isAddingInline: inlineAddingParentId === task.id,
@@ -72,7 +68,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
                 description: '',
             });
             setInlineAddingParentId(null);
-        } catch (e) {
+        } catch {
             toast.error('Failed to create task');
         }
     };

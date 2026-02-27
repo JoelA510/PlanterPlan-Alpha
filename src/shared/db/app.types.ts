@@ -12,6 +12,7 @@ export type TaskUpdate = Database['public']['Tables']['tasks']['Update'];
 // Aliases for better DX
 export type Task = TaskRow;
 export type Project = TaskRow;
+export type ProjectRow = TaskRow;
 
 // ----------------------------------------------------------------------------
 // People

@@ -9,11 +9,11 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
-import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight, Moon, Sun } from 'lucide-react';
-import { planter } from '@/shared/api/planterClient';
+import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight } from 'lucide-react';
+
 import { useUser } from '@/features/auth/hooks/useUser';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useTheme } from '@/app/contexts/ThemeContext';
+
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -23,7 +23,7 @@ interface HeaderProps {
 export default function Header({ onMenuToggle, showMenuButton = false }: HeaderProps) {
   const { data: user } = useUser();
   const location = useLocation();
-  const { resolvedTheme, toggleTheme } = useTheme();
+
 
   // Simple Breadcrumb Logic
   const pathSegments = location.pathname.split('/').filter(Boolean);

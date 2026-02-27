@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { planter } from '@/shared/api/planterClient';
+import type { TaskRow } from '@/shared/db/app.types';
 
 export function useUserProjects() {
     const { user } = useAuth();
@@ -16,11 +17,11 @@ export function useUserProjects() {
             const projectMap = new Map();
 
             if (owned && Array.isArray(owned)) {
-                owned.forEach((p: any) => projectMap.set(p.id, p));
+                owned.forEach((p: TaskRow) => projectMap.set(p.id, p));
             }
 
             if (joined && Array.isArray(joined)) {
-                joined.forEach((p: any) => projectMap.set(p.id, p));
+                joined.forEach((p: TaskRow) => projectMap.set(p.id, p));
             }
 
             return Array.from(projectMap.values());

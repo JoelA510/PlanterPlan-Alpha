@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { planter } from '@/shared/api/planterClient';
@@ -9,7 +9,7 @@ const PAGE_SIZE = 20;
 export const useTaskQuery = () => {
     const { user: authUser } = useAuth();
     const currentUserId = authUser?.id || null;
-    const queryClient = useQueryClient();
+
 
     // 1. Fetch Paginated User Projects (Instances)
     const {
@@ -85,27 +85,7 @@ export const useTaskQuery = () => {
         return null;
     };
 
-    const refreshProjectDetails = async () => {
-        // In a real strict RQ setup, we'd invalidate the specific query key.
-        // For now, to satisfy the old API:
-        await refetchProjects();
-    };
 
-    const fetchTasks = async () => {
-        await refetchProjects();
-    };
-
-    const fetchProjects = async () => {
-        await refetchProjects();
-    };
-
-    // React Query handles state, so setTasks is a no-op just to satisfy the old signature
-    // before we delete useTaskOperations entirely.
-    const setTasks = () => { };
-
-    const commitOptimisticUpdate = async () => {
-        await refetchProjects();
-    };
 
     const loading = isLoadingProjects || isLoadingTemplates || (!joinedProjects && isLoadingJoined);
     const error = projectsError ? (projectsError as Error).message : null;

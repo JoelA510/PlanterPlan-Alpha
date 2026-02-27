@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
@@ -8,6 +8,11 @@ import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection'
 import { planter } from '@/shared/api/planterClient';
 import { Loader2 } from 'lucide-react';
 import StatusPieChart from '@/features/reports/components/StatusPieChart';
+import type { TaskRow } from '@/shared/db/app.types';
+
+interface ProjectWithChildren extends TaskRow {
+    children?: TaskRow[];
+}
 
 const ProjectReport: React.FC = () => {
     const { projectId: urlProjectId } = useParams<{ projectId: string }>();
@@ -25,15 +30,15 @@ const ProjectReport: React.FC = () => {
         isFetchingMore,
         loadMoreProjects,
         refetchProjects,
-    } = useTaskQuery() as any;
+    } = useTaskQuery() as Record<string, unknown>;
 
     const fetchProjectDetails = () => refetchProjects();
 
     // 2. Project Selection Layer (Sidebar sync)
-    const { activeProjectId, handleSelectProject } = useProjectSelection({
+    const { handleSelectProject } = useProjectSelection({
         urlProjectId,
-        instanceTasks: useMemo(() => tasks.filter((t: any) => t.origin === 'instance'), [tasks]),
-        templateTasks: useMemo(() => tasks.filter((t: any) => t.origin === 'template'), [tasks]),
+        instanceTasks: ((tasks as TaskRow[]) || []).filter((t: TaskRow) => t.origin === 'instance'),
+        templateTasks: ((tasks as TaskRow[]) || []).filter((t: TaskRow) => t.origin === 'template'),
         joinedProjects,
         hydratedProjects,
         fetchProjectDetails,
@@ -41,14 +46,14 @@ const ProjectReport: React.FC = () => {
     });
 
     // Derived lists for sidebar
-    const instanceTasks = useMemo(() => tasks.filter((t: any) => t.origin === 'instance'), [tasks]);
-    const templateTasks = useMemo(() => tasks.filter((t: any) => t.origin === 'template'), [tasks]);
+    const instanceTasks = ((tasks as TaskRow[]) || []).filter((t: TaskRow) => t.origin === 'instance');
+    const templateTasks = ((tasks as TaskRow[]) || []).filter((t: TaskRow) => t.origin === 'template');
 
     const handleOpenInvite = () => { };
     const handleAddChildTask = () => { };
 
     // Fetch project details specifically for the report
-    const [project, setProject] = useState<any>(null);
+    const [project, setProject] = useState<ProjectWithChildren | null>(null);
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -108,13 +113,13 @@ const ProjectReport: React.FC = () => {
                                     <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
                                         <div className="text-muted-foreground text-sm mb-1">Completed</div>
                                         <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                                            {project.children?.filter((t: any) => t.is_complete).length || 0}
+                                            {project.children?.filter((t: TaskRow) => t.is_complete).length || 0}
                                         </div>
                                     </div>
                                     <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
                                         <div className="text-muted-foreground text-sm mb-1">Pending</div>
                                         <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                                            {project.children?.filter((t: any) => !t.is_complete).length || 0}
+                                            {project.children?.filter((t: TaskRow) => !t.is_complete).length || 0}
                                         </div>
                                     </div>
                                 </div>

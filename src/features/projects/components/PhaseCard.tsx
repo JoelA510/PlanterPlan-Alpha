@@ -8,7 +8,7 @@ import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/app/constants/index';
 import type { TaskRow } from '@/shared/db/app.types';
 
-const phaseColors: Record<number, any> = {
+const phaseColors: Record<number, { bg: string; light: string; text: string; border: string }> = {
   1: {
     bg: 'bg-brand-500',
     light: 'bg-brand-50 dark:bg-brand-950/30',
