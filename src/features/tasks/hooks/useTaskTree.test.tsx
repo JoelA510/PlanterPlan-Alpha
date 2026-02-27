@@ -1,17 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useTaskTree } from './useTaskTree';
 
-// Mock helpers if complex, but they are pure functions, so we can rely on real logic or simple mocks if separateTasksByOrigin is complex.
-// Since separateTasksByOrigin is imported, let's mock it to control inputs.
-import { separateTasksByOrigin } from '@/shared/lib/viewHelpers';
-import { buildTree } from '@/shared/lib/treeHelpers';
+// Mock helpers from their new consolidated location
+import { separateTasksByOrigin, buildTree } from '@/shared/lib/tree-helpers';
 
-vi.mock('@/shared/lib/viewHelpers', () => ({
+vi.mock('@/shared/lib/tree-helpers', () => ({
     separateTasksByOrigin: vi.fn(),
-}));
-
-vi.mock('@/shared/lib/treeHelpers', () => ({
     buildTree: vi.fn(),
 }));
 

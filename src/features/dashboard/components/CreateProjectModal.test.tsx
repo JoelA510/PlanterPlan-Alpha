@@ -115,11 +115,11 @@ describe('CreateProjectModal', () => {
                 expect(mockOnCreate).toHaveBeenCalledTimes(1);
             });
 
-            // CRITICAL ASSERTION: Verify `title` field is present (not `name`)
+            // CRITICAL ASSERTION: Verify `name` field is present (component uses `name`, not legacy `title`)
             const calledWith = mockOnCreate.mock.calls[0][0];
-            expect(calledWith).toHaveProperty('title', 'Test Church Plant');
-            expect(calledWith).toHaveProperty('due_date'); // Ensure date is passed
-            expect(calledWith).not.toHaveProperty('name'); // Should NOT have legacy field
+            expect(calledWith).toHaveProperty('name', 'Test Church Plant');
+            expect(calledWith).toHaveProperty('launch_date'); // Ensure date is passed
+            expect(calledWith).not.toHaveProperty('title'); // Should NOT have legacy field
         });
 
         it('maps template to templateId correctly', async () => {

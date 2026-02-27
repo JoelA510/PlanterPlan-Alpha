@@ -1,28 +1,34 @@
 import { useState, useMemo, useCallback } from 'react';
-import { buildTree } from '@/shared/lib/treeHelpers';
-import { separateTasksByOrigin } from '@/shared/lib/viewHelpers';
+import { buildTree, separateTasksByOrigin } from '@/shared/lib/tree-helpers';
+import type { TaskRow as Task } from '@/shared/db/app.types';
+import type { TaskNode } from '@/shared/lib/tree-helpers';
+
+export interface UseTaskTreeParams {
+    tasks: Task[];
+    hydratedProjects: Record<string, Task[]>;
+    activeProjectId: string | null;
+    joinedProjects?: Task[];
+}
+
+export interface UseTaskTreeReturn {
+    instanceTasks: Task[];
+    templateTasks: Task[];
+    activeProject: (Task & { children: TaskNode[]; isExpanded: boolean }) | null;
+    expandedTaskIds: Set<string>;
+    handleToggleExpand: (task: { id: string }, expanded: boolean) => void;
+}
 
 /**
  * useTaskTree
  * 
  * Manages the hierarchical structure of tasks for a project.
- * Handles:
- * 1. Filtering tasks by origin (Instance vs Template)
- * 2. Building the visual tree for the active project
- * 3. Managing local expansion state (open/close folders)
- * 
- * @param {Object} params
- * @param {Array} params.tasks - Root tasks
- * @param {Object} params.hydratedProjects - Map of projectId -> flatted subtasks
- * @param {String} params.activeProjectId - Currently selected project ID
- * @param {Array} params.joinedProjects - Projects the user is a member of
  */
 export const useTaskTree = ({
     tasks,
     hydratedProjects,
     activeProjectId,
     joinedProjects = []
-}) => {
+}: UseTaskTreeParams): UseTaskTreeReturn => {
     // --- Local UI State ---
     const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
 

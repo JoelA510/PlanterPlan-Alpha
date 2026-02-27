@@ -6,7 +6,7 @@ export const PROJECT_TYPES = ['primary', 'secondary'];
 
 // Extracted from CreateProjectModal.jsx
 export const projectSchema = z.object({
-    title: z.string().min(3, 'Project name must be at least 3 characters'),
+    name: z.string().min(3, 'Project name must be at least 3 characters'),
     description: z.string().optional(),
     template: z.string().min(1, 'Please select a template'),
     launch_date: z.date({

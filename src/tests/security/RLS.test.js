@@ -21,7 +21,25 @@ if (!shouldRun) {
     console.warn('Skipping Authenticated RLS tests: Missing TEST_USER_EMAIL or TEST_USER_PASSWORD');
 }
 
-describe.runIf(shouldRun)('Security: RLS & Access Control', () => {
+// Connectivity Check: Verify that the Supabase schema is accessible.
+// If the local instance is down or the schema cache is empty,
+// we get PGRST205 errors which are not RLS failures.
+let schemaAvailable = true;
+if (shouldRun) {
+    const checkerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    try {
+        const { error } = await checkerClient.from('tasks').select('id').limit(0);
+        if (error && error.code === 'PGRST205') {
+            console.warn(`Skipping RLS tests: Schema not available (${error.message})`);
+            schemaAvailable = false;
+        }
+    } catch {
+        console.warn('Skipping RLS tests: Supabase instance unreachable');
+        schemaAvailable = false;
+    }
+}
+
+describe.runIf(shouldRun && schemaAvailable)('Security: RLS & Access Control', () => {
     let anonClient;
 
     beforeAll(() => {
