@@ -1,7 +1,7 @@
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Authentication Flow', () => {
+test.describe('Authentication Flow VERIFIED', () => {
 
     const fakeUser = {
         id: 'auth-user-id',
@@ -22,7 +22,7 @@ test.describe('Authentication Flow', () => {
     };
 
     test.beforeEach(async ({ page }) => {
-        page.on('console', msg => console.log(`[Browser] ${msg.text()}`));
+        page.on('console', msg => console.log(`[Browser] \${msg.text()}`));
         // Mock Supabase Auth Endpoints
         await page.route('**/auth/v1/user', async route => {
             await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeUser) });

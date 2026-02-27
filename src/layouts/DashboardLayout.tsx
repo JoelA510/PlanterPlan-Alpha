@@ -28,7 +28,7 @@ export default function DashboardLayout({ sidebar }: { sidebar?: React.ReactNode
         <CommandPalette projects={projects || []} />
         <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} showMenuButton={true} />
 
-        <div
+        <aside
           className={cn(
             'fixed top-16 left-0 bottom-0 w-64 bg-card border-r border-border z-40 transition-transform duration-300 lg:translate-x-0 shadow-lg lg:shadow-none',
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -44,11 +44,11 @@ export default function DashboardLayout({ sidebar }: { sidebar?: React.ReactNode
               selectedTaskId={projectId}
             />
           )}
-        </div>
+        </aside>
         {/* Mobile Overlay for Sidebar */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-slate-900/50 dark:bg-black/60 z-40 lg:hidden"
+            className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
