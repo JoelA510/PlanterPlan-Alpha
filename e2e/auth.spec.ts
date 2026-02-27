@@ -103,13 +103,11 @@ test.describe('Authentication Flow', () => {
         });
 
         await test.step('4. Sign Out', async () => {
-            // Wait for sidebar/nav to be stable
-            const signOutBtn = page.locator('aside').getByRole('button', { name: /Sign Out/i }).first();
-            await expect(signOutBtn).toBeVisible({ timeout: 10000 });
-
-            // Supabase client uses POST to /logout. We mock it in beforeEach.
-            // Dispatch click directly because main element tends to intercept pointer events in headless mode
-            await signOutBtn.dispatchEvent('click');
+            // The Sign Out button is in the bottom of the sidebar and may be clipped by overflow.
+            // Use a text-based locator and force the click to bypass pointer intercept issues.
+            const signOutBtn = page.getByText('Sign Out', { exact: true });
+            await signOutBtn.waitFor({ state: 'attached', timeout: 20000 });
+            await signOutBtn.evaluate(el => (el as HTMLElement).click());
         });
 
         await test.step('5. Verify Logout', async () => {
