@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/db/client';
 import { retry } from '../lib/retry.js';
+import { calculateMinMaxDates } from '../lib/date-engine/index';
 import type { Database } from '@/shared/db/database.types';
 import type {
   Project,
@@ -504,25 +505,11 @@ export const planter = {
         if (!parentId) return;
         try {
           const children = await planter.entities.Task.filter({ parent_task_id: parentId });
-
-          let start_date: string | null = null;
-          let due_date: string | null = null;
-
-          if (children && children.length > 0) {
-            const validStarts = children.map(t => new Date(t.start_date || '')).filter(d => !isNaN(d.getTime()));
-            const validEnds = children.map(t => new Date(t.due_date || '')).filter(d => !isNaN(d.getTime()));
-
-            if (validStarts.length > 0) {
-              start_date = new Date(Math.min(...validStarts.map(d => d.getTime()))).toISOString().split('T')[0];
-            }
-            if (validEnds.length > 0) {
-              due_date = new Date(Math.max(...validEnds.map(d => d.getTime()))).toISOString().split('T')[0];
-            }
-          }
+          const { start_date, due_date } = calculateMinMaxDates(children || []);
 
           const parent = await planter.entities.Task.update(parentId, {
-            start_date,
-            due_date,
+            start_date: start_date ?? null,
+            due_date: due_date ?? null,
             updated_at: new Date().toISOString(),
           } as TaskUpdate);
 
