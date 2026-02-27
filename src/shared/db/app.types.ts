@@ -27,3 +27,31 @@ export type PersonUpdate = Database['public']['Tables']['people']['Update'];
 export type TaskResourceRow = Database['public']['Tables']['task_resources']['Row'];
 export type TaskRelationshipRow = Database['public']['Tables']['task_relationships']['Row'];
 export type TeamMemberRow = Database['public']['Tables']['project_members']['Row'];
+
+// ----------------------------------------------------------------------------
+// Form Payloads (mirror Zod schemas in NewProjectForm / NewTaskForm)
+// ----------------------------------------------------------------------------
+
+/** Shape emitted by the NewProjectForm Zod schema. */
+export interface CreateProjectFormData {
+    title: string;
+    description?: string;
+    purpose?: string;
+    actions?: string;
+    notes?: string;
+    start_date: string;
+    templateId?: string | null;
+}
+
+/** Shape emitted by the NewTaskForm Zod schema. */
+export interface TaskFormData {
+    title: string;
+    description?: string | null;
+    notes?: string | null;
+    purpose?: string | null;
+    actions?: string | null;
+    days_from_start?: number;
+    start_date?: string | null;
+    due_date?: string | null;
+    templateId?: string | null;
+}

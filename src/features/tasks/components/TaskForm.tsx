@@ -1,11 +1,12 @@
 import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
 import TaskFormFields from '@/features/tasks/components/TaskFormFields';
 import { FormEventHandler } from 'react';
+import type { TaskRow } from '@/shared/db/app.types';
 
 export interface TaskFormProps {
     isSubmitting?: boolean;
-    initialData?: Record<string, unknown>; // If initialData exists, mode = 'edit', else 'create'
-    handleApplyFromLibrary?: (task: Record<string, unknown>) => void;
+    initialData?: Partial<TaskRow>; // If initialData exists, mode = 'edit', else 'create'
+    handleApplyFromLibrary?: (task: Partial<TaskRow>) => void;
     lastAppliedTaskTitle?: string;
     handleSubmit: FormEventHandler<HTMLFormElement>;
     onCancel: () => void;

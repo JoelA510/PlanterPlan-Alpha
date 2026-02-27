@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { TaskRow } from '@/shared/db/app.types';
+import type { TaskRow, CreateProjectFormData, TaskFormData } from '@/shared/db/app.types';
 import NewProjectForm from '@/features/projects/components/NewProjectForm';
 import NewTaskForm from '@/features/tasks/components/NewTaskForm';
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
@@ -35,8 +35,8 @@ export interface TaskDetailsPanelProps {
     taskBeingEdited?: TaskRow;
     parentTaskForForm?: TaskRow;
     onClose: () => void;
-    handleProjectSubmit?: (data: Record<string, unknown>) => Promise<void>;
-    handleTaskSubmit?: (data: Record<string, unknown>) => Promise<void>;
+    handleProjectSubmit?: (data: CreateProjectFormData) => Promise<void>;
+    handleTaskSubmit?: (data: TaskFormData) => Promise<void>;
     setTaskFormState?: (state: { mode?: string; origin?: string } | null) => void;
     handleAddChildTask?: (task: TaskRow) => void;
     handleEditTask?: (task: TaskRow) => void;

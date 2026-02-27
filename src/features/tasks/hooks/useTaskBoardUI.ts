@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
-import { TaskRow } from '@/shared/db/app.types';
+import { TaskRow, CreateProjectFormData, TaskFormData } from '@/shared/db/app.types';
 
 interface TaskFormState {
     mode: 'create' | 'edit';
@@ -12,8 +12,8 @@ interface TaskFormState {
 
 interface UseTaskBoardUIProps {
     currentUserId: string | null;
-    createProject: (data: Record<string, unknown>) => Promise<TaskRow>;
-    createTaskOrUpdate: (data: Record<string, unknown>, state: TaskFormState | null) => Promise<TaskRow>;
+    createProject: (data: CreateProjectFormData) => Promise<TaskRow>;
+    createTaskOrUpdate: (data: TaskFormData, state: TaskFormState | null) => Promise<TaskRow>;
     deleteTask: (data: TaskRow) => Promise<void>;
     refreshProjectDetails: (id: string) => void;
     findTask: (id: string) => TaskRow | null;
@@ -101,7 +101,7 @@ export const useTaskBoardUI = ({
         setInviteModalProject(project);
     }, []);
 
-    const handleProjectSubmit = async (formData: Record<string, unknown>) => {
+    const handleProjectSubmit = async (formData: CreateProjectFormData) => {
         setIsSaving(true);
         try {
             await createProject(formData);
@@ -117,7 +117,7 @@ export const useTaskBoardUI = ({
         }
     };
 
-    const handleTaskSubmit = async (formData: Record<string, unknown>) => {
+    const handleTaskSubmit = async (formData: TaskFormData) => {
         setIsSaving(true);
         try {
             await createTaskOrUpdate(formData, taskFormState);

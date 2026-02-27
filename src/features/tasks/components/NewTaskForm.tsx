@@ -3,6 +3,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import TaskForm from '@/features/tasks/components/TaskForm';
+import type { TaskFormData, TaskRow } from '@/shared/db/app.types';
 
 const extractDateInput = (value?: string | null) => {
     if (!value) return '';
@@ -33,7 +34,7 @@ const getTaskSchema = (origin: 'instance' | 'template') => z.object({
     path: ['due_date']
 });
 
-const createInitialState = (task?: Record<string, unknown> | null) => ({
+const createInitialState = (task?: Partial<TaskRow> | null) => ({
     title: task?.title ?? '',
     description: task?.description ?? '',
     notes: task?.notes ?? '',
@@ -49,10 +50,10 @@ const createInitialState = (task?: Record<string, unknown> | null) => ({
 });
 
 export interface NewTaskFormProps {
-    onSubmit: (data: Record<string, unknown>) => Promise<void>;
+    onSubmit: (data: TaskFormData) => Promise<void>;
     onCancel: () => void;
     parentTask?: { title: string } | null;
-    initialTask?: Record<string, unknown> | null;
+    initialTask?: Partial<TaskRow> | null;
     origin?: 'instance' | 'template';
     submitLabel?: string;
     enableLibrarySearch?: boolean;
@@ -90,7 +91,7 @@ const NewTaskForm = ({
         }
     }
 
-    const handleApplyFromLibrary = (task: Record<string, unknown>) => {
+    const handleApplyFromLibrary = (task: Partial<TaskRow>) => {
         if (!task) return;
         setValue('title', task.title || '', { shouldValidate: true });
         setValue('description', task.description || '', { shouldValidate: true });
@@ -104,7 +105,7 @@ const NewTaskForm = ({
         setLastAppliedTaskTitle(task.title);
     };
 
-    const handleFormSubmit = async (data: Record<string, unknown>) => {
+    const handleFormSubmit = async (data: TaskFormData) => {
         try {
             await onSubmit(data);
             if (!isEditMode) {
