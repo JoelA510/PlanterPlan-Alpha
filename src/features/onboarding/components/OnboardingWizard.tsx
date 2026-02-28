@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { Loader2, ArrowRight, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Calendar } from '@/shared/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
-import { format } from 'date-fns';
+import { formatDate } from '@/shared/lib/date-engine';
 import { cn } from '@/shared/lib/utils';
 
 interface OnboardingWizardProps {
@@ -42,7 +42,7 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
         try {
             await onCreateProject({
                 title: formData.name,
-                due_date: formData.launchDate ? format(formData.launchDate, 'yyyy-MM-dd') : null,
+                due_date: formData.launchDate ? formatDate(formData.launchDate, 'yyyy-MM-dd') : null,
                 template: formData.template, // Correctly passing the ID
                 status: 'planning'
             });
@@ -113,7 +113,7 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
                                             )}
                                         >
                                             <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {formData.launchDate ? format(formData.launchDate, "PPP") : "Pick a date"}
+                                            {formData.launchDate ? formatDate(formData.launchDate, "PPP") : "Pick a date"}
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0" align="start">

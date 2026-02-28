@@ -3,7 +3,7 @@ import { createPageUrl } from '@/shared/lib/utils';
 import { Card } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { Progress } from '@/shared/ui/progress';
-import { format } from 'date-fns';
+import { formatDate } from '@/shared/lib/date-engine';
 import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch, FolderKanban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
@@ -71,7 +71,7 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps
             {project.launch_date && (
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
-                <span>{format(new Date(project.launch_date), 'MMM d, yyyy')}</span>
+                <span>{formatDate(project.launch_date, 'MMM d, yyyy')}</span>
               </div>
             )}
             <div className="flex items-center gap-1.5">

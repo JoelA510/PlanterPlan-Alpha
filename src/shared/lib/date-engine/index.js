@@ -1,6 +1,102 @@
+import {
+  format,
+  addDays,
+  differenceInCalendarDays,
+  parseISO,
+  isValid,
+  isPast,
+  isToday
+} from 'date-fns';
+
 /**
  * Date Engine - Single Source of Truth for PlanterPlan Date Logic
  */
+
+/**
+ * Formats a date using a specified format string.
+ * @param {string|Date} date
+ * @param {string} formatStr
+ * @returns {string}
+ */
+export const formatDate = (date, formatStr) => {
+  if (!date) return '';
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  if (!isValid(d)) return '';
+  return format(d, formatStr);
+};
+
+/**
+ * Checks if a date is in the past (excluding today).
+ * @param {string|Date} date
+ * @returns {boolean}
+ */
+export const isPastDate = (date) => {
+  if (!date) return false;
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  if (!isValid(d)) return false;
+  return isPast(d) && !isToday(d);
+};
+
+/**
+ * Checks if a date is today.
+ * @param {string|Date} date
+ * @returns {boolean}
+ */
+export const isTodayDate = (date) => {
+  if (!date) return false;
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  if (!isValid(d)) return false;
+  return isToday(d);
+};
+
+/**
+ * Adds days to a date.
+ * @param {string|Date} date
+ * @param {number} amount
+ * @returns {Date|null}
+ */
+export const addDaysToDate = (date, amount) => {
+  if (!date) return null;
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  if (!isValid(d)) return null;
+  return addDays(d, amount);
+};
+
+/**
+ * Gets calendar days difference between two dates.
+ * @param {string|Date} dateLeft
+ * @param {string|Date} dateRight
+ * @returns {number|null}
+ */
+export const getDaysDifference = (dateLeft, dateRight) => {
+  if (!dateLeft || !dateRight) return null;
+  const dl = typeof dateLeft === 'string' ? parseISO(dateLeft) : dateLeft;
+  const dr = typeof dateRight === 'string' ? parseISO(dateRight) : dateRight;
+  if (!isValid(dl) || !isValid(dr)) return null;
+  return differenceInCalendarDays(dl, dr);
+};
+
+/**
+ * Validates a date input.
+ * @param {string|Date} date
+ * @returns {boolean}
+ */
+export const isDateValid = (date) => {
+  if (!date) return false;
+  const d = typeof date === 'string' ? parseISO(date) : date;
+  return isValid(d);
+};
+
+/**
+ * Safe parseISO wrapper.
+ * @param {string} dateStr
+ * @returns {Date|null}
+ */
+export const parseIsoDate = (dateStr) => {
+  if (!dateStr) return null;
+  const d = parseISO(dateStr);
+  return isValid(d) ? d : null;
+};
 
 /**
  * Find a task by ID in a flat list

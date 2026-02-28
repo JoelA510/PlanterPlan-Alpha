@@ -1,4 +1,4 @@
-import { addDays, differenceInCalendarDays, parseISO, isValid, format } from 'date-fns';
+import { addDaysToDate, getDaysDifference, formatDate, parseIsoDate, isDateValid } from '@/shared/lib/date-engine';
 
 /**
  * Returns a flat list of all descendant tasks for a given root task ID.
@@ -43,12 +43,12 @@ export const getDescendants = (allTasks, rootId) => {
 export const calculateDateDeltas = (allTasks, rootId, oldDate, newDate) => {
     if (!oldDate || !newDate) return [];
 
-    const oldD = typeof oldDate === 'string' ? parseISO(oldDate) : oldDate;
-    const newD = typeof newDate === 'string' ? parseISO(newDate) : newDate;
+    const oldD = typeof oldDate === 'string' ? parseIsoDate(oldDate) : oldDate;
+    const newD = typeof newDate === 'string' ? parseIsoDate(newDate) : newDate;
 
-    if (!isValid(oldD) || !isValid(newD)) return [];
+    if (!oldD || !newD) return [];
 
-    const diffDays = differenceInCalendarDays(newD, oldD);
+    const diffDays = getDaysDifference(newD, oldD);
     if (diffDays === 0) return [];
 
     const descendants = getDescendants(allTasks, rootId);
@@ -56,12 +56,12 @@ export const calculateDateDeltas = (allTasks, rootId, oldDate, newDate) => {
 
     for (const task of descendants) {
         if (task.start_date) {
-            const currentTaskDate = typeof task.start_date === 'string' ? parseISO(task.start_date) : task.start_date;
-            if (isValid(currentTaskDate)) {
-                const newDescendantDate = addDays(currentTaskDate, diffDays);
+            const currentTaskDate = typeof task.start_date === 'string' ? parseIsoDate(task.start_date) : task.start_date;
+            if (currentTaskDate) {
+                const newDescendantDate = addDaysToDate(currentTaskDate, diffDays);
                 updates.push({
                     id: task.id,
-                    start_date: format(newDescendantDate, 'yyyy-MM-dd')
+                    start_date: formatDate(newDescendantDate, 'yyyy-MM-dd')
                 });
             }
         }

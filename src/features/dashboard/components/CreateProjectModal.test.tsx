@@ -23,12 +23,17 @@ vi.mock('@/shared/api/planterClient', () => ({
     },
 }));
 
-// Mock date-fns format to avoid date issues in tests
-vi.mock('date-fns', async () => {
-    const actual = await vi.importActual('date-fns');
+// Mock date-engine formatDate to avoid date issues in tests
+vi.mock('@/shared/lib/date-engine', async () => {
+    const actual = await vi.importActual('@/shared/lib/date-engine');
     return {
         ...actual,
-        format: vi.fn((date) => date?.toISOString?.() || 'Mocked Date'),
+        formatDate: vi.fn((date) => {
+            if (!date) return '';
+            // Handle different date formats for consistency in tests
+            const d = typeof date === 'string' ? new Date(date) : date;
+            return d?.toISOString?.() || 'Mocked Date';
+        }),
     };
 });
 

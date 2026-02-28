@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { updateTasksBatch } from '../lib/positionService';
 import { calculateDropTarget } from '../lib/dragDropUtils';
 import { calculateDateDeltas } from '../lib/dateInheritance';
-import { addDays, differenceInCalendarDays, parseISO, isValid, format } from 'date-fns';
+import { addDaysToDate, getDaysDifference, formatDate, parseIsoDate, isDateValid } from '@/shared/lib/date-engine';
 import { toast } from '@/shared/ui/use-toast';
 
 export const useTaskDrag = ({ tasks, setTasks, fetchTasks, updateTaskStatus, handleOptimisticUpdate, commitOptimisticUpdate }) => {
@@ -82,16 +82,16 @@ export const useTaskDrag = ({ tasks, setTasks, fetchTasks, updateTaskStatus, han
           // Cascade only if both parents exist and have valid dates
           // (If moving from Root or to Root, we skip cascade for now as Root isn't a task)
           if (oldParent?.start_date && newParent?.start_date && activeTask.start_date) {
-            const oldPD = parseISO(oldParent.start_date);
-            const newPD = parseISO(newParent.start_date);
-            const activeD = parseISO(activeTask.start_date);
+            const oldPD = parseIsoDate(oldParent.start_date);
+            const newPD = parseIsoDate(newParent.start_date);
+            const activeD = parseIsoDate(activeTask.start_date);
 
-            if (isValid(oldPD) && isValid(newPD) && isValid(activeD)) {
-              const diffDays = differenceInCalendarDays(newPD, oldPD);
+            if (oldPD && newPD && activeD) {
+              const diffDays = getDaysDifference(newPD, oldPD);
               if (diffDays !== 0) {
                 // Calculate new date for the active task itself
-                const calculatedDate = addDays(activeD, diffDays);
-                newActiveDate = format(calculatedDate, 'yyyy-MM-dd');
+                const calculatedDate = addDaysToDate(activeD, diffDays);
+                newActiveDate = formatDate(calculatedDate, 'yyyy-MM-dd');
 
                 // Calculate updates for all descendants based on the active task's shift
                 // Pass activeTask.start_date as oldDate and newActiveDate as newDate

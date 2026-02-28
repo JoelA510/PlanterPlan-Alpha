@@ -4,7 +4,7 @@ import { createPageUrl } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
 import { Progress } from '@/shared/ui/progress';
-import { format } from 'date-fns';
+import { formatDate } from '@/shared/lib/date-engine';
 import {
   ArrowLeft,
   Calendar,
@@ -136,7 +136,7 @@ export default function ProjectHeader({
             {project.due_date && (
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-slate-400" />
-                <span>Launch: {format(new Date(project.due_date), 'MMM d, yyyy')}</span>
+                <span>Launch: {formatDate(project.due_date, 'MMM d, yyyy')}</span>
               </div>
             )}
             <Users className="w-4 h-4 text-slate-400" />

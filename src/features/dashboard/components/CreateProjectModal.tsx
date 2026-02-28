@@ -25,7 +25,7 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { Calendar } from '@/shared/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
-import { format } from 'date-fns';
+import { formatDate } from '@/shared/lib/date-engine';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PROJECT_STATUS } from '@/app/constants/index';
 import { z } from 'zod';
@@ -385,7 +385,7 @@ export default function CreateProjectModal({ mode = 'project', open, onClose, on
                                                     )}
                                                 >
                                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {formData.launch_date ? format(formData.launch_date, 'PPP') : 'Pick a date'}
+                                                    {formData.launch_date ? formatDate(formData.launch_date, 'PPP') : 'Pick a date'}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
