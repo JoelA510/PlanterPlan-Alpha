@@ -1,8 +1,12 @@
 import { z } from 'zod';
 
-export const TASK_STATUS = ['todo', 'in_progress', 'completed', 'blocked'];
-export const TASK_PRIORITY = ['low', 'medium', 'high'];
-export const TASK_ORIGIN = ['instance', 'template'];
+export const TASK_STATUS = ['todo', 'in_progress', 'completed', 'blocked'] as const;
+export const TASK_PRIORITY = ['low', 'medium', 'high'] as const;
+export const TASK_ORIGIN = ['instance', 'template'] as const;
+
+export type TaskStatusEnum = (typeof TASK_STATUS)[number];
+export type TaskPriorityEnum = (typeof TASK_PRIORITY)[number];
+export type TaskOriginEnum = (typeof TASK_ORIGIN)[number];
 
 export const taskSchema = z.object({
     milestone_id: z.string().uuid().optional(),
@@ -26,7 +30,24 @@ export const taskSchema = z.object({
     notes: z.string().optional(),
 });
 
-export const taskJsonSchema = {
+export type TaskSchemaType = z.infer<typeof taskSchema>;
+
+interface JsonSchemaProperty {
+    type: string;
+    description?: string;
+    enum?: readonly string[];
+    default?: string | number | boolean;
+    format?: string;
+}
+
+interface JsonSchema {
+    name: string;
+    type: string;
+    properties: Record<string, JsonSchemaProperty>;
+    required: string[];
+}
+
+export const taskJsonSchema: JsonSchema = {
     name: 'Task',
     type: 'object',
     properties: {

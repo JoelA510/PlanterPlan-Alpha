@@ -2,15 +2,23 @@ import { useEffect } from 'react';
 import { supabase } from '@/shared/db/client';
 import { useAuth } from '@/app/contexts/AuthContext';
 
+interface SeedAuthEventDetail {
+    session: {
+        access_token: string;
+        refresh_token: string;
+        user: { id: string };
+    };
+}
+
 /**
  * AuthSeeder is a utility component for E2E tests.
  * It listens for a 'SEED_AUTH' event on the window and calls supabase.auth.setSession().
  * This is more reliable than localStorage because it interacts directly with the client instance.
  */
-export function AuthSeeder() {
+export function AuthSeeder(): JSX.Element {
     useEffect(() => {
-        const handleSeed = async (event) => {
-            const { session } = event.detail;
+        const handleSeed = async (event: Event): Promise<void> => {
+            const { session } = (event as CustomEvent<SeedAuthEventDetail>).detail;
             console.log('[AuthSeeder] Seeding session...', session.user.id);
             const { error } = await supabase.auth.setSession(session);
             if (error) {
