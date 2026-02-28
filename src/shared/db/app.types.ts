@@ -32,6 +32,21 @@ export type TeamMemberRow = Database['public']['Tables']['project_members']['Row
 // Form Payloads (mirror Zod schemas in NewProjectForm / NewTaskForm)
 // ----------------------------------------------------------------------------
 
+// ----------------------------------------------------------------------------
+// Auth & Users
+// ----------------------------------------------------------------------------
+export type UserRole = 'admin' | 'owner' | 'viewer';
+
+export interface User {
+    id: string;
+    email: string;
+    role: UserRole;
+    app_metadata?: Record<string, unknown>;
+    user_metadata?: Record<string, unknown>;
+    aud?: string;
+    created_at?: string;
+}
+
 /** Shape emitted by the NewProjectForm Zod schema. */
 export interface CreateProjectFormData {
     title: string;
