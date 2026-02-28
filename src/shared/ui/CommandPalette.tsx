@@ -18,15 +18,24 @@ import {
     CommandShortcut,
 } from '@/shared/ui/command';
 
-export function CommandPalette({ projects = [] }) {
+interface CommandPaletteProject {
+    id: string;
+    title: string;
+}
+
+interface CommandPaletteProps {
+    projects?: CommandPaletteProject[];
+}
+
+export function CommandPalette({ projects = [] }: CommandPaletteProps): JSX.Element {
     const [open, setOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const down = (e) => {
+        const down = (e: KeyboardEvent): void => {
             if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
-                setOpen((open) => !open);
+                setOpen((prev) => !prev);
             }
         };
 
@@ -34,7 +43,7 @@ export function CommandPalette({ projects = [] }) {
         return () => document.removeEventListener('keydown', down);
     }, []);
 
-    const runCommand = useCallback((command) => {
+    const runCommand = useCallback((command: () => void): void => {
         setOpen(false);
         command();
     }, []);

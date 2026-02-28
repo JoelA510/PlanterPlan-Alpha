@@ -1,4 +1,28 @@
-import PropTypes from 'prop-types';
+import type { ReactNode } from 'react';
+
+type StatusCardVariant = 'neutral' | 'error' | 'success';
+
+interface StatusCardProps {
+    icon?: ReactNode;
+    title: string;
+    description?: string;
+    children?: ReactNode;
+    actions?: ReactNode;
+    className?: string;
+    variant?: StatusCardVariant;
+}
+
+const bgColors: Record<StatusCardVariant, string> = {
+    neutral: 'bg-card text-card-foreground',
+    error: 'bg-card text-card-foreground',
+    success: 'bg-emerald-50 dark:bg-emerald-900/10',
+};
+
+const titleColors: Record<StatusCardVariant, string> = {
+    neutral: 'text-card-foreground',
+    error: 'text-rose-600 dark:text-rose-400',
+    success: 'text-emerald-800 dark:text-emerald-400',
+};
 
 const StatusCard = ({
     icon,
@@ -7,20 +31,8 @@ const StatusCard = ({
     children,
     actions,
     className = '',
-    variant = 'neutral' // 'neutral' | 'error' | 'success'
-}) => {
-    const bgColors = {
-        neutral: 'bg-card text-card-foreground',
-        error: 'bg-card text-card-foreground',
-        success: 'bg-emerald-50 dark:bg-emerald-900/10'
-    };
-
-    const titleColors = {
-        neutral: 'text-card-foreground',
-        error: 'text-rose-600 dark:text-rose-400',
-        success: 'text-emerald-800 dark:text-emerald-400'
-    };
-
+    variant = 'neutral',
+}: StatusCardProps): JSX.Element => {
     return (
         <div className={`flex flex-col items-center justify-center p-8 text-center rounded-xl shadow-sm border border-slate-200 dark:border-border ${bgColors[variant]} ${className}`}>
             {icon && (
@@ -34,16 +46,6 @@ const StatusCard = ({
             {actions && <div className="flex items-center gap-4 mt-6">{actions}</div>}
         </div>
     );
-};
-
-StatusCard.propTypes = {
-    icon: PropTypes.node,
-    title: PropTypes.string.isRequired,
-    description: PropTypes.string,
-    children: PropTypes.node,
-    actions: PropTypes.node,
-    className: PropTypes.string,
-    variant: PropTypes.oneOf(['neutral', 'error', 'success'])
 };
 
 export default StatusCard;
