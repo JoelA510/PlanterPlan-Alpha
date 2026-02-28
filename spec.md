@@ -96,7 +96,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
     - [x] Centralized Layout Routing
 - [x] **Code Quality (Wave 15)**
     - [x] Lint Errors: 92 → 2 structural warnings
-    - [x] FSD Boundary Enforcement (ADR-8)
+    - [x] FSD Boundary Enforcement (Barrel Exports)
     - [x] Date-Engine Consolidation (ADR-9)
     - [x] Form Payload Type Safety (`CreateProjectFormData`, `TaskFormData`)
 

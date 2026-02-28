@@ -370,6 +370,14 @@ tasks/
 ### 8.2 Projects (`features/projects/`)
 
 Project lifecycle: creation, editing, membership, phases.
+### 6.2 Feature Decoupling Rule
+Feature slices must exclusively communicate through barrel exports (`index.ts`). **Direct deep-imports into another slice's hooks, components, or internal logic are strictly forbidden.** This prevents circular dependencies and uncontrolled coupling.
+
+### 6.3 Unified Light Mode Architecture
+The application is architected for a **strict Light Mode only** environment.
+- **Rule**: Do not use `dark:` Tailwind variants.
+- **Rule**: Do not implement theme toggling or system sync logic.
+- **Rule**: Standardize on `--color-background` for canvas and `--color-card` for individual widgets.
 
 ```
 projects/

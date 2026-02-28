@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
-import ProjectHeader from '@/features/projects/components/ProjectHeader';
-import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
-import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
+import { ProjectSidebar } from '@/features/navigation';
+import { ProjectHeader } from '@/features/projects';
+import { useTaskQuery, useProjectSelection } from '@/features/tasks';
 import { planter } from '@/shared/api/planterClient';
 import { Loader2 } from 'lucide-react';
 import StatusPieChart from '@/features/reports/components/StatusPieChart';

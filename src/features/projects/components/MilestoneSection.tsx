@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/app/constants/index';
-import TaskItem from '@/features/tasks/components/TaskItem';
+import { TaskItem } from '@/features/tasks';
 
 import { TaskRow } from '@/shared/db/app.types';
 import type { TaskUpdate } from '@/shared/db/app.types';

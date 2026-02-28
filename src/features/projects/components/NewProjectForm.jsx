@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
+import { MasterLibrarySearch } from '@/features/library';
 
 const projectSchema = z.object({
   title: z.string().min(1, 'Project title is required'),

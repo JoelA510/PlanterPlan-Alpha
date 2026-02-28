@@ -44,7 +44,7 @@ export default function GettingStartedWidget({ project, teamMembers, onDismiss }
                     <Card className="p-6 border-brand-100 bg-orange-50/50 relative group">
                         <button
                             onClick={handleDismiss}
-                            className="absolute top-4 right-4 p-1 text-muted-foreground/50 hover:text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                            className="absolute top-4 right-4 p-1 text-muted-foreground/50 hover:text-muted-foreground hover:bg-black/5 rounded-full transition-colors opacity-0 group-hover:opacity-100"
                             aria-label="Dismiss getting started"
                         >
                             <X className="w-4 h-4" />
@@ -55,11 +55,11 @@ export default function GettingStartedWidget({ project, teamMembers, onDismiss }
                                 <p className="text-sm text-muted-foreground">Complete these steps to set up your project for success.</p>
                             </div>
                             <div className="text-right">
-                                <span className="text-sm font-bold text-brand-600 dark:text-brand-400">{Math.round(progress)}%</span>
+                                <span className="text-sm font-bold text-brand-600">{Math.round(progress)}%</span>
                             </div>
                         </div>
 
-                        <Progress value={progress} className="h-2 bg-brand-100 dark:bg-brand-950/40 mb-6" indicatorClassName="bg-brand-500" />
+                        <Progress value={progress} className="h-2 bg-brand-100 mb-6" indicatorClassName="bg-brand-500" />
 
                         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
                             {steps.map((step, idx) => (
@@ -72,7 +72,7 @@ export default function GettingStartedWidget({ project, teamMembers, onDismiss }
                                     <div className="flex-1 min-w-0">
                                         <div className={`text-sm font-medium ${step.completed ? 'text-muted-foreground' : 'text-card-foreground'}`}>{step.label}</div>
                                         {!step.completed && step.link && (
-                                            <Link to={step.link} className="text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center mt-1">
+                                            <Link to={step.link} className="text-xs text-brand-600 hover:underline flex items-center mt-1">
                                                 {step.action} <ArrowRight className="w-3 h-3 ml-1" />
                                             </Link>
                                         )}

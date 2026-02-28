@@ -213,7 +213,7 @@ mindmap
         @shared
         @entities
       Provider Tree
-        ThemeProvider (Light Mode Only)
+        ThemeProvider (Unified Light Mode Only)
         AuthProvider
         ViewAsWrapper
         ToastProvider
@@ -239,9 +239,7 @@ mindmap
         useMemo Dashboard grouping
         useMemo Project sorting
       Theme Consistency
-        Semantic design tokens
-        bg-card text-card-foreground
-        Full dark mode support
+        Full light mode enforcement; no dark variants
       UX Completeness
         Delete confirmations
         GettingStarted dismiss persist

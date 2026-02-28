@@ -63,9 +63,9 @@ export default function StatsOverview({ projects, tasks, teamMembers }: StatsOve
       value: teamMembers.length,
       icon: Users,
       // Design System: Secondary/Accent
-      bgColor: 'bg-slate-100 dark:bg-slate-800',
-      textColor: 'text-slate-700 dark:text-slate-200',
-      borderColor: 'group-hover:border-slate-300 dark:group-hover:border-slate-600',
+      bgColor: 'bg-slate-100',
+      textColor: 'text-slate-700',
+      borderColor: 'group-hover:border-slate-300',
       href: '/team',
     },
   ];

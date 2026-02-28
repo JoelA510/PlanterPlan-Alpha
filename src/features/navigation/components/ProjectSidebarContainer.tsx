@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
-import { useUserProjects } from '@/features/projects/hooks/useUserProjects';
+import { useTaskQuery } from '@/features/tasks';
+import { useUserProjects } from '@/features/projects';
 import { useAuth } from '@/app/contexts/AuthContext';
 import ProjectSidebar from './ProjectSidebar';
 

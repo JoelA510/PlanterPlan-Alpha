@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useTaskForm } from '@/features/tasks/hooks/useTaskForm';
+import { useTaskForm } from '@/features/tasks';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
 import { Label } from '@/shared/ui/label';

@@ -183,8 +183,9 @@ health_metrics:
 
   wave_status:
     current: "Wave 17 (planned)"
-    last_completed: "Wave 15 (Code Review & Surgical Refactors)"
+    last_completed: "Wave 15.1 (Decoupling & Theme Unity)"
     wave_15_highlights:
+      - "Wave 15.1: Enforced barrel exports and removed Dark Mode suite"
       - "92 lint errors reduced to 2 structural warnings"
       - "FSD boundary enforced via shared/constants extraction (ADR-8)"
       - "All date math consolidated through date-engine (ADR-9)"

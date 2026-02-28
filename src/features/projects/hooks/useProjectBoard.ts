@@ -4,7 +4,7 @@ import {
     useCreateTask,
     useUpdateTask,
     useDeleteTask,
-} from '@/features/tasks/hooks/useTaskMutations';
+} from '@/features/tasks';
 
 import { toast } from 'sonner';
 import type { TaskRow, TaskUpdate } from '@/shared/db/app.types';

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import SidebarNavItem from '@/features/navigation/components/SidebarNavItem';
+import SidebarNavItem from '@/shared/ui/SidebarNavItem';
 
 const TemplateList = ({ tasks, selectedTaskId, handleTaskClick }) => {
   return (

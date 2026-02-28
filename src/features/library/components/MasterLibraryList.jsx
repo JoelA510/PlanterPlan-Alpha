@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import useMasterLibraryTasks from '@/features/library/hooks/useMasterLibraryTasks';
 import { useTreeState } from '@/features/library/hooks/useTreeState';
-import TaskItem from '@/features/tasks/components/TaskItem';
+import { TaskItem } from '@/features/tasks';
 import { DndContext, useSensor, useSensors, PointerSensor, closestCorners } from '@dnd-kit/core';
 
 const PAGE_SIZE = 50;

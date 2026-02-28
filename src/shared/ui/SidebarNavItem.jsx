@@ -17,8 +17,8 @@ const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }) => 
         }
     };
 
-    const statusClass = task.status ? `status-dot \${task.status}` : `status-dot \${TASK_STATUS.TODO}`;
-    const commonClasses = `sidebar-nav-item group flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 cursor-pointer \${isSelected
+    const statusClass = task.status ? `status-dot ${task.status}` : `status-dot ${TASK_STATUS.TODO}`;
+    const commonClasses = `sidebar-nav-item group flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 cursor-pointer ${isSelected
         ? 'bg-orange-50 border-l-4 border-l-orange-500 text-slate-900 font-semibold shadow-sm'
         : 'text-muted-foreground hover:bg-orange-50/50 hover:text-slate-900'
         }`;

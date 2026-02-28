@@ -3,9 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { ROLES } from '@/app/constants/index';
 import SidebarSkeleton from '@/features/navigation/components/SidebarSkeleton';
-import InstanceList from '@/features/projects/components/InstanceList';
-import JoinedProjectsList from '@/features/projects/components/JoinedProjectsList';
-import TemplateList from '@/features/library/components/TemplateList';
+import { InstanceList, JoinedProjectsList } from '@/features/projects';
+import { TemplateList } from '@/features/library';
 import { LayoutDashboard, CheckSquare, BarChart, Settings } from 'lucide-react';
 import GlobalNavItem from './GlobalNavItem';
 
@@ -165,7 +164,7 @@ const ProjectSidebar = ({
       {/* User Profile Section (Bottom) */}
       <div className="border-t border-border p-4 bg-muted/20">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-brand-50 dark:bg-brand-900/40 flex items-center justify-center text-brand-600 dark:text-brand-300 font-bold border border-brand-200 dark:border-brand-800">
+          <div className="h-8 w-8 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 font-bold border border-brand-200">
             {userInitial}
           </div>
           <div className="flex-1 min-w-0">

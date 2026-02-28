@@ -24,15 +24,13 @@ const STORAGE_KEY = 'planterplan-theme';
  */
 
 export function ThemeProvider({ children }) {
-    // Force light theme and remove system preference tracking to simplify UI
     const theme = 'light';
     const resolvedTheme = 'light';
 
-    // Ensure document never has 'dark' class
     useEffect(() => {
         const root = document.documentElement;
         root.classList.remove('dark');
-        localStorage.setItem(STORAGE_KEY, 'light');
+        root.classList.add('light');
     }, []);
 
     const setTheme = useCallback(() => { }, []);

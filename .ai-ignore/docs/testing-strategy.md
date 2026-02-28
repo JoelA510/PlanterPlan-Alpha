@@ -16,6 +16,14 @@ The README documents the architecture and feature set using a modified Feature-S
 - Database/auth: Supabase (Postgres) with Row Level Security (RLS) called out as enabled on `public.tasks` and `public.project_members`. citeturn24view0turn24view1
 - Test tooling: Vitest + React Testing Library (unit/integration at the UI level), and Playwright infrastructure is present via `playwright.config.ts` and an `e2e/` directory. citeturn24view0turn31view4
 
+### [TEST-011] Theme Integrity & Regression Testing
+- **Context**: Removal of Dark Mode necessitates guarding against the accidental re-introduction of `dark:` classes or theme-switching bugs.
+- **Rule**: Run `theme-integrity.spec.ts` after any UI refactor. This spec validates that the root remains in light mode and that structural elements retain semantic light-theme tokens.
+
+### [TEST-012] UI Locator Hardening
+- **Context**: `getByText` on numeric dates was flaky.
+- **Rule**: Use ARIA roles for interactive elements (`getByRole('button', { name: /15/ })`). This ensures tests are resilient to visual overlaps in calendar/grid components.
+
 ## 4. Agentic Verification Layer (Manual/Hybrid)
 
 Due to environment constraints blocking standard stdio capture, we utilize a **Hybrid Verification Strategy**:

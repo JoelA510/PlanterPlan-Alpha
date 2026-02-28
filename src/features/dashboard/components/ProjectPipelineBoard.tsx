@@ -4,7 +4,7 @@ import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestC
 import { PROJECT_STATUS } from '@/app/constants/index';
 import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
 import ProjectCard from '@/features/dashboard/components/ProjectCard';
-import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
+import { useProjectRealtime } from '@/features/projects';
 import type { Task, Project, TeamMemberRow } from '@/shared/db/app.types';
 
 const COLUMNS = [

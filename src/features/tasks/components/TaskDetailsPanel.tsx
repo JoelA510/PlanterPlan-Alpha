@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { TaskRow, CreateProjectFormData, TaskFormData } from '@/shared/db/app.types';
-import NewProjectForm from '@/features/projects/components/NewProjectForm';
+import { NewProjectForm } from '@/features/projects';
 import NewTaskForm from '@/features/tasks/components/NewTaskForm';
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 import { X } from 'lucide-react';

@@ -1,7 +1,7 @@
 export const TEST_USERS = {
     OWNER: {
-        email: process.env.E2E_OWNER_EMAIL || 'planterplan.test@gmail.com',
-        password: process.env.E2E_OWNER_PASSWORD || 'roots99',
+        email: process.env.VITE_TEST_EMAIL || 'planterplan.test@gmail.com',
+        password: process.env.VITE_TEST_PASSWORD || 'roots99',
         role: 'owner',
     },
     EDITOR: {
@@ -10,8 +10,8 @@ export const TEST_USERS = {
         role: 'editor',
     },
     VIEWER: {
-        email: process.env.E2E_VIEWER_EMAIL || 'planterplan.role_tester@mail.com',
-        password: process.env.E2E_VIEWER_PASSWORD || 'roots99_role',
+        email: process.env.VITE_VIEWER_EMAIL || 'planterplan.role_tester@mail.com',
+        password: process.env.VITE_VIEWER_PASSWORD || 'roots99_role',
         role: 'viewer',
     },
 };

@@ -157,6 +157,15 @@
 ### [UI-038] URL-Driven Sidebar Navigation
 - **Context**: Deep links didn't update navigation state.
 - **Rule**: Sync UI state with URL params (`useParams`) in a `useEffect`.
+### [FE-048] Feature Decoupling via Barrel Exports
+- **Date**: 2026-02-27
+- **Context**: Deep cross-feature imports (e.g., `tasks` importing `auth/hooks/useAuth`) created circular dependencies and made feature slices difficult to isolate. `SidebarNavItem` was originally buried in `features/navigation` but used everywhere.
+- **Rule**: **Feature slices must communicate via barrels.** Use `index.ts` to export allowed APIs. Promote commonly shared UI atoms like `SidebarNavItem` to `shared/ui` to break hierarchy violations.
+
+### [UI-045] Unified Light Mode Enforcement
+- **Date**: 2026-02-27
+- **Context**: Dark mode maintenance caused significant UI state complexity and styling regressions.
+- **Rule**: **Subtract to Stabilize.** Enforce a single Light Mode theme to ensure visual consistency and reduce the state surface area for both development and E2E testing.
 
 ### [FE-047] Decoupling Mutations from UI Wrappers
 - **Date**: 2026-02-23

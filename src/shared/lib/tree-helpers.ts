@@ -5,7 +5,7 @@ export type TaskNode = Task & {
     depth: number
 }
 
-export function buildTree(tasks: Task[], rootId: string): TaskNode[] {
+export function buildTree(tasks: Task[]): TaskNode[] {
     // Map for O(1) access
     const taskMap = new Map<string, TaskNode>()
 

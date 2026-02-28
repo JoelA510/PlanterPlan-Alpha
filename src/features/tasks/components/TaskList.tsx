@@ -2,22 +2,22 @@ import { useMemo } from 'react';
 import { DndContext, closestCorners } from '@dnd-kit/core';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import InviteMemberModal from '@/features/projects/components/InviteMemberModal';
+import { InviteMemberModal } from '@/features/projects';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from '@/shared/ui/ErrorFallback';
 
-import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
+import { ProjectSidebar } from '@/features/navigation';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@layouts/DashboardLayout';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import EmptyProjectState from '@/features/tasks/components/EmptyProjectState';
 import StatusCard from '@/shared/ui/StatusCard';
-import { CreateProjectPayload, CreateTemplatePayload } from '@/features/dashboard/components/CreateProjectModal';
+import type { CreateProjectPayload, CreateTemplatePayload } from '@/features/dashboard';
 
 // Hooks & Utils
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useCreateTask, useUpdateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
-import { useCreateProject } from '@/features/projects/hooks/useProjectMutations';
+import { useCreateProject } from '@/features/projects';
 import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
 import { useTaskTree } from '@/features/tasks/hooks/useTaskTree';
 import { useTaskDragAndDrop } from '@/features/tasks/hooks/useTaskDragAndDrop';

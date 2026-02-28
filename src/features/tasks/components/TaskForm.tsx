@@ -1,4 +1,4 @@
-import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
+import { MasterLibrarySearch } from '@/features/library';
 import TaskFormFields from '@/features/tasks/components/TaskFormFields';
 import { FormEventHandler } from 'react';
 import type { TaskRow } from '@/shared/db/app.types';

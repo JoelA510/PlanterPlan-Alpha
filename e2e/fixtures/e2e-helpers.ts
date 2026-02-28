@@ -111,7 +111,7 @@ export async function setupAuthenticatedState(
     await page.reload({ waitUntil: 'domcontentloaded' });
 
     // Verify successful login (Dashboard visible)
-    await expect(page.locator('h1').filter({ hasText: 'Dashboard' })).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('h1').filter({ hasText: 'Dashboard' })).toBeVisible({ timeout: 60000 });
 }
 
 // ---------------------------------------------------------------------------

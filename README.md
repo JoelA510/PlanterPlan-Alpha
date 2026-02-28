@@ -51,6 +51,5 @@ For a detailed breakdown of the codebase, see [docs/PROJECT_MIND_MAP.md](docs/PR
 
 ---
 
-## 📌 Recent Milestones
-
+- **Wave 15.1 (2026-02-27)**: Architectural decoupling and theme unification. Implemented 7 barrel exports to formalize feature boundaries; refactored 25 deep cross-feature imports. Enforced strict Unified Light Mode across the application. Promoted `SidebarNavItem` to `shared/ui`.
 - **Wave 15 (2026-02-26)**: Comprehensive code review and surgical refactors. Lint errors reduced from 92→2. FSD boundary violations fixed. All date math consolidated through `date-engine`. Form payloads strictly typed. `planterClient` converted to TypeScript. All Golden Path browser tests pass.
