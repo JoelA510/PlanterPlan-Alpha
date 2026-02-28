@@ -57,6 +57,7 @@ The `src/features/` directory has been strictly decoupled to adhere to Feature-S
 * **Lint Cleanup (92 → 2):** Reduced project-wide lint errors from 92 down to exactly 2 (pre-existing `react-refresh/only-export-components` structural warnings in `router.tsx`).
 * **Architecture Simplification:** Centralized `DashboardLayout` inside the router, stripping sprawling wrappers from page roots. Removed legacy DB column aliasing in `planterClient.ts` for 1:1 PostgREST mapping.
 * **Context Footprint Reduction:** Aggressively `.gitignore`d test artifacts and relocated massive architectural documentation (`FULL_ARCHITECTURE.md`, `schema.sql`) into `.ai-ignore/`, saving hundreds of thousands of tokens of context space. **Removed committed `build/` directory** (76 vendor chunk files + `index.html`).
+* **Vercel Build Alignment:** Explicitly set Vite `outDir` to `build` to synchronize with the existing Vercel project configuration, resolving a "Missing Output Directory" CI blocker.
 
 ---
 
@@ -239,7 +240,6 @@ classDiagram
     }
 
     class TaskRow {
-        <<Supabase DB Row>>
         +string id
         +string title
         +string status
@@ -247,13 +247,23 @@ classDiagram
         +string? due_date
         +...all columns
     }
+    class NewProjectForm
+    class NewTaskForm
+    class useTaskBoardUI
+    class TaskForm
 
-    CreateProjectFormData --|> NewProjectForm : "Zod validates"
-    TaskFormData --|> NewTaskForm : "Zod validates"
-    TaskFormData --> useTaskBoardUI : "createTaskOrUpdate(data)"
-    CreateProjectFormData --> useTaskBoardUI : "createProject(data)"
-    TaskRow --> TaskForm : "initialData: Partial‹TaskRow›"
-    TaskRow --> NewTaskForm : "initialTask: Partial‹TaskRow›"
+    <<Supabase_DB_Row>> TaskRow
+    <<UI_Component>> NewProjectForm
+    <<UI_Component>> NewTaskForm
+    <<Hook>> useTaskBoardUI
+    <<UI_Component>> TaskForm
+
+    CreateProjectFormData ..> NewProjectForm : "validates"
+    TaskFormData ..> NewTaskForm : "validates"
+    TaskFormData --> useTaskBoardUI : "create"
+    CreateProjectFormData --> useTaskBoardUI : "create"
+    TaskRow --> TaskForm : "data"
+    TaskRow --> NewTaskForm : "data"
 ```
 
 **Replacement sites across 5 files:**
@@ -386,7 +396,10 @@ Wave 16 focused on fixing critical runtime issues discovered during integration 
 | 25 | `f6e34c6` | refactor(types): restore form payload type safety |
 | 26 | `f73e580` | refactor(date-safety): replace raw date math with `calculateMinMaxDates` |
 | 27 | `02522f1` | docs: add `DEBT_REPORT.md` from Sprint Wave 15 code review |
-| 28+ | Various | feat(architecture): finalize feature decoupling, regression tests, vendor chunk splitting |
+| 28 | `1ac2155` | Refactor: Establish barrel exports and fix E2E regression (Batch 1/2) |
+| 29 | `e4ab632` | test: stabilize vitest suite and align with Wave 15 architectural types |
+| 30 | `fb8ff68` | feat(wave-15.1): final delivery (rebase sync & conflict resolution) |
+| 31 | `ef8c1a2` | fix(vercel): point build output to 'build' and repair mermaid syntax |
 
 ---
 
