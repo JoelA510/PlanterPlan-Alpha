@@ -1,7 +1,7 @@
 import DOMPurify from 'dompurify';
 
 // Enforce security for external links (Tabnabbing protection)
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
     if (node?.getAttribute && node.getAttribute('target') === '_blank') {
         node.setAttribute('rel', 'noopener noreferrer');
     }
@@ -10,11 +10,8 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
 /**
  * Sanitizes HTML to prevent XSS attacks.
  * Allows safe HTML tags but strips scripts, iframes, and dangerous attributes.
- * 
- * @param {string} dirty - The dirty HTML string.
- * @returns {string} - The sanitized HTML string.
  */
-export const sanitizeHTML = (dirty) => {
+export const sanitizeHTML = (dirty: string | null | undefined): string => {
     if (!dirty) return '';
     return DOMPurify.sanitize(dirty, {
         USE_PROFILES: { html: true }, // Aggressive default

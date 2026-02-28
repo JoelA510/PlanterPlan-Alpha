@@ -1,11 +1,31 @@
 import { formatDisplayDate } from './date-engine';
 
+/** Minimal task shape needed for CSV export. */
+export interface ExportableTask {
+    id: string;
+    title?: string | null;
+    parent_task_id?: string | null;
+    root_id?: string | null;
+    status?: string | null;
+    start_date?: string | null;
+    due_date?: string | null;
+    description?: string | null;
+    assignee_id?: string | null;
+}
+
+/** Minimal project shape needed for CSV export. */
+export interface ExportableProject {
+    name: string;
+}
+
 /**
  * Exports project tasks to a CSV file.
- * @param {Object} project - Project metadata object (must have name).
- * @param {Array} tasks - List of task objects to export.
+ * Triggers a browser download of the generated CSV.
  */
-export const exportProjectToCSV = (project, tasks) => {
+export const exportProjectToCSV = (
+    project: ExportableProject,
+    tasks: ExportableTask[] | null | undefined,
+): void => {
     if (!tasks || tasks.length === 0) return;
 
     const headers = ['ID', 'Title', 'Type', 'Status', 'Start Date', 'Due Date', 'Description', 'Assignee'];
