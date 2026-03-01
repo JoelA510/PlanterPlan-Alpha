@@ -57,25 +57,25 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-brand-600">PlanterPlan</h2>
-          <p className="mt-2 text-center text-sm text-slate-600 dark:text-muted-foreground">
+          <p className="mt-2 text-center text-sm text-slate-600">
             {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </p>
         </div>
 
-        <form className="bg-white dark:bg-card py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit(onSubmit)}>
+        <form className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-foreground">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
                 Email address
               </label>
               <input
                 id="email"
                 type="email"
-                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-slate-300 dark:border-input'} placeholder-slate-400 dark:bg-background dark:text-foreground rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500`}
+                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-slate-300'} placeholder-slate-400 rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500`}
                 placeholder="Enter your email"
                 {...register('email')}
               />
@@ -85,13 +85,13 @@ const LoginForm = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-foreground">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
                 Password
               </label>
               <input
                 id="password"
                 type="password"
-                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-slate-300 dark:border-input'} placeholder-slate-400 dark:bg-background dark:text-foreground rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500`}
+                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-slate-300'} placeholder-slate-400 rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500`}
                 placeholder="Enter your password"
                 {...register('password')}
               />
@@ -110,6 +110,22 @@ const LoginForm = () => {
               </button>
             </div>
 
+            {String(import.meta.env.VITE_E2E_MODE) === 'true' && (
+              <button
+                type="button"
+                className="mt-4 w-full text-sm text-slate-500 hover:text-slate-700 underline"
+                onClick={(e) => {
+                  e.preventDefault();
+                  signIn(
+                    import.meta.env.VITE_TEST_EMAIL as string,
+                    import.meta.env.VITE_TEST_PASSWORD as string
+                  );
+                }}
+              >
+                (Auto-Login as Test User)
+              </button>
+            )}
+
             <div className="text-center">
               <button
                 type="button"
@@ -120,38 +136,6 @@ const LoginForm = () => {
               </button>
             </div>
 
-            {import.meta.env.DEV && (
-              <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-4 text-center">
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Dev Mode Shortcut:</p>
-                {import.meta.env.VITE_TEST_EMAIL && import.meta.env.VITE_TEST_PASSWORD ? (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setLoading(true);
-                      try {
-                        const result = await signIn(
-                          import.meta.env.VITE_TEST_EMAIL as string,
-                          import.meta.env.VITE_TEST_PASSWORD as string
-                        );
-                        if (result.error) throw result.error;
-                        navigate('/dashboard');
-                      } catch (err: unknown) {
-                        toast.error('Dev Login Failed', {
-                          description: err instanceof Error ? err.message : 'An unexpected error occurred',
-                        });
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    className="text-xs text-brand-600 underline hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
-                  >
-                    (Auto-Login as Test User)
-                  </button>
-                ) : (
-                  <span className="text-xs text-slate-400 dark:text-slate-500">(Configure .env for Dev Login)</span>
-                )}
-              </div>
-            )}
           </div>
         </form>
       </div>

@@ -245,9 +245,8 @@ export default function Reports() {
                           <p className="text-sm text-muted-foreground">{task.project}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium text-orange-600 dark:text-orange-400">{task.date}</p>
-                          <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'High' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                            }`}>
+                          <p className="text-sm font-medium text-orange-600">{task.date}</p>
+                          <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'High' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
                             {task.priority}
                           </span>
                         </div>
