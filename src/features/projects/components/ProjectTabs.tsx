@@ -1,7 +1,12 @@
 import { memo } from 'react';
 import { PROJECT_TABS, PROJECT_TAB_LABELS } from '../../../app/constants/project';
 
-const ProjectTabs = memo(function ProjectTabs({ activeTab, onTabChange }) {
+interface ProjectTabsProps {
+    activeTab: string;
+    onTabChange: (tabId: string) => void;
+}
+
+const ProjectTabs = memo(function ProjectTabs({ activeTab, onTabChange }: ProjectTabsProps) {
     const tabs = [
         { id: PROJECT_TABS.BOARD, label: PROJECT_TAB_LABELS[PROJECT_TABS.BOARD] },
         { id: PROJECT_TABS.PEOPLE, label: PROJECT_TAB_LABELS[PROJECT_TABS.PEOPLE] },
@@ -34,7 +39,5 @@ const ProjectTabs = memo(function ProjectTabs({ activeTab, onTabChange }) {
         </nav>
     );
 });
-
-
 
 export default ProjectTabs;

@@ -12,15 +12,25 @@ import {
 const chartConfig = {
     completed: {
         label: "Completed",
-        color: "var(--color-emerald-500)", // emerald-500
+        color: "var(--color-emerald-500)",
     },
     remaining: {
         label: "Remaining",
-        color: "var(--color-slate-200)", // slate-200
+        color: "var(--color-slate-200)",
     },
 };
 
-const PhaseBarChart = memo(function PhaseBarChart({ data }) {
+interface PhaseBarChartDataPoint {
+    name: string;
+    completed: number;
+    remaining: number;
+}
+
+interface PhaseBarChartProps {
+    data: PhaseBarChartDataPoint[];
+}
+
+const PhaseBarChart = memo(function PhaseBarChart({ data }: PhaseBarChartProps) {
     return (
         <Card className="p-8 border border-slate-200 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
             <h3 className="text-xl font-bold text-slate-900 mb-8">Progress by Phase</h3>
@@ -65,7 +75,5 @@ const PhaseBarChart = memo(function PhaseBarChart({ data }) {
         </Card>
     );
 });
-
-
 
 export default PhaseBarChart;

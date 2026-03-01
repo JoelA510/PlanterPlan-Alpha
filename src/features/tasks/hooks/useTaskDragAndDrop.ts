@@ -8,7 +8,6 @@ interface UseTaskDragAndDropParams {
     hydratedProjects: Record<string, DragTask[]>;
     setTasks: React.Dispatch<React.SetStateAction<DragTask[]>>;
     fetchTasks: () => Promise<void>;
-    currentUserId?: string;
     updateTask: (taskId: string, updates: Partial<DragTask>) => Promise<void>;
     handleOptimisticUpdate?: (taskId: string, updates: Partial<DragTask>) => void;
     commitOptimisticUpdate?: (taskId: string) => void;
@@ -28,7 +27,6 @@ export const useTaskDragAndDrop = ({
     hydratedProjects,
     setTasks,
     fetchTasks,
-    currentUserId,
     updateTask,
     handleOptimisticUpdate,
     commitOptimisticUpdate,

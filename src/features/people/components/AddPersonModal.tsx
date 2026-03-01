@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -13,9 +13,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/shared/ui/textarea';
 import { Loader2 } from 'lucide-react';
 
-export default function AddPersonModal({ open, onClose, onSave, initialData = null }) {
+interface PersonFormData {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    role: string;
+    status: string;
+    notes: string;
+}
+
+interface AddPersonModalProps {
+    open: boolean;
+    onClose: () => void;
+    onSave: (data: PersonFormData) => Promise<void>;
+    initialData?: PersonFormData | null;
+}
+
+const ROLES = ['Volunteer', 'Core Team', 'Donor', 'Staff', 'Planter'] as const;
+const STATUSES = ['New', 'Contacted', 'Meeting Scheduled', 'Joined', 'Not Interested'] as const;
+
+export default function AddPersonModal({ open, onClose, onSave, initialData = null }: AddPersonModalProps) {
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState(initialData || {
+    const [formData, setFormData] = useState<PersonFormData>(initialData || {
         first_name: '',
         last_name: '',
         email: '',
@@ -25,10 +45,7 @@ export default function AddPersonModal({ open, onClose, onSave, initialData = nu
         notes: ''
     });
 
-    const ROLES = ['Volunteer', 'Core Team', 'Donor', 'Staff', 'Planter'];
-    const STATUSES = ['New', 'Contacted', 'Meeting Scheduled', 'Joined', 'Not Interested'];
-
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {

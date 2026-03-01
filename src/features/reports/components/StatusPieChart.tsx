@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import PropTypes from 'prop-types';
 import { PieChart, Pie, Cell } from 'recharts';
 import {
     ChartContainer,
@@ -11,8 +10,24 @@ import {
 import { TASK_STATUS } from '@/app/constants/index';
 import { CHART_COLORS } from '@/app/constants/colors';
 
-const StatusPieChart = ({ tasks }) => {
-    const data = useMemo(() => {
+interface ChartTask {
+    id: string;
+    status?: string;
+    [key: string]: unknown;
+}
+
+interface StatusPieChartProps {
+    tasks: ChartTask[];
+}
+
+interface PieDataEntry {
+    name: string;
+    count: number;
+    fill: string;
+}
+
+const StatusPieChart = ({ tasks }: StatusPieChartProps) => {
+    const data: PieDataEntry[] = useMemo(() => {
         return [
             {
                 name: 'To Do',
@@ -68,10 +83,6 @@ const StatusPieChart = ({ tasks }) => {
             </ChartContainer>
         </div>
     );
-};
-
-StatusPieChart.propTypes = {
-    tasks: PropTypes.array.isRequired,
 };
 
 export default StatusPieChart;

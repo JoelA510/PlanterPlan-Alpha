@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
-import { POSITION_STEP } from '@/app/constants/index';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
 import { toIsoDate } from '@/shared/lib/date-engine';
 

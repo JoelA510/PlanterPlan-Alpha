@@ -1,17 +1,16 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import PhaseCard from './PhaseCard';
 import { TASK_STATUS } from '@/app/constants/index';
 
-// Mock dependencies
 vi.mock('framer-motion', () => ({
     motion: {
-        div: ({ children, ...props }) => <div {...props}>{children}</div>,
+        div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
     },
 }));
 
 vi.mock('@/shared/ui/card', () => ({
-    Card: ({ children, className, onClick }) => (
+    Card: ({ children, className, onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) => (
         <div className={className} onClick={onClick} role="article">
             {children}
         </div>
@@ -19,7 +18,7 @@ vi.mock('@/shared/ui/card', () => ({
 }));
 
 vi.mock('@/shared/ui/progress', () => ({
-    Progress: ({ value, className }) => (
+    Progress: ({ value, className }: { value: number; className?: string }) => (
         <div data-testid="progress" data-value={value} className={className} />
     ),
 }));
@@ -58,7 +57,7 @@ describe('PhaseCard', () => {
             />
         );
         expect(screen.getByText('Phase 1')).toBeInTheDocument();
-        expect(screen.getByText('50%')).toBeInTheDocument(); // 1/2 tasks complete
+        expect(screen.getByText('50%')).toBeInTheDocument();
     });
 
     it('shows checkmark when complete', () => {
@@ -87,9 +86,6 @@ describe('PhaseCard', () => {
             />
         );
 
-        // Logic to be implemented:
-        // 1. Should show lock icons (Icon in circle + Icon in text)
-        // 2. Should be grey/disabled style
         const locks = screen.getAllByTestId('lock-icon');
         expect(locks).toHaveLength(2);
         expect(screen.getByRole('article')).toHaveClass('opacity-75');

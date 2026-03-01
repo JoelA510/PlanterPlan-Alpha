@@ -3,17 +3,16 @@ import { describe, it, expect, vi } from 'vitest';
 import MobileAgenda from './MobileAgenda';
 import { TASK_STATUS } from '@/app/constants/index';
 
-// Mock dependencies
 vi.mock('react-router-dom', () => ({
     useNavigate: () => vi.fn(),
 }));
 
 vi.mock('@/shared/ui/card', () => ({
-    Card: ({ children, className }) => <div className={className}>{children}</div>,
+    Card: ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={className}>{children}</div>,
 }));
 
 vi.mock('@/shared/ui/button', () => ({
-    Button: ({ children, className, onClick }) => (
+    Button: ({ children, className, onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) => (
         <button className={className} onClick={onClick}>{children}</button>
     ),
 }));

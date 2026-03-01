@@ -5,10 +5,22 @@ import { Calendar, ChevronRight } from 'lucide-react';
 import { formatDate } from '@/shared/lib/date-engine';
 import { TASK_STATUS } from '@/app/constants/index';
 
-export default function MobileAgenda({ tasks = [] }) {
+interface AgendaTask {
+    id: string;
+    title?: string;
+    status?: string;
+    due_date?: string | null;
+    root_id?: string;
+    [key: string]: unknown;
+}
+
+interface MobileAgendaProps {
+    tasks?: AgendaTask[];
+}
+
+export default function MobileAgenda({ tasks = [] }: MobileAgendaProps) {
     const navigate = useNavigate();
 
-    // Filter for tasks due today or overdue
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 
@@ -17,7 +29,7 @@ export default function MobileAgenda({ tasks = [] }) {
         if (!t.due_date) return false;
         const due = new Date(t.due_date);
         return due <= today;
-    }).slice(0, 3); // Top 3
+    }).slice(0, 3);
 
     if (relevantTasks.length === 0) return null;
 
