@@ -1,450 +1,243 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
     DialogDescription,
+    DialogFooter,
 } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import { Textarea } from '@/shared/ui/textarea';
 import { Label } from '@/shared/ui/label';
+import { Textarea } from '@/shared/ui/textarea';
 import {
-    Rocket,
-    Building2,
-    GitBranch,
+    Plus,
+    Target,
+    Zap,
+    Users,
+    ChevronRight,
+    ArrowLeft,
+    Check,
     Loader2,
-    CheckCircle2,
-    LucideIcon,
-    FileText,
-    BookTemplate,
-    Layers,
-    Calendar as CalendarIcon,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { Calendar } from '@/shared/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
-import { formatDate } from '@/shared/lib/date-engine';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PROJECT_STATUS } from '@/app/constants/index';
-import { z } from 'zod';
-import { projectSchema } from '@/entities/project/model';
 
-// Types
-export interface CreateProjectPayload {
-    name: string;
-    description: string;
-    template: string;
-    launch_date: Date | undefined;
-    location: string;
-    status: string;
-    templateId?: string;
-}
+import type { CreateProjectFormData } from '@/features/projects/hooks/useProjectMutations';
 
-export interface CreateTemplatePayload {
-    name: string;
-    description: string;
-    template: string;
-    origin: 'template';
-}
+const templates = [
+    {
+        id: 'new-church',
+        title: 'New Church Plant',
+        description: 'Comprehensive 24-month structured roadmap',
+        icon: Target,
+        color: 'text-brand-600',
+        bg: 'bg-brand-50',
+    },
+    {
+        id: 'outreach',
+        title: 'Community Outreach',
+        description: 'Rapid response event planning',
+        icon: Zap,
+        color: 'text-indigo-600',
+        bg: 'bg-indigo-50',
+    },
+    {
+        id: 'training',
+        title: 'Leadership Training',
+        description: 'Cohorts and multiplication systems',
+        icon: Users,
+        color: 'text-emerald-600',
+        bg: 'bg-emerald-50',
+    },
+];
 
-export interface CreateProjectModalProps {
-    mode?: 'project' | 'template';
+interface CreateProjectModalProps {
     open: boolean;
     onClose: () => void;
-    onCreate: (data: CreateProjectPayload | CreateTemplatePayload) => Promise<void>;
+    onSubmit: (data: CreateProjectFormData) => Promise<void>;
 }
 
-interface TemplateOption {
-    id: string;
-    name: string;
-    description: string;
-    icon: LucideIcon;
-}
-
-const templates: TemplateOption[] = [
-    {
-        id: 'launch_large',
-        name: 'Launch Large',
-        description: 'Traditional church plant with significant launch day',
-        icon: Rocket,
-    },
-    {
-        id: 'multisite',
-        name: 'Multisite',
-        description: 'New campus location expansion',
-        icon: Building2,
-    },
-    {
-        id: 'multiplication',
-        name: 'Multiplication',
-        description: 'Reproducing and multiplying congregations',
-        icon: GitBranch,
-    },
-    {
-        id: 'blank',
-        name: 'Start from scratch',
-        description: 'Empty project with no predefined tasks',
-        icon: Rocket,
-    },
-];
-
-const TEMPLATE_CATEGORIES: TemplateOption[] = [
-    {
-        id: 'checklist',
-        name: 'Task Checklist',
-        description: 'A reusable set of tasks for recurring activities',
-        icon: FileText,
-    },
-    {
-        id: 'workflow',
-        name: 'Workflow Template',
-        description: 'Multi-phase process with dependencies and milestones',
-        icon: Layers,
-    },
-    {
-        id: 'blueprint',
-        name: 'Project Blueprint',
-        description: 'Full project structure to clone into new instances',
-        icon: BookTemplate,
-    },
-];
-
-export default function CreateProjectModal({ mode = 'project', open, onClose, onCreate }: CreateProjectModalProps) {
-    const [step, setStep] = useState<number>(1);
-    const [loading, setLoading] = useState<boolean>(false);
-    const [errors, setErrors] = useState<Record<string, string | null>>({});
-    const [formData, setFormData] = useState<{
-        name: string;
-        description: string;
-        template: string;
-        launch_date: Date | undefined;
-        location: string;
-        status: string;
-    }>({
-        name: '',
+export default function CreateProjectModal({ open, onClose, onSubmit }: CreateProjectModalProps) {
+    const [step, setStep] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState<CreateProjectFormData>({
+        title: '',
         description: '',
-        template: '',
-        launch_date: undefined,
-        location: '',
-        status: PROJECT_STATUS.PLANNING,
+        creator: '', // Will be set by mutation hook
+        template: 'new-church',
     });
 
-    const isTemplateMode = mode === 'template';
+    const handleNext = () => setStep(2);
+    const handleBack = () => setStep(1);
 
     const handleTemplateSelect = (templateId: string) => {
         setFormData({ ...formData, template: templateId });
-        setErrors((prev) => ({ ...prev, template: null }));
-        setStep(2);
     };
 
-    const validateForm = (): boolean => {
-        if (isTemplateMode) {
-            // Simplify validation for template
-            const newErrors: Record<string, string> = {};
-            if (!formData.name.trim()) {
-                newErrors.name = 'Template name is required';
-            }
-            if (Object.keys(newErrors).length > 0) {
-                setErrors(newErrors);
-                return false;
-            }
-            return true;
-        }
-
-        try {
-            projectSchema.parse(formData);
-            setErrors({});
-            return true;
-        } catch (err) {
-            if (err instanceof z.ZodError) {
-                const fieldErrors: Record<string, string> = {};
-                err.errors?.forEach((e) => {
-                    fieldErrors[e.path[0]] = e.message;
-                });
-                setErrors(fieldErrors);
-            }
-            return false;
-        }
-    };
-
-    const handleCreate = async (e?: React.MouseEvent<HTMLButtonElement>) => {
-        if (e) e.preventDefault();
-
-        if (!validateForm()) return;
-
+    const handleSubmit = async () => {
         setLoading(true);
-
         try {
-            const payload = isTemplateMode ? {
-                name: formData.name.trim(),
-                description: formData.description.trim(),
-                template: formData.template || 'checklist',
-                origin: 'template',
-            } : {
-                ...formData,
-                templateId: formData.template
-            };
-
-            await onCreate(payload);
-
-            // Reset form
-            setStep(1);
-            setFormData({
-                name: '',
-                description: '',
-                template: '',
-                launch_date: undefined,
-                location: '',
-                status: PROJECT_STATUS.PLANNING,
-            });
-            setErrors({});
+            await onSubmit(formData);
             onClose();
-        } catch (error: unknown) {
-            console.error('[CreateProjectModal] Failed to create:', error);
-            const message = error instanceof Error ? error.message : 'Failed to create.';
-            setErrors({ root: message });
+        } catch (error) {
+            console.error('Failed to create project:', error);
         } finally {
             setLoading(false);
+            setStep(1);
         }
     };
 
-    const handleClose = () => {
-        setStep(1);
-        setErrors({});
-        onClose();
-    };
-
-
     return (
-        <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-lg bg-card text-card-foreground">
-                <DialogHeader>
-                    <DialogTitle className="text-xl">
-                        {isTemplateMode ? 'Create New Template' : (step === 1 ? 'Choose a Template' : 'Project Details')}
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-white border-slate-200">
+                <DialogHeader className="p-8 bg-brand-600 text-white">
+                    <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                        <Plus className="w-6 h-6" />
+                        Start New Project
                     </DialogTitle>
-                    <DialogDescription className="text-muted-foreground">
-                        {isTemplateMode ?
-                            'Build a reusable template for future projects and tasks' :
-                            (step === 1
-                                ? 'Select a template that fits your church planting vision'
-                                : 'Fill in the details for your new project')}
+                    <DialogDescription className="text-brand-100 text-base">
+                        Choose a proven framework to help you grow your mission.
                     </DialogDescription>
                 </DialogHeader>
 
-                {errors.root && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-4">
-                        {errors.root}
-                    </div>
-                )}
-
-                <AnimatePresence mode="wait">
-                    {step === 1 ? (
-                        <motion.div
-                            key="step1"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            className="grid gap-3 py-4"
-                        >
-                            {isTemplateMode ? (
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Category</Label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {TEMPLATE_CATEGORIES.map((cat) => (
-                                            <button
-                                                key={cat.id}
-                                                type="button"
-                                                onClick={() => handleTemplateSelect(cat.id)}
-                                                className={cn(
-                                                    'flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all text-center group cursor-pointer',
-                                                    'hover:border-brand-300 hover:bg-brand-50/50 dark:hover:bg-brand-900/20',
-                                                    formData.template === cat.id
-                                                        ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/40 ring-1 ring-brand-500/20'
-                                                        : 'border-border bg-card'
-                                                )}
-                                            >
-                                                <div
-                                                    className={cn(
-                                                        'w-10 h-10 rounded-lg flex items-center justify-center transition-all',
-                                                        formData.template === cat.id
-                                                            ? 'bg-brand-500 shadow-md shadow-brand-500/20'
-                                                            : 'bg-muted group-hover:bg-brand-100 dark:group-hover:bg-brand-900/50'
-                                                    )}
-                                                >
-                                                    <cat.icon
-                                                        className={cn(
-                                                            'w-5 h-5',
-                                                            formData.template === cat.id
-                                                                ? 'text-white'
-                                                                : 'text-muted-foreground group-hover:text-brand-600 dark:group-hover:text-brand-400'
-                                                        )}
-                                                    />
-                                                </div>
-                                                <span className="text-xs font-medium text-card-foreground leading-tight">{cat.name}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                templates.map((template) => (
-                                    <button
-                                        key={template.id}
-                                        onClick={() => handleTemplateSelect(template.id)}
+                <div className="p-8">
+                    <div className="flex items-center justify-center mb-8">
+                        <div className="flex items-center gap-4">
+                            {[1, 2].map((i) => (
+                                <div key={i} className="flex items-center">
+                                    <div
                                         className={cn(
-                                            'flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left bg-card group',
-                                            'hover:border-brand-300 hover:bg-brand-50/50 hover:shadow-md cursor-pointer',
-                                            formData.template === template.id
-                                                ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500/20'
-                                                : 'border-border'
+                                            'w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300',
+                                            step >= i
+                                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-200'
+                                                : 'bg-slate-100 text-slate-400'
                                         )}
                                     >
+                                        {step > i ? <Check className="w-5 h-5" /> : i}
+                                    </div>
+                                    {i === 1 && (
                                         <div
                                             className={cn(
-                                                'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
-                                                formData.template === template.id
-                                                    ? 'bg-brand-500 shadow-md shadow-brand-500/20 scale-110'
-                                                    : 'bg-muted group-hover:bg-brand-100 group-hover:scale-105'
+                                                'w-20 h-1 mx-2 rounded-full transition-all duration-500',
+                                                step > 1 ? 'bg-brand-600' : 'bg-slate-100'
+                                            )}
+                                        />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <AnimatePresence mode="wait">
+                        {step === 1 ? (
+                            <motion.div
+                                key="step1"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                className="space-y-6"
+                            >
+                                <div className="grid grid-cols-1 gap-4">
+                                    {templates.map((cat) => (
+                                        <div
+                                            key={cat.id}
+                                            onClick={() => handleTemplateSelect(cat.id)}
+                                            className={cn(
+                                                'group cursor-pointer p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-4',
+                                                formData.template === cat.id
+                                                    ? 'border-brand-600 bg-brand-50 shadow-md ring-1 ring-brand-600/10'
+                                                    : 'border-slate-100 hover:border-brand-200 hover:bg-slate-50'
                                             )}
                                         >
-                                            <template.icon
+                                            <div
                                                 className={cn(
-                                                    'w-6 h-6',
-                                                    formData.template === template.id
-                                                        ? 'text-white'
-                                                        : 'text-muted-foreground group-hover:text-brand-600'
+                                                    'w-12 h-12 rounded-xl flex items-center justify-center transition-colors',
+                                                    formData.template === cat.id ? 'bg-brand-600 text-white' : cn(cat.bg, cat.color)
                                                 )}
-                                            />
+                                            >
+                                                <cat.icon className="w-6 h-6" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-slate-900">{cat.title}</h4>
+                                                <p className="text-sm text-slate-500">{cat.description}</p>
+                                            </div>
+                                            {formData.template === cat.id && (
+                                                <div className="w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center">
+                                                    <Check className="w-4 h-4 text-white" />
+                                                </div>
+                                            )}
                                         </div>
-                                        <div>
-                                            <h4 className="font-semibold text-card-foreground">{template.name}</h4>
-                                            <p className="text-sm text-muted-foreground">{template.description}</p>
-                                        </div>
-                                        {
-                                            formData.template === template.id && (
-                                                <CheckCircle2 className="w-5 h-5 text-orange-500 ml-auto" />
-                                            )
-                                        }
-                                    </button>
-                                ))
-                            )}
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="step2"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="grid gap-5 py-4"
-                        >
-                            <div className="space-y-2">
-                                <Label htmlFor="name" className={cn(errors.name && "text-red-500")}>
-                                    {isTemplateMode ? 'Template Name *' : 'Project Name *'}
-                                </Label>
-                                <Input
-                                    id="name"
-                                    placeholder={isTemplateMode ? "e.g., Sunday Service Prep" : "e.g., Grace Community Church"}
-                                    value={formData.name}
-                                    onChange={(e) => {
-                                        setFormData({ ...formData, name: e.target.value });
-                                        if (errors.name) setErrors((prev) => ({ ...prev, name: null }));
-                                    }}
-                                    className={cn("h-11", errors.name && "border-red-500 focus-visible:ring-red-500")}
-                                />
-                                {errors.name && (
-                                    <p className="text-xs text-red-500 mt-1">{errors.name}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="description">Description</Label>
-                                <Textarea
-                                    id="description"
-                                    placeholder={isTemplateMode ? "What is this template used for?" : "Brief description of your church plant..."}
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="resize-none h-20"
-                                />
-                            </div>
-
-                            {!isTemplateMode && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="launch_date" className={cn(errors.launch_date && "text-red-500")}>
-                                            Target Launch Date *
-                                        </Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        'w-full justify-start text-left font-normal h-11',
-                                                        !formData.launch_date && 'text-muted-foreground',
-                                                        errors.launch_date && "border-red-500 text-red-500"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {formData.launch_date ? formatDate(formData.launch_date, 'PPP') : 'Pick a date'}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={formData.launch_date}
-                                                    onSelect={(date) => {
-                                                        setFormData({ ...formData, launch_date: date });
-                                                        if (errors.launch_date) setErrors((prev) => ({ ...prev, launch_date: null }));
-                                                    }}
-                                                    defaultMonth={new Date(new Date().setMonth(new Date().getMonth() + 3))}
-                                                    startMonth={new Date()}
-                                                    endMonth={new Date(new Date().setFullYear(new Date().getFullYear() + 5))}
-                                                    disabled={{ before: new Date() }}
-                                                    captionLayout="dropdown"
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                        {errors.launch_date && (
-                                            <p className="text-xs text-red-500 mt-1">{errors.launch_date}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="location">Location</Label>
-                                        <Input
-                                            id="location"
-                                            placeholder="City, State"
-                                            value={formData.location}
-                                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                            className="h-11"
-                                        />
-                                    </div>
+                                    ))}
                                 </div>
-                            )}
-
-                            <div className="flex justify-between pt-4">
-                                <Button variant="outline" onClick={() => setStep(1)}>
-                                    Back
-                                </Button>
                                 <Button
-                                    onClick={handleCreate}
-                                    disabled={loading}
-                                    className="bg-orange-500 hover:bg-orange-600"
+                                    onClick={handleNext}
+                                    className="w-full bg-brand-600 hover:bg-brand-700 text-white h-12 text-lg font-semibold rounded-xl"
                                 >
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Creating...
-                                        </>
-                                    ) : (
-                                        isTemplateMode ? 'Create Template' : 'Create Project'
-                                    )}
+                                    Continue to Details
+                                    <ChevronRight className="ml-2 w-5 h-5" />
                                 </Button>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="step2"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-6"
+                            >
+                                <div className="space-y-2">
+                                    <Label htmlFor="title" className="text-slate-700 font-semibold">
+                                        Project Name
+                                    </Label>
+                                    <Input
+                                        id="title"
+                                        placeholder="e.g. Hope City Launch"
+                                        value={formData.title}
+                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                        className="h-12 border-slate-200 focus:ring-brand-500/20 focus:border-brand-500 rounded-xl"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="description" className="text-slate-700 font-semibold">
+                                        Description
+                                    </Label>
+                                    <Textarea
+                                        id="description"
+                                        placeholder="What's the vision for this project?"
+                                        value={formData.description}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, description: e.target.value })
+                                        }
+                                        className="min-h-[120px] border-slate-200 focus:ring-brand-500/20 focus:border-brand-500 rounded-xl resize-none"
+                                    />
+                                </div>
+                                <div className="flex gap-4">
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleBack}
+                                        className="flex-1 border-slate-200 text-slate-600 h-12 rounded-xl"
+                                    >
+                                        <ArrowLeft className="mr-2 w-5 h-5" />
+                                        Back
+                                    </Button>
+                                    <Button
+                                        onClick={handleSubmit}
+                                        disabled={loading || !formData.title}
+                                        className="flex-[2] bg-brand-600 hover:bg-brand-700 text-white h-12 text-lg font-semibold rounded-xl"
+                                    >
+                                        {loading ? (
+                                            <Loader2 className="w-6 h-6 animate-spin" />
+                                        ) : (
+                                            'Create Project'
+                                        )}
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </DialogContent>
         </Dialog>
     );
