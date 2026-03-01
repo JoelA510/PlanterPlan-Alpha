@@ -1,41 +1,42 @@
-import { QueryClient } from '@tanstack/react-query'
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
-import localforage from 'localforage'
-import { AuthProvider } from '@/app/contexts/AuthContext'
-import { RouterProvider } from 'react-router-dom'
-import { router } from './router'
-import { ThemeProvider } from '@/app/contexts/ThemeContext'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Layout from '../layouts/Layout';
+import Dashboard from '../pages/Dashboard';
+import Reports from '../pages/Reports';
+import Project from '../pages/Project';
+import Settings from '../pages/Settings';
+import TasksPage from '../pages/TasksPage';
+import LoginForm from '../features/auth/components/LoginForm';
 
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: 1,
-            refetchOnWindowFocus: false,
-            staleTime: 5 * 60 * 1000, // 5 minutes standard cache
-            gcTime: 24 * 60 * 60 * 1000, // 24 hours garbage collection for offline mode
-        },
-    },
-})
+const queryClient = new QueryClient();
 
-const asyncStoragePersister = createAsyncStoragePersister({
-    storage: localforage,
-    key: 'planterplan-react-query-v1'
-})
-
-function App() {
-    return (
-        <PersistQueryClientProvider
-            client={queryClient}
-            persistOptions={{ persister: asyncStoragePersister }}
-        >
-            <ThemeProvider>
-                <AuthProvider>
-                    <RouterProvider router={router} />
-                </AuthProvider>
-            </ThemeProvider>
-        </PersistQueryClientProvider>
-    )
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? <>{children}</> : <Navigate to="/login" />;
 }
 
-export default App
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="Project/:projectId" element={<Project />} />
+              <Route path="tasks" element={<TasksPage />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+          </Routes>
+        </Router>
+        <Toaster richColors position="top-right" />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
