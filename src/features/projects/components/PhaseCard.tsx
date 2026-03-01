@@ -11,39 +11,39 @@ import type { TaskRow } from '@/shared/db/app.types';
 const phaseColors: Record<number, { bg: string; light: string; text: string; border: string }> = {
   1: {
     bg: 'bg-brand-500',
-    light: 'bg-brand-50 dark:bg-brand-950/30',
-    text: 'text-brand-600 dark:text-brand-400',
-    border: 'border-brand-200 dark:border-brand-800',
+    light: 'bg-brand-50',
+    text: 'text-brand-600',
+    border: 'border-brand-200'
   },
   2: {
     bg: 'bg-purple-500',
-    light: 'bg-purple-50 dark:bg-purple-950/30',
-    text: 'text-purple-600 dark:text-purple-400',
-    border: 'border-purple-200 dark:border-purple-800',
+    light: 'bg-purple-50',
+    text: 'text-purple-600',
+    border: 'border-purple-200'
   },
   3: {
     bg: 'bg-indigo-500',
-    light: 'bg-indigo-50 dark:bg-indigo-950/30',
-    text: 'text-indigo-600 dark:text-indigo-400',
-    border: 'border-indigo-200 dark:border-indigo-800',
+    light: 'bg-indigo-50',
+    text: 'text-indigo-600',
+    border: 'border-indigo-200'
   },
   4: {
     bg: 'bg-emerald-500',
-    light: 'bg-emerald-50 dark:bg-emerald-950/30',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    border: 'border-emerald-200 dark:border-emerald-800',
+    light: 'bg-emerald-50',
+    text: 'text-emerald-600',
+    border: 'border-emerald-200'
   },
   5: {
     bg: 'bg-amber-500',
-    light: 'bg-amber-50 dark:bg-amber-950/30',
-    text: 'text-amber-600 dark:text-amber-400',
-    border: 'border-amber-200 dark:border-amber-800',
+    light: 'bg-amber-50',
+    text: 'text-amber-600',
+    border: 'border-amber-200'
   },
   6: {
     bg: 'bg-rose-500',
-    light: 'bg-rose-50 dark:bg-rose-950/30',
-    text: 'text-rose-600 dark:text-rose-400',
-    border: 'border-rose-200 dark:border-rose-800'
+    light: 'bg-rose-50',
+    text: 'text-rose-600',
+    border: 'border-rose-200'
   },
 };
 
@@ -82,7 +82,7 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
             : cn(
               'cursor-pointer',
               isActive
-                ? `${colors.border} ${colors.light} shadow-lg dark:bg-slate-800/50`
+                ? `${colors.border} ${colors.light} shadow-lg`
                 : 'border-border hover:border-brand-300 hover:shadow-lg'
             )
         )}
@@ -92,7 +92,7 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
             <div
               className={cn(
                 'w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-sm',
-                isLocked ? 'bg-muted dark:bg-slate-700' : colors.bg
+                isLocked ? 'bg-muted' : colors.bg
               )}
             >
               {isLocked ? (

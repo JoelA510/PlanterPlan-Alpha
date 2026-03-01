@@ -11,12 +11,11 @@ const GlobalNavItem = ({ isActive, onClick, label, icon }) => (
     tabIndex={0}
   >
     <div
-      className={`flex-shrink-0 transition-colors ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'
-        }`}
+      className={`flex-shrink-0 transition-colors ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-900'}`}
     >
       {icon}
     </div>
-    <span className={`sidebar-nav-item-title font-medium whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? 'text-slate-900 dark:text-white' : ''}`}>
+    <span className={`sidebar-nav-item-title font-medium whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? 'text-slate-900' : ''}`}>
       {label}
     </span>
   </div>

@@ -36,7 +36,7 @@ export default function Settings() {
                                 variant="ghost"
                                 disabled={item.comingSoon}
                                 className={`w-full justify-start ${item.active
-                                    ? 'text-brand-600 bg-brand-50 dark:bg-brand-950/20 dark:text-brand-400 font-semibold'
+                                    ? 'text-brand-600 bg-brand-50 font-semibold'
                                     : 'text-muted-foreground'
                                     } ${item.comingSoon ? 'cursor-not-allowed opacity-70' : 'hover:text-foreground hover:bg-muted'}`}
                             >
@@ -64,8 +64,8 @@ export default function Settings() {
                                         </div>
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Personal Info</h2>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">Update your photo and personal details.</p>
+                                        <h2 className="text-xl font-bold text-slate-900">Personal Info</h2>
+                                        <p className="text-sm text-slate-500">Update your photo and personal details.</p>
                                     </div>
                                 </div>
 
@@ -87,7 +87,7 @@ export default function Settings() {
                                                 type="email"
                                                 value={profile.email}
                                                 disabled
-                                                className="bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-800"
+                                                className="bg-slate-50 border-slate-200"
                                             />
                                         </div>
                                     </div>
@@ -116,7 +116,7 @@ export default function Settings() {
                                                 value={profile.role}
                                                 onChange={(e) => actions.setProfile({ ...profile, role: e.target.value })}
                                                 placeholder="e.g. Lead Planter"
-                                                className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500 dark:border-slate-800"
+                                                className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -126,7 +126,7 @@ export default function Settings() {
                                                 value={profile.organization}
                                                 onChange={(e) => actions.setProfile({ ...profile, organization: e.target.value })}
                                                 placeholder="e.g. Hope City Church"
-                                                className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500 dark:border-slate-800"
+                                                className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
                                             />
                                         </div>
                                     </div>
@@ -163,7 +163,7 @@ export default function Settings() {
                         </motion.div>
                     </div>
                 </div>
-            </div>
+            </div >
         </>
     );
 }
