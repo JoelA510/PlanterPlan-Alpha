@@ -61,7 +61,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
             await _createTask.mutateAsync({
                 title,
                 root_id: projectId,
-                status: 'todo',
+                is_complete: false,
                 parent_task_id: parentId,
                 origin: 'instance',
                 priority: 'medium',

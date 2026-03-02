@@ -6,7 +6,7 @@ import { supabase } from '@/shared/db/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
-import { ROLES, TASK_STATUS } from '@/app/constants';
+import { ROLES } from '@/app/constants';
 import { compareDateAsc, toIsoDate } from '@/shared/lib/date-engine';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
 import { planter } from '@/shared/api/planterClient';
@@ -100,7 +100,7 @@ export default function Project() {
           await createTask.mutateAsync({
             ...createPayload,
             root_id: projectId,
-            status: TASK_STATUS.TODO
+            is_complete: false
           });
         }
         setTaskFormState(null);
