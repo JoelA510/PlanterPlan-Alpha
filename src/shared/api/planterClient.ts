@@ -403,7 +403,7 @@ export const planter = {
       listJoined: async (userId: string): Promise<Project[]> => {
         return retry(async () => {
           try {
-            const data = await rawSupabaseFetch(`tasks?select=*&origin=eq.instance&parent_task_id=is.null&project_members=not.is.null&project_members.user_id=eq.${userId}`, {
+            const data = await rawSupabaseFetch(`tasks?select=*,project_members!inner(*)&origin=eq.instance&parent_task_id=is.null&project_members.user_id=eq.${userId}`, {
               method: 'GET'
             });
             return (data as Project[]) || [];
