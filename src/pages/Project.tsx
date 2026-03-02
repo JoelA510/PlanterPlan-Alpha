@@ -7,7 +7,9 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
 import { ROLES, TASK_STATUS } from '@/app/constants';
-import { compareDateAsc } from '@/shared/lib/date-engine';
+import { compareDateAsc, toIsoDate } from '@/shared/lib/date-engine';
+import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
+import { planter } from '@/shared/api/planterClient';
 
 import { Loader2, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -51,24 +53,56 @@ export default function Project() {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
 
-  const handleTaskSubmit = async (data: TaskFormData) => {
+  const handleTaskSubmit = async (formData: TaskFormData) => {
     try {
-      if (taskFormState?.mode === 'edit' && state.selectedTask) {
+      const mode = taskFormState?.mode;
+      const origin = taskFormState?.origin || 'instance';
+      const parentId = state.inlineAddingParentId || null;
+
+      const payloadContext = {
+        origin,
+        parentId,
+        rootId: projectId,
+        contextTasks: tasks || [],
+        userId: user?.id || '',
+        maxPosition: Math.max(0, ...(tasks || []).filter(t => t.parent_task_id === parentId).map(t => t.position || 0))
+      };
+
+      if (mode === 'edit' && state.selectedTask) {
+        const updatePayload = constructUpdatePayload(formData, state.selectedTask, payloadContext);
         await updateTask.mutateAsync({
           id: state.selectedTask.id,
-          ...data,
+          ...updatePayload,
           root_id: projectId
         });
         setTaskFormState(null);
         toast.success('Task updated successfully');
       } else {
-        await createTask.mutateAsync({
-          ...data,
-          root_id: projectId,
-          parent_task_id: state.inlineAddingParentId || null,
-          origin: taskFormState?.origin || 'instance',
-          status: TASK_STATUS.TODO
-        });
+        const extendedFormData = formData as TaskFormData & { templateId?: string | null };
+        if (extendedFormData.templateId) {
+          const hasManualDates = Boolean(formData.start_date || formData.due_date);
+          const { error } = await planter.entities.Task.clone(
+            extendedFormData.templateId,
+            parentId,
+            origin,
+            user?.id as string,
+            {
+              title: formData.title,
+              description: formData.description,
+              start_date: hasManualDates ? toIsoDate(formData.start_date as string) : undefined,
+              due_date: hasManualDates ? (toIsoDate(formData.due_date as string) || toIsoDate(formData.start_date as string)) : undefined,
+            }
+          );
+          if (error) throw error;
+          queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
+        } else {
+          const createPayload = constructCreatePayload(formData, payloadContext);
+          await createTask.mutateAsync({
+            ...createPayload,
+            root_id: projectId,
+            status: TASK_STATUS.TODO
+          });
+        }
         setTaskFormState(null);
         actions.setInlineAddingParentId(null);
         toast.success('Task created successfully');

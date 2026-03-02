@@ -162,7 +162,7 @@ export default function MilestoneSection({
                         className="mt-2"
                       >
                         <InlineTaskInput
-                          onSubmit={(title) => onInlineCommit(milestone.id, title)}
+                          onCommit={(title) => onInlineCommit(milestone.id, title)}
                           onCancel={onInlineCancel}
                           placeholder="Add a new task..."
                         />
