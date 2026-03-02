@@ -8,6 +8,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/app/constants/index';
 import { TaskItem } from '@/features/tasks';
+import InlineTaskInput from '@/features/tasks/components/InlineTaskInput';
 
 import { TaskRow } from '@/shared/db/app.types';
 import type { TaskUpdate } from '@/shared/db/app.types';
@@ -28,6 +29,7 @@ export interface MilestoneSectionProps {
   onInlineCommit?: (parentId: string, title: string) => Promise<void>;
   onInlineCancel?: () => void;
   canEdit?: boolean;
+  isAddingInline?: boolean;
 }
 
 export default function MilestoneSection({
@@ -39,6 +41,7 @@ export default function MilestoneSection({
   onInlineCommit,
   onInlineCancel,
   canEdit = true,
+  isAddingInline = false,
 }: MilestoneSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -111,7 +114,7 @@ export default function MilestoneSection({
             transition={{ duration: 0.2 }}
           >
             <div className="px-5 pb-4 border-t border-slate-100">
-              {milestoneTasks.length === 0 ? (
+              {milestoneTasks.length === 0 && !isAddingInline ? (
                 <div className="py-8 text-center">
                   <p className="text-slate-500 mb-4">No tasks yet</p>
                   {canEdit && onAddChildTask && (
@@ -149,7 +152,24 @@ export default function MilestoneSection({
                           />
                         </motion.div>
                       ))}
-                    {canEdit && onAddChildTask && (
+
+                    {isAddingInline && onInlineCommit && onInlineCancel && (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="mt-2"
+                      >
+                        <InlineTaskInput
+                          onSubmit={(title) => onInlineCommit(milestone.id, title)}
+                          onCancel={onInlineCancel}
+                          placeholder="Add a new task..."
+                        />
+                      </motion.div>
+                    )}
+
+                    {!isAddingInline && canEdit && onAddChildTask && (
                       <motion.div
                         layout
                         initial={{ opacity: 0 }}

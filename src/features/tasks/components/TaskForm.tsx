@@ -2,6 +2,7 @@ import { MasterLibrarySearch } from '@/features/library';
 import TaskFormFields from '@/features/tasks/components/TaskFormFields';
 import { FormEventHandler } from 'react';
 import type { TaskRow } from '@/shared/db/app.types';
+import { Button } from '@/shared/ui/button';
 
 export interface TaskFormProps {
     isSubmitting?: boolean;
@@ -67,12 +68,12 @@ const TaskForm = ({
             <TaskFormFields origin={origin} />
 
             <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">
-                <button type="button" onClick={onCancel} className="btn-secondary" disabled={isSubmitting}>
+                <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                     Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                </Button>
+                <Button type="submit" disabled={isSubmitting} className="bg-brand-500 hover:bg-brand-600 text-white">
                     {isSubmitting ? 'Saving...' : submitLabel}
-                </button>
+                </Button>
             </div>
         </form>
     );

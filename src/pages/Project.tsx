@@ -249,6 +249,7 @@ export default function Project() {
                             onInlineCommit={canEdit ? handlers.handleInlineCommit : undefined}
                             onInlineCancel={() => actions.setInlineAddingParentId(null)}
                             canEdit={canEdit}
+                            isAddingInline={state.inlineAddingParentId === milestone.id}
                           />
                         ))
                       )}

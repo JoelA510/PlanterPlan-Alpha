@@ -1,6 +1,9 @@
 import { useFormContext } from 'react-hook-form';
 import type { ReactNode } from 'react';
 import type { TaskFormData } from '@/shared/db/app.types';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
+import { Textarea } from '@/shared/ui/textarea';
 
 interface TaskFormFieldsProps {
     origin?: 'instance' | 'library' | string;
@@ -17,84 +20,72 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
         <>
             {errors.root?.message && <div className="form-error-banner">{errors.root.message}</div>}
 
-            <div className="form-group">
-                <label htmlFor="title" className="form-label">
-                    Task Title <span className="required">*</span>
-                </label>
-                <input
+            <div className="space-y-2">
+                <Label htmlFor="title">
+                    Task Title <span className="text-red-500">*</span>
+                </Label>
+                <Input
                     type="text"
                     id="title"
                     autoFocus
-                    className={`form-input ${errors.title ? 'error' : ''}`}
+                    className={errors.title ? 'border-red-500' : ''}
                     placeholder="Enter task title"
                     {...register('title')}
                 />
-                {errors.title && <span className="form-error">{errors.title.message}</span>}
+                {errors.title && <span className="text-sm text-red-500">{errors.title.message}</span>}
             </div>
 
-            <div className="form-group">
-                <label htmlFor="description" className="form-label">
-                    Description
-                </label>
-                <textarea
-                    id="description"
-                    className="form-textarea"
-                    placeholder="Describe the task..."
-                    rows={3}
-                    {...register('description')}
-                />
-            </div>
+            <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                        id="description"
+                        placeholder="Describe the task..."
+                        rows={3}
+                        {...register('description')}
+                    />
+                </div>
 
-            <div className="form-group">
-                <label htmlFor="notes" className="form-label">
-                    Notes / Context
-                </label>
-                <textarea
-                    id="notes"
-                    className="form-textarea"
-                    placeholder="Internal notes, hints, or context..."
-                    rows={2}
-                    {...register('notes')}
-                />
-            </div>
+                <div className="space-y-2">
+                    <Label htmlFor="notes">Notes / Context</Label>
+                    <Textarea
+                        id="notes"
+                        placeholder="Internal notes, hints, or context..."
+                        rows={2}
+                        {...register('notes')}
+                    />
+                </div>
 
-            <div className="form-group">
-                <label htmlFor="purpose" className="form-label">
-                    Purpose
-                </label>
-                <textarea
-                    id="purpose"
-                    className="form-textarea"
-                    placeholder="Why is this task needed?"
-                    rows={2}
-                    {...register('purpose')}
-                />
-            </div>
+                <div className="space-y-2">
+                    <Label htmlFor="purpose">Purpose</Label>
+                    <Textarea
+                        id="purpose"
+                        placeholder="Why is this task needed?"
+                        rows={2}
+                        {...register('purpose')}
+                    />
+                </div>
 
-            <div className="form-group">
-                <label htmlFor="actions" className="form-label">
-                    Actions
-                </label>
-                <textarea
-                    id="actions"
-                    className="form-textarea"
-                    placeholder="Specific actions to take..."
-                    rows={2}
-                    {...register('actions')}
-                />
+                <div className="space-y-2">
+                    <Label htmlFor="actions">Actions</Label>
+                    <Textarea
+                        id="actions"
+                        placeholder="Specific actions to take..."
+                        rows={2}
+                        {...register('actions')}
+                    />
+                </div>
             </div>
 
             {origin === 'instance' && (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="form-group">
-                        <label htmlFor="days_from_start" className="form-label">
-                            Days from Start
-                        </label>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="days_from_start">Days from Start</Label>
                         <div className="relative">
-                            <input
+                            <Input
                                 type="number"
                                 id="days_from_start"
-                                className={`form-input pl-10 ${errors.days_from_start ? 'error' : ''}`}
+                                className={`pl-10 ${errors.days_from_start ? 'border-red-500' : ''}`}
                                 placeholder="0"
                                 min="0"
                                 {...register('days_from_start', { valueAsNumber: true })}
@@ -103,50 +94,41 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
                                 <span className="text-sm font-medium">T+</span>
                             </div>
                         </div>
-                        {errors.days_from_start && <span className="form-error">{errors.days_from_start.message}</span>}
-                        <p className="mt-1 text-xs text-slate-500">
+                        {errors.days_from_start && <span className="text-sm text-red-500">{errors.days_from_start.message}</span>}
+                        <p className="text-xs text-slate-500">
                             Auto-calculates dates based on project start
                         </p>
                     </div>
-
-                    <div className="form-group">{/* Spacing placeholder */}</div>
                 </div>
             )}
 
             {renderExtraFields && renderExtraFields()}
 
             {origin === 'instance' && (
-                <>
-                    <div className="my-4 border-t border-slate-100 pt-4">
-                        <h4 className="mb-3 text-sm font-medium text-slate-700">Manual Schedule Overrides</h4>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div className="form-group">
-                                <label htmlFor="start_date" className="form-label">
-                                    Start Date
-                                </label>
-                                <input
-                                    type="date"
-                                    id="start_date"
-                                    className="form-input"
-                                    {...register('start_date')}
-                                />
-                            </div>
+                <div className="my-6 border-t border-slate-200 pt-4">
+                    <h4 className="mb-4 text-sm font-medium text-slate-700">Manual Schedule Overrides</h4>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="start_date">Start Date</Label>
+                            <Input
+                                type="date"
+                                id="start_date"
+                                {...register('start_date')}
+                            />
+                        </div>
 
-                            <div className="form-group">
-                                <label htmlFor="due_date" className="form-label">
-                                    Due Date
-                                </label>
-                                <input
-                                    type="date"
-                                    id="due_date"
-                                    className={`form-input ${errors.due_date ? 'error' : ''}`}
-                                    {...register('due_date')}
-                                />
-                                {errors.due_date && <span className="form-error">{errors.due_date.message}</span>}
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="due_date">Due Date</Label>
+                            <Input
+                                type="date"
+                                id="due_date"
+                                className={errors.due_date ? 'border-red-500' : ''}
+                                {...register('due_date')}
+                            />
+                            {errors.due_date && <span className="text-sm text-red-500">{errors.due_date.message}</span>}
                         </div>
                     </div>
-                </>
+                </div>
             )}
         </>
     );
