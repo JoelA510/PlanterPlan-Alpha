@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useNavigate, ScrollRestoration, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { cn } from '@/shared/lib/utils';
 import Header from '@/features/navigation/components/Header';
 import ProjectSidebarContainer from '@/features/navigation/components/ProjectSidebarContainer';
@@ -23,7 +23,6 @@ export default function DashboardLayout({ sidebar }: { sidebar?: React.ReactNode
 
   return (
     <>
-      <ScrollRestoration />
       <div className="min-h-screen bg-background">
         <CommandPalette projects={projects || []} />
         <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} showMenuButton={true} />
