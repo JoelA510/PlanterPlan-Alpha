@@ -2,7 +2,7 @@
 
 ## 📋 Executive Summary
 
-This Mega-PR wraps up **Sprint Wave 15** (and its 15.1 expansion), marking a massive stabilization and modernization milestone for the PlanterPlan codebase. Across **30+ commits and 209 files changed (+5,317 / −15,808 lines)**, the primary focus was aggressively paying down technical debt, establishing rigid architectural boundaries via Feature-Sliced Design (FSD), strictly typing our form-to-database pipelines, and optimizing runtime performance.
+This Mega-PR wraps up **Sprint Wave 15** (and its 15.1 expansion), as well as **Wave 18: Database Synchronization & RLS Hardening**, marking a massive stabilization and modernization milestone for the PlanterPlan codebase. Across **30+ commits and 209 files changed (+5,317 / −15,808 lines)**, the primary focus was aggressively paying down technical debt, establishing rigid architectural boundaries via Feature-Sliced Design (FSD), strictly typing our form-to-database pipelines, optimizing runtime performance, and guaranteeing strict 1:1 schema parity between local development and production.
 
 By purging redundant abstraction layers, automating boundary enforcement with ESLint, and enforcing strict module contracts, we have vastly reduced the cognitive load required to build new features — while simultaneously hardening security, improving test coverage, and shrinking the production bundle.
 
@@ -32,6 +32,7 @@ The `src/features/` directory has been strictly decoupled to adhere to Feature-S
 * **E2E Bypass Protection:** Secured test-only login bypasses behind strict `VITE_E2E_MODE` environment checks to prevent leakage into production.
 * **Auth State Sync:** Refactored `signOut` in `AuthContext.tsx` to clear local memory only *after* successful remote network logout, preventing desynced "ghost" login states.
 * **XSS Eradication:** Stripped `dangerouslySetInnerHTML` from all title rendering components (`TaskItem`, `ProjectCard`), shifting to standard JSX text nodes for native XSS protection.
+* **RLS Hardening & Backfill:** Addressed a `500 Infinite Recursion` error triggered by circular references in the `tasks` INSERT policy. Reverted hacky subqueries back to straightforward `has_project_role` checks, and executed an extensive SQL backfill on both local and production environments to securely insert legacy project creators into the `project_members` table as `owner`.
 
 ### 🛡️ Type Safety & Payload Integrity
 
@@ -60,6 +61,7 @@ The `src/features/` directory has been strictly decoupled to adhere to Feature-S
 * **Architecture Simplification:** Centralized `DashboardLayout` inside the router, stripping sprawling wrappers from page roots. Removed legacy DB column aliasing in `planterClient.ts` for 1:1 PostgREST mapping.
 * **Context Footprint Reduction:** Aggressively `.gitignore`d test artifacts and relocated massive architectural documentation (`FULL_ARCHITECTURE.md`, `schema.sql`) into `.ai-ignore/`, saving hundreds of thousands of tokens of context space. **Removed committed `build/` directory** (76 vendor chunk files + `index.html`).
 * **Vercel Build Alignment:** Explicitly set Vite `outDir` to `build` to synchronize with the existing Vercel project configuration, resolving a "Missing Output Directory" CI blocker.
+* **Local vs Production Schema Parity:** Dumped the remote Supabase production schema directly into local `.ai-ignore/docs/schema.sql` and reset the local container. The local environment is now structurally guaranteed to mirror production 1:1.
 
 ---
 
@@ -313,6 +315,15 @@ Wave 16 focused on fixing critical runtime issues discovered during integration 
 * **TanStack Modernization:** Refactored manual state-based fetching in the Library domain to robust `@tanstack/react-query` implementations (`useQuery` with debouncing for search, and `useInfiniteQuery` for paginated templates).
 * **Strict Typing:** Audited the freshly converted `.tsx` components (`TaskDetailsPanel`, `ProjectCard`, etc.) to replace lazy `any` types with strict DB interfaces.
 
+### 🌊 Wave 18: Database Synchronization & RLS Hardening
+
+Wave 18 established secure, mirrored Database architectures:
+
+* **Schema Parity:** Synchronized local Supabase `schema.sql` directly with production, overwriting old migrations to establish identical table environments.
+* **RLS Test Hardening:** Hardened `RLS.test.ts` to strictly handle anonymous 42501 rejections and repaired lifecycle teardown bugs affecting Vite.
+* **Infinite Recursion Fix:** Resolved `500 Server Errors` when inserting tasks. Fixed circular POST references inside the `tasks` RLS policy by routing data access through explicit `project_members` mapping.
+* **Data Backfill:** Wrote and executed comprehensive SQL backfills to catch legacy "ghost" project owners (including those with `root_id = id`) and properly register their permissions in `project_members`.
+
 ---
 
 ## 🏗️ Architecture Decisions
@@ -346,6 +357,9 @@ Wave 16 focused on fixing critical runtime issues discovered during integration 
 | 8 | Missing regression test coverage | Multiple | Testing |
 | 9 | `date-fns` bypassing `date-engine` (#130) | Multiple | Architecture |
 | 10 | Unsafe `as unknown as` casts in `AuthContext` (#131) | Multiple | Type Safety |
+| 11 | Local schema out of sync | Multiple | Architecture |
+| 12 | `500` RLS Infinite Recursion on `tasks` insert | Multiple | Security |
+| 13 | Legacy users missing from `project_members` | Multiple | Data Integrity |
 
 ### ⚠️ Tracked as GitHub Issues (Remaining)
 
