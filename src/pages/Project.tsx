@@ -5,8 +5,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
-import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard';
-import { ROLES } from '@/app/constants';
+import { useProjectBoard } from '@/features/tasks/hooks/useProjectBoard';
+import { ROLES, TASK_STATUS } from '@/app/constants';
+import { compareDateAsc } from '@/shared/lib/date-engine';
+
+// Mock Types
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -108,7 +111,7 @@ export default function Project() {
   const activePhase = state.selectedPhase || sortedPhases[0];
 
   const projectMilestones = useMemo(() =>
-    (milestones || []).sort((a: TaskRow, b: TaskRow) => new Date(a.due_date || '').getTime() - new Date(b.due_date || '').getTime()),
+    (milestones || []).sort((a: TaskRow, b: TaskRow) => compareDateAsc(a.due_date, b.due_date)),
     [milestones]
   );
 

@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Calendar, Link as LinkIcon } from 'lucide-react';
 import RoleIndicator from '@/shared/ui/RoleIndicator';
-import { formatDate, isPastDate, isTodayDate } from '@/shared/lib/date-engine';
+import { formatDate, isPastDate, isTodayDate, isDateValid } from '@/shared/lib/date-engine';
 import type { TaskRow } from '@/shared/db/app.types';
 
 /**
@@ -14,7 +14,7 @@ const formatDueDate = (dateString?: string | null) => {
     if (!dateString) return null;
     try {
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return null;
+        if (!isDateValid(date)) return null;
         return formatDate(date, 'MMM d');
     } catch {
         return null;
@@ -28,7 +28,7 @@ const getDateColor = (dateString?: string | null) => {
     if (!dateString) return 'text-slate-400';
     try {
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return 'text-slate-400';
+        if (!isDateValid(date)) return 'text-slate-400';
         if (isPastDate(date)) return 'text-rose-600';
         if (isTodayDate(date)) return 'text-amber-600';
         return 'text-slate-500';

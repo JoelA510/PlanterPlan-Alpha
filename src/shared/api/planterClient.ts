@@ -1,4 +1,5 @@
-import { supabase } from '@/shared/db/client';
+import { supabase } from '../db/client';
+import { isDateValid, toIsoDate } from '@/shared/lib/date-engine';
 import { retry } from '../lib/retry.js';
 import { calculateMinMaxDates } from '../lib/date-engine/index';
 import type { Database } from '@/shared/db/database.types';
@@ -299,7 +300,7 @@ export const planter = {
           let isoLaunchDate = null;
           if (cleanProjectData.launch_date || cleanProjectData.start_date) {
             const d = new Date(cleanProjectData.launch_date || cleanProjectData.start_date);
-            if (!isNaN(d.getTime())) isoLaunchDate = d.toISOString().split('T')[0];
+            if (isDateValid(d)) isoLaunchDate = toIsoDate(d);
           }
 
           const taskPayload = {

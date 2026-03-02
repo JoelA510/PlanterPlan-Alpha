@@ -5,7 +5,9 @@ import {
     parseISO,
     isValid,
     isPast,
-    isToday
+    isToday,
+    endOfDay,
+    isBefore
 } from 'date-fns';
 
 /**
@@ -111,6 +113,50 @@ export const parseIsoDate = (dateStr: string | null | undefined): Date | null =>
     if (!dateStr) return null;
     const d = parseISO(dateStr);
     return isValid(d) ? d : null;
+};
+
+/** Returns the end of the day for a given date. */
+export const endOfDayDate = (date: DateInput | null | undefined): Date | null => {
+    const d = resolve(date);
+    if (!d) return null;
+    return endOfDay(d);
+};
+
+/** Returns true if dateLeft is strictly before dateRight. */
+export const isBeforeDate = (
+    dateLeft: DateInput | null | undefined,
+    dateRight: DateInput | null | undefined
+): boolean => {
+    const dl = resolve(dateLeft);
+    const dr = resolve(dateRight);
+    if (!dl || !dr) return false;
+    return isBefore(dl, dr);
+};
+
+/** Compares two dates ascending (for sorting). Nulls map to 0 or end of list depending on logic, but we push nulls to end. */
+export const compareDateAsc = (
+    dateLeft: DateInput | null | undefined,
+    dateRight: DateInput | null | undefined
+): number => {
+    const dl = resolve(dateLeft);
+    const dr = resolve(dateRight);
+    if (!dl && !dr) return 0;
+    if (!dl) return 1; // nulls last
+    if (!dr) return -1;
+    return dl.getTime() - dr.getTime();
+};
+
+/** Compares two dates descending (for sorting). */
+export const compareDateDesc = (
+    dateLeft: DateInput | null | undefined,
+    dateRight: DateInput | null | undefined
+): number => {
+    const dl = resolve(dateLeft);
+    const dr = resolve(dateRight);
+    if (!dl && !dr) return 0;
+    if (!dl) return 1; // nulls last
+    if (!dr) return -1;
+    return dr.getTime() - dl.getTime(); // reverse of asc
 };
 
 // ---------------------------------------------------------------------------

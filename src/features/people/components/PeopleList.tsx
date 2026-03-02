@@ -53,7 +53,7 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
             const data = await planter.entities.Person.filter({ project_id: projectId });
             // Sort client-side to mimic the previous server-side '.order('created_at', { ascending: false })' 
             const sorted = (data || []).sort((a: PersonRow, b: PersonRow) =>
-                new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+                compareDateDesc(a.created_at, b.created_at)
             );
             setPeople(sorted);
         } catch {

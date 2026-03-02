@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
+import { isDateValid, isBeforeDate } from '@/shared/lib/date-engine';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import TaskForm from '@/features/tasks/components/TaskForm';
@@ -22,9 +23,9 @@ const getTaskSchema = (origin: 'instance' | 'template') => z.object({
     templateId: z.string().nullable().optional(),
 }).refine((data) => {
     if (origin === 'instance' && data.start_date && data.due_date) {
-        const start = new Date(`${data.start_date}T00:00:00.000Z`);
-        const due = new Date(`${data.due_date}T00:00:00.000Z`);
-        if (!Number.isNaN(start.getTime()) && !Number.isNaN(due.getTime()) && due < start) {
+        const start = `${data.start_date}T00:00:00.000Z`;
+        const due = `${data.due_date}T00:00:00.000Z`;
+        if (isDateValid(start) && isDateValid(due) && isBeforeDate(due, start)) {
             return false;
         }
     }
