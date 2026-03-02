@@ -1,6 +1,7 @@
 # Agent Context & Codebase Map
 
 > **For AI Agents**: Read this first to understand the system architecture, patterns, and where to find things.
+> **TECH STACK ALERT**: JavaScript and JSX are entirely deprecated. TypeScript (.ts) and TSX (.tsx) are strictly enforced across the codebase.
 
 ## 1. Directory Structure (Feature-Sliced Variation)
 

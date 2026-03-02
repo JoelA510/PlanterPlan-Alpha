@@ -1,9 +1,8 @@
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/shared/db/client';
-
-import { User } from './AuthContextTypes';
-
-export type { User }; // Re-export for convenience but keep separate defining file
+import type { Session } from '@supabase/supabase-js';
+import type { User } from '@/shared/db/app.types';
+import { authApi } from '@/shared/api/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -61,13 +60,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Failed to parse planter_e2e_user', e);
       }
 
-      setUser(bypassedUser);
+      setUser(bypassedUser as User);
       setLoading(false);
       return;
     }
 
     // Shared session handler to prevent duplication and ensure consistency
-    const handleSession = async (session: { user: User | null } | null) => {
+    const handleSession = async (session: Session | null) => {
       const mySeq = ++seq;
 
       if (!session?.user) {
@@ -79,10 +78,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Optimistically set user with existing role (or default) to prevent UI flicker
       // Preservation Strategy: Use existing user role if ID matches, else session role, else null.
-      const currentUser = session.user;
+      const supabaseUser = session.user;
       setUser(prev => {
-        const existingRole = (prev?.id === currentUser.id) ? prev!.role : (currentUser.role || null);
-        return { ...currentUser, role: existingRole } as User;
+        const existingRole = (prev?.id === supabaseUser.id) ? prev.role : authApi.extractRoleFromMetadata(supabaseUser.user_metadata);
+
+        return {
+          id: supabaseUser.id,
+          email: supabaseUser.email || '',
+          role: existingRole,
+          app_metadata: supabaseUser.app_metadata,
+          user_metadata: supabaseUser.user_metadata,
+          aud: supabaseUser.aud,
+          created_at: supabaseUser.created_at
+        };
       });
 
       try {
@@ -104,50 +112,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isLocal) {
           console.log('[AuthContext] E2E Mode: Setting User immediately, RPC in background');
           // In local dev, default to owner if no role set
-          setUser(prev => prev ? ({ ...prev, role: prev.role || 'owner' } as User) : null);
+          setUser(prev => prev ? ({ ...prev, role: prev.role || 'owner' }) : null);
           setLoading(false);
 
           // Run in background without await
-          const rpcPromise = supabase.rpc('is_admin', { p_user_id: session.user.id }) as unknown as Promise<{ data: boolean; error: unknown }>;
-          rpcPromise.then(({ data: isAdmin }) => {
+          authApi.checkIsAdmin(session.user.id).then((isAdmin) => {
             if (!alive || mySeq !== seq) return;
-            if (isAdmin) setUser(prev => prev ? ({ ...prev, role: 'admin' } as User) : null);
+            if (isAdmin) setUser(prev => prev ? ({ ...prev, role: 'admin' }) : null);
           }).catch((e: unknown) => console.warn('Background RPC failed', e));
           return;
         }
 
-        const { data: isAdmin, error: rpcError } = await callWithTimeout(
-          supabase.rpc('is_admin', { p_user_id: session.user.id }) as unknown as Promise<{ data: boolean; error: unknown }>,
+        const isAdmin = await callWithTimeout(
+          authApi.checkIsAdmin(session.user.id),
           30000
         ).catch((err: unknown) => {
           console.error('AuthContext: RPC Timed out or crashed', err);
-          return { data: false as boolean, error: err };
+          return false;
         });
 
         if (!alive || mySeq !== seq) return;
 
-        if (rpcError) {
-          console.error('AuthContext: RPC error', rpcError);
-          // CRITICAL FIX: Do NOT downgrade to 'viewer' on error if we already have a role
-          // Only default to 'viewer' if we have absolutely no role information
-          setUser(prev => ({
-            ...session.user,
-            role: prev?.role || (session.user as unknown as Record<string, unknown>).role as string || 'viewer'
-          } as User));
-        } else {
-          console.log('[AuthContext] Setting User (Admin/Owner)');
-          setUser({
-            ...session.user,
+        console.log('[AuthContext] Setting User (Admin/Owner)');
+        setUser(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
             role: isAdmin ? 'admin' : 'owner'
-          });
-        }
+          };
+        });
       } catch (rpcCrash: unknown) {
         console.error('AuthContext: RPC crashed', rpcCrash);
         if (alive && mySeq === seq) {
-          setUser(prev => ({
-            ...session.user,
-            role: prev?.role || (session.user as unknown as Record<string, unknown>).role as string || 'viewer'
-          } as User));
+          setUser(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              role: prev.role || 'viewer'
+            };
+          });
         }
       } finally {
         if (alive && mySeq === seq) {
@@ -166,9 +169,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setLoading(false);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        await handleSession(session as unknown as { user: User | null });
+        await handleSession(session);
       } else {
-        if (session) await handleSession(session as unknown as { user: User | null });
+        if (session) await handleSession(session);
       }
     });
 
@@ -178,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signUp = async (email: string, password: string, userData: Record<string, unknown> = {}) => {
+  const signUp = useCallback(async (email: string, password: string, userData: Record<string, unknown> = {}) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -193,9 +196,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: unknown) {
       return { data: null, error };
     }
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -207,9 +210,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: unknown) {
       return { data: null, error };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       // Clear bypass tokens so we don't auto-login again
       const isBypass = typeof window !== 'undefined' &&
@@ -240,7 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // RE-THROW without clearing state to prevent desync
       throw error;
     }
-  };
+  }, []);
 
 
   const value = useMemo(() => ({

@@ -10,6 +10,11 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5174',
     trace: 'on-first-retry',
+    env: {
+      VITE_E2E_MODE: 'true',
+      VITE_TEST_EMAIL: 'test@example.com',
+      VITE_TEST_PASSWORD: 'password123',
+    },
   },
   projects: [
     {

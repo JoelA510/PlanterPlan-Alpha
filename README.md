@@ -4,7 +4,7 @@
 
 PlanterPlan provides a structured, phase-based roadmap for launching new churches. It replaces generic to-do lists with a curated "Master Template" approach, guiding planters from Discovery to Launch.
 
-> **Current Status**: Alpha (v1.0)
+> **Current Status**: Alpha (v1.1 — Stabilized, Strictly Typed)
 > **Specification**: [spec.md](spec.md)
 > **Architecture**: [docs/FULL_ARCHITECTURE.md](docs/FULL_ARCHITECTURE.md)
 
@@ -48,3 +48,8 @@ For a detailed breakdown of the codebase, see [docs/PROJECT_MIND_MAP.md](docs/PR
 1.  See [spec.md](spec.md) for the current roadmap.
 2.  Check [docs/DEBT_REPORT.md](docs/DEBT_REPORT.md) for known issues.
 3.  Run `npm run test` before pushing.
+
+---
+
+- **Wave 15.1 (2026-02-27)**: Architectural decoupling and theme unification. Implemented 7 barrel exports to formalize feature boundaries; refactored 25 deep cross-feature imports. Enforced strict Unified Light Mode across the application. Promoted `SidebarNavItem` to `shared/ui`.
+- **Wave 15 (2026-02-26)**: Comprehensive code review and surgical refactors. Lint errors reduced from 92→2. FSD boundary violations fixed. All date math consolidated through `date-engine`. Form payloads strictly typed. `planterClient` converted to TypeScript. All Golden Path browser tests pass.
