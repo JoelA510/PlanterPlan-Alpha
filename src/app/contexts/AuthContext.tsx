@@ -1,3 +1,4 @@
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/shared/db/client';
 import type { Session } from '@supabase/supabase-js';
 import type { User } from '@/shared/db/app.types';
@@ -180,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signUp = async (email: string, password: string, userData: Record<string, unknown> = {}) => {
+  const signUp = useCallback(async (email: string, password: string, userData: Record<string, unknown> = {}) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -195,9 +196,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: unknown) {
       return { data: null, error };
     }
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -209,9 +210,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: unknown) {
       return { data: null, error };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       // Clear bypass tokens so we don't auto-login again
       const isBypass = typeof window !== 'undefined' &&
@@ -242,7 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // RE-THROW without clearing state to prevent desync
       throw error;
     }
-  };
+  }, []);
 
 
   const value = useMemo(() => ({

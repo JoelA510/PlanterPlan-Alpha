@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -91,7 +91,7 @@ const NewTaskForm = ({
         }
     }
 
-    const handleApplyFromLibrary = (task: Partial<TaskRow>) => {
+    const handleApplyFromLibrary = useCallback((task: Partial<TaskRow>) => {
         if (!task) return;
         setValue('title', task.title || '', { shouldValidate: true });
         setValue('description', task.description || '', { shouldValidate: true });
@@ -102,10 +102,10 @@ const NewTaskForm = ({
         if (task.days_from_start !== null && task.days_from_start !== undefined) {
             setValue('days_from_start', Number(task.days_from_start), { shouldValidate: true });
         }
-        setLastAppliedTaskTitle(task.title);
-    };
+        setLastAppliedTaskTitle(task.title || '');
+    }, [setValue]);
 
-    const handleFormSubmit = async (data: TaskFormData) => {
+    const handleFormSubmit = useCallback(async (data: TaskFormData) => {
         try {
             await onSubmit(data);
             if (!isEditMode) {
@@ -115,7 +115,7 @@ const NewTaskForm = ({
         } catch (e) {
             console.error("Task submission failed:", e);
         }
-    };
+    }, [onSubmit, isEditMode, reset]);
 
     return (
         <FormProvider {...methods}>

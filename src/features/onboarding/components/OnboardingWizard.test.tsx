@@ -1,15 +1,16 @@
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import OnboardingWizard from './OnboardingWizard';
 
 // Mocks
 vi.mock('@/shared/ui/dialog', () => ({
-    Dialog: ({ open, children }) => open ? <div>{children}</div> : null,
-    DialogContent: ({ children }) => <div>{children}</div>,
-    DialogHeader: ({ children }) => <div>{children}</div>,
-    DialogTitle: ({ children }) => <h2>{children}</h2>,
-    DialogDescription: ({ children }) => <p>{children}</p>,
-    DialogFooter: ({ children }) => <div>{children}</div>,
+    Dialog: ({ open, children }: { open: boolean, children: React.ReactNode }) => open ? <div>{children}</div> : null,
+    DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+    DialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+    DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe('OnboardingWizard', () => {

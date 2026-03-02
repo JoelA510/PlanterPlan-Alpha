@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi } from 'vitest';
 import { planter } from '@/shared/api/planterClient';
 
@@ -23,7 +22,7 @@ describe('RPC Hardening & Security Response', () => {
         it('should handle "Access denied" exception for non-members', async () => {
             // Simulate the PG exception raised by the migration
             const dbError = new Error('Access denied: You must be an owner or editor to invite members.');
-            planter.entities.Project.addMemberByEmail.mockRejectedValue(dbError);
+            vi.mocked(planter.entities.Project.addMemberByEmail).mockRejectedValue(dbError);
 
             await expect(planter.entities.Project.addMemberByEmail('p1', 'bad@actor.com', 'editor'))
                 .rejects
@@ -32,7 +31,7 @@ describe('RPC Hardening & Security Response', () => {
 
         it('should handle "Access denied" for privilege escalation (Editor -> Owner)', async () => {
             const dbError = new Error('Access denied: Editors cannot assign the Owner role.');
-            planter.entities.Project.addMemberByEmail.mockRejectedValue(dbError);
+            vi.mocked(planter.entities.Project.addMemberByEmail).mockRejectedValue(dbError);
 
             await expect(planter.entities.Project.addMemberByEmail('p1', 'new@owner.com', 'owner'))
                 .rejects
@@ -44,11 +43,8 @@ describe('RPC Hardening & Security Response', () => {
         it('should handle "Access denied" when cloning unauthorized template', async () => {
             const dbError = new Error('Access denied: You do not have permission to access this template.');
 
-            // Un-mock Task.clone just for this test, or directly test RPC if clone is tested elsewhere
-            // Actually, we can just test if the RPC responds correctly when mocked.
-            // But since Task.clone is an entity method now, we mock planter.rpc instead if we imported the real client.
             // Since we mocked planter entirely above, we can just check if Task.clone propagates errors.
-            planter.entities.Task.clone.mockResolvedValue({ data: null, error: dbError });
+            vi.mocked(planter.entities.Task.clone).mockResolvedValue({ data: null, error: dbError as any });
 
             const result = await planter.entities.Task.clone('template-123', 'project-456', 'instance', 'user-789', {});
 

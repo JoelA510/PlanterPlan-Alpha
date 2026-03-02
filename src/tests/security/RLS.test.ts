@@ -1,15 +1,18 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Load env vars (Vitest loads .env automatically)
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
-
-console.log('RLS Test running against:', SUPABASE_URL);
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
 
 const isPlaceholder = SUPABASE_URL?.includes('placeholder.supabase.co');
-const shouldRun = SUPABASE_URL && SUPABASE_ANON_KEY && !isPlaceholder;
-const hasCredentials = process.env.TEST_USER_EMAIL && process.env.TEST_USER_PASSWORD;
+const shouldRun = !!(SUPABASE_URL && SUPABASE_ANON_KEY && !isPlaceholder);
+
+// Fallback to VITE_ prefixes if non-prefixed ones are missing
+const TEST_USER_EMAIL = process.env.VITE_TEST_EMAIL || process.env.TEST_USER_EMAIL;
+const TEST_USER_PASSWORD = (process.env.VITE_TEST_PASSWORD || process.env.TEST_USER_PASSWORD || '').replace(/"/g, '');
+
+const hasCredentials = !!(TEST_USER_EMAIL && TEST_USER_PASSWORD);
 
 if (!shouldRun) {
     if (isPlaceholder) {
@@ -18,91 +21,78 @@ if (!shouldRun) {
         console.warn('Skipping RLS tests: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
     }
 } else if (!hasCredentials) {
-    console.warn('Skipping Authenticated RLS tests: Missing TEST_USER_EMAIL or TEST_USER_PASSWORD');
+    console.warn('Skipping Authenticated RLS tests: Missing TEST_USER_EMAIL or VITE_TEST_EMAIL');
 }
 
 // Connectivity Check: Verify that the Supabase schema is accessible.
-// If the local instance is down or the schema cache is empty,
-// we get PGRST205 errors which are not RLS failures.
-let schemaAvailable = true;
-if (shouldRun) {
+const checkSchemaAvailability = async () => {
+    if (!shouldRun) return false;
     const checkerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     try {
         const { error } = await checkerClient.from('tasks').select('id').limit(0);
         if (error && error.code === 'PGRST205') {
             console.warn(`Skipping RLS tests: Schema not available (${error.message})`);
-            schemaAvailable = false;
+            return false;
         }
+        return true;
     } catch {
         console.warn('Skipping RLS tests: Supabase instance unreachable');
-        schemaAvailable = false;
+        return false;
     }
-}
+};
 
-describe.runIf(shouldRun && schemaAvailable)('Security: RLS & Access Control', () => {
-    let anonClient;
+const schemaAvailable = await checkSchemaAvailability();
 
-    beforeAll(() => {
+describe.runIf(shouldRun)('Security: RLS & Access Control', () => {
+    let anonClient: SupabaseClient;
+
+    beforeAll(async () => {
         anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     });
 
-    describe('Anonymous Access', () => {
-        it('should NOT list any tasks for anonymous user', async () => {
+    describe.runIf(schemaAvailable)('Anonymous Access', () => {
+        it('should NOT list any tasks for anonymous user (Direct Select)', async () => {
             const { data, error } = await anonClient.from('tasks').select('*');
 
-            // RLS should return 0 rows, NOT an error
+            // RLS should return 0 rows, NOT an error for SELECT
             expect(error).toBeNull();
             expect(data).toEqual([]);
         });
 
-        it('should NOT be able to create a task', async () => {
+        it('should NOT be able to create a task (Expect 42501)', async () => {
             const { error } = await anonClient.from('tasks').insert({
                 title: 'Hacked Task',
                 origin: 'instance'
             });
 
-            // Expect RLS violation error
+            // Expect RLS violation error (Postgres Permission Denied)
             expect(error).not.toBeNull();
-            expect(error.code).toMatch(/42501|PGRST301/); // Postgres permission denied code
+            expect(error?.code).toMatch(/42501|PGRST301/);
         });
 
-        it('should NOT be able to delete a task', async () => {
-            // Try to delete a random ID
-            await anonClient
-                .from('tasks')
-                .delete()
-                .eq('id', '00000000-0000-0000-0000-000000000000'); // Random UUID
-
-            // Actually, RLS policy for DELETE usually filters rows first.
-            // So this might just return 0 rows deleted without error if "Enable delete for users" policy logic applies.
-            // However, if NO policy allows DELETE for anon, it might error.
-            // Let's assume standard RLS behavior: Silent 0 deletion or Error.
-            // Ideally we want to ensure no rows are touched.
-            // Since we can't easily verify "nothing happened" without a known ID, let's rely on the fact
-            // that RLS policies for 'tasks' usually require 'auth.uid()', so anon matches nothing.
-
-            // Let's check permissions on 'project_members' which is stricter.
-            const { error: memberError } = await anonClient.from('project_members').select('*');
-            expect(memberError).toBeNull(); // Should be empty list, not error
+        it('should NOT be able to see project_members list', async () => {
+            const { data, error } = await anonClient.from('project_members').select('*');
+            expect(error).toBeNull();
+            expect(data).toEqual([]);
         });
     });
 
-    describe.runIf(hasCredentials)('Invite Logic (RPC)', () => {
+    describe.runIf(schemaAvailable && hasCredentials)('Invite Logic (RPC)', () => {
         it('should fail to get details for invalid token', async () => {
             const { error } = await anonClient.rpc('get_invite_details', {
                 p_token: '00000000-0000-0000-0000-000000000000'
             });
 
             expect(error).not.toBeNull();
-            expect(error.message).toContain('Invalid or expired invite token');
+            expect(error?.message).toContain('Invalid or expired invite token');
         });
 
         it('should successfully get details for a VALID token', async () => {
             // 1. Setup: Auth as Test User
             const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
-                email: process.env.TEST_USER_EMAIL,
-                password: process.env.TEST_USER_PASSWORD.replace(/"/g, '') // Strip quotes if dotenv didn't
+                email: TEST_USER_EMAIL!,
+                password: TEST_USER_PASSWORD!
             });
 
             if (authError || !authData.user) {
@@ -150,17 +140,18 @@ describe.runIf(shouldRun && schemaAvailable)('Security: RLS & Access Control', (
             await authClient.from('tasks').delete().eq('id', project.id);
         });
     });
-    describe.runIf(hasCredentials)('Authenticated Access', () => {
-        let authClient;
+
+    describe.runIf(schemaAvailable && hasCredentials)('Authenticated Access', () => {
+        let authClient: SupabaseClient | null = null;
 
         beforeAll(async () => {
             authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const { error } = await authClient.auth.signInWithPassword({
-                email: process.env.TEST_USER_EMAIL,
-                password: process.env.TEST_USER_PASSWORD.replace(/"/g, '')
+                email: TEST_USER_EMAIL!,
+                password: TEST_USER_PASSWORD!
             });
             if (error) {
-                console.warn('Authenticated Access skipped: Auth failed', error);
+                console.warn('Authenticated Access skipped: Auth failed. Visit http://127.0.0.1:54323 to create a test user if running locally.', error.message);
                 authClient = null; // Signal failure
             }
         });
@@ -178,7 +169,7 @@ describe.runIf(shouldRun && schemaAvailable)('Security: RLS & Access Control', (
 
             // Should fail with RLS violation
             expect(error).not.toBeNull();
-            expect(error.code).toMatch(/42501|PGRST301/);
+            expect(error?.code).toMatch(/42501|PGRST301/);
         });
     });
 });

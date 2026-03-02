@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { constructCreatePayload, constructUpdatePayload } from './payloadHelpers';
 import * as dateEngine from './index';
 
 // Mock date engine to control outputs
 vi.mock('./index', async () => {
-    const actual = await vi.importActual('./index');
+    const actual = await vi.importActual<any>('./index');
     return {
         ...actual,
         calculateScheduleFromOffset: vi.fn(),
@@ -14,7 +14,7 @@ vi.mock('./index', async () => {
 
 describe('payloadHelpers', () => {
     const mockContext = {
-        origin: 'instance',
+        origin: 'instance' as const,
         parentId: 'parent-123',
         rootId: 'root-456',
         contextTasks: [],
@@ -36,7 +36,7 @@ describe('payloadHelpers', () => {
 
     describe('constructCreatePayload', () => {
         it('constructs basic payload correctly', () => {
-            const payload = constructCreatePayload(mockFormData, mockContext);
+            const payload = constructCreatePayload(mockFormData as any, mockContext);
 
             expect(payload).toMatchObject({
                 title: 'New Task',
@@ -48,17 +48,16 @@ describe('payloadHelpers', () => {
                 root_id: 'root-456',
                 is_complete: false,
             });
-            // Position should be max + step (assuming step is imported, check logic)
             expect(payload.position).toBeGreaterThan(100);
         });
 
         it('calculates schedule if days_from_start is provided for instance', () => {
-            dateEngine.calculateScheduleFromOffset.mockReturnValue({
+            (dateEngine.calculateScheduleFromOffset as any).mockReturnValue({
                 start_date: '2023-01-06',
                 due_date: '2023-01-06',
             });
 
-            const payload = constructCreatePayload(mockFormData, mockContext);
+            const payload = constructCreatePayload(mockFormData as any, mockContext);
 
             expect(dateEngine.calculateScheduleFromOffset).toHaveBeenCalledWith(
                 mockContext.contextTasks,
@@ -70,22 +69,21 @@ describe('payloadHelpers', () => {
 
         it('prioritizes manual dates over calculated ones', () => {
             const manualData = { ...mockFormData, start_date: '2023-02-01' };
-            dateEngine.calculateScheduleFromOffset.mockReturnValue({
+            (dateEngine.calculateScheduleFromOffset as any).mockReturnValue({
                 start_date: '2023-01-06',
                 due_date: '2023-01-06',
             });
 
-            const payload = constructCreatePayload(manualData, mockContext);
+            const payload = constructCreatePayload(manualData as any, mockContext);
 
             expect(payload.start_date).toBe('2023-02-01');
-            // Should default due_date to start_date if not provided
             expect(payload.due_date).toBe('2023-02-01');
         });
     });
 
     describe('constructUpdatePayload', () => {
         it('constructs update payload correctly', () => {
-            const payload = constructUpdatePayload(mockFormData, {}, mockContext);
+            const payload = constructUpdatePayload(mockFormData as any, {}, mockContext);
 
             expect(payload).toMatchObject({
                 title: 'New Task',
@@ -97,12 +95,12 @@ describe('payloadHelpers', () => {
 
         it('handles manual date overrides in updates', () => {
             const manualData = { ...mockFormData, start_date: '2023-03-01', due_date: '2023-03-05' };
-            dateEngine.calculateScheduleFromOffset.mockReturnValue({
+            (dateEngine.calculateScheduleFromOffset as any).mockReturnValue({
                 start_date: '2023-01-06',
                 due_date: '2023-01-06'
             });
 
-            const payload = constructUpdatePayload(manualData, {}, mockContext);
+            const payload = constructUpdatePayload(manualData as any, {}, mockContext);
 
             expect(payload.start_date).toBe('2023-03-01');
             expect(payload.due_date).toBe('2023-03-05');

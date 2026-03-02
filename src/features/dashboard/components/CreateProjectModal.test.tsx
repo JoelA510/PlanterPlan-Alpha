@@ -45,7 +45,7 @@ const renderModal = (props = {}) => {
     const defaultProps = {
         open: true,
         onClose: vi.fn(),
-        onCreate: vi.fn(),
+        onSubmit: vi.fn(),
         ...props,
     };
 
@@ -68,21 +68,26 @@ describe('CreateProjectModal', () => {
         it('shows template selection on initial render', () => {
             renderModal();
 
-            expect(screen.getByText('Choose a Template')).toBeInTheDocument();
-            expect(screen.getByText('Launch Large')).toBeInTheDocument();
-            expect(screen.getByText('Multisite')).toBeInTheDocument();
-            expect(screen.getByText('Multiplication')).toBeInTheDocument();
+            expect(screen.getByText('Start New Project')).toBeInTheDocument();
+            expect(screen.getByText('New Church Plant')).toBeInTheDocument();
+            expect(screen.getByText('Community Outreach')).toBeInTheDocument();
+            expect(screen.getByText('Leadership Training')).toBeInTheDocument();
         });
 
         it('moves to step 2 when template is selected', async () => {
             renderModal();
 
-            fireEvent.click(screen.getByText('Launch Large'));
+            const template = await screen.findByText(/New Church Plant/i);
+            fireEvent.click(template);
 
-            // Wait for the label to appear (animation takes time)
+            // Move to step 2
+            const continueBtn = screen.getByText(/Continue to Details/i);
+            fireEvent.click(continueBtn);
+
+            // Wait for the label to appear
             const projectNameInput = await screen.findByLabelText(/project name/i);
             expect(projectNameInput).toBeInTheDocument();
-            expect(screen.getByText('Project Details')).toBeInTheDocument();
+            expect(screen.getByText(/Project Details/i)).toBeInTheDocument();
         });
     });
 
@@ -91,12 +96,16 @@ describe('CreateProjectModal', () => {
          * CRITICAL REGRESSION TEST
          * This test ensures the bug where `name` was sent instead of `title` doesn't recur.
          */
-        it('passes title field correctly to onCreate callback', async () => {
-            const mockOnCreate = vi.fn().mockResolvedValue({});
-            renderModal({ onCreate: mockOnCreate });
+        it('passes title field correctly to onSubmit callback', async () => {
+            const mockOnSubmit = vi.fn().mockResolvedValue({});
+            renderModal({ onSubmit: mockOnSubmit });
 
             // Step 1: Select template
-            fireEvent.click(screen.getByText('Multisite'));
+            const template = await screen.findByText(/Community Outreach/i);
+            fireEvent.click(template);
+
+            const continueBtn = screen.getByText(/Continue to Details/i);
+            fireEvent.click(continueBtn);
 
             // Step 2: Fill in project details
             await waitFor(() => {
@@ -106,33 +115,30 @@ describe('CreateProjectModal', () => {
             const titleInput = screen.getByLabelText(/project name/i);
             fireEvent.change(titleInput, { target: { value: 'Test Church Plant' } });
 
-            // Also select a launch date, which is required
-            fireEvent.click(screen.getByRole('button', { name: /pick a date/i }));
-            // Use a more specific selector for the day to avoid ambiguity
-            const day15 = screen.getByRole('button', { name: /15/ });
-            fireEvent.click(day15);
-
             // Submit
             const createBtn = screen.getByRole('button', { name: /create project/i });
             fireEvent.click(createBtn);
 
             await waitFor(() => {
-                expect(mockOnCreate).toHaveBeenCalledTimes(1);
+                expect(mockOnSubmit).toHaveBeenCalledTimes(1);
             });
 
-            // CRITICAL ASSERTION: Verify `name` field is present (component uses `name`, not legacy `title`)
-            const calledWith = mockOnCreate.mock.calls[0][0];
-            expect(calledWith).toHaveProperty('name', 'Test Church Plant');
-            expect(calledWith).toHaveProperty('launch_date'); // Ensure date is passed
-            expect(calledWith).not.toHaveProperty('title'); // Should NOT have legacy field
+            // CRITICAL ASSERTION: Verify `title` field is used
+            const calledWith = mockOnSubmit.mock.calls[0][0];
+            expect(calledWith).toHaveProperty('title', 'Test Church Plant');
+            expect(calledWith).not.toHaveProperty('name');
         });
 
         it('maps template to templateId correctly', async () => {
-            const mockOnCreate = vi.fn().mockResolvedValue({});
-            renderModal({ onCreate: mockOnCreate });
+            const mockOnSubmit = vi.fn().mockResolvedValue({});
+            renderModal({ onSubmit: mockOnSubmit });
 
-            // Select "launch_large" template
-            fireEvent.click(screen.getByText('Launch Large'));
+            // Select "new-church" template
+            const template = await screen.findByText(/New Church Plant/i);
+            fireEvent.click(template);
+
+            const continueBtn = screen.getByText(/Continue to Details/i);
+            fireEvent.click(continueBtn);
 
             await waitFor(() => {
                 expect(screen.getByLabelText(/project name/i)).toBeInTheDocument();
@@ -142,71 +148,62 @@ describe('CreateProjectModal', () => {
                 target: { value: 'My Project' },
             });
 
-            // Should select date
-            fireEvent.click(screen.getByRole('button', { name: /pick a date/i }));
-            const day15 = screen.getByRole('button', { name: /15/ });
-            fireEvent.click(day15);
-
             fireEvent.click(screen.getByRole('button', { name: /create project/i }));
 
             await waitFor(() => {
-                expect(mockOnCreate).toHaveBeenCalled();
+                expect(mockOnSubmit).toHaveBeenCalled();
             });
 
-            const calledWith = mockOnCreate.mock.calls[0][0];
-            expect(calledWith).toHaveProperty('templateId', 'launch_large');
-            expect(calledWith).toHaveProperty('template', 'launch_large');
+            const calledWith = mockOnSubmit.mock.calls[0][0];
+            expect(calledWith).toHaveProperty('template', 'new-church');
         });
     });
 
     describe('UI State Management', () => {
         it('disables Create button when title is empty', async () => {
-            // Since we switched to onSubmit validation, button is NOT disabled.
-            // We can check if clicking creates or shows error.
-            const mockOnCreate = vi.fn();
-            renderModal({ onCreate: mockOnCreate });
+            renderModal();
 
-            fireEvent.click(screen.getByText('Multiplication'));
-            await waitFor(() => expect(screen.getByRole('button', { name: /create project/i })).toBeInTheDocument());
+            const template = await screen.findByText(/Leadership Training/i);
+            fireEvent.click(template);
 
-            const createBtn = screen.getByRole('button', { name: /create project/i });
-            fireEvent.click(createBtn);
+            const continueBtn = await screen.findByRole('button', { name: /continue to details/i });
+            fireEvent.click(continueBtn);
 
-            // Should NOT call onCreate because title is empty
-            expect(mockOnCreate).not.toHaveBeenCalled();
+            const createBtn = await screen.findByRole('button', { name: /create project/i });
+            expect(createBtn).toBeDisabled();
         });
 
         it('enables Create button when title is provided', async () => {
-            // This test is somewhat redundant if button is always enabled, 
-            // but checking interactivity is fine.
             renderModal();
-            fireEvent.click(screen.getByText('Multiplication'));
-            await waitFor(() => expect(screen.getByLabelText(/project name/i)).toBeInTheDocument());
+            const template = await screen.findByText(/Leadership Training/i);
+            fireEvent.click(template);
 
-            const createBtn = screen.getByRole('button', { name: /create project/i });
+            const continueBtn = await screen.findByRole('button', { name: /continue to details/i });
+            fireEvent.click(continueBtn);
+
+            const projectNameInput = await screen.findByLabelText(/project name/i);
+            fireEvent.change(projectNameInput, { target: { value: 'New Goal' } });
+
+            const createBtn = await screen.findByRole('button', { name: /create project/i });
             expect(createBtn).toBeEnabled();
         });
 
         it('resets form after successful creation', async () => {
-            const mockOnCreate = vi.fn().mockResolvedValue({});
+            const mockOnSubmit = vi.fn().mockResolvedValue({});
             const mockOnClose = vi.fn();
-            renderModal({ onCreate: mockOnCreate, onClose: mockOnClose });
+            renderModal({ onSubmit: mockOnSubmit, onClose: mockOnClose });
 
-            fireEvent.click(screen.getByText('Launch Large'));
+            const template = await screen.findByText(/New Church Plant/i);
+            fireEvent.click(template);
 
-            await waitFor(() => {
-                expect(screen.getByLabelText(/project name/i)).toBeInTheDocument();
-            });
+            const continueBtn = await screen.findByRole('button', { name: /continue to details/i });
+            fireEvent.click(continueBtn);
 
-            fireEvent.change(screen.getByLabelText(/project name/i), {
-                target: { value: 'Test Church' },
-            });
+            const titleInput = await screen.findByLabelText(/project name/i);
+            fireEvent.change(titleInput, { target: { value: 'Test Church' } });
 
-            fireEvent.click(screen.getByRole('button', { name: /pick a date/i }));
-            const day15 = screen.getByRole('button', { name: /15/ });
-            fireEvent.click(day15);
-
-            fireEvent.click(screen.getByRole('button', { name: /create project/i }));
+            const createBtn = await screen.findByRole('button', { name: /create project/i });
+            fireEvent.click(createBtn);
 
             await waitFor(() => {
                 expect(mockOnClose).toHaveBeenCalled();
@@ -221,11 +218,13 @@ describe('CreateProjectModal', () => {
         it('does not show project type selector', async () => {
             renderModal();
 
-            fireEvent.click(screen.getByText('Launch Large'));
+            const template = await screen.findByText(/New Church Plant/i);
+            fireEvent.click(template);
 
-            await waitFor(() => {
-                expect(screen.getByText('Project Details')).toBeInTheDocument();
-            });
+            const continueBtn = await screen.findByRole('button', { name: /continue to details/i });
+            fireEvent.click(continueBtn);
+
+            await screen.findByText(/Project Details/i);
 
             // These elements should NOT exist
             expect(screen.queryByText(/primary project/i)).not.toBeInTheDocument();

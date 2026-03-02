@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useProjectSelection } from './useProjectSelection';
+import type { Task } from '@/shared/db/app.types';
 
 describe('useProjectSelection', () => {
     const mockFetchProjectDetails = vi.fn();
 
-    const instanceTasks = [{ id: 'p1', title: 'P1' }];
-    const templateTasks = [];
-    const joinedProjects = [];
+    const instanceTasks = [{ id: 'p1', title: 'P1' }] as Task[];
+    const templateTasks: Task[] = [];
+    const joinedProjects: Task[] = [];
 
     beforeEach(() => {
         vi.clearAllMocks();

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Layout from '../layouts/Layout';
+import DashboardLayout from '../layouts/DashboardLayout';
 import Dashboard from '../pages/Dashboard';
 import Reports from '../pages/Reports';
 import Project from '../pages/Project';
@@ -25,7 +25,7 @@ export default function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<LoginForm />} />
-            <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+            <Route path="/" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="reports" element={<Reports />} />
@@ -37,6 +37,6 @@ export default function App() {
         </Router>
         <Toaster richColors position="top-right" />
       </AuthProvider>
-    </QueryClientProvider>
+    </QueryClientProvider >
   );
 }

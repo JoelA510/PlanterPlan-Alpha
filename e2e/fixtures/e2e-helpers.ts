@@ -121,15 +121,21 @@ export async function setupCommonMocks(
     page: Page,
     session: ReturnType<typeof createSession>,
 ) {
+    let isLoggedOut = true;
+
     await page.route('**/auth/v1/user', (route) =>
         route.fulfill({ status: 200, body: JSON.stringify(session.user) }),
     );
-    await page.route('**/auth/v1/session', (route) =>
-        route.fulfill({ status: 200, body: JSON.stringify(session) }),
-    );
-    await page.route('**/auth/v1/token*', (route) =>
-        route.fulfill({ status: 200, body: JSON.stringify(session) }),
-    );
+    await page.route('**/auth/v1/session', (route) => {
+        if (isLoggedOut) {
+            return route.fulfill({ status: 200, body: JSON.stringify({ session: null }) });
+        }
+        return route.fulfill({ status: 200, body: JSON.stringify(session) });
+    });
+    await page.route('**/auth/v1/token*', (route) => {
+        isLoggedOut = false;
+        return route.fulfill({ status: 200, body: JSON.stringify(session) });
+    });
     await page.route('**/rest/v1/rpc/is_admin', (route) =>
         route.fulfill({ status: 200, body: 'true' }),
     );

@@ -109,7 +109,7 @@ export const useTaskForm = <T extends FormDataRecord>(
         setShowResourceCreator(false);
     }, []);
 
-    const handleSubmit = async (
+    const handleSubmit = useCallback(async (
         e: FormEvent,
         onSubmit: (data: T) => Promise<void>,
         onSuccess?: () => void
@@ -139,7 +139,7 @@ export const useTaskForm = <T extends FormDataRecord>(
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, [formData, validateFn]);
 
     return {
         formData,

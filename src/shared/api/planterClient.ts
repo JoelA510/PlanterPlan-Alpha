@@ -40,6 +40,10 @@ interface EntityClient<T, TInsert, TUpdate> {
   upsert: (payload: TInsert | TInsert[], options?: { onConflict?: string; ignoreDuplicates?: boolean }) => Promise<{ data: T | T[] | null; error: Error | null }>;
 }
 
+interface TaskResourceEntityClient extends EntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']> {
+  setPrimary: (taskId: string, resourceId: string | null) => Promise<void>;
+}
+
 interface ProjectEntityClient extends EntityClient<Project, TaskInsert, TaskUpdate> {
   listByCreator: (userId: string, page?: number, pageSize?: number) => Promise<Project[]>;
   listJoined: (userId: string) => Promise<Project[]>;
@@ -573,7 +577,12 @@ export const planter = {
         });
       }
     },
-    TaskResource: createEntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']>('task_resources'),
+    TaskResource: {
+      ...createEntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']>('task_resources'),
+      setPrimary: async (taskId: string, resourceId: string | null) => {
+        await planter.entities.Task.update(taskId, { primary_resource_id: resourceId } as TaskUpdate);
+      }
+    },
     TeamMember: createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
     Person: createEntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>('people'),
   } as {
@@ -585,6 +594,7 @@ export const planter = {
       listTemplates: (options?: { from?: number, limit?: number, resourceType?: string | null }) => Promise<{ data: unknown[], error: Error | null }>;
       searchTemplates: (options: { query: string, limit?: number, resourceType?: string | null }) => Promise<{ data: unknown[], error: Error | null }>;
     };
+    TaskResource: TaskResourceEntityClient;
     TeamMember: EntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>;
     Person: EntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>;
   },

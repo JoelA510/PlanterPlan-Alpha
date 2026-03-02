@@ -187,6 +187,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                 exit={{ opacity: 0, x: -20 }}
                                 className="space-y-6"
                             >
+                                <h3 className="text-lg font-bold text-slate-900">Project Details</h3>
                                 <div className="space-y-2">
                                     <Label htmlFor="title" className="text-slate-700 font-semibold">
                                         Project Name

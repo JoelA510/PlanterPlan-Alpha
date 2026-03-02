@@ -25,8 +25,8 @@ export default function TasksPage() {
   // We still need mutation capabilities for the TaskList
   const { updateTask } = useTaskActions({
     tasks,
-    fetchTasks: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
-    refreshProjectDetails: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+    fetchTasks: useCallback(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }), [queryClient]),
+    refreshProjectDetails: useCallback(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }), [queryClient]),
     findTask
   });
 
@@ -131,13 +131,13 @@ export default function TasksPage() {
                           key={task.id}
                           task={task}
                           level={0}
-                          onStatusChange={(id, status) => updateTask(id, { status })}
+                          onStatusChange={useCallback((id: string, status: string) => updateTask(id, { status }), [updateTask])}
                           hideExpansion={true}
                           disableDrag={true}
                           // No-ops for unsupported actions in this view for now
-                          onTaskClick={() => { }}
-                          onAddChildTask={() => { }}
-                          onInviteMember={() => { }}
+                          onTaskClick={useCallback(() => { }, [])}
+                          onAddChildTask={useCallback(() => { }, [])}
+                          onInviteMember={useCallback(() => { }, [])}
                         />
                       ))}
                     </div>

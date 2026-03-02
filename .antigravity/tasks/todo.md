@@ -44,3 +44,18 @@
 - [x] **8. Resolve Component Debt & Lint Warnings**
   - *Effect*: Reach 0 warnings/errors state for the production build.
   - *Target*: `TaskList.tsx`, `Dashboard.tsx`, `Project.tsx` residuals, and unused imports.
+
+## Phase 5: Test Hardening & FSD Optimization
+
+- [ ] **1. Address Known Regressions**
+  - *Effect*: Resolve component test failures identified during Wave 16.
+  - *Action*: Run `vitest` scan, identify failures, and use TDD_ARCHITECT mode to fix.
+- [ ] **2. Anti-Flake & Coverage Expansion**
+  - *Effect*: Ensure test stability and fill coverage gaps without writing implementation first.
+  - *Protocol*: Strict Red-Green-Refactor. No new logic without a failing test.
+- [ ] **3. Deep FSD & Modernity Audit**
+  - *Effect*: Enforce strict architectural boundaries and modernity standards.
+  - *Checks*: 
+    - Zero `features` -> `shared` leaks.
+    - Zero `supabase.from()` in JSX.
+    - Zero raw date math outside `date-engine`.

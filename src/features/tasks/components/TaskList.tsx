@@ -60,9 +60,9 @@ const TaskList = () => {
     const deleteTask = async (task: TaskRow) => deleteTaskAsync({ id: task.id, root_id: task.root_id || undefined });
 
     // Legacy stubs for contexts that expect manual state manipulation
-    const fetchTasks = () => refetchProjects();
-    const fetchProjectDetails = () => refetchProjects();
-    const refreshProjectDetails = () => refetchProjects();
+    const fetchTasks = useCallback(() => refetchProjects(), [refetchProjects]);
+    const fetchProjectDetails = useCallback(() => refetchProjects(), [refetchProjects]);
+    const refreshProjectDetails = useCallback(() => refetchProjects(), [refetchProjects]);
     const setTasks = () => { };
     const handleOptimisticUpdate = () => { };
     const commitOptimisticUpdate = () => { };
@@ -214,12 +214,12 @@ const TaskList = () => {
                                 disableDrag={joinedProjects.some((jp: TaskRow) => jp.id === activeProjectId)}
                                 hydrationError={hydrationError}
                                 onInviteMember={() => handleOpenInvite(activeProject)}
-                                onStatusChange={(taskId: string, status: string) =>
+                                onStatusChange={useCallback((taskId: string, status: string) =>
                                     updateTaskAsync({
                                         id: taskId,
                                         status,
                                         is_complete: status === 'completed',
-                                    })
+                                    }), [updateTaskAsync])
                                 }
                             />
                         )}

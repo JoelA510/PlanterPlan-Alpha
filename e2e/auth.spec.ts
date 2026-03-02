@@ -28,11 +28,12 @@ test.describe('Authentication Flow VERIFIED', () => {
             await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeUser) });
         });
 
+        let isLoggedOut = true;
+
         await page.route('**/auth/v1/token?grant_type=password', async route => {
+            isLoggedOut = false;
             await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fakeSession) });
         });
-
-        let isLoggedOut = false;
 
         await page.route('**/auth/v1/session', async route => {
             if (isLoggedOut) {
@@ -114,6 +115,31 @@ test.describe('Authentication Flow VERIFIED', () => {
             // Wait for the login screen to render
             await expect(page).toHaveURL(/.*\/login/);
             await expect(page.getByText('Sign in with Magic Link')).toBeVisible({ timeout: 10000 });
+        });
+    });
+
+    test('should allow a user to sign in using manual form', async ({ page }) => {
+        const testEmail = 'test@example.com';
+        const testPw = 'password123';
+
+        await test.step('1. Navigate to Login', async () => {
+            await page.goto('/login');
+            await page.evaluate(() => localStorage.clear());
+        });
+
+        // Initialize CSS Override for Stability
+        await page.addStyleTag({
+            content: `* { opacity: 1 !important; transform: none !important; transition: none !important; animation: none !important; }`
+        });
+
+        await test.step('2. Fill Login Form', async () => {
+            await page.getByLabel('Email address').fill(testEmail);
+            await page.getByLabel('Password').fill(testPw);
+            await page.getByRole('button', { name: /Sign In/i }).click();
+        });
+
+        await test.step('3. Verify Dashboard Access', async () => {
+            await expect(page.locator('h1').filter({ hasText: 'Dashboard' })).toBeVisible({ timeout: 15000 });
         });
     });
 });

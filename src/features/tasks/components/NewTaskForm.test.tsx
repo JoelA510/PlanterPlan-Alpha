@@ -4,9 +4,16 @@ import NewTaskForm from './NewTaskForm';
 import type { TaskFormData } from '@/shared/db/app.types';
 import '@testing-library/jest-dom';
 
-// Mock MasterLibrarySearch since it's external to this unit
+// Mock MasterLibrarySearch to expose its selection callback
 vi.mock('@/features/library', () => ({
-    MasterLibrarySearch: () => <div data-testid="library-search" />
+    MasterLibrarySearch: ({ onSelect }: any) => (
+        <button
+            data-testid="library-search-mock"
+            onClick={() => onSelect({ id: 'lib-1', title: 'Library Task' })}
+        >
+            Apply Library Task
+        </button>
+    )
 }));
 
 describe('NewTaskForm Registry Strictness', () => {
@@ -67,5 +74,44 @@ describe('NewTaskForm Registry Strictness', () => {
         });
 
         expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('should populate fields correctly in Edit Mode', async () => {
+        const initialTask = {
+            id: 'task-123',
+            title: 'Existing Task',
+            description: 'Existing Description',
+            start_date: '2024-02-01T00:00:00Z',
+            due_date: '2024-02-10T00:00:00Z',
+        };
+
+        render(
+            <NewTaskForm
+                onSubmit={vi.fn()}
+                onCancel={vi.fn()}
+                initialTask={initialTask}
+                origin="instance"
+            />
+        );
+
+        expect(screen.getByLabelText(/Task Title/i)).toHaveValue('Existing Task');
+        expect(screen.getByLabelText(/Description/i)).toHaveValue('Existing Description');
+        // slice(0,10) logic should show YYYY-MM-DD
+        expect(screen.getByLabelText(/Start Date/i)).toHaveValue('2024-02-01');
+        expect(screen.getByLabelText(/Due Date/i)).toHaveValue('2024-02-10');
+    });
+
+    it('should update form fields when a library task is applied', async () => {
+        render(<NewTaskForm onSubmit={vi.fn()} onCancel={vi.fn()} origin="instance" />);
+
+        const applyBtn = screen.getByTestId('library-search-mock');
+        fireEvent.click(applyBtn);
+
+        // Verify the title input was updated
+        expect(screen.getByLabelText(/Task Title/i)).toHaveValue('Library Task');
+
+        // Verify the success message appears
+        expect(screen.getByText(/Copied details from/i)).toBeInTheDocument();
+        expect(screen.getByText('Library Task')).toBeInTheDocument();
     });
 });
