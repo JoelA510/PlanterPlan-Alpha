@@ -2,7 +2,7 @@
 
 ## 📋 Executive Summary
 
-This Mega-PR wraps up **Sprint Wave 15** (and its 15.1 expansion), as well as **Wave 18: Database Synchronization & RLS Hardening**, marking a massive stabilization and modernization milestone for the PlanterPlan codebase. Across **30+ commits and 209 files changed (+5,317 / −15,808 lines)**, the primary focus was aggressively paying down technical debt, establishing rigid architectural boundaries via Feature-Sliced Design (FSD), strictly typing our form-to-database pipelines, optimizing runtime performance, and guaranteeing strict 1:1 schema parity between local development and production.
+This Mega-PR wraps up **the extensive architectural decoupling and data-layer synchronization effort**, marking a massive stabilization and modernization milestone for the PlanterPlan codebase. Across **30+ commits and 209 files changed (+5,317 / −15,808 lines)**, the primary focus was aggressively paying down technical debt, establishing rigid architectural boundaries via Feature-Sliced Design (FSD), strictly typing our form-to-database pipelines, optimizing runtime performance, and guaranteeing strict 1:1 schema parity between local development and production.
 
 By purging redundant abstraction layers, automating boundary enforcement with ESLint, and enforcing strict module contracts, we have vastly reduced the cognitive load required to build new features — while simultaneously hardening security, improving test coverage, and shrinking the production bundle.
 
@@ -282,9 +282,9 @@ classDiagram
 
 ---
 
-## 🌊 Wave 15: Code Review Audit & Surgical Refactors (Deep Dive)
+## 🌊 Code Review Audit & Surgical Refactors (Deep Dive)
 
-This wave performed a comprehensive code review audit and three targeted surgical refactors to address the highest-priority findings.
+This phase performed a comprehensive code review audit and three targeted surgical refactors to address the highest-priority findings.
 
 ### 🔧 Lint Cleanup: 92 → 2
 
@@ -306,18 +306,18 @@ xychart-beta
     bar [92, 12, 2, 2]
 ```
 
-### 🌊 Wave 16: Architecture Polish & Stabilization
+### 🌊 Architecture Polish & Stabilization
 
-Wave 16 focused on fixing critical runtime issues discovered during integration testing:
+The polishing phase focused on fixing critical runtime issues discovered during integration testing:
 
 * **Critical Routing & Auth:** Restored the React Router `loader` auth guard to securely block protected routes prior to rendering.
 * **Schema Integrity:** Fixed the PostgREST DB aliasing trap by enforcing direct Supabase column mapping (`name`, `launch_date`, `owner_id`) in `planterClient.ts` and all UI consumers.
 * **TanStack Modernization:** Refactored manual state-based fetching in the Library domain to robust `@tanstack/react-query` implementations (`useQuery` with debouncing for search, and `useInfiniteQuery` for paginated templates).
 * **Strict Typing:** Audited the freshly converted `.tsx` components (`TaskDetailsPanel`, `ProjectCard`, etc.) to replace lazy `any` types with strict DB interfaces.
 
-### 🌊 Wave 18: Database Synchronization & RLS Hardening
+### 🌊 Database Synchronization & RLS Hardening
 
-Wave 18 established secure, mirrored Database architectures:
+The database synchronization phase established secure, mirrored Database architectures:
 
 * **Schema Parity:** Synchronized local Supabase `schema.sql` directly with production, overwriting old migrations to establish identical table environments.
 * **RLS Test Hardening:** Hardened `RLS.test.ts` to strictly handle anonymous 42501 rejections and repaired lifecycle teardown bugs affecting Vite.
