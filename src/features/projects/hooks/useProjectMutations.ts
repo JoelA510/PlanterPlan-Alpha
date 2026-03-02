@@ -42,12 +42,18 @@ export function useCreateProject() {
                 if (cloneError) throw cloneError;
                 return newTasks;
             } else {
-                return await planter.entities.Project.create({
+                const project = await planter.entities.Project.create({
                     title: formData.title,
                     description: formData.description,
                     start_date: projectStartDate,
                     creator: user.id
                 });
+
+                if (project && (project as any).id) {
+                    await planter.projects.addMember((project as any).id, user.id, 'owner');
+                }
+
+                return project;
             }
         },
         onSuccess: () => {
