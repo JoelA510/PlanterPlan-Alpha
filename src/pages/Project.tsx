@@ -9,9 +9,12 @@ import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
 import { ROLES, TASK_STATUS } from '@/app/constants';
 import { compareDateAsc } from '@/shared/lib/date-engine';
 
-// Mock Types
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Button } from '@/shared/ui/button';
+import { useCreateTask, useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
+import { toast } from 'sonner';
+import type { TaskFormData } from '@/shared/db/app.types';
 
 import ProjectHeader from '@/features/projects/components/ProjectHeader';
 import ProjectTabs from '@/features/projects/components/ProjectTabs';
@@ -41,6 +44,40 @@ export default function Project() {
 
   const queryClient = useQueryClient();
   const lastUpdateRef = useRef(0);
+
+  // Form states restored
+  const [taskFormState, setTaskFormState] = useState<{ mode?: string; origin?: string } | null>(null);
+
+  const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
+
+  const handleTaskSubmit = async (data: TaskFormData) => {
+    try {
+      if (taskFormState?.mode === 'edit' && state.selectedTask) {
+        await updateTask.mutateAsync({
+          id: state.selectedTask.id,
+          ...data,
+          root_id: projectId
+        });
+        setTaskFormState(null);
+        toast.success('Task updated successfully');
+      } else {
+        await createTask.mutateAsync({
+          ...data,
+          root_id: projectId,
+          parent_task_id: state.inlineAddingParentId || null,
+          origin: taskFormState?.origin || 'instance',
+          status: TASK_STATUS.TODO
+        });
+        setTaskFormState(null);
+        actions.setInlineAddingParentId(null);
+        toast.success('Task created successfully');
+      }
+    } catch (error: any) {
+      toast.error('Failed to save task', { description: error.message });
+      throw error;
+    }
+  };
 
   useEffect(() => {
     if (!projectId) return;
@@ -143,7 +180,19 @@ export default function Project() {
           />
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <ProjectTabs activeTab={state.activeTab} onTabChange={actions.setActiveTab} />
+            <div className="flex items-center justify-between mb-6">
+              <ProjectTabs activeTab={state.activeTab} onTabChange={actions.setActiveTab} />
+
+              {canEdit && state.activeTab === 'board' && (
+                <Button
+                  onClick={() => setTaskFormState({ mode: 'create', origin: 'instance' })}
+                  className="bg-brand-500 hover:bg-brand-600 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Task
+                </Button>
+              )}
+            </div>
 
             {state.activeTab === 'board' && (
               <>
@@ -215,12 +264,21 @@ export default function Project() {
           </div>
         </div>
 
-        {state.selectedTask && (
+        {(state.selectedTask || taskFormState) && (
           <TaskDetailsPanel
-            showForm={false}
-            selectedTask={state.selectedTask}
-            onClose={() => actions.setSelectedTask(null)}
-            onDeleteTaskWrapper={async () => handlers.handleDeleteTask(state.selectedTask!)}
+            showForm={Boolean(taskFormState)}
+            taskFormState={taskFormState}
+            selectedTask={state.selectedTask || undefined}
+            taskBeingEdited={taskFormState?.mode === 'edit' ? state.selectedTask || undefined : undefined}
+            parentTaskForForm={state.inlineAddingParentId ? tasks?.find(t => t.id === state.inlineAddingParentId) : undefined}
+            onClose={() => {
+              actions.setSelectedTask(null);
+              setTaskFormState(null);
+              actions.setInlineAddingParentId(null);
+            }}
+            setTaskFormState={setTaskFormState}
+            handleTaskSubmit={handleTaskSubmit}
+            onDeleteTaskWrapper={async () => state.selectedTask && handlers.handleDeleteTask(state.selectedTask)}
           />
         )}
       </div>
