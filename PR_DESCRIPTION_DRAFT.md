@@ -20,6 +20,8 @@ pie title Net Code Change by Category
 
 The `src/features/` directory has been strictly decoupled to adhere to Feature-Sliced Design (FSD) principles. This was the single largest architectural change in the branch.
 
+* **Total `date-fns` Centralization (Issue #130):** Routed 100% of date manipulation imports through the `date-engine` wrappers, completely eradicating architectural boundary leaks and standardizing timezone handling project-wide. 
+* **Complete Type-Mask Eradication (Issue #131):** Successfully removed all `as unknown as` and `any` casting from critical contexts like `AuthContext.tsx`, enforcing strict Supabase session mapping and eliminating type-blind spots.
 * **Barrel Exports:** Created `index.ts` public APIs for 7 feature slices (`auth`, `tasks`, `projects`, `navigation`, `library`, `dashboard`, `task-drag`).
 * **Import Refactoring:** Over 25 deep cross-feature imports were rewritten. Features now *only* interact through their public contracts.
 * **Architectural Promotion:** Promoted `SidebarNavItem` from `features/navigation` to `shared/ui`, correctly identifying it as a purely presentational component consumed by multiple slices.
@@ -342,13 +344,13 @@ Wave 16 focused on fixing critical runtime issues discovered during integration 
 | 6 | Service layer redundancy (9 files) | Multiple | Architecture |
 | 7 | `build/` directory in version control | `087d435` | Hygiene |
 | 8 | Missing regression test coverage | Multiple | Testing |
+| 9 | `date-fns` bypassing `date-engine` (#130) | Multiple | Architecture |
+| 10 | Unsafe `as unknown as` casts in `AuthContext` (#131) | Multiple | Type Safety |
 
 ### ⚠️ Tracked as GitHub Issues (Remaining)
 
 | Issue | Title | Severity |
 |-------|-------|----------|
-| [#130](https://github.com/JoelA510/PlanterPlan-Alpha/issues/130) | 8 files import `date-fns` directly, bypassing `date-engine` | Medium |
-| [#131](https://github.com/JoelA510/PlanterPlan-Alpha/issues/131) | `AuthContext.tsx`: 6 unsafe `as unknown as` casts | Medium |
 | [#132](https://github.com/JoelA510/PlanterPlan-Alpha/issues/132) | Convert remaining 57 `.js`/`.jsx` files to TypeScript | Low |
 
 ---
