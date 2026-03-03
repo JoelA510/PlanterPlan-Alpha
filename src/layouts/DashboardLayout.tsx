@@ -47,7 +47,7 @@ export default function DashboardLayout({ sidebar }: { sidebar?: React.ReactNode
         {/* Mobile Overlay for Sidebar */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-slate-900/50 z-30 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
