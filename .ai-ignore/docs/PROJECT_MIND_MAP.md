@@ -205,13 +205,14 @@ mindmap
         handle_updated_at (Auto Timestamp)
         trigger_phase_unlock (Auto Phase Unlock)
     Frontend Shell
-      React 18.3.1 (ADR-002) + TypeScript + Vite 7
-      Feature-Sliced Design (FSD)
-        @app
-        @pages
-        @features
-        @shared
-        @entities
+      React 18.3.1 (ADR-002) + 100% Strict TypeScript + Vite 7
+      Strict Feature-Sliced Design (FSD) Downward Flow
+        @app (Global Wiring)
+        @pages (Route Composition)
+        @features (Domain Logic)
+        @shared (Pure Utils/UI)
+        @entities (Models)
+        (Removed redundant services layer entirely)
       Provider Tree
         ThemeProvider (Unified Light Mode Only)
         AuthProvider

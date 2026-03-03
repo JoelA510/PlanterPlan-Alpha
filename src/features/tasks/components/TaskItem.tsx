@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -19,14 +18,12 @@ export interface TaskItemData extends TaskRow {
     isAddingInline?: boolean;
     duration?: string;
     resource_type?: string;
-    origin?: string;
     membership_role?: string;
 }
 
-interface DragHandleProps {
-    ref?: (element: HTMLElement | null) => void;
-    [key: string]: unknown;
-}
+type DragHandleProps = React.HTMLAttributes<HTMLButtonElement> & {
+    ref?: React.Ref<HTMLElement>;
+};
 
 interface TaskItemProps {
     task: TaskItemData;
@@ -40,7 +37,7 @@ interface TaskItemProps {
     forceShowChevron?: boolean;
     onToggleExpand?: (task: TaskItemData, expanded: boolean) => void;
     onEdit?: ((task: TaskItemData) => void) | null;
-    onDelete?: ((id: string) => void) | null;
+    onDeleteTask?: ((id: string) => void) | null;
     hideExpansion?: boolean;
     disableDrag?: boolean;
     isAddingInline?: boolean;
@@ -60,7 +57,7 @@ const TaskItem = ({
     forceShowChevron = false,
     onToggleExpand,
     onEdit = null,
-    onDelete = null,
+    onDeleteTask = null,
     hideExpansion = false,
     disableDrag = false,
     isAddingInline = false,
@@ -138,8 +135,8 @@ const TaskItem = ({
                                 )}
                                 type="button"
                                 aria-label="Reorder task"
-                                ref={!isLocked && dragHandleProps.ref ? (dragHandleProps.ref as React.Ref<HTMLButtonElement>) : undefined}
-                                {...(!isLocked ? dragHandleProps : {})}
+                                ref={!isLocked && dragHandleProps.ref ? (dragHandleProps.ref as React.LegacyRef<HTMLButtonElement>) : undefined}
+                                {...(!isLocked ? (dragHandleProps as React.ButtonHTMLAttributes<HTMLButtonElement>) : {})}
                                 disabled={isLocked}
                             >
                                 {isLocked ? (
@@ -209,10 +206,10 @@ const TaskItem = ({
 
                         <TaskControlButtons
                             task={task}
-                            onEdit={(t) => onEdit?.(t as TaskItemData)}
-                            onAddChild={(t) => onAddChildTask?.(t as TaskItemData)}
-                            onInvite={(t) => onInviteMember?.(t as TaskItemData)}
-                            onDelete={onDelete}
+                            onEdit={() => onEdit?.(task)}
+                            onAddChild={() => onAddChildTask?.(task)}
+                            onInvite={() => onInviteMember?.(task)}
+                            onDelete={onDeleteTask || undefined}
                             canHaveChildren={canHaveChildren}
                         />
                     </div>
@@ -262,7 +259,7 @@ const TaskItem = ({
                                             onStatusChange={onStatusChange}
                                             onToggleExpand={onToggleExpand}
                                             onEdit={onEdit}
-                                            onDelete={onDelete}
+                                            onDeleteTask={onDeleteTask ? () => onDeleteTask(child.id) : undefined}
                                             isAddingInline={child.isAddingInline}
                                             onInlineCommit={onInlineCommit}
                                             onInlineCancel={onInlineCancel}
@@ -303,7 +300,7 @@ export const SortableTaskItem = function SortableTaskItem({ task, level, ...prop
         data: {
             type: 'Task',
             origin: task.origin,
-            parentId: (task as any).parent_task_id ?? null,
+            parentId: task.parent_task_id ?? null,
         },
     });
 
@@ -326,7 +323,7 @@ export const SortableTaskItem = function SortableTaskItem({ task, level, ...prop
             )}
         >
             <ErrorBoundary
-                FallbackComponent={ErrorFallback}
+                FallbackComponent={(props) => <ErrorFallback error={props.error instanceof Error ? props.error : new Error(String(props.error))} resetErrorBoundary={props.resetErrorBoundary} />}
                 onReset={() => window.location.reload()}
             >
                 <TaskItem

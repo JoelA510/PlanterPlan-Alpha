@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Calendar, Link as LinkIcon } from 'lucide-react';
 import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { formatDate, isPastDate, isTodayDate, isDateValid } from '@/shared/lib/date-engine';
-import type { TaskRow } from '@/shared/db/app.types';
+
 
 /**
  * Format a due date for display
@@ -13,9 +13,8 @@ import type { TaskRow } from '@/shared/db/app.types';
 const formatDueDate = (dateString?: string | null) => {
     if (!dateString) return null;
     try {
-        const date = new Date(dateString);
-        if (!isDateValid(date)) return null;
-        return formatDate(date, 'MMM d');
+        if (!isDateValid(dateString)) return null;
+        return formatDate(dateString, 'MMM d');
     } catch {
         return null;
     }
@@ -27,26 +26,25 @@ const formatDueDate = (dateString?: string | null) => {
 const getDateColor = (dateString?: string | null) => {
     if (!dateString) return 'text-slate-400';
     try {
-        const date = new Date(dateString);
-        if (!isDateValid(date)) return 'text-slate-400';
-        if (isPastDate(date)) return 'text-rose-600';
-        if (isTodayDate(date)) return 'text-amber-600';
+        if (!isDateValid(dateString)) return 'text-slate-400';
+        if (isPastDate(dateString)) return 'text-rose-600';
+        if (isTodayDate(dateString)) return 'text-amber-600';
         return 'text-slate-500';
     } catch {
         return 'text-slate-400';
     }
 };
 
-interface BoardTaskCardData extends TaskRow {
+import type { TaskItemData } from '@/features/tasks/components/TaskItem';
+
+export interface BoardTaskCardData extends TaskItemData {
     breadcrumbs?: string;
-    membership_role?: string;
-    children?: TaskRow[];
 }
 
 interface BoardTaskCardProps {
     task: BoardTaskCardData;
     onClick: (task: BoardTaskCardData) => void;
-    dragHandleProps?: any;
+    dragHandleProps?: Record<string, unknown>;
     style?: CSSProperties;
     isDragging?: boolean;
 }
@@ -92,7 +90,7 @@ const BoardTaskCard = memo(({ task, onClick, dragHandleProps, style, isDragging 
                 {/* Flex-shrink container forces badge to remain uniform without squishing */}
                 {task.membership_role && (
                     <div className="flex-shrink-0 pt-0.5">
-                        <RoleIndicator role={task.membership_role} size="sm" />
+                        <RoleIndicator role={task.membership_role} />
                     </div>
                 )}
             </div>
@@ -132,7 +130,7 @@ export const SortableBoardTaskCard = memo(({ task, onClick }: { task: BoardTaskC
         data: {
             type: 'Task',
             origin: task.origin,
-            parentId: (task as any).parent_task_id ?? null,
+            parentId: task.parent_task_id ?? null,
             status: task.status // Important for board logic
         },
     });

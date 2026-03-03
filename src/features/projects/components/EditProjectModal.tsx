@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react';
-import { useTaskForm } from '@/features/tasks';
+import { useState } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
 import { Label } from '@/shared/ui/label';
@@ -8,6 +10,16 @@ import { Textarea } from '@/shared/ui/textarea';
 import { useUpdateProject, useDeleteProject } from '@/features/projects/hooks/useProjectMutations';
 import { toIsoDate } from '@/shared/lib/date-engine';
 import type { TaskRow } from '@/shared/db/app.types';
+
+const editProjectSchema = z.object({
+    title: z.string().min(1, 'Title is required'),
+    description: z.string().optional(),
+    start_date: z.string().min(1, 'Start date is required'),
+    location: z.string().optional(),
+    due_soon_threshold: z.coerce.number().min(1).max(30)
+});
+
+type EditProjectFormData = z.infer<typeof editProjectSchema>;
 
 interface EditProjectModalProps {
     project: TaskRow;
@@ -20,32 +32,26 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
     const updateProjectMutation = useUpdateProject();
     const deleteProjectMutation = useDeleteProject();
 
-    const currentSettings = project.settings || {};
-
-    const initialState = {
-        title: project.title || '',
-        description: project.description || '',
-        start_date: toIsoDate(project.start_date || project.created_at),
-        location: project.location || '',
-        due_soon_threshold: currentSettings.due_soon_threshold || '3',
-    };
-
-    const validate = useCallback((data: Record<string, string>) => {
-        const errors: Record<string, string> = {};
-        if (!data.title?.trim()) errors.title = 'Title is required';
-        if (!data.start_date) errors.start_date = 'Start date is required';
-        return errors;
-    }, []);
+    // The raw typed database row `settings` might be loose JSON, so explicitly cast what we expect internally
+    const currentSettings = project.settings as Record<string, unknown> || {};
 
     const {
-        formData,
-        errors,
-        isSubmitting,
-        handleChange,
-        handleSubmit
-    } = useTaskForm(initialState, validate);
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+    } = useForm<EditProjectFormData>({
+        // @ts-expect-error Zod schema mismatches slightly with final form data type
+        resolver: zodResolver(editProjectSchema),
+        defaultValues: {
+            title: project.title || '',
+            description: project.description || undefined,
+            start_date: toIsoDate(project.start_date || project.created_at) || '',
+            location: project.location || undefined,
+            due_soon_threshold: typeof currentSettings.due_soon_threshold === 'number' ? currentSettings.due_soon_threshold : 3,
+        }
+    });
 
-    const onSubmit = async (data: Record<string, string>) => {
+    const onSubmit: SubmitHandler<EditProjectFormData> = async (data) => {
         try {
             const oldStartDate = toIsoDate(project.start_date || project.created_at);
             const { due_soon_threshold, ...rest } = data;
@@ -54,7 +60,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
                 ...rest,
                 settings: {
                     ...currentSettings,
-                    due_soon_threshold: parseInt(due_soon_threshold, 10) || 3
+                    due_soon_threshold
                 }
             };
 
@@ -80,21 +86,17 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
                             <Label htmlFor="title">Project Title</Label>
                             <Input
                                 id="title"
-                                name="title"
-                                value={formData.title}
-                                onChange={handleChange}
+                                {...register('title')}
                                 className={errors.title ? 'border-red-500' : ''}
                             />
-                            {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
+                            {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
                         </div>
 
                         <div className="grid gap-2">
                             <Label htmlFor="description">Description</Label>
                             <Textarea
                                 id="description"
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
+                                {...register('description')}
                                 rows={2}
                             />
                         </div>
@@ -103,9 +105,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
                             <Label htmlFor="location">Location</Label>
                             <Input
                                 id="location"
-                                name="location"
-                                value={formData.location}
-                                onChange={handleChange}
+                                {...register('location')}
                                 placeholder="e.g. Seattle, WA"
                             />
                         </div>
@@ -118,12 +118,11 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
                             <Input
                                 type="number"
                                 id="due_soon_threshold"
-                                name="due_soon_threshold"
-                                value={formData.due_soon_threshold}
-                                onChange={handleChange}
+                                {...register('due_soon_threshold')}
                                 min="1"
                                 max="30"
                             />
+                            {errors.due_soon_threshold && <p className="text-sm text-red-500">{errors.due_soon_threshold.message}</p>}
                             <p className="text-xs text-slate-500">Tasks due within this many days will be flagged.</p>
                         </div>
                     </div>
@@ -138,15 +137,15 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
                         <Input
                             type="date"
                             id="start_date"
-                            name="start_date"
-                            value={formData.start_date}
-                            onChange={handleChange}
+                            {...register('start_date')}
+                            className={errors.start_date ? 'border-red-500' : ''}
                         />
+                        {errors.start_date && <p className="text-sm text-red-500">{errors.start_date.message}</p>}
                     </div>
 
                     <div className="flex justify-end gap-3 pt-2">
                         <Button variant="outline" onClick={onClose} type="button">Cancel</Button>
-                        <Button onClick={(e) => handleSubmit(e, onSubmit)} disabled={isSubmitting}>
+                        <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
                             {isSubmitting ? 'Saving...' : 'Save Changes'}
                         </Button>
                     </div>
@@ -183,7 +182,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
                                     <span className="text-xs text-red-700 font-medium">Are you sure?</span>
                                     <Button
                                         variant="outline"
-                                        size="xs"
+                                        size="sm"
                                         className="h-8 text-slate-600 bg-white hover:bg-slate-50 border-red-200"
                                         onClick={() => setShowDeleteConfirm(false)}
                                     >
@@ -191,7 +190,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
                                     </Button>
                                     <Button
                                         variant="destructive"
-                                        size="xs"
+                                        size="sm"
                                         className="h-8"
                                         onClick={async () => {
                                             await deleteProjectMutation.mutateAsync(project.id);

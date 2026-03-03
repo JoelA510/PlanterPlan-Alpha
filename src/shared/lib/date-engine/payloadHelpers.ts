@@ -1,4 +1,4 @@
-import { calculateScheduleFromOffset, toIsoDate } from './index';
+import { calculateScheduleFromOffset, toIsoDate, nowUtcIso } from './index';
 import type { ScheduleDates } from './index';
 import { POSITION_STEP } from '@/shared/constants';
 
@@ -134,7 +134,7 @@ export const constructUpdatePayload = (
         purpose: formData.purpose ?? null,
         actions: formData.actions ?? null,
         days_from_start: parsedDays,
-        updated_at: new Date().toISOString(),
+        updated_at: nowUtcIso(),
         ...scheduleUpdates,
     };
 };

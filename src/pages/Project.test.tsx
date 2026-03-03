@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Project from './Project';
@@ -26,6 +27,9 @@ vi.mock('@/app/contexts/AuthContext', () => ({
 vi.mock('@tanstack/react-query', () => ({
     useQueryClient: vi.fn(() => ({
         invalidateQueries: vi.fn(),
+    })),
+    useMutation: vi.fn(() => ({
+        mutateAsync: vi.fn(),
     })),
 }));
 

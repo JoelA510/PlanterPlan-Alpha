@@ -1,52 +1,52 @@
-import { MasterLibrarySearch } from '@/features/library';
 import TaskFormFields from '@/features/tasks/components/TaskFormFields';
-import { FormEventHandler } from 'react';
-import type { TaskRow } from '@/shared/db/app.types';
+import type { TaskRow, TaskFormData } from '@/shared/db/app.types';
 import { Button } from '@/shared/ui/button';
 
+import type { UseFormReturn } from 'react-hook-form';
+import { FormProvider } from 'react-hook-form';
+
 export interface TaskFormProps {
+    formMethods: UseFormReturn<TaskFormData>;
     isSubmitting?: boolean;
-    initialData?: Partial<TaskRow>; // If initialData exists, mode = 'edit', else 'create'
-    handleApplyFromLibrary?: (task: Partial<TaskRow>) => void;
+    initialData?: Partial<TaskRow> | null;
+    submitLabel?: string;
+    handleApplyFromLibrary?: (task: TaskFormData | Partial<TaskRow>) => void;
     lastAppliedTaskTitle?: string;
-    handleSubmit: FormEventHandler<HTMLFormElement>;
+    onSubmitHandler: (data: TaskFormData) => Promise<void> | void;
     onCancel: () => void;
     origin?: 'instance' | 'template';
-    enableLibrarySearch?: boolean;
+    renderLibrarySearch?: (onSelect: (task: TaskFormData | Partial<TaskRow>) => void) => React.ReactNode;
     parentTask?: { title: string } | null;
 }
 
 const TaskForm = ({
+    formMethods,
     isSubmitting = false,
     initialData,
     handleApplyFromLibrary,
     lastAppliedTaskTitle,
-    handleSubmit,
+    onSubmitHandler,
     onCancel,
     origin = 'instance',
-    enableLibrarySearch = true,
+    renderLibrarySearch,
     parentTask,
 }: TaskFormProps) => {
     const isEdit = !!initialData;
     const submitLabel = isEdit ? 'Save Changes' : 'Add New Task';
 
     return (
-        <form onSubmit={handleSubmit} className="project-form">
+        <FormProvider {...formMethods}>
+            <form onSubmit={formMethods.handleSubmit(onSubmitHandler)} className="project-form">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 {origin === 'template'
                     ? (isEdit ? 'Editing Template Task' : 'Template Task')
                     : (isEdit ? 'Editing Project Task' : 'Project Task')}
             </div>
 
-            {!isEdit && enableLibrarySearch && handleApplyFromLibrary && (
+            {!isEdit && renderLibrarySearch && handleApplyFromLibrary && (
                 <>
                     <div className="form-group mb-4">
-                        <MasterLibrarySearch
-                            mode="copy"
-                            onSelect={handleApplyFromLibrary}
-                            label="Search master library"
-                            placeholder="Start typing to copy an existing template task"
-                        />
+                        {renderLibrarySearch(handleApplyFromLibrary)}
                     </div>
 
                     {lastAppliedTaskTitle && (
@@ -76,6 +76,7 @@ const TaskForm = ({
                 </Button>
             </div>
         </form>
+    </FormProvider>
     );
 };
 

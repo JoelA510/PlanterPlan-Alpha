@@ -6,7 +6,7 @@ import { ChevronRight, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/shared/lib/utils';
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
 import { TaskItem } from '@/features/tasks';
 import InlineTaskInput from '@/features/tasks/components/InlineTaskInput';
 

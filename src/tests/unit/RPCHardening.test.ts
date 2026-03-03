@@ -44,7 +44,7 @@ describe('RPC Hardening & Security Response', () => {
             const dbError = new Error('Access denied: You do not have permission to access this template.');
 
             // Since we mocked planter entirely above, we can just check if Task.clone propagates errors.
-            vi.mocked(planter.entities.Task.clone).mockResolvedValue({ data: null, error: dbError as any });
+            vi.mocked(planter.entities.Task.clone).mockResolvedValue({ data: null, error: dbError });
 
             const result = await planter.entities.Task.clone('template-123', 'project-456', 'instance', 'user-789', {});
 

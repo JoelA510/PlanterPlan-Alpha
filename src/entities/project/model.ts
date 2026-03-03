@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PROJECT_STATUS } from '@/app/constants/index';
+import { PROJECT_STATUS } from '@/shared/constants';
 
 export const PROJECT_TEMPLATES = ['launch_large', 'multisite', 'multiplication'] as const;
 export const PROJECT_TYPES = ['primary', 'secondary'] as const;

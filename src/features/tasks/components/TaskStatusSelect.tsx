@@ -1,4 +1,4 @@
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
 import { useCallback } from 'react';
 import type { ChangeEvent } from 'react';
 

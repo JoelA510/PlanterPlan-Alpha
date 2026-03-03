@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { DndContext, closestCorners } from '@dnd-kit/core';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import { InviteMemberModal } from '@/features/projects';
+import { InviteMemberModal, NewProjectForm } from '@/features/projects';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from '@/shared/ui/ErrorFallback';
 
@@ -11,6 +11,7 @@ import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@layouts/DashboardLayout';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import EmptyProjectState from '@/features/tasks/components/EmptyProjectState';
+import { MasterLibrarySearch } from '@/features/library';
 import StatusCard from '@/shared/ui/StatusCard';
 import type { CreateProjectPayload, CreateTemplatePayload } from '@/features/dashboard';
 
@@ -176,6 +177,14 @@ const TaskList = () => {
         />
     );
 
+    const handleStatusChange = useCallback((taskId: string, status: string) => {
+        return updateTaskAsync({
+            id: taskId,
+            status,
+            is_complete: status === 'completed',
+        });
+    }, [updateTaskAsync]);
+
     if (error) {
         return (
             <DashboardLayout sidebar={sidebarContent}>
@@ -214,13 +223,7 @@ const TaskList = () => {
                                 disableDrag={joinedProjects.some((jp: TaskRow) => jp.id === activeProjectId)}
                                 hydrationError={hydrationError}
                                 onInviteMember={() => handleOpenInvite(activeProject)}
-                                onStatusChange={useCallback((taskId: string, status: string) =>
-                                    updateTaskAsync({
-                                        id: taskId,
-                                        status,
-                                        is_complete: status === 'completed',
-                                    }), [updateTaskAsync])
-                                }
+                                onStatusChange={handleStatusChange}
                             />
                         )}
                     </div>
@@ -237,8 +240,25 @@ const TaskList = () => {
                                 setTaskFormState(null);
                                 setSelectedTask(null);
                             }}
-                            handleProjectSubmit={handleProjectSubmit}
+                            renderNewProjectForm={() => (
+                                <NewProjectForm
+                                    onSubmit={handleProjectSubmit}
+                                    onCancel={() => {
+                                        setShowForm(false);
+                                        setTaskFormState(null);
+                                        setSelectedTask(null);
+                                    }}
+                                />
+                            )}
                             handleTaskSubmit={handleTaskSubmit}
+                            renderLibrarySearch={(onSelect) => (
+                                <MasterLibrarySearch
+                                    mode="copy"
+                                    onSelect={onSelect}
+                                    label="Search master library"
+                                    placeholder="Start typing to copy an existing template task"
+                                />
+                            )}
                             setTaskFormState={setTaskFormState}
                             handleAddChildTask={handleAddChildTask}
                             handleEditTask={handleEditTask}

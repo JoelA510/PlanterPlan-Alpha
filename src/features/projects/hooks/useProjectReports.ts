@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
 import { CheckCircle2, Clock, AlertTriangle, Circle } from 'lucide-react';
 import type { TaskRow } from '@/shared/db/app.types';
 

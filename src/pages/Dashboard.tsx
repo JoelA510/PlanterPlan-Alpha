@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 // Hooks
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard';
 import { useCreateProject, useUpdateProjectStatus, useCreateTemplate } from '@/features/projects/hooks/useProjectMutations';
+import { useProjectRealtime } from '@/features/projects';
 
 // Components
 import CreateProjectModal from '@/features/dashboard/components/CreateProjectModal';
@@ -19,6 +20,8 @@ import MobileAgenda from '@/features/mobile/MobileAgenda';
 export default function Dashboard() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+
+    useProjectRealtime();
 
     const { state, data, actions } = useDashboard();
 

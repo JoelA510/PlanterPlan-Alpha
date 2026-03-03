@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import MobileAgenda from './MobileAgenda';
-import { TASK_STATUS } from '@/app/constants';
+import { TASK_STATUS } from '@/shared/constants';
 import { addDaysToDate } from '@/shared/lib/date-engine';
 
 const navigateMock = vi.fn();

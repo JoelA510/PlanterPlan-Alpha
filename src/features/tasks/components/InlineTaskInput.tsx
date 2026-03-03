@@ -44,6 +44,7 @@ const InlineTaskInput = ({
         }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleBlur = (_e: FocusEvent<HTMLInputElement>) => {
         // Optional: Auto-cancel on blur if empty, or just stay open?
         // Let's auto-cancel if empty, otherwise keep it focused or commit.

@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import PhaseCard from './PhaseCard';
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
 
 vi.mock('framer-motion', () => ({
     motion: {
-        div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
+        div: ({ children, whileHover: _h, whileTap: _t, ...props }: any) => <div {...props}>{children}</div>,
     },
 }));
 
@@ -50,9 +51,9 @@ describe('PhaseCard', () => {
     it('renders phase info correctly', () => {
         render(
             <PhaseCard
-                phase={mockPhase}
-                tasks={mockTasks}
-                milestones={mockMilestones}
+                phase={mockPhase as any}
+                tasks={mockTasks as any}
+                milestones={mockMilestones as any}
                 isActive={false}
             />
         );
@@ -66,9 +67,9 @@ describe('PhaseCard', () => {
         ];
         render(
             <PhaseCard
-                phase={mockPhase}
-                tasks={completeTasks}
-                milestones={mockMilestones}
+                phase={mockPhase as any}
+                tasks={completeTasks as any}
+                milestones={mockMilestones as any}
                 isActive={false}
             />
         );
@@ -79,9 +80,9 @@ describe('PhaseCard', () => {
         const lockedPhase = { ...mockPhase, is_locked: true };
         render(
             <PhaseCard
-                phase={lockedPhase}
-                tasks={[]}
-                milestones={mockMilestones}
+                phase={lockedPhase as any}
+                tasks={[] as any}
+                milestones={mockMilestones as any}
                 isActive={false}
             />
         );

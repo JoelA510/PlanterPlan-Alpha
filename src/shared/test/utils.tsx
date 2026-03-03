@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -34,7 +36,7 @@ export const renderWithProviders = (
         signOut: vi.fn(),
         signUp: vi.fn(),
         ...authContextValue,
-    };
+    } as any;
 
     const Wrapper = ({ children }: { children: React.ReactNode }) => {
         return (

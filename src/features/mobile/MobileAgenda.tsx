@@ -3,7 +3,7 @@ import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Calendar, ChevronRight } from 'lucide-react';
 import { formatDate, endOfDayDate, isBeforeDate } from '@/shared/lib/date-engine';
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
 
 interface AgendaTask {
     id: string;

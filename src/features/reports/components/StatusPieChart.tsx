@@ -7,7 +7,7 @@ import {
     ChartLegend,
     ChartLegendContent
 } from '@/shared/ui/chart';
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
 import { CHART_COLORS } from '@/app/constants/colors';
 
 interface ChartTask {

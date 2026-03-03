@@ -312,3 +312,10 @@ During the Sprint Wave 15 surgical refactors, a **safety-net approach** was used
 - **Type-checker as integration test**: `tsc --noEmit` serves as a zero-cost integration test — any broken imports, missing types, or interface mismatches are caught instantly.
 - **Browser agent for visual regression**: Automated browser navigation validates that type-level changes haven't broken runtime rendering, component mounting, or navigation flows.
 
+### [TEST-013] E2E Auth Mocking
+- **Context**: Race conditions occur in Playwright E2E tests when eager React Router redirects fire before the DOM has fully mounted the login form.
+- **Rule**: **Always mount logged out first.** Mount the test with `isLoggedOut = true` immediately to allow full DOM attachment of the login UI, then flip the mock state and fire `dispatchEvent` to trigger the login safely.
+
+### [TEST-014] Testing RLS Anonymous Access
+- **Context**: Insecure caching or leftover tokens can bypass anonymous RLS checks, giving false positives.
+- **Rule**: **Strip all auth headers.** When testing anonymous RLS access, aggressively ensure the client is completely stripped of any auth headers to accurately expect `PGRST205` errors or empty arrays.

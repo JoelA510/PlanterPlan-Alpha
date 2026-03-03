@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
-import { toIsoDate, recalculateProjectDates } from '@/shared/lib/date-engine';
+import { toIsoDate, recalculateProjectDates, nowUtcIso, DateEngineTask } from '@/shared/lib/date-engine';
 import { TaskInsert, TaskUpdate } from '@/shared/db/app.types';
 
 export interface CreateProjectPayload {
@@ -13,7 +13,7 @@ export interface CreateProjectPayload {
 
 export interface UpdateProjectPayload {
     projectId: string;
-    updates: Partial<TaskUpdate> & { title?: string; description?: string; start_date?: string; due_date?: string; location?: string; settings?: Record<string, unknown> };
+    updates: TaskUpdate;
     oldStartDate?: string | null;
 }
 
@@ -35,22 +35,23 @@ export function useCreateProject() {
                     {
                         title: formData.title,
                         description: formData.description,
-                        start_date: projectStartDate || undefined,
-                        due_date: projectStartDate || undefined,
+                        start_date: projectStartDate ?? undefined,
+                        due_date: projectStartDate ?? undefined,
                     }
                 );
                 if (cloneError) throw cloneError;
-                return newTasks;
+                const rootClone = Array.isArray(newTasks) ? newTasks[0] : newTasks;
+                return rootClone;
             } else {
                 const project = await planter.entities.Project.create({
                     title: formData.title,
-                    description: formData.description,
-                    start_date: projectStartDate,
+                    description: formData.description || null,
+                    start_date: projectStartDate ?? undefined,
                     creator: user.id
                 });
 
-                if (project && (project as any).id) {
-                    await planter.projects.addMember((project as any).id, user.id, 'owner');
+                if (project && project.id) {
+                    await planter.entities.Project.addMember(project.id, user.id, 'owner');
                 }
 
                 return project;
@@ -75,25 +76,24 @@ export function useUpdateProject() {
                 description: updates.description,
                 due_date: updates.due_date,
                 start_date: updates.start_date,
-                updated_at: new Date().toISOString(),
+                updated_at: nowUtcIso(),
                 location: updates.location,
                 settings: updates.settings,
-            } as TaskUpdate;
+                status: updates.status,
+            };
 
             let batchUpdates: Partial<TaskUpdate>[] = [];
             if (newStartDateStr && oldStartDate && newStartDateStr !== oldStartDate) {
-                const { data: projectTasks } = await supabase
-                    .from('tasks')
-                    .select('*')
-                    .eq('root_id', projectId);
+                const projectTasks = await planter.entities.Task.filter({ root_id: projectId });
 
-                batchUpdates = recalculateProjectDates(projectTasks || [], newStartDateStr, oldStartDate);
+                batchUpdates = recalculateProjectDates(projectTasks as DateEngineTask[] || [], newStartDateStr, oldStartDate);
             }
 
             await planter.entities.Project.update(projectId, dbUpdates);
 
-            if (batchUpdates.length > 0) {
-                await planter.entities.Task.upsert(batchUpdates);
+            if (batchUpdates && batchUpdates.length > 0) {
+                const upsertPayload = batchUpdates.map(u => ({ ...u, id: u.id })) as unknown as TaskInsert[];
+                await planter.entities.Task.upsert(upsertPayload);
             }
 
             return true;

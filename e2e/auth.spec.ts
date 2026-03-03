@@ -22,6 +22,7 @@ test.describe('Authentication Flow VERIFIED', () => {
     };
 
     test.beforeEach(async ({ page }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         page.on('console', msg => console.log(`[Browser] \${msg.text()}`));
         // Mock Supabase Auth Endpoints
         await page.route('**/auth/v1/user', async route => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { planter } from '@/shared/api/planterClient';
-import { ROLES } from '@/app/constants/index';
+import { ROLES } from '@/shared/constants';
 import { Loader2 } from 'lucide-react';
 
 interface InviteMemberModalProps {

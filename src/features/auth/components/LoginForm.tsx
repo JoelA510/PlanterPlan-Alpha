@@ -116,10 +116,9 @@ const LoginForm = () => {
                 className="mt-4 w-full text-sm text-slate-500 hover:text-slate-700 underline"
                 onClick={(e) => {
                   e.preventDefault();
-                  signIn(
-                    import.meta.env.VITE_TEST_EMAIL as string,
-                    import.meta.env.VITE_TEST_PASSWORD as string
-                  );
+                  const email = String(import.meta.env.VITE_TEST_EMAIL || '');
+                  const password = String(import.meta.env.VITE_TEST_PASSWORD || '');
+                  signIn(email, password);
                 }}
               >
                 (Auto-Login as Test User)

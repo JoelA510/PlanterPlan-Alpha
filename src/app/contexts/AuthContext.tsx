@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/shared/db/client';
 import type { Session } from '@supabase/supabase-js';
-import type { User } from '@/shared/db/app.types';
+import type { User, UserMetadata } from '@/shared/db/app.types';
 import { authApi } from '@/shared/api/auth';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, userData?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  signUp: (email: string, password: string, userData?: UserMetadata) => Promise<{ data: unknown; error: unknown }>;
   signIn: (email: string, password: string) => Promise<{ data: unknown; error: unknown }>;
   signOut: () => Promise<void>;
 }
@@ -34,37 +34,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let seq = 0;
     let alive = true;
 
-    // E2E Bypass Check
-    const isE2EMode = import.meta.env.VITE_E2E_MODE === 'true';
-    if (isE2EMode && typeof window !== 'undefined' && (window.location.search.includes('e2e_bypass=true') || localStorage.getItem('e2e-bypass-token'))) {
-      console.log('[AuthContext] E2E Bypass Detected');
-
-      // Try to get dynamic user from localStorage, fallback to hardcoded
-      let bypassedUser = {
-        id: 'e2e-user-id',
-        email: 'e2e@example.com',
-        role: 'owner',
-        app_metadata: {},
-        user_metadata: {},
-        aud: 'authenticated',
-        created_at: new Date().toISOString()
-      };
-
-      try {
-        const storedUser = localStorage.getItem('planter_e2e_user');
-        if (storedUser) {
-          const parsed = JSON.parse(storedUser);
-          bypassedUser = { ...bypassedUser, ...parsed };
-        }
-      } catch (e) {
-        console.warn('Failed to parse planter_e2e_user', e);
-      }
-
-      setUser(bypassedUser as User);
-      setLoading(false);
-      return;
-    }
-
     // Shared session handler to prevent duplication and ensure consistency
     const handleSession = async (session: Session | null) => {
       const mySeq = ++seq;
@@ -86,8 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: supabaseUser.id,
           email: supabaseUser.email || '',
           role: existingRole,
-          app_metadata: supabaseUser.app_metadata,
-          user_metadata: supabaseUser.user_metadata,
+          app_metadata: supabaseUser.app_metadata as UserMetadata,
+          user_metadata: supabaseUser.user_metadata as UserMetadata,
           aud: supabaseUser.aud,
           created_at: supabaseUser.created_at
         };
@@ -164,14 +133,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        seq++; // Invalidate pending ops
-        setUser(null);
-        setLoading(false);
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        await handleSession(session);
-      } else {
-        if (session) await handleSession(session);
+      try {
+        if (event === 'SIGNED_OUT') {
+          seq++; // Invalidate pending ops
+          setUser(null);
+          setLoading(false);
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+          await handleSession(session);
+        } else {
+          if (session) await handleSession(session);
+        }
+      } catch (err) {
+        console.error('[AuthContext] Unhandled promise rejection in auth state change:', err);
       }
     });
 
@@ -181,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, userData: Record<string, unknown> = {}) => {
+  const signUp = useCallback(async (email: string, password: string, userData: UserMetadata = {}) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -214,34 +187,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      // Clear bypass tokens so we don't auto-login again
-      const isBypass = typeof window !== 'undefined' &&
-        (window.location.search.includes('e2e_bypass=true') || localStorage.getItem('e2e-bypass-token') || localStorage.getItem('planter_e2e_user'));
-
-      if (isBypass) {
-        localStorage.removeItem('e2e-bypass-token');
-        localStorage.removeItem('planter_e2e_user');
-      } else {
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-      }
-
-      // Always forcibly clear known tokens for complete logout safety, especially in E2E
-      if (typeof window !== 'undefined') {
-        for (const key of Object.keys(localStorage)) {
-          if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
-            localStorage.removeItem(key);
-          }
-        }
-      }
-
-      // Force manual update for E2E stability (event might be missed)
-      setUser(null);
-      setLoading(false);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     } catch (error: unknown) {
       console.error('Error signing out:', error);
-      // RE-THROW without clearing state to prevent desync
       throw error;
+    } finally {
+      setUser(null);
+      setLoading(false);
     }
   }, []);
 
@@ -252,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signIn,
     signOut,
-  }), [user, loading]);
+  }), [user, loading, signUp, signIn, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

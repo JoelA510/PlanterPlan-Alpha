@@ -1,11 +1,10 @@
-import { sanitizeHTML } from '@/shared/lib/sanitize';
 import { Card } from '@/shared/ui/card';
 import { Progress } from '@/shared/ui/progress';
 
 import { ChevronRight, CheckCircle2, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/shared/lib/utils';
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
 import type { TaskRow } from '@/shared/db/app.types';
 
 const phaseColors: Record<number, { bg: string; light: string; text: string; border: string }> = {
@@ -56,7 +55,7 @@ interface PhaseCardProps {
 }
 
 export default function PhaseCard({ phase, tasks = [], milestones = [], isActive, onClick }: PhaseCardProps) {
-  const order = phase.position || phase.order;
+  const order = phase.position || 1;
   const colors = phaseColors[order] || phaseColors[1];
   const isLocked = phase.is_locked;
 
@@ -120,10 +119,9 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
 
         <div className="flex-grow">
           {phase.description && (
-            <p
-              className="text-sm text-muted-foreground mb-4 line-clamp-2"
-              dangerouslySetInnerHTML={{ __html: sanitizeHTML(phase.description) }}
-            />
+            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+              {phase.description}
+            </p>
           )}
         </div>
 

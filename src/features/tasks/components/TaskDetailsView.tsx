@@ -2,16 +2,16 @@ import TaskResources from '@/features/tasks/components/TaskResources';
 import TaskDependencies from '@/features/tasks/components/TaskDependencies';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
 import { useAuth } from '@/app/contexts/AuthContext';
-import type { TaskRow } from '@/shared/db/app.types';
+import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 
 interface TaskDetailsViewProps {
-    task?: TaskRow & { children?: TaskRow[] } | null;
-    onAddChildTask?: (task: TaskRow) => void;
-    onEditTask?: (task: TaskRow) => void;
-    onDeleteTask?: (task: TaskRow) => void;
+    task?: TaskItemData | null;
+    onAddChildTask?: (task: TaskItemData) => void;
+    onEditTask?: (task: TaskItemData) => void;
+    onDeleteTask?: (task: TaskItemData) => void;
     onTaskUpdated?: () => void;
     canEdit?: boolean;
-    allProjectTasks?: TaskRow[];
+    allProjectTasks?: TaskItemData[];
     [key: string]: unknown;
 }
 
@@ -228,7 +228,7 @@ const TaskDetailsView = ({
 
             <div className="h-px bg-slate-100 my-4"></div>
 
-            <TaskDependencies task={task as TaskRow} allProjectTasks={(props.allProjectTasks as TaskRow[]) || []} />
+            <TaskDependencies task={task} allProjectTasks={props.allProjectTasks || []} />
 
             {
                 task.children && task.children.length > 0 && (

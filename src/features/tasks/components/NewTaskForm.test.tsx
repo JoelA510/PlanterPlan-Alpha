@@ -1,20 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import NewTaskForm from './NewTaskForm';
 import type { TaskFormData } from '@/shared/db/app.types';
 import '@testing-library/jest-dom';
 
-// Mock MasterLibrarySearch to expose its selection callback
-vi.mock('@/features/library', () => ({
-    MasterLibrarySearch: ({ onSelect }: any) => (
-        <button
-            data-testid="library-search-mock"
-            onClick={() => onSelect({ id: 'lib-1', title: 'Library Task' })}
-        >
-            Apply Library Task
-        </button>
-    )
+vi.mock('framer-motion', () => ({
+    motion: {
+        div: ({ children, whileHover: _h, whileTap: _t, ...props }: any) => <div {...props}>{children}</div>,
+    },
 }));
+
+
 
 describe('NewTaskForm Registry Strictness', () => {
     it('should emit a payload strictly conforming to TaskFormData on submit', async () => {
@@ -26,6 +23,12 @@ describe('NewTaskForm Registry Strictness', () => {
                 onSubmit={onSubmit}
                 onCancel={onCancel}
                 origin="instance"
+                renderLibrarySearch={(onSelect) => (
+                    <button
+                        data-testid="library-search-mock"
+                        onClick={() => act(() => onSelect({ id: 'lib-1', title: 'Library Task' }))}
+                    />
+                )}
             />
         );
 
@@ -102,7 +105,19 @@ describe('NewTaskForm Registry Strictness', () => {
     });
 
     it('should update form fields when a library task is applied', async () => {
-        render(<NewTaskForm onSubmit={vi.fn()} onCancel={vi.fn()} origin="instance" />);
+        render(
+            <NewTaskForm 
+                onSubmit={vi.fn()} 
+                onCancel={vi.fn()} 
+                origin="instance"
+                renderLibrarySearch={(onSelect) => (
+                    <button
+                        data-testid="library-search-mock"
+                        onClick={() => act(() => onSelect({ id: 'lib-1', title: 'Library Task' }))}
+                    />
+                )}
+            />
+        );
 
         const applyBtn = screen.getByTestId('library-search-mock');
         fireEvent.click(applyBtn);

@@ -1,6 +1,6 @@
 import { memo, type MouseEvent, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
 import RoleIndicator from '@/shared/ui/RoleIndicator';
 
 interface SidebarTask {

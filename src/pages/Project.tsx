@@ -6,7 +6,7 @@ import { supabase } from '@/shared/db/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
-import { ROLES } from '@/app/constants';
+import { ROLES } from '@/shared/constants';
 import { compareDateAsc, toIsoDate } from '@/shared/lib/date-engine';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
 import { planter } from '@/shared/api/planterClient';
@@ -25,6 +25,7 @@ import PhaseCard from '@/features/projects/components/PhaseCard';
 import MilestoneSection from '@/features/projects/components/MilestoneSection';
 import InviteMemberModal from '@/features/projects/components/InviteMemberModal';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
+import { MasterLibrarySearch } from '@/features/library';
 
 import type { TaskRow, TeamMemberRow } from '@/shared/db/app.types';
 
@@ -107,8 +108,9 @@ export default function Project() {
         actions.setInlineAddingParentId(null);
         toast.success('Task created successfully');
       }
-    } catch (error: any) {
-      toast.error('Failed to save task', { description: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error('Failed to save task', { description: message });
       throw error;
     }
   };
@@ -313,6 +315,14 @@ export default function Project() {
             }}
             setTaskFormState={setTaskFormState}
             handleTaskSubmit={handleTaskSubmit}
+            renderLibrarySearch={(onSelect) => (
+              <MasterLibrarySearch
+                mode="copy"
+                onSelect={onSelect}
+                label="Search master library"
+                placeholder="Start typing to copy an existing template task"
+              />
+            )}
             onDeleteTaskWrapper={async () => state.selectedTask && handlers.handleDeleteTask(state.selectedTask)}
           />
         )}

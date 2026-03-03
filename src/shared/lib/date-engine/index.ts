@@ -54,6 +54,9 @@ export interface DateUpdateRecord {
 // Wrapper Functions  (New — centralize date-fns access)
 // ---------------------------------------------------------------------------
 
+/** Returns the current UTC time as an ISO string. */
+export const nowUtcIso = (): string => new Date().toISOString();
+
 /**
  * Safely resolves a {@link DateInput} to a `Date` object using `parseISO`
  * for strings. Returns `null` if the input is falsy or invalid.
@@ -380,7 +383,7 @@ export const recalculateProjectDates = (
             id: task.id,
             start_date: newStartISO,
             due_date: newDueISO || null,
-            updated_at: new Date().toISOString(),
+            updated_at: nowUtcIso(),
         });
     });
 
