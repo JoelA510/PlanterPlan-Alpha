@@ -111,6 +111,31 @@ architectural change in the branch.
 - **DnD Deduplication:** Stabilized Drag-and-Drop flow and isolated heavy state
   wrappers.
 
+### 🛡️ Mass Hardening & Architectural Remediation (Wave 17)
+
+This phase served as the final hardening pass, addressing 100% of the violations
+identified in the **AI Code Review & Hardening Report**.
+
+- **FSD Compliance (Lateral & Upward):**
+  - Moved `AuthContext` and color constants to `shared/`, eliminating upward
+    dependency leaks.
+  - Centralized `TaskItemData` in `shared/types/` and merged `task-drag` into
+    `features/tasks`, eradicating all lateral feature coupling.
+- **Supabase SDK Migration (NIH Purge):**
+  - Completely removed `rawSupabaseFetch` and manual token management.
+  - Rewrote 22 API/RPC call sites to use the official Supabase JS SDK query
+    builder, providing native type safety and connection resilience.
+- **Algorithmic Optimizations:**
+  - Optimized tree processing by shifting sorts to a single post-render pass.
+  - Reduced render thrashing in the Kanban board using custom React memo
+    comparators.
+- **AI-Agent Hardening (CI Guardrails):**
+  - Implemented `scripts/verify-architecture.sh` to automatically detect FSD
+    violations and type-masking (`as any`) in CI.
+  - Codified these constraints into `.antigravity/rules.md`, turning the
+    "Architecture Decision Records" into active compiler-level enforcements for
+    AI agents.
+
 ### 🧹 The Abstraction Purge (Health & Hygiene)
 
 - **Service Layer Deleted:** Eliminated the redundant `src/shared/api/services/`
@@ -477,6 +502,12 @@ architectures:
 | 17 | API Request URIs injection vulnerability (#76)       | Multiple  | Security       |
 | 18 | Raw Fetch for Auth SDK tasks (#72)                   | Multiple  | Debt           |
 | 19 | Swallowed Network Error Blocks (#80)                 | Multiple  | Health         |
+| 20 | FSD Lateral violations & feature coupling (#1.3)     | `631fa6a` | Architecture   |
+| 21 | `rawSupabaseFetch` NIH debt (22 sites) (#3.2)        | `631fa6a` | NIH            |
+| 22 | Type-masking (`as any`) in Production (#1.4)         | `631fa6a` | Type Safety    |
+| 23 | Automated Architectural Verification Script (#4.2)   | `631fa6a` | CI/CD          |
+| 24 | Tree-helper sort complexity (#2.1)                   | `631fa6a` | Performance    |
+| 25 | Unauthorized `window.location` SPA breaks (#2.3)     | `631fa6a` | Performance    |
 
 ### ⚠️ Tracked as GitHub Issues (Remaining)
 
