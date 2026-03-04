@@ -1,11 +1,11 @@
-# Pull Request: Architecture Consolidation, FSD Decoupling, & Engineering Excellence
+# Pull Request: Architecture Consolidation, FSD Decoupling, & Engineering Refactor
 
 ## 📋 Executive Summary
 
 This Mega-PR wraps up **the extensive architectural decoupling and data-layer
 synchronization effort**, marking a massive stabilization and modernization
-milestone for the PlanterPlan codebase. Across **30+ commits and 209 files
-changed (+5,317 / −15,808 lines)**, the primary focus was aggressively paying
+milestone for the PlanterPlan codebase. Across **70 commits and 399 files
+changed (+16,964 / −24,354 lines)**, the primary focus was aggressively paying
 down technical debt, establishing rigid architectural boundaries via
 Feature-Sliced Design (FSD), strictly typing our form-to-database pipelines,
 optimizing runtime performance, and guaranteeing strict 1:1 schema parity
@@ -18,8 +18,8 @@ security, improving test coverage, and shrinking the production bundle.
 
 ```mermaid
 pie title Net Code Change by Category
-    "Deleted (build artifacts, services, legacy code)" : 15808
-    "Added (strict TS, new hooks, POM tests, docs)" : 5317
+    "Deleted (build artifacts, services, legacy code)" : 24354
+    "Added (strict TS, new hooks, POM tests, docs)" : 16964
 ```
 
 ---
