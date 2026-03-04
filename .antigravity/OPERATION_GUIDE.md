@@ -81,9 +81,10 @@ context window degradation._
 _Use these prompts to guide specialized problem-solving, testing, and
 implementation strategies._
 
-| Prompt File           | Use Case                                                                                | Command                                   |
-| :-------------------- | :-------------------------------------------------------------------------------------- | :---------------------------------------- |
-| **`REACT-PROMPT.md`** | **Reasoning & Action.** Use when stuck on complex architectural or debugging problems.  | `@[.antigravity/prompts/REACT-PROMPT.md]` |
-| **`DBC-PROMPT.md`**   | **Strict Contracts.** Use when implementing core business logic, API clients, or state. | `@[.antigravity/prompts/DBC-PROMPT.md]`   |
-| **`BDD-PROMPT.md`**   | **Behavior Testing.** Use when planning E2E/Integration tests or user-centric features. | `@[.antigravity/prompts/BDD-PROMPT.md]`   |
-| **`IPDD-PROMPT.md`**  | **Iterative Execution.** Use for large feature builds requiring verified, atomic steps. | `@[.antigravity/prompts/IPDD-PROMPT.md]`  |
+| Prompt File           | Use Case                                                                                   | Command                                   |
+| :-------------------- | :----------------------------------------------------------------------------------------- | :---------------------------------------- |
+| **`REACT-PROMPT.md`** | **Reasoning & Action.** Use when stuck on complex architectural or debugging problems.     | `@[.antigravity/prompts/REACT-PROMPT.md]` |
+| **`DBC-PROMPT.md`**   | **Strict Contracts.** Use when implementing core business logic, API clients, or state.    | `@[.antigravity/prompts/DBC-PROMPT.md]`   |
+| **`BDD-PROMPT.md`**   | **Behavior Testing.** Use when planning E2E/Integration tests or user-centric features.    | `@[.antigravity/prompts/BDD-PROMPT.md]`   |
+| **`IPDD-PROMPT.md`**  | **Iterative Execution.** Use for large feature builds requiring verified, atomic steps.    | `@[.antigravity/prompts/IPDD-PROMPT.md]`  |
+| **`TDD-PROMPT.md`**   | **Red/Green/Refactor.** Use when building deeply nested logic, generic hooks, or pure fns. | `@[.antigravity/prompts/TDD-PROMPT.md]`   |

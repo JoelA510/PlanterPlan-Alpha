@@ -195,3 +195,48 @@ invariants._
 - **Rule:** Protect `React.memo` components from referential thrashing. Do not
   pass newly allocated objects or inline functions to memoized components
   without wrapping them in `useMemo` or `useCallback`.
+
+## 10. Agent Framework Master Directives
+
+_CONTEXT: To maintain architectural integrity and prevent context collapse, use
+the specialized prompt frameworks located in `.antigravity/prompts/`
+strategically. They are designed to be complementary when used in the correct
+sequence._
+
+### 10.1 The Golden Path Pipeline
+
+Follow this pipeline for any major feature or complex architectural expansion:
+
+1. **Inception & Requirements (Translation)**
+   - **Trigger:** User asks for a new feature, complex user flow, or E2E tests.
+   - **Tool:** `@[.antigravity/prompts/BDD-PROMPT.md]`
+   - **Action:** Define exactly _what_ the system should do using
+     Given/When/Then scenarios. Write no implementation code until the BDD spec
+     is approved.
+2. **Architectural Design (Guardrails)**
+   - **Trigger:** BDD specs are approved; now the system boundaries need
+     definition (e.g., new APIs, generic mismatch handling).
+   - **Tool:** `@[.antigravity/prompts/DBC-PROMPT.md]`
+   - **Action:** Define _how_ the functions interact. Establish strict
+     Preconditions (inputs must be `Zod` validated), Invariants, and
+     Postconditions (no `any`).
+3. **Implementation Execution (Velocity)**
+   - **Trigger:** Contracts and specs are defined. It's time to build the UI or
+     business logic.
+   - **Tool:** `@[.antigravity/prompts/IPDD-PROMPT.md]`
+   - **Action:** Build the feature in small, atomic, verifiable increments.
+     Compile and test frequently to prevent massive regression chains.
+4. **Complex Logic & Services (Reliability)**
+   - **Trigger:** Building a critical, highly-testable slice of logic (e.g., a
+     pure utility function, a date-engine adapter).
+   - **Tool:** `@[.antigravity/prompts/TDD-PROMPT.md]` (also replaces Section 8
+     for deep-dives)
+   - **Action:** Write the failing `.test.ts` first. Hardcode the pass.
+     Refactor.
+5. **Roadblocks & Debugging (Course Correction)**
+   - **Trigger:** IPDD execution fails, a test stubbornly refuses to pass, or
+     the user reports an obscure bug.
+   - **Tool:** `@[.antigravity/prompts/REACT-PROMPT.md]`
+   - **Action:** Stop writing implementation code immediately. Observe the
+     failure -> Formulate a structured hypothesis -> Instrument the code with
+     verification checks -> Act on the evidence.
