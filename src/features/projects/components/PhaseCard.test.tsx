@@ -7,7 +7,7 @@ import type { TaskRow } from '@/shared/db/app.types';
 
 vi.mock('framer-motion', () => ({
     motion: {
-        div: ({ children, whileHover: _h, whileTap: _t, ...props }: React.PropsWithChildren<Record<string, unknown>>) => <div {...props}>{children}</div>,
+        div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => <div {...props}>{children}</div>,
     },
 }));
 

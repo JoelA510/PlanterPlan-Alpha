@@ -14,8 +14,8 @@ import { useProjectRealtime } from '@/features/projects';
 import CreateProjectModal from '@/features/dashboard/components/CreateProjectModal';
 import StatsOverview from '@/features/dashboard/components/StatsOverview';
 import ProjectPipelineBoard from '@/features/dashboard/components/ProjectPipelineBoard';
-import OnboardingWizard from '@/features/onboarding/components/OnboardingWizard';
-import GettingStartedWidget from '@/features/onboarding/components/GettingStartedWidget';
+import OnboardingWizard from '@/pages/components/OnboardingWizard';
+import GettingStartedWidget from '@/pages/components/GettingStartedWidget';
 import MobileAgenda from '@/features/mobile/MobileAgenda';
 export default function Dashboard() {
     const queryClient = useQueryClient();

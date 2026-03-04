@@ -2,7 +2,7 @@
 import { createBrowserRouter, redirect } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import Home from '@/pages/Home'
-import LoginForm from '@/features/auth/components/LoginForm'
+import LoginForm from '@/pages/components/LoginForm'
 import DashboardLayout from '@/layouts/DashboardLayout'
 import { supabase } from '@/shared/db/client'
 

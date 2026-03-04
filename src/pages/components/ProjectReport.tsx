@@ -6,7 +6,7 @@ import { ProjectHeader } from '@/features/projects';
 import { useTaskQuery, useProjectSelection } from '@/features/tasks';
 import { planter } from '@/shared/api/planterClient';
 import { Loader2 } from 'lucide-react';
-import StatusPieChart from '@/features/reports/components/StatusPieChart';
+import StatusPieChart from '@/pages/components/StatusPieChart';
 import type { TaskRow } from '@/shared/db/app.types';
 
 interface ProjectWithChildren extends TaskRow {

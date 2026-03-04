@@ -8,7 +8,7 @@ import Reports from '../pages/Reports';
 import Project from '../pages/Project';
 import Settings from '../pages/Settings';
 import TasksPage from '../pages/TasksPage';
-import LoginForm from '../features/auth/components/LoginForm';
+import LoginForm from '@/pages/components/LoginForm';
 
 const queryClient = new QueryClient();
 

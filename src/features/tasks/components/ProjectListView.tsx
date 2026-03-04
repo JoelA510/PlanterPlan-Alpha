@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import TaskItem, { SortableTaskItem } from '@/features/tasks/components/TaskItem';

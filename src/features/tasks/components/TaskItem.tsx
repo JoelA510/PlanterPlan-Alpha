@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
 import InlineTaskInput from './InlineTaskInput';
-import type { TaskRow } from '@/shared/db/app.types';
+
 export type { TaskItemData } from '@/shared/types/tasks';
 import type { TaskItemData } from '@/shared/types/tasks';
 

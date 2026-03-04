@@ -37,6 +37,7 @@ export const useTaskDragAndDrop = ({
         const combined = [...tasks, ...descendants];
 
         return Array.from(new Map(combined.map((t) => [t?.id, t])).values());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [JSON.stringify(tasks), JSON.stringify(hydratedProjects)]);
 
     const { sensors, handleDragEnd } = useTaskDrag({
