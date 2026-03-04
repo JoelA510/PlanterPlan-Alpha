@@ -49,8 +49,9 @@ index of all Agent Workflows and Commands.
 | :------------------------- | :------------------------------------------------------------------------ | :----------------------------------------------- |
 | **`08-browser-verify.md`** | **Verify.** Run the "Golden Path" browser simulation before shipping.     | `@[.antigravity/workflows/08-browser-verify.md]` |
 | **`10-release-prep.md`**   | **Ship It.** Feature is done. Update Docs -> Lint -> Test -> Generate PR. | `@[.antigravity/workflows/10-release-prep.md]`   |
-| **`PR-PROMPT.md`**         | **Draft PR.** (Called by #10, but can be run manually).                   | `@[.antigravity/prompts/PR-PROMPT.md]`           |
-| **`ROADMAP-PROMPT.md`**    | **Cleanup.** After merge, mark the Roadmap item as Done.                  | `@[.antigravity/prompts/ROADMAP-PROMPT.md]`      |
+
+| **`ROADMAP-PROMPT.md`** | **Cleanup.** After merge, mark the Roadmap item as
+Done. | `@[.antigravity/prompts/ROADMAP-PROMPT.md]` |
 
 ---
 
