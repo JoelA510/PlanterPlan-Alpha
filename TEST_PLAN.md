@@ -6,7 +6,18 @@ Ensure existing Vitest suites do not break after type safety and API contract
 refactors across the Phase 1 target files. Ensure adherence to
 `architect-standards.md` and repository rules.
 
-## Strategy
+## Strategy & Frameworks
+
+We utilize the following advanced development frameworks to guide testing and
+remediation:
+
+- **Design-by-Contract (DbC)**: Ensuring all inputs/outputs strictly match
+  `database.types.ts`.
+- **Behavior-Driven Development (BDD)**: Grounding UI tests in actual user
+  workflows.
+- **Iterative Prompt-Driven Development (IPDD)**: Step-by-step verified code
+  generation.
+- **The ReAct Framework**: Reason + Act methodology for AI-driven debugging.
 
 1. **Pre-Refactor Baseline:**
    - Run `npx vitest run` or `npm run test` to ensure all existing tests are

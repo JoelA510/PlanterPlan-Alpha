@@ -3,7 +3,7 @@ memory_config:
   disabled: false
 code_review:
   disable: false
-  # Maximally critical: report even low severity issues to enforce strict standards.
+  # Wave 16: Zero-Error Build Policy Enforced. Maximally critical review.
   comment_severity_threshold: LOW
   # Unlimited comments to ensure thorough review.
   max_review_comments: -1
@@ -13,8 +13,8 @@ pull_request_opened:
   code_review: true
   include_drafts: true
 ignore_patterns:
-  - '**/node_modules/**'
-  - '**/dist/**'
-  - '**/*.log'
-  - '**/.git/**'
-  - '**/coverage/**'
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.log"
+  - "**/.git/**"
+  - "**/coverage/**"

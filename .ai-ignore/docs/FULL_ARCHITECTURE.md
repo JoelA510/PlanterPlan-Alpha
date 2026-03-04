@@ -1,9 +1,8 @@
 # PlanterPlan — Complete Architecture Reference
 
-> **Last Updated**: 2026-03-02\
-> **Status**: Alpha (Debt Remediation — Strict Typing, FSD, & Zod Enforced)\
-> **Commit**: HEAD on `feat/refactor-sprint-corrections` **Specification**:
-> [spec.md](../spec.md)
+> **Last Updated**: 2026-03-03\
+> **Status**: Alpha (Wave 16 — Zero-Error Build, Strict Typing & FSD Enforced)\
+> **Commit**: HEAD **Specification**: [spec.md](../spec.md)
 
 ---
 
@@ -121,7 +120,7 @@ diagrams (legacy) │ └── operations/ # Operational guides ├── e2e/ 
 E2E test suites ├── public/ # Static assets ├── scripts/ # Utility scripts ├──
 supabase/ # Supabase config, edge functions, seeds │ ├── config.toml │ ├──
 functions/ │ └── seeds/ ├── src/ │ ├── app/ # @app — Global wiring │ │ ├──
-App.jsx # Root component, router, provider tree │ │ ├── supabaseClient.js#
+App.tsx # Root component, router, provider tree │ │ ├── supabaseClient.ts#
 Supabase SDK singleton │ │ ├── constants/ # App-wide constants (roles, statuses)
 │ │ └── contexts/ # React Context providers (5) │ │ │ ├── features/ # @features
 — Business domains (11) │ │ ├── auth/ # Login/signup components │ │ ├──
@@ -139,15 +138,17 @@ tree, validation) │ │ ├── constants/ # Canonical constants (ROLES,
 POSITION_STEP) │ │ ├── db/ # app.types.ts, database.types.ts │ │ ├── model/ #
 Shared data models │ │ ├── test/ # Test utilities │ │ └── ui/ # 35 active design
 system components (Radix-based) │ │ │ ├── pages/ # @pages — Route-level views
-(7) │ │ ├── Dashboard.jsx │ │ ├── Home.jsx # Public landing page │ │ ├──
-Project.jsx # Single project view (tabs: board, list, phases) │ │ ├──
-Reports.jsx │ │ ├── Settings.jsx │ │ ├── TasksPage.jsx │ │ └── Team.jsx │ │ │
-├── layouts/ # @layouts — Page layout shells │ │ ├── DashboardLayout.jsx #
+(7) │ │ ├── Dashboard.tsx │ │ ├── Home.tsx # Public landing page │ │ ├──
+Project.tsx # Single project view (tabs: board, list, phases) │ │ ├──
+Reports.tsx │ │ ├── Settings.tsx │ │ ├── TasksPage.tsx │ │ └── Team.tsx │ │ │
+├── layouts/ # @layouts — Page layout shells │ │ ├── DashboardLayout.tsx #
 Authenticated layout with sidebar, AuthGuard router logic, and useParams
-fetching │ │ └── PlanterLayout.jsx # Minimal layout wrapper │ │ │ ├── entities/
+fetching │ │ └── PlanterLayout.tsx # Minimal layout wrapper │ │ │ ├── entities/
+
 # @entities — Domain entity definitions │ │ ├── project/ │ │ └── task/ │ │ │ ├──
+
 styles/ # CSS globals │ │ ├── globals.css # Tailwind v4 theme tokens & design
-system │ │ └── index.css # Entry point │ │ │ └── main.jsx # Vite entry point │
+system │ │ └── index.css # Entry point │ │ │ └── main.tsx # Vite entry point │
 ├── package.json ├── vite.config.js ├── playwright.config.ts └──
 eslint.config.js
 
@@ -169,7 +170,7 @@ eslint.config.js
 
 ## 4. Application Entry & Provider Tree
 
-The app boots from `src/main.jsx` → `App.jsx`. The provider tree wraps the
+The app boots from `src/main.tsx` → `App.tsx`. The provider tree wraps the
 entire application in this order:
 
 ```mermaid
@@ -184,10 +185,10 @@ graph TD
 
 | Provider                  | File                                 | Responsibility                                                  |
 | ------------------------- | ------------------------------------ | --------------------------------------------------------------- |
-| **ThemeProvider**         | `contexts/ThemeContext.jsx`          | Forced Light mode context (dark mode removed for UX simplicity) |
-| **AuthProvider**          | `contexts/AuthContext.jsx`           | Supabase JWT session, user state, admin role check via RPC      |
-| **ViewAsProviderWrapper** | `contexts/ViewAsProviderWrapper.jsx` | Admin "View As" role impersonation                              |
-| **ToastProvider**         | `contexts/ToastContext.jsx`          | Global toast notification system                                |
+| **ThemeProvider**         | `contexts/ThemeContext.tsx`          | Forced Light mode context (dark mode removed for UX simplicity) |
+| **AuthProvider**          | `contexts/AuthContext.tsx`           | Supabase JWT session, user state, admin role check via RPC      |
+| **ViewAsProviderWrapper** | `contexts/ViewAsProviderWrapper.tsx` | Admin "View As" role impersonation                              |
+| **ToastProvider**         | `contexts/ToastContext.tsx`          | Global toast notification system                                |
 
 ---
 
@@ -346,15 +347,15 @@ tasks/
 │   │   └── TaskActions.tsx  # Atomic action buttons
 │   ├── TaskDetails/     # Side Panel
 │   │   └── TaskDetails.tsx  # View/Edit attributes
-│   ├── ProjectTasksView.jsx # Task list filtered by project
-│   ├── ProjectListView.jsx  # Virtualized list
-│   ├── TaskResources.jsx    # File/link attachments
-│   ├── TaskDependencies.jsx # Relationship management UI
-│   ├── InlineTaskInput.jsx  # Quick-add task inline
+│   ├── ProjectTasksView.tsx # Task list filtered by project
+│   ├── ProjectListView.tsx  # Virtualized list
+│   ├── TaskResources.tsx    # File/link attachments
+│   ├── TaskDependencies.tsx # Relationship management UI
+│   ├── InlineTaskInput.tsx  # Quick-add task inline
 │   ├── board/
-│   │   ├── ProjectBoardView.jsx  # Kanban board container
-│   │   ├── BoardColumn.jsx       # Status column
-│   │   └── BoardTaskCard.jsx     # Draggable task card
+│   │   ├── ProjectBoardView.tsx  # Kanban board container
+│   │   ├── BoardColumn.tsx       # Status column
+│   │   └── BoardTaskCard.tsx     # Draggable task card
 │   └── ... (forms, controls, selects)
 ├── hooks/               # 10 hooks (see §6)
 │   ├── useTaskTree.ts       # Tree structural logic
@@ -388,20 +389,20 @@ The application is architected for a **strict Light Mode only** environment.
 ```
 projects/
 ├── components/
-│   ├── ProjectHeader.jsx       # Title, status, settings bar
-│   ├── ProjectTabs.jsx         # Board | List | Phases | People tabs
-│   ├── PhaseCard.jsx           # Gated phase with checkpoint logic
-│   ├── MilestoneSection.jsx    # Collapsible milestone group
-│   ├── AddTaskModal.jsx        # Modal for adding tasks
-│   ├── EditProjectModal.jsx    # Project settings editor
-│   ├── NewProjectForm.jsx      # Create project wizard
-│   ├── InviteMemberModal.jsx   # Team member invitation
-│   ├── InstanceList.jsx        # List of project instances
-│   ├── JoinedProjectsList.jsx  # Projects user was invited to
+│   ├── ProjectHeader.tsx       # Title, status, settings bar
+│   ├── ProjectTabs.tsx         # Board | List | Phases | People tabs
+│   ├── PhaseCard.tsx           # Gated phase with checkpoint logic
+│   ├── MilestoneSection.tsx    # Collapsible milestone group
+│   ├── AddTaskModal.tsx        # Modal for adding tasks
+│   ├── EditProjectModal.tsx    # Project settings editor
+│   ├── NewProjectForm.tsx      # Create project wizard
+│   ├── InviteMemberModal.tsx   # Team member invitation
+│   ├── InstanceList.tsx        # List of project instances
+│   ├── JoinedProjectsList.tsx  # Projects user was invited to
 ├── hooks/
-│   ├── useProjectData.js       # All project queries
+│   ├── useProjectData.ts       # All project queries
 │   ├── useProjectMutations.ts  # Create/update/delete
-│   ├── useProjectRealtime.js   # Realtime subscription
+│   ├── useProjectRealtime.ts   # Realtime subscription
 │   └── useUserProjects.ts      # User's project list
 └── utils/
 ```
@@ -613,7 +614,7 @@ erDiagram
 ### 10.1 Authentication
 
 - **Supabase Auth** (GoTrue) handles JWT-based authentication
-- `AuthContext.jsx` listens for `onAuthStateChange` events (`SIGNED_IN`,
+- `AuthContext.tsx` listens for `onAuthStateChange` events (`SIGNED_IN`,
   `SIGNED_OUT`, `TOKEN_REFRESHED`, `INITIAL_SESSION`)
 - Admin status is determined via the `is_admin()` RPC with a 10-second timeout
   fallback
@@ -713,7 +714,7 @@ UI primitives + Tailwind CSS, following the shadcn/ui pattern. (Pruned in Wave
 
 | Utility | File                       | Purpose                                                |
 | ------- | -------------------------- | ------------------------------------------------------ |
-| `cn()`  | `shared/lib/utils.js`      | Merges Tailwind classes with `clsx` + `tailwind-merge` |
+| `cn()`  | `shared/lib/utils.ts`      | Merges Tailwind classes with `clsx` + `tailwind-merge` |
 | `cva()` | `class-variance-authority` | Variant-based component styling                        |
 
 ---
@@ -756,17 +757,17 @@ The build uses **manual chunk splitting** for optimal loading:
 | --------------- | ----------------------------- |
 | Test runner     | Vitest 4                      |
 | DOM environment | jsdom                         |
-| Setup file      | `src/setupTests.js`           |
+| Setup file      | `src/setupTests.ts`           |
 | Exclusions      | `node_modules`, `dist`, `e2e` |
 
 Key test files:
 
-- `useTaskBoard.test.jsx` — Board hook logic
-- `PhaseCard.test.jsx` — Phase checkpoint behavior
-- `CreateProjectModal.test.jsx` — Project creation flow
-- `retry.test.js` — Fetch retry utility
-- `validation.test.js` — Input validation
-- `MobileAgenda.test.jsx` — Mobile agenda
+- `useTaskBoard.test.tsx` — Board hook logic
+- `PhaseCard.test.tsx` — Phase checkpoint behavior
+- `CreateProjectModal.test.tsx` — Project creation flow
+- `retry.test.ts` — Fetch retry utility
+- `validation.test.ts` — Input validation
+- `MobileAgenda.test.tsx` — Mobile agenda
 
 ### E2E Tests (Playwright)
 
@@ -926,19 +927,19 @@ These diagrams detail specific internal structures of complex modules.
 
 ### 17.1 Project Page Architecture
 
-The `Project` module (`src/pages/Project.jsx`) uses a composition of specialized
+The `Project` module (`src/pages/Project.tsx`) uses a composition of specialized
 hooks and UI components.
 
 ```mermaid
 graph TD
     subgraph Page [Project Page Layer]
-        PageComp[Project.jsx]
-        Tabs[ProjectTabs.jsx]
-        Header[ProjectHeader.jsx]
+        PageComp[Project.tsx]
+        Tabs[ProjectTabs.tsx]
+        Header[ProjectHeader.tsx]
     end
 
     subgraph Logic [Business Logic Layer]
-        Hook[useProjectData.js]
+        Hook[useProjectData.ts]
         Sub[useTaskSubscription.js]
     end
 
@@ -965,13 +966,13 @@ graph TD
 
 ### 17.2 Task List Composition
 
-The `TaskList` (`src/features/tasks/components/TaskList.jsx`) now directly
+The `TaskList` (`src/features/tasks/components/TaskList.tsx`) now directly
 composes specialized hooks for optimal re-rendering.
 
 ```mermaid
 graph TD
     subgraph Container [TaskList Container]
-        List[TaskList.jsx]
+        List[TaskList.tsx]
         Sidebar[ProjectSidebar]
         MainView[ProjectTasksView]
         Details[TaskDetailsPanel]

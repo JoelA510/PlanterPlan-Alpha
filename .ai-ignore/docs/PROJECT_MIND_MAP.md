@@ -1,7 +1,8 @@
 # PlanterPlan — Project Mind Map
 
-> **Last Updated**: 2026-02-26  
-> **Purpose**: A complete catalog of context files + a visual breakdown of all actions, data flows, and component interactions across the application.
+> **Last Updated**: 2026-03-03\
+> **Purpose**: A complete catalog of context files + a visual breakdown of all
+> actions, data flows, and component interactions across the application.
 
 ---
 
@@ -11,88 +12,89 @@ Every file that gives meaningful context about this project, organized by role.
 
 ### 📐 Architecture & Design
 
-| File | Purpose | Priority |
-|:-----|:--------|:---------|
+| File                                         | Purpose                                                                                                                                                                                                                     | Priority    |
+| :------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------- |
 | [FULL_ARCHITECTURE.md](FULL_ARCHITECTURE.md) | **Single Source of Truth** — 900+ line deep reference covering tech stack, FSD structure, provider tree, API adapter, all 11 feature domains, DB schema, security model, realtime flow, ADRs, and legacy component diagrams | 🔴 Critical |
-| [repo-context.yaml](../repo-context.yaml) | Machine-readable semantic dependency graph, behavior specs, contracts, state machines, and health metrics | 🔴 Critical |
-| [AGENT_CONTEXT.md](AGENT_CONTEXT.md) | Quick-start codebase map for AI agents — directory structure, key patterns, golden path files | 🔵 Useful |
-r
+| [repo-context.yaml](../repo-context.yaml)    | Machine-readable semantic dependency graph, behavior specs, contracts, state machines, and health metrics                                                                                                                   | 🔴 Critical |
+| [AGENT_CONTEXT.md](AGENT_CONTEXT.md)         | Quick-start codebase map for AI agents — directory structure, key patterns, golden path files                                                                                                                               | 🔵 Useful   |
+| r                                            |                                                                                                                                                                                                                             |             |
+
 ---
 
 ### 📊 Product & Roadmap
 
-| File | Purpose | Priority |
-|:-----|:--------|:---------|
-| [README.md](../README.md) | Project overview, setup instructions, feature summary | 🔴 Critical |
-| [spec.md](../spec.md) | Full project spec, roadmap, and status checklist | 🔴 Critical |
-| [deep-research-report.md](../deep-research-report.md) | Deep competitive/market research analysis | 🟡 Reference |
+| File                                                  | Purpose                                               | Priority     |
+| :---------------------------------------------------- | :---------------------------------------------------- | :----------- |
+| [README.md](../README.md)                             | Project overview, setup instructions, feature summary | 🔴 Critical  |
+| [spec.md](../spec.md)                                 | Full project spec, roadmap, and status checklist      | 🔴 Critical  |
+| [deep-research-report.md](../deep-research-report.md) | Deep competitive/market research analysis             | 🟡 Reference |
 
 ---
 
 ### 🗄️ Database & Schema
 
-| File | Purpose | Priority |
-|:-----|:--------|:---------|
-| [schema.sql](db/schema.sql) | **Full DDL** — 37K of tables, views, indexes, RLS policies, RPCs, triggers | 🔴 Critical |
-| [one_time_setup.sql](db/one_time_setup.sql) | Initial DB bootstrap script | 🟡 Reference |
-| [config.toml](../supabase/config.toml) | Supabase local config (auth, API, storage, realtime settings) | 🟡 Reference |
+| File                                        | Purpose                                                                    | Priority     |
+| :------------------------------------------ | :------------------------------------------------------------------------- | :----------- |
+| [schema.sql](db/schema.sql)                 | **Full DDL** — 37K of tables, views, indexes, RLS policies, RPCs, triggers | 🔴 Critical  |
+| [one_time_setup.sql](db/one_time_setup.sql) | Initial DB bootstrap script                                                | 🟡 Reference |
+| [config.toml](../supabase/config.toml)      | Supabase local config (auth, API, storage, realtime settings)              | 🟡 Reference |
 
 ---
 
 ### 🧪 Testing & Quality
 
-| File | Purpose | Priority |
-|:-----|:--------|:---------|
-| [testing-strategy.md](operations/testing-strategy.md) | Detailed testing methodology and patterns | 🔵 Useful |
-| [playwright-e2e-testing-system.md](../playwright-e2e-testing-system.md) | E2E infrastructure reference (69K) | 🟡 Reference |
-| [e2e-helpers.ts](../e2e/fixtures/e2e-helpers.ts) | Centralized test auth/mock helpers | 🔵 Useful |
-| [agent-test-scripts.md](operations/agent-test-scripts.md) | Structured manual test scripts for AI agents | 🟢 Low |
+| File                                                                    | Purpose                                      | Priority     |
+| :---------------------------------------------------------------------- | :------------------------------------------- | :----------- |
+| [testing-strategy.md](operations/testing-strategy.md)                   | Detailed testing methodology and patterns    | 🔵 Useful    |
+| [playwright-e2e-testing-system.md](../playwright-e2e-testing-system.md) | E2E infrastructure reference (69K)           | 🟡 Reference |
+| [e2e-helpers.ts](../e2e/fixtures/e2e-helpers.ts)                        | Centralized test auth/mock helpers           | 🔵 Useful    |
+| [agent-test-scripts.md](operations/agent-test-scripts.md)               | Structured manual test scripts for AI agents | 🟢 Low       |
 
 ---
 
 ### ⚙️ Operations & DevOps
 
-| File | Purpose | Priority |
-|:-----|:--------|:---------|
-| [local_development.md](operations/local_development.md) | Local dev setup guide | 🔵 Useful |
-| [SAFE_MIGRATION.md](operations/SAFE_MIGRATION.md) | Database migration safety procedures | 🟡 Reference |
-| [playwright.config.ts](../playwright.config.ts) | E2E test runner configuration | 🔵 Useful |
-| [vite.config.js](../vite.config.js) | Build system, path aliases, chunk splitting | 🔵 Useful |
-| [package.json](../package.json) | Dependencies, scripts, project metadata | 🔵 Useful |
+| File                                                    | Purpose                                     | Priority     |
+| :------------------------------------------------------ | :------------------------------------------ | :----------- |
+| [local_development.md](operations/local_development.md) | Local dev setup guide                       | 🔵 Useful    |
+| [SAFE_MIGRATION.md](operations/SAFE_MIGRATION.md)       | Database migration safety procedures        | 🟡 Reference |
+| [playwright.config.ts](../playwright.config.ts)         | E2E test runner configuration               | 🔵 Useful    |
+| [vite.config.js](../vite.config.js)                     | Build system, path aliases, chunk splitting | 🔵 Useful    |
+| [package.json](../package.json)                         | Dependencies, scripts, project metadata     | 🔵 Useful    |
 
 ---
 
 ### 🔧 Configuration & CI
 
-| File | Purpose | Priority |
-|:-----|:--------|:---------|
-| [.env](../.env) | Supabase URL/Key, test credentials | 🔵 Useful |
-| [eslint.config.js](../eslint.config.js) | Linting rules | 🟢 Low |
-| [jsconfig.json](../jsconfig.json) | Path alias resolution for IDE | 🟢 Low |
-| [dependabot.yml](../.github/dependabot.yml) | Automated dependency updates | 🟢 Low |
-| [pull_request_template.md](../.github/pull_request_template.md) | PR template | 🟢 Low |
+| File                                                            | Purpose                            | Priority  |
+| :-------------------------------------------------------------- | :--------------------------------- | :-------- |
+| [.env](../.env)                                                 | Supabase URL/Key, test credentials | 🔵 Useful |
+| [eslint.config.js](../eslint.config.js)                         | Linting rules                      | 🟢 Low    |
+| [jsconfig.json](../jsconfig.json)                               | Path alias resolution for IDE      | 🟢 Low    |
+| [dependabot.yml](../.github/dependabot.yml)                     | Automated dependency updates       | 🟢 Low    |
+| [pull_request_template.md](../.github/pull_request_template.md) | PR template                        | 🟢 Low    |
 
 ---
 
 ### 📝 Tracking & Debt
 
-| File | Purpose | Priority |
-|:-----|:--------|:---------|
-| [DEBT_REPORT.md](../DEBT_REPORT.md) | Technical debt log | 🟡 Reference |
-| [LESSONS.md](../LESSONS.md) | Engineering lessons learned — 260 entries of hard-won knowledge (17K) | 🔴 Critical |
-| [TODO.md](../TODO.md) | Active backlog items | 🔵 Useful |
+| File                                | Purpose                                                               | Priority     |
+| :---------------------------------- | :-------------------------------------------------------------------- | :----------- |
+| [DEBT_REPORT.md](../DEBT_REPORT.md) | Technical debt log                                                    | 🟡 Reference |
+| [LESSONS.md](../LESSONS.md)         | Engineering lessons learned — 260 entries of hard-won knowledge (17K) | 🔴 Critical  |
+| [TODO.md](../TODO.md)               | Active backlog items                                                  | 🔵 Useful    |
 
 ---
 
 ### 🚀 Source Code Entry Points
 
-| File | Purpose | Priority |
-|:-----|:--------|:---------|
-| [App.jsx](../src/app/App.jsx) | Root component — provider tree, routing, AuthSeeder | 🔴 Critical |
-| [planterClient.ts](../src/shared/api/planterClient.ts) | API adapter layer — all data access | 🔴 Critical |
-| [TaskTree.tsx](../src/features/tasks/components/TaskTree/TaskTree.tsx) | Core Task Tree logic & recursion | 🔴 Critical |
-| [main.jsx](../src/main.jsx) | Vite entry point | 🟡 Reference |
-| [globals.css](../src/styles/globals.css) | Tailwind v4 theme tokens & design system | 🔵 Useful |
+| File                                                                   | Purpose                                             | Priority     |
+| :--------------------------------------------------------------------- | :-------------------------------------------------- | :----------- |
+| [App.tsx](../src/app/App.tsx)                                          | Root component — provider tree, routing, AuthSeeder | 🔴 Critical  |
+| [planterClient.ts](../src/shared/api/planterClient.ts)                 | API adapter layer — all data access                 | 🔴 Critical  |
+| [TaskTree.tsx](../src/features/tasks/components/TaskTree/TaskTree.tsx) | Core Task Tree logic & recursion                    | 🔴 Critical  |
+| [main.tsx](../src/main.tsx)                                            | Vite entry point                                    | 🟡 Reference |
+| [globals.css](../src/styles/globals.css)                               | Tailwind v4 theme tokens & design system            | 🔵 Useful    |
 
 ---
 
@@ -144,13 +146,13 @@ mindmap
             - [x] **Security Hardening**:
               - [x] Secured `invite_user_to_project` against NULL inviter role (auth bypass).
               - [x] Secured `clone_project_template` with strict ownership checks.
-              - [x] Verified via `RPCHardening.test.js`.
+              - [x] Verified via `RPCHardening.test.ts`.
         
         - [x] **Wave 11: Security Restorations & Bundle Cleanup**
           - [x] Pruned 12 unused `@radix-ui` dependencies and `@supabase-cache-helpers` to drastically reduce bundle size.
-          - [x] Restored `XSS.test.jsx` targeting modern FSD `TaskActions`.
-          - [x] Restored `RLS.test.js` checking authenticated role access in Vitest.
-          - [x] Restored `AuthContext.security.test.jsx` default safeguards.
+          - [x] Restored `XSS.test.tsx` targeting modern FSD `TaskActions`.
+          - [x] Restored `RLS.test.ts` checking authenticated role access in Vitest.
+          - [x] Restored `AuthContext.security.test.tsx` default safeguards.
         
         - [x] **Wave 12: Repo Polish (v1.1)**
           - [x] **E2E Stabilization**: Fixed flaky logout in `auth.spec.ts` via stateful mocks and `dispatchEvent`.
@@ -161,7 +163,7 @@ mindmap
           - [x] **Auth Hardening**: Wrapped E2E bypasses in `VITE_E2E_MODE` and fixed `signOut` desync.
           - [x] **Data Performance**: Implemented granular React Query invalidation and O(1) tree rendering maps.
           - [x] **XSS Restoration**: Removed all `dangerouslySetInnerHTML` from titles/cards.
-          - [x] **Decomposition**: Successfully deconstructed `useTaskBoard.js` "God Hook" into atomic features.
+          - [x] **Decomposition**: Successfully deconstructed `useTaskBoard.ts` "God Hook" into atomic features.
           - [x] **CI Resolution**: Fixed Type-Safety (useTaskMutations), DnD Deduplication, and test hangs (CreateProjectModal).
 
         - [x] **Wave 14: Radical UI Simplification & Cleanup**
@@ -174,8 +176,8 @@ mindmap
           - [x] **Form State**: Replaced raw React state with `react-hook-form` + `@hookform/resolvers/zod` for tasks and projects.
           - [x] **Offline Cache**: Configured TanStack Query `persistQueryClient` with IndexedDB.
           - [x] **Mutation Hooks**: Extracted all project and task mutations into dedicated `useProjectMutations.ts` and `useTaskMutations.ts` hooks with built-in optimistic UI and rollbacks.
-          - [x] **Legacy Hooks**: Preserved complex `TaskList` wrapper logic in `useTaskActions.js` to decouple it from pure query logic.
-          - [x] **Component Decomposition**: Refactored `Project.jsx` and `Reports.jsx` to strict TSX, extracting logic to `useProjectBoard.ts` and `useProjectReports.ts`.
+          - [x] **Legacy Hooks**: Preserved complex `TaskList` wrapper logic in `useTaskActions.ts` to decouple it from pure query logic.
+          - [x] **Component Decomposition**: Refactored `Project.tsx` and `Reports.tsx` to strict TSX, extracting logic to `useProjectBoard.ts` and `useProjectReports.ts`.
           - [x] **Test Modularization**: Implemented `DashboardPage` and `ProjectPage` POMs for robust Playwright E2E tests.
           - [x] **Context Optimization**: Relocated heavy documentation and aggressively `.gitignore`d test artifacts to shrink repository token footprint.
 
@@ -298,10 +300,10 @@ mindmap
       Recharts Visualization
       Lucide Icons
     Testing
-        src/tests/unit/RPCHardening.test.js (New)
-        src/tests/unit/XSS.test.jsx (Restored)
-        src/tests/security/RLS.test.js (Restored)
-        src/tests/unit/AuthContext.security.test.jsx (Restored)
+        src/tests/unit/RPCHardening.test.ts (New)
+        src/tests/unit/XSS.test.tsx (Restored)
+        src/tests/security/RLS.test.ts (Restored)
+        src/tests/unit/AuthContext.security.test.tsx (Restored)
       Playwright E2E
         25 Verified Scenarios
         12 Journey Specs (Stable)
@@ -319,7 +321,8 @@ mindmap
 
 ## 3. Action Flow Map — All User Actions & Their Connections
 
-This is the core mind-map: **every user-triggerable action** in the app, what it touches, and how systems connect.
+This is the core mind-map: **every user-triggerable action** in the app, what it
+touches, and how systems connect.
 
 ### 3.1 Authentication Actions
 
@@ -720,17 +723,17 @@ flowchart TB
 
 Shows which domains directly interact with each other.
 
-| | Tasks | Projects | Dashboard | Nav | Library | People | Reports | Auth | Mobile |
-|:--|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| **Tasks** | — | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
-| **Projects** | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Dashboard** | ✅ | ✅ | — | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| **Navigation** | ✅ | ✅ | ✅ | — | ❌ | ❌ | ✅ | ✅ | ❌ |
-| **Library** | ✅ | ✅ | ❌ | ✅ | — | ❌ | ❌ | ✅ | ❌ |
-| **People** | ❌ | ✅ | ❌ | ❌ | ❌ | — | ❌ | ✅ | ❌ |
-| **Reports** | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | — | ✅ | ❌ |
-| **Auth** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ |
-| **Mobile** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | — |
+|                | Tasks | Projects | Dashboard | Nav | Library | People | Reports | Auth | Mobile |
+| :------------- | :---: | :------: | :-------: | :-: | :-----: | :----: | :-----: | :--: | :----: |
+| **Tasks**      |   —   |    ✅    |    ✅     | ✅  |   ✅    |   ❌   |   ✅    |  ✅  |   ✅   |
+| **Projects**   |  ✅   |    —     |    ✅     | ✅  |   ✅    |   ✅   |   ✅    |  ✅  |   ❌   |
+| **Dashboard**  |  ✅   |    ✅    |     —     | ✅  |   ❌    |   ❌   |   ❌    |  ✅  |   ❌   |
+| **Navigation** |  ✅   |    ✅    |    ✅     |  —  |   ❌    |   ❌   |   ✅    |  ✅  |   ❌   |
+| **Library**    |  ✅   |    ✅    |    ❌     | ✅  |    —    |   ❌   |   ❌    |  ✅  |   ❌   |
+| **People**     |  ❌   |    ✅    |    ❌     | ❌  |   ❌    |   —    |   ❌    |  ✅  |   ❌   |
+| **Reports**    |  ✅   |    ✅    |    ❌     | ✅  |   ❌    |   ❌   |    —    |  ✅  |   ❌   |
+| **Auth**       |  ✅   |    ✅    |    ✅     | ✅  |   ✅    |   ✅   |   ✅    |  —   |   ✅   |
+| **Mobile**     |  ✅   |    ❌    |    ❌     | ❌  |   ❌    |   ❌   |   ❌    |  ✅  |   —    |
 
 ---
 
@@ -770,105 +773,105 @@ stateDiagram-v2
 
 ## 7. Robustness Hardening Audit — All 22 Items ✅
 
-All items from the Gap Analysis have been implemented across 5 atomic waves. Each item is verified present in source.
+All items from the Gap Analysis have been implemented across 5 atomic waves.
+Each item is verified present in source.
 
 ### Wave 1: Error Handling & User Feedback
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 1.1 | `onError` toast on all 4 mutations (update, delete, create task + create project) | `Project.jsx`, `Dashboard.jsx` | ✅ |
-| 1.2 | Un-swallow errors in `handleAddTask` | `Project.jsx` | ✅ |
-| 1.3 | `isError` + retry state on Dashboard projects query | `Dashboard.jsx` | ✅ |
-| 1.5 | Remove debug `console.log` from Dashboard | `Dashboard.jsx` | ✅ |
-| 1.6 | Toast on `updateStatusMutation` `onError` | `Dashboard.jsx` | ✅ |
+| #   | Item                                                                              | File(s)                        | Status |
+| :-- | :-------------------------------------------------------------------------------- | :----------------------------- | :----: |
+| 1.1 | `onError` toast on all 4 mutations (update, delete, create task + create project) | `Project.tsx`, `Dashboard.tsx` |   ✅   |
+| 1.2 | Un-swallow errors in `handleAddTask`                                              | `Project.tsx`                  |   ✅   |
+| 1.3 | `isError` + retry state on Dashboard projects query                               | `Dashboard.tsx`                |   ✅   |
+| 1.5 | Remove debug `console.log` from Dashboard                                         | `Dashboard.tsx`                |   ✅   |
+| 1.6 | Toast on `updateStatusMutation` `onError`                                         | `Dashboard.tsx`                |   ✅   |
 
 ### Wave 2: Architectural Hygiene
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 6.2 | Global `QueryClient` defaults (`staleTime: 2min`, `retry: 1`, `refetchOnWindowFocus: false`) | `main.jsx` | ✅ |
-| 6.3 | Standardize on `react-error-boundary` (removed custom `ErrorBoundary.jsx`) | `App.jsx`, `TaskTree.tsx`, `TaskRow.tsx` | ✅ |
+| #   | Item                                                                                         | File(s)                                  | Status |
+| :-- | :------------------------------------------------------------------------------------------- | :--------------------------------------- | :----: |
+| 6.2 | Global `QueryClient` defaults (`staleTime: 2min`, `retry: 1`, `refetchOnWindowFocus: false`) | `main.tsx`                               |   ✅   |
+| 6.3 | Standardize on `react-error-boundary` (removed custom `ErrorBoundary.tsx`)                   | `App.tsx`, `TaskTree.tsx`, `TaskRow.tsx` |   ✅   |
 
 ### Wave 3: RBAC Guards & UX Completeness
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 1.4 | Delete confirmation for tasks (`window.confirm`) | `Project.jsx` | ✅ |
-| 3.1 | Client-side `canEdit` RBAC guards (disable edits for viewers) | `Project.jsx` | ✅ |
-| 3.2 | Settings navigation tabs → "Coming Soon" badge + disabled | `Settings.jsx` | ✅ |
-| 5.1 | Loading state on `InviteMemberModal` submit | `InviteMemberModal.jsx` | ✅ |
-| 5.2 | No-op handlers reviewed in `TaskDetailsModal` | `Project.jsx` | ✅ |
-| 5.3 | `GettingStartedWidget` dismiss persisted to `localStorage` | `Dashboard.jsx` | ✅ |
+| #   | Item                                                          | File(s)                 | Status |
+| :-- | :------------------------------------------------------------ | :---------------------- | :----: |
+| 1.4 | Delete confirmation for tasks (`window.confirm`)              | `Project.tsx`           |   ✅   |
+| 3.1 | Client-side `canEdit` RBAC guards (disable edits for viewers) | `Project.tsx`           |   ✅   |
+| 3.2 | Settings navigation tabs → "Coming Soon" badge + disabled     | `Settings.tsx`          |   ✅   |
+| 5.1 | Loading state on `InviteMemberModal` submit                   | `InviteMemberModal.tsx` |   ✅   |
+| 5.2 | No-op handlers reviewed in `TaskDetailsModal`                 | `Project.tsx`           |   ✅   |
+| 5.3 | `GettingStartedWidget` dismiss persisted to `localStorage`    | `Dashboard.tsx`         |   ✅   |
 
 ### Wave 4: Dark Mode Token Migration
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 2.1 | `Project.jsx` → semantic tokens (`bg-card`, `text-card-foreground`, `border-border`) | `Project.jsx` | ✅ |
-| 2.2 | `Settings.jsx` & `Reports.jsx` → semantic tokens | `Settings.jsx`, `Reports.jsx` | ✅ |
-| 2.3 | `Home.jsx` → semantic tokens | `Home.jsx` | ✅ |
+| #   | Item                                                                                 | File(s)                       | Status |
+| :-- | :----------------------------------------------------------------------------------- | :---------------------------- | :----: |
+| 2.1 | `Project.tsx` → semantic tokens (`bg-card`, `text-card-foreground`, `border-border`) | `Project.tsx`                 |   ✅   |
+| 2.2 | `Settings.tsx` & `Reports.tsx` → semantic tokens                                     | `Settings.tsx`, `Reports.tsx` |   ✅   |
+| 2.3 | `Home.tsx` → semantic tokens                                                         | `Home.tsx`                    |   ✅   |
 
 ### Wave 5: Validation, Architecture & Performance
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 4.1 | Client-side validation on Project Name (required) | `CreateProjectModal.jsx` | ✅ |
-| 4.2 | Avatar URL regex validation on blur | `Settings.jsx` | ✅ |
-| 6.1 | Route profile updates through `planter.auth.updateProfile()` (removed raw Supabase import) | `Settings.jsx`, `planterClient.js` | ✅ |
-| 7.1 | Memoize Dashboard task/member filtering via `useMemo` | `Dashboard.jsx` | ✅ |
-| 7.2 | Memoize sorted phases/milestones via `useMemo` | `Project.jsx` | ✅ |
+| #   | Item                                                                                       | File(s)                            | Status |
+| :-- | :----------------------------------------------------------------------------------------- | :--------------------------------- | :----: |
+| 4.1 | Client-side validation on Project Name (required)                                          | `CreateProjectModal.tsx`           |   ✅   |
+| 4.2 | Avatar URL regex validation on blur                                                        | `Settings.tsx`                     |   ✅   |
+| 6.1 | Route profile updates through `planter.auth.updateProfile()` (removed raw Supabase import) | `Settings.tsx`, `planterClient.js` |   ✅   |
+| 7.1 | Memoize Dashboard task/member filtering via `useMemo`                                      | `Dashboard.tsx`                    |   ✅   |
+| 7.2 | Memoize sorted phases/milestones via `useMemo`                                             | `Project.tsx`                      |   ✅   |
 
 ### Auth Stabilization (Cross-Cutting)
 
-| Item | File | Status |
-|:-----|:-----|:------:|
-| Replace `Promise.race` timeout with `callWithTimeout(rpc, 10s)` for `is_admin` check | `AuthContext.jsx` | ✅ |
+| Item                                                                                 | File              | Status |
+| :----------------------------------------------------------------------------------- | :---------------- | :----: |
+| Replace `Promise.race` timeout with `callWithTimeout(rpc, 10s)` for `is_admin` check | `AuthContext.tsx` |   ✅   |
 
 ### Wave 6: Template System & Schema Hardening
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 8.1 | Fix Sidebar "New Project/Template" buttons (were stubs) | `ProjectSidebarContainer.jsx` | ✅ |
-| 8.2 | URL-driven modal state (`?action=new-project`) | `Dashboard.jsx` | ✅ |
-| 8.3 | Dedicated `CreateTemplateModal` with categories | `CreateTemplateModal.jsx` | ✅ |
-| 8.5 | Added indexes for `creator` and `assignee_id` | `schema.sql` | ✅ |
+| #   | Item                                                    | File(s)                       | Status |
+| :-- | :------------------------------------------------------ | :---------------------------- | :----: |
+| 8.1 | Fix Sidebar "New Project/Template" buttons (were stubs) | `ProjectSidebarContainer.tsx` |   ✅   |
+| 8.2 | URL-driven modal state (`?action=new-project`)          | `Dashboard.tsx`               |   ✅   |
+| 8.3 | Dedicated `CreateTemplateModal` with categories         | `CreateTemplateModal.tsx`     |   ✅   |
+| 8.5 | Added indexes for `creator` and `assignee_id`           | `schema.sql`                  |   ✅   |
 
 ### Wave 7: Final RLS Hardening & UX Polish
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 9.1 | **Zombie Trigger Removal**: Dropped `trigger_maintain_task_root_id` (caused 403s) | `schema.sql` (migrations) | ✅ |
-| 9.2 | **RLS Insert Policy**: Updated to allow self-referential `root_id` | `schema.sql` | ✅ |
-| 9.3 | **Date Picker UX**: Added Year/Month dropdowns + 3-month future default | `CreateProjectModal.jsx` | ✅ |
-| 9.4 | **Sidebar Active State**: Fixed "My Projects" highlighting | `SidebarNavItem.jsx` | ✅ |
+| #   | Item                                                                              | File(s)                   | Status |
+| :-- | :-------------------------------------------------------------------------------- | :------------------------ | :----: |
+| 9.1 | **Zombie Trigger Removal**: Dropped `trigger_maintain_task_root_id` (caused 403s) | `schema.sql` (migrations) |   ✅   |
+| 9.2 | **RLS Insert Policy**: Updated to allow self-referential `root_id`                | `schema.sql`              |   ✅   |
+| 9.3 | **Date Picker UX**: Added Year/Month dropdowns + 3-month future default           | `CreateProjectModal.tsx`  |   ✅   |
+| 9.4 | **Sidebar Active State**: Fixed "My Projects" highlighting                        | `SidebarNavItem.tsx`      |   ✅   |
 
 ### Wave 8: E2E Concurrency Stabilization
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 10.1 | **Mock Enrichment**: Added list-query mocks to ensure sidebar updates race-free | `golden-paths.spec.ts` | ✅ |
-| 10.2 | **Locator Precision**: Hardened Date Picker & Settings selectors against DOM churn | `golden-paths.spec.ts` | ✅ |
-| 10.3 | **Flow Alignment**: Updated Sidebar tests to handle "Choose Template" modal | `sidebar-actions.spec.ts` | ✅ |
-| 10.4 | **Stateful Mocking**: Implemented in-memory mutation for `PATCH` requests to support atomic drag-drop limits | `drag-drop.spec.ts` | ✅ |
-
+| #    | Item                                                                                                         | File(s)                   | Status |
+| :--- | :----------------------------------------------------------------------------------------------------------- | :------------------------ | :----: |
+| 10.1 | **Mock Enrichment**: Added list-query mocks to ensure sidebar updates race-free                              | `golden-paths.spec.ts`    |   ✅   |
+| 10.2 | **Locator Precision**: Hardened Date Picker & Settings selectors against DOM churn                           | `golden-paths.spec.ts`    |   ✅   |
+| 10.3 | **Flow Alignment**: Updated Sidebar tests to handle "Choose Template" modal                                  | `sidebar-actions.spec.ts` |   ✅   |
+| 10.4 | **Stateful Mocking**: Implemented in-memory mutation for `PATCH` requests to support atomic drag-drop limits | `drag-drop.spec.ts`       |   ✅   |
 
 ### Wave 9: Database Harmonization & Security Hardening
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 11.1 | **Privilege Violation Fix**: Hardened `invite_user_to_project` to prevent Editors from inviting Owners | `schema.sql` (migrations) | ✅ |
-| 11.2 | **RLS Lockdown**: Secure `project_invites` INSERT policy to strict Role Hierarchy | `schema.sql` (migrations) | ✅ |
-| 11.3 | **Profile Update**: Added `updateProfile` adapter to PlanterClient | `planterClient.js` | ✅ |
-| 11.4 | **Project Creation**: Hotfixed `createProject` service to use `createProjectWithDefaults` | `projectService.js` | ✅ |
-| 11.5 | **Auth Stability**: Monotonic sequence counter in `AuthContext` to prevent race conditions | `AuthContext.jsx` | ✅ |
-| 11.6 | **Perf Optimization**: Server-side filtering in `listByCreator` | `planterClient.js` | ✅ |
+| #    | Item                                                                                                   | File(s)                   | Status |
+| :--- | :----------------------------------------------------------------------------------------------------- | :------------------------ | :----: |
+| 11.1 | **Privilege Violation Fix**: Hardened `invite_user_to_project` to prevent Editors from inviting Owners | `schema.sql` (migrations) |   ✅   |
+| 11.2 | **RLS Lockdown**: Secure `project_invites` INSERT policy to strict Role Hierarchy                      | `schema.sql` (migrations) |   ✅   |
+| 11.3 | **Profile Update**: Added `updateProfile` adapter to PlanterClient                                     | `planterClient.js`        |   ✅   |
+| 11.4 | **Project Creation**: Hotfixed `createProject` service to use `createProjectWithDefaults`              | `projectService.js`       |   ✅   |
+| 11.5 | **Auth Stability**: Monotonic sequence counter in `AuthContext` to prevent race conditions             | `AuthContext.tsx`         |   ✅   |
+| 11.6 | **Perf Optimization**: Server-side filtering in `listByCreator`                                        | `planterClient.js`        |   ✅   |
 
 ### Wave 10: Task Tree Refactoring & Hardening
 
-| # | Item | File(s) | Status |
-|:--|:-----|:--------|:------:|
-| 12.1 | **Component Extraction**: `TaskTree` extracted from `ProjectView` | `TaskTree.tsx` | ✅ |
-| 12.2 | **Component Decomposition**: `TaskRow` split into Logic + UI | `TaskRow.tsx`, `TaskRowUI.tsx` | ✅ |
-| 12.3 | **DnD Hardening**: Cycle Detection preventing invalid drops | `useTaskTreeDnD.ts` | ✅ |
-| 12.4 | **Action Isolation**: `TaskActions` component for atomic operations | `TaskActions.tsx` | ✅ |
-| 12.5 | **Detail View**: `TaskDetails` side panel integration | `TaskDetails.tsx`, `ProjectView.tsx` | ✅ |
+| #    | Item                                                                | File(s)                              | Status |
+| :--- | :------------------------------------------------------------------ | :----------------------------------- | :----: |
+| 12.1 | **Component Extraction**: `TaskTree` extracted from `ProjectView`   | `TaskTree.tsx`                       |   ✅   |
+| 12.2 | **Component Decomposition**: `TaskRow` split into Logic + UI        | `TaskRow.tsx`, `TaskRowUI.tsx`       |   ✅   |
+| 12.3 | **DnD Hardening**: Cycle Detection preventing invalid drops         | `useTaskTreeDnD.ts`                  |   ✅   |
+| 12.4 | **Action Isolation**: `TaskActions` component for atomic operations | `TaskActions.tsx`                    |   ✅   |
+| 12.5 | **Detail View**: `TaskDetails` side panel integration               | `TaskDetails.tsx`, `ProjectView.tsx` |   ✅   |

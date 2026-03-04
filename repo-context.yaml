@@ -1,7 +1,7 @@
 # repo-context.yaml
 # PlanterPlan Task Management System
 # Generated from codebase analysis
-# Last Updated: 2026-02-26 (Post-Wave 15 Code Review & Surgical Refactors)
+# Last Updated: 2026-03-03 (Wave 16 - Simplification Sprint & Build Stabilization)
 # Specification: spec.md
 
 # ==========================================
@@ -59,29 +59,53 @@ modules:
       - "Fetches project details and members"
       - "Manages layout logic (sidebar, details panel)"
     dependencies:
-      strong: [useProject, useProjectMembers, useProjectMutations, useProjectBoard, useProjectReports]
+      strong: [
+        useProject,
+        useProjectMembers,
+        useProjectMutations,
+        useProjectBoard,
+        useProjectReports,
+      ]
 
   # BUSINESS LOGIC HOOKS
   TaskHooks:
     purpose: "Modular task logic"
     modules:
       useTaskTree:
-        capabilities: ["Fetches tasks", "Builds tree structure", "Handles skeleton loading"]
+        capabilities: [
+          "Fetches tasks",
+          "Builds tree structure",
+          "Handles skeleton loading",
+        ]
         provides: "tree, isLoading, error"
       useTaskTreeDnD:
-        capabilities: ["Manages drag state", "Cycle detection", "Optimistic updates"]
+        capabilities: [
+          "Manages drag state",
+          "Cycle detection",
+          "Optimistic updates",
+        ]
         provides: "dndContextProps, overlay, activeId"
       useTaskMutations:
-        capabilities: ["CRUD operations", "Optimistic state updates", "Toast notifications"]
+        capabilities: [
+          "CRUD operations",
+          "Optimistic state updates",
+          "Toast notifications",
+        ]
         provides: "createTask, updateTask, deleteTask"
       useTaskActions:
-        capabilities: ["Complex UI orchestration", "Drag-and-drop rollbacks", "Cache refreshing"]
+        capabilities: [
+          "Complex UI orchestration",
+          "Drag-and-drop rollbacks",
+          "Cache refreshing",
+        ]
         provides: "createTaskOrUpdate, deleteTask, updateTask"
       useTaskDetails:
         capabilities: ["Fetches single task details", "Resource management"]
         provides: "task, isLoading, updateTask"
       useCycleDetection:
-        capabilities: ["Graph traversal to prevent circular parent-child relationships"]
+        capabilities: [
+          "Graph traversal to prevent circular parent-child relationships",
+        ]
         provides: "validateMove(draggedId, newParentId)"
 
   LibraryHooks:
@@ -97,17 +121,29 @@ modules:
     purpose: "Atomic task interface"
     components:
       TaskTree:
-        capabilities: ["Root container", "DndContext provider", "SortableContext"]
+        capabilities: [
+          "Root container",
+          "DndContext provider",
+          "SortableContext",
+        ]
         dependencies: [useTaskTreeDnD]
       TaskRow:
-        capabilities: ["Recursive rendering", "Sortable item", "Selection handler"]
+        capabilities: [
+          "Recursive rendering",
+          "Sortable item",
+          "Selection handler",
+        ]
         dependencies: [TaskRowUI, TaskActions]
       TaskRowUI:
         capabilities: ["Presentational layer", "Indentation", "Status toggling"]
       TaskActions:
         capabilities: ["Action menu", "Add subtask", "Delete task"]
       TaskDetails:
-        capabilities: ["Side panel view", "Attribute editing", "Resource attachment"]
+        capabilities: [
+          "Side panel view",
+          "Attribute editing",
+          "Resource attachment",
+        ]
         dependencies: [useTaskDetails]
 
   # API CLIENT LAYER
@@ -115,43 +151,54 @@ modules:
     purpose: "Supabase data access via planterClient adapter"
     modules:
       planterClient:
-        capabilities: ["Entity CRUD with RLS", "Direct RPC execution", "Optimistic query structures", "Strict mapping to real DB schema columns (no PostgREST aliasing)", "Date math routed through date-engine (ADR-9)", "Typed form payloads via CreateProjectFormData/TaskFormData"]
-        entities: ['Project', 'Task', 'TaskRelationship', 'TaskResource']
+        capabilities: [
+          "Entity CRUD with RLS",
+          "Direct RPC execution",
+          "Optimistic query structures",
+          "Strict mapping to real DB schema columns (no PostgREST aliasing)",
+          "Date math routed through date-engine (ADR-9)",
+          "Typed form payloads via CreateProjectFormData/TaskFormData",
+        ]
+        entities: ["Project", "Task", "TaskRelationship", "TaskResource"]
       sharedConstants:
-        capabilities: ["ROLES constant (as const)", "POSITION_STEP", "FSD boundary enforcement (ADR-8)"]
-        location: 'src/shared/constants/index.ts'
+        capabilities: [
+          "ROLES constant (as const)",
+          "POSITION_STEP",
+          "FSD boundary enforcement (ADR-8)",
+        ]
+        location: "src/shared/constants/index.ts"
 # ==========================================
 # 2. BEHAVIOR SPECIFICATIONS
 # ==========================================
 behaviors:
   TaskDragDrop:
     trigger: "User drags task row"
-    
+
     drag_start:
       validates: "user.canEdit"
       stores: "activeId in DnD state"
       shows: "DragOverlay with TaskRow clone"
-      
+
     drag_over:
       calculates: "Potential parent based on indent level (if implemented) or target"
-      
+
     drop:
       validates: "!detectCycle(activeId, overId)"
       actions:
         - "Optimistic update of tree structure"
         - "API call to update parent_task_id and position"
         - "Toast on error (rollback)"
-        
+
     cycle_detection:
       logic: "Traverse up from newParentId; if activeId is encountered, block move."
-      
+
   TaskSelection:
     trigger: "User clicks task title"
     flow:
       - "ProjectView state updates selectedTaskId"
       - "TaskDetails panel slides in/renders"
       - "useTaskDetails fetches full task data (if not in cache)"
-      
+
   TaskCreation:
     trigger: "User clicks 'Add Task' or 'Add Subtask'"
     flow:
@@ -169,11 +216,15 @@ health_metrics:
       - "Console logs cleaned up in refactoring"
     medium:
       - "Virtualization needed for 1000+ tasks"
-      
+
   test_coverage:
-    high: ["E2E (Golden Path)", "Auth Integration", "Security Boundary (XSS, RLS, AuthContext fallback)"]
+    high: [
+      "E2E (Golden Path)",
+      "Auth Integration",
+      "Security Boundary (XSS, RLS, AuthContext fallback)",
+    ]
     moderate: ["Task Tree Logic", "DnD Interactions"]
-    
+
   performance:
     optimizations:
       - "Atomic TaskRow components"
@@ -182,14 +233,17 @@ health_metrics:
       - "date-engine consolidation (no raw Date math)"
 
   wave_status:
-    current: "Wave 17 (planned)"
-    last_completed: "Wave 15.1 (Decoupling & Theme Unity)"
+    current: "Wave 17 (Feature Expansion)"
+    last_completed: "Wave 16 (Simplification Sprint & Stabilization)"
+    wave_16_highlights:
+      - "Zero `tsc` errors achieved across the entire repository."
+      - "Full removal of Dark Mode artifacts (enforced Single Light Theme)."
+      - "Feature inlining and dead code deletion (Auth, Onboarding, Reports)."
+      - "Repaired UI corruptions in Dashboard and Reports."
     wave_15_highlights:
       - "Wave 15.1: Enforced barrel exports and removed Dark Mode suite"
       - "92 lint errors reduced to 2 structural warnings"
       - "FSD boundary enforced via shared/constants extraction (ADR-8)"
       - "All date math consolidated through date-engine (ADR-9)"
-      - "Form payload type safety restored (CreateProjectFormData, TaskFormData)"
+      - "Form payload type safety restored"
       - "planterClient.js converted to planterClient.ts"
-      - "4 GitHub issues filed for remaining debt (#129-#132)"
-      - "3 Golden Paths verified via browser testing"

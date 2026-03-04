@@ -37,7 +37,7 @@ _We follow a strict feature-sliced architecture._
   cannot import from another slice in `features/`.
 - **Hard Constraints:**
   - **No Direct API Calls in UI:** Components must use Hooks (`useTaskQuery`) or
-    Services. No `supabase.from()` in JSX.
+    Services. No `supabase.from()` in JSX/TSX.
   - **Date Logic:** **NEVER** perform raw date math. Always use
     `src/shared/lib/date-engine`.
   - **RLS Recursion:** When creating Root items (Projects), explicitly send

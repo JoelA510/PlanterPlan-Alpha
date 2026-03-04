@@ -72,3 +72,17 @@ context window degradation._
 | **`tasks/todo.md`**      | **Master Index.** Acts strictly as a phase-tracker. Do not put specific code instructions here.                                                                  | _Manager Reads_            |
 | **`tasks/phase-*.md`**   | **Pointer Files.** Breakout files that point to external reports (e.g., `Debt-Remediation-Report.md`) and list specific target files for the current phase only. | _Manager Reads_            |
 | **Sub-Agent Delegation** | **Execution.** The Manager reads _one_ phase file at a time, generates the plan, and commands Gemini 3 Flash worker agents to execute the code changes.          | _Manager Commands Workers_ |
+
+---
+
+## 7. Advanced Development Frameworks
+
+_Use these prompts to guide specialized problem-solving, testing, and
+implementation strategies._
+
+| Prompt File           | Use Case                                                                                | Command                                   |
+| :-------------------- | :-------------------------------------------------------------------------------------- | :---------------------------------------- |
+| **`REACT-PROMPT.md`** | **Reasoning & Action.** Use when stuck on complex architectural or debugging problems.  | `@[.antigravity/prompts/REACT-PROMPT.md]` |
+| **`DBC-PROMPT.md`**   | **Strict Contracts.** Use when implementing core business logic, API clients, or state. | `@[.antigravity/prompts/DBC-PROMPT.md]`   |
+| **`BDD-PROMPT.md`**   | **Behavior Testing.** Use when planning E2E/Integration tests or user-centric features. | `@[.antigravity/prompts/BDD-PROMPT.md]`   |
+| **`IPDD-PROMPT.md`**  | **Iterative Execution.** Use for large feature builds requiring verified, atomic steps. | `@[.antigravity/prompts/IPDD-PROMPT.md]`  |
