@@ -1,17 +1,9 @@
-import { useState, useMemo } from 'react';
+```
 import { createPortal } from 'react-dom';
-import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable, useDraggable, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
-import { PROJECT_STATUS } from '@/shared/constants';
-import { PROJECT_STATUS_COLORS } from '@/shared/constants/colors';
+import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable, useDraggable } from '@dnd-kit/core';
 import ProjectCard from '@/features/dashboard/components/ProjectCard';
 import type { Task, Project, TeamMemberRow } from '@/shared/db/app.types';
-
-const COLUMNS = [
- { id: PROJECT_STATUS.PLANNING, title: 'Planning', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING] },
- { id: PROJECT_STATUS.IN_PROGRESS, title: 'In Progress', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.IN_PROGRESS] },
- { id: PROJECT_STATUS.LAUNCHED, title: 'Launched', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.LAUNCHED] },
- { id: PROJECT_STATUS.PAUSED, title: 'Paused', ...PROJECT_STATUS_COLORS[PROJECT_STATUS.PAUSED] },
-];
+import { useProjectPipelineLogic } from '../hooks/useProjectPipelineLogic';
 
 interface ProjectPipelineBoardProps {
  projects: Project[];
@@ -21,42 +13,14 @@ interface ProjectPipelineBoardProps {
 }
 
 export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onStatusChange }: ProjectPipelineBoardProps) {
- const [activeProject, setActiveProject] = useState<Project | null>(null);
-
- const columns = useMemo(() => {
- // Optimization: Bucketize projects in one pass (O(N)) instead of filtering for every column
- const buckets = projects.reduce((acc: Record<string, Project[]>, project) => {
- const status = project.status || PROJECT_STATUS.PLANNING;
- if (!acc[status]) acc[status] = [];
- acc[status].push(project);
- return acc;
- }, {});
-
- return COLUMNS.map(c => ({
- ...c,
- projects: buckets[c.id] || []
- }));
- }, [projects]);
-
- const tasksByProjectId = useMemo(() => {
- const map: Record<string, Task[]> = {};
- for (const t of tasks) {
- const pid = t.root_id ?? 'unassigned';
- if (!map[pid]) map[pid] = [];
- map[pid].push(t);
- }
- return map;
- }, [tasks]);
-
- const teamMembersByProjectId = useMemo(() => {
- const map: Record<string, TeamMemberRow[]> = {};
- for (const m of teamMembers) {
- const pid = m.project_id ?? 'unassigned';
- if (!map[pid]) map[pid] = [];
- map[pid].push(m);
- }
- return map;
- }, [teamMembers]);
+  const {
+    columns,
+    tasksByProjectId,
+    teamMembersByProjectId,
+    activeProject,
+    handleDragStart,
+    handleDragEnd
+  } = useProjectPipelineLogic(projects, tasks, teamMembers, onStatusChange);
 
  const sensors = useSensors(
  useSensor(PointerSensor, {
@@ -65,41 +29,6 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
  },
  })
  );
-
- const handleDragStart = (event: DragStartEvent) => {
- const { active } = event;
- const project = projects.find(p => p.id === active.id);
- setActiveProject(project || null);
- };
-
- const handleDragEnd = (event: DragEndEvent) => {
- const { active, over } = event;
- // Always clear active project first to ensure overlay is removed
- setActiveProject(null);
-
- if (!over) return;
-
- const projectId = active.id;
- let newStatus: string | null = null;
-
- if (typeof over.id === 'string' && (Object.values(PROJECT_STATUS) as readonly string[]).includes(over.id)) {
- newStatus = over.id;
- } else {
- // It's a project item, find its status
- const overProject = projects.find(p => p.id === over.id);
- if (overProject) {
- newStatus = overProject.status || PROJECT_STATUS.PLANNING;
- }
- }
-
- if (newStatus) {
- // Only trigger update if status changed
- const currentProject = projects.find(p => p.id === projectId);
- if (currentProject && (currentProject.status || PROJECT_STATUS.PLANNING) !== newStatus) {
- onStatusChange(projectId as string, newStatus);
- }
- }
- };
 
  return (
  <div className="h-full overflow-x-auto pb-4 no-scrollbar">
