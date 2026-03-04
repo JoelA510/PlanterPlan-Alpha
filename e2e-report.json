@@ -35,14 +35,7 @@
     "quiet": false,
     "reporter": [
       [
-        "html",
-        null
-      ],
-      [
-        "json",
-        {
-          "outputFile": "e2e-report.json"
-        }
+        "json"
       ]
     ],
     "reportSlowTests": {
@@ -92,7 +85,7 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 6122,
+                      "duration": 6108,
                       "error": {
                         "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Dashboard')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Dashboard')\u001b[22m\n",
                         "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Dashboard')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Dashboard')\u001b[22m\n\n    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:11:48)\n    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:7:5",
@@ -101,7 +94,7 @@
                           "column": 48,
                           "line": 11
                         },
-                        "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:11\n\n\u001b[0m \u001b[90m  9 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'[name=\"password\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'password123'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 10 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclick(\u001b[32m'button[type=\"submit\"]'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 11 |\u001b[39m   \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'text=Dashboard'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 12 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 13 |\u001b[39m\n \u001b[90m 14 |\u001b[39m \u001b[33mWhen\u001b[39m(\u001b[32m'I navigate to the dashboard'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                        "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:11\n\n   9 |   await page.fill('[name=\"password\"]', 'password123');\n  10 |   await page.click('button[type=\"submit\"]');\n> 11 |   await expect(page.locator('text=Dashboard')).toBeVisible();\n     |                                                ^\n  12 | });\n  13 |\n  14 | When('I navigate to the dashboard', async ({ page }) => {"
                       },
                       "errors": [
                         {
@@ -110,7 +103,7 @@
                             "column": 48,
                             "line": 11
                           },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Dashboard')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Dashboard')\u001b[22m\n\n\n\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:11\n\n\u001b[0m \u001b[90m  9 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'[name=\"password\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'password123'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 10 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclick(\u001b[32m'button[type=\"submit\"]'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 11 |\u001b[39m   \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'text=Dashboard'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 12 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 13 |\u001b[39m\n \u001b[90m 14 |\u001b[39m \u001b[33mWhen\u001b[39m(\u001b[32m'I navigate to the dashboard'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m\n\u001b[2m    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:11:48)\u001b[22m\n\u001b[2m    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:7:5\u001b[22m"
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Dashboard')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Dashboard')\u001b[22m\n\n\n   at ../e2e/steps/projects.steps.ts:11\n\n   9 |   await page.fill('[name=\"password\"]', 'password123');\n  10 |   await page.click('button[type=\"submit\"]');\n> 11 |   await expect(page.locator('text=Dashboard')).toBeVisible();\n     |                                                ^\n  12 | });\n  13 |\n  14 | When('I navigate to the dashboard', async ({ page }) => {\n    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:11:48)\n    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:7:5"
                         }
                       ],
                       "stdout": [],
@@ -119,7 +112,7 @@
                       "steps": [
                         {
                           "title": "Given I am logged in as a normal user",
-                          "duration": 5956,
+                          "duration": 5929,
                           "error": {
                             "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Dashboard')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Dashboard')\u001b[22m\n",
                             "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Dashboard')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Dashboard')\u001b[22m\n\n    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:11:48)\n    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:7:5",
@@ -128,11 +121,11 @@
                               "column": 48,
                               "line": 11
                             },
-                            "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:11\n\n\u001b[0m \u001b[90m  9 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'[name=\"password\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'password123'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 10 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclick(\u001b[32m'button[type=\"submit\"]'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 11 |\u001b[39m   \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'text=Dashboard'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 12 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 13 |\u001b[39m\n \u001b[90m 14 |\u001b[39m \u001b[33mWhen\u001b[39m(\u001b[32m'I navigate to the dashboard'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                            "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:11\n\n   9 |   await page.fill('[name=\"password\"]', 'password123');\n  10 |   await page.click('button[type=\"submit\"]');\n> 11 |   await expect(page.locator('text=Dashboard')).toBeVisible();\n     |                                                ^\n  12 | });\n  13 |\n  14 | When('I navigate to the dashboard', async ({ page }) => {"
                           }
                         }
                       ],
-                      "startTime": "2026-03-04T14:40:42.289Z",
+                      "startTime": "2026-03-04T14:45:51.160Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -182,7 +175,7 @@
                       "workerIndex": 1,
                       "parallelIndex": 1,
                       "status": "failed",
-                      "duration": 5172,
+                      "duration": 5164,
                       "error": {
                         "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Alpha Release')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Alpha Release')\u001b[22m\n",
                         "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Alpha Release')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Alpha Release')\u001b[22m\n\n    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:40:47)\n    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:17:5",
@@ -191,7 +184,7 @@
                           "column": 47,
                           "line": 40
                         },
-                        "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:40\n\n\u001b[0m \u001b[90m 38 |\u001b[39m \u001b[33mGiven\u001b[39m(\u001b[32m'I have a project named {string}'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\n \u001b[90m 39 |\u001b[39m   \u001b[90m// Using fixture setup logic later; for now just assume it exists\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 40 |\u001b[39m   \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m`text=${title}`\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 41 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m \u001b[33mWhen\u001b[39m(\u001b[32m'I open the project {string}'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\u001b[0m"
+                        "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:40\n\n  38 | Given('I have a project named {string}', async ({ page }, title: string) => {\n  39 |   // Using fixture setup logic later; for now just assume it exists\n> 40 |   await expect(page.locator(`text=${title}`)).toBeVisible();\n     |                                               ^\n  41 | });\n  42 |\n  43 | When('I open the project {string}', async ({ page }, title: string) => {"
                       },
                       "errors": [
                         {
@@ -200,7 +193,7 @@
                             "column": 47,
                             "line": 40
                           },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Alpha Release')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Alpha Release')\u001b[22m\n\n\n\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:40\n\n\u001b[0m \u001b[90m 38 |\u001b[39m \u001b[33mGiven\u001b[39m(\u001b[32m'I have a project named {string}'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\n \u001b[90m 39 |\u001b[39m   \u001b[90m// Using fixture setup logic later; for now just assume it exists\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 40 |\u001b[39m   \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m`text=${title}`\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 41 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m \u001b[33mWhen\u001b[39m(\u001b[32m'I open the project {string}'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\u001b[0m\n\u001b[2m    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:40:47)\u001b[22m\n\u001b[2m    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:17:5\u001b[22m"
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Alpha Release')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Alpha Release')\u001b[22m\n\n\n   at ../e2e/steps/projects.steps.ts:40\n\n  38 | Given('I have a project named {string}', async ({ page }, title: string) => {\n  39 |   // Using fixture setup logic later; for now just assume it exists\n> 40 |   await expect(page.locator(`text=${title}`)).toBeVisible();\n     |                                               ^\n  41 | });\n  42 |\n  43 | When('I open the project {string}', async ({ page }, title: string) => {\n    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:40:47)\n    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:17:5"
                         }
                       ],
                       "stdout": [],
@@ -209,7 +202,7 @@
                       "steps": [
                         {
                           "title": "Given I have a project named \"Alpha Release\"",
-                          "duration": 5029,
+                          "duration": 5025,
                           "error": {
                             "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Alpha Release')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Alpha Release')\u001b[22m\n",
                             "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Alpha Release')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Alpha Release')\u001b[22m\n\n    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:40:47)\n    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:17:5",
@@ -218,11 +211,11 @@
                               "column": 47,
                               "line": 40
                             },
-                            "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:40\n\n\u001b[0m \u001b[90m 38 |\u001b[39m \u001b[33mGiven\u001b[39m(\u001b[32m'I have a project named {string}'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\n \u001b[90m 39 |\u001b[39m   \u001b[90m// Using fixture setup logic later; for now just assume it exists\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 40 |\u001b[39m   \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m`text=${title}`\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 41 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 42 |\u001b[39m\n \u001b[90m 43 |\u001b[39m \u001b[33mWhen\u001b[39m(\u001b[32m'I open the project {string}'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\u001b[0m"
+                            "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:40\n\n  38 | Given('I have a project named {string}', async ({ page }, title: string) => {\n  39 |   // Using fixture setup logic later; for now just assume it exists\n> 40 |   await expect(page.locator(`text=${title}`)).toBeVisible();\n     |                                               ^\n  41 | });\n  42 |\n  43 | When('I open the project {string}', async ({ page }, title: string) => {"
                           }
                         }
                       ],
-                      "startTime": "2026-03-04T14:40:42.316Z",
+                      "startTime": "2026-03-04T14:45:51.219Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -267,7 +260,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 2,
                       "status": "failed",
-                      "duration": 5156,
+                      "duration": 5178,
                       "error": {
                         "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\u001b[22m\n",
                         "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\u001b[22m\n\n    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:66:56)\n    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:26:5",
@@ -276,7 +269,7 @@
                           "column": 56,
                           "line": 66
                         },
-                        "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:66\n\n\u001b[0m \u001b[90m 64 |\u001b[39m \u001b[33mGiven\u001b[39m(\u001b[32m'I have a task named {string} in {string}'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string\u001b[33m,\u001b[39m column\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\n \u001b[90m 65 |\u001b[39m   \u001b[36mconst\u001b[39m columnLocator \u001b[33m=\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m`[data-testid=\"column-${column}\"]`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 66 |\u001b[39m   \u001b[36mawait\u001b[39m expect(columnLocator\u001b[33m.\u001b[39mlocator(\u001b[32m`text=${title}`\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 67 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 68 |\u001b[39m\n \u001b[90m 69 |\u001b[39m \u001b[33mWhen\u001b[39m(\u001b[32m'I drag the task {string} to the {string} column'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string\u001b[33m,\u001b[39m destColumn\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\u001b[0m"
+                        "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:66\n\n  64 | Given('I have a task named {string} in {string}', async ({ page }, title: string, column: string) => {\n  65 |   const columnLocator = page.locator(`[data-testid=\"column-${column}\"]`);\n> 66 |   await expect(columnLocator.locator(`text=${title}`)).toBeVisible();\n     |                                                        ^\n  67 | });\n  68 |\n  69 | When('I drag the task {string} to the {string} column', async ({ page }, title: string, destColumn: string) => {"
                       },
                       "errors": [
                         {
@@ -285,7 +278,7 @@
                             "column": 56,
                             "line": 66
                           },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\u001b[22m\n\n\n\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:66\n\n\u001b[0m \u001b[90m 64 |\u001b[39m \u001b[33mGiven\u001b[39m(\u001b[32m'I have a task named {string} in {string}'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string\u001b[33m,\u001b[39m column\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\n \u001b[90m 65 |\u001b[39m   \u001b[36mconst\u001b[39m columnLocator \u001b[33m=\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m`[data-testid=\"column-${column}\"]`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 66 |\u001b[39m   \u001b[36mawait\u001b[39m expect(columnLocator\u001b[33m.\u001b[39mlocator(\u001b[32m`text=${title}`\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 67 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 68 |\u001b[39m\n \u001b[90m 69 |\u001b[39m \u001b[33mWhen\u001b[39m(\u001b[32m'I drag the task {string} to the {string} column'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string\u001b[33m,\u001b[39m destColumn\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\u001b[0m\n\u001b[2m    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:66:56)\u001b[22m\n\u001b[2m    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:26:5\u001b[22m"
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\u001b[22m\n\n\n   at ../e2e/steps/projects.steps.ts:66\n\n  64 | Given('I have a task named {string} in {string}', async ({ page }, title: string, column: string) => {\n  65 |   const columnLocator = page.locator(`[data-testid=\"column-${column}\"]`);\n> 66 |   await expect(columnLocator.locator(`text=${title}`)).toBeVisible();\n     |                                                        ^\n  67 | });\n  68 |\n  69 | When('I drag the task {string} to the {string} column', async ({ page }, title: string, destColumn: string) => {\n    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:66:56)\n    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:26:5"
                         }
                       ],
                       "stdout": [],
@@ -294,7 +287,7 @@
                       "steps": [
                         {
                           "title": "Given I have a task named \"Design Database Schema\" in \"To Do\"",
-                          "duration": 5022,
+                          "duration": 5036,
                           "error": {
                             "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\u001b[22m\n",
                             "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[data-testid=\"column-To Do\"]').locator('text=Design Database Schema')\u001b[22m\n\n    at Object.<anonymous> (/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/e2e/steps/projects.steps.ts:66:56)\n    at /home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/.features-gen/e2e/features/projects.feature.spec.js:26:5",
@@ -303,11 +296,11 @@
                               "column": 56,
                               "line": 66
                             },
-                            "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:66\n\n\u001b[0m \u001b[90m 64 |\u001b[39m \u001b[33mGiven\u001b[39m(\u001b[32m'I have a task named {string} in {string}'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string\u001b[33m,\u001b[39m column\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\n \u001b[90m 65 |\u001b[39m   \u001b[36mconst\u001b[39m columnLocator \u001b[33m=\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m`[data-testid=\"column-${column}\"]`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 66 |\u001b[39m   \u001b[36mawait\u001b[39m expect(columnLocator\u001b[33m.\u001b[39mlocator(\u001b[32m`text=${title}`\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 67 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 68 |\u001b[39m\n \u001b[90m 69 |\u001b[39m \u001b[33mWhen\u001b[39m(\u001b[32m'I drag the task {string} to the {string} column'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }\u001b[33m,\u001b[39m title\u001b[33m:\u001b[39m string\u001b[33m,\u001b[39m destColumn\u001b[33m:\u001b[39m string) \u001b[33m=>\u001b[39m {\u001b[0m"
+                            "snippet": "\u001b[90m   at \u001b[39m../e2e/steps/projects.steps.ts:66\n\n  64 | Given('I have a task named {string} in {string}', async ({ page }, title: string, column: string) => {\n  65 |   const columnLocator = page.locator(`[data-testid=\"column-${column}\"]`);\n> 66 |   await expect(columnLocator.locator(`text=${title}`)).toBeVisible();\n     |                                                        ^\n  67 | });\n  68 |\n  69 | When('I drag the task {string} to the {string} column', async ({ page }, title: string, destColumn: string) => {"
                           }
                         }
                       ],
-                      "startTime": "2026-03-04T14:40:42.175Z",
+                      "startTime": "2026-03-04T14:45:51.198Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -343,8 +336,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-03-04T14:40:39.372Z",
-    "duration": 9273.474,
+    "startTime": "2026-03-04T14:45:48.561Z",
+    "duration": 8952.726,
     "expected": 0,
     "skipped": 0,
     "unexpected": 3,

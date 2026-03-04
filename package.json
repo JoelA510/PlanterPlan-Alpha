@@ -11,7 +11,7 @@
     "verify-e2e": "bash scripts/verify-e2e.sh",
     "test:e2e": "npx bddgen && playwright test",
     "lint": "eslint .",
-    "test": "vitest",
+    "test": "vitest --run",
     "preview": "vite preview"
   },
   "dependencies": {

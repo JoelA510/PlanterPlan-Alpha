@@ -3,6 +3,7 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
 import { useTaskTree } from '@/features/tasks/hooks/useTaskTree';
+import { useExpandedTasks } from '@/features/tasks/hooks/useExpandedTasks';
 import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
 import { ProjectSidebar } from '@/features/navigation';
 import ProjectTasksView from './ProjectTasksView';
@@ -16,59 +17,62 @@ import { useCreateProject } from '@/features/projects/hooks/useProjectMutations'
 import { useTaskBoardUI } from '@/features/tasks/hooks/useTaskBoardUI';
 
 const TaskList = () => {
- const navigate = useNavigate();
- const { projectId: urlProjectId } = useParams<{ projectId: string }>();
- const { user } = useAuth();
- const currentUserId = user?.id || '';
+  const navigate = useNavigate();
+  const { projectId: urlProjectId } = useParams<{ projectId: string }>();
+  const { user } = useAuth();
+  const currentUserId = user?.id || '';
 
- // 1. Data Fetching
- const {
- tasks,
- loading,
- error,
- refetchProjects,
- joinedProjects,
- findTask,
- } = useTaskQuery();
+  // 1. Data Fetching
+  const {
+    tasks,
+    loading,
+    error,
+    refetchProjects,
+    joinedProjects,
+    findTask,
+  } = useTaskQuery();
 
- const { mutateAsync: createProjectAsync } = useCreateProject();
- const { mutateAsync: updateTaskAsync } = useUpdateTask();
+  const { mutateAsync: createProjectAsync } = useCreateProject();
+  const { mutateAsync: updateTaskAsync } = useUpdateTask();
 
- const createProject = async (data: any) => createProjectAsync(data);
- const createTaskOrUpdate = async () => {
- // This is handled by useTaskBoardUI but we provide the logic
- return {} as any; 
- };
- const deleteTask = async () => {
- // Handled by useTaskBoardUI internally via props
- return;
- };
+  const createProject = async (data: any) => createProjectAsync(data);
+  const createTaskOrUpdate = async () => {
+    // This is handled by useTaskBoardUI but we provide the logic
+    return {} as any; 
+  };
+  const deleteTask = async () => {
+    // Handled by useTaskBoardUI internally via props
+    return;
+  };
 
- const fetchProjectDetails = (() => refetchProjects()) as any;
- const refreshProjectDetails = (() => refetchProjects()) as any;
+  const fetchProjectDetails = (() => refetchProjects()) as any;
+  const refreshProjectDetails = (() => refetchProjects()) as any;
 
- // 2. Selection & State Layer
- const {
- activeProjectId,
- handleSelectProject,
- hydrationError,
- } = useProjectSelection({
- urlProjectId,
- instanceTasks: tasks.filter((t) => t.origin === 'instance') as any[],
- templateTasks: tasks.filter((t) => t.origin === 'template') as any[],
- joinedProjects: (joinedProjects || []) as any[],
- hydratedProjects: {} as any, 
- fetchProjectDetails,
- loading,
- });
+  // 2. Selection & State Layer
+  const {
+    activeProjectId,
+    handleSelectProject,
+    hydrationError,
+  } = useProjectSelection({
+    urlProjectId,
+    instanceTasks: tasks.filter((t) => t.origin === 'instance') as any[],
+    templateTasks: tasks.filter((t) => t.origin === 'template') as any[],
+    joinedProjects: (joinedProjects || []) as any[],
+    hydratedProjects: {} as any, 
+    fetchProjectDetails,
+    loading,
+  });
 
- // 3. Tree & UI Structure Layer
- const { activeProject, handleToggleExpand, instanceTasks, templateTasks } = useTaskTree({
- tasks,
- hydratedProjects: {} as any,
- activeProjectId,
- joinedProjects: (joinedProjects || []) as any[],
- });
+  // 3. Tree & UI Structure Layer
+  const { expandedTaskIds, handleToggleExpand } = useExpandedTasks();
+
+  const { activeProject, instanceTasks, templateTasks } = useTaskTree({
+    tasks,
+    hydratedProjects: {} as any,
+    activeProjectId,
+    joinedProjects: (joinedProjects || []) as any[],
+    expandedTaskIds,
+  });
 
  const {
  showForm,
