@@ -1,4 +1,4 @@
-import { useDeepCompareMemo } from 'use-deep-compare';
+import { useMemo } from 'react';
 import { useTaskDrag } from './useTaskDrag';
 import type { DragTask } from '../lib/drag/dragDropUtils';
 import type { DragEndEvent, SensorDescriptor, SensorOptions } from '@dnd-kit/core';
@@ -32,12 +32,12 @@ export const useTaskDragAndDrop = ({
     commitOptimisticUpdate,
 }: UseTaskDragAndDropParams): UseTaskDragAndDropReturn => {
     // Flatten and deduplicate all known tasks for DnD context
-    const allTasks = useDeepCompareMemo(() => {
+    const allTasks = useMemo(() => {
         const descendants = Object.values(hydratedProjects).flat();
         const combined = [...tasks, ...descendants];
 
         return Array.from(new Map(combined.map((t) => [t?.id, t])).values());
-    }, [tasks, hydratedProjects]);
+    }, [JSON.stringify(tasks), JSON.stringify(hydratedProjects)]);
 
     const { sensors, handleDragEnd } = useTaskDrag({
         tasks: allTasks,
