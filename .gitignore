@@ -40,3 +40,5 @@ rls-results-current.json
 vitest-results-*.json
 playwright-report/
 test-results/
+database.types.ts
+src/shared/db/database.types.ts

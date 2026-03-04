@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { PROJECT_TABS, PROJECT_TAB_LABELS } from '../../../app/constants/project';
+import { PROJECT_TABS, PROJECT_TAB_LABELS } from '@/shared/constants';
 
 interface ProjectTabsProps {
     activeTab: string;
