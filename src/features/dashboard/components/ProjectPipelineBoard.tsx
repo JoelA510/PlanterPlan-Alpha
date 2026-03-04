@@ -1,4 +1,3 @@
-```
 import { createPortal } from 'react-dom';
 import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable, useDraggable } from '@dnd-kit/core';
 import ProjectCard from '@/features/dashboard/components/ProjectCard';
