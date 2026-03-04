@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { ROLES } from '@/shared/constants';
 import SidebarSkeleton from '@/features/navigation/components/SidebarSkeleton';
 import { InstanceList, JoinedProjectsList } from '@/features/projects';

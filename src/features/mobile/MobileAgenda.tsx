@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Calendar, ChevronRight } from 'lucide-react';
-import { formatDate, endOfDayDate, isBeforeDate } from '@/shared/lib/date-engine';
+import { formatDate, endOfDayDate, isBeforeDate, nowUtcIso } from '@/shared/lib/date-engine';
 import { TASK_STATUS } from '@/shared/constants';
 
 interface AgendaTask {
@@ -21,7 +21,7 @@ interface MobileAgendaProps {
 export default function MobileAgenda({ tasks = [] }: MobileAgendaProps) {
     const navigate = useNavigate();
 
-    const today = new Date();
+    const today = nowUtcIso();
     const endOfToday = endOfDayDate(today) || today;
 
     const relevantTasks = tasks.filter(t => {

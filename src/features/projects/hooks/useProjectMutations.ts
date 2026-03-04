@@ -45,7 +45,7 @@ export function useCreateProject() {
             } else {
                 const project = await planter.entities.Project.create({
                     title: formData.title,
-                    description: formData.description || null,
+                    description: formData.description ?? undefined,
                     start_date: projectStartDate ?? undefined,
                     creator: user.id
                 });
@@ -92,8 +92,10 @@ export function useUpdateProject() {
             await planter.entities.Project.update(projectId, dbUpdates);
 
             if (batchUpdates && batchUpdates.length > 0) {
-                const upsertPayload = batchUpdates.map(u => ({ ...u, id: u.id })) as unknown as TaskInsert[];
-                await planter.entities.Task.upsert(upsertPayload);
+                const upsertPayload = batchUpdates
+                    .filter((u): u is typeof u & { id: string } => !!u.id)
+                    .map(u => ({ ...u, id: u.id }));
+                await planter.entities.Task.upsert(upsertPayload as unknown as TaskInsert[]);
             }
 
             return true;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -29,6 +30,7 @@ interface EditProjectModalProps {
 
 export default function EditProjectModal({ project, isOpen, onClose }: EditProjectModalProps) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const navigate = useNavigate();
     const updateProjectMutation = useUpdateProject();
     const deleteProjectMutation = useDeleteProject();
 
@@ -194,7 +196,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
                                         className="h-8"
                                         onClick={async () => {
                                             await deleteProjectMutation.mutateAsync(project.id);
-                                            window.location.href = '/dashboard'; // Force redirect
+                                            navigate('/dashboard', { replace: true });
                                         }}
                                     >
                                         Yes, Delete

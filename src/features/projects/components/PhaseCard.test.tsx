@@ -1,12 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
+
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import PhaseCard from './PhaseCard';
 import { TASK_STATUS } from '@/shared/constants';
+import type { TaskRow } from '@/shared/db/app.types';
 
 vi.mock('framer-motion', () => ({
     motion: {
-        div: ({ children, whileHover: _h, whileTap: _t, ...props }: any) => <div {...props}>{children}</div>,
+        div: ({ children, whileHover: _h, whileTap: _t, ...props }: React.PropsWithChildren<Record<string, unknown>>) => <div {...props}>{children}</div>,
     },
 }));
 
@@ -51,9 +52,9 @@ describe('PhaseCard', () => {
     it('renders phase info correctly', () => {
         render(
             <PhaseCard
-                phase={mockPhase as any}
-                tasks={mockTasks as any}
-                milestones={mockMilestones as any}
+                phase={mockPhase as TaskRow}
+                tasks={mockTasks as TaskRow[]}
+                milestones={mockMilestones as TaskRow[]}
                 isActive={false}
             />
         );
@@ -67,9 +68,9 @@ describe('PhaseCard', () => {
         ];
         render(
             <PhaseCard
-                phase={mockPhase as any}
-                tasks={completeTasks as any}
-                milestones={mockMilestones as any}
+                phase={mockPhase as TaskRow}
+                tasks={completeTasks as TaskRow[]}
+                milestones={mockMilestones as TaskRow[]}
                 isActive={false}
             />
         );
@@ -80,9 +81,9 @@ describe('PhaseCard', () => {
         const lockedPhase = { ...mockPhase, is_locked: true };
         render(
             <PhaseCard
-                phase={lockedPhase as any}
-                tasks={[] as any}
-                milestones={mockMilestones as any}
+                phase={lockedPhase as TaskRow}
+                tasks={[] as TaskRow[]}
+                milestones={mockMilestones as TaskRow[]}
                 isActive={false}
             />
         );

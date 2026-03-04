@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Project from './Project';
 import { useParams } from 'react-router-dom';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard';
 import '@testing-library/jest-dom';
@@ -20,7 +20,7 @@ vi.mock('react-router-dom', () => ({
     useParams: vi.fn(),
 }));
 
-vi.mock('@/app/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/AuthContext', () => ({
     useAuth: vi.fn(),
 }));
 
@@ -57,7 +57,7 @@ vi.mock('@/features/projects/components/ProjectHeader', () => ({
 }));
 
 vi.mock('@/features/projects/components/ProjectTabs', () => ({
-    default: ({ activeTab, onTabChange }: any) => (
+    default: ({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) => (
         <div data-testid="project-tabs">
             <button onClick={() => onTabChange('board')}>Board</button>
             <button onClick={() => onTabChange('people')}>People</button>
@@ -72,17 +72,17 @@ describe('Project Page', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        (useParams as any).mockReturnValue({ projectId: 'p1' });
-        (useAuth as any).mockReturnValue({ user: mockUser });
-        (useProjectData as any).mockReturnValue({
+        vi.mocked(useParams).mockReturnValue({ projectId: 'p1' });
+        vi.mocked(useAuth).mockReturnValue({ user: mockUser } as ReturnType<typeof useAuth>);
+        vi.mocked(useProjectData).mockReturnValue({
             project: mockProject,
             loadingProject: false,
             phases: [],
             milestones: [],
             tasks: [],
             teamMembers: [],
-        });
-        (useProjectBoard as any).mockReturnValue({
+        } as unknown as ReturnType<typeof useProjectData>);
+        vi.mocked(useProjectBoard).mockReturnValue({
             state: { activeTab: 'board', selectedPhase: null, selectedTask: null },
             actions: {
                 setActiveTab: vi.fn(),
@@ -90,12 +90,12 @@ describe('Project Page', () => {
                 setSelectedTask: vi.fn(),
             },
             handlers: {},
-            computed: { mapTaskWithState: (t: any) => t },
-        });
+            computed: { mapTaskWithState: <T,>(t: T) => t },
+        } as unknown as ReturnType<typeof useProjectBoard>);
     });
 
     it('renders loader when project is loading', () => {
-        (useProjectData as any).mockReturnValue({ loadingProject: true });
+        vi.mocked(useProjectData).mockReturnValue({ loadingProject: true } as unknown as ReturnType<typeof useProjectData>);
         render(<Project />);
         expect(screen.getByTestId('loader')).toBeInTheDocument();
     });
@@ -108,12 +108,12 @@ describe('Project Page', () => {
 
     it('switches tabs correctly', () => {
         const setActiveTab = vi.fn();
-        (useProjectBoard as any).mockReturnValue({
+        vi.mocked(useProjectBoard).mockReturnValue({
             state: { activeTab: 'board' },
             actions: { setActiveTab },
             handlers: {},
-            computed: { mapTaskWithState: (t: any) => t },
-        });
+            computed: { mapTaskWithState: <T,>(t: T) => t },
+        } as unknown as ReturnType<typeof useProjectBoard>);
 
         render(<Project />);
         fireEvent.click(screen.getByText('People'));
@@ -121,22 +121,22 @@ describe('Project Page', () => {
     });
 
     it('renders phases and empty state when no milestones exist', () => {
-        (useProjectData as any).mockReturnValue({
+        vi.mocked(useProjectData).mockReturnValue({
             project: mockProject,
             loadingProject: false,
             phases: [{ id: 'ph1', title: 'Phase 1', position: 1 }],
             milestones: [],
             tasks: [],
             teamMembers: [],
-        });
+        } as unknown as ReturnType<typeof useProjectData>);
 
         // We need to ensure the board state has selectedPhase set to mock rendering details
-        (useProjectBoard as any).mockReturnValue({
+        vi.mocked(useProjectBoard).mockReturnValue({
             state: { activeTab: 'board', selectedPhase: { id: 'ph1', title: 'Phase 1', position: 1 } },
             actions: { setActiveTab: vi.fn() },
             handlers: {},
-            computed: { mapTaskWithState: (t: any) => t },
-        });
+            computed: { mapTaskWithState: <T,>(t: T) => t },
+        } as unknown as ReturnType<typeof useProjectBoard>);
 
         render(<Project />);
         expect(screen.getByText(/Phase 1: Phase 1/i)).toBeInTheDocument();

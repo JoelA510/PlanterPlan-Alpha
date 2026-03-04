@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable, useDraggable, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { PROJECT_STATUS } from '@/shared/constants';
-import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
+import { PROJECT_STATUS_COLORS } from '@/shared/constants/colors';
 import ProjectCard from '@/features/dashboard/components/ProjectCard';
 import type { Task, Project, TeamMemberRow } from '@/shared/db/app.types';
 
@@ -82,8 +82,7 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
         const projectId = active.id;
         let newStatus: string | null = null;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (typeof over.id === 'string' && Object.values(PROJECT_STATUS).includes(over.id as any)) {
+        if (typeof over.id === 'string' && (Object.values(PROJECT_STATUS) as readonly string[]).includes(over.id)) {
             newStatus = over.id;
         } else {
             // It's a project item, find its status

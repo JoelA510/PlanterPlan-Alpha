@@ -1,5 +1,5 @@
 import { supabase } from '../db/client';
-import { toIsoDate, nowUtcIso, calculateMinMaxDates, DateEngineTask } from '@/shared/lib/date-engine';
+import { toIsoDate, nowUtcIso, calculateMinMaxDates } from '@/shared/lib/date-engine';
 import { retry } from '../lib/retry.js';
 import type { Database } from '@/shared/db/database.types';
 import type {
@@ -54,20 +54,6 @@ export interface PlanterClient {
   rpc: <T = unknown, P extends object = object>(functionName: string, params: P) => Promise<{ data: T | null, error: Error | null }>;
 }
 
-const getEnv = (key: string): string => {
-  let val: string | undefined;
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    val = import.meta.env[key];
-  }
-  if (!val && typeof process !== 'undefined' && process.env) {
-    val = process.env[key];
-  }
-  return val || '';
-};
-
-const supabaseUrl = getEnv('VITE_SUPABASE_URL');
-const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
-
 interface EntityClient<T, TInsert, TUpdate> {
   list: (options?: { signal?: AbortSignal }) => Promise<T[]>;
   get: (id: string, options?: { signal?: AbortSignal }) => Promise<T | null>;
@@ -100,154 +86,104 @@ interface TaskEntityClient extends EntityClient<Task, TaskInsert, TaskUpdate> {
   addMember?: (taskId: string, userId: string, role: string) => Promise<{ data: TeamMemberRow | undefined, error: Error | null }>;
 }
 
+// ---------------------------------------------------------------------------
+// Sub-phase 3.2a — Generic Entity Client (Supabase SDK)
+// ---------------------------------------------------------------------------
+
 const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'): EntityClient<T, TInsert, TUpdate> => ({
   list: async (opts) => {
     return retry(async () => {
-      const query = `${tableName}?select=${select}`;
-      const data = await rawSupabaseFetch(query, { method: 'GET', signal: opts?.signal });
+      let query = supabase.from(tableName).select(select);
+      if (opts?.signal) query = query.abortSignal(opts.signal);
+      const { data, error } = await query;
+      if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return (data as T[]) || [];
     });
   },
   get: async (id: string, opts) => {
     return retry(async () => {
-      const query = `${tableName}?select=${select}&id=eq.${id}`;
-      const data = await rawSupabaseFetch(query, { method: 'GET', signal: opts?.signal });
-      return (data as T[])?.[0] || null;
+      let query = supabase.from(tableName).select(select).eq('id', id).maybeSingle();
+      if (opts?.signal) query = query.abortSignal(opts.signal);
+      const { data, error } = await query;
+      if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+      return (data as T) || null;
     });
   },
   create: async (payload: TInsert | TInsert[], opts) => {
     return retry(async () => {
-      const data = await rawSupabaseFetch(
-        `${tableName}?select=${select}`,
-        {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Prefer': 'return=representation' },
-          signal: opts?.signal
-        }
-      );
-      return (data as T[])?.[0] || (data as T);
+      // @ts-expect-error Supabase insert generics don't align with our loose TInsert
+      let query = supabase.from(tableName).insert(payload).select(select);
+      if (opts?.signal) query = query.abortSignal(opts.signal);
+      const { data, error } = await query;
+      if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+      return (data as T[])?.[0] || (data as unknown as T);
     });
   },
   update: async (id: string, payload: TUpdate, opts) => {
     return retry(async () => {
-      const data = await rawSupabaseFetch(
-        `${tableName}?select=${select}&id=eq.${id}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify(payload),
-          headers: { 'Prefer': 'return=representation' },
-          signal: opts?.signal
-        }
-      );
-      return (data as T[])?.[0] || (data as T);
+      // @ts-expect-error Supabase update generics don't align with our loose TUpdate
+      let query = supabase.from(tableName).update(payload).eq('id', id).select(select);
+      if (opts?.signal) query = query.abortSignal(opts.signal);
+      const { data, error } = await query;
+      if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+      return (data as T[])?.[0] || (data as unknown as T);
     });
   },
   delete: async (id: string, opts) => {
     return retry(async () => {
-      await rawSupabaseFetch(`${tableName}?id=eq.${id}`, { method: 'DELETE', signal: opts?.signal });
+      let query = supabase.from(tableName).delete().eq('id', id);
+      if (opts?.signal) query = query.abortSignal(opts.signal);
+      const { error } = await query;
+      if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return true;
     });
   },
   filter: async (filters: Partial<Record<keyof T, string | number | boolean | null>>, opts) => {
     return retry(async () => {
-      const queryParams = [`select=${select}`];
-      Object.keys(filters).forEach((key) => {
-        const val = filters[key as keyof typeof filters];
+      let query = supabase.from(tableName).select(select);
+      if (opts?.signal) query = query.abortSignal(opts.signal);
+
+      Object.entries(filters).forEach(([key, val]) => {
         if (val === null) {
-          queryParams.push(`${encodeURIComponent(key)}=is.null`);
+          query = query.is(key, null);
         } else {
-          queryParams.push(`${encodeURIComponent(key)}=eq.${encodeURIComponent(String(val))}`);
+          query = query.eq(key, val as string | number);
         }
       });
 
-      const queryString = queryParams.join('&');
-      const data = await rawSupabaseFetch(`${tableName}?${queryString}`, { method: 'GET', signal: opts?.signal });
+      const { data, error } = await query;
+      if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return (data as T[]) || [];
     });
   },
   listByCreator: async (userId: string, opts) => {
     return retry(async () => {
-      const query = `${tableName}?select=${select}&creator=eq.${encodeURIComponent(userId)}`;
-      const data = await rawSupabaseFetch(query, { method: 'GET', signal: opts?.signal });
+      let query = supabase.from(tableName).select(select).eq('creator', userId);
+      if (opts?.signal) query = query.abortSignal(opts.signal);
+      const { data, error } = await query;
+      if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return (data as T[]) || [];
     });
   },
   upsert: async (payload: TInsert | TInsert[], options: { onConflict?: string; ignoreDuplicates?: boolean; signal?: AbortSignal } = {}) => {
     return retry(async () => {
       const onConflict = options.onConflict || 'id';
-      const preferHeaders = ['return=representation'];
-      if (options.ignoreDuplicates) preferHeaders.push('resolution=ignore-duplicates');
-      else preferHeaders.push(`resolution=merge-duplicates`);
-
-      const headerStr = preferHeaders.join(',');
-
-      const data = await rawSupabaseFetch(
-        `${tableName}?select=${select}&on_conflict=${onConflict}`,
-        {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Prefer': headerStr },
-          signal: options.signal
-        }
-      );
+      // @ts-expect-error Supabase upsert generics don't align with our loose TInsert
+      let query = supabase.from(tableName).upsert(payload, {
+        onConflict,
+        ignoreDuplicates: options.ignoreDuplicates,
+      }).select(select);
+      if (options.signal) query = query.abortSignal(options.signal);
+      const { data, error } = await query;
+      if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return { data: data as T | T[], error: null };
     });
   }
 });
 
-const getSupabaseToken = async (): Promise<string | null> => {
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) {
-      console.warn('[PlanterClient] Failed to get session token via SDK:', error);
-    }
-    if (session?.access_token) return session.access_token;
-  } catch (error) {
-    console.warn('[PlanterClient] Session retrieval crashed:', error);
-  }
-
-  return null;
-};
-
-const rawSupabaseFetch = async (endpoint: string, options: RequestInit = {}, explicitToken: string | null = null): Promise<unknown> => {
-  const token = explicitToken || await getSupabaseToken();
-  if (!token) throw new Error('No auth token available for raw fetch');
-
-  const url = `${supabaseUrl}/rest/v1/${endpoint}`;
-  const headers = {
-    'apikey': supabaseKey,
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation',
-    ...options.headers as Record<string, string>
-  };
-
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
-
-  if (!response.ok) {
-    let metadata;
-    try {
-      metadata = await response.json();
-    } catch {
-      metadata = await response.text();
-    }
-    throw new PlanterError(
-      `Request failed with status ${response.status}: ${metadata?.message || metadata?.error || 'Unknown error'}`,
-      response.status,
-      metadata
-    );
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  return await response.json();
-};
+// ---------------------------------------------------------------------------
+// Sub-phase 3.2b — Specialized Project & Task methods (Supabase SDK)
+// ---------------------------------------------------------------------------
 
 export const planter: PlanterClient = {
   auth: {
@@ -265,7 +201,6 @@ export const planter: PlanterClient = {
       }
     },
     signOut: async (): Promise<void> => {
-      // Promise.resolve() is enough for local logout if no server-side session needs explicit termination via this wrapper
       return;
     },
     updateProfile: async (attributes: UserMetadata): Promise<AuthUser> => {
@@ -283,85 +218,74 @@ export const planter: PlanterClient = {
       ...createEntityClient<Project, TaskInsert, TaskUpdate>('tasks', '*'),
       list: async (): Promise<Project[]> => {
         return retry(async () => {
-          try {
-            const data = await rawSupabaseFetch(
-              'tasks?select=*&parent_task_id=is.null&origin=eq.instance&order=created_at.desc',
-              { method: 'GET' }
-            );
-            return (data as Project[]) || [];
-          } catch (err) {
-            console.error('[PlanterClient] Raw Fetch List failed:', err);
-            throw err;
-          }
+          const { data, error } = await supabase
+            .from('tasks')
+            .select('*')
+            .is('parent_task_id', null)
+            .eq('origin', 'instance')
+            .order('created_at', { ascending: false });
+
+          if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+          return (data as Project[]) || [];
         });
       },
       create: async (projectData: CreateProjectPayload & { creator?: string; _token?: string }): Promise<Project> => {
         return retry(async () => {
           let userId = projectData.creator;
-          const explicitToken = projectData._token;
 
           if (!userId) {
-            const token = explicitToken || await getSupabaseToken();
-            if (token) {
-              try {
-                const { data: { user }, error } = await supabase.auth.getUser(token);
-                if (!error && user) {
-                  userId = user.id;
-                } else if (error) {
-                  console.warn('[PlanterClient] getUser failed during project creation:', error);
-                }
-              } catch (error) { 
-                console.warn('[PlanterClient] getUser threw an exception:', error);
+            try {
+              const { data: { user }, error } = await supabase.auth.getUser();
+              if (!error && user) {
+                userId = user.id;
+              } else if (error) {
+                console.warn('[PlanterClient] getUser failed during project creation:', error);
               }
+            } catch (error) {
+              console.warn('[PlanterClient] getUser threw an exception:', error);
             }
           }
 
           if (!userId) throw new Error('User must be logged in to create a project');
 
-          const cleanProjectData = { ...projectData };
-          delete cleanProjectData._token;
-
           let isoLaunchDate = null;
-          if (cleanProjectData.launch_date || cleanProjectData.start_date) {
-            isoLaunchDate = toIsoDate(cleanProjectData.launch_date || cleanProjectData.start_date);
+          if (projectData.launch_date || projectData.start_date) {
+            isoLaunchDate = toIsoDate(projectData.launch_date || projectData.start_date);
           }
 
           const taskPayload = {
-            title: cleanProjectData.title || cleanProjectData.name,
-            description: cleanProjectData.description,
+            title: projectData.title || projectData.name,
+            description: projectData.description,
             due_date: isoLaunchDate,
             origin: 'instance',
             parent_task_id: null,
             root_id: null,
-            status: cleanProjectData.status || 'planning',
+            status: projectData.status || 'planning',
             assignee_id: userId,
           };
 
-          const data = await rawSupabaseFetch(
-            'tasks?select=*',
-            {
-              method: 'POST',
-              headers: { 'Prefer': 'return=representation,headers=off' },
-              body: JSON.stringify(taskPayload)
-            },
-            explicitToken
-          );
+          const { data, error } = await supabase
+            .from('tasks')
+            .insert(taskPayload)
+            .select('*');
 
-          const project = (data as Project[])?.[0] || (data as Project);
+          if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+          const project = (data as Project[])?.[0] || (data as unknown as Project);
 
           if (!project?.id) {
             throw new Error('Project creation failed: no ID returned from database.');
           }
 
           try {
-            await rawSupabaseFetch('rpc/initialize_default_project', {
-              method: 'POST',
-              body: JSON.stringify({ p_project_id: project.id, p_creator_id: userId })
-            }, explicitToken);
-          } catch (error) {
-            console.error('[PlanterClient] RPC Error:', error);
+            const { error: rpcError } = await supabase.rpc('initialize_default_project', {
+              p_project_id: project.id,
+              p_creator_id: userId,
+            });
+            if (rpcError) throw rpcError;
+          } catch (rpcCatchError) {
+            console.error('[PlanterClient] RPC Error:', rpcCatchError);
             try {
-              await rawSupabaseFetch(`tasks?id=eq.${project.id}`, { method: 'DELETE' }, explicitToken);
+              await supabase.from('tasks').delete().eq('id', project.id);
             } catch { /* ignore deletion failure */ }
             throw new Error('Project initialization failed. Please try again.');
           }
@@ -371,13 +295,22 @@ export const planter: PlanterClient = {
       },
       getWithStats: async (projectId: string): Promise<{ data: Project & { children: Task[], stats: { totalTasks: number; completedTasks: number; progress: number } }, error: Error | null }> => {
         return retry(async () => {
-          const projectQuery = `tasks?select=*&id=eq.${projectId}`;
-          const pData = await rawSupabaseFetch(projectQuery, { method: 'GET' });
-          const project = (pData as Project[])?.[0];
+          const { data: pData, error: pErr } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('id', projectId)
+            .maybeSingle();
 
+          if (pErr) throw new PlanterError(pErr.message, parseInt(pErr.code ?? '500'));
+          const project = pData as Project;
           if (!project) throw new Error('Project not found');
 
-          const cData = await rawSupabaseFetch(`tasks?select=id,root_id,is_complete&root_id=eq.${projectId}`, { method: 'GET' });
+          const { data: cData, error: cErr } = await supabase
+            .from('tasks')
+            .select('id,root_id,is_complete')
+            .eq('root_id', projectId);
+
+          if (cErr) throw new PlanterError(cErr.message, parseInt(cErr.code ?? '500'));
           const children = (cData as Task[]) || [];
 
           const totalTasks = children.length;
@@ -402,34 +335,32 @@ export const planter: PlanterClient = {
           const from = (page - 1) * pageSize;
           const to = from + pageSize - 1;
 
-          try {
-            const query =
-              `tasks?select=*,project_id:root_id` +
-              `&assignee_id=eq.${encodeURIComponent(userId)}` +
-              `&parent_task_id=is.null&origin=eq.instance&order=created_at.desc`;
+          let query = supabase
+            .from('tasks')
+            .select('*')
+            .eq('assignee_id', userId)
+            .is('parent_task_id', null)
+            .eq('origin', 'instance')
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
-            const data = await rawSupabaseFetch(
-              query,
-              {
-                method: 'GET',
-                headers: { 'Range': `${from}-${to}` },
-                signal: options?.signal
-              }
-            );
-
-            return (data as Project[]) || [];
-          } catch (err) {
-            console.error('[PlanterClient] listByCreator failed:', err);
-            throw err;
-          }
+          if (options?.signal) query = query.abortSignal(options.signal);
+          const { data, error } = await query;
+          if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+          return (data as Project[]) || [];
         });
       },
       listJoined: async (userId: string): Promise<Project[]> => {
         return retry(async () => {
           try {
-            const data = await rawSupabaseFetch(`tasks?select=*,project_members!inner(*)&origin=eq.instance&parent_task_id=is.null&project_members.user_id=eq.${userId}`, {
-              method: 'GET'
-            });
+            const { data, error } = await supabase
+              .from('tasks')
+              .select('*, project_members!inner(*)')
+              .eq('origin', 'instance')
+              .is('parent_task_id', null)
+              .eq('project_members.user_id', userId);
+
+            if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
             return (data as Project[]) || [];
           } catch {
             return [];
@@ -438,44 +369,48 @@ export const planter: PlanterClient = {
       },
       filter: async (filters: Partial<Record<keyof Project, string | number | boolean | null>>): Promise<Project[]> => {
         return retry(async () => {
-          const queryParams = [
-            'select=*',
-            'parent_task_id=is.null',
-            'origin=eq.instance'
-          ];
+          let query = supabase
+            .from('tasks')
+            .select('*')
+            .is('parent_task_id', null)
+            .eq('origin', 'instance');
 
-          Object.keys(filters).forEach((key) => {
-            const val = filters[key as keyof typeof filters];
-            if (val === null) queryParams.push(`${key}=is.null`);
-            else queryParams.push(`${key}=eq.${val}`);
+          Object.entries(filters).forEach(([key, val]) => {
+            if (val === null) query = query.is(key, null);
+            else query = query.eq(key, val as string | number);
           });
 
-          const queryString = queryParams.join('&');
-          const data = await rawSupabaseFetch(`tasks?${queryString}`, { method: 'GET' });
+          const { data, error } = await query;
+          if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
           return (data as Project[]) || [];
         });
       },
       addMember: async (projectId: string, userId: string, role: string): Promise<{ data: TeamMemberRow | undefined, error: Error | null }> => {
-        const data = await rawSupabaseFetch(
-          'project_members?select=*',
-          {
-            method: 'POST',
-            body: JSON.stringify({ project_id: projectId, user_id: userId, role }),
-            headers: { 'Prefer': 'return=representation' }
-          }
-        );
+        const { data, error } = await supabase
+          .from('project_members')
+          .insert({ project_id: projectId, user_id: userId, role })
+          .select('*');
+
+        if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
         return { data: (data as TeamMemberRow[])?.[0], error: null };
       },
       addMemberByEmail: async (projectId: string, email: string, role: string): Promise<{ data: TeamMemberRow | undefined, error: Error | null }> => {
         return retry(async () => {
-          const data = await rawSupabaseFetch('rpc/add_project_member_by_email', {
-            method: 'POST',
-            body: JSON.stringify({ p_project_id: projectId, p_email: email, p_role: role })
+          const { data, error } = await supabase.rpc('add_project_member_by_email', {
+            p_project_id: projectId,
+            p_email: email,
+            p_role: role,
           });
+          if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
           return { data: data as TeamMemberRow | undefined, error: null };
         });
       },
     },
+
+    // ---------------------------------------------------------------------------
+    // Task entity
+    // ---------------------------------------------------------------------------
+
     Task: {
       ...createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
       fetchChildren: async (taskId: string): Promise<{ data: Task[] | null, error: Error | null }> => {
@@ -549,7 +484,7 @@ export const planter: PlanterClient = {
         if (!parentId) return;
         try {
           const children = await planter.entities.Task.filter({ parent_task_id: parentId });
-          const { start_date, due_date } = calculateMinMaxDates((children || []) as unknown as DateEngineTask[]);
+          const { start_date, due_date } = calculateMinMaxDates(children || []);
 
           const parent = await planter.entities.Task.update(parentId, {
             start_date: start_date ?? null,
@@ -588,6 +523,11 @@ export const planter: PlanterClient = {
         }
       }
     },
+
+    // ---------------------------------------------------------------------------
+    // Sub-phase 3.2c — Simple Entity Clients & Utility methods
+    // ---------------------------------------------------------------------------
+
     TaskRelationship: createEntityClient<TaskRelationshipRow, Database['public']['Tables']['task_relationships']['Insert'], Database['public']['Tables']['task_relationships']['Update']>('task_relationships'),
     Phase: createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
     Milestone: createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
@@ -596,12 +536,21 @@ export const planter: PlanterClient = {
       listTemplates: async ({ from = 0, limit = 25, resourceType = null as string | null, signal }: { from?: number, limit?: number, resourceType?: string | null, signal?: AbortSignal } = {}): Promise<{ data: Task[], error: Error | null }> => {
         return retry(async () => {
           const end = from + limit - 1;
-          const query = `tasks_with_primary_resource?select=*&origin=eq.template&parent_task_id=is.null&order=created_at.desc${resourceType && resourceType !== 'all' ? `&resource_type=eq.${encodeURIComponent(resourceType)}` : ''}`;
-          const data = await rawSupabaseFetch(query, {
-            method: 'GET',
-            headers: { 'Range': `${from}-${end}` },
-            signal
-          });
+          let query = supabase
+            .from('tasks_with_primary_resource')
+            .select('*')
+            .eq('origin', 'template')
+            .is('parent_task_id', null)
+            .order('created_at', { ascending: false })
+            .range(from, end);
+
+          if (resourceType && resourceType !== 'all') {
+            query = query.eq('resource_type', resourceType);
+          }
+          if (signal) query = query.abortSignal(signal);
+
+          const { data, error } = await query;
+          if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
           return { data: (data as Task[]) || [], error: null };
         });
       },
@@ -610,10 +559,22 @@ export const planter: PlanterClient = {
           const normalized = (query || '').trim().slice(0, 100);
           if (!normalized) return { data: [], error: null };
 
-          const pattern = `"%${normalized.replace(/[\\%_]/g, (c) => `\\${c}`)}%"`;
-          const endpoint = `tasks_with_primary_resource?select=*&origin=eq.template&or=(title.ilike.${pattern},description.ilike.${pattern})&order=title.asc&limit=${limit}${resourceType && resourceType !== 'all' ? `&resource_type=eq.${encodeURIComponent(resourceType)}` : ''}`;
+          const pattern = `%${normalized}%`;
+          let q = supabase
+            .from('tasks_with_primary_resource')
+            .select('*')
+            .eq('origin', 'template')
+            .or(`title.ilike.${pattern},description.ilike.${pattern}`)
+            .order('title', { ascending: true })
+            .limit(limit);
 
-          const data = await rawSupabaseFetch(endpoint, { method: 'GET', signal });
+          if (resourceType && resourceType !== 'all') {
+            q = q.eq('resource_type', resourceType);
+          }
+          if (signal) q = q.abortSignal(signal);
+
+          const { data, error } = await q;
+          if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
           return { data: (data as Task[]) || [], error: null };
         });
       }
@@ -627,16 +588,20 @@ export const planter: PlanterClient = {
     TeamMember: createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
     Person: createEntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>('people'),
   },
+
+  // ---------------------------------------------------------------------------
+  // RPC wrapper (Supabase SDK)
+  // ---------------------------------------------------------------------------
+
   rpc: async <T = unknown, P extends object = object>(functionName: string, params: P): Promise<{ data: T | null, error: Error | null }> => {
     return retry(async () => {
       try {
-        const data = await rawSupabaseFetch(`rpc/${functionName}`, {
-          method: 'POST',
-          body: JSON.stringify(params),
-          headers: { 'Prefer': 'return=representation' }
-        });
+        // @ts-expect-error Supabase rpc typing is tightly coupled to Database generics — params are validated at runtime
+        const { data, error } = await supabase.rpc(functionName, params);
+        if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
         return { data: data as T, error: null };
       } catch (error: unknown) {
+        if (error instanceof PlanterError) throw error;
         return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
       }
     });

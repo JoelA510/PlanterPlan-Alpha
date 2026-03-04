@@ -5,7 +5,7 @@ import Header from '@/features/navigation/components/Header';
 import ProjectSidebarContainer from '@/features/navigation/components/ProjectSidebarContainer';
 import { CommandPalette } from '@/shared/ui/CommandPalette';
 import { useUserProjects } from '@/features/projects/hooks/useUserProjects';
-import { useAuth } from '@/app/contexts/AuthContext'; // Assuming this exists or similar
+import { useAuth } from '@/shared/contexts/AuthContext'; // Assuming this exists or similar
 import MobileFAB from '@/features/mobile/MobileFAB';
 
 export default function DashboardLayout({ sidebar }: { sidebar?: React.ReactNode }) {

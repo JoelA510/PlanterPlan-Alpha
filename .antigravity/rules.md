@@ -138,3 +138,60 @@ _For any logic change > 5 lines, you must strictly follow this cycle._
 
 - **Modernity:** Scan for legacy patterns.
 - **Visual:** If this is a UI component, trigger the Anti-Gravity Preview.
+
+## 9. Anti-Complexity & Performance Invariants (CRITICAL)
+
+_CONTEXT: You are an autonomous software architect. The following rules are
+ABSOLUTE. Do not attempt to bypass them, negotiate them, or use "type-masking"
+to circumvent the compiler. You will be evaluated strictly on adherence to these
+invariants._
+
+### 9.1 Zero-Tolerance Type Evasion
+
+- **Rule:** The TypeScript keywords `any` and `unknown`, as well as the
+  assertion pattern `as` (e.g., `as any`, `as unknown as Task`), are
+  **COMPLETELY BANNED** in production code.
+- **Mandate:** All data payloads intersecting the network or form boundaries
+  must be parsed and inferred using Zod schemas. You are explicitly forbidden
+  from using ad-hoc `Record<string, unknown>` types for component props or API
+  payloads.
+
+### 9.2 FSD Unidirectional Boundaries
+
+- **Rule:** A feature slice located in `src/features/*` **MAY NEVER** import
+  directly from a sibling feature slice (e.g., `src/features/tasks` cannot
+  import from `src/features/projects`).
+- **Rule:** A feature slice **MAY NEVER** import from the `app/` directory.
+- **Mandate:** Move all shared logic and domain constants (e.g., `TASK_STATUS`)
+  to `src/shared/constants/`. Handle cross-feature composition solely at the
+  `src/pages/` or `src/widgets/` level via render props or state lifting.
+
+### 9.3 Algorithmic Complexity (O(1) Data Structures)
+
+- **Rule:** NEVER use nested `Array.prototype.find()`, `.filter()`, or `.map()`
+  loops when processing array data into hierarchical trees or verifying
+  relationships.
+- **Mandate:** You must compute hierarchical data transformations using an O(N)
+  single-pass algorithm utilizing O(1) Hash Maps (`new Map()` or
+  `Record<string, Entity>`). Stop generating code and initialize an adjacency
+  map if you encounter a tree calculation.
+
+### 9.4 The "Not-Invented-Here" (NIH) Ban
+
+- **Rule:** NEVER write custom wrappers for problems solved by standard, highly
+  tested NPM packages.
+- **Date Mandate:** You are explicitly forbidden from using raw `new Date()`,
+  `Date.parse()`, or `.toISOString()` in application code. You must use
+  `src/shared/lib/date-engine` (backed by `date-fns`) exclusively.
+- **API Mandate:** You are explicitly forbidden from using raw `fetch()` or
+  `rawSupabaseFetch()`. You must utilize the official `@supabase/supabase-js`
+  SDK, chaining `.returns<Type>()` to guarantee generated schema inference.
+
+### 9.5 React Rendering & SPA Lifecycles
+
+- **Rule:** NEVER mutate the DOM using `window.location.href` to trigger
+  routing. You must strictly utilize the `useNavigate` hook from
+  `react-router-dom` to preserve the SPA memory cache.
+- **Rule:** Protect `React.memo` components from referential thrashing. Do not
+  pass newly allocated objects or inline functions to memoized components
+  without wrapping them in `useMemo` or `useCallback`.

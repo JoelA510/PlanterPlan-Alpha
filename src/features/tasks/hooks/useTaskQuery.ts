@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { planter } from '@/shared/api/planterClient';
 import { Project, Task } from '@/shared/db/app.types';
 

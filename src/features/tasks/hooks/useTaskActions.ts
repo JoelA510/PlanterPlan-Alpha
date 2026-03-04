@@ -1,9 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback } from 'react';
 import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
+import type { TaskFormData, CurrentTask } from '@/shared/lib/date-engine/payloadHelpers';
 import { toIsoDate, nowUtcIso } from '@/shared/lib/date-engine';
+import type { TaskUpdate, TaskInsert } from '@/shared/db/app.types';
 
 /** Minimal task shape used within task actions. */
 interface ActionTask {
@@ -116,15 +117,19 @@ export const useTaskActions = ({
 
                 if (formState.mode === 'edit' && formState.taskId) {
                     const currentTask = findTask(formState.taskId) || ({} as ActionTask);
-                    const updates = constructUpdatePayload(formData as any, currentTask as any, {
-                        origin,
-                        parentId: formState.parentId ?? null,
-                        contextTasks,
-                    });
+                    const updates = constructUpdatePayload(
+                        formData as unknown as TaskFormData,
+                        currentTask as CurrentTask,
+                        {
+                            origin,
+                            parentId: formState.parentId ?? null,
+                            contextTasks,
+                        },
+                    );
 
                     await planter.entities.Task.update(
                         formState.taskId,
-                        updates as any
+                        updates as TaskUpdate
                     );
 
                     if (rootId) await refreshProjectDetails(rootId);
@@ -145,7 +150,7 @@ export const useTaskActions = ({
                         ? Math.max(...siblings.map((task) => task.position ?? 0))
                         : 0;
 
-                const insertPayload = constructCreatePayload(formData as any, {
+                const insertPayload = constructCreatePayload(formData as unknown as TaskFormData, {
                     origin,
                     parentId,
                     rootId,
@@ -180,14 +185,14 @@ export const useTaskActions = ({
                         try {
                             await planter.entities.Task.update(
                                 (newTasks as Record<string, unknown>).new_root_id as string,
-                                updates as any
+                                updates as TaskUpdate
                             );
                         } catch (updateError) {
                             console.error('Error updating cloned root schedule', updateError);
                         }
                     }
                 } else {
-                    await planter.entities.Task.create(insertPayload as any);
+                    await planter.entities.Task.create(insertPayload as unknown as TaskInsert);
                 }
 
                 if (rootId) await refreshProjectDetails(rootId);
@@ -241,7 +246,7 @@ export const useTaskActions = ({
                 const task = findTask(taskId);
                 const oldParentId = task ? task.parent_task_id : null;
 
-                await planter.entities.Task.update(taskId, updates as any);
+                await planter.entities.Task.update(taskId, updates as TaskUpdate);
 
                 await _refreshTaskContext(task);
 

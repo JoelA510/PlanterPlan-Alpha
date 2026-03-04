@@ -83,7 +83,7 @@ describe('payloadHelpers', () => {
 
     describe('constructUpdatePayload', () => {
         it('constructs update payload correctly', () => {
-            const payload = constructUpdatePayload(mockFormData as unknown as NonNullable<Parameters<typeof constructUpdatePayload>[0]>, {}, mockContext);
+            const payload = constructUpdatePayload(mockFormData as unknown as NonNullable<Parameters<typeof constructUpdatePayload>[0]>, { id: 'task-1' }, mockContext);
 
             expect(payload).toMatchObject({
                 title: 'New Task',
@@ -100,7 +100,7 @@ describe('payloadHelpers', () => {
                 due_date: '2023-01-06'
             });
 
-            const payload = constructUpdatePayload(manualData as unknown as NonNullable<Parameters<typeof constructUpdatePayload>[0]>, {}, mockContext);
+            const payload = constructUpdatePayload(manualData as unknown as NonNullable<Parameters<typeof constructUpdatePayload>[0]>, { id: 'task-1' }, mockContext);
 
             expect(payload.start_date).toBe('2023-03-01');
             expect(payload.due_date).toBe('2023-03-05');

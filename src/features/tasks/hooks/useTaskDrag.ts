@@ -2,13 +2,13 @@ import { KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/c
 import type { DragEndEvent, SensorDescriptor, SensorOptions } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useCallback, useState } from 'react';
-import { updateTasksBatch } from '../lib/positionService';
-import type { TaskPositionUpdate } from '../lib/positionService';
-import { calculateDropTarget } from '../lib/dragDropUtils';
-import type { DragTask } from '../lib/dragDropUtils';
-import { calculateDateDeltas } from '../lib/dateInheritance';
+import { updateTasksBatch } from '../lib/drag/positionService';
+import type { TaskPositionUpdate } from '../lib/drag/positionService';
+import { calculateDropTarget } from '../lib/drag/dragDropUtils';
+import type { DragTask } from '../lib/drag/dragDropUtils';
+import { calculateDateDeltas } from '../lib/drag/dateInheritance';
 import { addDaysToDate, getDaysDifference, formatDate, parseIsoDate } from '@/shared/lib/date-engine';
-import { toast } from '@/shared/ui/use-toast';
+import { toast } from 'sonner';
 
 interface UseTaskDragParams {
     tasks: DragTask[];
@@ -163,25 +163,14 @@ export const useTaskDrag = ({
                     await updateTasksBatch(updatesToApply);
 
                     if (dateUpdates.length > 0) {
-                        toast({
-                            title: 'Task Moved & Dates Updated',
-                            description: `Moved "${activeTask.title}" and updated dates for ${dateUpdates.length} subtasks.`,
-                            variant: 'success',
-                        });
+                        toast.success(`Moved "${activeTask.title}" and updated dates for ${dateUpdates.length} subtasks.`);
                     } else if (newParentId !== activeTask.parent_task_id) {
-                        toast({
-                            title: 'Task Moved',
-                            description: `Moved "${activeTask.title}" to new parent.`,
-                        });
+                        toast.info(`Moved "${activeTask.title}" to new parent.`);
                     }
                     await fetchTasks();
                 } catch (e) {
                     console.error('Failed to persist move', e);
-                    toast({
-                        title: 'Task Move Failed',
-                        description: 'An error occurred while saving the reorder. Reverting changes...',
-                        variant: 'destructive',
-                    });
+                    toast.error('An error occurred while saving the reorder. Reverting changes...');
                     if (commitOptimisticUpdate) {
                         commitOptimisticUpdate(active.id as string);
                     }
@@ -190,11 +179,7 @@ export const useTaskDrag = ({
                 }
             } catch (globalError) {
                 console.error('Unexpected error in handleDragEnd:', globalError);
-                toast({
-                    title: 'Unexpected Error',
-                    description: 'An unexpected error occurred during drag and drop. Reverting...',
-                    variant: 'destructive',
-                });
+                toast.error('An unexpected error occurred during drag and drop. Reverting...');
                 fetchTasks();
             }
         },

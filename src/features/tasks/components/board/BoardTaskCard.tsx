@@ -113,6 +113,21 @@ const BoardTaskCard = memo(({ task, onClick, dragHandleProps, style, isDragging 
             </div>
         </div>
     );
+}, (prev, next) => {
+    // Custom comparator: compare scalar task values instead of object references
+    // to avoid re-renders from dnd-kit's new prop objects each cycle
+    return (
+        prev.task.id === next.task.id &&
+        prev.task.title === next.task.title &&
+        prev.task.status === next.task.status &&
+        prev.task.due_date === next.task.due_date &&
+        prev.task.updated_at === next.task.updated_at &&
+        prev.task.breadcrumbs === next.task.breadcrumbs &&
+        prev.task.membership_role === next.task.membership_role &&
+        prev.task.children?.length === next.task.children?.length &&
+        prev.isDragging === next.isDragging &&
+        prev.onClick === next.onClick
+    );
 });
 
 BoardTaskCard.displayName = 'BoardTaskCard';
@@ -149,6 +164,16 @@ export const SortableBoardTaskCard = memo(({ task, onClick }: { task: BoardTaskC
                 isDragging={isDragging}
             />
         </div>
+    );
+}, (prev, next) => {
+    // Compare scalar values — task identity + content + onClick stability
+    return (
+        prev.task.id === next.task.id &&
+        prev.task.title === next.task.title &&
+        prev.task.status === next.task.status &&
+        prev.task.due_date === next.task.due_date &&
+        prev.task.updated_at === next.task.updated_at &&
+        prev.onClick === next.onClick
     );
 });
 

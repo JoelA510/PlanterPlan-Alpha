@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import useMasterLibraryTasks from '@/features/library/hooks/useMasterLibraryTasks';
 import { useTreeState } from '@/features/library/hooks/useTreeState';
-import type { TaskItemData } from '@/features/tasks/components/TaskItem';
+import type { TaskItemData } from '@/shared/types/tasks';
 
 import { DndContext, useSensor, useSensors, PointerSensor, closestCorners } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';

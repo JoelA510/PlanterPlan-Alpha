@@ -1,5 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useRef, useCallback } from 'react';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import type { UseFormReturn } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import { isDateValid, isBeforeDate } from '@/shared/lib/date-engine';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -79,7 +80,8 @@ const NewTaskForm = ({
     const prevInitialTaskRef = useRef(initialTask);
 
     const methods = useForm<TaskFormData>({
-        resolver: zodResolver(getTaskSchema(origin)) as any,
+        // @ts-expect-error Zod refinement output doesn't structurally match TaskFormData for resolver
+        resolver: zodResolver(getTaskSchema(origin)),
         defaultValues: createInitialState(initialTask) as TaskFormData,
     });
 
@@ -125,12 +127,12 @@ const NewTaskForm = ({
 
     return (
         <TaskForm
-            formMethods={methods}
+            formMethods={methods as unknown as UseFormReturn<TaskFormData>}
             isSubmitting={isSubmitting}
             initialData={initialTask}
             lastAppliedTaskTitle={lastAppliedTaskTitle}
             handleApplyFromLibrary={handleApplyFromLibrary}
-            onSubmitHandler={handleFormSubmit as any}
+            onSubmitHandler={handleFormSubmit}
             onCancel={onCancel}
             origin={origin}
             submitLabel={isEditMode ? submitLabel : undefined}

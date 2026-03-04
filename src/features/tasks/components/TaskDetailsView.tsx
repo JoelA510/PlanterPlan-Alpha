@@ -1,7 +1,7 @@
 import TaskResources from '@/features/tasks/components/TaskResources';
 import TaskDependencies from '@/features/tasks/components/TaskDependencies';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 
 interface TaskDetailsViewProps {

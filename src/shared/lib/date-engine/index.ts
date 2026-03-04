@@ -27,7 +27,7 @@ export interface DateEngineTask {
     parent_task_id?: string | null;
     start_date?: string | null;
     due_date?: string | null;
-    is_complete?: boolean;
+    is_complete?: boolean | null;
 }
 
 /** Return shape for schedule calculation. */

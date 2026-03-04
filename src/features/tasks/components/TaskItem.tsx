@@ -11,15 +11,8 @@ import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
 import InlineTaskInput from './InlineTaskInput';
 import type { TaskRow } from '@/shared/db/app.types';
-
-export interface TaskItemData extends TaskRow {
-    children?: TaskItemData[];
-    isExpanded?: boolean;
-    isAddingInline?: boolean;
-    duration?: string;
-    resource_type?: string;
-    membership_role?: string;
-}
+export type { TaskItemData } from '@/shared/types/tasks';
+import type { TaskItemData } from '@/shared/types/tasks';
 
 type DragHandleProps = React.HTMLAttributes<HTMLButtonElement> & {
     ref?: React.Ref<HTMLElement>;

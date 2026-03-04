@@ -3,7 +3,7 @@
 import React from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { AuthContext } from '@/app/contexts/AuthContext';
+import { AuthContext } from '@/shared/contexts/AuthContext';
 import { vi } from 'vitest';
 import type { User } from '@/shared/db/app.types';
 

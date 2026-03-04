@@ -9,7 +9,7 @@ import {
 import { planter } from '@/shared/api/planterClient';
 import { POSITION_STEP } from '@/shared/constants';
 
-import type { TaskItemData } from '@/features/tasks/components/TaskItem';
+import type { TaskItemData } from '@/shared/types/tasks';
 
 export type TreeNode = TaskItemData;
 
