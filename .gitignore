@@ -10,8 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+build
 *.local
 .env*
+package-lock.json
+.ai-ignore/
 /archive/*
 
 # Editor directories and files

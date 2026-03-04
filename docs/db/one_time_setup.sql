@@ -7,3 +7,10 @@
 -- Initial data seeding is handled by `supabase/seeds/`.
 
 -- If you need to run specific data patches, add them here.
+
+-- 1. Backfill project_members table so the creator of a project is always an 'owner'
+INSERT INTO public.project_members (project_id, user_id, role)
+SELECT id, creator, 'owner'
+FROM public.tasks
+WHERE root_id IS NULL AND parent_task_id IS NULL AND creator IS NOT NULL
+ON CONFLICT (project_id, user_id) DO NOTHING;
