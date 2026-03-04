@@ -13,30 +13,30 @@ import LoginForm from '@/pages/components/LoginForm';
 const queryClient = new QueryClient();
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  return user ? <>{children}</> : <Navigate to="/login" />;
+ const { user, loading } = useAuth();
+ if (loading) return null;
+ return user ? <>{children}</> : <Navigate to="/login" />;
 }
 
 export default function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="Project/:projectId" element={<Project />} />
-              <Route path="tasks" element={<TasksPage />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-          </Routes>
-        </Router>
-        <Toaster richColors position="top-right" />
-      </AuthProvider>
-    </QueryClientProvider >
-  );
+ return (
+ <QueryClientProvider client={queryClient}>
+ <AuthProvider>
+ <Router>
+ <Routes>
+ <Route path="/login" element={<LoginForm />} />
+ <Route path="/" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
+ <Route index element={<Navigate to="/dashboard" replace />} />
+ <Route path="dashboard" element={<Dashboard />} />
+ <Route path="reports" element={<Reports />} />
+ <Route path="Project/:projectId" element={<Project />} />
+ <Route path="tasks" element={<TasksPage />} />
+ <Route path="settings" element={<Settings />} />
+ </Route>
+ </Routes>
+ </Router>
+ <Toaster richColors position="top-right" />
+ </AuthProvider>
+ </QueryClientProvider >
+ );
 }

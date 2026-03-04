@@ -5,10 +5,10 @@ import type { Task } from '@/shared/db/app.types';
  * Lives in shared/ to avoid lateral imports between feature slices.
  */
 export interface TaskItemData extends Task {
-    children?: TaskItemData[];
-    isExpanded?: boolean;
-    isAddingInline?: boolean;
-    duration?: string;
-    resource_type?: string;
-    membership_role?: string;
+ children?: TaskItemData[];
+ isExpanded?: boolean;
+ isAddingInline?: boolean;
+ duration?: string;
+ resource_type?: string;
+ membership_role?: string;
 }

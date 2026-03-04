@@ -4,102 +4,102 @@ import { planter } from '@/shared/api/planterClient';
 
 /** Minimal task shape returned by the project hierarchy query. */
 interface HierarchyTask {
-    id: string;
-    parent_task_id?: string | null;
-    root_id?: string | null;
-    position?: number | null;
-    [key: string]: unknown;
+ id: string;
+ parent_task_id?: string | null;
+ root_id?: string | null;
+ position?: number | null;
+ [key: string]: unknown;
 }
 
 /** Team member shape returned by the team query. */
 interface TeamMember {
-    id: string;
-    project_id: string;
-    user_id: string;
-    role?: string;
-    [key: string]: unknown;
+ id: string;
+ project_id: string;
+ user_id: string;
+ role?: string;
+ [key: string]: unknown;
 }
 
 /** Project metadata shape. */
 interface Project {
-    id: string;
-    title?: string;
-    status?: string;
-    [key: string]: unknown;
+ id: string;
+ title?: string;
+ status?: string;
+ [key: string]: unknown;
 }
 
 interface UseProjectDataReturn {
-    project: Project | undefined;
-    loadingProject: boolean;
-    projectHierarchy: HierarchyTask[];
-    phases: HierarchyTask[];
-    milestones: HierarchyTask[];
-    tasks: HierarchyTask[];
-    teamMembers: TeamMember[];
+ project: Project | undefined;
+ loadingProject: boolean;
+ projectHierarchy: HierarchyTask[];
+ phases: HierarchyTask[];
+ milestones: HierarchyTask[];
+ tasks: HierarchyTask[];
+ teamMembers: TeamMember[];
 }
 
 /**
  * Hook to fetch project metadata, hierarchy (phases/milestones/tasks), and team members.
  */
 export function useProjectData(projectId: string | null | undefined): UseProjectDataReturn {
-    // 1. Fetch Project Metadata
-    const { data: project, isLoading: loadingProject } = useQuery<Project | undefined>({
-        queryKey: ['project', projectId],
-        queryFn: () =>
-            planter.entities.Project.filter({ id: projectId }).then(
-                (res: Project[]) => res[0]
-            ),
-        enabled: !!projectId,
-    });
+ // 1. Fetch Project Metadata
+ const { data: project, isLoading: loadingProject } = useQuery<Project | undefined>({
+ queryKey: ['project', projectId],
+ queryFn: () =>
+ planter.entities.Project.filter({ id: projectId }).then(
+ (res: Project[]) => res[0]
+ ),
+ enabled: !!projectId,
+ });
 
-    // 2. Fetch Project Hierarchy
-    const { data: projectHierarchy = [] } = useQuery<HierarchyTask[]>({
-        queryKey: ['projectHierarchy', projectId],
-        queryFn: () => planter.entities.Task.filter({ root_id: projectId }) as Promise<HierarchyTask[]>,
-        enabled: !!projectId,
-    });
+ // 2. Fetch Project Hierarchy
+ const { data: projectHierarchy = [] } = useQuery<HierarchyTask[]>({
+ queryKey: ['projectHierarchy', projectId],
+ queryFn: () => planter.entities.Task.filter({ root_id: projectId }) as Promise<HierarchyTask[]>,
+ enabled: !!projectId,
+ });
 
-    // Derived State
-    const { phases, milestones, tasks } = useMemo(() => {
-        const phaseIds = new Set<string>();
-        const _phases: HierarchyTask[] = [];
-        const _milestones: HierarchyTask[] = [];
-        const _tasks: HierarchyTask[] = [];
+ // Derived State
+ const { phases, milestones, tasks } = useMemo(() => {
+ const phaseIds = new Set<string>();
+ const _phases: HierarchyTask[] = [];
+ const _milestones: HierarchyTask[] = [];
+ const _tasks: HierarchyTask[] = [];
 
-        for (const t of projectHierarchy) {
-            if (t.parent_task_id === projectId) {
-                phaseIds.add(t.id);
-                _phases.push(t);
-            }
-        }
+ for (const t of projectHierarchy) {
+ if (t.parent_task_id === projectId) {
+ phaseIds.add(t.id);
+ _phases.push(t);
+ }
+ }
 
-        for (const t of projectHierarchy) {
-            if (t.parent_task_id !== projectId) {
-                if (phaseIds.has(t.parent_task_id!)) {
-                    _milestones.push(t);
-                } else {
-                    _tasks.push(t);
-                }
-            }
-        }
+ for (const t of projectHierarchy) {
+ if (t.parent_task_id !== projectId) {
+ if (phaseIds.has(t.parent_task_id!)) {
+ _milestones.push(t);
+ } else {
+ _tasks.push(t);
+ }
+ }
+ }
 
-        return { phases: _phases, milestones: _milestones, tasks: _tasks };
-    }, [projectHierarchy, projectId]);
+ return { phases: _phases, milestones: _milestones, tasks: _tasks };
+ }, [projectHierarchy, projectId]);
 
-    // 3. Fetch Team Members
-    const { data: teamMembers = [] } = useQuery<TeamMember[]>({
-        queryKey: ['teamMembers', projectId],
-        queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId }),
-        enabled: !!projectId,
-    });
+ // 3. Fetch Team Members
+ const { data: teamMembers = [] } = useQuery<TeamMember[]>({
+ queryKey: ['teamMembers', projectId],
+ queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId }),
+ enabled: !!projectId,
+ });
 
-    return {
-        project,
-        loadingProject,
-        projectHierarchy,
-        phases,
-        milestones,
-        tasks,
-        teamMembers,
-    };
+ return {
+ project,
+ loadingProject,
+ projectHierarchy,
+ phases,
+ milestones,
+ tasks,
+ teamMembers,
+ };
 }

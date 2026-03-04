@@ -11,100 +11,100 @@ import { useTaskMutations } from '@/features/tasks/hooks/useTaskMutations';
 import type { TaskRow } from '@/shared/db/app.types';
 
 vi.mock('@/shared/api/planterClient', () => ({
-    planter: {
-        entities: {
-            Task: {
-                list: vi.fn(),
-            },
-        },
-    },
+ planter: {
+ entities: {
+ Task: {
+ list: vi.fn(),
+ },
+ },
+ },
 }));
 
 vi.mock('@/features/tasks/hooks/useTaskMutations', () => ({
-    useTaskMutations: vi.fn(),
+ useTaskMutations: vi.fn(),
 }));
 
 vi.mock('@/layouts/DashboardLayout', () => ({
-    default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 // Mock TaskList to expose delete functionality for testing
 vi.mock('@/features/tasks/components/TaskList', () => ({
-    default: ({ tasks }: { tasks: TaskRow[] }) => (
-        <div data-testid="task-list">
-            {tasks.map((task) => (
-                <div key={task.id} data-testid={`task-${task.id}`}>
-                    {task.title}
-                </div>
-            ))}
-        </div>
-    ),
+ default: ({ tasks }: { tasks: TaskRow[] }) => (
+ <div data-testid="task-list">
+ {tasks.map((task) => (
+ <div key={task.id} data-testid={`task-${task.id}`}>
+ {task.title}
+ </div>
+ ))}
+ </div>
+ ),
 }));
 
 describe('TasksPage', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        vi.mocked(useTaskMutations).mockReturnValue({
-            updateTask: vi.fn(),
-        } as unknown as ReturnType<typeof useTaskMutations>);
-    });
+ beforeEach(() => {
+ vi.clearAllMocks();
+ vi.mocked(useTaskMutations).mockReturnValue({
+ updateTask: vi.fn(),
+ } as unknown as ReturnType<typeof useTaskMutations>);
+ });
 
-    const createTestQueryClient = () => new QueryClient({
-        defaultOptions: {
-            queries: {
-                retry: false,
-            },
-        },
-    });
+ const createTestQueryClient = () => new QueryClient({
+ defaultOptions: {
+ queries: {
+ retry: false,
+ },
+ },
+ });
 
-    it('renders tasks when data is available', async () => {
-        vi.mocked(planter.entities.Task.list).mockResolvedValue([
-            { id: '1', title: 'Test Task', parent_task_id: 'parent-1', origin: 'instance' },
-            { id: '2', title: 'Another Task', parent_task_id: 'parent-2', origin: 'instance' },
-        ] as Task[]);
+ it('renders tasks when data is available', async () => {
+ vi.mocked(planter.entities.Task.list).mockResolvedValue([
+ { id: '1', title: 'Test Task', parent_task_id: 'parent-1', origin: 'instance' },
+ { id: '2', title: 'Another Task', parent_task_id: 'parent-2', origin: 'instance' },
+ ] as Task[]);
 
-        render(
-            <QueryClientProvider client={createTestQueryClient()}>
-                <BrowserRouter>
-                    <TasksPage />
-                </BrowserRouter>
-            </QueryClientProvider>
-        );
+ render(
+ <QueryClientProvider client={createTestQueryClient()}>
+ <BrowserRouter>
+ <TasksPage />
+ </BrowserRouter>
+ </QueryClientProvider>
+ );
 
-        // Wait for data to load
-        expect(await screen.findByText('My Tasks')).toBeInTheDocument();
-        // Check specific tasks
-        expect(await screen.findByText('Test Task')).toBeInTheDocument();
-        expect(await screen.findByText('Another Task')).toBeInTheDocument();
-    });
+ // Wait for data to load
+ expect(await screen.findByText('My Tasks')).toBeInTheDocument();
+ // Check specific tasks
+ expect(await screen.findByText('Test Task')).toBeInTheDocument();
+ expect(await screen.findByText('Another Task')).toBeInTheDocument();
+ });
 
-    it('shows empty state when no tasks', async () => {
-        vi.mocked(planter.entities.Task.list).mockResolvedValue([]);
+ it('shows empty state when no tasks', async () => {
+ vi.mocked(planter.entities.Task.list).mockResolvedValue([]);
 
-        render(
-            <QueryClientProvider client={createTestQueryClient()}>
-                <BrowserRouter>
-                    <TasksPage />
-                </BrowserRouter>
-            </QueryClientProvider>
-        );
+ render(
+ <QueryClientProvider client={createTestQueryClient()}>
+ <BrowserRouter>
+ <TasksPage />
+ </BrowserRouter>
+ </QueryClientProvider>
+ );
 
-        expect(await screen.findByText('No tasks found across your projects.')).toBeInTheDocument();
-    });
+ expect(await screen.findByText('No tasks found across your projects.')).toBeInTheDocument();
+ });
 
-    it('shows loading state initially', () => {
-        // Return a promise that never resolves immediately to test loading state
-        vi.mocked(planter.entities.Task.list).mockReturnValue(new Promise(() => { }));
+ it('shows loading state initially', () => {
+ // Return a promise that never resolves immediately to test loading state
+ vi.mocked(planter.entities.Task.list).mockReturnValue(new Promise(() => { }));
 
-        render(
-            <QueryClientProvider client={createTestQueryClient()}>
-                <BrowserRouter>
-                    <TasksPage />
-                </BrowserRouter>
-            </QueryClientProvider>
-        );
+ render(
+ <QueryClientProvider client={createTestQueryClient()}>
+ <BrowserRouter>
+ <TasksPage />
+ </BrowserRouter>
+ </QueryClientProvider>
+ );
 
-        // Should show loading spinner (Loader2 icon)
-        expect(document.querySelector('.animate-spin')).toBeInTheDocument();
-    });
+ // Should show loading spinner (Loader2 icon)
+ expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+ });
 });

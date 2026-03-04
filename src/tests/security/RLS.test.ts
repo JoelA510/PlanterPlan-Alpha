@@ -15,182 +15,182 @@ const TEST_USER_PASSWORD = (process.env.VITE_TEST_PASSWORD || process.env.TEST_U
 const hasCredentials = !!(TEST_USER_EMAIL && TEST_USER_PASSWORD);
 
 if (!shouldRun) {
-    if (isPlaceholder) {
-        console.warn('Skipping RLS tests: Detected placeholder VITE_SUPABASE_URL');
-    } else {
-        console.warn('Skipping RLS tests: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
-    }
+ if (isPlaceholder) {
+ console.warn('Skipping RLS tests: Detected placeholder VITE_SUPABASE_URL');
+ } else {
+ console.warn('Skipping RLS tests: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
+ }
 } else if (!hasCredentials) {
-    console.warn('Skipping Authenticated RLS tests: Missing TEST_USER_EMAIL or VITE_TEST_EMAIL');
+ console.warn('Skipping Authenticated RLS tests: Missing TEST_USER_EMAIL or VITE_TEST_EMAIL');
 }
 
 // Connectivity Check: Verify that the Supabase schema is accessible.
 const checkSchemaAvailability = async () => {
-    if (!shouldRun) return false;
-    const checkerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    try {
-        const { error } = await checkerClient.from('tasks').select('id').limit(0);
-        if (error && error.code === 'PGRST205') {
-            console.warn(`Skipping RLS tests: Schema not available (${error.message})`);
-            return false;
-        }
-        return true;
-    } catch {
-        console.warn('Skipping RLS tests: Supabase instance unreachable');
-        return false;
-    }
+ if (!shouldRun) return false;
+ const checkerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+ try {
+ const { error } = await checkerClient.from('tasks').select('id').limit(0);
+ if (error && error.code === 'PGRST205') {
+ console.warn(`Skipping RLS tests: Schema not available (${error.message})`);
+ return false;
+ }
+ return true;
+ } catch {
+ console.warn('Skipping RLS tests: Supabase instance unreachable');
+ return false;
+ }
 };
 
 const schemaAvailable = await checkSchemaAvailability();
 
 describe.runIf(shouldRun)('Security: RLS & Access Control', () => {
-    let anonClient: SupabaseClient;
+ let anonClient: SupabaseClient;
 
-    beforeAll(async () => {
-        // Ensure strictly no session is persisted and drop explicit Authentication headers
-        anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-                detectSessionInUrl: false
-            },
-            global: {
-                headers: {
-                    Authorization: ''
-                }
-            }
-        });
-        // Hard clear just in case
-        await anonClient.auth.signOut();
-    });
+ beforeAll(async () => {
+ // Ensure strictly no session is persisted and drop explicit Authentication headers
+ anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+ auth: {
+ persistSession: false,
+ autoRefreshToken: false,
+ detectSessionInUrl: false
+ },
+ global: {
+ headers: {
+ Authorization: ''
+ }
+ }
+ });
+ // Hard clear just in case
+ await anonClient.auth.signOut();
+ });
 
-    describe.runIf(schemaAvailable)('Anonymous Access', () => {
-        it('should NOT list any tasks for anonymous user (Direct Select)', async () => {
-            const { data, error } = await anonClient.from('tasks').select('*');
+ describe.runIf(schemaAvailable)('Anonymous Access', () => {
+ it('should NOT list any tasks for anonymous user (Direct Select)', async () => {
+ const { data, error } = await anonClient.from('tasks').select('*');
 
-            // RLS silently filters unauthorized rows on SELECT, or returns 42501 if no table access.
-            if (error) {
-                expect(error.code).toBe('42501');
-            } else {
-                expect(data).toEqual([]);
-            }
-        });
+ // RLS silently filters unauthorized rows on SELECT, or returns 42501 if no table access.
+ if (error) {
+ expect(error.code).toBe('42501');
+ } else {
+ expect(data).toEqual([]);
+ }
+ });
 
-        it('should NOT be able to create a task (Expect PGRST205 or PGRST301)', async () => {
-            const { error } = await anonClient.from('tasks').insert({
-                title: 'Hacked Task',
-                origin: 'instance'
-            });
+ it('should NOT be able to create a task (Expect PGRST205 or PGRST301)', async () => {
+ const { error } = await anonClient.from('tasks').insert({
+ title: 'Hacked Task',
+ origin: 'instance'
+ });
 
-            expect(error).not.toBeNull();
-            // In some configurations, inserts without select grants also throw PGRST205 if the table is hidden
-            // but might throw PGRST301 or 42501 depending on the PostgREST version.
-            expect(error?.code).toMatch(/PGRST205|PGRST301|42501/);
-        });
+ expect(error).not.toBeNull();
+ // In some configurations, inserts without select grants also throw PGRST205 if the table is hidden
+ // but might throw PGRST301 or 42501 depending on the PostgREST version.
+ expect(error?.code).toMatch(/PGRST205|PGRST301|42501/);
+ });
 
-        it('should NOT be able to see project_members list', async () => {
-            const { data, error } = await anonClient.from('project_members').select('*');
-            if (error) {
-                expect(error.code).toBe('42501');
-            } else {
-                expect(data).toEqual([]);
-            }
-        });
-    });
+ it('should NOT be able to see project_members list', async () => {
+ const { data, error } = await anonClient.from('project_members').select('*');
+ if (error) {
+ expect(error.code).toBe('42501');
+ } else {
+ expect(data).toEqual([]);
+ }
+ });
+ });
 
-    describe.runIf(schemaAvailable && hasCredentials)('Invite Logic (RPC)', () => {
-        it('should fail to get details for invalid token', async () => {
-            const { error } = await anonClient.rpc('get_invite_details', {
-                p_token: '00000000-0000-0000-0000-000000000000'
-            });
+ describe.runIf(schemaAvailable && hasCredentials)('Invite Logic (RPC)', () => {
+ it('should fail to get details for invalid token', async () => {
+ const { error } = await anonClient.rpc('get_invite_details', {
+ p_token: '00000000-0000-0000-0000-000000000000'
+ });
 
-            expect(error).not.toBeNull();
-            expect(error?.message).toContain('Invalid or expired invite token');
-        });
+ expect(error).not.toBeNull();
+ expect(error?.message).toContain('Invalid or expired invite token');
+ });
 
-        it('should successfully get details for a VALID token', async () => {
-            // 1. Setup: Auth as Test User
-            const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
-                email: TEST_USER_EMAIL!,
-                password: TEST_USER_PASSWORD!
-            });
+ it('should successfully get details for a VALID token', async () => {
+ // 1. Setup: Auth as Test User
+ const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+ const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+ email: TEST_USER_EMAIL!,
+ password: TEST_USER_PASSWORD!
+ });
 
-            if (authError || !authData.user) {
-                console.warn('Skipping valid token test: Could not sign in test user', authError);
-                return; // Vitest doesn't support this.skip() easily here, so just return pass
-            }
+ if (authError || !authData.user) {
+ console.warn('Skipping valid token test: Could not sign in test user', authError);
+ return; // Vitest doesn't support this.skip() easily here, so just return pass
+ }
 
-            // 2. Create Project
-            const { data: project, error: projError } = await authClient
-                .from('tasks')
-                .insert({
-                    title: 'Security Test Project',
-                    origin: 'instance',
-                    root_id: null, // It will be its own root
-                    parent_task_id: null,
-                    creator: authData.user.id
-                })
-                .select()
-                .single();
+ // 2. Create Project
+ const { data: project, error: projError } = await authClient
+ .from('tasks')
+ .insert({
+ title: 'Security Test Project',
+ origin: 'instance',
+ root_id: null, // It will be its own root
+ parent_task_id: null,
+ creator: authData.user.id
+ })
+ .select()
+ .single();
 
-            expect(projError).toBeNull();
+ expect(projError).toBeNull();
 
-            // 3. Invite User
-            const inviteEmail = `test-invite-${Date.now()}@example.com`;
-            const { data: inviteResult, error: inviteError } = await authClient
-                .rpc('invite_user_to_project', {
-                    p_project_id: project.id,
-                    p_email: inviteEmail,
-                    p_role: 'editor'
-                });
+ // 3. Invite User
+ const inviteEmail = `test-invite-${Date.now()}@example.com`;
+ const { data: inviteResult, error: inviteError } = await authClient
+ .rpc('invite_user_to_project', {
+ p_project_id: project.id,
+ p_email: inviteEmail,
+ p_role: 'editor'
+ });
 
-            expect(inviteError).toBeNull();
-            expect(inviteResult.status).toBe('invited');
-            const token = inviteResult.token;
+ expect(inviteError).toBeNull();
+ expect(inviteResult.status).toBe('invited');
+ const token = inviteResult.token;
 
-            // 4. Anon User Fetch Details
-            const { data: details, error: anonError } = await anonClient
-                .rpc('get_invite_details', { p_token: token });
+ // 4. Anon User Fetch Details
+ const { data: details, error: anonError } = await anonClient
+ .rpc('get_invite_details', { p_token: token });
 
-            expect(anonError).toBeNull();
-            expect(details.email).toBe(inviteEmail);
-            expect(details.project_title).toBe('Security Test Project');
+ expect(anonError).toBeNull();
+ expect(details.email).toBe(inviteEmail);
+ expect(details.project_title).toBe('Security Test Project');
 
-            // Cleanup
-            await authClient.from('tasks').delete().eq('id', project.id);
-        });
-    });
+ // Cleanup
+ await authClient.from('tasks').delete().eq('id', project.id);
+ });
+ });
 
-    describe.runIf(schemaAvailable && hasCredentials)('Authenticated Access', () => {
-        let authClient: SupabaseClient | null = null;
+ describe.runIf(schemaAvailable && hasCredentials)('Authenticated Access', () => {
+ let authClient: SupabaseClient | null = null;
 
-        beforeAll(async () => {
-            authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            const { error } = await authClient.auth.signInWithPassword({
-                email: TEST_USER_EMAIL!,
-                password: TEST_USER_PASSWORD!
-            });
-            if (error) {
-                console.warn('Authenticated Access skipped: Auth failed. Visit http://127.0.0.1:54323 to create a test user if running locally.', error.message);
-                authClient = null; // Signal failure
-            }
-        });
+ beforeAll(async () => {
+ authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+ const { error } = await authClient.auth.signInWithPassword({
+ email: TEST_USER_EMAIL!,
+ password: TEST_USER_PASSWORD!
+ });
+ if (error) {
+ console.warn('Authenticated Access skipped: Auth failed. Visit http://127.0.0.1:54323 to create a test user if running locally.', error.message);
+ authClient = null; // Signal failure
+ }
+ });
 
-        it('should NOT be able to spoof creator ID on new project', async () => {
-            if (!authClient) return; // Skip test logic if auth failed
-            const fakeUserId = '00000000-0000-0000-0000-000000000000';
+ it('should NOT be able to spoof creator ID on new project', async () => {
+ if (!authClient) return; // Skip test logic if auth failed
+ const fakeUserId = '00000000-0000-0000-0000-000000000000';
 
-            const { error } = await authClient.from('tasks').insert({
-                title: 'Spoofed Project',
-                origin: 'instance',
-                root_id: null,
-                creator: fakeUserId // Spoofing attempt
-            }).select();
+ const { error } = await authClient.from('tasks').insert({
+ title: 'Spoofed Project',
+ origin: 'instance',
+ root_id: null,
+ creator: fakeUserId // Spoofing attempt
+ }).select();
 
-            // Should fail with RLS violation
-            expect(error).not.toBeNull();
-            expect(error?.code).toMatch(/42501|PGRST301/);
-        });
-    });
+ // Should fail with RLS violation
+ expect(error).not.toBeNull();
+ expect(error?.code).toMatch(/42501|PGRST301/);
+ });
+ });
 });

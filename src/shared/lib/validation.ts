@@ -10,33 +10,33 @@ import { z } from 'zod';
  * @throws Error if the column format is invalid or not in the allowlist.
  */
 export const validateSortColumn = (
-    column: string | null | undefined,
-    allowedColumns: readonly string[] = [],
+ column: string | null | undefined,
+ allowedColumns: readonly string[] = [],
 ): string | null => {
-    if (!column) return null;
+ if (!column) return null;
 
-    // Define base schema for safe SQL identifiers (alphanumeric + underscore)
-    const baseSchema = z.string().regex(/^[a-zA-Z0-9_]+$/, 'Invalid sort column format');
+ // Define base schema for safe SQL identifiers (alphanumeric + underscore)
+ const baseSchema = z.string().regex(/^[a-zA-Z0-9_]+$/, 'Invalid sort column format');
 
-    try {
-        // Validate format first
-        const validFormat = baseSchema.parse(column);
+ try {
+ // Validate format first
+ const validFormat = baseSchema.parse(column);
 
-        // Validate allowlist if provided
-        if (allowedColumns.length > 0) {
-            const enumSchema = z.enum(allowedColumns as [string, ...string[]]);
-            const result = enumSchema.safeParse(validFormat);
-            if (!result.success) {
-                throw new Error(`Invalid sort column: ${column}`);
-            }
-        }
+ // Validate allowlist if provided
+ if (allowedColumns.length > 0) {
+ const enumSchema = z.enum(allowedColumns as [string, ...string[]]);
+ const result = enumSchema.safeParse(validFormat);
+ if (!result.success) {
+ throw new Error(`Invalid sort column: ${column}`);
+ }
+ }
 
-        return validFormat;
-    } catch (error) {
-        // preserve original error messages for compatibility or re-throw Zod errors
-        if (error instanceof z.ZodError) {
-            throw new Error(error.issues[0].message);
-        }
-        throw error;
-    }
+ return validFormat;
+ } catch (error) {
+ // preserve original error messages for compatibility or re-throw Zod errors
+ if (error instanceof z.ZodError) {
+ throw new Error(error.issues[0].message);
+ }
+ throw error;
+ }
 };

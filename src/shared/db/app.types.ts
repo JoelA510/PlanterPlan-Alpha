@@ -11,15 +11,15 @@ export type TaskUpdate = Database['public']['Tables']['tasks']['Update'];
 
 // Aliases for better DX and legacy compatibility
 export type Task = Omit<TaskRow, 'status'> & {
-    name?: string;
-    launch_date?: string | null;
-    project_id?: string | null;
-    status: string;
+ name?: string;
+ launch_date?: string | null;
+ project_id?: string | null;
+ status: string;
 };
 
 export type Project = Task & {
-    location?: string | null;
-    settings?: any;
+ location?: string | null;
+ settings?: any;
 };
 
 // No-op - removing duplicate lines 25-27
@@ -42,7 +42,7 @@ export type TeamMemberRow = Database['public']['Tables']['project_members']['Row
 
 /** Standardized Person type for UI components */
 export interface Person extends PersonRow {
-    notes: string | null;
+ notes: string | null;
 }
 
 // ----------------------------------------------------------------------------
@@ -55,39 +55,39 @@ export interface Person extends PersonRow {
 export type UserRole = 'admin' | 'owner' | 'viewer';
 
 export interface UserMetadata {
-    [key: string]: string | number | boolean | null | undefined;
+ [key: string]: string | number | boolean | null | undefined;
 }
 
 export interface User {
-    id: string;
-    email: string;
-    role: UserRole;
-    app_metadata?: UserMetadata;
-    user_metadata?: UserMetadata;
-    aud?: string;
-    created_at?: string;
+ id: string;
+ email: string;
+ role: UserRole;
+ app_metadata?: UserMetadata;
+ user_metadata?: UserMetadata;
+ aud?: string;
+ created_at?: string;
 }
 
 /** Shape emitted by the NewProjectForm Zod schema. */
 export interface CreateProjectFormData {
-    title: string;
-    description?: string;
-    purpose?: string;
-    actions?: string;
-    notes?: string;
-    start_date: string;
-    templateId?: string | null;
+ title: string;
+ description?: string;
+ purpose?: string;
+ actions?: string;
+ notes?: string;
+ start_date: string;
+ templateId?: string | null;
 }
 
 /** Shape emitted by the NewTaskForm Zod schema. */
 export interface TaskFormData {
-    title: string;
-    description?: string | null;
-    notes?: string | null;
-    purpose?: string | null;
-    actions?: string | null;
-    days_from_start?: number;
-    start_date?: string | null;
-    due_date?: string | null;
-    templateId?: string | null;
+ title: string;
+ description?: string | null;
+ notes?: string | null;
+ purpose?: string | null;
+ actions?: string | null;
+ days_from_start?: number;
+ start_date?: string | null;
+ due_date?: string | null;
+ templateId?: string | null;
 }
