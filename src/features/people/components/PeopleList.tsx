@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -7,6 +7,7 @@ import { Plus, Search, Mail, Phone, MoreHorizontal, Loader2 } from 'lucide-react
 import AddPersonModal from './AddPersonModal';
 import { toast } from 'sonner';
 import { planter } from '@/shared/api/planterClient';
+import { compareDateDesc } from '@/shared/lib/date-engine';
 import type { PersonRow } from '@/shared/db/app.types';
 import {
     DropdownMenu,
@@ -29,10 +30,10 @@ export interface Person {
     first_name: string;
     last_name: string | null;
     role: string | null;
-    status: string;
+    status: string | null;
     email: string | null;
     phone: string | null;
-    project_id?: string;
+    project_id?: string | null;
 }
 
 interface PeopleListProps {
@@ -55,7 +56,7 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
             const sorted = (data || []).sort((a: PersonRow, b: PersonRow) =>
                 compareDateDesc(a.created_at, b.created_at)
             );
-            setPeople(sorted);
+            setPeople(sorted as Person[]);
         } catch {
             toast.error('Failed to load people');
         } finally {
@@ -75,7 +76,7 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
                 toast.success('Person updated');
             } else {
                 // Replaces peopleService.addPerson
-                await planter.entities.Person.create({ ...personData, project_id: projectId });
+                await planter.entities.Person.create({ ...personData, project_id: projectId } as any);
                 toast.success('Person added');
             }
             loadPeople();
@@ -164,14 +165,14 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
                                     </td>
                                     <td className="px-4 py-3 text-slate-600">{person.role}</td>
                                     <td className="px-4 py-3">
-                                        <Badge className={`hover:bg-opacity-80 border-0 ${STATUS_OPTS[person.status] || STATUS_OPTS.default}`}>
+                                        <Badge className={`hover:bg-opacity-80 border-0 ${STATUS_OPTS[person.status || 'default'] || STATUS_OPTS.default}`}>
                                             {person.status}
                                         </Badge>
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3 text-slate-400">
-                                            {person.email && <Mail className="w-4 h-4 hover:text-slate-600 cursor-pointer" title={person.email} />}
-                                            {person.phone && <Phone className="w-4 h-4 hover:text-slate-600 cursor-pointer" title={person.phone} />}
+                                            {person.email && <Mail className="w-4 h-4 hover:text-slate-600 cursor-pointer" />}
+                                            {person.phone && <Phone className="w-4 h-4 hover:text-slate-600 cursor-pointer" />}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-right">

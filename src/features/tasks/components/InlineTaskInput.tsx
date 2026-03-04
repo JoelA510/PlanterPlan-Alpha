@@ -11,13 +11,15 @@ interface InlineTaskInputProps {
     onCancel: () => void;
     loading?: boolean;
     level?: number;
+    placeholder?: string;
 }
 
 const InlineTaskInput = ({
     onCommit,
     onCancel,
     loading = false,
-    level = 0
+    level = 0,
+    placeholder = "Type a task name..."
 }: InlineTaskInputProps) => {
     const [title, setTitle] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +68,7 @@ const InlineTaskInput = ({
                 ref={inputRef}
                 type="text"
                 className="flex-1 bg-transparent border-none p-0 text-sm font-medium focus:ring-0 placeholder:text-muted-foreground/70"
-                placeholder="Type a task name..."
+                placeholder={placeholder}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 onKeyDown={handleKeyDown}

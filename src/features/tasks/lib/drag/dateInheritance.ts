@@ -67,7 +67,7 @@ export const calculateDateDeltas = (
         if (task.start_date) {
             const currentTaskDate = typeof task.start_date === 'string' ? parseIsoDate(task.start_date) : task.start_date;
             if (currentTaskDate) {
-                const newDescendantDate = addDaysToDate(currentTaskDate as Date, diffDays);
+                const newDescendantDate = addDaysToDate(currentTaskDate as Date, diffDays as number);
                 updates.push({
                     id: task.id,
                     start_date: formatDate(newDescendantDate, 'yyyy-MM-dd'),

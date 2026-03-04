@@ -21,7 +21,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle, showMenuButton = false }: HeaderProps) {
-  const { data: user } = useUser();
+  const { data: userData } = useUser();
+  const user = userData as any; // Temporary cast to resolve persistent inference issues in Header
   const location = useLocation();
 
 

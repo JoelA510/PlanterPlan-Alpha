@@ -23,12 +23,13 @@ interface ProjectCardProps {
 }
 
 const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps) => {
-  const Icon = templateIcons[project.settings?.template_id as string] || FolderKanban;
+  const templateId = (project.settings as any)?.template_id;
+  const Icon = templateIcons[templateId as string] || FolderKanban;
 
-  const statusConfig = PROJECT_STATUS_COLORS[project.status] || PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING];
+  const statusConfig = PROJECT_STATUS_COLORS[project.status as any] || PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING];
 
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.status === TASK_STATUS.DONE).length;
+  const completedTasks = tasks.filter(t => t.status === TASK_STATUS.COMPLETED).length;
   const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
   return (

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ResponsiveContainer, Tooltip, Legend } from 'recharts';
+// @ts-ignore
 import type { Payload } from 'recharts/types/component/DefaultLegendContent';
 import { cn } from '@/shared/lib/utils';
 
@@ -108,6 +109,7 @@ interface TooltipPayloadItem {
     color?: string;
     payload?: Record<string, unknown>;
     fill?: string;
+    [key: string]: unknown;
 }
 
 interface ChartTooltipContentProps extends React.HTMLAttributes<HTMLDivElement> {

@@ -64,15 +64,15 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
     const [formData, setFormData] = useState<CreateProjectFormData>({
         title: '',
         description: '',
-        creator: '', // Will be set by mutation hook
-        template: 'new-church',
+        templateId: 'new-church',
+        start_date: new Date().toISOString().split('T')[0],
     });
 
     const handleNext = () => setStep(2);
     const handleBack = () => setStep(1);
 
     const handleTemplateSelect = (templateId: string) => {
-        setFormData({ ...formData, template: templateId });
+        setFormData({ ...formData, templateId });
     };
 
     const handleSubmit = async () => {
@@ -145,7 +145,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                             onClick={() => handleTemplateSelect(cat.id)}
                                             className={cn(
                                                 'group cursor-pointer p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-4',
-                                                formData.template === cat.id
+                                                formData.templateId === cat.id
                                                     ? 'border-brand-600 bg-brand-50 shadow-md ring-1 ring-brand-600/10'
                                                     : 'border-slate-100 hover:border-brand-200 hover:bg-slate-50'
                                             )}
@@ -153,7 +153,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                             <div
                                                 className={cn(
                                                     'w-12 h-12 rounded-xl flex items-center justify-center transition-colors',
-                                                    formData.template === cat.id ? 'bg-brand-600 text-white' : cn(cat.bg, cat.color)
+                                                    formData.templateId === cat.id ? 'bg-brand-600 text-white' : cn(cat.bg, cat.color)
                                                 )}
                                             >
                                                 <cat.icon className="w-6 h-6" />
@@ -162,7 +162,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                                 <h4 className="font-bold text-slate-900">{cat.title}</h4>
                                                 <p className="text-sm text-slate-500">{cat.description}</p>
                                             </div>
-                                            {formData.template === cat.id && (
+                                            {formData.templateId === cat.id && (
                                                 <div className="w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center">
                                                     <Check className="w-4 h-4 text-white" />
                                                 </div>

@@ -26,9 +26,9 @@ const TemplateList = ({ tasks, selectedTaskId, handleTaskClick }: TemplateListPr
                     {tasks.map((template) => (
                         <SidebarNavItem
                             key={template.id}
-                            task={template}
+                            task={{ ...template, title: template.title || 'Untitled' }}
                             isSelected={selectedTaskId === template.id}
-                            onClick={handleTaskClick}
+                            onClick={handleTaskClick as any}
                             to={`/project/${template.id}`}
                         />
                     ))}

@@ -55,7 +55,7 @@ export default function ProjectHeader({
   canManageSettings = false
 }: ProjectHeaderProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const Icon = templateIcons[project.template] || Rocket;
+  const Icon = templateIcons[(project as any).template] || Rocket;
   const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
   const totalTasks = tasks.length;
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -80,7 +80,7 @@ export default function ProjectHeader({
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-card-foreground">{project.title}</h1>
-                <Badge className={statusColors[project.status]}>
+                <Badge className={statusColors[project.status || ''] || statusColors[PROJECT_STATUS.PLANNING]}>
                   {project.status?.replace('_', ' ')}
                 </Badge>
               </div>
@@ -100,7 +100,7 @@ export default function ProjectHeader({
                 Settings
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={() => exportProjectToCSV(project, tasks)}>
+            <Button variant="ghost" size="sm" onClick={() => exportProjectToCSV({ name: project.title || 'Project' }, tasks as any)}>
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -152,8 +152,8 @@ export default function ProjectHeader({
               const initials = (member.first_name?.[0] || '') + (member.last_name?.[0] || '') || '?';
               return (
                 <div key={member.id} className="relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground z-10" title={displayName || 'Unknown'}>
-                  {member.avatar_url ? (
-                    <img src={member.avatar_url} alt={displayName || 'Unknown'} className="w-full h-full rounded-full object-cover" />
+                  {(member as any).avatar_url ? (
+                    <img src={(member as any).avatar_url} alt={displayName || 'Unknown'} className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <span>{initials}</span>
                   )}

@@ -1,2 +1,2 @@
-// Public API for dashboard/
-export type { CreateProjectPayload, CreateTemplatePayload } from './components/CreateProjectModal';
+export { default as CreateProjectModal } from './components/CreateProjectModal';
+export * from './hooks/useDashboard';

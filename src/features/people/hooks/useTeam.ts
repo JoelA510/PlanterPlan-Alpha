@@ -1,17 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
 import { toast } from 'sonner';
-import type { Database } from '@/shared/db/database.types';
 
-type TeamMemberRow = Database['public']['Tables']['project_members']['Row'];
-type ProjectRow = Database['public']['Tables']['projects']['Row'];
+import type { Task as ProjectRow, TeamMemberRow } from '@/shared/db/app.types';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 export function useTeam(projectId: string | null) {
     const queryClient = useQueryClient();
 
+    const { user: currentUser } = useAuth();
+
     const { data: project } = useQuery<ProjectRow>({
         queryKey: ['project', projectId],
-        queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res: ProjectRow[]) => res[0]),
+        queryFn: () => planter.entities.Project.get(projectId!).then(res => res as ProjectRow),
         enabled: !!projectId,
     });
 
@@ -36,7 +37,14 @@ export function useTeam(projectId: string | null) {
     });
 
     const addMemberMutation = useMutation({
-        mutationFn: (data: { project_id: string | null, name: string, email: string, role: string }) => planter.entities.TeamMember.create(data),
+        mutationFn: (data: { project_id: string | null, name: string, email: string, role: string }) => {
+            if (!currentUser?.id) throw new Error('User not authenticated');
+            return planter.entities.TeamMember.create({
+                ...data,
+                user_id: currentUser.id,
+                project_id: data.project_id || '',
+            } as any);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['teamMembers', projectId || 'all'] });
             toast.success('Member added successfully');

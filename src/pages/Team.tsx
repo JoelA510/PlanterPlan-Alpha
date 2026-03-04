@@ -113,12 +113,12 @@ export default function Team() {
                                             </DropdownMenu>
                                         </div>
 
-                                        <h3 className="text-lg font-bold text-foreground mb-1">{member.name || 'Unknown Name'}</h3>
+                                        <h3 className="text-lg font-bold text-foreground mb-1">{(member as any).name || 'Unknown Name'}</h3>
                                         <div className="flex flex-wrap gap-2 mb-4">
                                             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white dark:bg-slate-950 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300">
                                                 {member.role || 'Member'}
                                             </span>
-                                            {member.is_lead && (
+                                            {(member as any).is_lead && (
                                                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white dark:bg-slate-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
                                                     Lead
                                                 </span>
@@ -126,16 +126,16 @@ export default function Team() {
                                         </div>
 
                                         <div className="space-y-2 mt-4 pt-4 border-t border-border">
-                                            {member.email && (
+                                            {(member as any).email && (
                                                 <div className="flex items-center text-sm text-muted-foreground">
                                                     <Mail className="w-4 h-4 mr-2" />
-                                                    {member.email}
+                                                    {(member as any).email}
                                                 </div>
                                             )}
-                                            {member.phone && (
+                                            {(member as any).phone && (
                                                 <div className="flex items-center text-sm text-muted-foreground">
                                                     <Phone className="w-4 h-4 mr-2" />
-                                                    {member.phone}
+                                                    {(member as any).phone}
                                                 </div>
                                             )}
                                         </div>

@@ -24,8 +24,9 @@ export const useTaskQuery = () => {
         queryKey: ['projects', 'instance', currentUserId],
         queryFn: async ({ pageParam = 1 }) => {
             if (!currentUserId) return [];
-            return await planter.entities.Project.listByCreator(currentUserId, pageParam, PAGE_SIZE);
+            return await planter.entities.Project.listByCreator(currentUserId, pageParam as number, PAGE_SIZE);
         },
+        initialPageParam: 1,
         getNextPageParam: (lastPage, allPages) => {
             return lastPage.length === PAGE_SIZE ? allPages.length + 1 : undefined;
         },

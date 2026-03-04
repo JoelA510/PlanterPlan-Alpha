@@ -38,17 +38,18 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
         setIsSubmitting(true);
         setError(null);
 
-        let result: { error?: string | { message?: string } };
+        let result: { data?: any; error?: any } = {};
         try {
             if (isEmail) {
-                result = await planter.entities.Project.addMemberByEmail(project.id, userId, role);
+                const res = await planter.entities.Project.addMemberByEmail(project.id, userId, role);
+                result = { data: res, error: (res as any)?.error };
             } else {
-                result = await planter.entities.Project.addMember(project.id, userId, role);
+                const res = await planter.entities.Project.addMember(project.id, userId, role);
+                result = { data: res, error: (res as any)?.error };
             }
-        } catch (err: unknown) {
-            const supaErr = err as { code?: string; message?: string };
+        } catch (err: any) {
             console.error('[InviteMemberModal] Exception during invite:', err);
-            if (supaErr.code === '42501' || (supaErr.message && supaErr.message.includes('policy'))) {
+            if (err.code === '42501' || (err.message && err.message.includes('policy'))) {
                 result = { error: 'Access denied: You must be an Owner to manage members.' };
             } else {
                 result = { error: err };
@@ -124,7 +125,7 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
                         <select
                             id="role"
                             value={role}
-                            onChange={(e) => setRole(e.target.value)}
+                            onChange={(e) => setRole(e.target.value as any)}
                             className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm form-select p-2 border"
                         >
                             <option value={ROLES.VIEWER}>Viewer (Read-only)</option>

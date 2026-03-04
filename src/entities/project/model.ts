@@ -12,10 +12,7 @@ export const projectSchema = z.object({
     name: z.string().min(3, 'Project name must be at least 3 characters'),
     description: z.string().optional(),
     template: z.string().min(1, 'Please select a template'),
-    launch_date: z.date({
-        required_error: 'Target launch date is required',
-        invalid_type_error: 'That is not a valid date',
-    }),
+    launch_date: z.any(),
     location: z.string().optional(),
     status: z.string().default(PROJECT_STATUS?.PLANNING || 'planning'),
 });

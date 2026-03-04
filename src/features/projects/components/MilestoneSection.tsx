@@ -10,10 +10,10 @@ import { TASK_STATUS } from '@/shared/constants';
 import { TaskItem } from '@/features/tasks';
 import InlineTaskInput from '@/features/tasks/components/InlineTaskInput';
 
-import { TaskRow } from '@/shared/db/app.types';
+import { TaskRow, Task } from '@/shared/db/app.types';
 import type { TaskUpdate } from '@/shared/db/app.types';
 
-interface TaskWithState extends TaskRow {
+interface TaskWithState extends Task {
   isExpanded?: boolean;
   isAddingInline?: boolean;
   children?: TaskWithState[];
@@ -144,7 +144,7 @@ export default function MilestoneSection({
                           <TaskItem
                             task={task}
                             onTaskClick={onTaskClick}
-                            onStatusChange={(id, status) => onTaskUpdate(id, { status })}
+                            onStatusChange={(id, status) => onTaskUpdate(id, { status } as any)}
                             onAddChildTask={onAddChildTask}
                             isAddingInline={task.isAddingInline}
                             onInlineCommit={onInlineCommit}

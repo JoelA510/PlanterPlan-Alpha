@@ -7,7 +7,7 @@ interface HierarchyTask {
     id: string;
     parent_task_id?: string | null;
     root_id?: string | null;
-    position?: number;
+    position?: number | null;
     [key: string]: unknown;
 }
 
@@ -55,7 +55,7 @@ export function useProjectData(projectId: string | null | undefined): UseProject
     // 2. Fetch Project Hierarchy
     const { data: projectHierarchy = [] } = useQuery<HierarchyTask[]>({
         queryKey: ['projectHierarchy', projectId],
-        queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
+        queryFn: () => planter.entities.Task.filter({ root_id: projectId }) as Promise<HierarchyTask[]>,
         enabled: !!projectId,
     });
 

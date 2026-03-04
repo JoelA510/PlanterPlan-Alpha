@@ -30,14 +30,6 @@ const resourceTypeLabels = {
 
 type ResourceType = keyof typeof resourceTypeIcons;
 
-interface TaskResource {
-    id: string;
-    resource_type?: ResourceType;
-    type?: ResourceType;
-    resource_url?: string;
-    resource_text?: string;
-    storage_path?: string;
-}
 
 interface TaskResourcesProps {
     taskId: string;
@@ -56,9 +48,9 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }: T
 
     const queryClient = useQueryClient();
 
-    const { data: resources = [] } = useQuery<TaskResource[]>({
+    const { data: resources = [] } = useQuery<any[]>({
         queryKey: ['resources', taskId],
-        queryFn: () => listTaskResources(taskId),
+        queryFn: () => listTaskResources(taskId) as any,
         enabled: !!taskId,
     });
 

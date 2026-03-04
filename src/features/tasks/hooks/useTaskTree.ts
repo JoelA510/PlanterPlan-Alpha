@@ -30,7 +30,7 @@ export const useTaskTree = ({
     joinedProjects = []
 }: UseTaskTreeParams): UseTaskTreeReturn => {
     // --- Local UI State ---
-    const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
+    const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
 
     // --- Derived Data ---
     const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
@@ -50,13 +50,13 @@ export const useTaskTree = ({
         // Check if we have children in cache
         const childrenFlat = hydratedProjects[activeProjectId];
 
-        let childrenTree = [];
+        let childrenTree: TaskNode[] = [];
         if (childrenFlat) {
             childrenTree = buildTree(childrenFlat, activeProjectId);
         }
 
         // Recursive expansion helper
-        const applyExpansion = (nodes) => {
+        const applyExpansion = (nodes: TaskNode[]): any[] => {
             return nodes.map((node) => ({
                 ...node,
                 isExpanded: expandedTaskIds.has(node.id),
@@ -81,7 +81,7 @@ export const useTaskTree = ({
     ]);
 
     // --- Handlers ---
-    const handleToggleExpand = useCallback((task, expanded) => {
+    const handleToggleExpand = useCallback((task: { id: string }, expanded: boolean) => {
         setExpandedTaskIds((prev) => {
             const next = new Set(prev);
             if (expanded) next.add(task.id);

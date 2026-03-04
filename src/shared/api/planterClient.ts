@@ -15,6 +15,7 @@ import type {
 } from '@/shared/db/app.types';
 import type { User as AuthUser } from '@supabase/supabase-js';
 
+
 export interface CreateProjectPayload {
     title?: string;
     name?: string;
@@ -35,6 +36,7 @@ export interface PlanterClient {
   auth: {
     me: () => Promise<AuthUser | null>;
     signOut: () => Promise<void>;
+    updateMe: (attributes: UserMetadata) => Promise<AuthUser>;
     updateProfile: (attributes: UserMetadata) => Promise<AuthUser>;
   };
   entities: {
@@ -93,8 +95,8 @@ interface TaskEntityClient extends EntityClient<Task, TaskInsert, TaskUpdate> {
 const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'): EntityClient<T, TInsert, TUpdate> => ({
   list: async (opts) => {
     return retry(async () => {
-      let query = supabase.from(tableName).select(select);
-      if (opts?.signal) query = query.abortSignal(opts.signal);
+      let query = supabase.from(tableName as any).select(select);
+      if (opts?.signal) (query as any).abortSignal(opts.signal);
       const { data, error } = await query;
       if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return (data as T[]) || [];
@@ -102,8 +104,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
   },
   get: async (id: string, opts) => {
     return retry(async () => {
-      let query = supabase.from(tableName).select(select).eq('id', id).maybeSingle();
-      if (opts?.signal) query = query.abortSignal(opts.signal);
+      let query = supabase.from(tableName as any).select(select).eq('id', id).maybeSingle();
+      if (opts?.signal) (query as any).abortSignal(opts.signal);
       const { data, error } = await query;
       if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return (data as T) || null;
@@ -111,19 +113,17 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
   },
   create: async (payload: TInsert | TInsert[], opts) => {
     return retry(async () => {
-      // @ts-expect-error Supabase insert generics don't align with our loose TInsert
-      let query = supabase.from(tableName).insert(payload).select(select);
-      if (opts?.signal) query = query.abortSignal(opts.signal);
+      let query = supabase.from(tableName as any).insert(payload as any).select(select);
+      if (opts?.signal) (query as any).abortSignal(opts.signal);
       const { data, error } = await query;
       if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
-      return (data as T[])?.[0] || (data as unknown as T);
+      return (data as unknown as T[])?.[0] || (data as unknown as T);
     });
   },
   update: async (id: string, payload: TUpdate, opts) => {
     return retry(async () => {
-      // @ts-expect-error Supabase update generics don't align with our loose TUpdate
-      let query = supabase.from(tableName).update(payload).eq('id', id).select(select);
-      if (opts?.signal) query = query.abortSignal(opts.signal);
+      let query = supabase.from(tableName as any).update(payload as any).eq('id', id).select(select);
+      if (opts?.signal) (query as any).abortSignal(opts.signal);
       const { data, error } = await query;
       if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return (data as T[])?.[0] || (data as unknown as T);
@@ -131,8 +131,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
   },
   delete: async (id: string, opts) => {
     return retry(async () => {
-      let query = supabase.from(tableName).delete().eq('id', id);
-      if (opts?.signal) query = query.abortSignal(opts.signal);
+      let query = supabase.from(tableName as any).delete().eq('id', id);
+      if (opts?.signal) (query as any).abortSignal(opts.signal);
       const { error } = await query;
       if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return true;
@@ -140,8 +140,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
   },
   filter: async (filters: Partial<Record<keyof T, string | number | boolean | null>>, opts) => {
     return retry(async () => {
-      let query = supabase.from(tableName).select(select);
-      if (opts?.signal) query = query.abortSignal(opts.signal);
+      let query = supabase.from(tableName as any).select(select);
+      if (opts?.signal) (query as any).abortSignal(opts.signal);
 
       Object.entries(filters).forEach(([key, val]) => {
         if (val === null) {
@@ -158,8 +158,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
   },
   listByCreator: async (userId: string, opts) => {
     return retry(async () => {
-      let query = supabase.from(tableName).select(select).eq('creator', userId);
-      if (opts?.signal) query = query.abortSignal(opts.signal);
+      let query = supabase.from(tableName as any).select(select).eq('creator', userId);
+      if (opts?.signal) (query as any).abortSignal(opts.signal);
       const { data, error } = await query;
       if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
       return (data as T[]) || [];
@@ -168,8 +168,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
   upsert: async (payload: TInsert | TInsert[], options: { onConflict?: string; ignoreDuplicates?: boolean; signal?: AbortSignal } = {}) => {
     return retry(async () => {
       const onConflict = options.onConflict || 'id';
-      // @ts-expect-error Supabase upsert generics don't align with our loose TInsert
-      let query = supabase.from(tableName).upsert(payload, {
+      let query = supabase.from(tableName as any).upsert(payload as any, {
         onConflict,
         ignoreDuplicates: options.ignoreDuplicates,
       }).select(select);
@@ -201,7 +200,16 @@ export const planter: PlanterClient = {
       }
     },
     signOut: async (): Promise<void> => {
-      return;
+      await supabase.auth.signOut();
+    },
+    updateMe: async (attributes: UserMetadata): Promise<AuthUser> => {
+      return retry(async () => {
+        const { data, error } = await supabase.auth.updateUser({
+          data: attributes,
+        });
+        if (error) throw error;
+        return data.user as AuthUser;
+      });
     },
     updateProfile: async (attributes: UserMetadata): Promise<AuthUser> => {
       return retry(async () => {
@@ -266,11 +274,11 @@ export const planter: PlanterClient = {
 
           const { data, error } = await supabase
             .from('tasks')
-            .insert(taskPayload)
+            .insert(taskPayload as any)
             .select('*');
 
           if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
-          const project = (data as Project[])?.[0] || (data as unknown as Project);
+          const project = (data as unknown as Project[])?.[0] || (data as unknown as Project);
 
           if (!project?.id) {
             throw new Error('Project creation failed: no ID returned from database.');
@@ -302,7 +310,7 @@ export const planter: PlanterClient = {
             .maybeSingle();
 
           if (pErr) throw new PlanterError(pErr.message, parseInt(pErr.code ?? '500'));
-          const project = pData as Project;
+          const project = pData as unknown as Project;
           if (!project) throw new Error('Project not found');
 
           const { data: cData, error: cErr } = await supabase
@@ -396,6 +404,7 @@ export const planter: PlanterClient = {
       },
       addMemberByEmail: async (projectId: string, email: string, role: string): Promise<{ data: TeamMemberRow | undefined, error: Error | null }> => {
         return retry(async () => {
+          // @ts-expect-error RPC name validated at runtime
           const { data, error } = await supabase.rpc('add_project_member_by_email', {
             p_project_id: projectId,
             p_email: email,
@@ -537,7 +546,7 @@ export const planter: PlanterClient = {
         return retry(async () => {
           const end = from + limit - 1;
           let query = supabase
-            .from('tasks_with_primary_resource')
+            .from('tasks_with_primary_resource' as any)
             .select('*')
             .eq('origin', 'template')
             .is('parent_task_id', null)
@@ -545,13 +554,13 @@ export const planter: PlanterClient = {
             .range(from, end);
 
           if (resourceType && resourceType !== 'all') {
-            query = query.eq('resource_type', resourceType);
+            query = query.eq('resource_type', resourceType as any);
           }
           if (signal) query = query.abortSignal(signal);
 
           const { data, error } = await query;
           if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
-          return { data: (data as Task[]) || [], error: null };
+          return { data: (data as unknown as Task[]) || [], error: null };
         });
       },
       searchTemplates: async ({ query, limit = 20, resourceType = null as string | null, signal }: { query: string, limit?: number, resourceType?: string | null, signal?: AbortSignal }): Promise<{ data: Task[], error: Error | null }> => {
@@ -561,7 +570,7 @@ export const planter: PlanterClient = {
 
           const pattern = `%${normalized}%`;
           let q = supabase
-            .from('tasks_with_primary_resource')
+            .from('tasks_with_primary_resource' as any)
             .select('*')
             .eq('origin', 'template')
             .or(`title.ilike.${pattern},description.ilike.${pattern}`)
@@ -569,13 +578,13 @@ export const planter: PlanterClient = {
             .limit(limit);
 
           if (resourceType && resourceType !== 'all') {
-            q = q.eq('resource_type', resourceType);
+            q = q.eq('resource_type', resourceType as any);
           }
           if (signal) q = q.abortSignal(signal);
 
           const { data, error } = await q;
           if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
-          return { data: (data as Task[]) || [], error: null };
+          return { data: (data as unknown as Task[]) || [], error: null };
         });
       }
     },

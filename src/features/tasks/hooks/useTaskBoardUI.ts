@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 
 import { TaskRow, CreateProjectFormData, TaskFormData } from '@/shared/db/app.types';
 
-interface TaskFormState {
+export interface TaskFormState {
     mode: 'create' | 'edit';
     origin?: string;
     parentId?: string | null;

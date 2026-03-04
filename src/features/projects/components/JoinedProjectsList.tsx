@@ -30,11 +30,11 @@ const JoinedProjectsList = ({ projects, error, handleTaskClick, selectedTaskId }
                     {projects.map((project) => (
                         <SidebarNavItem
                             key={project.id}
-                            task={project}
+                            task={{ ...project, title: project.title || 'Untitled' }}
                             isSelected={selectedTaskId === project.id}
-                            onClick={handleTaskClick}
+                            onClick={handleTaskClick as any}
                             showRole={true}
-                            to={`/ project / ${project.id} `}
+                            to={`/project/${project.id}`}
                         />
                     ))}
                 </div>

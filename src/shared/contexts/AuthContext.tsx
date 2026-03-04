@@ -10,6 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData?: UserMetadata) => Promise<{ data: unknown; error: unknown }>;
   signIn: (email: string, password: string) => Promise<{ data: unknown; error: unknown }>;
   signOut: () => Promise<void>;
+  updateMe: (attributes: UserMetadata) => Promise<User>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -199,13 +200,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
 
+  const updateMe = useCallback(async (attributes: UserMetadata) => {
+    const { data, error } = await supabase.auth.updateUser({
+      data: attributes,
+    });
+    if (error) throw error;
+    if (!data.user) throw new Error('Failed to update user');
+    const updatedUser = {
+      id: data.user.id,
+      email: data.user.email || '',
+      role: user?.role || 'viewer',
+      app_metadata: data.user.app_metadata as UserMetadata,
+      user_metadata: data.user.user_metadata as UserMetadata,
+      aud: data.user.aud,
+      created_at: data.user.created_at
+    };
+    setUser(updatedUser);
+    return updatedUser;
+  }, [user]);
+
   const value = useMemo(() => ({
     user,
     loading,
     signUp,
     signIn,
     signOut,
-  }), [user, loading, signUp, signIn, signOut]);
+    updateMe,
+  }), [user, loading, signUp, signIn, signOut, updateMe]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

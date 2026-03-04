@@ -5,8 +5,10 @@ import { CheckCircle2, AlertCircle, Clock, Info } from 'lucide-react';
 
 interface StatusCardProps {
     title: string;
-    description: string;
-    type?: 'success' | 'warning' | 'error' | 'info';
+    description?: string;
+    variant?: 'success' | 'warning' | 'error' | 'info';
+    actions?: React.ReactNode;
+    children?: React.ReactNode;
     className?: string;
 }
 
@@ -37,8 +39,8 @@ const statusConfig = {
     },
 };
 
-const StatusCard: FC<StatusCardProps> = ({ title, description, type = 'info', className }) => {
-    const config = statusConfig[type];
+const StatusCard: FC<StatusCardProps> = ({ title, description, variant = 'info', actions, children, className }) => {
+    const config = statusConfig[variant];
     const Icon = config.icon;
 
     return (
@@ -54,7 +56,9 @@ const StatusCard: FC<StatusCardProps> = ({ title, description, type = 'info', cl
                 </div>
                 <div>
                     <h4 className={cn('font-bold text-sm mb-1', config.color)}>{title}</h4>
-                    <p className="text-slate-600 text-xs leading-relaxed">{description}</p>
+                    {description && <p className="text-slate-600 text-xs leading-relaxed">{description}</p>}
+                    {children && <div className="mt-4">{children}</div>}
+                    {actions && <div className="mt-6 flex justify-end gap-3">{actions}</div>}
                 </div>
             </div>
         </Card>

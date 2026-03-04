@@ -11,7 +11,7 @@ interface SearchTask {
     id: string;
     title?: string;
     description?: string | null;
-    origin?: string;
+    origin?: string | null;
     [key: string]: unknown;
 }
 

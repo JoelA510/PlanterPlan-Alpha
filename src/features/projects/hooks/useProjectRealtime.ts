@@ -3,12 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import { useAuth } from '@/shared/contexts/AuthContext';
 
-interface RealtimePayload {
-    eventType: string;
-    new: Record<string, unknown> | null;
-    old: Record<string, unknown> | null;
-}
-
 /**
  * Hook to subscribe to real-time changes for tasks within a specific project context.
  */
@@ -22,7 +16,7 @@ export const useProjectRealtime = (projectId: string | null = null): void => {
         const channel = supabase
             .channel(channelName)
             .on(
-                'postgres_changes',
+                'postgres_changes' as any,
                 {
                     event: '*',
                     schema: 'public',
@@ -32,8 +26,8 @@ export const useProjectRealtime = (projectId: string | null = null): void => {
                         : userId
                             ? `creator=eq.${userId}`
                             : undefined,
-                } as Record<string, unknown>,
-                (payload: RealtimePayload) => {
+                },
+                (payload: any) => {
                     console.log('[Realtime] Task Change detected:', payload);
                     const changedTask = (payload.new || payload.old) as Record<string, unknown> | null;
                     if (changedTask) {

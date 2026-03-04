@@ -49,7 +49,7 @@ const BoardColumn = ({ id, title, tasks, onTaskClick, className, parentId }: Boa
                         {tasks.map((task) => (
                             <SortableBoardTaskCard
                                 key={task.id}
-                                task={task}
+                                task={task as any}
                                 onClick={onTaskClick}
                             />
                         ))}

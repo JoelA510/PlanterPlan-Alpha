@@ -72,7 +72,6 @@ const ProjectTasksView = ({
                 <ProjectHeader
                     project={project}
                     onInviteMember={onInviteMember}
-                    onStatusChange={(newStatus) => onStatusChange(project.id, newStatus)}
                 />
 
                 {/* Toolbar: Actions & View Switcher */}

@@ -8,10 +8,10 @@ import { useUserProjects } from '@/features/projects/hooks/useUserProjects';
 import { useAuth } from '@/shared/contexts/AuthContext'; // Assuming this exists or similar
 import MobileFAB from '@/features/mobile/MobileFAB';
 
-export default function DashboardLayout({ sidebar }: { sidebar?: React.ReactNode }) {
+export default function DashboardLayout({ sidebar, children }: { sidebar?: React.ReactNode, children?: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, loading } = useAuth();
-  const { data: projects } = useUserProjects(user?.id);
+  const { data: projects } = useUserProjects();
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
 
@@ -52,7 +52,7 @@ export default function DashboardLayout({ sidebar }: { sidebar?: React.ReactNode
           />
         )}
 
-        <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)]"><Outlet /></main>
+        <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)]">{children || <Outlet />}</main>
         <MobileFAB />
       </div>
     </>

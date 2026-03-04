@@ -13,10 +13,10 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
             classNames={{
                 months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
                 month: 'space-y-4',
-                month_caption: 'flex justify-center pt-1 relative items-center',
+                caption: 'flex justify-center pt-1 relative items-center', // Changed from month_caption to caption
                 caption_label: 'text-sm font-medium',
                 nav: 'space-x-1 flex items-center',
-                button_previous: cn(
+                nav_button_previous: cn( // Changed from button_previous to nav_button_previous
                     buttonVariants({ variant: 'outline' }),
                     'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1'
                 ),
@@ -45,12 +45,12 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
                 ...classNames,
             }}
             components={{
-                IconLeft: ({ className: iconClassName, ...iconProps }) => (
-                    <ChevronLeft className={cn('h-4 w-4', iconClassName)} {...iconProps} />
-                ),
-                IconRight: ({ className: iconClassName, ...iconProps }) => (
-                    <ChevronRight className={cn('h-4 w-4', iconClassName)} {...iconProps} />
-                ),
+                Chevron: ({ ...props }) => {
+                    if (props.orientation === 'left') {
+                        return <ChevronLeft className={cn('h-4 w-4', props.className)} />
+                    }
+                    return <ChevronRight className={cn('h-4 w-4', props.className)} />
+                }
             }}
             {...props}
         />

@@ -57,12 +57,12 @@ export const renormalizePositions = async (
         position: (index + 1) * POSITION_STEP,
     }));
 
-    const updates = updatedTasks.map(({ id, position }) => ({
-        id: id as string,
-        position: position as number,
+    const updates = (updatedTasks as any[]).map((task) => ({
+        id: task.id as string,
+        position: task.position as number,
     }));
 
-    const { error: updateError } = await planter.entities.Task.upsert(updates);
+    const { error: updateError } = await planter.entities.Task.upsert(updates as any);
 
     if (updateError) {
         console.error('Renormalization update failed', updateError);
@@ -85,9 +85,9 @@ export const updateTaskPosition = async (
         parent_task_id: parentId,
     };
 
-    const { error } = await planter.entities.Task.update(taskId, updates);
-
-    if (error) {
+    try {
+        await planter.entities.Task.update(taskId, updates as any);
+    } catch (error) {
         console.error('Failed to update task position:', error);
         throw error;
     }
@@ -101,7 +101,7 @@ export const updateTasksBatch = async (updates: TaskPositionUpdate[]): Promise<v
 
     try {
         const updatePromises = updates.map(({ id, ...data }) =>
-            planter.entities.Task.update(id, data)
+            planter.entities.Task.update(id, data as any)
         );
 
         await Promise.all(updatePromises);

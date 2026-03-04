@@ -36,13 +36,13 @@ export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
         const completedTasks = tasksByStatus.completed;
         const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-        const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
-        const phaseData = sortedPhases.map((phase) => {
+        const sortedPhases = [...phases].sort((a: any, b: any) => (a.position || 0) - (b.position || 0));
+        const phaseData = sortedPhases.map((phase, idx) => {
             const phaseTasks = tasks.filter((t: TaskRow) => (t as TaskRow & { phase_id?: string }).phase_id === phase.id);
             const completed = phaseTasks.filter((t: TaskRow) => t.status === TASK_STATUS.COMPLETED).length;
             const total = phaseTasks.length;
             return {
-                name: `Phase ${phase.order}`,
+                name: `Phase ${(phase as any).position || idx + 1}`,
                 fullName: phase.title,
                 completed,
                 remaining: total - completed,

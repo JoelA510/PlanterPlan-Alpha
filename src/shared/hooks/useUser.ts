@@ -18,9 +18,18 @@ interface UpdateUserData {
 }
 
 export function useUser() {
-    return useQuery<UserProfile>({
+    return useQuery<UserProfile | null>({
         queryKey: ['currentUser'],
-        queryFn: () => planter.auth.me(),
+        queryFn: async () => {
+            const user = await planter.auth.me();
+            if (!user) return null;
+            return {
+                id: user.id,
+                email: user.email || '',
+                full_name: (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || null,
+                avatar_url: (user.user_metadata?.avatar_url as string) || null,
+            };
+        },
         staleTime: 1000 * 60 * 5, // 5 minutes
         retry: false,
     });
@@ -30,7 +39,15 @@ export function useUpdateUser() {
     const queryClient = useQueryClient();
 
     return useMutation<UserProfile, Error, UpdateUserData>({
-        mutationFn: (data: UpdateUserData) => planter.auth.updateMe(data),
+        mutationFn: async (data: UpdateUserData) => {
+            const user = await planter.auth.updateMe(data as any);
+            return {
+                id: user.id,
+                email: user.email || '',
+                full_name: (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || null,
+                avatar_url: (user.user_metadata?.avatar_url as string) || null,
+            };
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['currentUser'] });
         },

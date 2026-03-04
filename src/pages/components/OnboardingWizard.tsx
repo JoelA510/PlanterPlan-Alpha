@@ -119,8 +119,8 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
                                     <PopoverContent className="w-auto p-0" align="start">
                                         <Calendar
                                             mode="single"
-                                            selected={formData.launchDate}
-                                            onSelect={(date) => setFormData({ ...formData, launchDate: date })}
+                                            selected={formData.launchDate as any}
+                                            onSelect={(date) => setFormData({ ...formData, launchDate: (date as any) || null })}
                                             initialFocus
                                         />
                                     </PopoverContent>

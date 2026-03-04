@@ -38,3 +38,13 @@ export type ProjectStatus = (typeof PROJECT_STATUS)[keyof typeof PROJECT_STATUS]
 export const STORAGE_BUCKETS = {
     RESOURCES: 'resources',
 } as const;
+
+export const PROJECT_TABS = {
+    BOARD: 'board',
+    PEOPLE: 'people',
+} as const;
+
+export const PROJECT_TAB_LABELS = {
+    [PROJECT_TABS.BOARD]: 'Tasks & Board',
+    [PROJECT_TABS.PEOPLE]: 'Team',
+} as const;

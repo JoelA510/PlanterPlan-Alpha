@@ -31,12 +31,12 @@ export function useSettings() {
     useEffect(() => {
         if (user) {
             setProfile({
-                full_name: user.user_metadata?.full_name || '',
+                full_name: String(user.user_metadata?.full_name || ''),
                 email: user.email || '',
-                role: user.user_metadata?.role || '',
-                organization: user.user_metadata?.organization || '',
-                avatar_url: user.user_metadata?.avatar_url || '',
-                email_frequency: (user.user_metadata?.email_frequency as 'daily' | 'weekly' | 'never') || 'daily',
+                role: String(user.user_metadata?.role || ''),
+                organization: String(user.user_metadata?.organization || ''),
+                avatar_url: String(user.user_metadata?.avatar_url || ''),
+                email_frequency: (user.user_metadata?.email_frequency as any) || 'daily',
             });
         }
     }, [user]);

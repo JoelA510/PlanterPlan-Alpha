@@ -41,7 +41,7 @@ export const useProjectSelection = ({
     const [hydrationError, setHydrationError] = useState<string | null>(null);
 
     const handleSelectProject = useCallback(
-        async (project: SelectableProject) => {
+        async (project: SelectableProject): Promise<void> => {
             setActiveProjectId(project.id);
             setHydrationError(null);
 

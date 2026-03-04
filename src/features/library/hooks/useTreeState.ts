@@ -5,7 +5,7 @@ import {
     buildTree,
     mergeChildrenIntoTree,
     updateTaskInTree,
-} from '@/shared/lib/treeHelpers';
+} from '@/shared/lib/tree-helpers';
 import { planter } from '@/shared/api/planterClient';
 import { POSITION_STEP } from '@/shared/constants';
 
@@ -30,7 +30,7 @@ export const useTreeState = (rootTasks: TreeNode[]): UseTreeStateReturn => {
     // Effect 1: Handle data updates from props
     useEffect(() => {
         if (rootTasks && rootTasks.length > 0) {
-            setTreeData((prevTree) => mergeTaskUpdates(prevTree, rootTasks));
+            setTreeData(() => mergeTaskUpdates(rootTasks));
         } else if (rootTasks) {
             setTreeData([]);
         }
@@ -110,7 +110,8 @@ export const useTreeState = (rootTasks: TreeNode[]): UseTreeStateReturn => {
         ): { node: TreeNode; siblings: TreeNode[]; index: number; parent: TreeNode | null } | null => {
             for (let i = 0; i < nodes.length; i++) {
                 if (nodes[i].id === targetId) {
-                    return { node: nodes[i], siblings: nodes, index: i, parent };
+                    const node = { ...nodes[i], project_id: nodes[i].project_id ?? undefined };
+                    return { node, siblings: nodes, index: i, parent };
                 }
                 if (nodes[i].children) {
                     const result = findNodeAndSiblings(nodes[i].children!, targetId, nodes[i]);

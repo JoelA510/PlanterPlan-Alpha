@@ -113,7 +113,7 @@ export const useTaskDrag = ({
                         if (oldPD && newPD && activeD) {
                             const diffDays = getDaysDifference(newPD, oldPD);
                             if (diffDays !== 0) {
-                                const calculatedDate = addDaysToDate(activeD, diffDays);
+                                const calculatedDate = addDaysToDate(activeD, diffDays as number);
                                 newActiveDate = formatDate(calculatedDate, 'yyyy-MM-dd');
 
                                 const descendantUpdates = calculateDateDeltas(

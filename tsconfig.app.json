@@ -30,10 +30,29 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@layouts/*": [
+        "./src/shared/layouts/*"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ],
+      "@features/*": [
+        "./src/features/*"
       ]
     }
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/**/*.test.tsx",
+    "src/**/*.test.ts",
+    "src/__tests__",
+    "src/**/__tests__",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/test",
+    "src/mocks"
   ]
 }

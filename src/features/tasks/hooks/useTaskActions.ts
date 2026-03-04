@@ -34,11 +34,11 @@ type TaskUpdates = Record<string, unknown>;
 interface UseTaskActionsParams {
     tasks: ActionTask[];
     fetchTasks: () => Promise<void>;
-    fetchProjects: (page?: number) => Promise<void>;
+    fetchProjects?: (page?: number) => Promise<void>;
     refreshProjectDetails: (rootId: string) => Promise<void>;
     findTask: (taskId: string) => ActionTask | undefined;
-    joinedProjects: ActionTask[];
-    hydratedProjects: Record<string, ActionTask[]>;
+    joinedProjects?: ActionTask[];
+    hydratedProjects?: Record<string, ActionTask[]>;
     commitOptimisticUpdate?: (taskId: string) => void;
 }
 
@@ -103,11 +103,11 @@ export const useTaskActions = ({
                     const parent = findTask(parentId);
                     if (parent) {
                         rootId = (parent.root_id || parent.id) as string;
-                        if (rootId) {
+                        if (rootId && hydratedProjects) {
                             contextTasks = hydratedProjects[rootId] || [];
                             const rootTask =
                                 tasks.find((t) => t.id === rootId) ||
-                                joinedProjects.find((t) => t.id === rootId);
+                                (joinedProjects || []).find((t) => t.id === rootId);
                             if (rootTask) contextTasks = [...contextTasks, rootTask];
                         }
                     }
@@ -133,7 +133,7 @@ export const useTaskActions = ({
                     );
 
                     if (rootId) await refreshProjectDetails(rootId);
-                    else await fetchProjects(1);
+                    else if (fetchProjects) await fetchProjects(1);
 
                     if (parentId && origin === 'instance') {
                         await planter.entities.Task.updateParentDates(parentId);
@@ -196,7 +196,7 @@ export const useTaskActions = ({
                 }
 
                 if (rootId) await refreshProjectDetails(rootId);
-                else await fetchProjects(1);
+                else if (fetchProjects) await fetchProjects(1);
 
                 if (parentId && origin === 'instance') {
                     await planter.entities.Task.updateParentDates(parentId);

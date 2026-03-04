@@ -15,12 +15,12 @@ import { Loader2 } from 'lucide-react';
 
 interface PersonFormData {
     first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-    role: string;
-    status: string;
-    notes: string;
+    last_name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    role?: string | null;
+    status?: string | null;
+    notes?: string | null;
 }
 
 interface AddPersonModalProps {
@@ -70,7 +70,7 @@ export default function AddPersonModal({ open, onClose, onSave, initialData = nu
                         <div className="space-y-2">
                             <Label>First Name <span className="text-red-500">*</span></Label>
                             <Input
-                                value={formData.first_name}
+                                value={formData.first_name || ''}
                                 onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                                 required
                             />
@@ -78,7 +78,7 @@ export default function AddPersonModal({ open, onClose, onSave, initialData = nu
                         <div className="space-y-2">
                             <Label>Last Name</Label>
                             <Input
-                                value={formData.last_name}
+                                value={formData.last_name || ''}
                                 onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                             />
                         </div>
@@ -89,7 +89,7 @@ export default function AddPersonModal({ open, onClose, onSave, initialData = nu
                             <Label>Email</Label>
                             <Input
                                 type="email"
-                                value={formData.email}
+                                value={formData.email || ''}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             />
                         </div>
@@ -97,7 +97,7 @@ export default function AddPersonModal({ open, onClose, onSave, initialData = nu
                             <Label>Phone</Label>
                             <Input
                                 type="tel"
-                                value={formData.phone}
+                                value={formData.phone || ''}
                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             />
                         </div>
@@ -107,7 +107,7 @@ export default function AddPersonModal({ open, onClose, onSave, initialData = nu
                         <div className="space-y-2">
                             <Label>Role</Label>
                             <Select
-                                value={formData.role}
+                                value={formData.role || 'Volunteer'}
                                 onValueChange={(val) => setFormData({ ...formData, role: val })}
                             >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -119,7 +119,7 @@ export default function AddPersonModal({ open, onClose, onSave, initialData = nu
                         <div className="space-y-2">
                             <Label>Status</Label>
                             <Select
-                                value={formData.status}
+                                value={formData.status || 'New'}
                                 onValueChange={(val) => setFormData({ ...formData, status: val })}
                             >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
