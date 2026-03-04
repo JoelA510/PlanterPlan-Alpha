@@ -38,5 +38,8 @@ jobs:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-key
 
+      - name: Supabase DB Tests (pgTAP)
+        run: npx supabase db test
+
       - name: Build
         run: npm run build

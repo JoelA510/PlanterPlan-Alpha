@@ -79,7 +79,7 @@ ALTER TYPE "public"."task_resource_type" OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."calc_task_date_rollup"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 DECLARE
     v_parent_id uuid;
@@ -127,6 +127,7 @@ ALTER FUNCTION "public"."calc_task_date_rollup"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."check_phase_unlock"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
     AS $$
 DECLARE
     v_milestone_id uuid;
@@ -179,7 +180,7 @@ ALTER FUNCTION "public"."check_phase_unlock"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."check_project_ownership"("p_id" "uuid", "u_id" "uuid") RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 BEGIN
   RETURN EXISTS (
@@ -197,7 +198,7 @@ ALTER FUNCTION "public"."check_project_ownership"("p_id" "uuid", "u_id" "uuid") 
 
 CREATE OR REPLACE FUNCTION "public"."clone_project_template"("p_template_id" "uuid", "p_new_parent_id" "uuid", "p_new_origin" "text", "p_user_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 DECLARE
     v_new_root_id uuid;
@@ -303,7 +304,7 @@ ALTER FUNCTION "public"."clone_project_template"("p_template_id" "uuid", "p_new_
 
 CREATE OR REPLACE FUNCTION "public"."clone_project_template"("p_template_id" "uuid", "p_new_parent_id" "uuid", "p_new_origin" "text", "p_user_id" "uuid", "p_title" "text" DEFAULT NULL::"text", "p_description" "text" DEFAULT NULL::"text", "p_start_date" "date" DEFAULT NULL::"date", "p_due_date" "date" DEFAULT NULL::"date") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 DECLARE
     v_new_root_id uuid;
@@ -415,7 +416,7 @@ ALTER FUNCTION "public"."clone_project_template"("p_template_id" "uuid", "p_new_
 
 CREATE OR REPLACE FUNCTION "public"."clone_project_template"("p_template_id" "uuid", "p_new_parent_id" "uuid", "p_new_origin" "text", "p_user_id" "uuid", "p_title" "text" DEFAULT NULL::"text", "p_description" "text" DEFAULT NULL::"text", "p_start_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_due_date" timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 
 DECLARE
@@ -575,7 +576,7 @@ ALTER FUNCTION "public"."clone_project_template"("p_template_id" "uuid", "p_new_
 
 CREATE OR REPLACE FUNCTION "public"."debug_create_project"("p_title" "text", "p_creator_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 DECLARE
     v_project_id uuid;
@@ -625,7 +626,7 @@ ALTER FUNCTION "public"."debug_create_project"("p_title" "text", "p_creator_id" 
 
 CREATE OR REPLACE FUNCTION "public"."get_invite_details"("p_token" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 DECLARE
   v_invite public.project_invites%ROWTYPE;
@@ -662,7 +663,7 @@ ALTER FUNCTION "public"."get_invite_details"("p_token" "uuid") OWNER TO "postgre
 
 CREATE OR REPLACE FUNCTION "public"."get_task_root_id"("p_task_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 DECLARE
   v_root_id uuid;
@@ -682,7 +683,7 @@ ALTER FUNCTION "public"."get_task_root_id"("p_task_id" "uuid") OWNER TO "postgre
 
 CREATE OR REPLACE FUNCTION "public"."get_user_id_by_email"("email" "text") RETURNS "uuid"
     LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $_$
   select id from auth.users where email = $1;
 $_$;
@@ -693,6 +694,7 @@ ALTER FUNCTION "public"."get_user_id_by_email"("email" "text") OWNER TO "postgre
 
 CREATE OR REPLACE FUNCTION "public"."handle_phase_completion"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
     AS $$
 DECLARE
   v_next_task_id uuid;
@@ -735,6 +737,7 @@ ALTER FUNCTION "public"."handle_updated_at"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."has_project_role"("pid" "uuid", "uid" "uuid", "allowed_roles" "text"[]) RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
     AS $$
 BEGIN
     RETURN EXISTS (
@@ -752,7 +755,7 @@ ALTER FUNCTION "public"."has_project_role"("pid" "uuid", "uid" "uuid", "allowed_
 
 CREATE OR REPLACE FUNCTION "public"."initialize_default_project"("p_project_id" "uuid", "p_creator_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 DECLARE
     v_phase_id uuid;
@@ -926,7 +929,7 @@ ALTER FUNCTION "public"."initialize_default_project"("p_project_id" "uuid", "p_c
 
 CREATE OR REPLACE FUNCTION "public"."invite_user_to_project"("p_project_id" "uuid", "p_email" "text", "p_role" "text") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 DECLARE
   v_user_id uuid;
@@ -1003,7 +1006,7 @@ ALTER FUNCTION "public"."invite_user_to_project"("p_project_id" "uuid", "p_email
 
 CREATE OR REPLACE FUNCTION "public"."is_active_member"("p_project_id" "uuid", "p_user_id" "uuid") RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 BEGIN
   RETURN EXISTS (
@@ -1021,7 +1024,7 @@ ALTER FUNCTION "public"."is_active_member"("p_project_id" "uuid", "p_user_id" "u
 
 CREATE OR REPLACE FUNCTION "public"."is_admin"("p_user_id" "uuid") RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 BEGIN
   -- Check admin_users table for intentional admin grants
@@ -1587,77 +1590,77 @@ ALTER TABLE ONLY "public"."tasks"
 
 
 
-CREATE POLICY "Allow project creation" ON "public"."tasks" FOR INSERT TO "authenticated" WITH CHECK (((("root_id" IS NULL) OR ("root_id" = "id")) AND ("parent_task_id" IS NULL) AND ("creator" = "auth"."uid"())));
+CREATE POLICY "Allow project creation" ON "public"."tasks" FOR INSERT TO "authenticated" WITH CHECK (((("root_id" IS NULL) OR ("root_id" = "id")) AND ("parent_task_id" IS NULL) AND ("creator" = (SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
-CREATE POLICY "Allow subtask creation by members" ON "public"."tasks" FOR INSERT TO "authenticated" WITH CHECK ((("root_id" IS NOT NULL) AND "public"."has_project_role"("root_id", "auth"."uid"(), ARRAY['owner'::"text", 'editor'::"text"])));
+CREATE POLICY "Allow subtask creation by members" ON "public"."tasks" FOR INSERT TO "authenticated" WITH CHECK ((("root_id" IS NOT NULL) AND "public"."has_project_role"("root_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"])));
 
 
 
-CREATE POLICY "Create invites for project members" ON "public"."project_invites" FOR INSERT WITH CHECK (("public"."is_admin"(( SELECT "auth"."uid"() AS "uid")) OR "public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text"]) OR ("public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['editor'::"text"]) AND ("role" <> 'owner'::"text"))));
+CREATE POLICY "Create invites for project members" ON "public"."project_invites" FOR INSERT WITH CHECK (("public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text"]) OR ("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['editor'::"text"]) AND ("role" <> 'owner'::"text"))));
 
 
 
-CREATE POLICY "Delete invites for project members" ON "public"."project_invites" FOR DELETE USING (("public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "Delete invites for project members" ON "public"."project_invites" FOR DELETE USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
-CREATE POLICY "Enable all for authenticated users" ON "public"."project_members" USING (("public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text"]) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "Enable all for authenticated users" ON "public"."project_members" USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
-CREATE POLICY "Enable delete for users" ON "public"."tasks" FOR DELETE USING ((("creator" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."has_project_role"(COALESCE("root_id", "id"), ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text"])));
+CREATE POLICY "Enable delete for users" ON "public"."tasks" FOR DELETE USING ((("creator" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."has_project_role"(COALESCE("root_id", "id"), (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"])));
 
 
 
-CREATE POLICY "Enable insert for authenticated users within project" ON "public"."tasks" FOR INSERT WITH CHECK ((((("auth"."role"() = 'authenticated'::"text") AND ("root_id" IS NULL) AND ("parent_task_id" IS NULL) AND ("creator" = "auth"."uid"())) OR "public"."has_project_role"("root_id", "auth"."uid"(), ARRAY['owner'::"text", 'editor'::"text"])) AND (("origin" IS DISTINCT FROM 'template'::"text") OR "public"."is_admin"("auth"."uid"()))));
+CREATE POLICY "Enable insert for authenticated users within project" ON "public"."tasks" FOR INSERT WITH CHECK ((((("auth"."role"() = 'authenticated'::"text") AND ("root_id" IS NULL) AND ("parent_task_id" IS NULL) AND ("creator" = (SELECT (auth.jwt() ->> 'sub')::uuid))) OR "public"."has_project_role"("root_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"])) AND (("origin" IS DISTINCT FROM 'template'::"text") OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid)))));
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."tasks" FOR SELECT USING ((("creator" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."has_project_role"(COALESCE("root_id", "id"), ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]) OR ("origin" = 'template'::"text") OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "Enable read access for all users" ON "public"."tasks" FOR SELECT USING ((("creator" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."has_project_role"(COALESCE("root_id", "id"), (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]) OR ("origin" = 'template'::"text") OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
-CREATE POLICY "Enable update for users" ON "public"."tasks" FOR UPDATE USING (((("creator" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."has_project_role"(COALESCE("root_id", "id"), ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text"])) AND (("origin" IS DISTINCT FROM 'template'::"text") OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid")))));
+CREATE POLICY "Enable update for users" ON "public"."tasks" FOR UPDATE USING (((("creator" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."has_project_role"(COALESCE("root_id", "id"), (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"])) AND (("origin" IS DISTINCT FROM 'template'::"text") OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid)))));
 
 
 
-CREATE POLICY "Manage people for owners and editors" ON "public"."people" USING (("public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "Manage people for owners and editors" ON "public"."people" USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
-CREATE POLICY "Manage relationships" ON "public"."task_relationships" USING (("public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "Manage relationships" ON "public"."task_relationships" USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
 CREATE POLICY "Manage resources" ON "public"."task_resources" USING (((EXISTS ( SELECT 1
    FROM "public"."tasks" "t"
-  WHERE (("t"."id" = "task_resources"."task_id") AND (("t"."creator" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."has_project_role"(COALESCE("t"."root_id", "t"."id"), ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text"]))))) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+  WHERE (("t"."id" = "task_resources"."task_id") AND (("t"."creator" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."has_project_role"(COALESCE("t"."root_id", "t"."id"), (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"]))))) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
 CREATE POLICY "Project members can delete chunks" ON "public"."rag_chunks" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."project_members"
-  WHERE (("project_members"."project_id" = "rag_chunks"."project_id") AND ("project_members"."user_id" = "auth"."uid"())))));
+  WHERE (("project_members"."project_id" = "rag_chunks"."project_id") AND ("project_members"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid))))));
 
 
 
 CREATE POLICY "Project members can insert chunks" ON "public"."rag_chunks" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."project_members"
-  WHERE (("project_members"."project_id" = "rag_chunks"."project_id") AND ("project_members"."user_id" = "auth"."uid"())))));
+  WHERE (("project_members"."project_id" = "rag_chunks"."project_id") AND ("project_members"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid))))));
 
 
 
 CREATE POLICY "Project members can read chunks" ON "public"."rag_chunks" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."project_members"
-  WHERE (("project_members"."project_id" = "rag_chunks"."project_id") AND ("project_members"."user_id" = "auth"."uid"())))));
+  WHERE (("project_members"."project_id" = "rag_chunks"."project_id") AND ("project_members"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid))))));
 
 
 
 CREATE POLICY "Project members can update chunks" ON "public"."rag_chunks" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."project_members"
-  WHERE (("project_members"."project_id" = "rag_chunks"."project_id") AND ("project_members"."user_id" = "auth"."uid"())))));
+  WHERE (("project_members"."project_id" = "rag_chunks"."project_id") AND ("project_members"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid))))));
 
 
 
@@ -1665,50 +1668,50 @@ CREATE POLICY "Public Read Templates" ON "public"."tasks" FOR SELECT TO "authent
 
 
 
-CREATE POLICY "View invites for project members" ON "public"."project_invites" FOR SELECT USING (("public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "View invites for project members" ON "public"."project_invites" FOR SELECT USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
-CREATE POLICY "View people for project members" ON "public"."people" FOR SELECT USING (("public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "View people for project members" ON "public"."people" FOR SELECT USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
-CREATE POLICY "View project members" ON "public"."project_members" FOR SELECT USING (("public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "View project members" ON "public"."project_members" FOR SELECT USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
-CREATE POLICY "View relationships" ON "public"."task_relationships" FOR SELECT USING (("public"."has_project_role"("project_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "View relationships" ON "public"."task_relationships" FOR SELECT USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
 CREATE POLICY "View resources" ON "public"."task_resources" FOR SELECT USING (((EXISTS ( SELECT 1
    FROM "public"."tasks" "t"
-  WHERE (("t"."id" = "task_resources"."task_id") AND (("t"."creator" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."has_project_role"(COALESCE("t"."root_id", "t"."id"), ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]))))) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))));
+  WHERE (("t"."id" = "task_resources"."task_id") AND (("t"."creator" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."has_project_role"(COALESCE("t"."root_id", "t"."id"), (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text", 'coach'::"text", 'viewer'::"text", 'limited'::"text"]))))) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
 ALTER TABLE "public"."admin_users" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "members_delete_policy" ON "public"."project_members" FOR DELETE USING ((("user_id" = "auth"."uid"()) OR "public"."check_project_ownership"("project_id", "auth"."uid"()) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
+CREATE POLICY "members_delete_policy" ON "public"."project_members" FOR DELETE USING ((("user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."check_project_ownership"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
    FROM "public"."project_members" "project_members_1"
-  WHERE (("project_members_1"."user_id" = "auth"."uid"()) AND ("project_members_1"."role" = 'owner'::"text"))))));
+  WHERE (("project_members_1"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) AND ("project_members_1"."role" = 'owner'::"text"))))));
 
 
 
-CREATE POLICY "members_insert_policy" ON "public"."project_members" FOR INSERT WITH CHECK (("public"."check_project_ownership"("project_id", "auth"."uid"()) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
+CREATE POLICY "members_insert_policy" ON "public"."project_members" FOR INSERT WITH CHECK (("public"."check_project_ownership"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
    FROM "public"."project_members" "project_members_1"
-  WHERE (("project_members_1"."user_id" = "auth"."uid"()) AND ("project_members_1"."role" = 'owner'::"text"))))));
+  WHERE (("project_members_1"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) AND ("project_members_1"."role" = 'owner'::"text"))))));
 
 
 
-CREATE POLICY "members_select_policy" ON "public"."project_members" FOR SELECT USING ((("user_id" = "auth"."uid"()) OR "public"."is_active_member"("project_id", "auth"."uid"()) OR "public"."check_project_ownership"("project_id", "auth"."uid"())));
+CREATE POLICY "members_select_policy" ON "public"."project_members" FOR SELECT USING ((("user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."is_active_member"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."check_project_ownership"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
-CREATE POLICY "members_update_policy" ON "public"."project_members" FOR UPDATE USING (("public"."check_project_ownership"("project_id", "auth"."uid"()) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
+CREATE POLICY "members_update_policy" ON "public"."project_members" FOR UPDATE USING (("public"."check_project_ownership"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
    FROM "public"."project_members" "project_members_1"
-  WHERE (("project_members_1"."user_id" = "auth"."uid"()) AND ("project_members_1"."role" = 'owner'::"text")))))) WITH CHECK ((("user_id" <> "auth"."uid"()) OR ("role" <> 'viewer'::"text")));
+  WHERE (("project_members_1"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) AND ("project_members_1"."role" = 'owner'::"text")))))) WITH CHECK ((("user_id" <> (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("role" <> 'viewer'::"text")));
 
 
 

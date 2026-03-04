@@ -155,7 +155,7 @@ describe('CreateProjectModal', () => {
  });
 
  const calledWith = mockOnSubmit.mock.calls[0][0];
- expect(calledWith).toHaveProperty('template', 'new-church');
+ expect(calledWith).toHaveProperty('templateId', 'new-church');
  });
  });
 
