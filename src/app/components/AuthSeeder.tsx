@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { supabase } from '@/shared/db/client';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 interface SeedAuthEventDetail {
     session: {

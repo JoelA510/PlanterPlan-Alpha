@@ -1,11 +1,13 @@
+
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import PhaseCard from './PhaseCard';
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
+import type { TaskRow } from '@/shared/db/app.types';
 
 vi.mock('framer-motion', () => ({
     motion: {
-        div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
+        div: ({ children, whileHover: _h, whileTap: _t, ...props }: React.PropsWithChildren<Record<string, unknown>>) => <div {...props}>{children}</div>,
     },
 }));
 
@@ -50,9 +52,9 @@ describe('PhaseCard', () => {
     it('renders phase info correctly', () => {
         render(
             <PhaseCard
-                phase={mockPhase}
-                tasks={mockTasks}
-                milestones={mockMilestones}
+                phase={mockPhase as TaskRow}
+                tasks={mockTasks as TaskRow[]}
+                milestones={mockMilestones as TaskRow[]}
                 isActive={false}
             />
         );
@@ -66,9 +68,9 @@ describe('PhaseCard', () => {
         ];
         render(
             <PhaseCard
-                phase={mockPhase}
-                tasks={completeTasks}
-                milestones={mockMilestones}
+                phase={mockPhase as TaskRow}
+                tasks={completeTasks as TaskRow[]}
+                milestones={mockMilestones as TaskRow[]}
                 isActive={false}
             />
         );
@@ -79,9 +81,9 @@ describe('PhaseCard', () => {
         const lockedPhase = { ...mockPhase, is_locked: true };
         render(
             <PhaseCard
-                phase={lockedPhase}
-                tasks={[]}
-                milestones={mockMilestones}
+                phase={lockedPhase as TaskRow}
+                tasks={[] as TaskRow[]}
+                milestones={mockMilestones as TaskRow[]}
                 isActive={false}
             />
         );

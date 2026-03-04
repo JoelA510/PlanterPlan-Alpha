@@ -68,9 +68,12 @@ describe.runIf(shouldRun)('Security: RLS & Access Control', () => {
         it('should NOT list any tasks for anonymous user (Direct Select)', async () => {
             const { data, error } = await anonClient.from('tasks').select('*');
 
-            // RLS silently filters unauthorized rows on SELECT. Expect [] without error.
-            expect(error).toBeNull();
-            expect(data).toEqual([]);
+            // RLS silently filters unauthorized rows on SELECT, or returns 42501 if no table access.
+            if (error) {
+                expect(error.code).toBe('42501');
+            } else {
+                expect(data).toEqual([]);
+            }
         });
 
         it('should NOT be able to create a task (Expect PGRST205 or PGRST301)', async () => {
@@ -87,8 +90,11 @@ describe.runIf(shouldRun)('Security: RLS & Access Control', () => {
 
         it('should NOT be able to see project_members list', async () => {
             const { data, error } = await anonClient.from('project_members').select('*');
-            expect(error).toBeNull();
-            expect(data).toEqual([]);
+            if (error) {
+                expect(error.code).toBe('42501');
+            } else {
+                expect(data).toEqual([]);
+            }
         });
     });
 

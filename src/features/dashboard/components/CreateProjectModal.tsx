@@ -5,7 +5,6 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
-    DialogFooter,
 } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -24,7 +23,7 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import type { CreateProjectFormData } from '@/features/projects/hooks/useProjectMutations';
+import type { CreateProjectFormData } from '@/shared/db/app.types';
 
 const templates = [
     {

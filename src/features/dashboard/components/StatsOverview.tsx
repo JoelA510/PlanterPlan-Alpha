@@ -16,7 +16,6 @@ interface StatsOverviewProps {
 export default function StatsOverview({ projects, tasks }: StatsOverviewProps) {
   const stats = useMemo(() => {
     const totalProjects = projects.length;
-    const totalTasks = tasks.length;
     const completedTasks = tasks.filter((t) => t.status === 'completed').length;
     const activeTasks = tasks.filter((t) => t.status !== 'completed').length;
 

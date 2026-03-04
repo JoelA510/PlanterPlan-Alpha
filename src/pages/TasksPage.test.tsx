@@ -8,6 +8,7 @@ import { BrowserRouter } from 'react-router-dom';
 // Mock dependencies
 import { planter } from '@/shared/api/planterClient';
 import { useTaskMutations } from '@/features/tasks/hooks/useTaskMutations';
+import type { TaskRow } from '@/shared/db/app.types';
 
 vi.mock('@/shared/api/planterClient', () => ({
     planter: {
@@ -29,7 +30,7 @@ vi.mock('@/layouts/DashboardLayout', () => ({
 
 // Mock TaskList to expose delete functionality for testing
 vi.mock('@/features/tasks/components/TaskList', () => ({
-    default: ({ tasks }: { tasks: any[] }) => (
+    default: ({ tasks }: { tasks: TaskRow[] }) => (
         <div data-testid="task-list">
             {tasks.map((task) => (
                 <div key={task.id} data-testid={`task-${task.id}`}>
@@ -45,7 +46,7 @@ describe('TasksPage', () => {
         vi.clearAllMocks();
         vi.mocked(useTaskMutations).mockReturnValue({
             updateTask: vi.fn(),
-        } as any);
+        } as unknown as ReturnType<typeof useTaskMutations>);
     });
 
     const createTestQueryClient = () => new QueryClient({

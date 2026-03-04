@@ -7,22 +7,11 @@ import {
     updateTaskInTree,
 } from '@/shared/lib/treeHelpers';
 import { planter } from '@/shared/api/planterClient';
-import { POSITION_STEP } from '@/app/constants/index';
+import { POSITION_STEP } from '@/shared/constants';
 
-/** A tree node representing a task with optional nested children. */
-export interface TreeNode {
-    id: string;
-    title?: string;
-    status?: string;
-    position?: number;
-    parent_task_id?: string | null;
-    root_id?: string | null;
-    origin?: string;
-    start_date?: string | null;
-    children?: TreeNode[];
-    isExpanded?: boolean;
-    [key: string]: unknown;
-}
+import type { TaskItemData } from '@/shared/types/tasks';
+
+export type TreeNode = TaskItemData;
 
 interface UseTreeStateReturn {
     treeData: TreeNode[];
@@ -66,7 +55,7 @@ export const useTreeState = (rootTasks: TreeNode[]): UseTreeStateReturn => {
                 try {
                     const { data: children, error } = await planter.entities.Task.fetchChildren(task.id);
                     if (error) throw error;
-                    const rawDescendants = (children as TreeNode[]).filter((c) => c.id !== task.id);
+                    const rawDescendants = (children as TaskItemData[]).filter((c) => c.id !== task.id);
                     const nestedChildren = buildTree(rawDescendants, task.id);
 
                     setTreeData((prev) => mergeChildrenIntoTree(prev, task.id, nestedChildren));

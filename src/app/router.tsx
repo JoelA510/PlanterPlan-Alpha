@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createBrowserRouter, redirect } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import Home from '@/pages/Home'

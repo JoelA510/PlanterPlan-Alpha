@@ -1,6 +1,6 @@
 import { useDeepCompareMemo } from 'use-deep-compare';
-import { useTaskDrag } from '@/features/task-drag';
-import type { DragTask } from '@/features/task-drag/lib/dragDropUtils';
+import { useTaskDrag } from './useTaskDrag';
+import type { DragTask } from '../lib/drag/dragDropUtils';
 import type { DragEndEvent, SensorDescriptor, SensorOptions } from '@dnd-kit/core';
 
 interface UseTaskDragAndDropParams {

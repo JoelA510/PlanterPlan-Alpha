@@ -37,12 +37,16 @@ export type TeamMemberRow = Database['public']['Tables']['project_members']['Row
 // ----------------------------------------------------------------------------
 export type UserRole = 'admin' | 'owner' | 'viewer';
 
+export interface UserMetadata {
+    [key: string]: string | number | boolean | null | undefined;
+}
+
 export interface User {
     id: string;
     email: string;
     role: UserRole;
-    app_metadata?: Record<string, unknown>;
-    user_metadata?: Record<string, unknown>;
+    app_metadata?: UserMetadata;
+    user_metadata?: UserMetadata;
     aud?: string;
     created_at?: string;
 }

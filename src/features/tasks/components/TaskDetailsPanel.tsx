@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
-import type { TaskRow, CreateProjectFormData, TaskFormData } from '@/shared/db/app.types';
-import { NewProjectForm } from '@/features/projects';
+import type { TaskRow, TaskFormData } from '@/shared/db/app.types';
+import type { TaskItemData } from '@/features/tasks/components/TaskItem';
+
 import NewTaskForm from '@/features/tasks/components/NewTaskForm';
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 import { X } from 'lucide-react';
 
 const getPanelTitle = (
     showForm?: boolean,
-    taskFormState?: { mode?: string; origin?: string } | null,
+    taskFormState?: { mode?: 'create' | 'edit'; origin?: 'instance' | 'template' } | null,
     taskBeingEdited?: TaskRow,
     selectedTask?: TaskRow,
     parentTaskForForm?: TaskRow
@@ -15,31 +16,32 @@ const getPanelTitle = (
     if (showForm) return 'New Project';
     if (taskFormState) {
         if (taskFormState.mode === 'edit') {
-            return taskBeingEdited ? `Edit ${taskBeingEdited.name}` : 'Edit Task';
+            return taskBeingEdited ? `Edit ${taskBeingEdited.title}` : 'Edit Task';
         }
         if (taskFormState.origin === 'template') {
             return parentTaskForForm
-                ? `New Template Task in ${parentTaskForForm.name}`
+                ? `New Template Task in ${parentTaskForForm.title}`
                 : 'New Template Task';
         }
-        return parentTaskForForm ? `New Task in ${parentTaskForForm.name}` : 'New Task';
+        return parentTaskForForm ? `New Task in ${parentTaskForForm.title}` : 'New Task';
     }
-    if (selectedTask) return selectedTask.name;
+    if (selectedTask) return selectedTask.title;
     return 'Details';
 };
 
 export interface TaskDetailsPanelProps {
     showForm: boolean;
-    taskFormState?: { mode?: string; origin?: string } | null;
+    taskFormState?: { mode?: 'create' | 'edit'; origin?: 'instance' | 'template' } | null;
     selectedTask?: TaskRow;
     taskBeingEdited?: TaskRow;
     parentTaskForForm?: TaskRow;
     onClose: () => void;
-    handleProjectSubmit?: (data: CreateProjectFormData) => Promise<void>;
+    renderNewProjectForm?: () => React.ReactNode;
+    renderLibrarySearch?: (onSelect: (task: Partial<TaskRow>) => void) => React.ReactNode;
     handleTaskSubmit?: (data: TaskFormData) => Promise<void>;
-    setTaskFormState?: (state: { mode?: string; origin?: string } | null) => void;
-    handleAddChildTask?: (task: TaskRow) => void;
-    handleEditTask?: (task: TaskRow) => void;
+    setTaskFormState?: (state: { mode?: 'create' | 'edit'; origin?: 'instance' | 'template' } | null) => void;
+    handleAddChildTask?: (task: TaskItemData) => void;
+    handleEditTask?: (task: TaskItemData) => void;
     onDeleteTaskWrapper?: (taskId: string) => Promise<void>;
     fetchTasks?: () => void;
 }
@@ -51,7 +53,8 @@ export default function TaskDetailsPanel({
     taskBeingEdited,
     parentTaskForForm,
     onClose,
-    handleProjectSubmit,
+    renderNewProjectForm,
+    renderLibrarySearch,
     handleTaskSubmit,
     setTaskFormState,
     handleAddChildTask,
@@ -78,24 +81,24 @@ export default function TaskDetailsPanel({
                 </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white dark:bg-card">
-                {showForm && handleProjectSubmit ? (
-                    <NewProjectForm onSubmit={handleProjectSubmit} onCancel={onClose} />
+                {showForm && renderNewProjectForm ? (
+                    renderNewProjectForm()
                 ) : isTaskFormOpen && setTaskFormState ? (
                     <NewTaskForm
                         parentTask={parentTaskForForm}
                         initialTask={taskBeingEdited}
                         origin={taskFormState?.origin}
-                        enableLibrarySearch={taskFormState?.mode !== 'edit'}
+                        renderLibrarySearch={taskFormState?.mode !== 'edit' ? renderLibrarySearch : undefined}
                         submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
-                        onSubmit={handleTaskSubmit}
+                        onSubmit={handleTaskSubmit || (async () => {})}
                         onCancel={() => setTaskFormState(null)}
                     />
                 ) : selectedTask ? (
                     <TaskDetailsView
-                        task={selectedTask}
+                        task={selectedTask as TaskItemData}
                         onAddChildTask={handleAddChildTask}
                         onEditTask={handleEditTask}
-                        onDeleteTask={onDeleteTaskWrapper}
+                        onDeleteTask={(t) => onDeleteTaskWrapper ? onDeleteTaskWrapper(t.id) : undefined}
                         onTaskUpdated={fetchTasks || (() => { })}
                     />
                 ) : null}

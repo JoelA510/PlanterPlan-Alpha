@@ -14,6 +14,14 @@
 
 ## 2. Production Findings (Active Rules & Patterns)
 
+### [ARC-040] Date Calculation Ownership & FSD Leakage
+- **Context**: Raw `date-fns` usage and `new Date()` logic was scattered throughout UI components, causing Feature-Sliced Design (FSD) boundary leaks and inconsistent timezone handling.
+- **Rule**: **Centralize Date Math.** All date logic must route through the `date-engine` canonical utilities (`calculateMinMaxDates()`). Direct `date-fns` manipulation or raw `new Date()` logic in the presentation layer is strictly forbidden.
+
+### [TEST-013] E2E Stateful Auth Mocking
+- **Context**: Playwright E2E tests experienced race conditions due to eager React Router redirects before the DOM could fully mount the login form.
+- **Rule**: **Mount Logged Out First.** Always mount tests with `isLoggedOut = true` initially to allow proper DOM attachment of the login UI, then flip the state and trigger `dispatchEvent` to simulate the auth redirect synchronously.
+
 ### [ARC-035] The Abstraction Purge (Direct Adapter Access)
 - **Context**: A "service" layer (`projectService`, `taskService`) emerged that did nothing but pass arguments to `planterClient`, adding cognitive load and boilerplate without adding business value.
 - **Rule**: **Eliminate pure-passthrough layers.** Components and React Query hooks should interact directly with the unified adapter (`planterClient`). Strict `.jsx` to `.tsx` conversion acts as a forcing function to reveal dead code and untyped implicit dependencies.

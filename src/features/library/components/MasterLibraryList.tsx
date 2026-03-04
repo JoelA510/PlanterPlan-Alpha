@@ -1,17 +1,25 @@
 import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 import useMasterLibraryTasks from '@/features/library/hooks/useMasterLibraryTasks';
 import { useTreeState } from '@/features/library/hooks/useTreeState';
-import type { TreeNode } from '@/features/library/hooks/useTreeState';
-import { TaskItem } from '@/features/tasks';
+import type { TaskItemData } from '@/shared/types/tasks';
+
 import { DndContext, useSensor, useSensors, PointerSensor, closestCorners } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 
 const PAGE_SIZE = 50;
 
 interface MasterLibraryListProps {
-    onTaskSelect?: (task: TreeNode) => void;
-    onAddChildTask?: (task: TreeNode) => void;
+    onTaskSelect?: (task: TaskItemData) => void;
+    onAddChildTask?: (task: TaskItemData) => void;
+    renderTaskItem: (props: {
+        task: TaskItemData;
+        level: number;
+        onTaskClick: (task: TaskItemData) => void;
+        onStatusChange: (taskId: string, status: string) => void;
+        onAddChildTask?: (task: TaskItemData) => void;
+        forceShowChevron: boolean;
+        onToggleExpand: (taskId: string) => void;
+    }) => React.ReactNode;
 }
 
 const MasterLibraryList = (props: MasterLibraryListProps) => {
@@ -21,17 +29,17 @@ const MasterLibraryList = (props: MasterLibraryListProps) => {
     const {
         tasks: rootTasks,
         isLoading,
-        hasMore,
+        hasNextPage,
+        fetchNextPage,
         refresh,
     } = useMasterLibraryTasks({
-        page,
         limit: PAGE_SIZE,
         resourceType,
     });
 
-    const { treeData, loadingNodes, toggleExpand, handleStatusChange, handleReorder } = useTreeState(rootTasks);
+    const { treeData, loadingNodes, expandedTaskIds, toggleExpand, handleStatusChange, handleReorder } = useTreeState(rootTasks);
 
-    const handleTaskClick = (task: TreeNode) => {
+    const handleTaskClick = (task: TaskItemData) => {
         if (props.onTaskSelect) {
             props.onTaskSelect(task);
         }
@@ -51,8 +59,11 @@ const MasterLibraryList = (props: MasterLibraryListProps) => {
         setPage((prev) => Math.max(0, prev - 1));
     };
     const handleNext = () => {
-        if (!hasMore || isLoading) return;
+        if (!hasNextPage && rootTasks.length <= (page + 1) * PAGE_SIZE) return;
         setPage((prev) => prev + 1);
+        if (rootTasks.length <= (page + 1) * PAGE_SIZE && hasNextPage) {
+            fetchNextPage();
+        }
     };
 
     const sensors = useSensors(
@@ -101,15 +112,15 @@ const MasterLibraryList = (props: MasterLibraryListProps) => {
                         >
                             {treeData.map((task) => (
                                 <div key={task.id} className="relative">
-                                    <TaskItem
-                                        task={task}
-                                        level={0}
-                                        onTaskClick={handleTaskClick}
-                                        onStatusChange={handleStatusChange}
-                                        onAddChildTask={props.onAddChildTask}
-                                        forceShowChevron={true}
-                                        onToggleExpand={toggleExpand}
-                                    />
+                                    {props.renderTaskItem({
+                                        task,
+                                        level: 0,
+                                        onTaskClick: handleTaskClick,
+                                        onStatusChange: handleStatusChange,
+                                        onAddChildTask: props.onAddChildTask,
+                                        forceShowChevron: true,
+                                        onToggleExpand: () => toggleExpand(task, !expandedTaskIds.has(task.id)),
+                                    })}
                                     {loadingNodes[task.id] && (
                                         <div className="absolute top-2 right-2 text-xs text-slate-500">
                                             Loading subtasks...
@@ -136,7 +147,7 @@ const MasterLibraryList = (props: MasterLibraryListProps) => {
                     <span className="text-sm">Page {page + 1}</span>
                     <button
                         onClick={handleNext}
-                        disabled={!hasMore}
+                        disabled={!hasNextPage && rootTasks.length <= (page + 1) * PAGE_SIZE}
                         className="px-3 py-1 border rounded disabled:opacity-50"
                     >
                         Next

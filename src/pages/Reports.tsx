@@ -7,7 +7,7 @@ import { Card } from '@/shared/ui/card';
 import { Progress } from '@/shared/ui/progress';
 import { ArrowLeft, Loader2, BarChart, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import {
   Select,
   SelectContent,

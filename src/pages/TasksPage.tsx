@@ -30,6 +30,9 @@ export default function TasksPage() {
     findTask
   });
 
+  const handleStatusChange = useCallback((id: string, status: string) => updateTask(id, { status }), [updateTask]);
+  const handleNoop = useCallback(() => { }, []);
+
   // For "My Tasks" view, we show all instance tasks that are actual tasks (not phases/milestones/roots)
   const myTasks = tasks.filter((t) => t.parent_task_id !== null && t.origin === 'instance');
 
@@ -131,13 +134,13 @@ export default function TasksPage() {
                           key={task.id}
                           task={task}
                           level={0}
-                          onStatusChange={useCallback((id: string, status: string) => updateTask(id, { status }), [updateTask])}
+                          onStatusChange={handleStatusChange}
                           hideExpansion={true}
                           disableDrag={true}
                           // No-ops for unsupported actions in this view for now
-                          onTaskClick={useCallback(() => { }, [])}
-                          onAddChildTask={useCallback(() => { }, [])}
-                          onInviteMember={useCallback(() => { }, [])}
+                          onTaskClick={handleNoop}
+                          onAddChildTask={handleNoop}
+                          onInviteMember={handleNoop}
                         />
                       ))}
                     </div>

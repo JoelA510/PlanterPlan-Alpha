@@ -1,5 +1,5 @@
 import { planter } from '@/shared/api/planterClient';
-import { POSITION_STEP } from '@app/constants/index';
+import { POSITION_STEP } from '@/shared/constants';
 
 const MIN_GAP = 2;
 

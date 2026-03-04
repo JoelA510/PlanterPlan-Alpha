@@ -4,7 +4,7 @@ import * as dateEngine from './index';
 
 // Mock date engine to control outputs
 vi.mock('./index', async () => {
-    const actual = await vi.importActual<any>('./index');
+    const actual = await vi.importActual<typeof import('./index')>('./index');
     return {
         ...actual,
         calculateScheduleFromOffset: vi.fn(),
@@ -25,7 +25,7 @@ describe('payloadHelpers', () => {
     const mockFormData = {
         title: 'New Task',
         description: 'Desc',
-        days_from_start: '5',
+        days_from_start: 5,
         start_date: null,
         due_date: null,
     };
@@ -36,7 +36,7 @@ describe('payloadHelpers', () => {
 
     describe('constructCreatePayload', () => {
         it('constructs basic payload correctly', () => {
-            const payload = constructCreatePayload(mockFormData as any, mockContext);
+            const payload = constructCreatePayload(mockFormData as unknown as Parameters<typeof constructCreatePayload>[0], mockContext);
 
             expect(payload).toMatchObject({
                 title: 'New Task',
@@ -52,12 +52,12 @@ describe('payloadHelpers', () => {
         });
 
         it('calculates schedule if days_from_start is provided for instance', () => {
-            (dateEngine.calculateScheduleFromOffset as any).mockReturnValue({
+            (dateEngine.calculateScheduleFromOffset as import('vitest').Mock).mockReturnValue({
                 start_date: '2023-01-06',
                 due_date: '2023-01-06',
             });
 
-            const payload = constructCreatePayload(mockFormData as any, mockContext);
+            const payload = constructCreatePayload(mockFormData as unknown as Parameters<typeof constructCreatePayload>[0], mockContext);
 
             expect(dateEngine.calculateScheduleFromOffset).toHaveBeenCalledWith(
                 mockContext.contextTasks,
@@ -69,12 +69,12 @@ describe('payloadHelpers', () => {
 
         it('prioritizes manual dates over calculated ones', () => {
             const manualData = { ...mockFormData, start_date: '2023-02-01' };
-            (dateEngine.calculateScheduleFromOffset as any).mockReturnValue({
+            (dateEngine.calculateScheduleFromOffset as import('vitest').Mock).mockReturnValue({
                 start_date: '2023-01-06',
                 due_date: '2023-01-06',
             });
 
-            const payload = constructCreatePayload(manualData as any, mockContext);
+            const payload = constructCreatePayload(manualData as unknown as Parameters<typeof constructCreatePayload>[0], mockContext);
 
             expect(payload.start_date).toBe('2023-02-01');
             expect(payload.due_date).toBe('2023-02-01');
@@ -83,7 +83,7 @@ describe('payloadHelpers', () => {
 
     describe('constructUpdatePayload', () => {
         it('constructs update payload correctly', () => {
-            const payload = constructUpdatePayload(mockFormData as any, {}, mockContext);
+            const payload = constructUpdatePayload(mockFormData as unknown as NonNullable<Parameters<typeof constructUpdatePayload>[0]>, { id: 'task-1' }, mockContext);
 
             expect(payload).toMatchObject({
                 title: 'New Task',
@@ -95,12 +95,12 @@ describe('payloadHelpers', () => {
 
         it('handles manual date overrides in updates', () => {
             const manualData = { ...mockFormData, start_date: '2023-03-01', due_date: '2023-03-05' };
-            (dateEngine.calculateScheduleFromOffset as any).mockReturnValue({
+            (dateEngine.calculateScheduleFromOffset as import('vitest').Mock).mockReturnValue({
                 start_date: '2023-01-06',
                 due_date: '2023-01-06'
             });
 
-            const payload = constructUpdatePayload(manualData as any, {}, mockContext);
+            const payload = constructUpdatePayload(manualData as unknown as NonNullable<Parameters<typeof constructUpdatePayload>[0]>, { id: 'task-1' }, mockContext);
 
             expect(payload.start_date).toBe('2023-03-01');
             expect(payload.due_date).toBe('2023-03-05');

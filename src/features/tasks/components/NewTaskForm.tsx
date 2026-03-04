@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import type { UseFormReturn } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { isDateValid, isBeforeDate } from '@/shared/lib/date-engine';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -17,7 +19,11 @@ const getTaskSchema = (origin: 'instance' | 'template') => z.object({
     notes: z.string().optional().nullable(),
     purpose: z.string().optional().nullable(),
     actions: z.string().optional().nullable(),
-    days_from_start: z.number().min(0, 'Days from start must be zero or greater').optional().or(z.nan()).or(z.string().transform(val => val === '' ? undefined : Number(val))),
+    days_from_start: z.preprocess((val) => {
+        if (val === '' || val === null || val === undefined) return undefined;
+        const num = typeof val === 'number' ? val : Number(val);
+        return isNaN(num) ? undefined : num;
+    }, z.number().min(0, 'Days from start must be zero or greater').optional()),
     start_date: z.string().optional().nullable(),
     due_date: z.string().optional().nullable(),
     templateId: z.string().nullable().optional(),
@@ -57,7 +63,7 @@ export interface NewTaskFormProps {
     initialTask?: Partial<TaskRow> | null;
     origin?: 'instance' | 'template';
     submitLabel?: string;
-    enableLibrarySearch?: boolean;
+    renderLibrarySearch?: (onSelect: (task: Partial<TaskRow>) => void) => React.ReactNode;
 }
 
 const NewTaskForm = ({
@@ -67,18 +73,19 @@ const NewTaskForm = ({
     initialTask = null,
     origin = 'instance',
     submitLabel = 'Add New Task',
-    enableLibrarySearch = true,
+    renderLibrarySearch,
 }: NewTaskFormProps) => {
     const isEditMode = Boolean(initialTask);
     const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
     const prevInitialTaskRef = useRef(initialTask);
 
-    const methods = useForm({
+    const methods = useForm<TaskFormData>({
+        // @ts-expect-error Zod refinement output doesn't structurally match TaskFormData for resolver
         resolver: zodResolver(getTaskSchema(origin)),
-        defaultValues: createInitialState(initialTask),
+        defaultValues: createInitialState(initialTask) as TaskFormData,
     });
 
-    const { reset, handleSubmit, setValue, formState: { isSubmitting } } = methods;
+    const { reset, setValue, formState: { isSubmitting } } = methods;
 
     useEffect(() => {
         reset(createInitialState(initialTask));
@@ -119,20 +126,19 @@ const NewTaskForm = ({
     }, [onSubmit, isEditMode, reset]);
 
     return (
-        <FormProvider {...methods}>
-            <TaskForm
-                isSubmitting={isSubmitting}
-                initialData={initialTask}
-                lastAppliedTaskTitle={lastAppliedTaskTitle}
-                handleApplyFromLibrary={handleApplyFromLibrary}
-                handleSubmit={handleSubmit(handleFormSubmit)}
-                onCancel={onCancel}
-                origin={origin}
-                submitLabel={isEditMode ? submitLabel : undefined}
-                enableLibrarySearch={enableLibrarySearch}
-                parentTask={parentTask}
-            />
-        </FormProvider>
+        <TaskForm
+            formMethods={methods as unknown as UseFormReturn<TaskFormData>}
+            isSubmitting={isSubmitting}
+            initialData={initialTask}
+            lastAppliedTaskTitle={lastAppliedTaskTitle}
+            handleApplyFromLibrary={handleApplyFromLibrary}
+            onSubmitHandler={handleFormSubmit}
+            onCancel={onCancel}
+            origin={origin}
+            submitLabel={isEditMode ? submitLabel : undefined}
+            renderLibrarySearch={renderLibrarySearch}
+            parentTask={parentTask}
+        />
     );
 };
 

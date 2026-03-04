@@ -66,6 +66,7 @@ export const useProjectSelection = ({
                 joinedProjects.find((p) => p.id === urlProjectId);
 
             if (project) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 handleSelectProject(project);
             }
         }

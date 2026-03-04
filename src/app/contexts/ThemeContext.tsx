@@ -33,6 +33,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
         root.classList.add('light');
     }, []);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const setTheme = useCallback((_t: ThemePreference) => { }, []);
     const toggleTheme = useCallback(() => { }, []);
 
@@ -52,6 +53,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
  * Hook to access theme context.
  * Must be used within a ThemeProvider.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme(): ThemeContextValue {
     const context = useContext(ThemeContext);
     if (context === undefined) {

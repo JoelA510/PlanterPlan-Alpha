@@ -6,8 +6,8 @@ import { Progress } from '@/shared/ui/progress';
 import { formatDate } from '@/shared/lib/date-engine';
 import { Calendar, MapPin, Users, ChevronRight, Rocket, Building2, GitBranch, FolderKanban } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
-import { PROJECT_STATUS_COLORS } from '@/app/constants/colors';
+import { TASK_STATUS, PROJECT_STATUS } from '@/shared/constants';
+import { PROJECT_STATUS_COLORS } from '@/shared/constants/colors';
 import type { Project, Task, TeamMemberRow } from '@/shared/db/app.types';
 
 const templateIcons: Record<string, React.ElementType> = {

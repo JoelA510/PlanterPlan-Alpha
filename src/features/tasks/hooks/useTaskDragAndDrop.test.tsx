@@ -1,3 +1,4 @@
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useTaskDragAndDrop } from './useTaskDragAndDrop';
@@ -8,7 +9,7 @@ const mockHandleDragEnd = vi.fn();
 const mockTaskDragResult = { sensors: [], handleDragEnd: mockHandleDragEnd };
 let capturedTasksPassedToDrag: Task[] = [];
 
-vi.mock('@/features/task-drag', () => ({
+vi.mock('./useTaskDrag', () => ({
     useTaskDrag: vi.fn((props: { tasks: Task[] }) => {
         capturedTasksPassedToDrag = props.tasks;
         return mockTaskDragResult;
@@ -46,7 +47,7 @@ describe('useTaskDragAndDrop', () => {
 
     describe('DnD Task Aggregation (Regression)', () => {
         it('passes ALL tasks (including subtasks) to useTaskDrag', async () => {
-            renderHook(() => useTaskDragAndDrop(mockProps as any));
+            renderHook(() => useTaskDragAndDrop(mockProps as Parameters<typeof useTaskDragAndDrop>[0]));
 
             expect(capturedTasksPassedToDrag.length).toBe(5);
 
@@ -60,7 +61,7 @@ describe('useTaskDragAndDrop', () => {
         });
 
         it('does not pass duplicate tasks to useTaskDrag', async () => {
-            renderHook(() => useTaskDragAndDrop(mockProps as any));
+            renderHook(() => useTaskDragAndDrop(mockProps as Parameters<typeof useTaskDragAndDrop>[0]));
 
             const taskIds = capturedTasksPassedToDrag.map(t => t.id);
             const uniqueIds = [...new Set(taskIds)];

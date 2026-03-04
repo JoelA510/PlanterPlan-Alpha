@@ -2,7 +2,9 @@ import { useCallback } from 'react';
 import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
-import { toIsoDate } from '@/shared/lib/date-engine';
+import type { TaskFormData, CurrentTask } from '@/shared/lib/date-engine/payloadHelpers';
+import { toIsoDate, nowUtcIso } from '@/shared/lib/date-engine';
+import type { TaskUpdate, TaskInsert } from '@/shared/db/app.types';
 
 /** Minimal task shape used within task actions. */
 interface ActionTask {
@@ -115,17 +117,20 @@ export const useTaskActions = ({
 
                 if (formState.mode === 'edit' && formState.taskId) {
                     const currentTask = findTask(formState.taskId) || ({} as ActionTask);
-                    const updates = constructUpdatePayload(formData, currentTask, {
-                        origin,
-                        parentId: formState.parentId,
-                        contextTasks,
-                    });
-
-                    const { error: updateError } = await planter.entities.Task.update(
-                        formState.taskId,
-                        updates
+                    const updates = constructUpdatePayload(
+                        formData as unknown as TaskFormData,
+                        currentTask as CurrentTask,
+                        {
+                            origin,
+                            parentId: formState.parentId ?? null,
+                            contextTasks,
+                        },
                     );
-                    if (updateError) throw updateError;
+
+                    await planter.entities.Task.update(
+                        formState.taskId,
+                        updates as TaskUpdate
+                    );
 
                     if (rootId) await refreshProjectDetails(rootId);
                     else await fetchProjects(1);
@@ -145,7 +150,7 @@ export const useTaskActions = ({
                         ? Math.max(...siblings.map((task) => task.position ?? 0))
                         : 0;
 
-                const insertPayload = constructCreatePayload(formData, {
+                const insertPayload = constructCreatePayload(formData as unknown as TaskFormData, {
                     origin,
                     parentId,
                     rootId,
@@ -175,17 +180,19 @@ export const useTaskActions = ({
                     ) {
                         const updates: Record<string, unknown> = {
                             days_from_start: parsedDays,
-                            updated_at: new Date().toISOString(),
+                            updated_at: nowUtcIso(),
                         };
-                        const { error: updateError } = await planter.entities.Task.update(
-                            (newTasks as Record<string, unknown>).new_root_id as string,
-                            updates
-                        );
-                        if (updateError) console.error('Error updating cloned root schedule', updateError);
+                        try {
+                            await planter.entities.Task.update(
+                                (newTasks as Record<string, unknown>).new_root_id as string,
+                                updates as TaskUpdate
+                            );
+                        } catch (updateError) {
+                            console.error('Error updating cloned root schedule', updateError);
+                        }
                     }
                 } else {
-                    const { error: insertError } = await planter.entities.Task.create(insertPayload);
-                    if (insertError) throw insertError;
+                    await planter.entities.Task.create(insertPayload as unknown as TaskInsert);
                 }
 
                 if (rootId) await refreshProjectDetails(rootId);
@@ -203,7 +210,7 @@ export const useTaskActions = ({
                 throw error;
             }
         },
-        [tasks, joinedProjects, hydratedProjects, fetchProjects, refreshProjectDetails, findTask, commitOptimisticUpdate, fetchTasks]
+        [tasks, joinedProjects, hydratedProjects, fetchProjects, refreshProjectDetails, findTask, commitOptimisticUpdate]
     );
 
     const deleteTask = useCallback(
@@ -213,8 +220,7 @@ export const useTaskActions = ({
                 const task = typeof taskOrId === 'object' ? taskOrId : findTask(taskId);
                 const parentId = task ? task.parent_task_id : null;
 
-                const { error: deleteError } = await planter.entities.Task.delete(taskId);
-                if (deleteError) throw deleteError;
+                await planter.entities.Task.delete(taskId);
 
                 await _refreshTaskContext(task);
 
@@ -240,8 +246,7 @@ export const useTaskActions = ({
                 const task = findTask(taskId);
                 const oldParentId = task ? task.parent_task_id : null;
 
-                const { error } = await planter.entities.Task.update(taskId, updates);
-                if (error) throw error;
+                await planter.entities.Task.update(taskId, updates as TaskUpdate);
 
                 await _refreshTaskContext(task);
 

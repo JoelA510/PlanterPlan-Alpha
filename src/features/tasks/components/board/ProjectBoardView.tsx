@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import BoardColumn from './BoardColumn';
-import { TASK_STATUS } from '@/app/constants/index';
+import { TASK_STATUS } from '@/shared/constants';
 import type { TaskRow } from '@/shared/db/app.types';
 
 const COLUMNS = [

@@ -23,11 +23,16 @@ export function buildTree(tasks: Task[]): TaskNode[] {
         if (task.parent_task_id && taskMap.has(task.parent_task_id)) {
             const parent = taskMap.get(task.parent_task_id)!
             parent.children.push(node)
-            // Sort children by position
-            parent.children.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
         } else {
             // It's a root in this context (e.g. the project task itself, or an orphan)
             roots.push(node)
+        }
+    })
+
+    // Post-process: sort all children arrays once (avoids re-sorting on every insertion)
+    taskMap.forEach(node => {
+        if (node.children.length > 1) {
+            node.children.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
         }
     })
 

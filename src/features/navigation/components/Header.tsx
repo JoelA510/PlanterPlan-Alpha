@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight } from 'lucide-react';
 
 import { useUser } from '@/features/auth';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 
 interface HeaderProps {

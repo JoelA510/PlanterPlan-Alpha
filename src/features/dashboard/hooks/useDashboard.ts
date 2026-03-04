@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import type { Database } from '@/shared/db/database.types';
 import type { Task, Project } from '@/shared/db/app.types';
 

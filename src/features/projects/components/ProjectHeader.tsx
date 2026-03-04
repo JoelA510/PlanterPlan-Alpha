@@ -19,7 +19,7 @@ import {
   Search,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { TASK_STATUS, PROJECT_STATUS } from '@/app/constants/index';
+import { TASK_STATUS, PROJECT_STATUS } from '@/shared/constants';
 import EditProjectModal from './EditProjectModal';
 import { exportProjectToCSV } from '@/shared/lib/export-utils';
 import { ProjectRow, TaskRow, PersonRow } from '@/shared/db/app.types';
