@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "typecheck:agent": "node scripts/tsc-agent.cjs",
+    "verify-architecture": "bash scripts/verify-architecture.sh",
+    "verify-e2e": "bash scripts/verify-e2e.sh",
     "lint": "eslint .",
+
     "test": "vitest",
     "preview": "vite preview"
   },

@@ -102,13 +102,59 @@ if grep -rnE "window\.location\.href\s*=" src/ \
 fi
 
 # ---------------------------------------------------------------------------
-# Results
+# Results Output Formatter
 # ---------------------------------------------------------------------------
-echo ""
-if [ "$EXIT_CODE" -eq 0 ]; then
-    echo "✅ Architecture verified. No structural violations found."
+if [ "$AGENT_MODE" = "true" ]; then
+    node -e "
+        const violations = [];
+        const lateralFound = $LATERAL_FOUND;
+        const exitCode = $EXIT_CODE;
+        
+        if (exitCode !== 0) {
+            // Re-run grep to capture exact files for the JSON payload
+            const cp = require('child_process');
+            
+            try {
+                const typeMasking = cp.execSync('grep -rnE \"(as any|as unknown|: any\\\\b)\" src/ --include=\"*.ts\" --include=\"*.tsx\" --exclude=\"*.test.ts\" --exclude=\"*.test.tsx\" --exclude-dir=tests --exclude-dir=test --exclude-dir=node_modules 2>/dev/null || true').toString().trim();
+                if (typeMasking) violations.push({ rule: 'Type Masking', files: typeMasking.split('\\n') });
+            } catch(e) {}
+            
+            try {
+                const upward = cp.execSync('grep -rnE \"from [\\'\\\"]@/app/\" src/features/ --include=\"*.ts\" --include=\"*.tsx\" 2>/dev/null || true').toString().trim();
+                if (upward) violations.push({ rule: 'FSD Upward Dependency', files: upward.split('\\n') });
+            } catch(e) {}
+            
+            try {
+                const dateMath = cp.execSync('grep -rnE \"(new Date\\\\(|\\\\.toISOString\\\\(\\\\))\" src/ --include=\"*.ts\" --include=\"*.tsx\" --exclude=\"*.test.ts\" --exclude=\"*.test.tsx\" --exclude-dir=date-engine --exclude-dir=tests --exclude-dir=test 2>/dev/null || true').toString().trim();
+                if (dateMath) violations.push({ rule: 'Raw Date Math', files: dateMath.split('\\n') });
+            } catch(e) {}
+            
+            try {
+                const nihClient = cp.execSync('grep -rnE \"rawSupabaseFetch\\\\(\" src/ --include=\"*.ts\" --include=\"*.tsx\" 2>/dev/null || true').toString().trim();
+                if (nihClient) violations.push({ rule: 'NIH API Client', files: nihClient.split('\\n') });
+            } catch(e) {}
+            
+            try {
+                const domHack = cp.execSync('grep -rnE \"window\\\\.location\\\\.href\\\\s*=\" src/ --include=\"*.ts\" --include=\"*.tsx\" 2>/dev/null | grep -v \"mailto:\" || true').toString().trim();
+                if (domHack) violations.push({ rule: 'DOM Hacks (window.location)', files: domHack.split('\\n') });
+            } catch(e) {}
+            
+            if (lateralFound === 1) {
+                violations.push({ rule: 'FSD Lateral Dependency', detail: 'Cross-feature imports detected' });
+            }
+            
+            console.log(JSON.stringify({ status: 'FAIL', code: exitCode, violations }, null, 2));
+        } else {
+             console.log(JSON.stringify({ status: 'SUCCESS', message: 'No structural violations found.' }));
+        }
+    "
 else
-    echo "🛑 BUILD FAILED. Remediate the architectural violations above."
+    echo ""
+    if [ "$EXIT_CODE" -eq 0 ]; then
+        echo "✅ Architecture verified. No structural violations found."
+    else
+        echo "🛑 BUILD FAILED. Remediate the architectural violations above."
+    fi
 fi
 
 exit $EXIT_CODE
