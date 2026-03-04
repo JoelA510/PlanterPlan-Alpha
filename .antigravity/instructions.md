@@ -14,6 +14,9 @@
 - **Vite:** v7.x (IPv6 safety, native ESM)
 - **Supabase:** v2.x (RLS enabled, strict types)
 - **Testing:** Vitest (Unit) + Playwright (E2E - Headed Mode Default)
+- **Agentic CI/CD Verification:** You MUST utilize the `AGENT_MODE=true`
+  environment variable so that all linters and test runners (Vitest, Playwright)
+  output strictly typed JSON instead of human-readable formats.
 
 ## 📐 Architecture Constraints (FSD)
 
@@ -25,6 +28,9 @@
    logic, helpers).
 4. **Entity Isolation:** `src/entities` contains Data Models and Zod Schemas.
    `src/features` contains View Logic and Complex Interactions.
+5. **Design-by-Contract (DbC) Mandate:** All boundary layers MUST be validated
+   at runtime using Zod schemas. AI agents cannot rely solely on static
+   TypeScript types.
 
 ## 🛡️ Critical Safety Rules
 

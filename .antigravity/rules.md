@@ -85,7 +85,13 @@ _Quality baselines for every PR._
   - **No Effect Bugs:** Correct dependency arrays. No stale closures.
 - **Database:**
   - Migrations must be reversible.
-  - Use `(select auth.uid())` subqueries in RLS for plan caching.
+  - **RLS Optimization:** You are explicitly banned from using `auth.uid()`
+    directly or performing table joins inside `USING` clauses. You MUST wrap JWT
+    custom claims (e.g., `(SELECT (auth.jwt() ->> 'tenant_id')::uuid)`) in
+    `SELECT` statements to enforce O(1) PostgreSQL query caching.
+  - **RPC Hardening:** All `SECURITY DEFINER` RPCs MUST include
+    `SET search_path = ''` and an explicit internal permission verification step
+    (e.g., `public.has_permission`) before executing any mutation logic.
 
 ## 5. Security & Safety Fallbacks
 
@@ -240,3 +246,15 @@ Follow this pipeline for any major feature or complex architectural expansion:
    - **Action:** Stop writing implementation code immediately. Observe the
      failure -> Formulate a structured hypothesis -> Instrument the code with
      verification checks -> Act on the evidence.
+
+### 10.2 Task Completion & The Ralph Loop
+
+- **Trigger:** You believe the current assigned task is complete and are
+  preparing to exit.
+- **Rule:** You are absolutely forbidden from prematurely exiting a task without
+  external verification.
+- **Action:** You MUST generate a predefined "Completion Promise" (e.g.,
+  `{"status": "SUCCESS", "message": "<promise>COMPLETE</promise>"}`) and ensure
+  a zero exit code from all test suites. The external control script will
+  intercept this signal to mathematically verify completion before allowing the
+  session to end.
