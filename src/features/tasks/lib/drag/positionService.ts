@@ -8,113 +8,104 @@ const MIN_GAP = 2;
  * Returns null if renormalization is needed.
  */
 export const calculateNewPosition = (
- prevPos: number | null | undefined,
- nextPos: number | null | undefined
+  prevPos: number | null | undefined,
+  nextPos: number | null | undefined
 ): number | null => {
- const previous = Number(prevPos ?? 0);
- const hasNext = nextPos !== undefined && nextPos !== null;
- const next = hasNext ? Number(nextPos) : previous + POSITION_STEP * 2;
+  const previous = Number(prevPos ?? 0);
+  const hasNext = nextPos !== undefined && nextPos !== null;
+  const next = hasNext ? Number(nextPos) : previous + POSITION_STEP * 2;
 
- if (next - previous < MIN_GAP) {
- return null;
- }
+  if (next - previous < MIN_GAP) {
+    return null;
+  }
 
- return Math.floor((previous + next) / 2);
+  return Math.floor((previous + next) / 2);
 };
 
 /** A single task position update record. */
 export interface TaskPositionUpdate {
- id: string;
- position: number;
- parent_task_id?: string | null;
- start_date?: string;
- [key: string]: unknown;
+  id: string;
+  position: number;
+  parent_task_id?: string | null;
+  start_date?: string;
+  [key: string]: unknown;
 }
 
 /**
  * Renormalizes positions for a list of tasks to restore proper spacing.
  */
 export const renormalizePositions = async (
- parentId: string | null,
- origin: string,
- userId: string
-): Promise<Record<string, unknown>[]> => {
- const filters: Record<string, unknown> = {
- origin,
- creator: userId,
- parent_task_id: parentId || null,
- };
+  parentId: string | null,
+  origin: string,
+  userId: string
+) => {
+  const filters = {
+    origin,
+    creator: userId,
+    parent_task_id: parentId || null,
+  };
 
- const tasks = await planter.entities.Task.filter(filters);
- if (!tasks) return [];
+  // Strip forced assertions; let the compiler evaluate planter.entities.Task.filter
+  const tasks: any[] = await planter.entities.Task.filter(filters);
+  if (!tasks || tasks.length === 0) return [];
 
- (tasks as Array<Record<string, unknown>>).sort(
- (a, b) => ((a.position as number) || 0) - ((b.position as number) || 0)
- );
+  tasks.sort((a, b) => (a.position || 0) - (b.position || 0));
 
- const updatedTasks = (tasks as Array<Record<string, unknown>>).map((task, index) => ({
- ...task,
- position: (index + 1) * POSITION_STEP,
- }));
+  const updatedTasks = tasks.map((task, index) => ({
+    ...task,
+    position: (index + 1) * POSITION_STEP,
+  }));
 
-  const updates = (updatedTasks as TaskRow[]).map((task) => ({
+  const updates = updatedTasks.map((task) => ({
     id: task.id,
     position: task.position,
-  })) as TaskUpdate[];
+  }));
 
   const { error: updateError } = await planter.entities.Task.upsert(updates);
 
- if (updateError) {
- console.error('Renormalization update failed', updateError);
- throw updateError;
- }
+  if (updateError) {
+    console.error('Renormalization update failed', updateError);
+    throw updateError;
+  }
 
- return updatedTasks;
+  return updatedTasks;
 };
 
 /**
  * Updates a single task's position, handling renormalization if necessary.
  */
 export const updateTaskPosition = async (
- taskId: string,
- newPosition: number,
- parentId: string | null
+  taskId: string,
+  newPosition: number,
+  parentId: string | null
 ): Promise<void> => {
- const updates = {
- position: newPosition,
- parent_task_id: parentId,
- };
+  const updates = {
+    position: newPosition,
+    parent_task_id: parentId,
+  };
 
- try {
-  await planter.entities.Task.update(taskId, updates as TaskUpdate);
- } catch (error) {
- console.error('Failed to update task position:', error);
- throw error;
- }
+  try {
+    await planter.entities.Task.update(taskId, updates);
+  } catch (error) {
+    console.error('Failed to update task position:', error);
+    throw error;
+  }
 };
-
-export const updateTaskPositionBackend = (id: string, data: Partial<TaskRow>) =>
-  planter.entities.Task.update(id, data as TaskUpdate)
-    .then(() => true)
-    .catch((err) => {
-      console.error('Failed to update task position backend:', err);
-      return false;
-    });
 
 /**
  * Batch updates multiple tasks. Useful for drag & drop with date propagation.
  */
 export const updateTasksBatch = async (updates: TaskPositionUpdate[]): Promise<void> => {
- if (!updates || updates.length === 0) return;
+  if (!updates || updates.length === 0) return;
 
- try {
- const updatePromises = updates.map(({ id, ...data }) =>
- planter.entities.Task.update(id, data as TaskUpdate)
- );
+  try {
+    const updatePromises = updates.map(({ id, ...data }) =>
+      planter.entities.Task.update(id, data)
+    );
 
- await Promise.all(updatePromises);
- } catch (error) {
- console.error('Failed to batch update tasks:', error);
- throw error;
- }
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.error('Failed to batch update tasks:', error);
+    throw error;
+  }
 };
