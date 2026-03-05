@@ -42,3 +42,10 @@ playwright-report/
 test-results/
 database.types.ts
 src/shared/db/database.types.ts
+
+# Antigravity Files
+.agent
+.agent/workflows
+.ai-ignore
+.antigravity
+.gemini
