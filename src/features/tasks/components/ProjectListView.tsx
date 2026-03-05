@@ -45,7 +45,7 @@ const ProjectListView = ({
  return (
  <div ref={listDropRef} className="task-cards-container space-y-2">
  {childrenTasks.map((task) => (
- <TaskItem key={task.id} task={task as any} level={0} {...taskItemProps} />
+ <TaskItem key={task.id} task={task as TaskRow} level={0} {...taskItemProps} />
  ))}
  </div>
  );
@@ -59,7 +59,7 @@ const ProjectListView = ({
  >
  <div ref={listDropRef} className="task-cards-container space-y-2">
  {childrenTasks.map((task) => (
- <SortableTaskItem key={task.id} task={task as any} level={0} {...taskItemProps} />
+ <SortableTaskItem key={task.id} task={task as TaskRow} level={0} {...taskItemProps} />
  ))}
  </div>
  </SortableContext>

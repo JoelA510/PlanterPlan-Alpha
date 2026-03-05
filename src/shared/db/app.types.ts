@@ -19,7 +19,7 @@ export type Task = Omit<TaskRow, 'status'> & {
 
 export type Project = Task & {
  location?: string | null;
- settings?: any;
+ settings?: Record<string, unknown> | null;
 };
 
 // No-op - removing duplicate lines 25-27

@@ -425,30 +425,13 @@ DECLARE
     v_tasks_count int;
     v_old_start_date timestamptz;
     v_interval interval;
+    v_template_root_id uuid;
 BEGIN
     -- 0. Security Check: Verify user has access to the template task
-    -- simple check: user must be able to see the task (RLS usually handles this, but for SECURITY DEFINER we must check manually)
-    IF NOT EXISTS (
-        SELECT 1 FROM public.tasks 
-        WHERE id = p_template_id 
-        AND (creator = auth.uid() OR EXISTS (
-            SELECT 1 FROM public.project_members pm 
-            JOIN public.tasks t ON t.root_id = pm.project_id OR t.root_id IS NULL -- weak check, better to check project ownership
-            WHERE t.id = p_template_id AND pm.user_id = auth.uid()
-        ))
-    ) THEN
-        -- Fallback: simpler check just for project membership if root_id is reliable, 
-        -- but for now let's just ensure they are a member of the project that OWNS the template task.
-        -- Actually, strictly checking if they are the CREATOR or a MEMBER of the project is safer.
-        -- Let's rely on a direct check against project_members using the task's root_id (project_id)
-        PERFORM 1 FROM public.tasks t
-        LEFT JOIN public.project_members pm ON t.root_id = pm.project_id AND pm.user_id = auth.uid()
-        WHERE t.id = p_template_id
-        AND (t.creator = auth.uid() OR pm.role IS NOT NULL);
-        
-        IF NOT FOUND THEN
-             RAISE EXCEPTION 'Access denied: You do not have permission to access this template.';
-        END IF;
+    SELECT COALESCE(root_id, id) INTO v_template_root_id FROM public.tasks WHERE id = p_template_id;
+    
+    IF v_template_root_id IS NULL OR NOT public.has_permission(v_template_root_id, (SELECT auth.uid()), 'member') THEN
+        RAISE EXCEPTION 'Access denied: You do not have permission to access this template.';
     END IF;
 
     -- 0. Get Template Data for Date Math
@@ -733,6 +716,53 @@ $$;
 
 
 ALTER FUNCTION "public"."handle_updated_at"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."has_permission"("p_project_id" "uuid", "p_user_id" "uuid", "p_required_role" "text" DEFAULT 'member') RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+    v_auth_uid uuid;
+BEGIN
+    v_auth_uid := (SELECT auth.uid());
+    
+    -- Ensure the requesting user matches the requested permission ID
+    IF v_auth_uid IS NULL OR v_auth_uid != p_user_id THEN
+        RETURN false;
+    END IF;
+
+    -- If required_role is 'owner', check for creator or owner role
+    IF p_required_role = 'owner' THEN
+        RETURN EXISTS (
+            SELECT 1 FROM public.project_members
+            WHERE project_id = p_project_id
+            AND user_id = p_user_id
+            AND role = 'owner'
+        ) OR EXISTS (
+            SELECT 1 FROM public.tasks
+            WHERE id = p_project_id
+            AND creator = p_user_id
+            AND parent_task_id IS NULL
+        );
+    END IF;
+
+    -- Generic role check (member or admin or owner)
+    RETURN EXISTS (
+        SELECT 1 FROM public.project_members
+        WHERE project_id = p_project_id
+        AND user_id = p_user_id
+    ) OR EXISTS (
+        SELECT 1 FROM public.tasks
+        WHERE id = p_project_id
+        AND creator = p_user_id
+        AND parent_task_id IS NULL
+    );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."has_permission"("p_project_id" "uuid", "p_user_id" "uuid", "p_required_role" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."has_project_role"("pid" "uuid", "uid" "uuid", "allowed_roles" "text"[]) RETURNS boolean

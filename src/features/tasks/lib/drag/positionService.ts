@@ -57,12 +57,12 @@ export const renormalizePositions = async (
  position: (index + 1) * POSITION_STEP,
  }));
 
- const updates = (updatedTasks as any[]).map((task) => ({
- id: task.id as string,
- position: task.position as number,
- }));
+  const updates = (updatedTasks as TaskRow[]).map((task) => ({
+    id: task.id,
+    position: task.position,
+  })) as TaskUpdate[];
 
- const { error: updateError } = await planter.entities.Task.upsert(updates as any);
+  const { error: updateError } = await planter.entities.Task.upsert(updates);
 
  if (updateError) {
  console.error('Renormalization update failed', updateError);
@@ -86,12 +86,20 @@ export const updateTaskPosition = async (
  };
 
  try {
- await planter.entities.Task.update(taskId, updates as any);
+  await planter.entities.Task.update(taskId, updates as TaskUpdate);
  } catch (error) {
  console.error('Failed to update task position:', error);
  throw error;
  }
 };
+
+export const updateTaskPositionBackend = (id: string, data: Partial<TaskRow>) =>
+  planter.entities.Task.update(id, data as TaskUpdate)
+    .then(() => true)
+    .catch((err) => {
+      console.error('Failed to update task position backend:', err);
+      return false;
+    });
 
 /**
  * Batch updates multiple tasks. Useful for drag & drop with date propagation.
@@ -101,7 +109,7 @@ export const updateTasksBatch = async (updates: TaskPositionUpdate[]): Promise<v
 
  try {
  const updatePromises = updates.map(({ id, ...data }) =>
- planter.entities.Task.update(id, data as any)
+ planter.entities.Task.update(id, data as TaskUpdate)
  );
 
  await Promise.all(updatePromises);

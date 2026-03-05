@@ -41,7 +41,7 @@ const TaskDetailsView = ({
 
  // Check valid subscription or override for local dev/admin if needed. 
  // For now, strict check on subscription_status.
- const hasLicense = (user as any)?.subscription_status === 'active' || (user as any)?.subscription_status === 'trialing';
+ const hasLicense = (user as { subscription_status?: string })?.subscription_status === 'active' || (user as { subscription_status?: string })?.subscription_status === 'trialing';
  const isLocked = !!task.is_premium && !hasLicense;
 
  return (
@@ -228,14 +228,14 @@ const TaskDetailsView = ({
 
  <div className="h-px bg-slate-100 my-4"></div>
 
- <TaskDependencies task={task as any} allProjectTasks={props.allProjectTasks as any || []} />
+ <TaskDependencies task={task as TaskRow} allProjectTasks={(props.allProjectTasks as TaskRow[]) || []} />
 
  {
  task.children && task.children.length > 0 && (
  <div className="detail-section mb-6">
  <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Subtasks</h3>
  <div className="space-y-2">
- {task.children.map((child: any) => (
+ {task.children.map((child: TaskRow) => (
  <div key={child.id} className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-center justify-between">
  <div className="flex items-center gap-3">
  <div className={`w-2 h-2 rounded-full ${child.is_complete ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>

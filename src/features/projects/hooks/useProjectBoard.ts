@@ -41,14 +41,14 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
  });
  };
 
- const mapTaskWithState = (task: TaskRow): any => ({
+ const mapTaskWithState = (task: TaskRow): Record<string, unknown> => ({
  ...task,
  isExpanded: expandedTaskIds.has(task.id) || inlineAddingParentId === task.id,
  isAddingInline: inlineAddingParentId === task.id,
  children: tasks
  .filter((t) => t.parent_task_id === task.id)
  .map(mapTaskWithState)
- .sort((a: any, b: any) => (a.position || 0) - (b.position || 0)),
+ .sort((a: TaskRow, b: TaskRow) => (a.position || 0) - (b.position || 0)),
  });
 
  const handleStartInlineAdd = (parentTask: TaskRow) => {

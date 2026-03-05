@@ -50,7 +50,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }: T
 
  const { data: resources = [] } = useQuery<any[]>({
  queryKey: ['resources', taskId],
- queryFn: () => listTaskResources(taskId) as any,
+ queryFn: () => listTaskResources(taskId),
  enabled: !!taskId,
  });
 

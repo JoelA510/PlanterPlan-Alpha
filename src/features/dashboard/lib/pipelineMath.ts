@@ -44,7 +44,7 @@ export const groupMembersByProject = (teamMembers: TeamMemberRow[]) => {
 };
 
 export const determineNewStatus = (overId: string | number, projects: Project[]): string | null => {
-  if (typeof overId === 'string' && (Object.values(PROJECT_STATUS) as readonly string[]).includes(overId as any)) {
+  if (typeof overId === 'string' && (Object.values(PROJECT_STATUS) as readonly string[]).includes(overId)) {
     return overId;
   }
   const overProject = projects.find(p => p.id === overId);

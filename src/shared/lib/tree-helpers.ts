@@ -2,7 +2,7 @@ import type { TaskItemData as TaskNode } from '@/shared/types/tasks'
 
 export type { TaskNode }
 
-export function buildTree(tasks: any[], rootId: string | null = null): TaskNode[] {
+export function buildTree(tasks: TaskRow[], rootId: string | null = null): TaskNode[] {
  const taskMap = new Map<string, TaskNode>()
 
  // Initialize nodes
@@ -50,11 +50,11 @@ export function buildTree(tasks: any[], rootId: string | null = null): TaskNode[
 }
 
 export interface SeparatedTasks {
- instanceTasks: any[];
- templateTasks: any[];
+ instanceTasks: TaskRow[];
+ templateTasks: TaskRow[];
 }
 
-export function separateTasksByOrigin(tasks: any[] = []): SeparatedTasks {
+export function separateTasksByOrigin(tasks: TaskRow[] = []): SeparatedTasks {
  return {
  instanceTasks: tasks.filter(t => t.origin !== 'template'),
  templateTasks: tasks.filter(t => t.origin === 'template')
@@ -73,7 +73,7 @@ export function updateTaskInTree(nodes: TaskNode[], taskId: string, updates: Par
  });
 }
 
-export function mergeTaskUpdates(newRoots: any[]): TaskNode[] {
+export function mergeTaskUpdates(newRoots: TaskRow[]): TaskNode[] {
  return buildTree(newRoots);
 }
 

@@ -78,11 +78,6 @@ export const useTaskQuery = () => {
  if (!id) return null;
  const inRoots = tasks.find((t) => t.id === id) || (joinedProjects as Project[])?.find((t) => t.id === id);
  if (inRoots) return inRoots;
-
- for (const projTasks of Object.values(hydratedProjects as Record<string, Task[]>)) {
- const found = projTasks.find((t) => t.id === id);
- if (found) return found;
- }
  return null;
  };
 
@@ -94,12 +89,10 @@ export const useTaskQuery = () => {
  // Helper exposed for manual hydration elsewhere if needed, though React Query
  // manages cache now, we preserve the map in `useTaskOperations` or components.
  // For now, return a dummy object as actual hydration is handled separately.
- const hydratedProjects: Record<string, Task[]> = {};
 
  return {
  tasks,
  joinedProjects: joinedProjects || [],
- hydratedProjects,
  loading,
  error,
  joinedError: joinedError ? (joinedError as Error).message : null,

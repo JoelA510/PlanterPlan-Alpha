@@ -31,16 +31,16 @@ const ProjectReport: React.FC = () => {
  refetchProjects,
  } = useTaskQuery() as Record<string, unknown>;
 
- const fetchProjectDetails = () => (refetchProjects as any)?.();
+ const fetchProjectDetails = () => (refetchProjects as () => void)?.();
 
  // 2. Project Selection Layer (Sidebar sync)
  const { handleSelectProject } = useProjectSelection({
  urlProjectId,
- instanceTasks: (tasks as any) || [],
- templateTasks: (tasks as any) || [],
- joinedProjects: (joinedProjects as any) || [],
- hydratedProjects: (hydratedProjects as any) || {},
- fetchProjectDetails: fetchProjectDetails as any,
+ instanceTasks: (tasks as TaskRow[]) || [],
+ templateTasks: (tasks as TaskRow[]) || [],
+ joinedProjects: (joinedProjects as Project[]) || [],
+ hydratedProjects: (hydratedProjects as Record<string, unknown[]>) || {},
+ fetchProjectDetails: fetchProjectDetails as (id: string) => Promise<void>,
  loading: loading as boolean,
  });
 
@@ -68,10 +68,10 @@ const ProjectReport: React.FC = () => {
 
  const sidebar = (
  <ProjectSidebar
- joinedProjects={(joinedProjects as any[]) || []}
+ joinedProjects={(joinedProjects as Project[]) || []}
  instanceTasks={instanceTasks}
  templateTasks={templateTasks}
- handleSelectProject={handleSelectProject as any}
+ handleSelectProject={handleSelectProject as (p: SelectableProject) => Promise<void>}
  selectedTaskId={urlProjectId}
  loading={loading as boolean}
  error={error as string | null}
@@ -124,7 +124,7 @@ const ProjectReport: React.FC = () => {
  Status Distribution
  </h3>
  <div className="w-full h-full pb-6">
- <StatusPieChart tasks={(project.children as any) || []} />
+ <StatusPieChart tasks={(project.children as TaskRow[]) || []} />
  </div>
  </div>
  </div>

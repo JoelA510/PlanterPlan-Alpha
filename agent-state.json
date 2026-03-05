@@ -1,6 +1,4 @@
 {
-  "projectState": "phase-5-complete",
-  "lastCompletedPhase": 5,
-  "pendingAction": "none",
-  "architecturalIntegrity": "verified"
+  "status": "SUCCESS",
+  "message": "<promise>COMPLETE</promise>"
 }

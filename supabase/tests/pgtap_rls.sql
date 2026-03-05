@@ -2,6 +2,8 @@ BEGIN;
 SELECT plan(1);
 
 -- Switch to the anonymous role to simulate unauthenticated access
+GRANT SELECT ON public.tasks TO anon;
+GRANT EXECUTE ON FUNCTION public.is_admin TO anon;
 SET LOCAL ROLE anon;
 SET LOCAL request.jwt.claim.role = 'anon';
 

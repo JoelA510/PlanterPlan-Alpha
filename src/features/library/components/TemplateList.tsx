@@ -28,7 +28,7 @@ const TemplateList = ({ tasks, selectedTaskId, handleTaskClick }: TemplateListPr
  key={template.id}
  task={{ ...template, title: template.title || 'Untitled' }}
  isSelected={selectedTaskId === template.id}
- onClick={handleTaskClick as any}
+ onClick={() => handleTaskClick(template)}
  to={`/project/${template.id}`}
  />
  ))}

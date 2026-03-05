@@ -95,7 +95,7 @@ export function useUpdateProject() {
  const upsertPayload = batchUpdates
  .filter((u): u is typeof u & { id: string } => !!u.id)
  .map(u => ({ ...u, id: u.id }));
- await planter.entities.Task.upsert(upsertPayload as unknown as TaskInsert[]);
+ await planter.entities.Task.upsert(upsertPayload as Record<string, never> as TaskInsert[]);
  }
 
  return true;

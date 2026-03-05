@@ -5,6 +5,7 @@ import { useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
 import { useTaskTree } from '@/features/tasks/hooks/useTaskTree';
 import { useExpandedTasks } from '@/features/tasks/hooks/useExpandedTasks';
 import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
+import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { ProjectSidebar } from '@/features/navigation';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@/layouts/DashboardLayout';
@@ -35,18 +36,19 @@ const TaskList = () => {
   const { mutateAsync: createProjectAsync } = useCreateProject();
   const { mutateAsync: updateTaskAsync } = useUpdateTask();
 
-  const createProject = async (data: any) => createProjectAsync(data);
-  const createTaskOrUpdate = async () => {
-    // This is handled by useTaskBoardUI but we provide the logic
-    return {} as any; 
+  const createProject = async (data: ProjectFormData) => createProjectAsync(data);
+  const handleSelectProjectWrapper = async (p: SelectableProject) => {
+    if (!p) return;
+    return {} as SelectableProject; useTaskBoardUI but we provide the logic
+    return {} as never; 
   };
   const deleteTask = async () => {
     // Handled by useTaskBoardUI internally via props
     return;
   };
 
-  const fetchProjectDetails = (() => refetchProjects()) as any;
-  const refreshProjectDetails = (() => refetchProjects()) as any;
+  const fetchProjectDetails = (() => refetchProjects()) as () => void;
+  const refreshProjectDetails = (() => refetchProjects()) as () => void;
 
   // 2. Selection & State Layer
   const {
@@ -55,22 +57,29 @@ const TaskList = () => {
     hydrationError,
   } = useProjectSelection({
     urlProjectId,
-    instanceTasks: tasks.filter((t) => t.origin === 'instance') as any[],
-    templateTasks: tasks.filter((t) => t.origin === 'template') as any[],
-    joinedProjects: (joinedProjects || []) as any[],
-    hydratedProjects: {} as any, 
-    fetchProjectDetails,
+    instanceTasks: tasks.filter((t: TaskRow) => t.origin === 'instance') as TaskRow[],
+    templateTasks: tasks.filter((t: TaskRow) => t.origin === 'template') as TaskRow[],
+    joinedProjects: (joinedProjects || []) as Project[],
     loading,
   });
+
+  // Fetch the actual hierarchy from React Query cache
+  const { projectHierarchy } = useProjectData(activeProjectId);
+
+  // Purely derive the dictionary for the tree composition layer
+  const hydratedProjects = React.useMemo(() => {
+    if (!activeProjectId || !projectHierarchy || projectHierarchy.length === 0) return {};
+    return { [activeProjectId]: projectHierarchy };
+  }, [activeProjectId, projectHierarchy]);
 
   // 3. Tree & UI Structure Layer
   const { expandedTaskIds, handleToggleExpand } = useExpandedTasks();
 
   const { activeProject, instanceTasks, templateTasks } = useTaskTree({
     tasks,
-    hydratedProjects: {} as any,
+    hydratedProjects: hydratedProjects as Record<string, any[]>,
     activeProjectId,
-    joinedProjects: (joinedProjects || []) as any[],
+    joinedProjects: (joinedProjects || []) as Project[],
     expandedTaskIds,
   });
 
@@ -89,30 +98,28 @@ const TaskList = () => {
  } = useTaskBoardUI({
  currentUserId,
  createProject,
- createTaskOrUpdate: createTaskOrUpdate as any,
- deleteTask: deleteTask as any,
- refreshProjectDetails,
- findTask: findTask as any,
- activeProjectId,
+    createTaskOrUpdate: createTaskOrUpdate as (data: TaskFormData) => Promise<void>,
+    deleteTask: deleteTask as (taskId: string) => Promise<void>,
+    refreshProjectDetails,
+    findTask: findTask as (id: string) => TaskRow | null,
+    activeProjectId,
  });
 
- // Derived state for TaskDetailsPanel
- const parentTaskForForm = taskFormState?.parentId ? findTask(taskFormState.parentId) : null;
- const taskBeingEdited =
- taskFormState?.mode === 'edit' && taskFormState.taskId
- ? findTask(taskFormState.taskId)
- : null;
+  // Derived state for TaskDetailsPanel
+  const parentTaskForForm = taskFormState?.parentId ? (findTask(taskFormState.parentId) || projectHierarchy.find((t: TaskRow) => t.id === taskFormState.parentId)) : null;
+  const taskBeingEdited = taskFormState?.mode === 'edit' && taskFormState.taskId
+    ? (findTask(taskFormState.taskId) || projectHierarchy.find((t: TaskRow) => t.id === taskFormState.taskId))
+      : null;
 
  const sidebarContent = (
  <ProjectSidebar
- joinedProjects={joinedProjects as any[] || []}
- instanceTasks={instanceTasks as any[]}
- templateTasks={templateTasks as any[]}
- joinedError={null}
- error={error as any}
- handleSelectProject={handleSelectProject as any}
+        joinedProjects={(joinedProjects as Project[]) || []}
+        instanceTasks={instanceTasks as TaskRow[]}
+        templateTasks={templateTasks as TaskRow[]}
+        loading={loading}
+        error={error as string | null}
+        handleSelectProject={handleSelectProject as (p: SelectableProject) => Promise<void>}
  selectedTaskId={activeProjectId}
- loading={loading && instanceTasks.length === 0}
  onNewProjectClick={() => navigate('/projects/new')}
  onNewTemplateClick={() => {}}
  />
@@ -135,17 +142,17 @@ const TaskList = () => {
  <div className="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden relative">
  {activeProject ? (
  <ProjectTasksView
- project={activeProject as any}
- handleTaskClick={handleTaskClick}
- handleAddChildTask={handleAddChildTask}
- handleEditTask={handleEditTask}
- handleDeleteById={handleDeleteById}
- selectedTaskId={selectedTask?.id}
- onToggleExpand={handleToggleExpand as any}
- disableDrag={joinedProjects?.some((jp: any) => jp.id === activeProjectId)}
- hydrationError={hydrationError}
- onInviteMember={() => { }}
- onStatusChange={(_, status) => updateTaskAsync({ taskId: _, updates: { status } } as any)}
+          project={activeProject as Project}
+          childrenTasks={taskTree}
+          depth={0}
+          handleTaskClick={(taskId) => setTaskFormState({ mode: 'edit', parentId: null, taskId })}
+          onTaskUpdate={canEdit ? handleEditTask : undefined}
+          onAddChildTask={canEdit ? handleAddChildTask : undefined}
+          onToggleExpand={handleToggleExpand as (id: string) => void}
+          disableDrag={joinedProjects?.some((jp: Project) => jp.id === activeProjectId)}
+          activeProjectId={activeProjectId}
+          isReadOnly={!canEdit}
+          onStatusChange={(_, status) => updateTaskAsync({ taskId: _, updates: { status } } as { taskId: string, updates: Partial<TaskRow> })}
  />
  ) : (
  <EmptyProjectState
@@ -155,17 +162,19 @@ const TaskList = () => {
 
  <TaskDetailsPanel
  showForm={showForm}
- taskFormState={taskFormState as any}
- selectedTask={selectedTask as any}
- taskBeingEdited={taskBeingEdited as any}
- parentTaskForForm={parentTaskForForm as any}
- onClose={() => setSelectedTask(null)}
+        taskFormState={taskFormState as { mode: 'create' | 'edit'; parentId: string | null; taskId?: string } | null}
+        selectedTask={selectedTask as TaskRow | null}
+        taskBeingEdited={taskBeingEdited as TaskRow | null}
+        parentTaskForForm={parentTaskForForm as TaskRow | null}
+        onClose={() => setSelectedTask(null)}
  handleTaskSubmit={handleTaskSubmit}
- setTaskFormState={setTaskFormState as any}
- handleAddChildTask={handleAddChildTask as any}
- handleEditTask={handleEditTask as any}
- onDeleteTaskWrapper={onDeleteTaskWrapper as any}
- fetchTasks={() => refetchProjects()}
+        activeProjectId={activeProjectId}
+        canEdit={canEdit}
+        setTaskFormState={setTaskFormState as (val: { mode: 'create' | 'edit'; parentId: string | null; taskId?: string } | null) => void}
+        handleAddChildTask={handleAddChildTask as (parentId: string) => void}
+        handleEditTask={handleEditTask as (task: TaskRow) => void}
+        onDeleteTaskWrapper={onDeleteTaskWrapper as () => void}
+        fetchTasks={() => refetchProjects()}
  />
  </div>
  </DashboardLayout>

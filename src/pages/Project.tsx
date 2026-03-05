@@ -42,7 +42,7 @@ export default function Project() {
  teamMembers,
  } = useProjectData(projectId);
 
- const board = useProjectBoard(projectId, (tasks as any) || []);
+ const board = useProjectBoard(projectId, (tasks as TaskRow[]) || []);
  const { state, actions, handlers, computed } = board;
 
  const queryClient = useQueryClient();
@@ -64,9 +64,9 @@ export default function Project() {
  origin,
  parentId,
  rootId: projectId,
- contextTasks: tasks as any || [],
+ contextTasks: tasks as TaskRow[] || [],
  userId: user?.id || '',
- maxPosition: Math.max(0, ...((tasks || []) as any[]).filter(t => t.parent_task_id === parentId).map(t => t.position || 0))
+ maxPosition: Math.max(0, ...((tasks || []) as TaskRow[]).filter(t => t.parent_task_id === parentId).map(t => t.position || 0))
  };
 
  if (mode === 'edit' && state.selectedTask) {
@@ -173,7 +173,7 @@ export default function Project() {
  }, [projectId, queryClient]);
 
  const isOwnerByProject = project?.creator === user?.id;
- const currentMember = teamMembers?.find((m: any) => m.user_id === user?.id);
+ const currentMember = teamMembers?.find((m: { user_id?: string }) => m.user_id === user?.id);
  const userRole = currentMember?.role || (isOwnerByProject ? ROLES.OWNER : ROLES.VIEWER);
 
  const canEdit = userRole === ROLES.OWNER || userRole === ROLES.ADMIN || userRole === ROLES.EDITOR;
@@ -184,7 +184,7 @@ export default function Project() {
  const activePhase = state.selectedPhase || sortedPhases[0];
 
  const projectMilestones = useMemo(() =>
- ((milestones || []) as any[]).sort((a: any, b: any) => compareDateAsc(a.due_date, b.due_date)),
+ ((milestones || []) as TaskRow[]).sort((a: TaskRow, b: TaskRow) => compareDateAsc(a.due_date, b.due_date)),
  [milestones]
  );
 
@@ -207,9 +207,9 @@ export default function Project() {
  <div className="flex h-full gap-8">
  <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar pr-4">
  <ProjectHeader
- project={project as any}
- tasks={tasks as any}
- teamMembers={teamMembers as any}
+ project={project as Project}
+ tasks={tasks as TaskRow[]}
+ teamMembers={teamMembers as TeamMemberRow[]}
  canInvite={canInvite}
  canManageSettings={canManageSettings}
  onInviteMember={() => actions.setShowInviteModal(true)}
@@ -238,11 +238,11 @@ export default function Project() {
  {sortedPhases.map((phase) => (
  <div key={phase.id}>
  <PhaseCard
- phase={phase as any}
- tasks={tasks as any}
- milestones={(milestones || []).filter((m: any) => m.parent_task_id === phase.id) as any}
+ phase={phase as TaskRow}
+ tasks={tasks as TaskRow[]}
+ milestones={(milestones || []).filter((m: { parent_task_id?: string }) => m.parent_task_id === phase.id) as TaskRow[]}
  isActive={activePhase?.id === phase.id}
- onClick={() => actions.setSelectedPhase(phase as any)}
+ onClick={() => actions.setSelectedPhase(phase as TaskRow)}
  />
  </div>
  ))}
@@ -258,10 +258,10 @@ export default function Project() {
  <div className="flex items-center justify-between mb-6">
  <div>
  <h2 className="text-xl font-semibold text-slate-900">
- Phase {(activePhase as any).position}: {(activePhase as any).title}
+ Phase {(activePhase as { position?: number }).position}: {(activePhase as { title?: string }).title}
  </h2>
- {(activePhase as any).description && (
- <p className="text-slate-600 mt-1">{(activePhase as any).description}</p>
+ {(activePhase as { description?: string }).description && (
+ <p className="text-slate-600 mt-1">{(activePhase as { description?: string }).description}</p>
  )}
  </div>
  </div>
@@ -276,8 +276,8 @@ export default function Project() {
  <MilestoneSection
  key={milestone.id}
  milestone={milestone}
- tasks={(tasks as any || []).map(computed.mapTaskWithState)}
- onTaskUpdate={canEdit ? (handlers.handleTaskUpdate as any) : undefined}
+ tasks={(tasks as TaskRow[] || []).map(computed.mapTaskWithState)}
+ onTaskUpdate={canEdit ? (handlers.handleTaskUpdate as (id: string, updates: Partial<TaskRow>) => void) : undefined}
  onAddChildTask={canEdit ? handlers.handleStartInlineAdd : undefined}
  onTaskClick={handlers.handleTaskClick}
  onInlineCommit={canEdit ? handlers.handleInlineCommit : undefined}
@@ -305,7 +305,7 @@ export default function Project() {
  taskFormState={taskFormState}
  selectedTask={state.selectedTask || undefined}
  taskBeingEdited={taskFormState?.mode === 'edit' ? state.selectedTask || undefined : undefined}
- parentTaskForForm={state.inlineAddingParentId ? (tasks?.find(t => t.id === state.inlineAddingParentId) as any) : undefined}
+ parentTaskForForm={state.inlineAddingParentId ? (tasks?.find(t => t.id === state.inlineAddingParentId) as TaskRow) : undefined}
  onClose={() => {
  actions.setSelectedTask(null);
  setTaskFormState(null);
@@ -321,14 +321,14 @@ export default function Project() {
  placeholder="Start typing to copy an existing template task"
  />
  )}
- onDeleteTaskWrapper={async () => state.selectedTask && (handlers.handleDeleteTask(state.selectedTask) as any)}
+ onDeleteTaskWrapper={async () => state.selectedTask && (handlers.handleDeleteTask(state.selectedTask) as Promise<void>)}
  />
  )}
  </div>
 
  {state.showInviteModal && (
  <InviteMemberModal
- project={project as any}
+ project={project as Project}
  onClose={() => actions.setShowInviteModal(false)}
  onInviteSuccess={() => { }}
  />

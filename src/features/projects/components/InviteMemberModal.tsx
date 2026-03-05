@@ -38,18 +38,21 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
  setIsSubmitting(true);
  setError(null);
 
- let result: { data?: any; error?: any } = {};
+ let result: { data?: unknown; error?: unknown } = {};
  try {
  if (isEmail) {
  const res = await planter.entities.Project.addMemberByEmail(project.id, userId, role);
- result = { data: res, error: (res as any)?.error };
+ result = { data: res, error: (res as { error?: unknown })?.error };
  } else {
  const res = await planter.entities.Project.addMember(project.id, userId, role);
- result = { data: res, error: (res as any)?.error };
+ result = { data: res, error: (res as { error?: unknown })?.error };
  }
- } catch (err: any) {
+ } catch (err: unknown) {
  console.error('[InviteMemberModal] Exception during invite:', err);
- if (err.code === '42501' || (err.message && err.message.includes('policy'))) {
+ if (
+ (typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === '42501') ||
+ (typeof err === 'object' && err !== null && 'message' in err && typeof (err as { message: string }).message === 'string' && (err as { message: string }).message.includes('policy'))
+ ) {
  result = { error: 'Access denied: You must be an Owner to manage members.' };
  } else {
  result = { error: err };
@@ -60,8 +63,9 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
 
  if (inviteError) {
  const msg =
- inviteError.message ||
- (typeof inviteError === 'string' ? inviteError : JSON.stringify(inviteError));
+ (typeof inviteError === 'object' && inviteError !== null && 'message' in inviteError && typeof (inviteError as { message: string }).message === 'string')
+ ? (inviteError as { message: string }).message
+ : (typeof inviteError === 'string' ? inviteError : JSON.stringify(inviteError));
  console.error('[InviteMemberModal] Invite Failed:', msg);
  setError(msg || 'Failed to invite member (Unknown Error)');
  setIsSubmitting(false);
@@ -125,7 +129,7 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
  <select
  id="role"
  value={role}
- onChange={(e) => setRole(e.target.value as any)}
+ onChange={(e) => setRole(e.target.value as string)}
  className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm form-select p-2 border"
  >
  <option value={ROLES.VIEWER}>Viewer (Read-only)</option>

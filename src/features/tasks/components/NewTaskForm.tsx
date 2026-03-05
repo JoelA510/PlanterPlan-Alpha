@@ -127,7 +127,7 @@ const NewTaskForm = ({
 
  return (
  <TaskForm
- formMethods={methods as unknown as UseFormReturn<TaskFormData>}
+ formMethods={methods as never as UseFormReturn<TaskFormData>}
  isSubmitting={isSubmitting}
  initialData={initialTask}
  lastAppliedTaskTitle={lastAppliedTaskTitle}

@@ -81,7 +81,7 @@ const NewProjectForm = ({ onSubmit, onCancel }: NewProjectFormProps) => {
  <div className="form-group">
  <MasterLibrarySearch
  mode="copy"
- onSelect={handleApplyFromLibrary as any}
+ onSelect={(t) => handleApplyFromLibrary(t)}
  label="Search master library"
  placeholder="Search tasks to prefill this project"
  />

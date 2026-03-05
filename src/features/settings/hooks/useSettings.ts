@@ -36,7 +36,7 @@ export function useSettings() {
  role: String(user.user_metadata?.role || ''),
  organization: String(user.user_metadata?.organization || ''),
  avatar_url: String(user.user_metadata?.avatar_url || ''),
- email_frequency: (user.user_metadata?.email_frequency as any) || 'daily',
+ email_frequency: (user.user_metadata?.email_frequency as string) || 'daily',
  });
  }
  }, [user]);

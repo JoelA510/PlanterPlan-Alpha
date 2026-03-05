@@ -1,5 +1,6 @@
 import { test as base, expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
+import * as fs from 'fs';
 
 const { Given, When, Then } = createBdd();
 
@@ -9,6 +10,14 @@ Given('I am logged in as a normal user', async ({ page }) => {
   await page.fill('[name="password"]', 'password123');
   await page.click('button[type="submit"]');
   await expect(page.locator('text=Dashboard')).toBeVisible();
+
+  // Disable onboarding wizard which auto-displays for new users
+  await page.evaluate(() => {
+    localStorage.setItem('gettingStartedDismissed', 'true');
+  });
+  // Quick refresh to ensure the flag is caught by the initial render if it already rendered
+  await page.reload();
+  await expect(page.locator('text=Dashboard')).toBeVisible();
 });
 
 When('I navigate to the dashboard', async ({ page }) => {
@@ -17,10 +26,15 @@ When('I navigate to the dashboard', async ({ page }) => {
 
 When('I click the "New Project" button', async ({ page }) => {
   await page.click('button:has-text("New Project")');
+  // Wait a moment for modal animation to settle
+  await page.waitForTimeout(1000); 
+  const content = await page.content();
+  fs.writeFileSync('/home/joel/PlanterPlan/PlanterPlan-Alpha/PlanterPlan-Alpha/page_dump.html', content);
 });
 
 When('I fill in the project title with {string}', async ({ page }, title: string) => {
-  await page.fill('input[name="title"]', title);
+  await page.click('button:has-text("Continue to Details")');
+  await page.fill('input#title', title);
 });
 
 When('I submit the project form', async ({ page }) => {

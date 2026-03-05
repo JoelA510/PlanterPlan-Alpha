@@ -40,7 +40,7 @@ export function useUpdateUser() {
 
  return useMutation<UserProfile, Error, UpdateUserData>({
  mutationFn: async (data: UpdateUserData) => {
- const user = await planter.auth.updateMe(data as any);
+ const user = await planter.auth.updateMe(data as Record<string, unknown>);
  return {
  id: user.id,
  email: user.email || '',

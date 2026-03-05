@@ -13,8 +13,6 @@ interface UseProjectSelectionParams {
  instanceTasks: SelectableProject[];
  templateTasks: SelectableProject[];
  joinedProjects: SelectableProject[];
- hydratedProjects: Record<string, unknown[]>;
- fetchProjectDetails: (projectId: string) => Promise<void>;
  loading: boolean;
 }
 
@@ -33,8 +31,6 @@ export const useProjectSelection = ({
  instanceTasks,
  templateTasks,
  joinedProjects,
- hydratedProjects,
- fetchProjectDetails,
  loading,
 }: UseProjectSelectionParams): UseProjectSelectionReturn => {
  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
@@ -43,18 +39,10 @@ export const useProjectSelection = ({
  const handleSelectProject = useCallback(
  async (project: SelectableProject): Promise<void> => {
  setActiveProjectId(project.id);
- setHydrationError(null);
-
- if (!hydratedProjects[project.id]) {
- try {
- await fetchProjectDetails(project.id);
- } catch (err) {
- console.error('[useProjectSelection] Failed to hydrate project:', err);
- setHydrationError('Failed to load project tasks.');
- }
- }
+      setHydrationError(null);
+ // React Query (useProjectData) will automatically fetch details based on activeProjectId
  },
- [hydratedProjects, fetchProjectDetails]
+ []
  );
 
  // URL Synchronization

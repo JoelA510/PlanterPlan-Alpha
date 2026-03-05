@@ -144,7 +144,7 @@ export default function MilestoneSection({
  <TaskItem
  task={task}
  onTaskClick={onTaskClick}
- onStatusChange={(id, status) => onTaskUpdate(id, { status } as any)}
+ onStatusChange={(id, status) => onTaskUpdate(id, { status } as Partial<TaskRow>)}
  onAddChildTask={onAddChildTask}
  isAddingInline={task.isAddingInline}
  onInlineCommit={onInlineCommit}

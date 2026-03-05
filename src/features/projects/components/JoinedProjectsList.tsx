@@ -32,7 +32,7 @@ const JoinedProjectsList = ({ projects, error, handleTaskClick, selectedTaskId }
  key={project.id}
  task={{ ...project, title: project.title || 'Untitled' }}
  isSelected={selectedTaskId === project.id}
- onClick={handleTaskClick as any}
+ onClick={() => handleTaskClick(project)}
  showRole={true}
  to={`/project/${project.id}`}
  />

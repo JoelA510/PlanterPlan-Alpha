@@ -238,7 +238,7 @@ export default function Reports() {
  <div className="bg-card rounded-xl shadow-sm border border-border p-6">
  <h2 className="text-lg font-semibold text-foreground mb-4">Upcoming Deadlines</h2>
  <div className="space-y-4">
- {reports.upcomingDeadlines.map((task: any) => (
+ {reports.upcomingDeadlines.map((task: TaskRow) => (
  <div key={task.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
  <div>
  <h4 className="font-medium text-foreground">{task.title}</h4>

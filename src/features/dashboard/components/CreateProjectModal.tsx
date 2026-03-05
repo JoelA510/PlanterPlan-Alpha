@@ -7,6 +7,9 @@ import {
  DialogDescription,
 } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
+import { formatISO, startOfDay } from 'date-fns';
+import { planter } from '@/shared/api/planterClient';
+import { toIsoDate, nowUtcIso } from '@/shared/lib/date-engine';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
@@ -65,7 +68,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
  title: '',
  description: '',
  templateId: 'new-church',
- start_date: new Date().toISOString().split('T')[0],
+ start_date: toIsoDate(nowUtcIso()),
  });
 
  const handleNext = () => setStep(2);

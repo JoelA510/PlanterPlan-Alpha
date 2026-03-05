@@ -1,11 +1,10 @@
 BEGIN;
 
-SELECT plan(7);
+SELECT plan(12);
 
 -- Clean state
-DELETE FROM auth.users WHERE email IN ('taskowner@example.com', 'team1@example.com', 'unauthorized@example.com');
+DELETE FROM auth.users WHERE email IN ('taskowner@example.com', 'team1@example.com', 'unauthorized@example.com', 'owner1@example.com', 'member1@example.com', 'random1@example.com');
 DELETE FROM tasks;
-DELETE FROM projects;
 DELETE FROM project_members;
 
 -- 1. Setup minimal test data
@@ -15,14 +14,14 @@ INSERT INTO auth.users (id, email) VALUES
     ('00000000-0000-0000-0000-000000000002', 'team1@example.com'),
     ('00000000-0000-0000-0000-000000000003', 'unauthorized@example.com');
 
--- Insert Project
-INSERT INTO projects (id, title, status) VALUES
-    ('11111111-1111-1111-1111-111111111111', 'Test Project Alpha', 'planning');
+-- Insert Project as Root Task
+INSERT INTO tasks (id, title, status, creator, root_id) VALUES
+    ('11111111-1111-1111-1111-111111111111', 'Test Project Alpha', 'not_started', '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');
 
--- Insert Members (taskowner is admin, team1 is member. unauthorized has no record)
+-- Insert Members (taskowner is owner, team1 is editor. unauthorized has no record)
 INSERT INTO project_members (project_id, user_id, role) VALUES
-    ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'admin'),
-    ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000002', 'member');
+    ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'owner'),
+    ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000002', 'editor');
 
 -- Insert Task
 INSERT INTO tasks (id, root_id, title) VALUES
@@ -33,6 +32,8 @@ INSERT INTO tasks (id, root_id, title) VALUES
 -- =========================================================
 
 -- Test 1: Anonymous Role Cannot Read Tasks
+GRANT SELECT ON public.tasks TO anon;
+GRANT EXECUTE ON FUNCTION public.is_admin TO anon;
 set local role anon;
 SELECT is(
     (select count(*) from tasks),
@@ -64,8 +65,8 @@ set local request.jwt.claims to '{"sub": "00000000-0000-0000-0000-000000000002"}
 
 SELECT is(
     (select count(*) from tasks),
-    1::bigint,
-    'Team member can see 1 task in the project'
+    2::bigint,
+    'Team member can see 2 tasks in the project'
 );
 
 -- Test 5: Member Can Update Task
@@ -83,8 +84,64 @@ SELECT lives_ok(
 -- Test 7: Verify Insertion
 SELECT is(
     (select count(*) from tasks),
-    2::bigint,
-    'Team member should see 2 tasks now'
+    3::bigint,
+    'Team member should see 3 tasks now'
+);
+
+-- =========================================================
+-- START TDD Observations for has_permission Helper
+-- =========================================================
+set local role postgres;
+INSERT INTO auth.users (id, email) VALUES
+    ('00000000-0000-0000-0000-000000000101', 'owner1@example.com'),
+    ('00000000-0000-0000-0000-000000000102', 'member1@example.com'),
+    ('00000000-0000-0000-0000-000000000103', 'random1@example.com');
+
+INSERT INTO tasks (id, title, status, creator, root_id) VALUES
+    ('11111111-1111-1111-1111-111111111101', 'Permission Test Project', 'not_started', '00000000-0000-0000-0000-000000000101', '11111111-1111-1111-1111-111111111101');
+
+INSERT INTO project_members (project_id, user_id, role) VALUES
+    ('11111111-1111-1111-1111-111111111101', '00000000-0000-0000-0000-000000000101', 'owner'),
+    ('11111111-1111-1111-1111-111111111101', '00000000-0000-0000-0000-000000000102', 'editor');
+
+-- Test 8: has_permission (Owner Requesting Owner Role)
+set local role authenticated;
+set local request.jwt.claims to '{"sub": "00000000-0000-0000-0000-000000000101"}';
+SELECT is(
+    public.has_permission('11111111-1111-1111-1111-111111111101'::uuid, '00000000-0000-0000-0000-000000000101'::uuid, 'owner'::text),
+    true,
+    'Owner should have owner permission'
+);
+
+-- Test 9: has_permission (Member Requesting Owner Role)
+set local request.jwt.claims to '{"sub": "00000000-0000-0000-0000-000000000102"}';
+SELECT is(
+    public.has_permission('11111111-1111-1111-1111-111111111101'::uuid, '00000000-0000-0000-0000-000000000102'::uuid, 'owner'::text),
+    false,
+    'Member should NOT have owner permission'
+);
+
+-- Test 10: has_permission (Member Requesting Editor Role)
+SELECT is(
+    public.has_permission('11111111-1111-1111-1111-111111111101'::uuid, '00000000-0000-0000-0000-000000000102'::uuid, 'editor'::text),
+    true,
+    'Editor should have editor permission'
+);
+
+-- Test 11: has_permission (Unauthorized User)
+set local request.jwt.claims to '{"sub": "00000000-0000-0000-0000-000000000103"}';
+SELECT is(
+    public.has_permission('11111111-1111-1111-1111-111111111101'::uuid, '00000000-0000-0000-0000-000000000103'::uuid, 'editor'::text),
+    false,
+    'Unauthorized user should NOT have editor permission'
+);
+
+-- Test 12: has_permission (Mismatched Claim vs Request)
+set local request.jwt.claims to '{"sub": "00000000-0000-0000-0000-000000000103"}';
+SELECT is(
+    public.has_permission('11111111-1111-1111-1111-111111111101'::uuid, '00000000-0000-0000-0000-000000000101'::uuid, 'owner'::text),
+    false,
+    'Mismatched user token and passed user_id should fail immediately'
 );
 
 SELECT * FROM finish();

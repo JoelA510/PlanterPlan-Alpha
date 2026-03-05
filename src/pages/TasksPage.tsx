@@ -24,10 +24,10 @@ export default function TasksPage() {
 
  // We still need mutation capabilities for the TaskList
  const { updateTask } = useTaskActions({
- tasks: tasks as any,
+            tasks: tasks as TaskRow[],
  fetchTasks: useCallback(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }), [queryClient]),
  refreshProjectDetails: useCallback(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }), [queryClient]),
- findTask: findTask as any
+            findTask: findTask as (id: string) => TaskRow | null
  });
 
  const handleStatusChange = useCallback((id: string, status: string) => updateTask(id, { status }), [updateTask]);
@@ -148,7 +148,7 @@ export default function TasksPage() {
  ) : (
  <div className="h-full">
  <ProjectBoardView
- project={{ id: 'my-tasks-root' } as any} // Dummy project ID for columns
+        project={{ id: 'my-tasks-root' } as Project} // Dummy project ID for columns
  childrenTasks={myTasks}
  handleTaskClick={() => { }} // No detail view support yet in My Tasks
  />

@@ -22,7 +22,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle, showMenuButton = false }: HeaderProps) {
  const { data: userData } = useUser();
- const user = userData as any; // Temporary cast to resolve persistent inference issues in Header
+  const user = userData as { user_metadata?: { full_name?: string } } | null; // Temporary cast to resolve persistent inference issues in Header
  const location = useLocation();
 
 

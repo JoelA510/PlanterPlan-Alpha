@@ -55,7 +55,7 @@ export const useTaskTree = ({
     }
 
     // Recursive expansion helper
-    const applyExpansion = (nodes: TaskNode[]): any[] => {
+    const applyExpansion = (nodes: TaskNode[]): TaskNode[] => {
       return nodes.map((node) => ({
         ...node,
         isExpanded: expandedTaskIds.has(node.id),

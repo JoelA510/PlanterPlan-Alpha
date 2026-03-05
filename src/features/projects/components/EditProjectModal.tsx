@@ -68,7 +68,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
 
  await updateProjectMutation.mutateAsync({ 
  projectId: project.id, 
- updates: updateData as any, 
+ updates: updateData as Record<string, unknown>, 
  oldStartDate 
  });
  onClose();
@@ -151,7 +151,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
 
  <div className="flex justify-end gap-3 pt-2">
  <Button variant="outline" onClick={onClose} type="button">Cancel</Button>
- <Button onClick={handleSubmit(onSubmit as any)} disabled={isSubmitting}>
+ <Button onClick={handleSubmit(onSubmit as (data: unknown) => void)} disabled={isSubmitting}>
  {isSubmitting ? 'Saving...' : 'Save Changes'}
  </Button>
  </div>

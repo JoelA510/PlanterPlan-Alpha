@@ -42,8 +42,8 @@ export function useTeam(projectId: string | null) {
  return planter.entities.TeamMember.create({
  ...data,
  user_id: currentUser.id,
- project_id: data.project_id || '',
- } as any);
+ project_id: data.project_id || ''
+ } as Record<string, unknown>);
  },
  onSuccess: () => {
  queryClient.invalidateQueries({ queryKey: ['teamMembers', projectId || 'all'] });

@@ -118,7 +118,7 @@ export const useTaskActions = ({
  if (formState.mode === 'edit' && formState.taskId) {
  const currentTask = findTask(formState.taskId) || ({} as ActionTask);
  const updates = constructUpdatePayload(
- formData as unknown as TaskFormData,
+ formData as never as TaskFormData,
  currentTask as CurrentTask,
  {
  origin,
@@ -150,7 +150,7 @@ export const useTaskActions = ({
  ? Math.max(...siblings.map((task) => task.position ?? 0))
  : 0;
 
- const insertPayload = constructCreatePayload(formData as unknown as TaskFormData, {
+ const insertPayload = constructCreatePayload(formData as never as TaskFormData, {
  origin,
  parentId,
  rootId,
@@ -192,7 +192,7 @@ export const useTaskActions = ({
  }
  }
  } else {
- await planter.entities.Task.create(insertPayload as unknown as TaskInsert);
+ await planter.entities.Task.create(insertPayload as never as TaskInsert);
  }
 
  if (rootId) await refreshProjectDetails(rootId);

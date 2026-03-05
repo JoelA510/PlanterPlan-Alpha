@@ -23,7 +23,7 @@ export const useProjectRealtime = (projectId: string | null = null): void => {
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes' as any,
+        'postgres_changes' as 'postgres_changes',
         {
           event: '*',
           schema: 'public',
@@ -34,7 +34,7 @@ export const useProjectRealtime = (projectId: string | null = null): void => {
             ? `creator=eq.${userId}`
             : undefined,
         },
-        (payload: any) => {
+        (payload: Record<string, unknown>) => {
           console.log('[Realtime] Task Change detected:', payload);
           try {
             // Strictly guard incoming WebSocket payloads

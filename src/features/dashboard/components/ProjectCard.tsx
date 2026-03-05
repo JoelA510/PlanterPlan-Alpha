@@ -23,10 +23,11 @@ interface ProjectCardProps {
 }
 
 const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps) => {
- const templateId = (project.settings as any)?.template_id;
+  const settings = project.settings as Record<string, unknown> | undefined;
+  const templateId = settings?.template_id as string | undefined;
  const Icon = templateIcons[templateId as string] || FolderKanban;
 
- const statusConfig = PROJECT_STATUS_COLORS[project.status as any] || PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING];
+  const statusConfig = PROJECT_STATUS_COLORS[project.status as keyof typeof PROJECT_STATUS_COLORS] || PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING];
 
  const totalTasks = tasks.length;
  const completedTasks = tasks.filter(t => t.status === TASK_STATUS.COMPLETED).length;

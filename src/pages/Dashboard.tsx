@@ -28,7 +28,7 @@ export default function Dashboard() {
  const createProjectMutation = useCreateProject();
  const updateStatusMutation = useUpdateProjectStatus();
 
- const handleCreateProject = async (projectData: any) => {
+  const handleCreateProject = async (projectData: ProjectFormData) => {
  try {
  const project = await createProjectMutation.mutateAsync(projectData);
  if (project?.id) {
@@ -96,8 +96,8 @@ export default function Dashboard() {
 
  {/* Stats and Top Widgets */}
  <div className="mb-8 flex-shrink-0">
- <MobileAgenda tasks={data.filteredTasks as any} />
- <StatsOverview projects={data.projects as any} tasks={data.filteredTasks as any} />
+              <MobileAgenda tasks={data.filteredTasks as TaskRow[]} />
+              <StatsOverview projects={data.projects as Project[]} tasks={data.filteredTasks as TaskRow[]} />
  </div>
 
  {/* Content Area */}

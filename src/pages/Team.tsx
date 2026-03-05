@@ -111,14 +111,12 @@ export default function Team() {
  </DropdownMenuItem>
  </DropdownMenuContent>
  </DropdownMenu>
- </div>
-
- <h3 className="text-lg font-bold text-foreground mb-1">{(member as any).name || 'Unknown Name'}</h3>
+ <h3 className="text-lg font-bold text-foreground mb-1">{(member as {name?: string}).name || 'Unknown Name'}</h3>
  <div className="flex flex-wrap gap-2 mb-4">
  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white border border-brand-200 text-brand-700 ">
  {member.role || 'Member'}
  </span>
- {(member as any).is_lead && (
+ {(member as {is_lead?: boolean}).is_lead && (
  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white border border-blue-200 text-blue-700 ">
  Lead
  </span>
@@ -126,16 +124,16 @@ export default function Team() {
  </div>
 
  <div className="space-y-2 mt-4 pt-4 border-t border-border">
- {(member as any).email && (
+ {(member as {email?: string}).email && (
  <div className="flex items-center text-sm text-muted-foreground">
  <Mail className="w-4 h-4 mr-2" />
- {(member as any).email}
+ {(member as {email?: string}).email}
  </div>
  )}
- {(member as any).phone && (
+ {(member as {phone?: string}).phone && (
  <div className="flex items-center text-sm text-muted-foreground">
  <Phone className="w-4 h-4 mr-2" />
- {(member as any).phone}
+ {(member as {phone?: string}).phone}
  </div>
  )}
  </div>
