@@ -22,10 +22,6 @@ export type Project = Task & {
  settings?: Record<string, unknown> | null;
 };
 
-// No-op - removing duplicate lines 25-27
-
-export type ProjectRow = TaskRow;
-
 // ----------------------------------------------------------------------------
 // People
 // ----------------------------------------------------------------------------

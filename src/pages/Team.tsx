@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
@@ -55,7 +54,7 @@ export default function Team() {
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
  <div className="flex items-center gap-4">
  {projectId && (
- <Link to={createPageUrl(`Project?id=${projectId}`)}>
+ <Link to={`/Project?id=${projectId}`}>
  <Button variant="ghost" size="icon" className="rounded-full">
  <ArrowLeft className="w-5 h-5" />
  </Button>

@@ -44,7 +44,7 @@ export interface PlanterClient {
  Task: TaskEntityClient;
  TaskRelationship: EntityClient<TaskRelationshipRow, Database['public']['Tables']['task_relationships']['Insert'], Database['public']['Tables']['task_relationships']['Update']>;
  Phase: EntityClient<Task, TaskInsert, TaskUpdate>;
- Milestone: EntityClient<Task, TaskInsert, TaskUpdate>;
+ Milestone: PlanterClient['entities']['Phase'];
  TaskWithResources: {
  listTemplates: (options?: { from?: number, limit?: number, resourceType?: string | null, signal?: AbortSignal }) => Promise<{ data: Task[], error: Error | null }>;
  searchTemplates: (options: { query: string, limit?: number, resourceType?: string | null, signal?: AbortSignal }) => Promise<{ data: Task[], error: Error | null }>;
@@ -539,7 +539,7 @@ export const planter: PlanterClient = {
 
  TaskRelationship: createEntityClient<TaskRelationshipRow, Database['public']['Tables']['task_relationships']['Insert'], Database['public']['Tables']['task_relationships']['Update']>('task_relationships'),
  Phase: createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
- Milestone: createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
+ get Milestone() { return this.Phase; },
  TaskWithResources: {
  ...createEntityClient<unknown, unknown, unknown>('tasks_with_primary_resource'),
  listTemplates: async ({ from = 0, limit = 25, resourceType = null as string | null, signal }: { from?: number, limit?: number, resourceType?: string | null, signal?: AbortSignal } = {}): Promise<{ data: Task[], error: Error | null }> => {

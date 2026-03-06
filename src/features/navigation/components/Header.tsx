@@ -1,5 +1,4 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
  DropdownMenu,
@@ -57,7 +56,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }: HeaderP
  </Button>
  )}
 
- <Link to={createPageUrl('Dashboard')} className="flex items-center gap-2" aria-label="PlanterPlan Home">
+ <Link to="/Dashboard" className="flex items-center gap-2" aria-label="PlanterPlan Home">
  <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm">
  <CheckCircle2 className="w-5 h-5 text-white" />
  </div>
@@ -97,7 +96,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }: HeaderP
  <User className="mr-2 h-4 w-4" />
  <span>Profile</span>
  </DropdownMenuItem>
- <Link to={createPageUrl('Settings')}>
+ <Link to="/Settings">
  <DropdownMenuItem>
  <Settings className="mr-2 h-4 w-4" />
  <span>Settings</span>

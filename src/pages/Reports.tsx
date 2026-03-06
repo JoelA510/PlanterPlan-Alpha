@@ -1,5 +1,4 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/shared/lib/utils';
 import { planter } from '@/shared/api/planterClient';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -90,7 +89,7 @@ export default function Reports() {
  <div className="bg-white border-b border-slate-200 shadow-sm">
  <div className="max-w-6xl mx-auto px-4 py-8">
  <div className="flex items-center gap-4">
- <Link to={createPageUrl(`Project?id=${projectId}`)}>
+ <Link to={`/Project?id=${projectId}`}>
  <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-100">
  <ArrowLeft className="w-5 h-5" />
  </Button>

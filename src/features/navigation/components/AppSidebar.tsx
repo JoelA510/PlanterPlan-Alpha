@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useMemo } from 'react';
-import { createPageUrl, cn } from '@/shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { LayoutDashboard, BarChart3, Settings, HelpCircle, ChevronLeft } from 'lucide-react';
 import type { TaskRow } from '@/shared/db/app.types';
@@ -55,7 +55,7 @@ export default function AppSidebar({ onClose, currentProject, className }: AppSi
  return (
  <Link
  key={item.path}
- to={createPageUrl(item.path)}
+ to={item.path.startsWith('/') ? item.path : `/${item.path}`}
  onClick={() => window.innerWidth < 1024 && onClose()}
  >
  <Button
@@ -85,7 +85,7 @@ export default function AppSidebar({ onClose, currentProject, className }: AppSi
  </h3>
  <div className="px-3 py-2 rounded-lg bg-muted/50">
  <p className="text-sm font-medium text-card-foreground truncate">{currentProject.title}</p>
- <Link to={createPageUrl(`Project?id=${currentProject.id}`)}>
+ <Link to={`/Project?id=${currentProject.id}`}>
  <Button
  variant="link"
  size="sm"
