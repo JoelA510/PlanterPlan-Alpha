@@ -1,178 +1,143 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.2.0 (Wave 16 — Simplification Sprint & Stabilization) **Last
-> Updated**: 2026-03-03 **Status**: Active Development
+> **Version**: 1.3.0 (Wave 16/17 — Build Stabilization & Data Flow Simplification) 
+> **Last Updated**: 2026-03-04 
+> **Status**: Active Development (Vercel Deployment Blocker Resolution)
 
 ---
 
 ## 1. Executive Summary
 
-**PlanterPlan** is a specialized project management tool designed for **Church
-Planters**. Unlike generic tools (Asana, Trello), PlanterPlan is built around
-the specific lifecycle of planting a church, using a library of "Master
-Templates" that can be deep-cloned into active "Project Instances".
+**PlanterPlan** is a specialized project management tool designed for **Church Planters**. Unlike generic tools (Asana, Trello), PlanterPlan is built around the specific lifecycle of planting a church, using a library of "Master Templates" that can be deep-cloned into active "Project Instances".
 
-It solves the problem of "what do I do next?" by providing curated, phase-based
-roadmaps (Discovery -> Launch -> Growth) that guide the user through the
-complexity of starting a new organization.
+It solves the problem of "what do I do next?" by providing curated, phase-based roadmaps (Discovery -> Launch -> Growth) that guide the user through the complexity of starting a new organization.
 
 ---
 
-## 2. User Personas
+## 2. User Personas & Access Control
 
-### 2.1 The Church Planter (Core User)
+### 2.1 Application User Types
+- **Planter Plan Admin**: Can manage master library templates, global resources, and oversee all platform usage.
+- **Planter Plan User**: Standard authenticated user capable of creating or being invited to projects.
 
-- **Goal**: Launch a healthy church without getting overwhelmed by logistics.
-- **Pain Points**: Doesn't know the steps; overwhelmed by generic tools; needs a
-  "playbook".
-- **Key Features Used**: Dashboard (progress tracking), Task Tree (executing
-  steps), People CRM (managing launch team).
-
-### 2.2 The Coach / Overseer (Admin/Viewer)
-
-- **Goal**: Monitor the progress of multiple planters.
-- **Pain Points**: Lack of visibility into where planters are stuck.
-- **Key Features Used**: "View As" mode, Project Reports, Dashboard Pipeline
-  View.
+### 2.2 Project-Level Roles (Permissions Matrix)
+- **Project Owner**: Can view/edit any task, add/delete tasks, edit project settings, assign task "Leads", and invite/manage other project users.
+- **Full User (Editor)**: Can view and edit any task in the project (including adding and deleting tasks). Cannot edit root project settings or manage members.
+- **Limited User**: Can view any task in the project, but can *only edit their own assigned tasks*.
+- **Coach**: Can view any task in the project, but can *only edit tasks specifically labeled as coaching tasks*.
+- **Viewer**: Read-only access to the project structure and tasks.
 
 ---
 
 ## 3. Functional Requirements (Roadmap & Status)
 
 > **Status Key**
->
-> - [x] **Complete**: Implemented, tested, and merged.
-> - [/] **In Progress**: Active development or partial implementation.
-> - [ ] **Pending**: Planned but not started.
-> - [-] **Skipped/Deferred**: Removed from scope or postponed.
+> - [x] **Complete**: Implemented, tested, and actively functioning in the codebase.
+> - [/] **In Progress**: Active development, partially implemented, or currently undergoing stabilization.
+> - [ ] **Pending**: Planned for the active roadmap but not yet started.
+> - [-] **Deferred (Backlog)**: Originally documented "for later" and moved to Section 6.
 
-### 3.1 Core Architecture (Phase 0)
+### 3.1 User Accounts & Auth
+- [x] Login / Logout (Supabase GoTrue)
+- [x] Account Creation / Sign up
+- [x] Basic Error Handling (Wrong password/email)
+- [ ] **Account Management**: User ability to update password and profile data. Registration CORS/case-sensitivity hardening.
+- [ ] **Localization**: Complete Foreign Language UI mapping.
 
-- [x] **Project Scaffolding**
-  - [x] Vite + React + TypeScript setup
-  - [x] Tailwind CSS v4 configuration
-  - [x] Barrel file structure (`features/`, `shared/`)
-- [x] **Authentication** (Supabase GoTrue)
-  - [x] Login / Signup Pages
-  - [x] AuthContext with Session Persistence
-  - [x] Protected Routes Wrapper
-  - [x] RBAC Hooks (`useUserRole`, `canEdit`)
-- [x] **Database & API**
-  - [x] Supabase Client (`planterClient`)
-  - [x] Type Generation (`database.types.ts`)
-  - [x] RLS Policies (Row Level Security)
-  - [x] React Query Integration
-  - [x] Optimistic Updates
+### 3.2 Projects Domain
+- [x] **Creation & Deletion**: Create project from Master Template (deep clone RPC), delete project.
+- [x] **Team Management**:
+  - [x] Invite a member via email with a specific role.
+  - [x] Remove a member.
+  - [x] Change member role permissions.
+- [/] **Project Settings**: Edit due date, due soon thresholds, and location (Database schema `settings` JSONB exists; UI implementation ongoing).
+- [-] **Advanced Access**: Assign Phase/Milestone to a limited viewer.
+- [ ] **Checkpoint-Based Architecture**: Alternate project type that unlocks sequential phases upon completing the previous phase, without rigid due dates.
+- [ ] **Secondary Projects**: Ability to create and toggle between multiple projects, filtering out archived/completed projects from the active menu.
 
-### 3.2 Tasks Domain (Phase 1 & 2)
+### 3.3 Tasks Domain (Shared Project & Template Functionality)
+- [x] **Task Schema**: Title, Description, Purpose, Actions, Start Date, Due Date, Notes, Status, Completion.
+- [x] **Task Creation/Deletion**: 
+  - [x] Add Task / Subtask / Milestone.
+  - [x] Delete Task (with cascading effect on existing due dates).
+- [ ] **Specialized Task Types**: "Strategy Template" prompts user to add tasks from library on completion; "Coaching" auto-assigns to users with Coach role.
+- [x] **Task Hierarchy & Visualization**:
+  - [x] View project/template tasks in an expandable/collapsible hierarchy tree.
+  - [x] Edit task, subtask, and milestone info.
+  - [ ] **Kanban Board V2**: Native column-to-column drag-and-drop with strict type safety (replacing the V1 math-heavy board).
+- [x] **Drag and Drop Engine**:
+  - [x] Pick up and drag tasks to any location.
+  - [x] Drop on top of another task (reparenting / making it a child).
+  - [x] Drop adjacent to another task (reordering).
+  - [x] Strict cycle detection (Unable to drop a parent inside its own child).
+  - [x] Position renormalization and cascading due-date changes based on parent movement.
+- [x] **Task Interactions**:
+  - [x] Edit completeness status.
+  - [x] Assign user as "Lead" (`assignee_id`).
+  - [ ] **Task Status Extensions**: Ability to mark a task as "N/A" (Not Applicable).
+  - [ ] **Milestone Automation**: Auto-update a milestone's completeness status when all child tasks are marked complete.
+- [ ] **Due Date Engine**: 
+  - [ ] Recalculate and assign relative due dates to all incomplete tasks when root project start/completion dates are changed.
+  - [ ] Automatically bubble up earliest start dates and latest due dates to parent milestones/phases.
+  - [ ] Nightly CRON job to automatically transition task statuses ('Not Yet Due' -> 'Current' -> 'Due Soon' -> 'Overdue').
+- [ ] **Task Detail Enhancements**: Show related tasks in the same milestone, and add an action to email task details/content to users with saved address memory.
+- [ ] **Collaboration Suite**: Threaded comments on tasks, activity/audit logs, and real-time presence (cursors).
+- [ ] **Automation Engine**: Recurring tasks ("Every Monday", "First of Month").
 
-- [x] **Task Visualization**
-  - [x] Hierarchical Tree View
-  - [x] Collapsible Rows
-  - [x] Indentation Guide Lines
-- [x] **Task Management**
-  - [x] Create Task (and Subtasks)
-  - [x] Update Task (Title, Status, Description)
-  - [x] Delete Task (with Confirmation)
-  - [x] Task Details Side Panel
-- [x] **Drag & Drop**
-  - [x] Reorder Tasks (Same Level)
-  - [x] Reparenting (Drag into other task)
-  - [x] **Cycle Detection Algorithm** (Prevents circular dependencies)
-  - [x] Optimistic UI Updates
+### 3.4 Resources Domain
+- [x] **Task Integration**: Add/remove external links, PDFs, and text resources directly to the task pane.
+- [/] **Resource Library**: Centralized view to search and filter project resources.
 
-### 3.3 Projects Domain (Phase 3)
+### 3.5 Master Library & Templates
+- [x] **Template Management**: Create, edit, and delete templates.
+- [x] **Library Integration**: Search and copy tasks from the Master Library when adding to a template or active project.
+  - [ ] Intelligently hide library tasks already in the instance, and show topically related tasks.
+- [x] **Promotion**: Promote an instance task back to the Master Library.
+- [ ] **Template Publishing**: Ability to mark a template as "Published/Unpublished" to control visibility.
 
-- [x] **Project Management**
-  - [x] Create Project from Scratch
-  - [x] Create Project from Template
-  - [x] Project List View (Dashboard)
-  - [x] Project Settings
-- [x] **Team & Access**
-  - [x] Invite Members (RPC `invite_user_to_project`)
-  - [x] Manage Roles (Owner, Editor, Viewer)
-  - [x] Member List Display
+### 3.6 Dashboard, Views & Reporting
+- [x] **Metrics Overview**: View counts for current tasks, due soon, overdue.
+- [x] **Status Breakdown**: View metrics for complete, in progress, and blocked tasks.
+- [x] **Portfolio Tracking**: Number of active projects.
+- [ ] **Progress Visualization**: Project progress donut chart visible across task list views.
+- [ ] **Project Status Report**: Report interface featuring reporting month selection, donut charts, and lists of completed, overdue, and upcoming milestones. 
+- [ ] **Task List Views & Filters**: Dedicated UI tables/pages to view tasks isolated by Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All Tasks, Milestones, and My Tasks. Include chronological/alphabetical sorting.
+- [ ] **Supervisor Reports**: Add a "supervisor" field during project setup and automatically dispatch Status Reports on the 2nd of each month.
+- [ ] **Gantt Chart**: Timeline view based on `start_date` and `due_date` showing Phases and Milestones.
 
-### 3.4 UI/UX Polish & Hardening (Phase 4)
+### 3.7 Platform Admin, Monetization & Ecosystem
+- [ ] **White Labeling**: Support for partner organizations to use custom URLs, logos, and branding, including white-label administrator controls.
+- [ ] **Store & Monetization**: Integration with Stripe for store functionality.
+- [ ] **User License Management**: License restrictions for project creation volume, management, and discount codes.
+- [ ] **Advanced Admin Management**: Dedicated Admin UI with global search, advanced user filtering (by last login, task completion), and analytics dashboard.
+- [ ] **Push & Email Notifications**: Automated alerts for weekly priority tasks, overdue tasks, and task comments.
+- [ ] **External Integrations**: Zoho CRM and Zoho Analytics sync, AWS unmanaged file uploads, ICS feeds for calendar integration.
 
-- [x] **Design System**
-  - [x] Sidebar Navigation
-  - [x] Header & Breadcrumbs
-  - [x] Toast Notifications
-  - [x] Responsive Layouts
-- [x] **Reliability & Type Safety**
-  - [x] Error Boundaries
-  - [x] Loading Skeletons
-  - [x] Form Validation (Zod)
-  - [x] Strict TSX Components
-- [x] **Architecture Simplification**
-  - [x] UI Deduplication (Merged Modals)
-  - [x] Centralized Layout Routing
-  - [x] Feature Inlining (Auth, Onboarding, Reports)
-  - [x] Strict Single-Theme Enforcement (Removed Dark Mode)
-- [x] **Build Stabilization (Wave 16)**
-  - [x] Zero `tsc` Errors (Strict Types)
-  - [x] Safe Supabase Casts (`planterClient.ts`)
-  - [x] Repaired UI Corruptions
+### 3.8 Technical Hardening & Infrastructure
+- [/] **Build Stabilization (Wave 16)**: Eliminating `tsc` errors, dead code, and standardizing Supabase `| null` types to clear Vercel deployment blockers.
+- [ ] **Data Flow Simplification (Wave 17)**: Migrate to `@supabase-cache-helpers` to eliminate manual React Query invalidations and sunset `planterClient.ts`.
+- [ ] **Mobile Infrastructure**: PWA Support (Installable on iOS/Android) and Local-first offline mode (RxDB/WatermelonDB sync).
 
 ---
 
 ## 4. Non-Functional Requirements
 
 ### 4.1 Performance
-
-- **Tree Rendering**: Support for 500+ tasks without UI lag via O(1) lookup maps
-  and memoized trees.
-- **Network**: All data fetching uses `stale-while-revalidate` (React Query)
-  with granular cache invalidation.
-- **Bundle Size**: Initial load < 200KB (gzip).
+- **Tree Rendering**: Support for 500+ tasks without UI lag via O(1) lookup maps and memoized trees.
+- **Network**: All data fetching uses `stale-while-revalidate` (React Query) with deterministic cache keys.
 
 ### 4.2 Security
-
 - **Authentication**: JWT-based via Supabase Auth.
-- **Authorization**: Row-Level Security (RLS) enforced on ALL database tables.
-- **Role-Based Access**: 5 distinct roles (Owner, Editor, Coach, Viewer,
-  Limited).
+- **Authorization**: Row-Level Security (RLS) enforced on ALL database tables matching the Project Roles matrix.
 
 ### 4.3 Data Integrity
-
-- **Cycle Detection**: Drag-and-drop MUST prevent circular parent-child
-  relationships.
-- **Deep Cloning**: Template instantiation must copy the _entire_ tree structure
-  atomically.
+- **Cycle Detection**: Drag-and-drop MUST prevent circular parent-child relationships algorithmically.
+- **Deep Cloning**: Template instantiation (`clone_project_template` RPC) must copy the *entire* tree structure, position IDs, and references atomically.
 
 ---
 
 ## 5. Technical Architecture
 
 For a deep dive into the system architecture, please refer to:
-
-- **[FULL_ARCHITECTURE.md](docs/FULL_ARCHITECTURE.md)**: Comprehensive technical
-  reference.
+- **[FULL_ARCHITECTURE.md](docs/FULL_ARCHITECTURE.md)**: Comprehensive technical reference.
 - **[repo-context.yaml](repo-context.yaml)**: Machine-readable dependency graph.
-
----
-
-## 6. Future Roadmap (Backlog)
-
-### 6.1 Advanced Views
-
-- [ ] **Kanban Board**: Drag-and-drop tasks between status columns.
-- [ ] **Gantt Chart**: Timeline view based on `start_date` and `due_date`.
-
-### 6.2 Collaboration
-
-- [ ] **Comments**: Threaded discussions on tasks.
-- [ ] **Activity Log**: Audit trail of changes.
-- [ ] **Real-time Cursors**: See who is viewing a task.
-
-### 6.3 Automation
-
-- [ ] **Recurring Tasks**: "Every Monday", "First of Month".
-- [ ] **Automated Status Updates**: "If all subtasks complete, mark parent
-      complete."
-
-### 6.4 Mobile
-
-- [ ] **PWA Support**: Installable on iOS/Android.
-- [ ] **Offline Mode**: Local-first sync engine (RxDB or similar).
