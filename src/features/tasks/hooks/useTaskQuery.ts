@@ -1,5 +1,4 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { supabase } from '@/shared/db/client';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { planter } from '@/shared/api/planterClient';
 import { Project, Task } from '@/shared/db/app.types';
@@ -7,100 +6,96 @@ import { Project, Task } from '@/shared/db/app.types';
 const PAGE_SIZE = 20;
 
 export const useTaskQuery = () => {
- const { user: authUser } = useAuth();
- const currentUserId = authUser?.id || null;
+    const { user: authUser } = useAuth();
+    const currentUserId = authUser?.id || null;
 
 
- // 1. Fetch Paginated User Projects (Instances)
- const {
- data: projectsData,
- fetchNextPage,
- hasNextPage,
- isFetchingNextPage,
- isLoading: isLoadingProjects,
- error: projectsError,
- refetch: refetchProjects,
- } = useInfiniteQuery({
- queryKey: ['projects', 'instance', currentUserId],
- queryFn: async ({ pageParam = 1 }) => {
- if (!currentUserId) return [];
- return await planter.entities.Project.listByCreator(currentUserId, pageParam as number, PAGE_SIZE);
- },
- initialPageParam: 1,
- getNextPageParam: (lastPage, allPages) => {
- return lastPage.length === PAGE_SIZE ? allPages.length + 1 : undefined;
- },
- enabled: !!currentUserId,
- });
+    // 1. Fetch Paginated User Projects (Instances)
+    const {
+        data: projectsData,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: isLoadingProjects,
+        error: projectsError,
+        refetch: refetchProjects,
+    } = useInfiniteQuery({
+        queryKey: ['projects', 'instance', currentUserId],
+        queryFn: async ({ pageParam = 1 }) => {
+            if (!currentUserId) return [];
+            return await planter.entities.Project.listByCreator(currentUserId, pageParam as number, PAGE_SIZE);
+        },
+        initialPageParam: 1,
+        getNextPageParam: (lastPage, allPages) => {
+            return lastPage.length === PAGE_SIZE ? allPages.length + 1 : undefined;
+        },
+        enabled: !!currentUserId,
+    });
 
- // 2. Fetch Templates (Non-paginated for now per original logic)
- const {
- data: templates,
- isLoading: isLoadingTemplates,
- } = useQuery({
- queryKey: ['projects', 'template', currentUserId],
- queryFn: async () => {
- if (!currentUserId) return [];
- const { data, error } = await supabase
- .from('tasks_with_primary_resource')
- .select('*')
- .eq('creator', currentUserId)
- .eq('origin', 'template')
- .is('parent_task_id', null)
- .order('title', { ascending: true });
- if (error) throw error;
- return (data || []) as Task[];
- },
- enabled: !!currentUserId,
- });
+    // 2. Fetch Templates
+    const {
+        data: templates,
+        isLoading: isLoadingTemplates,
+    } = useQuery({
+        queryKey: ['projects', 'template', currentUserId],
+        queryFn: async () => {
+            if (!currentUserId) return [];
+            const { data, error } = await planter.entities.TaskWithResources.listTemplates({ userId: currentUserId });
+            if (error) throw error;
+            return (data || []) as Task[];
+        },
+        enabled: !!currentUserId,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        gcTime: 1000 * 60 * 30,    // 30 minutes
+    } as any);
 
- // 3. Fetch Joined Projects
- const {
- data: joinedProjects,
- error: joinedError,
- isLoading: isLoadingJoined,
- } = useQuery({
- queryKey: ['projects', 'joined', currentUserId],
- queryFn: async () => {
- if (!currentUserId) return [];
- return await planter.entities.Project.listJoined(currentUserId);
- },
- enabled: !!currentUserId,
- });
+    // 3. Fetch Joined Projects
+    const {
+        data: joinedProjects,
+        error: joinedError,
+        isLoading: isLoadingJoined,
+    } = useQuery({
+        queryKey: ['projects', 'joined', currentUserId],
+        queryFn: async () => {
+            if (!currentUserId) return [];
+            return await planter.entities.Project.listJoined(currentUserId);
+        },
+        enabled: !!currentUserId,
+    });
 
- // Combine instances and templates into tasks
- const tasks: (Project | Task)[] = [
- ...(projectsData?.pages.flat() || []),
- ...(templates || [])
- ];
+    // Combine instances and templates into tasks
+    const tasks: (Project | Task)[] = [
+        ...(projectsData?.pages.flat() || []),
+        ...(templates as any[] || [])
+    ];
 
- const findTask = (id: string) => {
- if (!id) return null;
- const inRoots = tasks.find((t) => t.id === id) || (joinedProjects as Project[])?.find((t) => t.id === id);
- if (inRoots) return inRoots;
- return null;
- };
+    const findTask = (id: string) => {
+        if (!id) return null;
+        const inRoots = tasks.find((t) => t.id === id) || (joinedProjects as Project[])?.find((t) => t.id === id);
+        if (inRoots) return inRoots;
+        return null;
+    };
 
 
 
- const loading = isLoadingProjects || isLoadingTemplates || (!joinedProjects && isLoadingJoined);
- const error = projectsError ? (projectsError as Error).message : null;
+    const loading = isLoadingProjects || isLoadingTemplates || (!joinedProjects && isLoadingJoined);
+    const error = projectsError ? (projectsError as Error).message : null;
 
- // Helper exposed for manual hydration elsewhere if needed, though React Query
- // manages cache now, we preserve the map in `useTaskOperations` or components.
- // For now, return a dummy object as actual hydration is handled separately.
+    // Helper exposed for manual hydration elsewhere if needed, though React Query
+    // manages cache now, we preserve the map in `useTaskOperations` or components.
+    // For now, return a dummy object as actual hydration is handled separately.
 
- return {
- tasks,
- joinedProjects: joinedProjects || [],
- loading,
- error,
- joinedError: joinedError ? (joinedError as Error).message : null,
- currentUserId,
- hasMore: !!hasNextPage,
- isFetchingMore: isFetchingNextPage,
- loadMoreProjects: fetchNextPage,
- refetchProjects,
- findTask,
- };
+    return {
+        tasks,
+        joinedProjects: joinedProjects || [],
+        loading,
+        error,
+        joinedError: joinedError ? (joinedError as Error).message : null,
+        currentUserId,
+        hasMore: !!hasNextPage,
+        isFetchingMore: isFetchingNextPage,
+        loadMoreProjects: fetchNextPage,
+        refetchProjects,
+        findTask,
+    };
 };

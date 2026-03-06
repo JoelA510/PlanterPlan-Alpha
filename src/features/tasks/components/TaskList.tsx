@@ -1,9 +1,14 @@
+import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
-import { useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
+import { useUpdateTask, useCreateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
 import { useTaskTree } from '@/features/tasks/hooks/useTaskTree';
 import { useExpandedTasks } from '@/features/tasks/hooks/useExpandedTasks';
+import { separateTasksByOrigin } from '@/shared/lib/tree-helpers';
+import { Project, TaskRow, SelectableProject, TaskFormData } from '@/shared/db/app.types';
+import { TaskFormState } from '@/features/tasks/hooks/useTaskBoardUI';
+import React from 'react';
 import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { ProjectSidebar } from '@/features/navigation';
@@ -35,28 +40,16 @@ const TaskList = () => {
 
   const { mutateAsync: createProjectAsync } = useCreateProject();
   const { mutateAsync: updateTaskAsync } = useUpdateTask();
-
-  const createProject = async (data: ProjectFormData) => createProjectAsync(data);
-  const handleSelectProjectWrapper = async (p: SelectableProject) => {
-    if (!p) return;
-    return {} as SelectableProject; useTaskBoardUI but we provide the logic
-    return {} as never; 
-  };
-  const deleteTask = async () => {
-    // Handled by useTaskBoardUI internally via props
-    return;
-  };
-
+  const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
   // 2. Selection & State Layer
   const {
     activeProjectId,
     handleSelectProject,
-    hydrationError,
   } = useProjectSelection({
     urlProjectId,
-    instanceTasks: tasks.filter((t: TaskRow) => t.origin === 'instance') as TaskRow[],
-    templateTasks: tasks.filter((t: TaskRow) => t.origin === 'template') as TaskRow[],
+    instanceTasks,
+    templateTasks,
     joinedProjects: (joinedProjects || []) as Project[],
     loading,
   });
@@ -73,7 +66,7 @@ const TaskList = () => {
   // 3. Tree & UI Structure Layer
   const { expandedTaskIds, handleToggleExpand } = useExpandedTasks();
 
-  const { activeProject, instanceTasks, templateTasks } = useTaskTree({
+  const { activeProject } = useTaskTree({
     tasks,
     hydratedProjects: hydratedProjects as Record<string, any[]>,
     activeProjectId,
@@ -81,102 +74,106 @@ const TaskList = () => {
     expandedTaskIds,
   });
 
- const {
- showForm,
- taskFormState,
- selectedTask,
- setSelectedTask,
- handleTaskClick,
- handleAddChildTask,
- handleEditTask,
- onDeleteTaskWrapper,
- handleDeleteById,
- setTaskFormState,
- handleTaskSubmit,
- } = useTaskBoardUI({
- currentUserId,
- createProject,
-    createTaskOrUpdate: createTaskOrUpdate as (data: TaskFormData) => Promise<void>,
-    deleteTask: deleteTask as (taskId: string) => Promise<void>,
-    refreshProjectDetails: refetchProjects,
+  const { mutateAsync: createTaskAsync } = useCreateTask();
+  const { mutateAsync: deleteTaskAsync } = useDeleteTask();
+
+  const createTaskOrUpdateWrapper = async (data: TaskFormData, state: TaskFormState | null) => {
+    if (state?.mode === 'edit' && state?.taskId) {
+      return updateTaskAsync({ id: state.taskId, ...data } as any);
+    }
+    return createTaskAsync({ ...data, root_id: activeProjectId } as any);
+  };
+
+  const {
+    showForm,
+    taskFormState,
+    selectedTask,
+    setSelectedTask,
+    handleAddChildTask,
+    handleEditTask,
+    onDeleteTaskWrapper,
+    handleDeleteById,
+    setTaskFormState,
+    handleTaskSubmit,
+  } = useTaskBoardUI({
+    currentUserId,
+    createProject: createProjectAsync as any,
+    createTaskOrUpdate: createTaskOrUpdateWrapper as any,
+    deleteTask: async (task: TaskRow) => { await deleteTaskAsync({ id: task.id, root_id: task.root_id }); },
+    refreshProjectDetails: () => refetchProjects(),
     findTask: findTask as (id: string) => TaskRow | null,
     activeProjectId,
- });
+  });
 
   // Derived state for TaskDetailsPanel
-  const parentTaskForForm = taskFormState?.parentId ? (findTask(taskFormState.parentId) || projectHierarchy.find((t: TaskRow) => t.id === taskFormState.parentId)) : null;
+  const parentTaskForForm = taskFormState?.parentId ? (findTask(taskFormState.parentId) || (projectHierarchy as any[]).find((t: any) => t.id === taskFormState.parentId)) : null;
   const taskBeingEdited = taskFormState?.mode === 'edit' && taskFormState.taskId
-    ? (findTask(taskFormState.taskId) || projectHierarchy.find((t: TaskRow) => t.id === taskFormState.taskId))
-      : null;
+    ? (findTask(taskFormState.taskId) || (projectHierarchy as any[]).find((t: any) => t.id === taskFormState.taskId))
+    : null;
 
- const sidebarContent = (
- <ProjectSidebar
-        joinedProjects={(joinedProjects as Project[]) || []}
-        instanceTasks={instanceTasks as TaskRow[]}
-        templateTasks={templateTasks as TaskRow[]}
-        loading={loading}
-        error={error as string | null}
-        handleSelectProject={handleSelectProject as (p: SelectableProject) => Promise<void>}
- selectedTaskId={activeProjectId}
- onNewProjectClick={() => navigate('/projects/new')}
- onNewTemplateClick={() => {}}
- />
- );
+  const sidebarContent = (
+    <ProjectSidebar
+      joinedProjects={(joinedProjects as Project[]) || []}
+      instanceTasks={instanceTasks as TaskRow[]}
+      templateTasks={templateTasks as TaskRow[]}
+      loading={loading}
+      error={error as string | null}
+      handleSelectProject={handleSelectProject as (p: SelectableProject) => Promise<void>}
+      selectedTaskId={activeProjectId}
+      onNewProjectClick={() => navigate('/projects/new')}
+      onNewTemplateClick={() => { }}
+    />
+  );
 
- if (error) {
- return (
- <DashboardLayout sidebar={sidebarContent}>
- <StatusCard
- title="Error Loading Projects"
- description={error}
- variant="error"
- />
- </DashboardLayout>
- );
- }
+  if (error) {
+    return (
+      <DashboardLayout sidebar={sidebarContent}>
+        <StatusCard
+          title="Error Loading Projects"
+          description={error}
+          variant="error"
+        />
+      </DashboardLayout>
+    );
+  }
 
- return (
- <DashboardLayout sidebar={sidebarContent}>
- <div className="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden relative">
- {activeProject ? (
- <ProjectTasksView
-          project={activeProject as Project}
-          childrenTasks={taskTree}
-          depth={0}
-          handleTaskClick={(taskId) => setTaskFormState({ mode: 'edit', parentId: null, taskId })}
-          onTaskUpdate={canEdit ? handleEditTask : undefined}
-          onAddChildTask={canEdit ? handleAddChildTask : undefined}
-          onToggleExpand={handleToggleExpand as (id: string) => void}
-          disableDrag={joinedProjects?.some((jp: Project) => jp.id === activeProjectId)}
-          activeProjectId={activeProjectId}
-          isReadOnly={!canEdit}
-          onStatusChange={(_, status) => updateTaskAsync({ taskId: _, updates: { status } } as { taskId: string, updates: Partial<TaskRow> })}
- />
- ) : (
- <EmptyProjectState
- onCreateProject={() => navigate('/projects/new')}
- />
- )}
+  return (
+    <DashboardLayout sidebar={sidebarContent}>
+      <div className="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden relative">
+        {activeProject ? (
+          <ProjectTasksView
+            project={activeProject as any}
+            handleTaskClick={handleEditTask as any}
+            handleAddChildTask={handleAddChildTask as any}
+            handleEditTask={handleEditTask as any}
+            handleDeleteById={handleDeleteById as any}
+            onToggleExpand={handleToggleExpand as any}
+            onStatusChange={(_, status) => updateTaskAsync({ id: _, updates: { status } } as any)}
+            disableDrag={joinedProjects?.some((jp: any) => jp.id === activeProjectId)}
+          />
+        ) : (
+          <EmptyProjectState
+            onCreateProject={() => navigate('/projects/new')}
+          />
+        )}
 
- <TaskDetailsPanel
- showForm={showForm}
-        taskFormState={taskFormState as { mode: 'create' | 'edit'; parentId: string | null; taskId?: string } | null}
-        selectedTask={selectedTask as TaskRow | null}
-        taskBeingEdited={taskBeingEdited as TaskRow | null}
-        parentTaskForForm={parentTaskForForm as TaskRow | null}
-        onClose={() => setSelectedTask(null)}
- handleTaskSubmit={handleTaskSubmit}
-        activeProjectId={activeProjectId}
-        canEdit={canEdit}
-        setTaskFormState={setTaskFormState as (val: { mode: 'create' | 'edit'; parentId: string | null; taskId?: string } | null) => void}
-        handleAddChildTask={handleAddChildTask as (parentId: string) => void}
-        handleEditTask={handleEditTask as (task: TaskRow) => void}
-        onDeleteTaskWrapper={onDeleteTaskWrapper as () => void}
-        fetchTasks={refetchProjects}
- />
- </div>
- </DashboardLayout>
- );
+        <TaskDetailsPanel
+          showForm={showForm}
+          taskFormState={taskFormState as any}
+          selectedTask={selectedTask as any}
+          taskBeingEdited={taskBeingEdited as any}
+          parentTaskForForm={parentTaskForForm as any}
+          onClose={() => setSelectedTask(null)}
+          handleTaskSubmit={handleTaskSubmit}
+          setTaskFormState={setTaskFormState as any}
+          handleAddChildTask={handleAddChildTask as any}
+          handleEditTask={handleEditTask as any}
+          onDeleteTaskWrapper={onDeleteTaskWrapper as any}
+          fetchTasks={refetchProjects}
+        />
+      </div>
+    </DashboardLayout>
+  );
 };
 
 export default TaskList;

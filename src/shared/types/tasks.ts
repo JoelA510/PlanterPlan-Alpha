@@ -36,9 +36,18 @@ export const TaskBaseSchema = z.object({
  * Extended task type used across features for tree-based task rendering.
  * Lives in shared/ to avoid lateral imports between feature slices.
  */
-export const TaskItemDataSchema: z.ZodType<any> = z.lazy(() =>
-  TaskBaseSchema.extend({
-    children: z.array(TaskItemDataSchema).optional(),
+export interface TaskItemData extends Task {
+  children?: TaskItemData[];
+  isExpanded?: boolean;
+  isAddingInline?: boolean;
+  duration?: string;
+  resource_type?: string;
+  membership_role?: string;
+}
+
+export const TaskItemDataSchema: z.ZodType<TaskItemData> = z.lazy(() =>
+  (TaskBaseSchema as any).extend({
+    children: z.array(z.lazy(() => TaskItemDataSchema)).optional(),
     isExpanded: z.boolean().optional(),
     isAddingInline: z.boolean().optional(),
     duration: z.string().optional(),
@@ -46,5 +55,3 @@ export const TaskItemDataSchema: z.ZodType<any> = z.lazy(() =>
     membership_role: z.string().optional(),
   })
 );
-
-export type TaskItemData = z.infer<typeof TaskItemDataSchema>;

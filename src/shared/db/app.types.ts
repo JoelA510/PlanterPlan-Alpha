@@ -3,23 +3,40 @@ import type { Database } from './database.types';
 export type Json = Database['public']['Tables']['tasks']['Row']['settings'];
 
 // ----------------------------------------------------------------------------
+// Utilities
+// ----------------------------------------------------------------------------
+export type Nullable<T> = T | null;
+
+// ----------------------------------------------------------------------------
 // Tasks
 // ----------------------------------------------------------------------------
 export type TaskRow = Database['public']['Tables']['tasks']['Row'];
 export type TaskInsert = Database['public']['Tables']['tasks']['Insert'];
 export type TaskUpdate = Database['public']['Tables']['tasks']['Update'];
 
-// Aliases for better DX and legacy compatibility
-export type Task = Omit<TaskRow, 'status'> & {
- name?: string;
- launch_date?: string | null;
- project_id?: string | null;
- status: string;
+/** Standardized Task type for UI components with legacy field support */
+export type Task = TaskRow & {
+    name?: string;
+    launch_date?: string | null;
+    project_id?: string | null;
 };
 
+/** Standardized Project type */
 export type Project = Task & {
- location?: string | null;
- settings?: Record<string, unknown> | null;
+    location?: string | null;
+    settings?: Record<string, unknown> | null;
+};
+
+export type HierarchyTask = TaskRow & {
+    children?: HierarchyTask[];
+    membership_role?: string;
+    isExpanded?: boolean;
+};
+
+export type SelectableProject = TaskRow;
+
+export type SidebarTask = TaskRow & {
+    is_active?: boolean;
 };
 
 // ----------------------------------------------------------------------------
@@ -38,7 +55,7 @@ export type TeamMemberRow = Database['public']['Tables']['project_members']['Row
 
 /** Standardized Person type for UI components */
 export interface Person extends PersonRow {
- notes: string | null;
+    notes: string | null;
 }
 
 // ----------------------------------------------------------------------------
@@ -51,39 +68,39 @@ export interface Person extends PersonRow {
 export type UserRole = 'admin' | 'owner' | 'viewer';
 
 export interface UserMetadata {
- [key: string]: string | number | boolean | null | undefined;
+    [key: string]: any;
 }
 
 export interface User {
- id: string;
- email: string;
- role: UserRole;
- app_metadata?: UserMetadata;
- user_metadata?: UserMetadata;
- aud?: string;
- created_at?: string;
+    id: string;
+    email: string;
+    role: UserRole;
+    app_metadata?: UserMetadata;
+    user_metadata?: UserMetadata;
+    aud?: string;
+    created_at?: string;
 }
 
 /** Shape emitted by the NewProjectForm Zod schema. */
 export interface CreateProjectFormData {
- title: string;
- description?: string;
- purpose?: string;
- actions?: string;
- notes?: string;
- start_date: string;
- templateId?: string | null;
+    title: string;
+    description?: string;
+    purpose?: string;
+    actions?: string;
+    notes?: string;
+    start_date: string;
+    templateId?: string | null;
 }
 
 /** Shape emitted by the NewTaskForm Zod schema. */
 export interface TaskFormData {
- title: string;
- description?: string | null;
- notes?: string | null;
- purpose?: string | null;
- actions?: string | null;
- days_from_start?: number;
- start_date?: string | null;
- due_date?: string | null;
- templateId?: string | null;
+    title: string;
+    description?: string | null;
+    notes?: string | null;
+    purpose?: string | null;
+    actions?: string | null;
+    days_from_start?: number;
+    start_date?: string | null;
+    due_date?: string | null;
+    templateId?: string | null;
 }

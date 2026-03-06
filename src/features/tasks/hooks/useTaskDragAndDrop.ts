@@ -101,14 +101,14 @@ export const useTaskDragAndDrop = ({
         if (isStatusChange) {
           const prevStatus = activeTask.status;
           if (handleOptimisticUpdate) {
-            handleOptimisticUpdate(activeId, { status: newStatus });
+            handleOptimisticUpdate(activeId, { status: newStatus as any });
           } else {
             setTasks((prev) =>
-              prev.map((t) => (t.id === activeId ? { ...t, status: newStatus! } : t))
+              prev.map((t) => (t.id === activeId ? { ...t, status: newStatus as any } : t))
             );
           }
           try {
-            await updateTask(activeId, { status: newStatus! });
+            await updateTask(activeId, { status: newStatus as any });
           } catch (e) {
             console.error('Failed to update status', e);
             if (commitOptimisticUpdate) commitOptimisticUpdate(activeId);
@@ -174,11 +174,11 @@ export const useTaskDragAndDrop = ({
           position: newPos,
           parent_task_id: newParentId,
         };
-        
+
         if (newActiveDate) {
           activeUpdate.start_date = newActiveDate;
         }
-        
+
         updatesToApply.push(activeUpdate);
         updatesToApply.push(...dateUpdates);
 

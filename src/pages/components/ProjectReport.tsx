@@ -7,137 +7,132 @@ import { useTaskQuery, useProjectSelection } from '@/features/tasks';
 import { planter } from '@/shared/api/planterClient';
 import { Loader2 } from 'lucide-react';
 import StatusPieChart from '@/pages/components/StatusPieChart';
-import type { TaskRow } from '@/shared/db/app.types';
+import type { TaskRow, Project, SelectableProject } from '@/shared/db/app.types';
 
 interface ProjectWithChildren extends TaskRow {
- children?: TaskRow[];
+    children?: TaskRow[];
 }
 
 const ProjectReport: React.FC = () => {
- const { projectId: urlProjectId } = useParams<{ projectId: string }>();
- const navigate = useNavigate();
+    const { projectId: urlProjectId } = useParams<{ projectId: string }>();
+    const navigate = useNavigate();
 
- // 1. Core Data Layer
- const {
- tasks,
- joinedProjects,
- hydratedProjects,
- loading,
- error,
- joinedError,
- hasMore,
- isFetchingMore,
- loadMoreProjects,
- refetchProjects,
- } = useTaskQuery() as Record<string, unknown>;
-
- const fetchProjectDetails = () => (refetchProjects as () => void)?.();
-
- // 2. Project Selection Layer (Sidebar sync)
- const { handleSelectProject } = useProjectSelection({
- urlProjectId,
- instanceTasks: (tasks as TaskRow[]) || [],
- templateTasks: (tasks as TaskRow[]) || [],
- joinedProjects: (joinedProjects as Project[]) || [],
- hydratedProjects: (hydratedProjects as Record<string, unknown[]>) || {},
- fetchProjectDetails: fetchProjectDetails as (id: string) => Promise<void>,
- loading: loading as boolean,
- });
-
- // Derived lists for sidebar
- const instanceTasks = ((tasks as TaskRow[]) || []).filter((t: TaskRow) => t.origin === 'instance');
- const templateTasks = ((tasks as TaskRow[]) || []).filter((t: TaskRow) => t.origin === 'template');
+    // 1. Core Data Layer
+    const {
+        tasks,
+        joinedProjects,
+        loading,
+        error,
+        joinedError,
+        hasMore,
+        isFetchingMore,
+        loadMoreProjects,
+    } = useTaskQuery() as Record<string, unknown>;
 
 
- // Fetch project details specifically for the report
- const [project, setProject] = useState<ProjectWithChildren | null>(null);
+    // 2. Project Selection Layer (Sidebar sync)
+    const { handleSelectProject } = useProjectSelection({
+        urlProjectId,
+        instanceTasks: (tasks as TaskRow[]) || [],
+        templateTasks: (tasks as TaskRow[]) || [],
+        joinedProjects: (joinedProjects as Project[]) || [],
+        loading: loading as boolean,
+    });
 
- useEffect(() => {
- const fetchProject = async () => {
- if (!urlProjectId) return;
- try {
- const { data, error } = await planter.entities.Project.getWithStats(urlProjectId);
- if (data) setProject(data);
- else if (error) console.error('Error fetching project report:', error);
- } catch (err) {
- console.error('Exception fetching project report:', err);
- }
- };
- fetchProject();
- }, [urlProjectId]);
+    // Derived lists for sidebar
+    const instanceTasks = ((tasks as TaskRow[]) || []).filter((t: TaskRow) => t.origin === 'instance');
+    const templateTasks = ((tasks as TaskRow[]) || []).filter((t: TaskRow) => t.origin === 'template');
 
- const sidebar = (
- <ProjectSidebar
- joinedProjects={(joinedProjects as Project[]) || []}
- instanceTasks={instanceTasks}
- templateTasks={templateTasks}
- handleSelectProject={handleSelectProject as (p: SelectableProject) => Promise<void>}
- selectedTaskId={urlProjectId}
- loading={loading as boolean}
- error={error as string | null}
- joinedError={joinedError as string | null}
- hasMore={hasMore as boolean}
- isFetchingMore={isFetchingMore as boolean}
- onLoadMore={loadMoreProjects as () => void}
- onNewProjectClick={() => navigate('/dashboard')}
- onNewTemplateClick={() => navigate('/dashboard')}
- />
- );
 
- return (
- <DashboardLayout sidebar={sidebar}>
- <div className="project-view-container w-full h-full flex flex-col">
- {project ? (
- <>
- <div className="bg-card px-8 border-b border-border">
- <ProjectHeader project={project} />
- </div>
+    // Fetch project details specifically for the report
+    const [project, setProject] = useState<ProjectWithChildren | null>(null);
 
- {/* Report Content */}
- <div className="flex-1 px-8 pb-12 max-w-6xl w-full mx-auto overflow-x-visible pt-8">
- <div className="bg-card rounded-xl shadow-sm border border-border p-8">
- <h2 className="text-xl font-semibold mb-4 text-card-foreground">Project Performance</h2>
- {/* Placeholder for actual charts/stats */}
- <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
- <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
- <div className="text-muted-foreground text-sm mb-1">Total Tasks</div>
- <div className="text-2xl font-bold text-card-foreground">
- {project.children?.length || 0}
- </div>
- </div>
- <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
- <div className="text-muted-foreground text-sm mb-1">Completed</div>
- <div className="text-2xl font-bold text-emerald-600 ">
- {project.children?.filter((t: TaskRow) => t.is_complete).length || 0}
- </div>
- </div>
- <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
- <div className="text-muted-foreground text-sm mb-1">Pending</div>
- <div className="text-2xl font-bold text-amber-600 ">
- {project.children?.filter((t: TaskRow) => !t.is_complete).length || 0}
- </div>
- </div>
- </div>
+    useEffect(() => {
+        const fetchProject = async () => {
+            if (!urlProjectId) return;
+            try {
+                const { data, error } = await planter.entities.Project.getWithStats(urlProjectId);
+                if (data) setProject(data);
+                else if (error) console.error('Error fetching project report:', error);
+            } catch (err) {
+                console.error('Exception fetching project report:', err);
+            }
+        };
+        fetchProject();
+    }, [urlProjectId]);
 
- <div className="h-80 bg-muted/30 rounded-lg p-6 border border-border/50">
- <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
- Status Distribution
- </h3>
- <div className="w-full h-full pb-6">
- <StatusPieChart tasks={(project.children as TaskRow[]) || []} />
- </div>
- </div>
- </div>
- </div>
- </>
- ) : (
- <div className="flex items-center justify-center h-full text-slate-400">
- <Loader2 className="animate-spin h-8 w-8 text-brand-500" />
- </div>
- )}
- </div>
- </DashboardLayout>
- );
+    const sidebar = (
+        <ProjectSidebar
+            joinedProjects={(joinedProjects as Project[]) || []}
+            instanceTasks={instanceTasks}
+            templateTasks={templateTasks}
+            handleSelectProject={handleSelectProject as (p: SelectableProject) => Promise<void>}
+            selectedTaskId={urlProjectId}
+            loading={loading as boolean}
+            error={error as string | null}
+            joinedError={joinedError as string | null}
+            hasMore={hasMore as boolean}
+            isFetchingMore={isFetchingMore as boolean}
+            onLoadMore={loadMoreProjects as () => void}
+            onNewProjectClick={() => navigate('/dashboard')}
+            onNewTemplateClick={() => navigate('/dashboard')}
+        />
+    );
+
+    return (
+        <DashboardLayout sidebar={sidebar}>
+            <div className="project-view-container w-full h-full flex flex-col">
+                {project ? (
+                    <>
+                        <div className="bg-card px-8 border-b border-border">
+                            <ProjectHeader project={project as any} />
+                        </div>
+
+                        {/* Report Content */}
+                        <div className="flex-1 px-8 pb-12 max-w-6xl w-full mx-auto overflow-x-visible pt-8">
+                            <div className="bg-card rounded-xl shadow-sm border border-border p-8">
+                                <h2 className="text-xl font-semibold mb-4 text-card-foreground">Project Performance</h2>
+                                {/* Placeholder for actual charts/stats */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                    <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
+                                        <div className="text-muted-foreground text-sm mb-1">Total Tasks</div>
+                                        <div className="text-2xl font-bold text-card-foreground">
+                                            {project.children?.length || 0}
+                                        </div>
+                                    </div>
+                                    <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
+                                        <div className="text-muted-foreground text-sm mb-1">Completed</div>
+                                        <div className="text-2xl font-bold text-emerald-600 ">
+                                            {project.children?.filter((t: TaskRow) => t.is_complete).length || 0}
+                                        </div>
+                                    </div>
+                                    <div className="p-4 bg-muted/40 rounded-lg border border-border/50">
+                                        <div className="text-muted-foreground text-sm mb-1">Pending</div>
+                                        <div className="text-2xl font-bold text-amber-600 ">
+                                            {project.children?.filter((t: TaskRow) => !t.is_complete).length || 0}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="h-80 bg-muted/30 rounded-lg p-6 border border-border/50">
+                                    <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
+                                        Status Distribution
+                                    </h3>
+                                    <div className="w-full h-full pb-6">
+                                        <StatusPieChart tasks={(project.children as TaskRow[]) || []} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-slate-400">
+                        <Loader2 className="animate-spin h-8 w-8 text-brand-500" />
+                    </div>
+                )}
+            </div>
+        </DashboardLayout>
+    );
 };
 
 export default ProjectReport;

@@ -61,7 +61,7 @@ export const renormalizePositions = async (
     position: task.position,
   }));
 
-  const { error: updateError } = await planter.entities.Task.upsert(updates);
+  const { error: updateError } = await planter.entities.Task.upsert(updates as any);
 
   if (updateError) {
     console.error('Renormalization update failed', updateError);
