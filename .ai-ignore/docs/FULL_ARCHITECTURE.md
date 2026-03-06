@@ -100,7 +100,7 @@ The following rules were established during the Debt Remediation Sprint and are 
 | **Dates**                | date-fns             | 4       | Date formatting & manipulation (via `date-engine` wrapper — see ADR-9) |
 | **Backend**              | Supabase             | 2.95    | Auth, Postgres, Realtime, Storage                                      |
 | **Unit Tests**           | Vitest + RTL         | 4 / 16  | Component & hook testing                                               |
-| **E2E Tests**            | Playwright           | 1.58    | End-to-end browser testing                                             |
+| **E2E Tests**            | Browser Subagent     | N/A     | Code-agnostic vision testing (80/20 Core Journeys)                     |
 | **Linting**              | ESLint               | 9       | Code quality                                                           |
 | **Formatting**           | Prettier             | 3       | Code formatting                                                        |
 
@@ -769,19 +769,18 @@ Key test files:
 - `validation.test.ts` — Input validation
 - `MobileAgenda.test.tsx` — Mobile agenda
 
-### E2E Tests (Playwright)
+### E2E Tests (Browser Subagent Vision Testing)
 
-| Suite                     | Coverage                                     |
-| ------------------------- | -------------------------------------------- |
-| `golden-paths.spec.ts`    | Project Creation, Date Picker, Sidebar flows |
-| `sidebar-actions.spec.ts` | Template selection, Modal flows              |
-| `drag-drop.spec.ts`       | Drag persistence, Date inheritance           |
-| `auth.spec.ts`            | Login, logout, session persistence           |
-| `theme-integrity.spec.ts` | Dark/light mode across all views             |
-| `security.spec.ts`        | Unauthorized access prevention               |
+Playwright has been removed in favor of a true code-agnostic vision-testing
+approach using a browser subagent. The 80/20 testing suite focuses on 4 core
+continuous journeys located in `./tests/`:
 
-Playwright is configured to target `localhost:3010` (Isolated E2E Mode) with the
-Chromium project.
+| Suite                              | Coverage                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| `01-engine-dates.spec.ts`          | Template generation, dates, and mathematical cascading.                   |
+| `02-daily-loop.spec.ts`            | Day-to-day task experience, priority views, and missing dependencies.     |
+| `03-rbac-roles.spec.ts`            | Security, role restrictions, and cross-persona session management.        |
+| `04-library-customization.spec.ts` | Real-time project customization, Master Library injection, and integrity. |
 
 ---
 

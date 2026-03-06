@@ -13,9 +13,18 @@ _Specific API quirks for our 2026 stack (React 19, TW4, Vite 7)._
 | `react`        | `19.x`  | No `forwardRef`. Use `useActionState` for form actions. Strict hydration checks.                              |
 | `react-router` | `v7`    | Ensure routes are defined in the new data-router format if modifying `App.tsx`.                               |
 | `date-engine`  | Custom  | **NEVER** do raw date math. ALWAYS use `src/shared/lib/date-engine`. (See [ARC-034]).                         |
-| `playwright`   | `1.58`  | Use `VITE_E2E_MODE=true` on port 3010. Mocks must handle query params with wildcards (`**/tasks*`).           |
 
 ## 2. Production Findings (Active Rules & Patterns)
+
+### [TEST-011] The "Nuke and Pave" Testing Shift (Vision Testing)
+
+- **Date**: 2026-03-06
+- **Context**: Playwright E2E tests were fragile and heavily dependent on
+  specific DOM selectors and mocked data states.
+- **Rule**: **Tests Must be Code Agnostic**. Move exclusively to browser
+  subagent vision testing. Focus on the 4 core 80/20 journeys (`engine-dates`,
+  `daily-loop`, `rbac-roles`, `library-customization`). Tests live in `./tests/`
+  and legacy tests are archived.
 
 ### [ARC-040] Date Calculation Ownership & FSD Leakage
 

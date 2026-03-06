@@ -46,8 +46,7 @@ Every file that gives meaningful context about this project, organized by role.
 | File                                                                    | Purpose                                      | Priority     |
 | :---------------------------------------------------------------------- | :------------------------------------------- | :----------- |
 | [testing-strategy.md](operations/testing-strategy.md)                   | Detailed testing methodology and patterns    | 🔵 Useful    |
-| [playwright-e2e-testing-system.md](../playwright-e2e-testing-system.md) | E2E infrastructure reference (69K)           | 🟡 Reference |
-| [e2e-helpers.ts](../e2e/fixtures/e2e-helpers.ts)                        | Centralized test auth/mock helpers           | 🔵 Useful    |
+| [playwright-e2e-testing-system.md](../playwright-e2e-testing-system.md) | (Archived) Legacy E2E reference (69K)        | � Low       |
 | [agent-test-scripts.md](operations/agent-test-scripts.md)               | Structured manual test scripts for AI agents | 🟢 Low       |
 
 ---
@@ -58,7 +57,6 @@ Every file that gives meaningful context about this project, organized by role.
 | :------------------------------------------------------ | :------------------------------------------ | :----------- |
 | [local_development.md](operations/local_development.md) | Local dev setup guide                       | 🔵 Useful    |
 | [SAFE_MIGRATION.md](operations/SAFE_MIGRATION.md)       | Database migration safety procedures        | 🟡 Reference |
-| [playwright.config.ts](../playwright.config.ts)         | E2E test runner configuration               | 🔵 Useful    |
 | [vite.config.js](../vite.config.js)                     | Build system, path aliases, chunk splitting | 🔵 Useful    |
 | [package.json](../package.json)                         | Dependencies, scripts, project metadata     | 🔵 Useful    |
 
@@ -304,12 +302,13 @@ mindmap
         src/tests/unit/XSS.test.tsx (Restored)
         src/tests/security/RLS.test.ts (Restored)
         src/tests/unit/AuthContext.security.test.tsx (Restored)
-      Playwright E2E
-        25 Verified Scenarios
-        12 Journey Specs (Stable)
-        Parametric Auth Seeding
-        100% Concurrent Pass Rate
-        Shared e2e-helpers
+      Vision E2E (Browser Subagent)
+        4 Core 80/20 Journeys
+        01-engine-dates.spec.ts
+        02-daily-loop.spec.ts
+        03-rbac-roles.spec.ts
+        04-library-customization.spec.ts
+        Code-Agnostic Validation
     DevOps
       GitHub Actions CI
       Dependabot
