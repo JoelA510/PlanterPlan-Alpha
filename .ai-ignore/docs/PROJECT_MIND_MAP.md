@@ -176,7 +176,7 @@ mindmap
           - [x] **Mutation Hooks**: Extracted all project and task mutations into dedicated `useProjectMutations.ts` and `useTaskMutations.ts` hooks with built-in optimistic UI and rollbacks.
           - [x] **Legacy Hooks**: Preserved complex `TaskList` wrapper logic in `useTaskActions.ts` to decouple it from pure query logic.
           - [x] **Component Decomposition**: Refactored `Project.tsx` and `Reports.tsx` to strict TSX, extracting logic to `useProjectBoard.ts` and `useProjectReports.ts`.
-          - [x] **Test Modularization**: Implemented `DashboardPage` and `ProjectPage` POMs for robust Playwright E2E tests.
+          - [x] **Test Modularization**: Implemented `DashboardPage` and `ProjectPage` POMs for robust legacy E2E tests.
           - [x] **Context Optimization**: Relocated heavy documentation and aggressively `.gitignore`d test artifacts to shrink repository token footprint.
 
         - [x] **Wave 15 (Code Review & Hardening)**

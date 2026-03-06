@@ -116,8 +116,8 @@ from `app/` or `features/`. Constants shared across layers live in
 
 PlanterPlan-Alpha/ ├── docs/ # Documentation & DB schema │ ├── db/schema.sql #
 Full database DDL (tables, views, RPCs, RLS) │ ├── ARCHITECTURE.md # Component
-diagrams (legacy) │ └── operations/ # Operational guides ├── e2e/ # Playwright
-E2E test suites ├── public/ # Static assets ├── scripts/ # Utility scripts ├──
+diagrams (legacy) │ └── operations/ # Operational guides ├── tests/ # Browser Subagent E2E test suites 
+│ └── archive/ # Archived Playwright tests ├── public/ # Static assets ├── scripts/ # Utility scripts ├──
 supabase/ # Supabase config, edge functions, seeds │ ├── config.toml │ ├──
 functions/ │ └── seeds/ ├── src/ │ ├── app/ # @app — Global wiring │ │ ├──
 App.tsx # Root component, router, provider tree │ │ ├── supabaseClient.ts#
@@ -149,8 +149,7 @@ fetching │ │ └── PlanterLayout.tsx # Minimal layout wrapper │ │ �
 
 styles/ # CSS globals │ │ ├── globals.css # Tailwind v4 theme tokens & design
 system │ │ └── index.css # Entry point │ │ │ └── main.tsx # Vite entry point │
-├── package.json ├── vite.config.js ├── playwright.config.ts └──
-eslint.config.js
+├── package.json ├── vite.config.js └── eslint.config.js
 
 ````
 ### Path Aliases (vite.config.js)

@@ -19,7 +19,7 @@ _Specific API quirks for our 2026 stack (React 19, TW4, Vite 7)._
 ### [TEST-011] The "Nuke and Pave" Testing Shift (Vision Testing)
 
 - **Date**: 2026-03-06
-- **Context**: Playwright E2E tests were fragile and heavily dependent on
+- **Context**: Legacy Playwright E2E tests were fragile and heavily dependent on
   specific DOM selectors and mocked data states.
 - **Rule**: **Tests Must be Code Agnostic**. Move exclusively to browser
   subagent vision testing. Focus on the 4 core 80/20 journeys (`engine-dates`,
@@ -38,7 +38,7 @@ _Specific API quirks for our 2026 stack (React 19, TW4, Vite 7)._
 
 ### [TEST-013] E2E Stateful Auth Mocking
 
-- **Context**: Playwright E2E tests experienced race conditions due to eager
+- **Context**: Legacy E2E tests experienced race conditions due to eager
   React Router redirects before the DOM could fully mount the login form.
 - **Rule**: **Mount Logged Out First.** Always mount tests with
   `isLoggedOut = true` initially to allow proper DOM attachment of the login UI,
@@ -733,7 +733,7 @@ If AbortErrors persist after implementing retries:
   configured to do so. If they force a direct dependency on a library we've
   wrapped (like `supabase-js`), they are forbidden.
 
-### [TEST-008] Robust Date Selection in Playwright/Vitest
+### [TEST-008] Robust Date Selection in Tests
 
 - **Date**: 2026-02-21
 - **Context**: `CreateProjectModal` tests hung because they tried to click a
@@ -866,3 +866,21 @@ If AbortErrors persist after implementing retries:
   `new Date()` arithmetic in application code. The only allowed `new Date()`
   usage is for generating ISO timestamps (`created_at`). All formatting,
   shifting, and aggregation must go through `src/shared/lib/date-engine/`.
+
+### [DB-036] RLS Infinite Recursion & Native Ownership
+
+- **Date**: 2026-03-02
+- **Context**: An infinite recursion loop within Postgres caused `500 Internal Server Error` because the `tasks` INSERT policy was querying the `tasks` SELECT policy. The root cause was that creators were not natively added to the `project_members` table.
+- **Rule**: **Explicit Ownership Insertion.** Never write recursive RLS policies to infer ownership. Creators must be explicitly inserted natively into the `project_members` table with the `owner` role during project initialization to allow flat RLS evaluation.
+
+### [TS-003] Zero-Error Strict Typing Policy
+
+- **Date**: 2026-03-03
+- **Context**: Legacy JS to TS conversions left hundreds of implicit `any` and `tsc` errors, hiding runtime bugs and degenerating UI components.
+- **Rule**: **Zero Tolerance for Type Errors.** The application architecture mandates a zero-error strict typing policy. `npx tsc --noEmit` must return 0 errors. Bridge generic mismatches safely but never bypass the compiler.
+
+### [AGENT-001] Advanced Prompt Frameworks Protocol
+
+- **Date**: 2026-03-03
+- **Context**: Agentic workflows required standardized, verifiably safe reasoning models for complex tasks.
+- **Rule**: Use the designated prompt frameworks (`REACT-PROMPT.md`, `DBC-PROMPT.md`, `BDD-PROMPT.md`, `IPDD-PROMPT.md`) located in `.antigravity/` when executing complex architectural reasoning, Design-by-Contract assertions, or iterative atomic code generation.
