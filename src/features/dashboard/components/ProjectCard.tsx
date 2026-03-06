@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/shared/lib/utils';
 import { Card } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { Progress } from '@/shared/ui/progress';
@@ -35,7 +34,7 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps
 
  return (
  <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} className="h-full">
- <Link to={createPageUrl(`project/${project.id}`)} className="h-full block">
+ <Link to={`/project/${project.id}`} className="h-full block">
  <Card className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card h-full flex flex-col justify-between overflow-hidden">
  <div className="flex items-start justify-between mb-4">
  <div className="flex items-center gap-4 min-w-0">

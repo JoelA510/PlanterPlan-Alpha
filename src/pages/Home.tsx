@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { motion } from 'framer-motion';
 import {
@@ -92,7 +91,7 @@ export default function Home() {
  </p>
 
  <div className="flex flex-col sm:flex-row gap-4 justify-center">
- <Link to={createPageUrl('Dashboard')}>
+ <Link to="/Dashboard">
  <Button
  size="lg"
  className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-orange-500/25 transition-all hover:shadow-xl hover:shadow-orange-500/30"
@@ -229,7 +228,7 @@ export default function Home() {
  Join hundreds of church planters who use PlanterPlan to stay organized and focused
  on people.
  </p>
- <Link to={createPageUrl('Dashboard')}>
+ <Link to="/Dashboard">
  <Button
  size="lg"
  className="bg-orange-500 hover:bg-orange-600 text-white px-10 py-6 text-lg rounded-xl"

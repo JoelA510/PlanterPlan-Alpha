@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
 import { Progress } from '@/shared/ui/progress';
@@ -68,7 +67,7 @@ export default function ProjectHeader({
  >
  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
  <div className="flex items-center gap-4 mb-6">
- <Link to={createPageUrl('dashboard')}>
+ <Link to="/dashboard">
  <Button variant="ghost" size="icon" className="rounded-full">
  <ArrowLeft className="w-5 h-5" />
  </Button>
@@ -104,13 +103,13 @@ export default function ProjectHeader({
  <Download className="w-4 h-4 mr-2" />
  Export
  </Button>
- <Link to={createPageUrl(`reports?project=${project.id}`)}>
+ <Link to={`/reports?project=${project.id}`}>
  <Button variant="outline" size="sm">
  <BarChart2 className="w-4 h-4 mr-2" />
  Reports
  </Button>
  </Link>
- <Link to={createPageUrl(`team?project=${project.id}`)}>
+ <Link to={`/team?project=${project.id}`}>
  <Button variant="outline" size="sm">
  <Users className="w-4 h-4 mr-2" />
  Team

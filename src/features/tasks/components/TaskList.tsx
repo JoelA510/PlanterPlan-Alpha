@@ -47,8 +47,6 @@ const TaskList = () => {
     return;
   };
 
-  const fetchProjectDetails = (() => refetchProjects()) as () => void;
-  const refreshProjectDetails = (() => refetchProjects()) as () => void;
 
   // 2. Selection & State Layer
   const {
@@ -100,7 +98,7 @@ const TaskList = () => {
  createProject,
     createTaskOrUpdate: createTaskOrUpdate as (data: TaskFormData) => Promise<void>,
     deleteTask: deleteTask as (taskId: string) => Promise<void>,
-    refreshProjectDetails,
+    refreshProjectDetails: refetchProjects,
     findTask: findTask as (id: string) => TaskRow | null,
     activeProjectId,
  });
@@ -174,7 +172,7 @@ const TaskList = () => {
         handleAddChildTask={handleAddChildTask as (parentId: string) => void}
         handleEditTask={handleEditTask as (task: TaskRow) => void}
         onDeleteTaskWrapper={onDeleteTaskWrapper as () => void}
-        fetchTasks={() => refetchProjects()}
+        fetchTasks={refetchProjects}
  />
  </div>
  </DashboardLayout>
