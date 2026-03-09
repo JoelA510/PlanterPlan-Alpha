@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
 import { toIsoDate, recalculateProjectDates, nowUtcIso, DateEngineTask } from '@/shared/lib/date-engine';
-import { TaskInsert, TaskUpdate } from '@/shared/db/app.types';
+import { TaskUpdate } from '@/shared/db/app.types';
 
 export interface CreateProjectPayload {
     title: string;
@@ -136,16 +136,4 @@ export function useUpdateProjectStatus() {
     });
 }
 
-export function useCreateTemplate() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async (templateData: TaskInsert) => {
-            const { data: { user } } = await supabase.auth.getUser();
-            return planter.entities.Task.create({ ...templateData, creator: user?.id, origin: 'template', parent_task_id: null });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['userProjects'] });
-        }
-    });
-}
 

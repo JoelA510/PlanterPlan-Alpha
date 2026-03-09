@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { TaskInsert, TaskUpdate, TaskRow, TeamMemberRow } from '@/shared/db/app.types'
+import { TaskInsert, TaskUpdate, TaskRow } from '@/shared/db/app.types'
 import { planter as planterClient } from '@/shared/api/planterClient'
 
 // We use TaskInsert/TaskUpdate but sometimes hooks pass custom subsets
@@ -127,22 +127,3 @@ export function useDeleteTask() {
  })
 }
 
-export function useAssignTaskMember() {
- const queryClient = useQueryClient()
- return useMutation<{ data: TeamMemberRow | undefined, error: Error | null }, Error, { taskId: string, userId: string, root_id?: string | null }>({
- mutationFn: (data) => {
- if (planterClient.entities.Task.addMember) {
- return planterClient.entities.Task.addMember(data.taskId, data.userId, 'viewer');
- }
- throw new Error('Task.addMember is not defined');
- },
- onSuccess: (_, variables) => {
- const rootId = variables.root_id;
- if (rootId) {
- queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] })
- } else {
- queryClient.invalidateQueries({ queryKey: ['tasks', 'root'] })
- }
- }
- })
-}

@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { supabase } from '@/shared/db/client';
+import type { Session } from '@supabase/supabase-js';
 import type { User, UserMetadata } from '@/shared/db/app.types';
-import { SessionProvider, useSession } from './SessionContext';
-import { UserProfileProvider, useUserProfile } from './UserProfileContext';
+import { authApi } from '@/shared/api/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -22,9 +23,131 @@ export const useAuth = () => {
   return context;
 };
 
-function AuthMacroProvider({ children }: { children: React.ReactNode }) {
-  const { user, loading, signUp, signIn, signOut } = useSession();
-  const { updateMe } = useUserProfile();
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // --- Session management (was SessionContext) ---
+
+  useEffect(() => {
+    let alive = true;
+
+    const handleSession = (session: Session | null) => {
+      if (!session?.user) {
+        if (!alive) return;
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const supabaseUser = session.user;
+      setUser(prev => ({
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        role: prev?.role || 'viewer',
+        app_metadata: supabaseUser.app_metadata as UserMetadata,
+        user_metadata: supabaseUser.user_metadata as UserMetadata,
+        aud: supabaseUser.aud,
+        created_at: supabaseUser.created_at
+      }));
+      setLoading(false);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setLoading(false);
+      } else {
+        handleSession(session);
+      }
+    });
+
+    return () => {
+      alive = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // --- Role hydration (was UserProfileContext) ---
+
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+
+    const fetchRole = async () => {
+      try {
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocal) {
+          setUser(prev => prev ? { ...prev, role: prev.role || 'owner' } : null);
+          const isAdmin = await authApi.checkIsAdmin(user.id);
+          if (alive && isAdmin) setUser(prev => prev ? { ...prev, role: 'admin' } : null);
+          return;
+        }
+
+        const isAdmin = await authApi.checkIsAdmin(user.id);
+        if (alive) {
+          setUser(prev => prev ? { ...prev, role: isAdmin ? 'admin' : 'owner' } : null);
+        }
+      } catch {
+        if (alive) setUser(prev => prev ? { ...prev, role: prev.role || 'viewer' } : null);
+      }
+    };
+
+    fetchRole();
+
+    return () => { alive = false; };
+  }, [user?.id]); // Only re-run if user ID changes
+
+  // --- Auth actions ---
+
+  const signUp = useCallback(async (email: string, password: string, userData: UserMetadata = {}) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: userData } });
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }, []);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } finally {
+      setUser(null);
+      setLoading(false);
+    }
+  }, []);
+
+  const updateMe = useCallback(async (attributes: UserMetadata) => {
+    const { data, error } = await supabase.auth.updateUser({ data: attributes });
+    if (error) throw error;
+    if (!data.user) throw new Error('Failed to update user');
+
+    const updatedUser: User = {
+      id: data.user.id,
+      email: data.user.email || '',
+      role: user?.role || 'viewer',
+      app_metadata: data.user.app_metadata as UserMetadata,
+      user_metadata: data.user.user_metadata as UserMetadata,
+      aud: data.user.aud,
+      created_at: data.user.created_at
+    };
+
+    setUser(updatedUser);
+    return updatedUser;
+  }, [user]);
 
   const value = useMemo(() => ({
     user,
@@ -36,16 +159,4 @@ function AuthMacroProvider({ children }: { children: React.ReactNode }) {
   }), [user, loading, signUp, signIn, signOut, updateMe]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionProvider>
-      <UserProfileProvider>
-        <AuthMacroProvider>
-          {children}
-        </AuthMacroProvider>
-      </UserProfileProvider>
-    </SessionProvider>
-  );
 }
