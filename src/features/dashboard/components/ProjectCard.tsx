@@ -43,7 +43,7 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps
  </div>
  <div className="min-w-0 flex-1">
  <h3 className="font-semibold text-lg text-card-foreground group-hover:text-brand-600 transition-colors truncate">
- {project.name}
+ {project.title || project.name}
  </h3>
  <Badge
  variant="secondary"
