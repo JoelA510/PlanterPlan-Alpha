@@ -1,10 +1,6 @@
 import { useState } from 'react';
 
-import {
-    useCreateTask,
-    useUpdateTask,
-    useDeleteTask,
-} from '@/features/tasks';
+import { useCreateTask, useUpdateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
 
 import { toast } from 'sonner';
 import type { TaskRow, TaskUpdate } from '@/shared/db/app.types';

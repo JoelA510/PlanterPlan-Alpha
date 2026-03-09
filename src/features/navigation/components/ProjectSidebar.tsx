@@ -2,8 +2,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { ROLES } from '@/shared/constants';
 import SidebarSkeleton from '@/features/navigation/components/SidebarSkeleton';
-import { InstanceList, JoinedProjectsList } from '@/features/projects';
-import { TemplateList } from '@/features/library';
+import InstanceList from '@/features/projects/components/InstanceList';
+import JoinedProjectsList from '@/features/projects/components/JoinedProjectsList';
+import TemplateList from '@/features/library/components/TemplateList';
 import { LayoutDashboard, BarChart, Settings } from 'lucide-react';
 import GlobalNavItem from './GlobalNavItem';
 

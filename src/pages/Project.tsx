@@ -25,7 +25,7 @@ import PhaseCard from '@/features/projects/components/PhaseCard';
 import MilestoneSection from '@/features/projects/components/MilestoneSection';
 import InviteMemberModal from '@/features/projects/components/InviteMemberModal';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
-import { MasterLibrarySearch } from '@/features/library';
+import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
 
 export default function Project() {
     const { projectId } = useParams<{ projectId: string }>();

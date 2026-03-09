@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 // Hooks
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard';
 import { useCreateProject, useUpdateProjectStatus } from '@/features/projects/hooks/useProjectMutations';
-import { useProjectRealtime } from '@/features/projects';
+import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
 
 // Components
 import CreateProjectModal from '@/features/dashboard/components/CreateProjectModal';

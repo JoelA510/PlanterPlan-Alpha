@@ -11,7 +11,7 @@ import { TaskFormState } from '@/features/tasks/hooks/useTaskBoardUI';
 import React from 'react';
 import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
-import { ProjectSidebar } from '@/features/navigation';
+import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
