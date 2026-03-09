@@ -50,10 +50,6 @@ export function useCreateProject() {
                     creator: user.id
                 });
 
-                if (project && project.id) {
-                    await planter.entities.Project.addMember(project.id, user.id, 'owner');
-                }
-
                 return project;
             }
         },

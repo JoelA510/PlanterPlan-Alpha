@@ -264,11 +264,13 @@ export const planter: PlanterClient = {
                     const taskPayload = {
                         title: projectData.title || projectData.name,
                         description: projectData.description,
+                        start_date: isoLaunchDate,
                         due_date: isoLaunchDate,
                         origin: 'instance',
                         parent_task_id: null,
                         root_id: null,
                         status: projectData.status || 'planning',
+                        creator: userId,
                         assignee_id: userId,
                     };
 

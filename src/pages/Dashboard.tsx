@@ -33,7 +33,7 @@ export default function Dashboard() {
         try {
             const project = await createProjectMutation.mutateAsync(projectData);
             if (project?.id) {
-                navigate(`/ project / ${project.id} `);
+                navigate(`/project/${project.id}`);
             }
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Unknown error occurred';

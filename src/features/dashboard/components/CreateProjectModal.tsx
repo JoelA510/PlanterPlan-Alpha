@@ -79,7 +79,8 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
     const handleSubmit = async () => {
         setLoading(true);
         try {
-            await onSubmit(formData);
+            const { templateId: _category, ...submitData } = formData;
+            await onSubmit(submitData as CreateProjectFormData);
             onClose();
         } catch (error) {
             console.error('Failed to create project:', error);
