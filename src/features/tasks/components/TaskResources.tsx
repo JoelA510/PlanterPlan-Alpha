@@ -9,12 +9,7 @@ import { Label } from '@/shared/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { ExternalLink, FileText, StickyNote, Plus, Trash2, Star } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import {
- listTaskResources,
- createTaskResource,
- deleteTaskResource,
- setPrimaryResource,
-} from '@/features/tasks/services/taskResourcesService';
+import { planter } from '@/shared/api/planterClient';
 
 const resourceTypeIcons = {
  url: ExternalLink,
@@ -50,17 +45,19 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }: T
 
  const { data: resources = [] } = useQuery<any[]>({
  queryKey: ['resources', taskId],
- queryFn: () => listTaskResources(taskId),
+ queryFn: () => planter.entities.TaskResource.filter({ task_id: taskId }),
  enabled: !!taskId,
  });
 
  const createResourceMutation = useMutation({
  mutationFn: (data: typeof formData) =>
- createTaskResource(taskId, {
- type: data.type,
- url: data.resource_url,
- text_content: data.resource_text,
- storage_path: data.storage_path,
+ planter.entities.TaskResource.create({
+ task_id: taskId,
+ resource_type: data.type,
+ resource_url: data.resource_url || null,
+ resource_text: data.resource_text || null,
+ storage_path: data.storage_path || null,
+ storage_bucket: null,
  }),
  onSuccess: () => {
  queryClient.invalidateQueries({ queryKey: ['resources', taskId] });
@@ -71,7 +68,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }: T
  });
 
  const deleteResourceMutation = useMutation({
- mutationFn: (id: string) => deleteTaskResource(id),
+ mutationFn: (id: string) => planter.entities.TaskResource.delete(id),
  onSuccess: () => {
  queryClient.invalidateQueries({ queryKey: ['resources', taskId] });
  if (onUpdate) onUpdate();
@@ -79,7 +76,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }: T
  });
 
  const setPrimaryMutation = useMutation({
- mutationFn: (id: string) => setPrimaryResource(taskId, id === primaryResourceId ? null : id),
+ mutationFn: (id: string) => planter.entities.TaskResource.setPrimary(taskId, id === primaryResourceId ? null : id),
  onSuccess: () => {
  if (onUpdate) onUpdate();
  },
