@@ -1,15 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '@/shared/contexts/AuthContext';
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useUpdateTask, useCreateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
-import { useTaskTree } from '@/features/tasks/hooks/useTaskTree';
-import { useExpandedTasks } from '@/features/tasks/hooks/useExpandedTasks';
-import { separateTasksByOrigin } from '@/shared/lib/tree-helpers';
+import { buildTree, separateTasksByOrigin } from '@/shared/lib/tree-helpers';
+import type { TaskNode } from '@/shared/lib/tree-helpers';
 import { Project, TaskRow, SelectableProject, TaskFormData } from '@/shared/db/app.types';
-import { TaskFormState } from '@/features/tasks/hooks/useTaskBoardUI';
 import React from 'react';
-import { useProjectSelection } from '@/features/tasks/hooks/useProjectSelection';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
 import ProjectTasksView from './ProjectTasksView';
@@ -17,18 +13,20 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import EmptyProjectState from '@/features/tasks/components/EmptyProjectState';
 import StatusCard from '@/shared/ui/StatusCard';
+import { toast } from 'sonner';
 
-// Hooks & Utils
-import { useCreateProject } from '@/features/projects/hooks/useProjectMutations';
-import { useTaskBoardUI } from '@/features/tasks/hooks/useTaskBoardUI';
+export interface TaskFormState {
+  mode: 'create' | 'edit';
+  origin?: string;
+  parentId?: string | null;
+  taskId?: string;
+}
 
 const TaskList = () => {
   const navigate = useNavigate();
   const { projectId: urlProjectId } = useParams<{ projectId: string }>();
-  const { user } = useAuth();
-  const currentUserId = user?.id || '';
 
-  // 1. Data Fetching
+  // --- Data Fetching ---
   const {
     tasks,
     loading,
@@ -38,44 +36,146 @@ const TaskList = () => {
     findTask,
   } = useTaskQuery();
 
-  const { mutateAsync: createProjectAsync } = useCreateProject();
   const { mutateAsync: updateTaskAsync } = useUpdateTask();
+  const { mutateAsync: createTaskAsync } = useCreateTask();
+  const { mutateAsync: deleteTaskAsync } = useDeleteTask();
+
   const { instanceTasks, templateTasks } = useMemo(() => separateTasksByOrigin(tasks), [tasks]);
 
-  // 2. Selection & State Layer
-  const {
-    activeProjectId,
-    handleSelectProject,
-  } = useProjectSelection({
-    urlProjectId,
-    instanceTasks,
-    templateTasks,
-    joinedProjects: (joinedProjects || []) as Project[],
-    loading,
-  });
+  // --- Project Selection (was useProjectSelection) ---
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
-  // Fetch the actual hierarchy from React Query cache
+  const handleSelectProject = useCallback(
+    async (project: SelectableProject): Promise<void> => {
+      setActiveProjectId(project.id);
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (urlProjectId && urlProjectId !== activeProjectId && !loading) {
+      const project =
+        instanceTasks.find((p) => p.id === urlProjectId) ||
+        templateTasks.find((p) => p.id === urlProjectId) ||
+        (joinedProjects || []).find((p: any) => p.id === urlProjectId);
+
+      if (project) {
+        handleSelectProject(project as SelectableProject);
+      }
+    }
+  }, [urlProjectId, activeProjectId, loading, instanceTasks, templateTasks, joinedProjects, handleSelectProject]);
+
+  // --- Project Hierarchy ---
   const { projectHierarchy } = useProjectData(activeProjectId);
 
-  // Purely derive the dictionary for the tree composition layer
   const hydratedProjects = React.useMemo(() => {
     if (!activeProjectId || !projectHierarchy || projectHierarchy.length === 0) return {};
     return { [activeProjectId]: projectHierarchy };
   }, [activeProjectId, projectHierarchy]);
 
-  // 3. Tree & UI Structure Layer
-  const { expandedTaskIds, handleToggleExpand } = useExpandedTasks();
+  // --- Expanded Tasks (was useExpandedTasks) ---
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
 
-  const { activeProject } = useTaskTree({
-    tasks,
-    hydratedProjects: hydratedProjects as Record<string, any[]>,
-    activeProjectId,
-    joinedProjects: (joinedProjects || []) as Project[],
-    expandedTaskIds,
-  });
+  const handleToggleExpand = useCallback((task: { id: string }, expanded: boolean) => {
+    setExpandedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (expanded) next.add(task.id);
+      else next.delete(task.id);
+      return next;
+    });
+  }, []);
 
-  const { mutateAsync: createTaskAsync } = useCreateTask();
-  const { mutateAsync: deleteTaskAsync } = useDeleteTask();
+  // --- Task Tree (was useTaskTree) ---
+  const activeProject = useMemo(() => {
+    if (!activeProjectId) return null;
+
+    const rootProject =
+      instanceTasks.find((t) => t.id === activeProjectId) ||
+      templateTasks.find((t) => t.id === activeProjectId) ||
+      (joinedProjects || []).find((t: any) => t.id === activeProjectId);
+
+    if (!rootProject) return null;
+
+    const childrenFlat = (hydratedProjects as Record<string, any[]>)[activeProjectId];
+
+    let childrenTree: TaskNode[] = [];
+    if (childrenFlat) {
+      childrenTree = buildTree(childrenFlat, activeProjectId);
+    }
+
+    const applyExpansion = (nodes: TaskNode[]): TaskNode[] => {
+      return nodes.map((node) => ({
+        ...node,
+        isExpanded: expandedTaskIds.has(node.id),
+        children: applyExpansion(node.children || []),
+      }));
+    };
+
+    return {
+      ...rootProject,
+      children: applyExpansion(childrenTree),
+      isExpanded: expandedTaskIds.has(rootProject.id),
+    };
+  }, [activeProjectId, instanceTasks, templateTasks, joinedProjects, hydratedProjects, expandedTaskIds]);
+
+  // --- Board UI State (was useTaskBoardUI) ---
+  const [showForm, setShowForm] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+  const [taskFormState, setTaskFormState] = useState<TaskFormState | null>(null);
+
+  const handleAddChildTask = useCallback((parentTask: TaskRow) => {
+    setTaskFormState({
+      mode: 'create',
+      origin: parentTask.origin || undefined,
+      parentId: parentTask.id,
+    });
+    setShowForm(false);
+    setSelectedTask(null);
+  }, []);
+
+  const handleEditTask = useCallback((task: TaskRow) => {
+    setTaskFormState({
+      mode: 'edit',
+      origin: task.origin || undefined,
+      parentId: task.parent_task_id || null,
+      taskId: task.id,
+    });
+    setShowForm(false);
+    setSelectedTask(task);
+  }, []);
+
+  const onDeleteTaskWrapper = useCallback(
+    async (task: TaskRow) => {
+      const confirmed = window.confirm(
+        `Delete "${task.title}" and its subtasks? This action cannot be undone.`
+      );
+      if (!confirmed) return;
+
+      try {
+        await deleteTaskAsync({ id: task.id, root_id: task.root_id });
+        if (task.root_id && task.root_id !== task.id) {
+          refetchProjects();
+        }
+        if (selectedTask?.id === task.id) setSelectedTask(null);
+        if (taskFormState?.taskId === task.id) setTaskFormState(null);
+        toast.success('Task deleted successfully');
+      } catch (err) {
+        console.error('Failed to delete task:', err);
+        toast.error('Failed to delete task');
+      }
+    },
+    [deleteTaskAsync, selectedTask, taskFormState, refetchProjects]
+  );
+
+  const handleDeleteById = useCallback(
+    (taskId: string) => {
+      const task = findTask(taskId);
+      if (task) {
+        onDeleteTaskWrapper(task as TaskRow);
+      }
+    },
+    [findTask, onDeleteTaskWrapper]
+  );
 
   const createTaskOrUpdateWrapper = async (data: TaskFormData, state: TaskFormState | null) => {
     if (state?.mode === 'edit' && state?.taskId) {
@@ -84,28 +184,26 @@ const TaskList = () => {
     return createTaskAsync({ ...data, root_id: activeProjectId } as any);
   };
 
-  const {
-    showForm,
-    taskFormState,
-    selectedTask,
-    setSelectedTask,
-    handleAddChildTask,
-    handleEditTask,
-    onDeleteTaskWrapper,
-    handleDeleteById,
-    setTaskFormState,
-    handleTaskSubmit,
-  } = useTaskBoardUI({
-    currentUserId,
-    createProject: createProjectAsync as any,
-    createTaskOrUpdate: createTaskOrUpdateWrapper as any,
-    deleteTask: async (task: TaskRow) => { await deleteTaskAsync({ id: task.id, root_id: task.root_id }); },
-    refreshProjectDetails: () => refetchProjects(),
-    findTask: findTask as (id: string) => TaskRow | null,
-    activeProjectId,
-  });
+  const handleTaskSubmit = async (formData: TaskFormData) => {
+    try {
+      await createTaskOrUpdateWrapper(formData, taskFormState);
+      if (activeProjectId) {
+        refetchProjects();
+      } else if (taskFormState?.parentId) {
+        const parent = findTask(taskFormState.parentId);
+        if (parent && ((parent as any).root_id || parent.id)) {
+          refetchProjects();
+        }
+      }
+      setTaskFormState(null);
+      toast.success('Task saved successfully');
+    } catch (err) {
+      console.error('Failed to save task:', err);
+      toast.error('Failed to save task. Please try again.');
+    }
+  };
 
-  // Derived state for TaskDetailsPanel
+  // --- Derived state for TaskDetailsPanel ---
   const parentTaskForForm = taskFormState?.parentId ? (findTask(taskFormState.parentId) || (projectHierarchy as any[]).find((t: any) => t.id === taskFormState.parentId)) : null;
   const taskBeingEdited = taskFormState?.mode === 'edit' && taskFormState.taskId
     ? (findTask(taskFormState.taskId) || (projectHierarchy as any[]).find((t: any) => t.id === taskFormState.taskId))
