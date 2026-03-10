@@ -45,7 +45,7 @@ src/
 │   │   ├── hooks/        useMasterLibraryTasks, useMasterLibrarySearch, useTreeState
 │   │   └── lib/          highlightMatches
 │   ├── navigation/
-│   │   └── components/   AppSidebar, Header, ProjectSidebar, GlobalNavItem, SidebarSkeleton
+│   │   └── components/   AppSidebar, Header, ProjectSidebar, GlobalNavItem
 │   ├── people/
 │   │   ├── components/   PeopleList, AddPersonModal
 │   │   └── hooks/        useTeam
@@ -53,7 +53,7 @@ src/
 │   │   ├── components/   ProjectHeader, ProjectTabs, PhaseCard, MilestoneSection,
 │   │   │                 EditProjectModal, InviteMemberModal, NewProjectForm
 │   │   ├── hooks/        useProjectData, useProjectMutations, useProjectBoard,
-│   │   │                 useUserProjects, useProjectRealtime, useProjectReports
+│   │   │                 useProjectRealtime, useProjectReports
 │   │   └── lib/          export-utils
 │   ├── tasks/
 │   │   ├── components/   TaskList, TaskItem, TaskDetailsPanel, TaskDetailsView,
@@ -91,14 +91,14 @@ src/
 
 ### `layouts/`
 
-- **`DashboardLayout.tsx`** — Wraps all authenticated pages. Responsive sidebar (collapsible on mobile), header, CommandPalette, MobileFAB.
+- **`DashboardLayout.tsx`** — Wraps all authenticated pages. Responsive sidebar (collapsible on mobile), header, CommandPalette, MobileFAB. `<main>` uses `overflow-x-hidden` to constrain child widths.
 
 ### `pages/`
 
 Route-level components — compose features, minimal logic:
 
 - **`Dashboard.tsx`** — Project pipeline board, stats overview, create project modal, onboarding wizard.
-- **`Project.tsx`** — Project detail: phase cards, milestones, board/people tabs, TaskDetailsPanel side panel. Subscribes to Supabase realtime for live task updates.
+- **`Project.tsx`** — Project detail: phase cards, milestones, board/people tabs, TaskDetailsPanel side panel. Subscribes to Supabase realtime for live task updates. DnD via `DndContext` with custom collision detection (`pointerWithin` preferring innermost droppable, fallback to `closestCorners`). Reorder logic uses `POSITION_STEP` midpoint calculation.
 - **`TasksPage.tsx`** — "My Tasks" across all projects. List/board toggle, drag-drop status changes, filters instance tasks only.
 - **`Reports.tsx`** — Analytics: project progress %, task counts, bar/pie charts via Recharts.
 - **`Settings.tsx`** — User profile editing (name, avatar, role, org, email frequency).
@@ -113,7 +113,7 @@ Each feature has `components/` and `hooks/` subdirectories:
 
 **`dashboard/`** — Dashboard view and project pipeline.
 - `CreateProjectModal` — Multi-step project creation with template selection.
-- `ProjectCard` — Project card with status, progress bar, metadata.
+- `ProjectCard` — Project card with status, progress bar, metadata. No icon — title wraps to avoid truncation.
 - `ProjectPipelineBoard` — Kanban board of projects by status (dnd-kit).
 - `StatsOverview` — Four-card summary (total projects, active/completed tasks, team activity).
 - `useDashboard` — Central dashboard state: projects, tasks, members, modals, search.
@@ -129,7 +129,7 @@ Each feature has `components/` and `hooks/` subdirectories:
 **`navigation/`** — Global nav components.
 - `Header` — Breadcrumb, user dropdown (profile, settings, logout).
 - `AppSidebar` — Main sidebar with global nav items and project list.
-- `ProjectSidebar` / `ProjectSidebarContainer` — Project-specific sidebar with phases/tasks nav.
+- `ProjectSidebar` / `ProjectSidebarContainer` — Project-specific sidebar with per-section loading (projects, joined, templates load independently). `ProjectSidebarContainer` uses only `useTaskQuery()` — no separate `useUserProjects` call.
 - `GlobalNavItem` — Nav item with icon, label, active state.
 
 **`people/`** — Contact management within projects.
@@ -138,22 +138,21 @@ Each feature has `components/` and `hooks/` subdirectories:
 - `useTeam` — Fetches and manages project team members.
 
 **`projects/`** — Project-level operations.
-- `ProjectHeader` — Title, status badge, date, location, team size, action buttons.
+- `ProjectHeader` — Title, status badge, date, location, team size, action buttons (wrapping row). Not sticky — scrolls with content.
 - `ProjectTabs` — Tab navigation between project views.
 - `PhaseCard` — Phase card with tasks, progress, lock state.
-- `MilestoneSection` — Milestones with completion tracking.
+- `MilestoneSection` — Milestones with completion tracking. Tasks rendered as `SortableTaskItem` inside `SortableContext` for drag-drop reordering.
 - `EditProjectModal` — Edit project metadata.
 - `InviteMemberModal` — Invite by email with role selection.
 - `NewProjectForm` — Project creation form with Zod validation.
 - `useProjectData` — Fetches project details + tasks + team; includes realtime listeners.
 - `useProjectMutations` — Project CRUD with optimistic updates.
-- `useProjectBoard` — Kanban board state for project tasks.
-- `useUserProjects` — Fetches projects the current user can access.
+- `useProjectBoard` — Kanban board state for project tasks (expand/collapse, inline add, task CRUD handlers).
 
 **`tasks/`** — Core task management.
 - `TaskList` — Root "My Tasks" component: project sidebar, task tree, details panel.
 - `TaskItem` — Single task row with status, assignee, quick actions.
-- `TaskDetailsPanel` / `TaskDetailsView` — Side panel and full-page task detail editing.
+- `TaskDetailsPanel` / `TaskDetailsView` — Side panel (responsive: full-width on mobile, 1/3 width on desktop with min/max constraints) and full-page task detail editing.
 - `TaskForm` / `TaskFormFields` — Task create/edit form (form state, Zod validation, fields).
 - `InlineTaskInput` — Quick inline task creation.
 - `TaskResources` — Task attachment display.
@@ -165,7 +164,7 @@ Each feature has `components/` and `hooks/` subdirectories:
 - `board/ProjectBoardView` — Full Kanban board by status.
 - `board/BoardColumn` / `BoardTaskCard` — Droppable columns and draggable cards.
 - `useTaskMutations` — Task CRUD with optimistic updates.
-- `useTaskQuery` — Coordinates task + project fetching, builds task tree.
+- `useTaskQuery` — Coordinates task + project fetching, builds task tree. Exposes per-section loading states (`projectsLoading`, `joinedLoading`, `templatesLoading`). Has `staleTime: 2min` on project queries.
 
 **`mobile/`** — Mobile-optimized components.
 - `MobileAgenda` — Today's upcoming tasks card.
