@@ -4,9 +4,11 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { DndContext, pointerWithin, closestCorners, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import type { DragEndEvent, CollisionDetection } from '@dnd-kit/core';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
-import { ROLES } from '@/shared/constants';
+import { ROLES, POSITION_STEP } from '@/shared/constants';
 import { compareDateAsc, toIsoDate } from '@/shared/lib/date-engine';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
 import { planter } from '@/shared/api/planterClient';
@@ -42,6 +44,80 @@ export default function Project() {
 
     const board = useProjectBoard(projectId, (tasks as TaskRow[]) || []);
     const { state, actions, handlers, computed } = board;
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    );
+
+    // Custom collision detection: prefer innermost droppable (sortable items over containers)
+    const collisionDetection: CollisionDetection = (args) => {
+        const pointerCollisions = pointerWithin(args);
+        if (pointerCollisions.length > 0) {
+            // Sort by area ascending so smallest (innermost) droppable wins
+            return [...pointerCollisions].sort((a, b) => {
+                const rectA = args.droppableRects.get(a.id);
+                const rectB = args.droppableRects.get(b.id);
+                const areaA = rectA ? rectA.width * rectA.height : Infinity;
+                const areaB = rectB ? rectB.width * rectB.height : Infinity;
+                return areaA - areaB;
+            });
+        }
+        return closestCorners(args);
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const overData = over.data.current;
+        if (!overData) return;
+
+        const allTasks = (tasks as TaskRow[]) || [];
+
+        // Task-on-task drop: reorder within same parent
+        if (overData.type === 'Task') {
+            const overTask = allTasks.find(t => t.id === over.id);
+            const activeTask = allTasks.find(t => t.id === active.id);
+            if (!overTask || !activeTask) return;
+
+            const parentId = overTask.parent_task_id;
+            const siblings = allTasks
+                .filter(t => t.parent_task_id === parentId && t.id !== active.id)
+                .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+            const overIndex = siblings.findIndex(t => t.id === over.id);
+            const prev = siblings[overIndex - 1];
+            const next = siblings[overIndex + 1];
+
+            let newPosition: number;
+            const overPos = overTask.position || 0;
+            if (!prev) {
+                // Dropped before the first item
+                newPosition = overPos - POSITION_STEP;
+            } else if (!next) {
+                // Dropped after the last item
+                newPosition = overPos + POSITION_STEP;
+            } else {
+                // Dropped between two items — use midpoint
+                newPosition = Math.round((overPos + (next.position || 0)) / 2);
+            }
+
+            const updates: Record<string, unknown> = { position: newPosition };
+            if (activeTask.parent_task_id !== parentId) {
+                updates.parent_task_id = parentId;
+            }
+            handlers.handleTaskUpdate(active.id as string, updates);
+            return;
+        }
+
+        // Container drop: reparent task
+        if (overData.type === 'container' && overData.parentId) {
+            const task = allTasks.find(t => t.id === active.id);
+            if (task && task.parent_task_id !== overData.parentId) {
+                handlers.handleTaskUpdate(active.id as string, { parent_task_id: overData.parentId });
+            }
+        }
+    };
 
     const queryClient = useQueryClient();
     const lastUpdateRef = useRef(0);
@@ -202,6 +278,11 @@ export default function Project() {
 
     return (
         <>
+            <DndContext
+                sensors={sensors}
+                collisionDetection={collisionDetection}
+                onDragEnd={handleDragEnd}
+            >
             <div className="flex h-full gap-8">
                 <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar pr-4">
                     <ProjectHeader
@@ -323,6 +404,8 @@ export default function Project() {
                     />
                 )}
             </div>
+
+            </DndContext>
 
             {state.showInviteModal && (
                 <InviteMemberModal

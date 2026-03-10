@@ -5,9 +5,10 @@ import { Progress } from '@/shared/ui/progress';
 import { ChevronRight, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/shared/constants';
-import TaskItem from '@/features/tasks/components/TaskItem';
+import { SortableTaskItem } from '@/features/tasks/components/TaskItem';
 import InlineTaskInput from '@/features/tasks/components/InlineTaskInput';
 
 import { TaskRow, Task } from '@/shared/db/app.types';
@@ -17,7 +18,6 @@ interface TaskWithState extends Task {
     isExpanded?: boolean;
     isAddingInline?: boolean;
     children?: TaskWithState[];
-    order?: number;
 }
 
 export interface MilestoneSectionProps {
@@ -130,9 +130,13 @@ export default function MilestoneSection({
                                 </div>
                             ) : (
                                 <div className="space-y-2 pt-4">
+                                    <SortableContext
+                                        items={milestoneTasks.map(t => t.id)}
+                                        strategy={verticalListSortingStrategy}
+                                    >
                                     <AnimatePresence mode="popLayout">
                                         {milestoneTasks
-                                            .sort((a, b) => (a.order || 0) - (b.order || 0))
+                                            .sort((a, b) => (a.position || 0) - (b.position || 0))
                                             .map((task) => (
                                                 <motion.div
                                                     key={task.id}
@@ -141,8 +145,9 @@ export default function MilestoneSection({
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
                                                 >
-                                                    <TaskItem
+                                                    <SortableTaskItem
                                                         task={task}
+                                                        level={0}
                                                         onTaskClick={onTaskClick}
                                                         onStatusChange={(id, status) => onTaskUpdate?.(id, { status } as Partial<TaskRow>)}
                                                         onAddChildTask={onAddChildTask}
@@ -188,6 +193,7 @@ export default function MilestoneSection({
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
+                                    </SortableContext>
                                 </div>
                             )}
                         </div>
