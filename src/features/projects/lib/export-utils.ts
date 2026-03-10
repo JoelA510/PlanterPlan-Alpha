@@ -1,4 +1,4 @@
-import { formatDisplayDate } from './date-engine';
+import { formatDisplayDate } from '@/shared/lib/date-engine';
 
 /** Minimal task shape needed for CSV export. */
 export interface ExportableTask {

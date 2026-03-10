@@ -20,7 +20,7 @@ import {
 import { motion } from 'framer-motion';
 import { TASK_STATUS, PROJECT_STATUS } from '@/shared/constants';
 import EditProjectModal from './EditProjectModal';
-import { exportProjectToCSV } from '@/shared/lib/export-utils';
+import { exportProjectToCSV } from '@/features/projects/lib/export-utils';
 import { Project, TaskRow, PersonRow } from '@/shared/db/app.types';
 
 const templateIcons: Record<string, React.ComponentType<{ className?: string }>> = {

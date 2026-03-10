@@ -2,7 +2,7 @@ import { Fragment, useId, useMemo, useRef, useState, useCallback } from 'react';
 import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react';
 import { X } from 'lucide-react';
 import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
-import { getHighlightSegments } from '@/shared/lib/highlightMatches';
+import { getHighlightSegments } from '@/features/library/lib/highlightMatches';
 
 const SEARCH_MIN_LENGTH = 2;
 const DEBOUNCE_MS = 300;
