@@ -50,7 +50,7 @@ export default function DashboardLayout({ sidebar, children }: { sidebar?: React
  />
  )}
 
- <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)]">{children || <Outlet />}</main>
+ <main className="lg:pl-64 pt-6 h-[calc(100vh-4rem)] w-full overflow-x-hidden">{children || <Outlet />}</main>
  <MobileFAB />
  </div>
  </>

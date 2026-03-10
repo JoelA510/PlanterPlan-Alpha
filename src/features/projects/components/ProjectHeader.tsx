@@ -65,7 +65,7 @@ export default function ProjectHeader({
             animate={{ opacity: 1, y: 0 }}
             className="bg-card border-b border-border transition-all shadow-sm"
         >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div className="flex items-center gap-4 mb-6">
                     <Link to="/dashboard">
                         <Button variant="ghost" size="icon" className="rounded-full">
@@ -87,7 +87,7 @@ export default function ProjectHeader({
                         </div>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-2">
+                    <div className="hidden md:flex items-center gap-2 flex-wrap">
                         <Button variant="ghost" size="sm" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}>
                             <Search className="w-4 h-4 mr-2 text-muted-foreground" />
                             <span className="lg:hidden">Search</span>
