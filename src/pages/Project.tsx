@@ -283,8 +283,8 @@ export default function Project() {
                 collisionDetection={collisionDetection}
                 onDragEnd={handleDragEnd}
             >
-            <div className="flex h-full gap-8">
-                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar pr-4">
+            <div className="flex h-full gap-8 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col min-h-0 overflow-y-auto custom-scrollbar pr-4">
                     <ProjectHeader
                         project={project as ProjectType}
                         tasks={tasks as TaskRow[]}
