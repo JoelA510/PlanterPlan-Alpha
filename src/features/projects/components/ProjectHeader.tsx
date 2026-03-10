@@ -63,7 +63,7 @@ export default function ProjectHeader({
         <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border-b border-border sticky top-16 z-40 transition-all shadow-sm"
+            className="bg-card border-b border-border transition-all shadow-sm"
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div className="flex items-center gap-4 mb-6">
