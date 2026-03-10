@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { TaskRow, TaskFormData } from '@/shared/db/app.types';
 import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 
-import NewTaskForm from '@/features/tasks/components/NewTaskForm';
+import TaskForm from '@/features/tasks/components/TaskForm';
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 import { X } from 'lucide-react';
 
@@ -84,7 +84,7 @@ export default function TaskDetailsPanel({
  {showForm && renderNewProjectForm ? (
  renderNewProjectForm()
  ) : isTaskFormOpen && setTaskFormState ? (
- <NewTaskForm
+ <TaskForm
  parentTask={parentTaskForForm}
  initialTask={taskBeingEdited}
  origin={taskFormState?.origin}

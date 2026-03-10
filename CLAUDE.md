@@ -42,7 +42,8 @@ src/
 │   │   └── lib/          pipelineMath
 │   ├── library/
 │   │   ├── components/   MasterLibraryList, MasterLibrarySearch, TemplateList
-│   │   └── hooks/        useMasterLibraryTasks, useMasterLibrarySearch, useTreeState
+│   │   ├── hooks/        useMasterLibraryTasks, useMasterLibrarySearch, useTreeState
+│   │   └── lib/          highlightMatches
 │   ├── navigation/
 │   │   └── components/   AppSidebar, Header, ProjectSidebar, GlobalNavItem, SidebarSkeleton
 │   ├── people/
@@ -51,11 +52,12 @@ src/
 │   ├── projects/
 │   │   ├── components/   ProjectHeader, ProjectTabs, PhaseCard, MilestoneSection,
 │   │   │                 EditProjectModal, InviteMemberModal, NewProjectForm
-│   │   └── hooks/        useProjectData, useProjectMutations, useProjectBoard,
-│   │                     useUserProjects, useProjectRealtime, useProjectReports
+│   │   ├── hooks/        useProjectData, useProjectMutations, useProjectBoard,
+│   │   │                 useUserProjects, useProjectRealtime, useProjectReports
+│   │   └── lib/          export-utils
 │   ├── tasks/
 │   │   ├── components/   TaskList, TaskItem, TaskDetailsPanel, TaskDetailsView,
-│   │   │                 TaskForm, TaskFormFields, NewTaskForm, InlineTaskInput,
+│   │   │                 TaskForm, TaskFormFields, InlineTaskInput,
 │   │   │                 TaskResources, TaskDependencies, TaskStatusSelect,
 │   │   │                 TaskControlButtons, ProjectListView, ProjectTasksView
 │   │   ├── components/board/  ProjectBoardView, BoardColumn, BoardTaskCard
@@ -71,7 +73,7 @@ src/
     ├── hooks/            useUser.ts
     ├── lib/
     │   ├── date-engine/  index.ts, payloadHelpers.ts
-    │   ├── tree-helpers.ts, retry.ts, export-utils.ts, utils.ts, highlightMatches.ts
+    │   ├── tree-helpers.ts, retry.ts, utils.ts
     │   └── hooks/        useDebounce.ts
     ├── types/            tasks.ts
     └── ui/               Shadcn primitives + CommandPalette, ErrorFallback, RoleIndicator,
@@ -152,7 +154,7 @@ Each feature has `components/` and `hooks/` subdirectories:
 - `TaskList` — Root "My Tasks" component: project sidebar, task tree, details panel.
 - `TaskItem` — Single task row with status, assignee, quick actions.
 - `TaskDetailsPanel` / `TaskDetailsView` — Side panel and full-page task detail editing.
-- `TaskForm` / `TaskFormFields` / `NewTaskForm` — Task create/edit forms.
+- `TaskForm` / `TaskFormFields` — Task create/edit form (form state, Zod validation, fields).
 - `InlineTaskInput` — Quick inline task creation.
 - `TaskResources` — Task attachment display.
 - `TaskDependencies` — Shows prerequisites and phase unlock logic.
@@ -190,7 +192,6 @@ Cross-cutting concerns. Cannot import from `features/` or `app/`.
 - `date-engine/payloadHelpers.ts` — Prepares date payloads for the engine.
 - `tree-helpers.ts` — Converts flat task arrays into hierarchical tree structures.
 - `retry.ts` — Exponential backoff retry; fails fast on 400/401/404, retries on network errors.
-- `export-utils.ts` — CSV export for projects/tasks.
 - `utils.ts` — Tailwind class merging and general helpers.
 
 **`constants/`**

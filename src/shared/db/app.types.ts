@@ -59,7 +59,7 @@ export interface Person extends PersonRow {
 }
 
 // ----------------------------------------------------------------------------
-// Form Payloads (mirror Zod schemas in NewProjectForm / NewTaskForm)
+// Form Payloads (mirror Zod schemas in NewProjectForm / TaskForm)
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
@@ -92,7 +92,7 @@ export interface CreateProjectFormData {
     templateId?: string | null;
 }
 
-/** Shape emitted by the NewTaskForm Zod schema. */
+/** Shape emitted by the TaskForm Zod schema. */
 export interface TaskFormData {
     title: string;
     description?: string | null;
