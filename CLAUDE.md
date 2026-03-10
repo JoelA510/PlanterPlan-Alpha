@@ -104,6 +104,30 @@ Local Supabase: API on `:54321`, DB on `:54322`, Studio on `:54323`.
 
 RLS is enabled on all tables. Authorization is role-based per project.
 
+### Schema Overview
+
+**Tables:**
+- **`tasks`** — Core table. Projects are root tasks (`parent_task_id = null`, `root_id = id`). Subtasks form a tree via `parent_task_id`. Hierarchy: Project → Phase → Milestone → Task.
+- **`project_members`** — User-project membership. `(project_id, user_id)` unique. `role` column controls access.
+- **`people`** — Contacts/people per project (not auth users). Has `project_id` FK.
+- **`task_resources`** — Attachments on tasks. `resource_type` enum, optional `storage_bucket`/`storage_path` for files.
+- **`task_relationships`** — Links between tasks (`from_task_id` → `to_task_id`, `type` defaults to `'relates_to'`).
+- **`admin_users`** — Admin whitelist. `user_id` + `email`.
+
+**Views:**
+- **`tasks_with_primary_resource`** — Tasks LEFT JOINed with their primary `task_resources` row. Used by `planterClient.ts` for reads.
+
+**Key `tasks` columns:**
+- `root_id` — Points to the project (root task). Auto-set by `set_root_id_from_parent()` trigger.
+- `origin` — `'template'` (library) or `'instance'` (active project).
+- `status` — Text enum: `'todo'`, `'not_started'`, `'in_progress'`, `'completed'`.
+- `is_complete` — Boolean completion flag (used by `check_phase_unlock` trigger).
+- `is_locked` / `prerequisite_phase_id` — Phase locking system.
+- `position` — Sort order among siblings.
+- `settings` — JSONB (stores phase color/icon).
+- `days_from_start` — Relative scheduling offset.
+- `assignee_id` — FK to auth user.
+
 ### Role Hierarchy
 
 `owner > editor > coach > viewer > limited` — defined in `project_members.role`.
