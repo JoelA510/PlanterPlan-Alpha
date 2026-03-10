@@ -20,23 +20,62 @@ npm run test:e2e     # Playwright BDD end-to-end tests
 
 ```
 src/
-├── app/           # App shell (App.tsx, providers, router)
-├── features/      # Domain logic — each feature has components/, hooks/
+├── app/
+│   └── App.tsx
+├── layouts/
+│   └── DashboardLayout.tsx
+├── pages/
+│   ├── Dashboard.tsx
+│   ├── Home.tsx
+│   ├── Project.tsx
+│   ├── Reports.tsx
+│   ├── Settings.tsx
+│   ├── TasksPage.tsx
+│   ├── Team.tsx
+│   └── components/
+│       ├── LoginForm.tsx
+│       └── OnboardingWizard.tsx
+├── features/
 │   ├── dashboard/
+│   │   ├── components/   CreateProjectModal, ProjectCard, ProjectPipelineBoard, StatsOverview
+│   │   ├── hooks/        useDashboard, useProjectPipelineLogic
+│   │   └── lib/          pipelineMath
 │   ├── library/
+│   │   ├── components/   MasterLibraryList, MasterLibrarySearch, TemplateList
+│   │   └── hooks/        useMasterLibraryTasks, useMasterLibrarySearch, useTreeState
 │   ├── navigation/
+│   │   └── components/   AppSidebar, Header, ProjectSidebar, GlobalNavItem, SidebarSkeleton
 │   ├── people/
+│   │   ├── components/   PeopleList, AddPersonModal
+│   │   └── hooks/        useTeam
 │   ├── projects/
-│   ├── settings/
-│   └── tasks/
-├── layouts/       # DashboardLayout
-├── pages/         # Route-level components (compose features, minimal logic)
-└── shared/        # Cross-cutting concerns
-    ├── api/       # planterClient.ts (Supabase wrapper), auth.ts
-    ├── contexts/  # AuthContext (single merged auth + session + profile)
-    ├── db/        # Supabase client, generated types, app types
-    ├── lib/       # Pure utilities (date-engine, tree-helpers, retry)
-    └── ui/        # Shadcn/Radix primitives
+│   │   ├── components/   ProjectHeader, ProjectTabs, PhaseCard, MilestoneSection,
+│   │   │                 EditProjectModal, InviteMemberModal, NewProjectForm
+│   │   └── hooks/        useProjectData, useProjectMutations, useProjectBoard,
+│   │                     useUserProjects, useProjectRealtime, useProjectReports
+│   ├── tasks/
+│   │   ├── components/   TaskList, TaskItem, TaskDetailsPanel, TaskDetailsView,
+│   │   │                 TaskForm, TaskFormFields, NewTaskForm, InlineTaskInput,
+│   │   │                 TaskResources, TaskDependencies, TaskStatusSelect,
+│   │   │                 TaskControlButtons, ProjectListView, ProjectTasksView
+│   │   ├── components/board/  ProjectBoardView, BoardColumn, BoardTaskCard
+│   │   └── hooks/        useTaskMutations, useTaskQuery
+│   ├── mobile/           MobileAgenda, MobileFAB
+│   └── settings/
+│       └── hooks/        useSettings
+└── shared/
+    ├── api/              planterClient.ts, auth.ts
+    ├── constants/        domain.ts, colors.ts, index.ts
+    ├── contexts/         AuthContext.tsx
+    ├── db/               client.ts, database.types.ts, app.types.ts
+    ├── hooks/            useUser.ts
+    ├── lib/
+    │   ├── date-engine/  index.ts, payloadHelpers.ts
+    │   ├── tree-helpers.ts, retry.ts, export-utils.ts, utils.ts, highlightMatches.ts
+    │   └── hooks/        useDebounce.ts
+    ├── types/            tasks.ts
+    └── ui/               Shadcn primitives + CommandPalette, ErrorFallback, RoleIndicator,
+                          SidebarNavItem, StatusCard
 ```
 
 **Boundary rules (ESLint-enforced):**
@@ -44,15 +83,133 @@ src/
 - `features/` cannot import from `app/`
 - Features import from each other via direct paths (no barrel files)
 
+### `app/`
+
+- **`App.tsx`** — App shell: React Query provider, AuthContext, Router (6 routes), Sonner toasts. All routes except `/login` wrapped in `PrivateRoute`.
+
+### `layouts/`
+
+- **`DashboardLayout.tsx`** — Wraps all authenticated pages. Responsive sidebar (collapsible on mobile), header, CommandPalette, MobileFAB.
+
+### `pages/`
+
+Route-level components — compose features, minimal logic:
+
+- **`Dashboard.tsx`** — Project pipeline board, stats overview, create project modal, onboarding wizard.
+- **`Project.tsx`** — Project detail: phase cards, milestones, board/people tabs, TaskDetailsPanel side panel. Subscribes to Supabase realtime for live task updates.
+- **`TasksPage.tsx`** — "My Tasks" across all projects. List/board toggle, drag-drop status changes, filters instance tasks only.
+- **`Reports.tsx`** — Analytics: project progress %, task counts, bar/pie charts via Recharts.
+- **`Settings.tsx`** — User profile editing (name, avatar, role, org, email frequency).
+- **`Team.tsx`** — Team member management with role badges, add/delete members.
+- **`Home.tsx`** — Marketing landing page (unauthenticated).
+- **`components/LoginForm.tsx`** — Sign in/up form with Zod validation, E2E auto-login mode.
+- **`components/OnboardingWizard.tsx`** — 3-step wizard (name → launch date → template) shown on first dashboard visit.
+
+### `features/`
+
+Each feature has `components/` and `hooks/` subdirectories:
+
+**`dashboard/`** — Dashboard view and project pipeline.
+- `CreateProjectModal` — Multi-step project creation with template selection.
+- `ProjectCard` — Project card with status, progress bar, metadata.
+- `ProjectPipelineBoard` — Kanban board of projects by status (dnd-kit).
+- `StatsOverview` — Four-card summary (total projects, active/completed tasks, team activity).
+- `useDashboard` — Central dashboard state: projects, tasks, members, modals, search.
+- `useProjectPipelineLogic` — Drag-drop logic for pipeline columns with optimistic updates.
+
+**`library/`** — Template library for browsing and cloning.
+- `MasterLibraryList` — Paginated tree of template tasks with expansion and reorder.
+- `MasterLibrarySearch` — Keyword search for library filtering.
+- `TemplateList` — Selectable template display.
+- `useMasterLibraryTasks` — Fetches paginated templates (`origin='template'`), infinite scroll.
+- `useTreeState` — Tree expansion, status changes, reordering for nested templates.
+
+**`navigation/`** — Global nav components.
+- `Header` — Breadcrumb, user dropdown (profile, settings, logout).
+- `AppSidebar` — Main sidebar with global nav items and project list.
+- `ProjectSidebar` / `ProjectSidebarContainer` — Project-specific sidebar with phases/tasks nav.
+- `GlobalNavItem` — Nav item with icon, label, active state.
+
+**`people/`** — Contact management within projects.
+- `PeopleList` — Searchable list with status badges and actions.
+- `AddPersonModal` — Modal for adding contacts.
+- `useTeam` — Fetches and manages project team members.
+
+**`projects/`** — Project-level operations.
+- `ProjectHeader` — Title, status badge, date, location, team size, action buttons.
+- `ProjectTabs` — Tab navigation between project views.
+- `PhaseCard` — Phase card with tasks, progress, lock state.
+- `MilestoneSection` — Milestones with completion tracking.
+- `EditProjectModal` — Edit project metadata.
+- `InviteMemberModal` — Invite by email with role selection.
+- `NewProjectForm` — Project creation form with Zod validation.
+- `useProjectData` — Fetches project details + tasks + team; includes realtime listeners.
+- `useProjectMutations` — Project CRUD with optimistic updates.
+- `useProjectBoard` — Kanban board state for project tasks.
+- `useUserProjects` — Fetches projects the current user can access.
+
+**`tasks/`** — Core task management.
+- `TaskList` — Root "My Tasks" component: project sidebar, task tree, details panel.
+- `TaskItem` — Single task row with status, assignee, quick actions.
+- `TaskDetailsPanel` / `TaskDetailsView` — Side panel and full-page task detail editing.
+- `TaskForm` / `TaskFormFields` / `NewTaskForm` — Task create/edit forms.
+- `InlineTaskInput` — Quick inline task creation.
+- `TaskResources` — Task attachment display.
+- `TaskDependencies` — Shows prerequisites and phase unlock logic.
+- `TaskStatusSelect` — Status dropdown.
+- `TaskControlButtons` — Edit/delete/complete action buttons.
+- `ProjectListView` — Tree/list view with expand/collapse.
+- `ProjectTasksView` — Container toggling list vs board view.
+- `board/ProjectBoardView` — Full Kanban board by status.
+- `board/BoardColumn` / `BoardTaskCard` — Droppable columns and draggable cards.
+- `useTaskMutations` — Task CRUD with optimistic updates.
+- `useTaskQuery` — Coordinates task + project fetching, builds task tree.
+
+**`mobile/`** — Mobile-optimized components.
+- `MobileAgenda` — Today's upcoming tasks card.
+- `MobileFAB` — Floating action button for quick creation.
+
+### `shared/`
+
+Cross-cutting concerns. Cannot import from `features/` or `app/`.
+
+**`api/`**
+- `planterClient.ts` — Central API adapter. All DB access goes through here — never call `supabase.from()` directly in components. Implements hierarchy, cloning, date cascading.
+- `auth.ts` — `checkIsAdmin()` via Supabase RPC.
+
+**`contexts/`**
+- `AuthContext.tsx` — Single context: session, user profile, role hydration, auth actions (sign in/up/out).
+
+**`db/`**
+- `client.ts` — Supabase client initialization.
+- `database.types.ts` — Auto-generated types from Supabase schema (regenerate with `npx supabase gen types`).
+- `app.types.ts` — Domain types re-exported from database types (`Task`, `Project`, `Person`, `TaskResource`, etc.).
+
+**`lib/`**
+- `date-engine/index.ts` — Date calculations: cascading parent dates, relative scheduling, deadline rollups. Fragile — test thoroughly.
+- `date-engine/payloadHelpers.ts` — Prepares date payloads for the engine.
+- `tree-helpers.ts` — Converts flat task arrays into hierarchical tree structures.
+- `retry.ts` — Exponential backoff retry; fails fast on 400/401/404, retries on network errors.
+- `export-utils.ts` — CSV export for projects/tasks.
+- `utils.ts` — Tailwind class merging and general helpers.
+
+**`constants/`**
+- `domain.ts` — Roles, statuses, task types.
+- `colors.ts` — Color palette.
+- `index.ts` — Re-exports + `POSITION_STEP` for drag-drop ordering.
+
+**`ui/`** — Shadcn/Radix primitives (button, card, dialog, dropdown-menu, input, select, etc.) plus custom components: `CommandPalette`, `ErrorFallback`, `RoleIndicator`, `SidebarNavItem`, `StatusCard`.
+
 ### Data Flow
 
 ```
 Component → React Query hook → planterClient → Supabase SDK
 ```
 
-- **planterClient.ts** (`src/shared/api/planterClient.ts`): Central API adapter. All DB access goes through here — never call `supabase.from()` directly in components.
-- **React Query**: Server state management. Mutations use `useTaskMutations` / `useProjectMutations` hooks with optimistic updates.
-- **AuthContext** (`src/shared/contexts/AuthContext.tsx`): Single context handling session, user profile, role hydration, and auth actions.
+- **planterClient.ts**: All DB access. Never call `supabase.from()` directly.
+- **React Query**: Server state. Mutations use `useTaskMutations` / `useProjectMutations` with optimistic updates.
+- **AuthContext**: Session, profile, role hydration.
+- **Realtime**: `Project.tsx` subscribes to Supabase realtime channels for live task updates.
 
 ### Key Domain Concepts
 
