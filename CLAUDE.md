@@ -100,6 +100,48 @@ VITE_SUPABASE_ANON_KEY  # Supabase anon key
 
 Local Supabase: API on `:54321`, DB on `:54322`, Studio on `:54323`.
 
+## Supabase RLS & Database Functions
+
+RLS is enabled on all tables. Authorization is role-based per project.
+
+### Role Hierarchy
+
+`owner > editor > coach > viewer > limited` — defined in `project_members.role`.
+
+### Core RLS Helper Functions (SECURITY DEFINER)
+
+- **`has_project_role(pid, uid, roles[])`** — Primary gate. Used in nearly every policy. Checks `project_members` for matching role.
+- **`is_admin(uid)`** — Checks `admin_users` table. Used as fallback override in every policy.
+- **`check_project_ownership(pid, uid)`** — Checks `tasks.creator = uid`. Note: checks *creatorship*, not the `owner` role.
+- **`is_active_member(pid, uid)`** — Checks existence in `project_members` (any role).
+
+### RLS Policy Pattern
+
+Most tables follow the same pattern:
+- **SELECT**: project members (any role) OR admin
+- **INSERT/UPDATE/DELETE**: owner + editor OR admin
+- **`tasks` table**: also allows `creator` to read/update/delete their own tasks, and templates (`origin = 'template'`) are publicly readable by authenticated users
+
+### Trigger Functions (on `tasks` table)
+
+- **`set_root_id_from_parent()`** — INSERT/UPDATE: auto-sets `root_id` from parent's root_id
+- **`calc_task_date_rollup()`** — INSERT/UPDATE/DELETE: rolls up `min(start_date)` / `max(due_date)` to parent (recursive with depth guard)
+- **`handle_updated_at()`** — UPDATE: sets `updated_at = now()`
+- **`check_phase_unlock()`** — UPDATE: when `is_complete = true`, checks if all tasks in a phase are done, unlocks dependent phases via `prerequisite_phase_id`
+- **`handle_phase_completion()`** — UPDATE: when `status = 'completed'`, unlocks next sibling by `position`
+
+### RPC Functions (called from app)
+
+- **`initialize_default_project(pid, uid)`** — Creates hardcoded 6-phase project scaffold. Called from `planterClient.ts` on project creation.
+- **`clone_project_template(template_id, parent_id, origin, uid, ...)`** — Deep-clones a task subtree with date shifting and resource cloning. Called from `planterClient.ts`.
+- **`is_admin(uid)`** — Also called as RPC from `auth.ts` for client-side admin checks.
+
+### Known Issues
+
+- **Dual completion signals**: `is_complete` (boolean) and `status = 'completed'` (text) are used by different triggers. If they get out of sync, phase unlocking breaks.
+- **Duplicate `project_members` policies**: overlapping SELECT and ALL policies that should be consolidated.
+- **`check_project_ownership` is misleading**: checks `creator` field, not the `owner` role in `project_members`.
+
 ## Critical Files
 
 - `src/shared/api/planterClient.ts` — All CRUD + business logic (hierarchy, cloning, cascading dates)
