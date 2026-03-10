@@ -36,7 +36,6 @@ export interface PlanterClient {
     auth: {
         me: () => Promise<AuthUser | null>;
         signOut: () => Promise<void>;
-        updateMe: (attributes: UserMetadata) => Promise<AuthUser>;
         updateProfile: (attributes: UserMetadata) => Promise<AuthUser>;
     };
     entities: {
@@ -201,15 +200,6 @@ export const planter: PlanterClient = {
         },
         signOut: async (): Promise<void> => {
             await supabase.auth.signOut();
-        },
-        updateMe: async (attributes: UserMetadata): Promise<AuthUser> => {
-            return retry(async () => {
-                const { data, error } = await supabase.auth.updateUser({
-                    data: attributes,
-                });
-                if (error) throw error;
-                return data.user as AuthUser;
-            });
         },
         updateProfile: async (attributes: UserMetadata): Promise<AuthUser> => {
             return retry(async () => {

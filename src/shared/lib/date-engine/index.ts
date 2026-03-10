@@ -1,7 +1,6 @@
 import {
  format,
  addDays,
- differenceInCalendarDays,
  parseISO,
  isValid,
  isPast,
@@ -95,27 +94,9 @@ export const addDaysToDate = (date: DateInput | null | undefined, amount: number
  return addDays(d, amount);
 };
 
-/** Calendar-day difference (`dateLeft − dateRight`). */
-export const getDaysDifference = (
- dateLeft: DateInput | null | undefined,
- dateRight: DateInput | null | undefined,
-): number | null => {
- const dl = resolve(dateLeft);
- const dr = resolve(dateRight);
- if (!dl || !dr) return null;
- return differenceInCalendarDays(dl, dr);
-};
-
 /** Validates a date input. */
 export const isDateValid = (date: DateInput | null | undefined): boolean => {
  return resolve(date) !== null;
-};
-
-/** Safe `parseISO` wrapper — returns `null` instead of an invalid `Date`. */
-export const parseIsoDate = (dateStr: string | null | undefined): Date | null => {
- if (!dateStr) return null;
- const d = parseISO(dateStr);
- return isValid(d) ? d : null;
 };
 
 /** Returns the end of the day for a given date. */
