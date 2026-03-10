@@ -313,9 +313,9 @@ export default function Project() {
                             <>
                                 <div className="mb-8">
                                     <h2 className="text-lg font-semibold text-slate-900 mb-4">Phases</h2>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                    <div className="flex gap-4 overflow-x-auto pb-2">
                                         {sortedPhases.map((phase) => (
-                                            <div key={phase.id}>
+                                            <div key={phase.id} className="min-w-[200px] flex-1">
                                                 <PhaseCard
                                                     phase={phase as TaskRow}
                                                     tasks={tasks as TaskRow[]}
