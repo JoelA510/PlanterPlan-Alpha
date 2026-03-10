@@ -30,6 +30,9 @@ const TaskList = () => {
   const {
     tasks,
     loading,
+    projectsLoading,
+    joinedLoading,
+    templatesLoading,
     error,
     refetchProjects,
     joinedProjects,
@@ -214,7 +217,9 @@ const TaskList = () => {
       joinedProjects={(joinedProjects as Project[]) || []}
       instanceTasks={instanceTasks as TaskRow[]}
       templateTasks={templateTasks as TaskRow[]}
-      loading={loading}
+      projectsLoading={projectsLoading}
+      joinedLoading={joinedLoading}
+      templatesLoading={templatesLoading}
       error={error as string | null}
       handleSelectProject={handleSelectProject as (p: SelectableProject) => Promise<void>}
       selectedTaskId={activeProjectId}

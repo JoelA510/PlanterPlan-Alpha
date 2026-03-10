@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { ROLES } from '@/shared/constants';
-import SidebarSkeleton from '@/features/navigation/components/SidebarSkeleton';
 import InstanceList from '@/features/projects/components/InstanceList';
 import JoinedProjectsList from '@/features/projects/components/JoinedProjectsList';
 import TemplateList from '@/features/library/components/TemplateList';
@@ -9,6 +8,13 @@ import { LayoutDashboard, BarChart, Settings } from 'lucide-react';
 import GlobalNavItem from './GlobalNavItem';
 
 type SidebarProject = any; // Bypass restrictive local interface
+
+const SectionSkeleton = () => (
+ <div className="animate-pulse space-y-3 py-2">
+ <div className="h-8 bg-slate-100 rounded-md w-full"></div>
+ <div className="h-8 bg-slate-100 rounded-md w-5/6"></div>
+ </div>
+);
 
 interface ProjectSidebarProps {
  joinedProjects: SidebarProject[];
@@ -19,7 +25,9 @@ interface ProjectSidebarProps {
  selectedTaskId?: string | null;
  onNewProjectClick: () => void;
  onNewTemplateClick: () => void;
- loading?: boolean;
+ projectsLoading?: boolean;
+ joinedLoading?: boolean;
+ templatesLoading?: boolean;
  error?: string | null;
  onNavClick?: () => void;
  hasMore?: boolean;
@@ -36,7 +44,9 @@ const ProjectSidebar = ({
  selectedTaskId,
  onNewProjectClick,
  onNewTemplateClick,
- loading = false,
+ projectsLoading = false,
+ joinedLoading = false,
+ templatesLoading = false,
  error = null,
  onNavClick,
  hasMore,
@@ -67,14 +77,6 @@ const ProjectSidebar = ({
  navigate(path);
  if (onNavClick) onNavClick();
  };
-
- if (loading) {
- return (
- <div className="flex flex-col h-full bg-card">
- <SidebarSkeleton />
- </div>
- );
- }
 
  const userInitial = user?.email ? user.email[0].toUpperCase() : '?';
 
@@ -132,10 +134,11 @@ const ProjectSidebar = ({
  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar" data-testid="project-switcher">
  {error && (
  <div className="p-3 mb-2 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg">
- ⚠️ {error}
+ {error}
  </div>
  )}
 
+ {projectsLoading ? <SectionSkeleton /> : (
  <InstanceList
  tasks={instanceTasks}
  selectedTaskId={selectedTaskId}
@@ -144,23 +147,28 @@ const ProjectSidebar = ({
  isFetchingMore={isFetchingMore}
  onLoadMore={onLoadMore}
  />
+ )}
 
  <div className="h-px bg-border"></div>
 
+ {joinedLoading ? <SectionSkeleton /> : (
  <JoinedProjectsList
  projects={joinedProjects}
  error={joinedError}
  handleTaskClick={handleTaskClickWrapped}
  selectedTaskId={selectedTaskId}
  />
+ )}
 
  <div className="h-px bg-border"></div>
 
+ {templatesLoading ? <SectionSkeleton /> : (
  <TemplateList
  tasks={templateTasks}
  selectedTaskId={selectedTaskId}
  handleTaskClick={handleTaskClickWrapped}
  />
+ )}
  </div>
 
  <div className="border-t border-border p-4 bg-muted/20">

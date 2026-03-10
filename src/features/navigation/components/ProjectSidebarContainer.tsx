@@ -1,7 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
-import { useUserProjects } from '@/features/projects/hooks/useUserProjects';
-import { useAuth } from '@/shared/contexts/AuthContext';
 import ProjectSidebar from './ProjectSidebar';
 
 export interface ProjectSidebarContainerProps {
@@ -11,10 +9,12 @@ export interface ProjectSidebarContainerProps {
 
 export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }: ProjectSidebarContainerProps) {
  const navigate = useNavigate();
- const { data: userProjects, isLoading: projectsLoading } = useUserProjects();
  const {
  tasks = [],
- loading: tasksLoading,
+ joinedProjects,
+ projectsLoading,
+ joinedLoading,
+ templatesLoading,
  error,
  joinedError,
  loadMoreProjects,
@@ -22,13 +22,8 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }: 
  isFetchingMore,
  } = useTaskQuery();
 
+ const instanceTasks = tasks.filter((t) => t.origin === 'instance');
  const templateTasks = tasks.filter((t) => t.origin === 'template');
-
- const { user } = useAuth(); // Need user for filtering
-
- // Split userProjects into Owned and Joined
- const ownedProjects = userProjects?.filter(p => p.creator === user?.id) || [];
- const joinedProjs = userProjects?.filter(p => p.creator !== user?.id) || [];
 
  const handleSelectProject = (project: Record<string, unknown>) => {
  navigate(`/project/${project.id}`);
@@ -44,10 +39,12 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }: 
 
  return (
  <ProjectSidebar
- instanceTasks={ownedProjects}
- joinedProjects={joinedProjs}
+ instanceTasks={instanceTasks}
+ joinedProjects={joinedProjects}
  templateTasks={templateTasks}
- loading={projectsLoading || tasksLoading}
+ projectsLoading={projectsLoading}
+ joinedLoading={joinedLoading}
+ templatesLoading={templatesLoading}
  error={error}
  joinedError={joinedError}
  handleSelectProject={handleSelectProject}

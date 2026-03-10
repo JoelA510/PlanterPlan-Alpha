@@ -30,6 +30,7 @@ export const useTaskQuery = () => {
             return lastPage.length === PAGE_SIZE ? allPages.length + 1 : undefined;
         },
         enabled: !!currentUserId,
+        staleTime: 1000 * 60 * 2, // 2 minutes
     });
 
     // 2. Fetch Templates
@@ -61,6 +62,7 @@ export const useTaskQuery = () => {
             return await planter.entities.Project.listJoined(currentUserId);
         },
         enabled: !!currentUserId,
+        staleTime: 1000 * 60 * 2, // 2 minutes
     });
 
     // Combine instances and templates into tasks
@@ -89,6 +91,9 @@ export const useTaskQuery = () => {
         tasks,
         joinedProjects: joinedProjects || [],
         loading,
+        projectsLoading: isLoadingProjects,
+        joinedLoading: !joinedProjects && isLoadingJoined,
+        templatesLoading: isLoadingTemplates,
         error,
         joinedError: joinedError ? (joinedError as Error).message : null,
         currentUserId,
