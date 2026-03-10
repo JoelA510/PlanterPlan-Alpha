@@ -139,7 +139,6 @@ Most tables follow the same pattern:
 ### Known Issues
 
 - **Dual completion signals**: `is_complete` (boolean) and `status = 'completed'` (text) are used by different triggers. If they get out of sync, phase unlocking breaks.
-- **Duplicate `project_members` policies**: overlapping SELECT and ALL policies that should be consolidated.
 - **`check_project_ownership` is misleading**: checks `creator` field, not the `owner` role in `project_members`.
 
 ## Critical Files
