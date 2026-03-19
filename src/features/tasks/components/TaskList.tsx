@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useUpdateTask, useCreateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
 import { buildTree, separateTasksByOrigin } from '@/shared/lib/tree-helpers';
@@ -126,6 +126,18 @@ const TaskList = () => {
   const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
   const [taskFormState, setTaskFormState] = useState<TaskFormState | null>(null);
 
+  // --- Handle URL action params (e.g. ?action=new-template) ---
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'new-template') {
+      setSelectedTask(null);
+      setTaskFormState({ mode: 'create', origin: 'template', parentId: null });
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const handleAddChildTask = useCallback((parentTask: TaskRow) => {
     setTaskFormState({
       mode: 'create',
@@ -184,7 +196,7 @@ const TaskList = () => {
     if (state?.mode === 'edit' && state?.taskId) {
       return updateTaskAsync({ id: state.taskId, ...data } as any);
     }
-    return createTaskAsync({ ...data, root_id: activeProjectId } as any);
+    return createTaskAsync({ ...data, root_id: activeProjectId || null, origin: state?.origin || 'instance', parent_task_id: state?.parentId || null } as any);
   };
 
   const handleTaskSubmit = async (formData: TaskFormData) => {
@@ -224,7 +236,10 @@ const TaskList = () => {
       handleSelectProject={handleSelectProject as (p: SelectableProject) => Promise<void>}
       selectedTaskId={activeProjectId}
       onNewProjectClick={() => navigate('/projects/new')}
-      onNewTemplateClick={() => { }}
+      onNewTemplateClick={() => {
+        setSelectedTask(null);
+        setTaskFormState({ mode: 'create', origin: 'template', parentId: null });
+      }}
     />
   );
 

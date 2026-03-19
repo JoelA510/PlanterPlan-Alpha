@@ -1,3 +1,2 @@
 - DnD across milestones loses the visual I.E. the task doesn't show up
    - DnD of substasks within tasks
-- New Template doesn't work

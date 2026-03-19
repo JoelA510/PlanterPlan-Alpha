@@ -1,6 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { ROLES } from '@/shared/constants';
 import InstanceList from '@/features/projects/components/InstanceList';
 import JoinedProjectsList from '@/features/projects/components/JoinedProjectsList';
 import TemplateList from '@/features/library/components/TemplateList';
@@ -56,8 +55,6 @@ const ProjectSidebar = ({
  const { user, signOut } = useAuth();
  const location = useLocation();
  const navigate = useNavigate();
- const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.OWNER;
-
  const handleTaskClickWrapped = (task: SidebarProject) => {
  handleSelectProject(task);
  if (onNavClick) onNavClick();
@@ -123,7 +120,6 @@ const ProjectSidebar = ({
  New Project
  </button>
 
- {isAdmin && (
  <button
  onClick={handleNewTemplate}
  data-testid="sidebar-new-template-btn"
@@ -134,7 +130,6 @@ const ProjectSidebar = ({
  </svg>
  New Template
  </button>
- )}
  </div>
 
  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 custom-scrollbar" data-testid="project-switcher">

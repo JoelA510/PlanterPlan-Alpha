@@ -9,10 +9,12 @@ import { motion } from 'framer-motion';
 // Hooks
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard';
 import { useCreateProject, useUpdateProjectStatus } from '@/features/projects/hooks/useProjectMutations';
+import { planter } from '@/shared/api/planterClient';
 import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
 
 // Components
 import CreateProjectModal from '@/features/dashboard/components/CreateProjectModal';
+import CreateTemplateModal from '@/features/dashboard/components/CreateTemplateModal';
 import StatsOverview from '@/features/dashboard/components/StatsOverview';
 import ProjectPipelineBoard from '@/features/dashboard/components/ProjectPipelineBoard';
 import OnboardingWizard from '@/pages/components/OnboardingWizard';
@@ -48,6 +50,37 @@ export default function Dashboard() {
             const message = error instanceof Error ? error.message : 'Unknown error occurred';
             toast.error('Failed to move project', { description: message });
             queryClient.invalidateQueries({ queryKey: ['projects'] });
+        }
+    };
+
+    const handleCreateTemplate = async (data: { title: string; description: string }) => {
+        try {
+            const userId = state.user?.id;
+            if (!userId) throw new Error('User must be logged in');
+
+            const template = await planter.entities.Task.create({
+                title: data.title,
+                description: data.description,
+                origin: 'template',
+                parent_task_id: null,
+                root_id: null,
+                status: 'planning',
+                creator: userId,
+                assignee_id: userId,
+            } as any);
+            if (template?.id) {
+                // Add creator as owner so RLS allows access
+                await planter.entities.TeamMember.create({
+                    project_id: template.id,
+                    user_id: userId,
+                    role: 'owner',
+                } as any);
+                toast.success('Template created');
+                navigate(`/project/${template.id}`);
+            }
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Unknown error occurred';
+            toast.error('Failed to create template', { description: message });
         }
     };
 
@@ -135,6 +168,12 @@ export default function Dashboard() {
                 open={state.showCreateModal}
                 onClose={() => actions.setShowCreateModal(false)}
                 onSubmit={handleCreateProject}
+            />
+
+            <CreateTemplateModal
+                open={state.showTemplateModal}
+                onClose={() => actions.setShowTemplateModal(false)}
+                onSubmit={handleCreateTemplate}
             />
 
             <OnboardingWizard

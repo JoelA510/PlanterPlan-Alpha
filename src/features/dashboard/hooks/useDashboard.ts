@@ -10,7 +10,6 @@ type TeamMemberRow = Database['public']['Tables']['project_members']['Row'];
 
 export function useDashboard() {
  const { user, loading: authLoading } = useAuth();
-
  // URL Action State
  const [searchParams, setSearchParams] = useSearchParams();
  const [showCreateModal, setShowCreateModal] = useState(false);
