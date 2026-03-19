@@ -4,8 +4,9 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { DndContext, pointerWithin, closestCorners, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
-import type { DragEndEvent, CollisionDetection } from '@dnd-kit/core';
+import { DndContext, DragOverlay, pointerWithin, closestCorners, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, CollisionDetection } from '@dnd-kit/core';
+import { createPortal } from 'react-dom';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
 import { ROLES, POSITION_STEP, TASK_STATUS } from '@/shared/constants';
@@ -45,9 +46,15 @@ export default function Project() {
     const board = useProjectBoard(projectId, (tasks as TaskRow[]) || []);
     const { state, actions, handlers, computed } = board;
 
+    const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
     );
+
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveDragId(event.active.id as string);
+    };
 
     // Custom collision detection: prefer innermost droppable (sortable items over containers)
     const collisionDetection: CollisionDetection = (args) => {
@@ -66,6 +73,7 @@ export default function Project() {
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
+        setActiveDragId(null);
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
@@ -286,6 +294,7 @@ export default function Project() {
             <DndContext
                 sensors={sensors}
                 collisionDetection={collisionDetection}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
             <div className="flex h-full gap-8 min-w-0">
@@ -417,6 +426,20 @@ export default function Project() {
                 )}
             </div>
 
+            {createPortal(
+                <DragOverlay dropAnimation={null}>
+                    {activeDragId && (() => {
+                        const draggedTask = (tasks as TaskRow[])?.find(t => t.id === activeDragId);
+                        if (!draggedTask) return null;
+                        return (
+                            <div className="bg-white border border-brand-200 rounded-xl px-4 py-3 shadow-xl cursor-grabbing max-w-md">
+                                <p className="text-sm font-medium text-slate-900 truncate">{draggedTask.title}</p>
+                            </div>
+                        );
+                    })()}
+                </DragOverlay>,
+                document.body
+            )}
             </DndContext>
 
             {state.showInviteModal && (

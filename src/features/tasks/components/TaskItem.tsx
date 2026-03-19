@@ -300,10 +300,9 @@ export const SortableTaskItem = function SortableTaskItem({ task, level, ...prop
  const style = {
  transform: CSS.Translate.toString(transform),
  transition,
- opacity: isDragging ? 0.8 : 1,
+ opacity: isDragging ? 0.4 : 1,
  position: 'relative' as const,
  zIndex: isDragging ? 999 : 'auto',
- scale: isDragging ? 1.02 : 1,
  };
 
  return (
