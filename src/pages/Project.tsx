@@ -358,7 +358,10 @@ export default function Project() {
                                                         tasks={(tasks as TaskRow[] || []).map(computed.mapTaskWithState) as any}
                                                         onTaskUpdate={canEdit ? (handlers.handleTaskUpdate as (id: string, updates: Partial<TaskRow>) => void) : undefined}
                                                         onAddChildTask={canEdit ? handlers.handleStartInlineAdd : undefined}
-                                                        onTaskClick={handlers.handleTaskClick}
+                                                        onTaskClick={(task: TaskRow) => {
+                                                            handlers.handleTaskClick(task);
+                                                            setTaskFormState({ mode: 'edit', origin: 'instance' });
+                                                        }}
                                                         onInlineCommit={canEdit ? handlers.handleInlineCommit : undefined}
                                                         onInlineCancel={() => actions.setInlineAddingParentId(null)}
                                                         canEdit={canEdit}
@@ -401,6 +404,10 @@ export default function Project() {
                             />
                         )}
                         onDeleteTaskWrapper={async () => { if (state.selectedTask) await (handlers.handleDeleteTask(state.selectedTask) as any); }}
+                        handleEditTask={(task) => {
+                            actions.setSelectedTask(task as TaskRow);
+                            setTaskFormState({ mode: 'edit', origin: 'instance' });
+                        }}
                     />
                 )}
             </div>

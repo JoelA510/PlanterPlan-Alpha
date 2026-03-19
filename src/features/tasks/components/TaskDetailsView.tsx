@@ -61,15 +61,7 @@ const TaskDetailsView = ({
                 >
                     Email Task
                 </button>
-                {onEditTask && canEdit && (
-                    <button
-                        type="button"
-                        onClick={() => onEditTask(task)}
-                        className="flex-1 py-3 px-4 bg-card border border-brand-200 text-brand-600 rounded-lg shadow-sm hover:bg-brand-50 hover:shadow-md transition-all font-medium text-sm"
-                    >
-                        Edit Task
-                    </button>
-                )}
+
                 {onDeleteTask && canEdit && (
                     <button
                         type="button"
