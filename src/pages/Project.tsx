@@ -8,7 +8,7 @@ import { DndContext, pointerWithin, closestCorners, useSensor, useSensors, Point
 import type { DragEndEvent, CollisionDetection } from '@dnd-kit/core';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
-import { ROLES, POSITION_STEP } from '@/shared/constants';
+import { ROLES, POSITION_STEP, TASK_STATUS } from '@/shared/constants';
 import { compareDateAsc, toIsoDate } from '@/shared/lib/date-engine';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
 import { planter } from '@/shared/api/planterClient';
@@ -264,6 +264,11 @@ export default function Project() {
 
     const phaseMilestones = projectMilestones
         .filter((m: TaskRow) => m.parent_task_id === activePhase?.id)
+        .filter((m: TaskRow) => {
+            const childTasks = (tasks as TaskRow[] || []).filter(t => t.parent_task_id === m.id);
+            if (childTasks.length === 0) return true;
+            return childTasks.some(t => t.status !== TASK_STATUS.COMPLETED);
+        })
         .sort((a: TaskRow, b: TaskRow) => (a.position || 0) - (b.position || 0));
 
     if (loadingProject || !project) {
