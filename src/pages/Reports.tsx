@@ -16,11 +16,6 @@ import {
 } from '@/shared/ui/select';
 
 import {
-    BarChart as RechartsBarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
     Tooltip,
     ResponsiveContainer,
     PieChart,
@@ -52,17 +47,16 @@ export default function Reports() {
         enabled: !!user,
     });
 
-    const { data: phases = [] } = useQuery({
-        queryKey: ['phases', projectId],
-        queryFn: () => planter.entities.Phase.filter({ root_id: projectId }),
-        enabled: !!projectId,
-    });
-
-    const { data: tasks = [], isLoading } = useQuery<TaskRow[]>({
+    const { data: allTasks = [], isLoading } = useQuery<TaskRow[]>({
         queryKey: ['tasks', projectId],
         queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
         enabled: !!projectId,
     });
+
+    // Phases are direct children of the project
+    const phases = allTasks.filter((t) => t.parent_task_id === projectId);
+    // Tasks are everything else
+    const tasks = allTasks.filter((t) => t.parent_task_id !== projectId);
 
     const {
         statsConfig,
@@ -70,7 +64,8 @@ export default function Reports() {
         completedTasks,
         totalTasks,
         phaseData,
-        reports,
+        taskDistribution,
+        milestones,
     } = useProjectReports(tasks, phases);
 
     if (isLoading) {
@@ -188,24 +183,6 @@ export default function Reports() {
                                 </Card>
                             </motion.div>
 
-                            <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-8">
-                                <h2 className="text-lg font-semibold text-foreground mb-4">Project Overview</h2>
-                                <div className="h-64">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <RechartsBarChart data={reports.projectProgress}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                                            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                                            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
-                                            <Tooltip
-                                                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
-                                                contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                                            />
-                                            <Bar dataKey="progress" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                                        </RechartsBarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                                     <h2 className="text-lg font-semibold text-foreground mb-4">Task Status Distribution</h2>
@@ -213,7 +190,7 @@ export default function Reports() {
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>
                                                 <Pie
-                                                    data={reports.taskDistribution}
+                                                    data={taskDistribution}
                                                     cx="50%"
                                                     cy="50%"
                                                     innerRadius={60}
@@ -221,7 +198,7 @@ export default function Reports() {
                                                     paddingAngle={5}
                                                     dataKey="value"
                                                 >
-                                                    {reports.taskDistribution.map((_entry: { name: string; value: number }, index: number) => (
+                                                    {taskDistribution.map((_entry, index) => (
                                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                     ))}
                                                 </Pie>
@@ -237,16 +214,24 @@ export default function Reports() {
                                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                                     <h2 className="text-lg font-semibold text-foreground mb-4">Upcoming Deadlines</h2>
                                     <div className="space-y-4">
-                                        {reports.upcomingDeadlines.map((task: any) => (
-                                            <div key={task.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
-                                                <div>
-                                                    <h4 className="font-medium text-foreground">{task.title}</h4>
-                                                    <p className="text-sm text-muted-foreground">{task.project}</p>
+                                        {milestones.length === 0 && (
+                                            <p className="text-sm text-muted-foreground">No upcoming deadlines.</p>
+                                        )}
+                                        {milestones.slice(0, 5).map((milestone) => (
+                                            <div key={milestone.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="font-medium text-foreground truncate">{milestone.title}</h4>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        {milestone.due_date || 'No due date'}
+                                                    </p>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-sm font-medium text-orange-600">{task.date}</p>
-                                                    <span className={`text-xs px-2 py-1 rounded-full ${task.priority === 'High' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                        {task.priority}
+                                                <div className="text-right ml-4 flex-shrink-0">
+                                                    <span className={`text-xs px-2 py-1 rounded-full ${
+                                                        milestone.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                        milestone.status === 'in_progress' ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-slate-100 text-slate-700'
+                                                    }`}>
+                                                        {milestone.progress}%
                                                     </span>
                                                 </div>
                                             </div>
@@ -282,7 +267,7 @@ export default function Reports() {
                                                     </div>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground ml-28">
-                                                    {phase.completed} of {phase.total} tasks completed
+                                                    {phase.completed} of {phase.total} milestones completed
                                                 </p>
                                             </div>
                                         ))}

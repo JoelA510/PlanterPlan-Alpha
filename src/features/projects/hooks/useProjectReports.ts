@@ -37,10 +37,13 @@ export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
  const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
  const sortedPhases = [...phases].sort((a: TaskRow, b: TaskRow) => (a.position || 0) - (b.position || 0));
+ const phaseIds = new Set(phases.map((p) => p.id));
+
  const phaseData = sortedPhases.map((phase, idx) => {
- const phaseTasks = tasks.filter((t: TaskRow) => (t as TaskRow & { phase_id?: string }).phase_id === phase.id);
- const completed = phaseTasks.filter((t: TaskRow) => t.status === TASK_STATUS.COMPLETED).length;
- const total = phaseTasks.length;
+ // Count milestones (direct children of the phase), not leaf tasks
+ const phaseMilestones = tasks.filter((t) => t.parent_task_id === phase.id);
+ const completed = phaseMilestones.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
+ const total = phaseMilestones.length;
  return {
  name: `Phase ${(phase as { position?: number }).position || idx + 1}`,
  fullName: phase.title,
@@ -51,23 +54,35 @@ export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
  };
  });
 
- // Mock Data for charts
- const reports = {
- projectProgress: [
- { name: 'Alpha', progress: 75 },
- { name: 'Beta', progress: 45 },
- { name: 'Gamma', progress: 90 },
- ],
- taskDistribution: [
- { name: 'To Do', value: tasksByStatus.not_started || 10 },
- { name: 'In Progress', value: tasksByStatus.in_progress || 20 },
- { name: 'Done', value: tasksByStatus.completed || 30 },
- ],
- upcomingDeadlines: [
- { id: 1, title: 'Launch', project: 'Alpha', date: '2023-10-01', priority: 'High' },
- { id: 2, title: 'Test', project: 'Beta', date: '2023-10-05', priority: 'Medium' },
- ],
- };
+ // Milestones: tasks whose parent is a phase
+ const milestones = tasks
+ .filter((t) => t.parent_task_id && phaseIds.has(t.parent_task_id))
+ .map((m) => {
+  const milestoneTasks = tasks.filter((t) => t.parent_task_id === m.id);
+  const completedCount = milestoneTasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
+  const totalCount = milestoneTasks.length;
+  return {
+  id: m.id,
+  title: m.title,
+  due_date: m.due_date,
+  status: m.status,
+  completed: completedCount,
+  total: totalCount,
+  progress: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
+  };
+ })
+ .sort((a, b) => {
+  if (!a.due_date && !b.due_date) return 0;
+  if (!a.due_date) return 1;
+  if (!b.due_date) return -1;
+  return a.due_date.localeCompare(b.due_date);
+ });
+
+ const taskDistribution = [
+ { name: 'To Do', value: tasksByStatus.not_started },
+ { name: 'In Progress', value: tasksByStatus.in_progress },
+ { name: 'Done', value: tasksByStatus.completed },
+ ];
 
  return {
  statsConfig,
@@ -75,7 +90,8 @@ export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
  completedTasks,
  totalTasks,
  phaseData,
- reports,
+ taskDistribution,
+ milestones,
  };
  }, [tasks, phases]);
 }

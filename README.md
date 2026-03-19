@@ -1,11 +1,7 @@
 - "My Projects is 0" vs. Joined Projects is "4" 
 - DnD across milestones loses the visual I.E. the task doesn't show up
+   - DnD of substasks within tasks
 - Task editing not active
-- New Template doesn't work
-- Reports is using placeholder data
-- What is Project Overview under Reports supposed to be measuring
-- "Upcomign deadliens" Reports should only show milestones as far as deadlines
-- Phase Details in Reports shows too many tasks, only show progress completion of the milestones
-- Bring back "Daily task list"
 - "Milestone" should be hidden once it's at 100%
-- DnD of substasks within tasks
+- Bring back "Daily task list"
+- New Template doesn't work
