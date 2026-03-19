@@ -338,7 +338,7 @@ export const planter: PlanterClient = {
                     let query = supabase
                         .from('tasks')
                         .select('*')
-                        .eq('assignee_id', userId)
+                        .eq('creator', userId)
                         .is('parent_task_id', null)
                         .eq('origin', 'instance')
                         .order('created_at', { ascending: false })
@@ -358,7 +358,8 @@ export const planter: PlanterClient = {
                             .select('*, project_members!inner(*)')
                             .eq('origin', 'instance')
                             .is('parent_task_id', null)
-                            .eq('project_members.user_id', userId);
+                            .eq('project_members.user_id', userId)
+                            .neq('creator', userId);
 
                         if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
                         return (data as Project[]) || [];

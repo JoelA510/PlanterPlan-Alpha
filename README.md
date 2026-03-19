@@ -1,4 +1,3 @@
-- "My Projects is 0" vs. Joined Projects is "4" 
 - DnD across milestones loses the visual I.E. the task doesn't show up
    - DnD of substasks within tasks
 - Task editing not active
