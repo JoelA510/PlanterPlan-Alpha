@@ -80,7 +80,7 @@ export default function Dashboard() {
                 className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 flex-shrink-0"
             >
                 <div>
-                    <h1 className="text-3xl font-bold text-card-foreground">Dashboard</h1>
+                    <h1 className="text-3xl font-bold text-card-foreground">Project Dashboard</h1>
                     <p className="text-muted-foreground mt-1">Manage your church planting projects</p>
                 </div>
 

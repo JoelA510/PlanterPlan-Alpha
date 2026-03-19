@@ -68,7 +68,7 @@ export function CommandPalette({ projects = [] }: CommandPaletteProps): JSX.Elem
  <CommandGroup heading="Suggestions">
  <CommandItem onSelect={() => runCommand(() => navigate('/dashboard'))}>
  <LayoutDashboard className="mr-2 h-4 w-4" />
- <span>Dashboard</span>
+ <span>Project Dashboard</span>
  </CommandItem>
  <CommandItem onSelect={() => runCommand(() => navigate('/settings'))}>
  <Settings className="mr-2 h-4 w-4" />

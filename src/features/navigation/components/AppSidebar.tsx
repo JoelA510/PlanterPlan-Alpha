@@ -9,7 +9,7 @@ const navigationItems = [
  {
  title: 'Main',
  items: [
- { name: 'Dashboard', icon: LayoutDashboard, path: 'Dashboard' },
+ { name: 'Project Dashboard', icon: LayoutDashboard, path: 'Dashboard' },
  { name: 'Reports', icon: BarChart3, path: 'Reports' },
  ],
  },

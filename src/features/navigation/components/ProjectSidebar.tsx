@@ -84,7 +84,7 @@ const ProjectSidebar = ({
  <div className="flex flex-col h-full bg-card text-card-foreground border-r border-border shadow-sm">
  <div className="px-4 py-4 space-y-1">
  <GlobalNavItem
- label="Dashboard"
+ label="Project Dashboard"
  isActive={location.pathname === '/dashboard'}
  onClick={() => handleGlobalNav('/dashboard')}
  icon={<LayoutDashboard className="w-5 h-5" />}
