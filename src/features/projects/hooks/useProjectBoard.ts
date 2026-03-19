@@ -37,15 +37,23 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
         });
     };
 
-    const mapTaskWithState = (task: TaskRow): Record<string, unknown> => ({
-        ...task,
-        isExpanded: expandedTaskIds.has(task.id) || inlineAddingParentId === task.id,
-        isAddingInline: inlineAddingParentId === task.id,
-        children: tasks
-            .filter((t) => t.parent_task_id === task.id)
-            .map(mapTaskWithState)
-            .sort((a: any, b: any) => (a.position || 0) - (b.position || 0)),
-    });
+    const mapTaskWithState = (task: TaskRow): Record<string, unknown> => {
+        const visited = new Set<string>();
+        const buildNode = (t: TaskRow): Record<string, unknown> => {
+            if (visited.has(t.id)) return { ...t, children: [] };
+            visited.add(t.id);
+            return {
+                ...t,
+                isExpanded: expandedTaskIds.has(t.id) || inlineAddingParentId === t.id,
+                isAddingInline: inlineAddingParentId === t.id,
+                children: tasks
+                    .filter((c) => c.parent_task_id === t.id && c.id !== t.id)
+                    .map(buildNode)
+                    .sort((a: any, b: any) => (a.position || 0) - (b.position || 0)),
+            };
+        };
+        return buildNode(task);
+    };
 
     const handleStartInlineAdd = (parentTask: TaskRow) => {
         setInlineAddingParentId(parentTask.id);

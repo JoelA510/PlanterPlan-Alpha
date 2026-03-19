@@ -56,11 +56,10 @@ export default function Project() {
         setActiveDragId(event.active.id as string);
     };
 
-    // Custom collision detection: prefer innermost droppable (sortable items over containers)
+    // Simple collision detection: smallest area first (innermost droppable wins)
     const collisionDetection: CollisionDetection = (args) => {
         const pointerCollisions = pointerWithin(args);
         if (pointerCollisions.length > 0) {
-            // Sort by area ascending so smallest (innermost) droppable wins
             return [...pointerCollisions].sort((a, b) => {
                 const rectA = args.droppableRects.get(a.id);
                 const rectB = args.droppableRects.get(b.id);
@@ -72,6 +71,18 @@ export default function Project() {
         return closestCorners(args);
     };
 
+    // Check if targetId is a descendant of taskId (prevents circular reparenting)
+    const isDescendant = (taskId: string, targetId: string, allTasks: TaskRow[]): boolean => {
+        const visited = new Set<string>();
+        const check = (id: string): boolean => {
+            if (visited.has(id)) return false;
+            visited.add(id);
+            const children = allTasks.filter(t => t.parent_task_id === id);
+            return children.some(c => c.id === targetId || check(c.id));
+        };
+        return check(taskId);
+    };
+
     const handleDragEnd = (event: DragEndEvent) => {
         setActiveDragId(null);
         const { active, over } = event;
@@ -81,12 +92,30 @@ export default function Project() {
         if (!overData) return;
 
         const allTasks = (tasks as TaskRow[]) || [];
+        const activeTask = allTasks.find(t => t.id === active.id);
+        if (!activeTask) return;
+
+        // Container drop: reparent task to become a child of the container's parent
+        if (overData.type === 'container' && overData.parentId) {
+            const targetParentId = overData.parentId as string;
+            // Safety: don't reparent to self, same parent, or own descendant
+            if (targetParentId === active.id) return;
+            if (activeTask.parent_task_id === targetParentId) return;
+            if (isDescendant(active.id as string, targetParentId, allTasks)) return;
+
+            handlers.handleTaskUpdate(active.id as string, { parent_task_id: targetParentId });
+            // Auto-expand so the dropped task is visible
+            const targetParent = allTasks.find(t => t.id === targetParentId);
+            if (targetParent) {
+                handlers.handleToggleExpand(targetParent as TaskRow, true);
+            }
+            return;
+        }
 
         // Task-on-task drop: reorder within same parent
         if (overData.type === 'Task') {
             const overTask = allTasks.find(t => t.id === over.id);
-            const activeTask = allTasks.find(t => t.id === active.id);
-            if (!overTask || !activeTask) return;
+            if (!overTask) return;
 
             const parentId = overTask.parent_task_id;
             const siblings = allTasks
@@ -100,13 +129,10 @@ export default function Project() {
             let newPosition: number;
             const overPos = overTask.position || 0;
             if (!prev) {
-                // Dropped before the first item
                 newPosition = overPos - POSITION_STEP;
             } else if (!next) {
-                // Dropped after the last item
                 newPosition = overPos + POSITION_STEP;
             } else {
-                // Dropped between two items — use midpoint
                 newPosition = Math.round((overPos + (next.position || 0)) / 2);
             }
 
@@ -115,14 +141,12 @@ export default function Project() {
                 updates.parent_task_id = parentId;
             }
             handlers.handleTaskUpdate(active.id as string, updates);
-            return;
-        }
-
-        // Container drop: reparent task
-        if (overData.type === 'container' && overData.parentId) {
-            const task = allTasks.find(t => t.id === active.id);
-            if (task && task.parent_task_id !== overData.parentId) {
-                handlers.handleTaskUpdate(active.id as string, { parent_task_id: overData.parentId });
+            // Auto-expand if reparented
+            if (activeTask.parent_task_id !== parentId && parentId) {
+                const targetParent = allTasks.find(t => t.id === parentId);
+                if (targetParent) {
+                    handlers.handleToggleExpand(targetParent as TaskRow, true);
+                }
             }
         }
     };
@@ -372,6 +396,7 @@ export default function Project() {
                                                         tasks={(tasks as TaskRow[] || []).map(computed.mapTaskWithState) as any}
                                                         onTaskUpdate={canEdit ? (handlers.handleTaskUpdate as (id: string, updates: Partial<TaskRow>) => void) : undefined}
                                                         onAddChildTask={canEdit ? handlers.handleStartInlineAdd : undefined}
+                                                        onToggleExpand={handlers.handleToggleExpand}
                                                         onTaskClick={(task: TaskRow) => {
                                                             handlers.handleTaskClick(task);
                                                             setTaskFormState({ mode: 'edit', origin: 'instance' });

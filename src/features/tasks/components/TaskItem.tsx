@@ -27,7 +27,6 @@ interface TaskItemProps {
  onInviteMember?: (task: TaskItemData) => void;
  onStatusChange?: (id: string, status: string) => void;
  dragHandleProps?: DragHandleProps;
- forceShowChevron?: boolean;
  onToggleExpand?: (task: TaskItemData, expanded: boolean) => void;
  onEdit?: ((task: TaskItemData) => void) | null;
  onDeleteTask?: ((id: string) => void) | null;
@@ -47,7 +46,6 @@ const TaskItem = ({
  onInviteMember,
  onStatusChange,
  dragHandleProps = {},
- forceShowChevron = false,
  onToggleExpand,
  onEdit = null,
  onDeleteTask = null,
@@ -57,13 +55,13 @@ const TaskItem = ({
  onInlineCommit,
  onInlineCancel,
 }: TaskItemProps) => {
- const hasChildren = task.children && task.children.length > 0;
  const indentWidth = level * 20;
  const isSelected = selectedTaskId === task.id;
  const canHaveChildren = level < 4;
 
  const isExpanded = !!task.isExpanded;
- const showChevron = !hideExpansion && canHaveChildren && (hasChildren || forceShowChevron);
+ const hasChildren = task.children && task.children.length > 0;
+ const showChevron = !hideExpansion && canHaveChildren && hasChildren;
 
  // Dnd-kit droppable
  const { setNodeRef: setDroppableNodeRef, isOver } = useDroppable({
@@ -102,6 +100,7 @@ const TaskItem = ({
  return (
  <>
  <div
+ ref={canHaveChildren ? setDroppableNodeRef : undefined}
  className={cn(
  'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
  'bg-card text-card-foreground',
@@ -210,7 +209,7 @@ const TaskItem = ({
  </div>
 
  {canHaveChildren && isExpanded && (
- <div className="pl-0 min-h-[40px]" ref={setDroppableNodeRef}>
+ <div className="pl-0 min-h-[40px]">
  <SortableContext
  items={task.children ? task.children.map((c) => c.id) : []}
  strategy={verticalListSortingStrategy}

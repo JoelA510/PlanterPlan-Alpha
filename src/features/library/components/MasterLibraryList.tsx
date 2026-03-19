@@ -17,7 +17,6 @@ interface MasterLibraryListProps {
  onTaskClick: (task: TaskItemData) => void;
  onStatusChange: (taskId: string, status: string) => void;
  onAddChildTask?: (task: TaskItemData) => void;
- forceShowChevron: boolean;
  onToggleExpand: (taskId: string) => void;
  }) => React.ReactNode;
 }
@@ -118,7 +117,6 @@ const MasterLibraryList = (props: MasterLibraryListProps) => {
  onTaskClick: handleTaskClick,
  onStatusChange: handleStatusChange,
  onAddChildTask: props.onAddChildTask,
- forceShowChevron: true,
  onToggleExpand: () => toggleExpand(task, !expandedTaskIds.has(task.id)),
  })}
  {loadingNodes[task.id] && (
