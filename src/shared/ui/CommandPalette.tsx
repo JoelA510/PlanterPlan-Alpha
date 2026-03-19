@@ -4,7 +4,8 @@ import {
  LayoutDashboard,
  FolderOpen,
  Settings,
- User
+ User,
+ Calendar
 } from 'lucide-react';
 
 import {
@@ -69,6 +70,10 @@ export function CommandPalette({ projects = [] }: CommandPaletteProps): JSX.Elem
  <CommandItem onSelect={() => runCommand(() => navigate('/dashboard'))}>
  <LayoutDashboard className="mr-2 h-4 w-4" />
  <span>Project Dashboard</span>
+ </CommandItem>
+ <CommandItem onSelect={() => runCommand(() => navigate('/daily'))}>
+ <Calendar className="mr-2 h-4 w-4" />
+ <span>Daily Tasks</span>
  </CommandItem>
  <CommandItem onSelect={() => runCommand(() => navigate('/settings'))}>
  <Settings className="mr-2 h-4 w-4" />

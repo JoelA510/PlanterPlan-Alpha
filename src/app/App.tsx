@@ -8,6 +8,7 @@ import Reports from '../pages/Reports';
 import Project from '../pages/Project';
 import Settings from '../pages/Settings';
 import TasksPage from '../pages/TasksPage';
+import DailyTasks from '../pages/DailyTasks';
 import LoginForm from '@/pages/components/LoginForm';
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ export default function App() {
  <Route path="reports" element={<Reports />} />
  <Route path="Project/:projectId" element={<Project />} />
  <Route path="tasks" element={<TasksPage />} />
+ <Route path="daily" element={<DailyTasks />} />
  <Route path="settings" element={<Settings />} />
  </Route>
  </Routes>

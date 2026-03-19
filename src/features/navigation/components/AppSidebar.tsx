@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useMemo } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import { LayoutDashboard, BarChart3, Settings, HelpCircle, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Settings, HelpCircle, ChevronLeft, Calendar } from 'lucide-react';
 import type { TaskRow } from '@/shared/db/app.types';
 
 const navigationItems = [
@@ -10,6 +10,7 @@ const navigationItems = [
  title: 'Main',
  items: [
  { name: 'Project Dashboard', icon: LayoutDashboard, path: 'Dashboard' },
+ { name: 'Daily Tasks', icon: Calendar, path: 'daily' },
  { name: 'Reports', icon: BarChart3, path: 'Reports' },
  ],
  },

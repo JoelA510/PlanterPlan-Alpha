@@ -1,4 +1,3 @@
 - DnD across milestones loses the visual I.E. the task doesn't show up
    - DnD of substasks within tasks
-- Bring back "Daily task list"
 - New Template doesn't work

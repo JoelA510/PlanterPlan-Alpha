@@ -4,7 +4,7 @@ import { ROLES } from '@/shared/constants';
 import InstanceList from '@/features/projects/components/InstanceList';
 import JoinedProjectsList from '@/features/projects/components/JoinedProjectsList';
 import TemplateList from '@/features/library/components/TemplateList';
-import { LayoutDashboard, BarChart, Settings } from 'lucide-react';
+import { LayoutDashboard, BarChart, Settings, Calendar } from 'lucide-react';
 import GlobalNavItem from './GlobalNavItem';
 
 type SidebarProject = any; // Bypass restrictive local interface
@@ -88,6 +88,12 @@ const ProjectSidebar = ({
  isActive={location.pathname === '/dashboard'}
  onClick={() => handleGlobalNav('/dashboard')}
  icon={<LayoutDashboard className="w-5 h-5" />}
+ />
+ <GlobalNavItem
+ label="Daily Tasks"
+ isActive={location.pathname === '/daily'}
+ onClick={() => handleGlobalNav('/daily')}
+ icon={<Calendar className="w-5 h-5" />}
  />
  <GlobalNavItem
  label="Reports"
