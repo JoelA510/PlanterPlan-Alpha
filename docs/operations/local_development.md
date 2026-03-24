@@ -49,11 +49,11 @@ We use ESLint and Prettier to maintain code quality.
 
 ## Testing
 
-We use Vitest for automated testing.
+We use Vitest for unit/integration tests and Playwright BDD for E2E tests.
 
-- **Run all tests**: `npm test`
+- **Run all unit tests**: `npm test`
 - **UI Mode**: `npx vitest --ui`
-- **Integration Tests**: `npm test src/tests/integration/golden-paths.test.jsx`
+- **Run E2E tests**: `npm run test:e2e`
 
 ## Testing Membership Features Locally
 
