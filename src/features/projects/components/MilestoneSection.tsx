@@ -31,6 +31,7 @@ export interface MilestoneSectionProps {
     onInlineCancel?: () => void;
     canEdit?: boolean;
     isAddingInline?: boolean;
+    dropIndicator?: { parentId: string; beforeTaskId: string | null } | null;
 }
 
 export default function MilestoneSection({
@@ -44,6 +45,7 @@ export default function MilestoneSection({
     onInlineCancel,
     canEdit = true,
     isAddingInline = false,
+    dropIndicator,
 }: MilestoneSectionProps) {
     const [isExpanded, setIsExpanded] = useState(true);
 
@@ -147,6 +149,9 @@ export default function MilestoneSection({
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
                                                 >
+                                                    {dropIndicator?.beforeTaskId === task.id && dropIndicator?.parentId === milestone.id && (
+                                                        <div className="h-0.5 bg-blue-500 rounded-full mx-4 my-1" />
+                                                    )}
                                                     <SortableTaskItem
                                                         task={task}
                                                         level={0}
@@ -157,9 +162,14 @@ export default function MilestoneSection({
                                                         isAddingInline={task.isAddingInline}
                                                         onInlineCommit={onInlineCommit}
                                                         onInlineCancel={onInlineCancel}
+                                                        dropIndicator={dropIndicator}
                                                     />
                                                 </motion.div>
                                             ))}
+
+                                        {dropIndicator?.beforeTaskId === null && dropIndicator?.parentId === milestone.id && (
+                                            <div className="h-0.5 bg-blue-500 rounded-full mx-4 my-1" />
+                                        )}
 
                                         {isAddingInline && onInlineCommit && onInlineCancel && (
                                             <motion.div

@@ -1,11 +1,7 @@
-import { Fragment, useId, useMemo, useRef, useState, useCallback } from 'react';
-import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { useId, useMemo, useRef, useState, useCallback } from 'react';
+import type { ChangeEvent, KeyboardEvent } from 'react';
+import { ChevronDown, X } from 'lucide-react';
 import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
-import { getHighlightSegments } from '@/features/library/lib/highlightMatches';
-
-const SEARCH_MIN_LENGTH = 2;
-const DEBOUNCE_MS = 300;
 
 interface SearchTask {
  id: string;
@@ -15,14 +11,8 @@ interface SearchTask {
  [key: string]: unknown;
 }
 
-interface HighlightSegment {
- text: string;
- isMatch: boolean;
-}
-
 interface MasterLibrarySearchProps {
  onSelect?: (task: SearchTask) => void;
- onCreateResource?: () => void;
  mode?: 'copy' | 'view';
  label?: string;
  placeholder?: string;
@@ -30,112 +20,58 @@ interface MasterLibrarySearchProps {
 
 const MasterLibrarySearch = ({
  onSelect,
- onCreateResource,
  mode = 'copy',
  label = 'Search & pick from Master Library',
  placeholder = 'Search by title or description…',
 }: MasterLibrarySearchProps) => {
  const [query, setQuery] = useState('');
+ const [isOpen, setIsOpen] = useState(false);
  const [activeIndex, setActiveIndex] = useState(-1);
  const listboxId = useId();
  const inputRef = useRef<HTMLInputElement>(null);
- const hasMinimumQuery = query.trim().length >= SEARCH_MIN_LENGTH;
+ const containerRef = useRef<HTMLDivElement>(null);
 
- const { results, isLoading, error, hasResults } = useMasterLibrarySearch({
- query,
- limit: 15,
- debounceMs: DEBOUNCE_MS,
- enabled: hasMinimumQuery,
- });
+ const { results, isLoading, hasResults } = useMasterLibrarySearch({ query });
 
  const handleQueryChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
- const newQuery = event.target.value;
- setQuery(newQuery);
- if (newQuery.trim().length < SEARCH_MIN_LENGTH) {
+ setQuery(event.target.value);
+ setIsOpen(true);
  setActiveIndex(-1);
- }
  }, []);
 
- const activeResultId = useMemo(() => {
- if (activeIndex < 0 || activeIndex >= results.length) {
- return undefined;
- }
- return `${listboxId}-item-${results[activeIndex].id}`;
- }, [activeIndex, listboxId, results]);
-
  const handleSelect = useCallback((task: SearchTask) => {
- if (onSelect) {
- onSelect(task);
- }
+ onSelect?.(task);
  setQuery(task.title ?? '');
+ setIsOpen(false);
  setActiveIndex(-1);
  }, [onSelect]);
 
  const handleKeyDown = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
- if (!hasResults) {
- return;
- }
-
  if (event.key === 'ArrowDown') {
  event.preventDefault();
- setActiveIndex((prev) => {
- const nextIndex = prev + 1;
- if (nextIndex >= (results?.length || 0)) {
- return 0;
- }
- return nextIndex;
- });
+ setIsOpen(true);
+ setActiveIndex((prev) => (prev + 1 >= results.length ? 0 : prev + 1));
  } else if (event.key === 'ArrowUp') {
  event.preventDefault();
- setActiveIndex((prev) => {
- const nextIndex = prev - 1;
- if (nextIndex < 0) {
- return results.length - 1;
- }
- return nextIndex;
- });
+ setActiveIndex((prev) => (prev - 1 < 0 ? results.length - 1 : prev - 1));
  } else if (event.key === 'Enter' && activeIndex >= 0 && activeIndex < results.length) {
  event.preventDefault();
  handleSelect(results[activeIndex]);
  } else if (event.key === 'Escape') {
+ setIsOpen(false);
  setActiveIndex(-1);
  }
- }, [hasResults, results, activeIndex, handleSelect]);
+ }, [results, activeIndex, handleSelect]);
 
- const renderActionLabel = useMemo(() => {
- if (mode === 'view') {
- return 'View task';
- }
- return 'Copy to form';
- }, [mode]);
+ const activeResultId = useMemo(() => {
+ if (activeIndex < 0 || activeIndex >= results.length) return undefined;
+ return `${listboxId}-item-${results[activeIndex].id}`;
+ }, [activeIndex, listboxId, results]);
 
- const renderHighlightedText = (text: string | null | undefined): ReactNode => {
- if (text === null || text === undefined) {
- return null;
- }
-
- if (!hasMinimumQuery) {
- return text;
- }
-
- const segments = getHighlightSegments(text, query) as HighlightSegment[];
-
- return segments.map((segment: HighlightSegment, index: number) =>
- segment.isMatch ? (
- <mark
- key={`${segment.text}-${index}`}
- className="rounded bg-amber-200 px-0.5 text-slate-900"
- >
- {segment.text}
- </mark>
- ) : (
- <Fragment key={`${segment.text}-${index}`}>{segment.text}</Fragment>
- )
- );
- };
+ const actionLabel = mode === 'view' ? 'View' : 'Copy to form';
 
  return (
- <div className="space-y-2">
+ <div ref={containerRef} className="relative space-y-1">
  <label
  className="block text-sm font-medium text-slate-600"
  htmlFor={`master-library-search-${listboxId}`}
@@ -146,65 +82,65 @@ const MasterLibrarySearch = ({
  <input
  ref={inputRef}
  id={`master-library-search-${listboxId}`}
- type="search"
- className="form-input"
+ type="text"
+ className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-16 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
  placeholder={placeholder}
  value={query}
  onChange={handleQueryChange}
+ onFocus={() => setIsOpen(true)}
+ onBlur={() => {
+ // Delay to allow click on dropdown items
+ setTimeout(() => setIsOpen(false), 200);
+ }}
  onKeyDown={handleKeyDown}
- aria-autocomplete="list"
- aria-controls={hasResults ? listboxId : undefined}
- aria-activedescendant={activeResultId}
- aria-expanded={hasResults}
  role="combobox"
+ aria-autocomplete="list"
+ aria-controls={isOpen ? listboxId : undefined}
+ aria-activedescendant={activeResultId}
+ aria-expanded={isOpen && hasResults}
  aria-haspopup="listbox"
  />
- {query.length > 0 && !isLoading && (
+ <div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
+ {query.length > 0 && (
  <button
  type="button"
  onClick={() => {
  setQuery('');
+ setIsOpen(true);
  inputRef.current?.focus();
  }}
- className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+ className="text-slate-400 hover:text-slate-600"
  aria-label="Clear search"
  >
  <X className="w-4 h-4" />
  </button>
  )}
- {isLoading && (
- <div className="absolute inset-y-0 right-3 flex items-center">
- <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
- </div>
+ {isLoading ? (
+ <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+ ) : (
+ <ChevronDown className="w-4 h-4 text-slate-400" />
  )}
  </div>
+ </div>
 
+ {isOpen && (
  <div
  id={listboxId}
  role="listbox"
- aria-label="Master library search results"
- className="max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-sm"
+ aria-label="Template search results"
+ className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
  >
- {!hasMinimumQuery && !isLoading ? (
+ {isLoading && (
+ <div className="px-4 py-3 text-sm text-slate-500">Loading templates…</div>
+ )}
+
+ {!isLoading && results.length === 0 && (
  <div className="px-4 py-3 text-sm text-slate-500">
- Start typing at least {SEARCH_MIN_LENGTH} characters to search the master library.
+ {query ? 'No matching templates found.' : 'No templates available.'}
  </div>
- ) : null}
+ )}
 
- {error ? (
- <div className="px-4 py-3 text-sm text-rose-600">
- Failed to load results. Please try again.
- </div>
- ) : null}
-
- {hasMinimumQuery && !isLoading && !error && results.length === 0 ? (
- <div className="px-4 py-3 text-sm text-slate-500">
- No tasks found. You can create a new resource below.
- </div>
- ) : null}
-
- {Array.isArray(results) &&
- results.map((task: SearchTask, index: number) => {
+ {results.map((task: SearchTask, index: number) => {
  const isActive = index === activeIndex;
  return (
  <button
@@ -213,53 +149,22 @@ const MasterLibrarySearch = ({
  id={`${listboxId}-item-${task.id}`}
  role="option"
  aria-selected={isActive}
- onMouseDown={(event) => event.preventDefault()}
+ onMouseDown={(e) => e.preventDefault()}
  onClick={() => handleSelect(task)}
- className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 focus:outline-none ${isActive || (hasResults && activeResultId === `${listboxId}-item-${task.id}`)
- ? 'bg-brand-50'
- : 'bg-white'
+ className={`w-full text-left px-4 py-2.5 border-b border-slate-50 last:border-b-0 focus:outline-none ${
+ isActive ? 'bg-brand-50' : 'hover:bg-slate-50'
  }`}
  >
- <div className="flex items-start justify-between">
- <div>
- <p className="text-sm font-semibold text-slate-900">
- {renderHighlightedText(task.title)}
- </p>
- {task.description ? (
- <p className="mt-1 text-sm text-slate-600">
- {renderHighlightedText(task.description)}
- </p>
- ) : (
- <p className="mt-1 text-sm text-slate-400 italic">No description provided.</p>
+ <p className="text-sm font-medium text-slate-900 truncate">{task.title}</p>
+ {task.description && (
+ <p className="text-xs text-slate-500 truncate mt-0.5">{task.description}</p>
  )}
- </div>
- <span className="ml-3 shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-slate-600">
- {task.origin || 'library'}
- </span>
- </div>
- <div className="mt-2 text-right">
- <span className="text-xs font-medium text-brand-600">{renderActionLabel}</span>
- </div>
+ <span className="text-xs text-brand-600">{actionLabel}</span>
  </button>
  );
  })}
  </div>
-
- {onCreateResource ? (
- <div className="flex items-center justify-between rounded-md border border-dashed border-slate-300 px-4 py-3">
- <div>
- <p className="text-sm font-medium text-slate-700">Need something new?</p>
- <p className="text-xs text-slate-500">Create a resource directly from this form.</p>
- </div>
- <button
- type="button"
- onClick={onCreateResource}
- className="inline-flex items-center rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
- >
- Create new resource
- </button>
- </div>
- ) : null}
+ )}
  </div>
  );
 };

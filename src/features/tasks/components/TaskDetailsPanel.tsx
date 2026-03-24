@@ -7,13 +7,11 @@ import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 import { X } from 'lucide-react';
 
 const getPanelTitle = (
- showForm?: boolean,
  taskFormState?: { mode?: 'create' | 'edit'; origin?: 'instance' | 'template' } | null,
  taskBeingEdited?: TaskRow,
  selectedTask?: TaskRow,
  parentTaskForForm?: TaskRow
 ) => {
- if (showForm) return 'New Project';
  if (taskFormState) {
  if (taskFormState.mode === 'edit') {
  return taskBeingEdited ? `Edit ${taskBeingEdited.title}` : 'Edit Task';
@@ -63,8 +61,8 @@ export default function TaskDetailsPanel({
  fetchTasks,
 }: TaskDetailsPanelProps) {
  const panelTitle = useMemo(() => {
- return getPanelTitle(showForm, taskFormState, taskBeingEdited, selectedTask, parentTaskForForm);
- }, [showForm, taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
+ return getPanelTitle(taskFormState, taskBeingEdited, selectedTask, parentTaskForForm);
+ }, [taskFormState, taskBeingEdited, parentTaskForForm, selectedTask]);
 
  const isTaskFormOpen = Boolean(taskFormState);
 

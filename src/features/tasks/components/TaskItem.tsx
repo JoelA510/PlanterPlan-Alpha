@@ -1,6 +1,5 @@
 import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/shared/lib/utils';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -35,6 +34,7 @@ interface TaskItemProps {
  isAddingInline?: boolean;
  onInlineCommit?: (taskId: string, title: string) => void;
  onInlineCancel?: () => void;
+ dropIndicator?: { parentId: string; beforeTaskId: string | null } | null;
 }
 
 const TaskItem = ({
@@ -54,6 +54,7 @@ const TaskItem = ({
  isAddingInline = false,
  onInlineCommit,
  onInlineCancel,
+ dropIndicator,
 }: TaskItemProps) => {
  const indentWidth = level * 20;
  const isSelected = selectedTaskId === task.id;
@@ -233,7 +234,8 @@ const TaskItem = ({
  )}
 
  {task.children && task.children.length > 0 ? (
- task.children.map((child) => (
+ <>
+ {task.children.map((child) => (
  <motion.div
  key={child.id}
  layout
@@ -241,6 +243,9 @@ const TaskItem = ({
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
  >
+ {dropIndicator?.beforeTaskId === child.id && dropIndicator?.parentId === task.id && (
+ <div className="h-0.5 bg-blue-500 rounded-full mx-4 my-1" style={{ marginLeft: `${(level + 1) * 20}px` }} />
+ )}
  <SortableTaskItem
  task={child}
  level={level + 1}
@@ -255,9 +260,14 @@ const TaskItem = ({
  isAddingInline={child.isAddingInline}
  onInlineCommit={onInlineCommit}
  onInlineCancel={onInlineCancel}
+ dropIndicator={dropIndicator}
  />
  </motion.div>
- ))
+ ))}
+ {dropIndicator?.beforeTaskId === null && dropIndicator?.parentId === task.id && (
+ <div className="h-0.5 bg-blue-500 rounded-full mx-4 my-1" style={{ marginLeft: `${(level + 1) * 20}px` }} />
+ )}
+ </>
  ) : (
  !isAddingInline && (
  <div className="py-2 px-4 text-xs text-slate-400 italic border-2 border-dashed border-slate-100 rounded-lg ml-6">
@@ -284,8 +294,6 @@ export const SortableTaskItem = function SortableTaskItem({ task, level, ...prop
  listeners,
  setNodeRef,
  setActivatorNodeRef,
- transform,
- transition,
  isDragging,
  } = useSortable({
  id: task.id,
@@ -297,11 +305,8 @@ export const SortableTaskItem = function SortableTaskItem({ task, level, ...prop
  });
 
  const style = {
- transform: CSS.Translate.toString(transform),
- transition,
  opacity: isDragging ? 0.4 : 1,
  position: 'relative' as const,
- zIndex: isDragging ? 999 : 'auto',
  };
 
  return (

@@ -4,8 +4,8 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { DndContext, DragOverlay, pointerWithin, closestCorners, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent, CollisionDetection } from '@dnd-kit/core';
+import { DndContext, DragOverlay, pointerWithin, closestCorners, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, DragOverEvent, CollisionDetection } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
@@ -47,6 +47,14 @@ export default function Project() {
     const { state, actions, handlers, computed } = board;
 
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
+    const [dropIndicator, setDropIndicator] = useState<{ parentId: string; beforeTaskId: string | null } | null>(null);
+    const pointerYRef = useRef<number>(0);
+
+    useEffect(() => {
+        const handler = (e: PointerEvent) => { pointerYRef.current = e.clientY; };
+        window.addEventListener('pointermove', handler);
+        return () => window.removeEventListener('pointermove', handler);
+    }, []);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -54,20 +62,82 @@ export default function Project() {
 
     const handleDragStart = (event: DragStartEvent) => {
         setActiveDragId(event.active.id as string);
+        setDropIndicator(null);
     };
 
-    // Simple collision detection: smallest area first (innermost droppable wins)
-    const collisionDetection: CollisionDetection = (args) => {
-        const pointerCollisions = pointerWithin(args);
-        if (pointerCollisions.length > 0) {
-            return [...pointerCollisions].sort((a, b) => {
-                const rectA = args.droppableRects.get(a.id);
-                const rectB = args.droppableRects.get(b.id);
-                const areaA = rectA ? rectA.width * rectA.height : Infinity;
-                const areaB = rectB ? rectB.width * rectB.height : Infinity;
-                return areaA - areaB;
-            });
+    const handleDragOver = (event: DragOverEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) {
+            setDropIndicator(null);
+            return;
         }
+
+        const overData = over.data.current;
+        if (!overData) {
+            setDropIndicator(null);
+            return;
+        }
+
+        const allTasks = (tasks as TaskRow[]) || [];
+
+        if (overData.type === 'Task') {
+            const overTask = allTasks.find(t => t.id === over.id);
+            if (!overTask) return;
+
+            // Determine if pointer is in top or bottom half of the hovered task
+            const overRect = over.rect;
+            const overMidY = overRect.top + overRect.height / 2;
+            const isAboveMidpoint = pointerYRef.current < overMidY;
+
+            const parentId = overTask.parent_task_id || '';
+            const siblings = allTasks
+                .filter(t => t.parent_task_id === parentId && t.id !== active.id)
+                .sort((a, b) => (a.position || 0) - (b.position || 0));
+            const overIndex = siblings.findIndex(t => t.id === over.id);
+
+            if (isAboveMidpoint) {
+                // Insert before this task
+                setDropIndicator({ parentId, beforeTaskId: overTask.id });
+            } else {
+                // Insert after this task (before the next sibling, or at end)
+                const nextSibling = siblings[overIndex + 1];
+                setDropIndicator({
+                    parentId,
+                    beforeTaskId: nextSibling?.id ?? null,
+                });
+            }
+        } else if (overData.type === 'container' && overData.parentId) {
+            setDropIndicator({
+                parentId: overData.parentId as string,
+                beforeTaskId: null,
+            });
+        } else {
+            setDropIndicator(null);
+        }
+    };
+
+    // Collision detection: use closestCenter so the `over` target changes
+    // as soon as the pointer crosses a task's center — enables drag-up
+    const collisionDetection: CollisionDetection = (args) => {
+        // First check pointer-within for container drops (reparenting)
+        const pointerCollisions = pointerWithin(args);
+        const containerHits = pointerCollisions.filter(c => {
+            const container = (args.droppableContainers as any[]).find?.((dc: any) => dc.id === c.id);
+            return container?.data?.current?.type === 'container';
+        });
+
+        // Use closestCenter for Task targets (reordering)
+        const centerCollisions = closestCenter(args);
+
+        // Merge: containers from pointerWithin + tasks from closestCenter
+        const combined = [...containerHits];
+        for (const c of centerCollisions) {
+            if (!combined.some(existing => existing.id === c.id)) {
+                combined.push(c);
+            }
+        }
+
+        if (combined.length > 0) return combined;
         return closestCorners(args);
     };
 
@@ -84,7 +154,10 @@ export default function Project() {
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
+        const savedIndicator = dropIndicator;
         setActiveDragId(null);
+        setDropIndicator(null);
+
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
@@ -95,55 +168,57 @@ export default function Project() {
         const activeTask = allTasks.find(t => t.id === active.id);
         if (!activeTask) return;
 
-        // Container drop: reparent task to become a child of the container's parent
+        // Container drop with different parent: reparent
         if (overData.type === 'container' && overData.parentId) {
             const targetParentId = overData.parentId as string;
-            // Safety: don't reparent to self, same parent, or own descendant
             if (targetParentId === active.id) return;
-            if (activeTask.parent_task_id === targetParentId) return;
-            if (isDescendant(active.id as string, targetParentId, allTasks)) return;
-
-            handlers.handleTaskUpdate(active.id as string, { parent_task_id: targetParentId });
-            // Auto-expand so the dropped task is visible
-            const targetParent = allTasks.find(t => t.id === targetParentId);
-            if (targetParent) {
-                handlers.handleToggleExpand(targetParent as TaskRow, true);
+            if (activeTask.parent_task_id !== targetParentId) {
+                if (isDescendant(active.id as string, targetParentId, allTasks)) return;
+                handlers.handleTaskUpdate(active.id as string, { parent_task_id: targetParentId });
+                const targetParent = allTasks.find(t => t.id === targetParentId);
+                if (targetParent) {
+                    handlers.handleToggleExpand(targetParent as TaskRow, true);
+                }
+                return;
             }
-            return;
+            // Same parent container: use dropIndicator for reorder (fall through)
         }
 
-        // Task-on-task drop: reorder within same parent
-        if (overData.type === 'Task') {
-            const overTask = allTasks.find(t => t.id === over.id);
-            if (!overTask) return;
-
-            const parentId = overTask.parent_task_id;
+        // Use the dropIndicator to determine position
+        // This handles both Task-on-task and same-parent container fall-through
+        if (savedIndicator) {
+            const targetParentId = savedIndicator.parentId;
             const siblings = allTasks
-                .filter(t => t.parent_task_id === parentId && t.id !== active.id)
+                .filter(t => t.parent_task_id === targetParentId && t.id !== active.id)
                 .sort((a, b) => (a.position || 0) - (b.position || 0));
 
-            const overIndex = siblings.findIndex(t => t.id === over.id);
-            const prev = siblings[overIndex - 1];
-            const next = siblings[overIndex + 1];
-
             let newPosition: number;
-            const overPos = overTask.position || 0;
-            if (!prev) {
-                newPosition = overPos - POSITION_STEP;
-            } else if (!next) {
-                newPosition = overPos + POSITION_STEP;
+
+            if (savedIndicator.beforeTaskId) {
+                // Insert before this task
+                const beforeTask = siblings.find(t => t.id === savedIndicator.beforeTaskId);
+                const beforeIndex = siblings.findIndex(t => t.id === savedIndicator.beforeTaskId);
+                const prevTask = beforeIndex > 0 ? siblings[beforeIndex - 1] : null;
+
+                if (!prevTask) {
+                    newPosition = (beforeTask?.position || 0) - POSITION_STEP;
+                } else {
+                    newPosition = Math.round(((prevTask.position || 0) + (beforeTask?.position || 0)) / 2);
+                }
             } else {
-                newPosition = Math.round((overPos + (next.position || 0)) / 2);
+                // Insert at end
+                const lastTask = siblings[siblings.length - 1];
+                newPosition = (lastTask?.position || 0) + POSITION_STEP;
             }
 
             const updates: Record<string, unknown> = { position: newPosition };
-            if (activeTask.parent_task_id !== parentId) {
-                updates.parent_task_id = parentId;
+            if (activeTask.parent_task_id !== targetParentId) {
+                updates.parent_task_id = targetParentId;
             }
             handlers.handleTaskUpdate(active.id as string, updates);
-            // Auto-expand if reparented
-            if (activeTask.parent_task_id !== parentId && parentId) {
-                const targetParent = allTasks.find(t => t.id === parentId);
+
+            if (activeTask.parent_task_id !== targetParentId && targetParentId) {
+                const targetParent = allTasks.find(t => t.id === targetParentId);
                 if (targetParent) {
                     handlers.handleToggleExpand(targetParent as TaskRow, true);
                 }
@@ -313,15 +388,18 @@ export default function Project() {
         );
     }
 
+    const projectOrigin = (project as TaskRow)?.origin === 'template' ? 'template' : 'instance';
+
     return (
         <>
+            <div className="flex h-full gap-8 min-w-0">
             <DndContext
                 sensors={sensors}
                 collisionDetection={collisionDetection}
                 onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
             >
-            <div className="flex h-full gap-8 min-w-0">
                 <div className="flex-1 min-w-0 flex flex-col min-h-0 overflow-y-auto custom-scrollbar pr-4">
                     <ProjectHeader
                         project={project as ProjectType}
@@ -338,7 +416,7 @@ export default function Project() {
 
                             {canEdit && state.activeTab === 'board' && (
                                 <Button
-                                    onClick={() => setTaskFormState({ mode: 'create', origin: 'instance' })}
+                                    onClick={() => setTaskFormState({ mode: 'create', origin: projectOrigin })}
                                     className="bg-brand-500 hover:bg-brand-600 text-white"
                                 >
                                     <Plus className="w-4 h-4 mr-2" />
@@ -399,12 +477,13 @@ export default function Project() {
                                                         onToggleExpand={handlers.handleToggleExpand}
                                                         onTaskClick={(task: TaskRow) => {
                                                             handlers.handleTaskClick(task);
-                                                            setTaskFormState({ mode: 'edit', origin: 'instance' });
+                                                            setTaskFormState({ mode: 'edit', origin: projectOrigin });
                                                         }}
                                                         onInlineCommit={canEdit ? handlers.handleInlineCommit : undefined}
                                                         onInlineCancel={() => actions.setInlineAddingParentId(null)}
                                                         canEdit={canEdit}
                                                         isAddingInline={state.inlineAddingParentId === milestone.id}
+                                                        dropIndicator={dropIndicator}
                                                     />
                                                 ))
                                             )}
@@ -419,6 +498,22 @@ export default function Project() {
                         )}
                     </div>
                 </div>
+
+            {createPortal(
+                <DragOverlay dropAnimation={null}>
+                    {activeDragId && (() => {
+                        const draggedTask = (tasks as TaskRow[])?.find(t => t.id === activeDragId);
+                        if (!draggedTask) return null;
+                        return (
+                            <div className="bg-white border border-brand-200 rounded-xl px-4 py-3 shadow-xl cursor-grabbing max-w-md">
+                                <p className="text-sm font-medium text-slate-900 truncate">{draggedTask.title}</p>
+                            </div>
+                        );
+                    })()}
+                </DragOverlay>,
+                document.body
+            )}
+            </DndContext>
 
                 {(state.selectedTask || taskFormState) && (
                     <TaskDetailsPanel
@@ -445,27 +540,11 @@ export default function Project() {
                         onDeleteTaskWrapper={async () => { if (state.selectedTask) await (handlers.handleDeleteTask(state.selectedTask) as any); }}
                         handleEditTask={(task) => {
                             actions.setSelectedTask(task as TaskRow);
-                            setTaskFormState({ mode: 'edit', origin: 'instance' });
+                            setTaskFormState({ mode: 'edit', origin: projectOrigin });
                         }}
                     />
                 )}
             </div>
-
-            {createPortal(
-                <DragOverlay dropAnimation={null}>
-                    {activeDragId && (() => {
-                        const draggedTask = (tasks as TaskRow[])?.find(t => t.id === activeDragId);
-                        if (!draggedTask) return null;
-                        return (
-                            <div className="bg-white border border-brand-200 rounded-xl px-4 py-3 shadow-xl cursor-grabbing max-w-md">
-                                <p className="text-sm font-medium text-slate-900 truncate">{draggedTask.title}</p>
-                            </div>
-                        );
-                    })()}
-                </DragOverlay>,
-                document.body
-            )}
-            </DndContext>
 
             {state.showInviteModal && (
                 <InviteMemberModal
