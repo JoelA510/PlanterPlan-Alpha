@@ -56,7 +56,7 @@
 ## 4. Testing & Verification
 
 - **Unit/Integration**: `npm test` (Vitest).
-- **Golden Path Tests**: `e2e/golden-paths.spec.ts` (Playwright).
+- **E2E Tests**: `npm run test:e2e` (Playwright BDD — feature files in `e2e/features/`).
 - **Linting**: `npm run lint` (Zero-tolerance for errors).
 
 ## 5. Deployment / Build
