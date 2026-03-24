@@ -32,7 +32,7 @@ interface TaskItemProps {
  hideExpansion?: boolean;
  disableDrag?: boolean;
  isAddingInline?: boolean;
- onInlineCommit?: (taskId: string, title: string) => void;
+ onInlineCommit?: (taskId: string, title: string, templateData?: Record<string, unknown>) => void;
  onInlineCancel?: () => void;
  dropIndicator?: { parentId: string; beforeTaskId: string | null } | null;
 }
@@ -227,6 +227,7 @@ const TaskItem = ({
  >
  <InlineTaskInput
  onCommit={(title) => onInlineCommit(task.id, title)}
+ onCommitFromTemplate={(template) => onInlineCommit(task.id, template.title || '', template)}
  onCancel={onInlineCancel || (() => { })}
  level={level + 1}
  />

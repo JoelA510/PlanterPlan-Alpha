@@ -41,9 +41,7 @@ export const useTaskQuery = () => {
         queryKey: ['projects', 'template', currentUserId],
         queryFn: async () => {
             if (!currentUserId) return [];
-            const { data, error } = await planter.entities.TaskWithResources.listTemplates({ userId: currentUserId });
-            if (error) throw error;
-            return (data || []) as Task[];
+            return await planter.entities.Task.filter({ origin: 'template', parent_task_id: null, creator: currentUserId }) as Task[];
         },
         enabled: !!currentUserId,
         staleTime: 1000 * 60 * 5, // 5 minutes

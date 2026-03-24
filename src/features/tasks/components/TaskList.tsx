@@ -11,6 +11,7 @@ import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
 import ProjectTasksView from './ProjectTasksView';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
+import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
 import EmptyProjectState from '@/features/tasks/components/EmptyProjectState';
 import StatusCard from '@/shared/ui/StatusCard';
 import { toast } from 'sonner';
@@ -288,6 +289,14 @@ const TaskList = () => {
           handleEditTask={handleEditTask as any}
           onDeleteTaskWrapper={onDeleteTaskWrapper as any}
           fetchTasks={refetchProjects}
+          renderLibrarySearch={(onSelect) => (
+            <MasterLibrarySearch
+              mode="copy"
+              onSelect={onSelect}
+              label="Search master library"
+              placeholder="Start typing to copy an existing template task"
+            />
+          )}
         />
       </div>
     </DashboardLayout>

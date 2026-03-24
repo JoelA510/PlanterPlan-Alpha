@@ -27,7 +27,7 @@ export interface MilestoneSectionProps {
     onAddChildTask?: (parent: TaskRow) => void;
     onTaskClick: (task: TaskRow) => void;
     onToggleExpand?: (task: TaskRow, expanded: boolean) => void;
-    onInlineCommit?: (parentId: string, title: string) => Promise<void>;
+    onInlineCommit?: (parentId: string, title: string, templateData?: Partial<TaskRow>) => Promise<void>;
     onInlineCancel?: () => void;
     canEdit?: boolean;
     isAddingInline?: boolean;
@@ -181,6 +181,7 @@ export default function MilestoneSection({
                                             >
                                                 <InlineTaskInput
                                                     onCommit={(title) => onInlineCommit(milestone.id, title)}
+                                                    onCommitFromTemplate={(template) => onInlineCommit(milestone.id, template.title || '', template as Partial<TaskRow>)}
                                                     onCancel={onInlineCancel}
                                                     placeholder="Add a new task..."
                                                 />

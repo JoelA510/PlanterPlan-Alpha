@@ -76,6 +76,7 @@ export default function Dashboard() {
                     role: 'owner',
                 } as any);
                 toast.success('Template created');
+                queryClient.invalidateQueries({ queryKey: ['projects', 'template'] });
                 navigate(`/project/${template.id}`);
             }
         } catch (error: unknown) {

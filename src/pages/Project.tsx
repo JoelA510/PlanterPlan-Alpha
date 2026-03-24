@@ -239,7 +239,7 @@ export default function Project() {
         try {
             const mode = taskFormState?.mode;
             const origin = taskFormState?.origin || 'instance';
-            const parentId = state.inlineAddingParentId || null;
+            const parentId = state.inlineAddingParentId || projectId || null;
 
             const payloadContext = {
                 origin,

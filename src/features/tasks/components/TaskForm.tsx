@@ -106,7 +106,6 @@ const TaskForm = ({
  setValue('purpose', task.purpose || '', { shouldValidate: true });
  setValue('actions', task.actions || '', { shouldValidate: true });
  setValue('notes', task.notes || '', { shouldValidate: true });
- setValue('templateId', task.id || null, { shouldValidate: true });
  if (task.days_from_start !== null && task.days_from_start !== undefined) {
  setValue('days_from_start', Number(task.days_from_start), { shouldValidate: true });
  }

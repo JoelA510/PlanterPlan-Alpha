@@ -60,7 +60,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
         setExpandedTaskIds((prev) => new Set(prev).add(parentTask.id));
     };
 
-    const handleInlineCommit = async (parentId: string, title: string) => {
+    const handleInlineCommit = async (parentId: string, title: string, templateData?: Partial<TaskRow>) => {
         try {
             await _createTask.mutateAsync({
                 title,
@@ -69,7 +69,10 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
                 parent_task_id: parentId,
                 origin: 'instance',
                 priority: 'medium',
-                description: '',
+                description: templateData?.description ?? '',
+                notes: templateData?.notes ?? '',
+                purpose: templateData?.purpose ?? '',
+                actions: templateData?.actions ?? '',
             });
             setInlineAddingParentId(null);
         } catch {
