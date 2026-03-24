@@ -22,7 +22,7 @@ interface TaskStatusSelectProps {
 
 export default function TaskStatusSelect({ status, taskId, onStatusChange }: TaskStatusSelectProps) {
   return (
-    <div className="relative group">
+    <div data-testid="status-select" className="relative group">
       <select
         className={`appearance-none cursor-pointer pl-4 pr-9 py-1.5 text-xs font-semibold rounded-full border transition-all ${getStatusStyle(status)} focus:ring-2 focus:ring-offset-1 focus:ring-brand-500 focus:outline-none`}
         value={status || TASK_STATUS.TODO}

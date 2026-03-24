@@ -53,7 +53,7 @@ When('the user switches back to list view', async ({ page }) => {
 });
 
 When('the user changes a task status via dropdown', async ({ page }) => {
-  const statusSelect = page.locator('[data-testid="status-select"], select').first();
+  const statusSelect = page.locator('[data-testid="status-select"]').first();
   if (await statusSelect.isVisible().catch(() => false)) {
     await statusSelect.selectOption('in_progress');
   }

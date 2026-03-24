@@ -65,6 +65,7 @@ export default function StatsOverview({ projects, tasks }: StatsOverviewProps) {
  {stats.map((stat) => (
  <Card
  key={stat.label}
+ data-testid="stats-card"
  className={`p-6 border-2 border-slate-100 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] group cursor-default ${stat.borderColor}`}
  >
  <div className="flex items-center justify-between">

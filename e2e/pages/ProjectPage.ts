@@ -21,7 +21,7 @@ export class ProjectPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.projectTitle = page.locator('h1, h2').first();
+    this.projectTitle = page.getByRole('heading', { level: 1 }).or(page.getByRole('heading', { level: 2 })).first();
     this.statusBadge = page.locator('[data-testid="status-badge"]');
     this.progressBar = page.locator('[role="progressbar"]');
     this.backButton = page.getByRole('link', { name: /back|dashboard/i });
@@ -35,7 +35,7 @@ export class ProjectPage {
     this.teamButton = page.getByRole('link', { name: /team/i });
     this.inviteButton = page.getByRole('button', { name: /invite/i });
     this.tabs = page.locator('[role="tab"]');
-    this.spinner = page.locator('.animate-spin');
+    this.spinner = page.locator('[data-testid="loading-spinner"]').or(page.getByRole('progressbar'));
     this.taskDetailsPanel = page.locator('[data-testid="task-details-panel"]');
   }
 

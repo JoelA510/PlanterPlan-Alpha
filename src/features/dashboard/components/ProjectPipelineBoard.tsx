@@ -30,7 +30,7 @@ export default function ProjectPipelineBoard({ projects, tasks, teamMembers, onS
  );
 
  return (
- <div className="h-full overflow-x-auto pb-4 no-scrollbar">
+ <div data-testid="pipeline-board" className="h-full overflow-x-auto pb-4 no-scrollbar">
  <DndContext
  sensors={sensors}
  collisionDetection={closestCorners}
@@ -91,7 +91,7 @@ function PipelineColumn({ column, tasksByProjectId, teamMembersByProjectId }: Pi
  });
 
  return (
- <div ref={setNodeRef} className={`flex-1 w-0 min-w-0 flex flex-col h-full rounded-xl bg-slate-50 border border-brand-100/50`}>
+ <div ref={setNodeRef} data-testid="pipeline-column" className={`flex-1 w-0 min-w-0 flex flex-col h-full rounded-xl bg-slate-50 border border-brand-100/50`}>
  {/* Header */}
  {/* Header */}
  {/* Header */}

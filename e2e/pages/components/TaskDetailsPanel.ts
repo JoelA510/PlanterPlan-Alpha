@@ -17,8 +17,8 @@ export class TaskDetailsPanel {
   constructor(page: Page) {
     this.page = page;
     this.panel = page.locator('[data-testid="task-details-panel"]');
-    this.title = this.panel.locator('h2, h3').first();
-    this.closeButton = this.panel.getByRole('button', { name: /close/i }).or(this.panel.locator('button:has(svg)').first());
+    this.title = this.panel.getByRole('heading').first();
+    this.closeButton = this.panel.getByRole('button', { name: /close/i });
     this.editButton = this.panel.getByRole('button', { name: /edit/i });
     this.deleteButton = this.panel.getByRole('button', { name: /delete/i });
     this.completeButton = this.panel.getByRole('button', { name: /complete/i });

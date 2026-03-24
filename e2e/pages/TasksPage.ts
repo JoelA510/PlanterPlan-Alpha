@@ -18,7 +18,7 @@ export class TasksPage {
     this.boardViewButton = page.getByRole('button', { name: /board/i });
     this.boardColumns = page.locator('[data-testid="board-column"]');
     this.emptyState = page.getByText(/no tasks/i);
-    this.spinner = page.locator('.animate-spin');
+    this.spinner = page.locator('[data-testid="loading-spinner"]').or(page.getByRole('progressbar'));
   }
 
   async goto() {

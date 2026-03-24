@@ -25,7 +25,7 @@ const BoardColumn = ({ id, title, tasks, onTaskClick, className, parentId }: Boa
  });
 
  return (
- <div className={cn("flex flex-col min-w-[280px] w-[280px] rounded-xl bg-slate-50/50 border border-slate-200 h-full max-h-full", className)}>
+ <div data-testid="board-column" className={cn("flex flex-col min-w-[280px] w-[280px] rounded-xl bg-slate-50/50 border border-slate-200 h-full max-h-full", className)}>
  {/* Header */}
  <div className={cn(
  "p-3 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-slate-50/95 backdrop-blur-sm rounded-t-xl z-10",

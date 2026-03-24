@@ -5,7 +5,7 @@ import { expect } from '@playwright/test';
 export async function waitForPageReady(page: Page) {
   await page.waitForLoadState('networkidle');
   // Wait for any loading spinners to disappear
-  const spinner = page.locator('.animate-spin');
+  const spinner = page.locator('[data-testid="loading-spinner"]').or(page.locator('[role="progressbar"]')).or(page.locator('.animate-spin'));
   if (await spinner.isVisible({ timeout: 500 }).catch(() => false)) {
     await expect(spinner).toBeHidden({ timeout: 15000 });
   }

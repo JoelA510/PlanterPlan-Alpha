@@ -12,7 +12,7 @@ export default function MobileFAB() {
  const navigate = useNavigate();
 
  return (
- <div className="fixed bottom-6 right-6 md:hidden z-50">
+ <div data-testid="mobile-fab" className="fixed bottom-6 right-6 md:hidden z-50">
  <DropdownMenu>
  <DropdownMenuTrigger asChild>
  <Button

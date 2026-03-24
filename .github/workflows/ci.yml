@@ -83,6 +83,19 @@ jobs:
           VITE_TEST_PASSWORD: password123
           CI: true
 
+      - name: Run Vision-Enhanced E2E tests
+        if: secrets.GEMINI_API_KEY != ''
+        run: npm run test:e2e:vision
+        continue-on-error: true
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_E2E_MODE: 'true'
+          VITE_TEST_EMAIL: test@example.com
+          VITE_TEST_PASSWORD: password123
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CI: true
+
       - name: Upload E2E report
         uses: actions/upload-artifact@v4
         if: always()

@@ -19,11 +19,11 @@ export class ReportsPage {
     this.projectSelector = page.locator('[data-testid="project-selector"]');
     this.statsCards = page.locator('[data-testid="stats-card"]');
     this.overallProgress = page.locator('[data-testid="overall-progress"]');
-    this.pieChart = page.locator('.recharts-pie, [data-testid="pie-chart"]');
+    this.pieChart = page.locator('[data-testid="pie-chart"]').or(page.locator('.recharts-pie'));
     this.phaseDetails = page.locator('[data-testid="phase-detail"]');
     this.upcomingDeadlines = page.locator('[data-testid="upcoming-deadlines"]');
     this.backArrow = page.getByRole('link', { name: /back/i });
-    this.spinner = page.locator('.animate-spin');
+    this.spinner = page.locator('[data-testid="loading-spinner"]').or(page.getByRole('progressbar'));
     this.emptyPrompt = page.getByText(/select a project/i);
   }
 

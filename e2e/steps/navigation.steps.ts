@@ -17,7 +17,7 @@ Given('there are more projects than the initial page size', async () => {
 });
 
 When('the user clicks a project in the sidebar', async ({ page }) => {
-  await page.locator('aside a[href*="/project/"]').first().click();
+  await page.locator('[data-testid="project-switcher"]').getByRole('link').first().click();
 });
 
 When('the user clicks the sidebar {string} button', async ({ page }, buttonText: string) => {
@@ -58,7 +58,7 @@ Then('the user is navigated to that project\'s page', async ({ page }) => {
 
 Then('that project is highlighted in the sidebar', async ({ page }) => {
   // Active project has distinct styling in sidebar
-  await expect(page.locator('aside a[href*="/project/"]').first()).toBeVisible();
+  await expect(page.locator('[data-testid="project-switcher"]').getByRole('link').first()).toBeVisible();
 });
 
 Then('the user is navigated to the dashboard', async ({ page }) => {
@@ -66,12 +66,12 @@ Then('the user is navigated to the dashboard', async ({ page }) => {
 });
 
 Then('additional projects are shown', async ({ page }) => {
-  const projects = page.locator('aside a[href*="/project/"]');
+  const projects = page.locator('[data-testid="project-switcher"]').getByRole('link');
   expect(await projects.count()).toBeGreaterThan(0);
 });
 
 Then('each section shows its own loading indicator', async ({ page }) => {
-  await expect(page.locator('aside .animate-spin').first()).toBeVisible({ timeout: 3000 });
+  await expect(page.locator('aside [data-testid="loading-spinner"]').or(page.locator('aside [role="progressbar"]')).first()).toBeVisible({ timeout: 3000 });
 });
 
 Then('the sidebar is hidden by default', async ({ page }) => {

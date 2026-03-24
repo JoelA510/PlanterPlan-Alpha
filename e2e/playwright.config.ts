@@ -39,6 +39,12 @@ export default defineConfig({
       dependencies: ['setup'],
       testMatch: /mobile/,
     },
+    {
+      name: 'accessibility',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      testMatch: /accessibility/,
+    },
   ],
   webServer: {
     command:

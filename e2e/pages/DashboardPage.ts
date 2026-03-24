@@ -17,12 +17,12 @@ export class DashboardPage {
     this.pageTitle = page.getByRole('heading', { level: 1 });
     this.newProjectButton = page.getByRole('button', { name: /New Project/i });
     this.newTemplateButton = page.getByRole('button', { name: /New Template/i });
-    this.statsCards = page.locator('[data-testid="stats-card"], .grid > div').first();
+    this.statsCards = page.locator('[data-testid="stats-card"]').first();
     this.pipelineBoard = page.locator('[data-testid="pipeline-board"]');
     this.pipelineColumns = page.locator('[data-testid="pipeline-column"]');
     this.projectCards = page.locator('[data-testid="project-card"]');
     this.emptyState = page.getByText(/No projects yet|Create Your First/i);
-    this.spinner = page.locator('.animate-spin');
+    this.spinner = page.locator('[data-testid="loading-spinner"]').or(page.getByRole('progressbar'));
   }
 
   async goto() {

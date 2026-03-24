@@ -80,7 +80,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
 
  return (
  <Dialog open={isOpen} onOpenChange={onClose}>
- <DialogContent className="sm:max-w-[500px]">
+ <DialogContent data-testid="edit-project-modal" className="sm:max-w-[500px]">
  <DialogHeader>
  <DialogTitle>Project Settings</DialogTitle>
  </DialogHeader>

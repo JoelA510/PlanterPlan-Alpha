@@ -23,7 +23,7 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps
  const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
  return (
- <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} className="h-full">
+ <motion.div data-testid="project-card" whileHover={{ y: -4 }} transition={{ duration: 0.2 }} className="h-full">
  <Link to={`/project/${project.id}`} className="h-full block">
  <Card className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300 border border-border hover:border-brand-300 cursor-pointer group bg-card h-full flex flex-col justify-between overflow-hidden">
  <div className="mb-4">

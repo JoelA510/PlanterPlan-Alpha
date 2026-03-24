@@ -21,7 +21,7 @@ export class EditProjectModal {
     this.descriptionInput = page.locator('[role="dialog"]').getByLabel(/description/i);
     this.locationInput = page.locator('[role="dialog"]').getByLabel(/location/i);
     this.dueSoonThresholdInput = page.locator('[role="dialog"]').getByLabel(/due soon|threshold/i);
-    this.startDateButton = page.locator('[role="dialog"]').locator('button:has-text("Pick a date")');
+    this.startDateButton = page.locator('[role="dialog"]').getByRole('button', { name: /pick a date|select date|start date/i });
     this.saveButton = page.getByRole('button', { name: /save changes/i });
     this.cancelButton = page.locator('[role="dialog"]').getByRole('button', { name: /cancel/i });
     this.deleteButton = page.getByRole('button', { name: /delete/i });
