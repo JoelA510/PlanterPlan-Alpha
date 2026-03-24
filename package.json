@@ -9,7 +9,9 @@
     "typecheck:agent": "node scripts/tsc-agent.cjs",
     "verify-architecture": "bash scripts/verify-architecture.sh",
     "verify-e2e": "bash scripts/verify-e2e.sh",
-    "test:e2e": "npx bddgen && playwright test",
+    "test:e2e": "npx bddgen --config e2e/playwright.config.ts && npx playwright test --config e2e/playwright.config.ts",
+    "test:e2e:mobile": "npx bddgen --config e2e/playwright.config.ts && npx playwright test --config e2e/playwright.config.ts --project=mobile-chrome",
+    "test:e2e:headed": "npx bddgen --config e2e/playwright.config.ts && npx playwright test --config e2e/playwright.config.ts --headed",
     "lint": "eslint .",
     "test": "vitest --run",
     "preview": "vite preview"
