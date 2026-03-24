@@ -23,8 +23,8 @@ export class SettingsPage {
     this.organizationInput = page.getByLabel(/organization|church/i);
     this.weeklyDigestToggle = page.locator('[role="switch"]');
     this.saveButton = page.getByRole('button', { name: /save/i });
-    this.avatarError = page.locator('[data-testid="avatar-error"], .text-red-500');
-    this.spinner = page.locator('.animate-spin');
+    this.avatarError = page.locator('[data-testid="avatar-error"]');
+    this.spinner = page.locator('[data-testid="loading-spinner"]').or(page.getByRole('progressbar'));
   }
 
   async goto() {

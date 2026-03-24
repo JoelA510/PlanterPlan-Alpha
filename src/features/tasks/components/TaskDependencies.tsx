@@ -74,7 +74,7 @@ export default function TaskDependencies({ task, allProjectTasks }: TaskDependen
  const availableTasks = (allProjectTasks || []).filter(t => t.id !== task.id && !existingIds.has(t.id));
 
  return (
- <div className="detail-section mb-6">
+ <div data-testid="task-dependencies" className="detail-section mb-6">
  <div className="flex items-center justify-between mb-3">
  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Related Tasks</h3>
  </div>

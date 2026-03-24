@@ -65,6 +65,7 @@ export default function MilestoneSection({
 
     return (
         <div
+            data-testid="milestone-section"
             ref={setNodeRef}
             className={cn(
                 "border rounded-xl overflow-hidden transition-all duration-200",

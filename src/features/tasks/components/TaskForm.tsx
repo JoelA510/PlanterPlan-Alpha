@@ -127,7 +127,7 @@ const TaskForm = ({
  return (
  <FormProvider {...methods}>
  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
- <form onSubmit={methods.handleSubmit(handleFormSubmit as any)} className="project-form">
+ <form data-testid="task-form" onSubmit={methods.handleSubmit(handleFormSubmit as any)} className="project-form">
  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
  {origin === 'template'
  ? (isEditMode ? 'Editing Template Task' : 'Template Task')

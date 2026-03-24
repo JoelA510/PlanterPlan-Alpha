@@ -14,15 +14,15 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.emailInput = page.locator('#email');
-    this.passwordInput = page.locator('#password');
-    this.submitButton = page.locator('button[type="submit"]');
+    this.emailInput = page.getByLabel(/email/i);
+    this.passwordInput = page.getByLabel(/password/i);
+    this.submitButton = page.getByRole('button', { name: /sign in|sign up|log in/i });
     this.toggleModeButton = page.getByText(/Already have an account|Need an account/);
     this.autoLoginButton = page.getByText('(Auto-Login as Test User)');
-    this.emailError = page.locator('#email ~ p.text-red-500');
-    this.passwordError = page.locator('#password ~ p.text-red-500');
+    this.emailError = page.locator('[data-testid="email-error"]');
+    this.passwordError = page.locator('[data-testid="password-error"]');
     this.heading = page.getByText('PlanterPlan');
-    this.subtitle = page.locator('p.text-center.text-sm');
+    this.subtitle = page.getByText(/church planting|plan your/i);
   }
 
   async goto() {

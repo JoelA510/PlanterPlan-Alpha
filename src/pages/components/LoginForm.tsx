@@ -80,7 +80,7 @@ const LoginForm = () => {
  {...register('email')}
  />
  {errors.email && (
- <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+ <p data-testid="email-error" className="mt-1 text-sm text-red-500">{errors.email.message}</p>
  )}
  </div>
 
@@ -96,7 +96,7 @@ const LoginForm = () => {
  {...register('password')}
  />
  {errors.password && (
- <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
+ <p data-testid="password-error" className="mt-1 text-sm text-red-500">{errors.password.message}</p>
  )}
  </div>
 
@@ -106,7 +106,7 @@ const LoginForm = () => {
  disabled={loading}
  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500/20 disabled:opacity-50 transition-colors shadow-sm"
  >
- {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? 'Sign Up' : 'Sign In')}
+ {loading ? <Loader2 className="w-5 h-5 animate-spin" data-testid="loading-spinner" aria-label="Loading" /> : (isSignUp ? 'Sign Up' : 'Sign In')}
  </button>
  </div>
 

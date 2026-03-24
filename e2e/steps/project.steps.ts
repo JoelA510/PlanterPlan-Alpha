@@ -8,7 +8,7 @@ const { Given, When, Then } = createBdd();
 
 Given('the user is on a project page', async ({ page }) => {
   // Navigate to the first available project via sidebar
-  const projectLink = page.locator('aside a[href*="/project/"]').first();
+  const projectLink = page.locator('[data-testid="project-switcher"]').getByRole('link').first();
   if (await projectLink.isVisible().catch(() => false)) {
     await projectLink.click();
     await page.waitForURL(/\/project\//);
@@ -17,7 +17,7 @@ Given('the user is on a project page', async ({ page }) => {
 });
 
 Given('the user is on a project page with tasks', async ({ page }) => {
-  const projectLink = page.locator('aside a[href*="/project/"]').first();
+  const projectLink = page.locator('[data-testid="project-switcher"]').getByRole('link').first();
   if (await projectLink.isVisible().catch(() => false)) {
     await projectLink.click();
     await page.waitForURL(/\/project\//);
@@ -48,7 +48,7 @@ Given('the invite member modal is open', async ({ page }) => {
 // ── Actions ─────────────────────────────────────────────────────────────────
 
 When('the user clicks the back button', async ({ page }) => {
-  await page.locator('a[href="/dashboard"]').first().click();
+  await page.getByRole('link', { name: /dashboard|back/i }).first().click();
 });
 
 When('the user clicks phase card {int}', async ({ page }, index: number) => {
@@ -99,7 +99,7 @@ When('the user clicks the export button', async ({ page }) => {
 });
 
 When('the user opens the user menu', async ({ page }) => {
-  await page.locator('header button').last().click();
+  await page.getByRole('banner').getByRole('button').last().click();
 });
 
 When('the user expands a milestone', async ({ page }) => {
@@ -139,7 +139,7 @@ Then('the progress percentage is displayed', async ({ page }) => {
 
 Then('team member avatar icons are visible', async ({ page }) => {
   // Avatar icons in the header
-  await expect(page.locator('[data-testid="team-avatars"], .flex > .rounded-full').first()).toBeVisible();
+  await expect(page.locator('[data-testid="team-avatars"]').or(page.getByRole('img', { name: /avatar|member/i })).first()).toBeVisible();
 });
 
 Then('phase cards are visible', async ({ page }) => {
@@ -169,7 +169,7 @@ Then('milestones for phase {int} are displayed', async ({ page }, _phaseNum: num
 });
 
 Then('the phase title is displayed above the milestones', async ({ page }) => {
-  await expect(page.locator('h2, h3').first()).toBeVisible();
+  await expect(page.getByRole('heading').first()).toBeVisible();
 });
 
 Then('an empty milestones message is shown', async ({ page }) => {
@@ -247,12 +247,12 @@ Then('a CSV file download is triggered', async ({ page }) => {
 });
 
 Then('the people list is visible', async ({ page }) => {
-  await expect(page.locator('table, [data-testid="people-list"]').first()).toBeVisible();
+  await expect(page.locator('[data-testid="people-list"]').or(page.getByRole('table')).first()).toBeVisible();
 });
 
 Then('each person row shows a status badge', async ({ page }) => {
   // People rows exist
-  await expect(page.locator('table tbody tr, [data-testid="person-row"]').first()).toBeVisible();
+  await expect(page.locator('[data-testid="person-row"]').or(page.getByRole('row')).first()).toBeVisible();
 });
 
 Then('the invite member modal is visible', async ({ page }) => {

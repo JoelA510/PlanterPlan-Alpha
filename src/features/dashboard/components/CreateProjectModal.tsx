@@ -99,7 +99,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-white border-slate-200">
+            <DialogContent data-testid="create-project-modal" className="sm:max-w-[600px] p-0 overflow-hidden bg-white border-slate-200">
                 <DialogHeader className="p-8 bg-brand-600 text-white">
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                         <Plus className="w-6 h-6" />

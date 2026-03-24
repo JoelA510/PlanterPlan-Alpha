@@ -44,7 +44,7 @@ const StatusCard: FC<StatusCardProps> = ({ title, description, variant = 'info',
  const Icon = config.icon;
 
  return (
- <Card className={cn(
+ <Card data-testid="status-card" className={cn(
  'p-4 border-2 shadow-none transition-all duration-200 hover:shadow-md',
  config.bg,
  config.border,

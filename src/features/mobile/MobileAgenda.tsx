@@ -34,7 +34,7 @@ export default function MobileAgenda({ tasks = [] }: MobileAgendaProps) {
  if (relevantTasks.length === 0) return null;
 
  return (
- <div className="md:hidden mb-6">
+ <div data-testid="mobile-agenda" className="md:hidden mb-6">
  <Card className="bg-brand-600 text-white border-none shadow-lg">
  <div className="p-4">
  <div className="flex items-center justify-between mb-4">

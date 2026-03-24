@@ -60,7 +60,7 @@ export function CommandPalette({ projects = [] }: CommandPaletteProps): JSX.Elem
  )), [projects, navigate, runCommand]);
 
  return (
- <>
+ <div data-testid="command-palette">
  <CommandDialog open={open} onOpenChange={setOpen}>
  <CommandInput placeholder="Type a command or search..." />
  <CommandList>
@@ -98,6 +98,6 @@ export function CommandPalette({ projects = [] }: CommandPaletteProps): JSX.Elem
  </CommandGroup>
  </CommandList>
  </CommandDialog>
- </>
+ </div>
  );
 }

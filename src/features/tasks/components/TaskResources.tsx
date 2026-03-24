@@ -88,7 +88,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }: T
  };
 
  return (
- <div>
+ <div data-testid="task-resources">
  <div className="flex items-center justify-between mb-4">
  <h4 className="text-sm font-semibold text-card-foreground uppercase tracking-wider">Resources</h4>
  <Button

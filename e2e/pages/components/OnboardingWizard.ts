@@ -19,9 +19,9 @@ export class OnboardingWizard {
     this.nextButton = page.getByRole('button', { name: /next|continue/i });
     this.backButton = page.getByRole('button', { name: /back/i });
     this.skipButton = page.getByRole('button', { name: /skip/i });
-    this.closeButton = page.locator('[role="dialog"] button').filter({ has: page.locator('svg') }).first();
+    this.closeButton = page.locator('[role="dialog"]').getByRole('button', { name: /close/i });
     this.createButton = page.getByRole('button', { name: /create project/i });
-    this.datePicker = page.locator('[data-testid="date-picker"], button:has-text("Pick a date")');
+    this.datePicker = page.locator('[data-testid="date-picker"]').or(page.getByRole('button', { name: /pick a date|select date/i }));
     this.templateOptions = page.locator('[role="radiogroup"] [role="radio"]');
   }
 

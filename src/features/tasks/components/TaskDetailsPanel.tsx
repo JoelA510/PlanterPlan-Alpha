@@ -67,7 +67,7 @@ export default function TaskDetailsPanel({
  const isTaskFormOpen = Boolean(taskFormState);
 
  return (
- <aside className="w-full sm:w-1/3 sm:min-w-80 sm:max-w-md bg-white border-l border-slate-200 flex flex-col shadow-2xl z-30 h-full overflow-hidden transition-all duration-300">
+ <aside data-testid="task-details-panel" className="w-full sm:w-1/3 sm:min-w-80 sm:max-w-md bg-white border-l border-slate-200 flex flex-col shadow-2xl z-30 h-full overflow-hidden transition-all duration-300">
  <div className="pt-8 px-6 pb-6 border-b border-slate-100 flex justify-between items-start bg-white sticky top-0 z-20">
  <h2 className="font-bold text-xl text-slate-800 truncate pr-4" title={panelTitle}>{panelTitle}</h2>
  <button

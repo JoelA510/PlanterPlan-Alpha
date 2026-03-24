@@ -92,7 +92,7 @@ When('the user attempts to create a project with invalid data', async () => {
 
 Then('four stats cards are visible', async ({ page }) => {
   // Stats cards in the grid
-  const cards = page.locator('.grid > div');
+  const cards = page.locator('[data-testid="stats-card"]');
   await expect(cards).toHaveCount(4, { timeout: 5000 });
 });
 

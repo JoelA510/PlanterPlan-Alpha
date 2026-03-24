@@ -7,7 +7,7 @@ interface ErrorFallbackProps {
 
 const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps): JSX.Element => {
  return (
- <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
+ <div data-testid="error-fallback" className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
  <StatusCard
  title="Something went wrong"
  variant="error"

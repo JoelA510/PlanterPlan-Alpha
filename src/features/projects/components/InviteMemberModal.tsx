@@ -82,7 +82,7 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
     };
 
     return ReactDOM.createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div data-testid="invite-member-modal" className="fixed inset-0 z-50 flex items-center justify-center">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"

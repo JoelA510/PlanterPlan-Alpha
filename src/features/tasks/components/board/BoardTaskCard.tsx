@@ -55,6 +55,7 @@ const BoardTaskCard = memo(({ task, onClick, dragHandleProps, style, isDragging 
 
  return (
  <div
+      data-testid="board-task-card"
  className={`bg-white p-3 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group mb-2 ${isDragging ? 'opacity-50 ring-2 ring-brand-500' : ''}`}
  style={style}
  onClick={() => onClick(task)}
