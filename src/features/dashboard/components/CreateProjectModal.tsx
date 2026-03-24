@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -14,44 +14,21 @@ import { Textarea } from '@/shared/ui/textarea';
 import {
     Plus,
     Target,
-    Zap,
-    Users,
     ChevronRight,
     ArrowLeft,
     Check,
     Loader2,
+    Search,
+    FileText,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
 
 import type { CreateProjectFormData } from '@/shared/db/app.types';
 
-const templates = [
-    {
-        id: 'new-church',
-        title: 'New Church Plant',
-        description: 'Comprehensive 24-month structured roadmap',
-        icon: Target,
-        color: 'text-brand-600',
-        bg: 'bg-brand-50',
-    },
-    {
-        id: 'outreach',
-        title: 'Community Outreach',
-        description: 'Rapid response event planning',
-        icon: Zap,
-        color: 'text-indigo-600',
-        bg: 'bg-indigo-50',
-    },
-    {
-        id: 'training',
-        title: 'Leadership Training',
-        description: 'Cohorts and multiplication systems',
-        icon: Users,
-        color: 'text-emerald-600',
-        bg: 'bg-emerald-50',
-    },
-];
+/** Special ID for the built-in default scaffold (not a real DB template). */
+const DEFAULT_SCAFFOLD_ID = '__default__';
 
 interface CreateProjectModalProps {
     open: boolean;
@@ -62,12 +39,31 @@ interface CreateProjectModalProps {
 export default function CreateProjectModal({ open, onClose, onSubmit }: CreateProjectModalProps) {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const [formData, setFormData] = useState<CreateProjectFormData>({
         title: '',
         description: '',
-        templateId: 'new-church',
+        templateId: DEFAULT_SCAFFOLD_ID,
         start_date: toIsoDate(nowUtcIso()) as any,
     });
+
+    const { results: dbTemplates, isLoading: templatesLoading } = useMasterLibrarySearch({
+        query: '',
+        enabled: open,
+    });
+
+    // Filter templates that are root-level (no parent) for project creation
+    const rootTemplates = useMemo(() => {
+        return (dbTemplates || []).filter((t) => !t.parent_task_id);
+    }, [dbTemplates]);
+
+    const filteredTemplates = useMemo(() => {
+        if (!searchQuery.trim()) return rootTemplates;
+        const q = searchQuery.toLowerCase();
+        return rootTemplates.filter(
+            (t) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
+        );
+    }, [rootTemplates, searchQuery]);
 
     const handleNext = () => setStep(2);
     const handleBack = () => setStep(1);
@@ -79,14 +75,25 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
     const handleSubmit = async () => {
         setLoading(true);
         try {
-            const { templateId: _category, ...submitData } = formData;
-            await onSubmit(submitData as CreateProjectFormData);
+            const submitData = { ...formData };
+            // If default scaffold, strip templateId so useCreateProject takes the blank path
+            if (submitData.templateId === DEFAULT_SCAFFOLD_ID) {
+                delete (submitData as any).templateId;
+            }
+            await onSubmit(submitData);
             onClose();
         } catch (error) {
             console.error('Failed to create project:', error);
         } finally {
             setLoading(false);
             setStep(1);
+            setSearchQuery('');
+            setFormData({
+                title: '',
+                description: '',
+                templateId: DEFAULT_SCAFFOLD_ID,
+                start_date: toIsoDate(nowUtcIso()) as any,
+            });
         }
     };
 
@@ -99,7 +106,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                         Start New Project
                     </DialogTitle>
                     <DialogDescription className="text-brand-100 text-base">
-                        Choose a proven framework to help you grow your mission.
+                        Choose a template or start from scratch.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -138,16 +145,29 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 20 }}
-                                className="space-y-6"
+                                className="space-y-4"
                             >
-                                <div className="grid grid-cols-1 gap-4">
-                                    {templates.map((cat) => (
+                                {/* Search input */}
+                                {rootTemplates.length > 3 && (
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <Input
+                                            placeholder="Search templates..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="pl-10 h-10 rounded-xl border-slate-200"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1">
+                                    {/* Default scaffold option */}
+                                    {!searchQuery && (
                                         <div
-                                            key={cat.id}
-                                            onClick={() => handleTemplateSelect(cat.id)}
+                                            onClick={() => handleTemplateSelect(DEFAULT_SCAFFOLD_ID)}
                                             className={cn(
                                                 'group cursor-pointer p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-4',
-                                                formData.templateId === cat.id
+                                                formData.templateId === DEFAULT_SCAFFOLD_ID
                                                     ? 'border-brand-600 bg-brand-50 shadow-md ring-1 ring-brand-600/10'
                                                     : 'border-slate-100 hover:border-brand-200 hover:bg-slate-50'
                                             )}
@@ -155,23 +175,73 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                             <div
                                                 className={cn(
                                                     'w-12 h-12 rounded-xl flex items-center justify-center transition-colors',
-                                                    formData.templateId === cat.id ? 'bg-brand-600 text-white' : cn(cat.bg, cat.color)
+                                                    formData.templateId === DEFAULT_SCAFFOLD_ID
+                                                        ? 'bg-brand-600 text-white'
+                                                        : 'bg-brand-50 text-brand-600'
                                                 )}
                                             >
-                                                <cat.icon className="w-6 h-6" />
+                                                <Target className="w-6 h-6" />
                                             </div>
                                             <div className="flex-1">
-                                                <h4 className="font-bold text-slate-900">{cat.title}</h4>
-                                                <p className="text-sm text-slate-500">{cat.description}</p>
+                                                <h4 className="font-bold text-slate-900">New Church Plant</h4>
+                                                <p className="text-sm text-slate-500">Comprehensive 24-month structured roadmap</p>
                                             </div>
-                                            {formData.templateId === cat.id && (
+                                            {formData.templateId === DEFAULT_SCAFFOLD_ID && (
                                                 <div className="w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center">
                                                     <Check className="w-4 h-4 text-white" />
                                                 </div>
                                             )}
                                         </div>
-                                    ))}
+                                    )}
+
+                                    {/* Dynamic templates from DB */}
+                                    {templatesLoading ? (
+                                        <div className="flex items-center justify-center py-6 text-slate-400">
+                                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                                            Loading templates...
+                                        </div>
+                                    ) : (
+                                        filteredTemplates.map((template) => (
+                                            <div
+                                                key={template.id}
+                                                onClick={() => handleTemplateSelect(template.id)}
+                                                className={cn(
+                                                    'group cursor-pointer p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-4',
+                                                    formData.templateId === template.id
+                                                        ? 'border-brand-600 bg-brand-50 shadow-md ring-1 ring-brand-600/10'
+                                                        : 'border-slate-100 hover:border-brand-200 hover:bg-slate-50'
+                                                )}
+                                            >
+                                                <div
+                                                    className={cn(
+                                                        'w-12 h-12 rounded-xl flex items-center justify-center transition-colors',
+                                                        formData.templateId === template.id
+                                                            ? 'bg-brand-600 text-white'
+                                                            : 'bg-slate-100 text-slate-500'
+                                                    )}
+                                                >
+                                                    <FileText className="w-6 h-6" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-bold text-slate-900 truncate">{template.title}</h4>
+                                                    {template.description && (
+                                                        <p className="text-sm text-slate-500 truncate">{template.description}</p>
+                                                    )}
+                                                </div>
+                                                {formData.templateId === template.id && (
+                                                    <div className="w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0">
+                                                        <Check className="w-4 h-4 text-white" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+
+                                    {!templatesLoading && searchQuery && filteredTemplates.length === 0 && (
+                                        <p className="text-sm text-slate-500 text-center py-4">No templates match your search.</p>
+                                    )}
                                 </div>
+
                                 <Button
                                     onClick={handleNext}
                                     className="w-full bg-brand-600 hover:bg-brand-700 text-white h-12 text-lg font-semibold rounded-xl"
