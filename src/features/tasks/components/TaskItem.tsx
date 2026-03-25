@@ -97,6 +97,19 @@ const TaskItem = ({
  }
  };
 
+ const handleStatusChange = (id: string, status: string) => {
+ if (status === 'completed' && task.children?.length) {
+ const incompleteChildren = task.children.filter((c) => c.status !== 'completed');
+ if (incompleteChildren.length > 0) {
+ const confirmed = window.confirm(
+  `This task has ${incompleteChildren.length} incomplete subtask(s). Mark all as complete?`
+ );
+ if (!confirmed) return;
+ }
+ }
+ onStatusChange?.(id, status);
+ };
+
  const isLocked = !!task.is_locked;
 
  return (
@@ -195,7 +208,7 @@ const TaskItem = ({
  <TaskStatusSelect
  status={task.status}
  taskId={task.id}
- onStatusChange={onStatusChange}
+ onStatusChange={handleStatusChange}
  />
 
  <TaskControlButtons
