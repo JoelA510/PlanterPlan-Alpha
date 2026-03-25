@@ -37,6 +37,16 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
 
  <div className="space-y-4 pt-2">
  <div className="space-y-2">
+ <Label htmlFor="purpose">Purpose (The Why)</Label>
+ <Textarea
+ id="purpose"
+ placeholder="Why is this task needed?"
+ rows={2}
+ {...register('purpose')}
+ />
+ </div>
+
+ <div className="space-y-2">
  <Label htmlFor="description">Description</Label>
  <Textarea
  id="description"
@@ -47,32 +57,22 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
  </div>
 
  <div className="space-y-2">
+ <Label htmlFor="actions">Action Steps (The What)</Label>
+ <Textarea
+ id="actions"
+ placeholder="Specific actions to take..."
+ rows={2}
+ {...register('actions')}
+ />
+ </div>
+
+ <div className="space-y-2">
  <Label htmlFor="notes">Notes / Context</Label>
  <Textarea
  id="notes"
  placeholder="Internal notes, hints, or context..."
  rows={2}
  {...register('notes')}
- />
- </div>
-
- <div className="space-y-2">
- <Label htmlFor="purpose">Purpose</Label>
- <Textarea
- id="purpose"
- placeholder="Why is this task needed?"
- rows={2}
- {...register('purpose')}
- />
- </div>
-
- <div className="space-y-2">
- <Label htmlFor="actions">Actions</Label>
- <Textarea
- id="actions"
- placeholder="Specific actions to take..."
- rows={2}
- {...register('actions')}
  />
  </div>
  </div>
