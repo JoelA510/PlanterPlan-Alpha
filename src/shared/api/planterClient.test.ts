@@ -1,0 +1,412 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { makeTask } from '@/test-utils';
+
+// ---------------------------------------------------------------------------
+// Supabase mock — chainable query builder
+// ---------------------------------------------------------------------------
+
+function createChain(resolvedValue: { data: unknown; error: unknown } = { data: null, error: null }) {
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+  const methods = [
+    'select', 'insert', 'update', 'delete', 'upsert',
+    'eq', 'neq', 'is', 'or', 'order', 'range', 'limit',
+    'maybeSingle', 'single', 'abortSignal',
+  ];
+  for (const m of methods) {
+    chain[m] = vi.fn().mockReturnValue(chain);
+  }
+  // Make the chain thenable so `await query` resolves
+  (chain as any).then = (resolve: (v: unknown) => void) => resolve(resolvedValue);
+  return chain;
+}
+
+const mockFrom = vi.fn();
+const mockRpc = vi.fn();
+const mockGetUser = vi.fn();
+const mockSignOut = vi.fn();
+const mockUpdateUser = vi.fn();
+
+vi.mock('../db/client', () => ({
+  supabase: {
+    from: (...args: unknown[]) => mockFrom(...args),
+    rpc: (...args: unknown[]) => mockRpc(...args),
+    auth: {
+      getUser: (...args: unknown[]) => mockGetUser(...args),
+      signOut: (...args: unknown[]) => mockSignOut(...args),
+      updateUser: (...args: unknown[]) => mockUpdateUser(...args),
+    },
+  },
+}));
+
+// Mock retry as passthrough (retry logic tested separately in retry.test.ts)
+vi.mock('../lib/retry.js', () => ({
+  retry: (fn: () => unknown) => fn(),
+}));
+
+// Mock date-engine helpers
+vi.mock('@/shared/lib/date-engine', () => ({
+  toIsoDate: (v: unknown) => (v ? String(v) : null),
+  nowUtcIso: () => '2026-03-25T00:00:00.000Z',
+  calculateMinMaxDates: vi.fn().mockReturnValue({ start_date: '2026-01-01', due_date: '2026-06-01' }),
+}));
+
+// Import after mocks
+import { planter, PlanterError } from './planterClient';
+import { calculateMinMaxDates } from '@/shared/lib/date-engine';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// 4a-1: Base CRUD via Person entity (simplest — `people` table)
+// ---------------------------------------------------------------------------
+describe('Base EntityClient CRUD (Person)', () => {
+  it('list() calls supabase.from("people").select("*")', async () => {
+    const chain = createChain({ data: [{ id: 'p1' }], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    const result = await planter.entities.Person.list();
+
+    expect(mockFrom).toHaveBeenCalledWith('people');
+    expect(chain.select).toHaveBeenCalledWith('*');
+    expect(result).toEqual([{ id: 'p1' }]);
+  });
+
+  it('get(id) chains .eq("id", id).maybeSingle()', async () => {
+    const chain = createChain({ data: { id: 'p1', name: 'Test' }, error: null });
+    mockFrom.mockReturnValue(chain);
+
+    const result = await planter.entities.Person.get('p1');
+
+    expect(chain.eq).toHaveBeenCalledWith('id', 'p1');
+    expect(chain.maybeSingle).toHaveBeenCalled();
+    expect(result).toEqual({ id: 'p1', name: 'Test' });
+  });
+
+  it('create(payload) chains .insert(payload).select("*")', async () => {
+    const payload = { name: 'New Person' };
+    const chain = createChain({ data: [{ id: 'p2', ...payload }], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.Person.create(payload as any);
+
+    expect(chain.insert).toHaveBeenCalledWith(payload);
+    expect(chain.select).toHaveBeenCalledWith('*');
+  });
+
+  it('update(id, payload) chains .update(payload).eq("id", id).select("*")', async () => {
+    const payload = { name: 'Updated' };
+    const chain = createChain({ data: [{ id: 'p1', ...payload }], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.Person.update('p1', payload as any);
+
+    expect(chain.update).toHaveBeenCalledWith(payload);
+    expect(chain.eq).toHaveBeenCalledWith('id', 'p1');
+  });
+
+  it('delete(id) chains .delete().eq("id", id)', async () => {
+    const chain = createChain({ data: null, error: null });
+    mockFrom.mockReturnValue(chain);
+
+    const result = await planter.entities.Person.delete('p1');
+
+    expect(chain.delete).toHaveBeenCalled();
+    expect(chain.eq).toHaveBeenCalledWith('id', 'p1');
+    expect(result).toBe(true);
+  });
+
+  it('filter() chains .eq() for values and .is() for null', async () => {
+    const chain = createChain({ data: [{ id: 'p1' }], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.Person.filter({ project_id: 'proj-1', status: null } as any);
+
+    expect(chain.eq).toHaveBeenCalledWith('project_id', 'proj-1');
+    expect(chain.is).toHaveBeenCalledWith('status', null);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4a-2: Project entity overrides
+// ---------------------------------------------------------------------------
+describe('Project entity', () => {
+  it('create() inserts into tasks then calls rpc("initialize_default_project")', async () => {
+    const project = { id: 'proj-1', title: 'My Project' };
+    const insertChain = createChain({ data: [project], error: null });
+    mockFrom.mockReturnValue(insertChain);
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    mockRpc.mockResolvedValue({ data: null, error: null });
+
+    const result = await planter.entities.Project.create({ title: 'My Project', start_date: '2026-01-01' });
+
+    expect(mockFrom).toHaveBeenCalledWith('tasks');
+    expect(insertChain.insert).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'My Project',
+      origin: 'instance',
+      creator: 'user-1',
+    }));
+    expect(mockRpc).toHaveBeenCalledWith('initialize_default_project', {
+      p_project_id: 'proj-1',
+      p_creator_id: 'user-1',
+    });
+    expect(result).toEqual(project);
+  });
+
+  it('create() deletes project on RPC failure', async () => {
+    const project = { id: 'proj-fail', title: 'Fail' };
+    const insertChain = createChain({ data: [project], error: null });
+    const deleteChain = createChain({ data: null, error: null });
+    mockFrom
+      .mockReturnValueOnce(insertChain) // insert
+      .mockReturnValueOnce(deleteChain); // delete cleanup
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    mockRpc.mockResolvedValue({ data: null, error: new Error('RPC failed') });
+
+    await expect(
+      planter.entities.Project.create({ title: 'Fail' }),
+    ).rejects.toThrow('Project initialization failed');
+
+    // Should have attempted cleanup deletion
+    expect(mockFrom).toHaveBeenCalledTimes(2);
+  });
+
+  it('listByCreator() adds pagination and project filters', async () => {
+    const chain = createChain({ data: [makeTask()], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.Project.listByCreator('user-1', 2, 10);
+
+    expect(chain.eq).toHaveBeenCalledWith('creator', 'user-1');
+    expect(chain.is).toHaveBeenCalledWith('parent_task_id', null);
+    expect(chain.eq).toHaveBeenCalledWith('origin', 'instance');
+    expect(chain.range).toHaveBeenCalledWith(10, 19); // page 2, pageSize 10
+  });
+
+  it('listJoined() uses inner join on project_members', async () => {
+    const chain = createChain({ data: [], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.Project.listJoined('user-1');
+
+    expect(chain.select).toHaveBeenCalledWith('*, project_members!inner(*)');
+    expect(chain.eq).toHaveBeenCalledWith('project_members.user_id', 'user-1');
+    expect(chain.neq).toHaveBeenCalledWith('creator', 'user-1');
+  });
+
+  it('getWithStats() computes progress from children', async () => {
+    const project = makeTask({ id: 'proj-1' });
+    const children = [
+      { id: 't1', root_id: 'proj-1', is_complete: true },
+      { id: 't2', root_id: 'proj-1', is_complete: false },
+      { id: 't3', root_id: 'proj-1', is_complete: true },
+    ];
+
+    // First call: get project, second call: get children
+    mockFrom
+      .mockReturnValueOnce(createChain({ data: project, error: null }))
+      .mockReturnValueOnce(createChain({ data: children, error: null }));
+
+    const result = await planter.entities.Project.getWithStats('proj-1');
+
+    expect(result.data.stats.totalTasks).toBe(3);
+    expect(result.data.stats.completedTasks).toBe(2);
+    expect(result.data.stats.progress).toBe(67); // Math.round(2/3 * 100)
+  });
+
+  it('addMember() inserts into project_members', async () => {
+    const member = { project_id: 'proj-1', user_id: 'user-2', role: 'editor' };
+    const chain = createChain({ data: [member], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.Project.addMember('proj-1', 'user-2', 'editor');
+
+    expect(mockFrom).toHaveBeenCalledWith('project_members');
+    expect(chain.insert).toHaveBeenCalledWith(member);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4a-3: Task entity custom methods
+// ---------------------------------------------------------------------------
+describe('Task entity', () => {
+  it('clone() calls rpc("clone_project_template") with params', async () => {
+    const cloned = makeTask({ id: 'cloned-1' });
+    mockRpc.mockResolvedValue({ data: cloned, error: null });
+
+    const result = await planter.entities.Task.clone('tmpl-1', null, 'instance', 'user-1');
+
+    // clone calls planter.rpc which calls supabase.rpc
+    expect(mockRpc).toHaveBeenCalledWith('clone_project_template', expect.objectContaining({
+      p_template_id: 'tmpl-1',
+      p_new_parent_id: null,
+      p_new_origin: 'instance',
+      p_user_id: 'user-1',
+    }));
+    expect(result.data).toEqual(cloned);
+  });
+
+  it('clone() passes optional overrides', async () => {
+    mockRpc.mockResolvedValue({ data: makeTask(), error: null });
+
+    await planter.entities.Task.clone('tmpl-1', null, 'instance', 'user-1', {
+      title: 'Custom Title',
+      start_date: '2026-06-01',
+    });
+
+    expect(mockRpc).toHaveBeenCalledWith('clone_project_template', expect.objectContaining({
+      p_title: 'Custom Title',
+      p_start_date: '2026-06-01',
+    }));
+  });
+
+  it('updateStatus() recursively updates children when completed', async () => {
+    // Mock Task.update (base CRUD) and Task.filter
+    const parent = makeTask({ id: 'parent' });
+    const child1 = makeTask({ id: 'child-1', parent_task_id: 'parent' });
+    const child2 = makeTask({ id: 'child-2', parent_task_id: 'parent' });
+
+    // Track all update calls via from()
+    const updateChains: ReturnType<typeof createChain>[] = [];
+    const filterChains: ReturnType<typeof createChain>[] = [];
+
+    mockFrom.mockImplementation((table: string) => {
+      // Each call to from() could be update or filter
+      // updateStatus calls Task.update then Task.filter then recursive Task.update calls
+      const chain = createChain({ data: [parent], error: null });
+
+      // For filter calls (select without update), return children first, then empty
+      if (filterChains.length === 0) {
+        const filterChain = createChain({ data: [child1, child2], error: null });
+        filterChains.push(filterChain);
+        return filterChain;
+      }
+      // For recursive child filter calls, return empty (no grandchildren)
+      const c = createChain({ data: [], error: null });
+      updateChains.push(c);
+      return c;
+    });
+
+    await planter.entities.Task.updateStatus('parent', 'completed');
+
+    // Should have called from('tasks') multiple times (parent update + filter + child updates)
+    expect(mockFrom).toHaveBeenCalled();
+  });
+
+  it('updateParentDates() calls calculateMinMaxDates then updates parent', async () => {
+    const children = [
+      makeTask({ id: 'c1', parent_task_id: 'parent-1', start_date: '2026-01-01', due_date: '2026-03-01' }),
+    ];
+    const parent = makeTask({ id: 'parent-1', parent_task_id: null });
+
+    // First from() = filter children, second from() = update parent
+    mockFrom
+      .mockReturnValueOnce(createChain({ data: children, error: null }))
+      .mockReturnValueOnce(createChain({ data: [parent], error: null }));
+
+    await planter.entities.Task.updateParentDates('parent-1');
+
+    expect(calculateMinMaxDates).toHaveBeenCalledWith(children);
+    // Should have called update on parent with calculated dates
+    expect(mockFrom).toHaveBeenCalledTimes(2);
+  });
+
+  it('fetchChildren() BFS traverses from taskId', async () => {
+    const root = makeTask({ id: 'root', root_id: 'proj-1' });
+    const child = makeTask({ id: 'child', root_id: 'proj-1', parent_task_id: 'root' });
+    const grandchild = makeTask({ id: 'grandchild', root_id: 'proj-1', parent_task_id: 'child' });
+
+    // First call: Task.get(taskId) — returns root
+    // Second call: Task.filter({root_id}) — returns all tasks
+    mockFrom
+      .mockReturnValueOnce(createChain({ data: root, error: null }))  // get
+      .mockReturnValueOnce(createChain({ data: [root, child, grandchild], error: null })); // filter
+
+    const result = await planter.entities.Task.fetchChildren('root');
+
+    expect(result.data).toHaveLength(3); // root + child + grandchild
+    expect(result.data?.map(t => t.id)).toContain('grandchild');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4a-4: TaskWithResources
+// ---------------------------------------------------------------------------
+describe('TaskWithResources', () => {
+  it('listTemplates() filters origin=template with pagination', async () => {
+    const chain = createChain({ data: [makeTask()], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.TaskWithResources.listTemplates({ from: 0, limit: 10 });
+
+    expect(mockFrom).toHaveBeenCalledWith('tasks_with_primary_resource');
+    expect(chain.eq).toHaveBeenCalledWith('origin', 'template');
+    expect(chain.is).toHaveBeenCalledWith('parent_task_id', null);
+    expect(chain.range).toHaveBeenCalledWith(0, 9);
+  });
+
+  it('searchTemplates() builds .or() with ilike pattern', async () => {
+    const chain = createChain({ data: [], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.TaskWithResources.searchTemplates({ query: 'test' });
+
+    expect(chain.or).toHaveBeenCalledWith('title.ilike.%test%,description.ilike.%test%');
+  });
+
+  it('searchTemplates() returns empty for blank query', async () => {
+    const result = await planter.entities.TaskWithResources.searchTemplates({ query: '   ' });
+
+    expect(result.data).toEqual([]);
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4a-5: Auth methods
+// ---------------------------------------------------------------------------
+describe('Auth', () => {
+  it('me() delegates to supabase.auth.getUser()', async () => {
+    const user = { id: 'user-1', email: 'test@example.com' };
+    mockGetUser.mockResolvedValue({ data: { user }, error: null });
+
+    const result = await planter.auth.me();
+
+    expect(mockGetUser).toHaveBeenCalled();
+    expect(result).toEqual(user);
+  });
+
+  it('updateProfile() calls supabase.auth.updateUser({ data })', async () => {
+    const attrs = { full_name: 'Updated Name' };
+    mockUpdateUser.mockResolvedValue({ data: { user: { id: 'user-1', ...attrs } }, error: null });
+
+    await planter.auth.updateProfile(attrs as any);
+
+    expect(mockUpdateUser).toHaveBeenCalledWith({ data: attrs });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4a-6: RPC wrapper + error handling
+// ---------------------------------------------------------------------------
+describe('RPC wrapper', () => {
+  it('delegates to supabase.rpc() with function name + params', async () => {
+    mockRpc.mockResolvedValue({ data: { result: true }, error: null });
+
+    const result = await planter.rpc('my_function', { arg1: 'val1' });
+
+    expect(mockRpc).toHaveBeenCalledWith('my_function', { arg1: 'val1' });
+    expect(result.data).toEqual({ result: true });
+  });
+
+  it('wraps supabase error as PlanterError', async () => {
+    mockRpc.mockResolvedValue({
+      data: null,
+      error: { message: 'RPC failed', code: '500' },
+    });
+
+    await expect(planter.rpc('bad_fn', {})).rejects.toThrow(PlanterError);
+    await expect(planter.rpc('bad_fn', {})).rejects.toThrow('RPC failed');
+  });
+});
