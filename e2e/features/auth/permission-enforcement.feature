@@ -38,3 +38,18 @@ Feature: Permission Enforcement
     Then the settings button is visible
     And the invite button is visible
     And the export button is visible in the project header
+
+  Scenario: Coach can view all tasks but cannot edit non-coaching tasks
+    Given the user is logged in as a coach
+    And the user is on a project page with tasks
+    When the user clicks on a task
+    Then the task details panel is visible
+    But the edit button is hidden for non-coaching tasks
+
+  Scenario: Limited user can edit only assigned tasks
+    Given the user is logged in as a limited user
+    And the user is on a project page with tasks
+    When the user clicks on an assigned task
+    Then the edit button is visible in task details
+    When the user clicks on an unassigned task
+    Then the edit button is not visible in task details

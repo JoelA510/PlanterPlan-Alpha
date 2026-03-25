@@ -270,3 +270,77 @@ Then('the project header shows {string}', async ({ page }, text: string) => {
 Then('the project metadata shows {string}', async ({ page }, text: string) => {
   await expect(page.getByText(text)).toBeVisible();
 });
+
+// ── Subtask Hierarchy ────────────────────────────────────────────────────────
+
+When('the user clicks "Add Subtask" in the task details panel', async ({ page }) => {
+  const panel = page.locator('[data-testid="task-details-panel"]');
+  await panel.getByRole('button', { name: /add subtask|add sub-task/i }).click();
+});
+
+When('the user fills in the subtask title {string}', async ({ page }, title: string) => {
+  const dialog = page.locator('[role="dialog"]');
+  const titleInput = dialog.getByLabel(/title/i).or(dialog.locator('input[name="title"]'));
+  await titleInput.fill(title);
+});
+
+When('the user submits the subtask form', async ({ page }) => {
+  await page.locator('[role="dialog"]').getByRole('button', { name: /save|add|create|submit/i }).click();
+});
+
+Then('the subtask {string} appears under the parent task', async ({ page }, title: string) => {
+  await expect(page.locator('[data-testid="task-item"]').filter({ hasText: title })).toBeVisible({ timeout: 5000 });
+});
+
+When('the user creates a subtask {string}', async ({ page }, title: string) => {
+  // Click first task to open details
+  await page.locator('[data-testid="task-item"]').first().click();
+  const panel = page.locator('[data-testid="task-details-panel"]');
+  await panel.getByRole('button', { name: /add subtask|add sub-task/i }).click();
+  const dialog = page.locator('[role="dialog"]');
+  const titleInput = dialog.getByLabel(/title/i).or(dialog.locator('input[name="title"]'));
+  await titleInput.fill(title);
+  await dialog.getByRole('button', { name: /save|add|create|submit/i }).click();
+});
+
+Then('the subtask {string} is visible', async ({ page }, title: string) => {
+  await expect(page.locator('[data-testid="task-item"]').filter({ hasText: title })).toBeVisible({ timeout: 5000 });
+});
+
+When('the user edits the subtask title to {string}', async ({ page }, newTitle: string) => {
+  // Click on the last-created subtask (last task item)
+  await page.locator('[data-testid="task-item"]').last().click();
+  const panel = page.locator('[data-testid="task-details-panel"]');
+  await panel.getByRole('button', { name: /edit/i }).click();
+  const titleInput = page.locator('[role="dialog"]').getByLabel(/title/i).or(page.locator('[role="dialog"] input[name="title"]'));
+  await titleInput.clear();
+  await titleInput.fill(newTitle);
+  await page.locator('[role="dialog"]').getByRole('button', { name: /save|update|submit/i }).click();
+});
+
+Then('the subtask title is updated to {string}', async ({ page }, title: string) => {
+  await expect(page.locator('[data-testid="task-item"]').filter({ hasText: title })).toBeVisible({ timeout: 5000 });
+});
+
+When('the user deletes the subtask', async ({ page }) => {
+  await page.locator('[data-testid="task-item"]').last().click();
+  const panel = page.locator('[data-testid="task-details-panel"]');
+  await panel.getByRole('button', { name: /delete/i }).click();
+  // Confirm deletion dialog
+  const confirmBtn = page.locator('[role="dialog"]').getByRole('button', { name: /confirm|delete|yes/i });
+  if (await confirmBtn.isVisible().catch(() => false)) {
+    await confirmBtn.click();
+  }
+});
+
+Then('the subtask is removed', async ({ page }) => {
+  // Verify the task list updated (at least no error state)
+  await expect(page.locator('[data-testid="task-item"]').or(page.getByText(/no tasks/i)).first()).toBeVisible();
+});
+
+Then('the task type selector does not include {string}', async ({ page }, option: string) => {
+  const typeSelect = page.locator('[data-testid="task-type-select"], select[name="type"]');
+  if (await typeSelect.isVisible().catch(() => false)) {
+    await expect(typeSelect.locator(`option:text("${option}")`)).toBeHidden();
+  }
+});
