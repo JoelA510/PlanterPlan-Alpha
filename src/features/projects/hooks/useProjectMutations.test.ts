@@ -249,3 +249,48 @@ describe('useUpdateProjectStatus', () => {
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['project', 'proj-1'] }));
   });
 });
+
+// ---------------------------------------------------------------------------
+// Phase 5c: Edge cases
+// ---------------------------------------------------------------------------
+describe('useCreateProject — template clone failure', () => {
+  it('handles template clone failure gracefully', async () => {
+    mockTaskClone.mockResolvedValueOnce({ data: null, error: new Error('Clone failed') });
+    const { Wrapper } = createWrapper();
+
+    const { result } = renderHook(() => useCreateProject(), { wrapper: Wrapper });
+
+    await act(async () => {
+      try {
+        await result.current.mutateAsync({ title: 'Fail', templateId: 'tmpl-bad' });
+      } catch {
+        // expected
+      }
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+  });
+});
+
+describe('useDeleteProject — error handling', () => {
+  it('surfaces deletion error', async () => {
+    mockProjectDelete.mockRejectedValueOnce(new Error('delete failed'));
+    const { Wrapper } = createWrapper();
+
+    const { result } = renderHook(() => useDeleteProject(), { wrapper: Wrapper });
+
+    await act(async () => {
+      try {
+        await result.current.mutateAsync('proj-fail');
+      } catch {
+        // expected
+      }
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+  });
+});

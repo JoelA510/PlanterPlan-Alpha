@@ -131,3 +131,17 @@ describe('determineNewStatus', () => {
     expect(determineNewStatus('unknown-id', projects)).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Phase 5d: COLUMNS constant structure
+// ---------------------------------------------------------------------------
+describe('COLUMNS constant', () => {
+  it('has entries for all PROJECT_STATUS values', () => {
+    const statusValues = Object.values(PROJECT_STATUS);
+    for (const status of statusValues) {
+      const col = COLUMNS.find((c: any) => c.id === status);
+      expect(col, `Missing column for status: ${status}`).toBeDefined();
+      expect(col.title).toBeTruthy();
+    }
+  });
+});

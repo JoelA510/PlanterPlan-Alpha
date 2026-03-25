@@ -109,4 +109,20 @@ describe('useProjectPipelineLogic', () => {
 
     expect(result.current.activeProject).toBeNull();
   });
+
+  it('handleDragEnd is no-op when over is null (drag cancelled)', () => {
+    const onStatusChange = vi.fn();
+    const { result } = renderHook(() =>
+      useProjectPipelineLogic(projects, tasks, members, onStatusChange),
+    );
+
+    act(() => {
+      result.current.handleDragEnd({
+        active: { id: 'p1' },
+        over: null,
+      } as unknown as DragEndEvent);
+    });
+
+    expect(onStatusChange).not.toHaveBeenCalled();
+  });
 });

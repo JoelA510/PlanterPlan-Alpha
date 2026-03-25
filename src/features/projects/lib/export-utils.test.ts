@@ -112,4 +112,20 @@ describe('exportProjectToCSV', () => {
     exportProjectToCSV(project, null);
     expect(clickSpy).not.toHaveBeenCalled();
   });
+
+  it('handles fields containing commas by wrapping in quotes', () => {
+    const tasksWithCommas: ExportableTask[] = [{
+      id: 'c1',
+      title: 'Task, with commas',
+      description: 'A description, with, many commas',
+      parent_task_id: 'p',
+      root_id: 'r',
+      status: 'todo',
+      start_date: null,
+      due_date: null,
+    }];
+    exportProjectToCSV(project, tasksWithCommas);
+    // Fields with commas should be quoted in CSV
+    expect(lastCsvContent).toContain('"Task, with commas"');
+  });
 });

@@ -231,3 +231,20 @@ describe('mergeChildrenIntoTree', () => {
     expect(result[0].id).toBe('a');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Phase 5d: Edge case — null/undefined position fallback
+// ---------------------------------------------------------------------------
+describe('buildTree — position edge cases', () => {
+  it('handles tasks with null/undefined position via ?? 0 fallback', () => {
+    const tasks: TaskRow[] = [
+      makeTask({ id: 'b', parent_task_id: null, position: null as unknown as number }),
+      makeTask({ id: 'a', parent_task_id: null, position: undefined as unknown as number }),
+      makeTask({ id: 'c', parent_task_id: null, position: 10 }),
+    ];
+    const result = buildTree(tasks);
+    // Tasks with null/undefined position treated as 0, sorted before position=10
+    expect(result).toHaveLength(3);
+    expect(result[result.length - 1].id).toBe('c');
+  });
+});
