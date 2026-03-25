@@ -68,3 +68,44 @@ Then('the edit button is visible in task details', async ({ page }) => {
 Then('the status can be changed', async ({ page }) => {
   await expect(page.locator('[data-testid="status-select"]').first()).toBeVisible();
 });
+
+// ── Coach & Limited Role Permissions ─────────────────────────────────────────
+
+Then('the edit button is hidden for non-coaching tasks', async ({ page }) => {
+  const panel = page.locator('[data-testid="task-details-panel"]');
+  await expect(panel.getByRole('button', { name: /edit/i })).toBeHidden();
+});
+
+When('the user clicks on an assigned task', async ({ page }) => {
+  // Find a task that is assigned to the current user (has assignee indicator)
+  const assignedTask = page.locator('[data-testid="task-item"]').filter({ has: page.locator('[data-testid="assignee-avatar"], [data-testid="assigned-badge"]') });
+  if (await assignedTask.count() > 0) {
+    await assignedTask.first().click();
+  } else {
+    // Fallback: click first task
+    await page.locator('[data-testid="task-item"]').first().click();
+  }
+});
+
+When('the user clicks on an unassigned task', async ({ page }) => {
+  // Find a task without assignee indicator
+  const allTasks = page.locator('[data-testid="task-item"]');
+  const count = await allTasks.count();
+  for (let i = 0; i < count; i++) {
+    const task = allTasks.nth(i);
+    const hasAssignee = await task.locator('[data-testid="assignee-avatar"], [data-testid="assigned-badge"]').count();
+    if (hasAssignee === 0) {
+      await task.click();
+      return;
+    }
+  }
+  // If all tasks are assigned, click the last one as fallback
+  if (count > 0) {
+    await allTasks.last().click();
+  }
+});
+
+Then('the edit button is not visible in task details', async ({ page }) => {
+  const panel = page.locator('[data-testid="task-details-panel"]');
+  await expect(panel.getByRole('button', { name: /edit/i })).toBeHidden();
+});
