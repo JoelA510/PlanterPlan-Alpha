@@ -9,9 +9,9 @@ export const TEST_USER = {
  * These must be seeded in global-setup or via seed-e2e.js.
  */
 export const ROLE_USERS = {
-  owner: { email: 'owner@example.com', password: 'password123' },
-  editor: { email: 'editor@example.com', password: 'password123' },
-  viewer: { email: 'viewer@example.com', password: 'password123' },
+  owner: { email: 'planterplan.test@gmail.com', password: 'roots99' },
+  editor: { email: 'tim.planterplan@gmail.com', password: 'roots99(E' },
+  viewer: { email: 'planterplan.role_tester@mail.com', password: 'roots99_role' },
   limited: { email: 'limited@example.com', password: 'password123' },
   coach: { email: 'coach@example.com', password: 'password123' },
 } as const;
