@@ -19,6 +19,22 @@ export const CHART_COLORS: Record<string, string> = {
  [TASK_STATUS.COMPLETED]: 'var(--color-emerald-500)',
 };
 
+export const PHASE_STATUS_COLORS: Record<string, { bg: string; light: string; text: string; border: string }> = {
+  not_started: { bg: 'bg-slate-400', light: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' },
+  in_progress: { bg: 'bg-amber-500', light: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200' },
+  completed: { bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' },
+  overdue: { bg: 'bg-rose-500', light: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200' },
+};
+
+export const TASK_STATUS_BORDER: Record<string, string> = {
+  todo: 'border-l-slate-300',
+  not_started: 'border-l-slate-300',
+  in_progress: 'border-l-amber-500',
+  blocked: 'border-l-rose-500',
+  completed: 'border-l-emerald-500',
+  overdue: 'border-l-rose-500',
+};
+
 export const PROJECT_STATUS_COLORS: Record<string, StatusColorConfig> = {
  [PROJECT_STATUS.PLANNING]: {
  bg: 'bg-white',

@@ -2,6 +2,7 @@ import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/shared/lib/utils';
+import { TASK_STATUS_BORDER } from '@/shared/constants/colors';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from '@/shared/ui/ErrorFallback';
 import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
@@ -110,7 +111,7 @@ const TaskItem = ({
  ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-100'
  : !isOver && 'border-border hover:border-brand-300',
  isLocked && 'opacity-70 bg-muted/30',
- level === 0 && 'border-l-4 border-l-brand-600'
+ level === 0 && `border-l-4 ${(task.status && TASK_STATUS_BORDER[task.status]) || 'border-l-slate-300'}`
  )}
  style={{ marginLeft: `${indentWidth}px` }}
  onClick={!isLocked ? handleCardClick : undefined}

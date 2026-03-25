@@ -5,46 +5,20 @@ import { ChevronRight, CheckCircle2, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/shared/constants';
+import { PHASE_STATUS_COLORS } from '@/shared/constants/colors';
 import type { TaskRow } from '@/shared/db/app.types';
 
-const phaseColors: Record<number, { bg: string; light: string; text: string; border: string }> = {
- 1: {
- bg: 'bg-brand-500',
- light: 'bg-brand-50',
- text: 'text-brand-600',
- border: 'border-brand-200'
- },
- 2: {
- bg: 'bg-purple-500',
- light: 'bg-purple-50',
- text: 'text-purple-600',
- border: 'border-purple-200'
- },
- 3: {
- bg: 'bg-indigo-500',
- light: 'bg-indigo-50',
- text: 'text-indigo-600',
- border: 'border-indigo-200'
- },
- 4: {
- bg: 'bg-emerald-500',
- light: 'bg-emerald-50',
- text: 'text-emerald-600',
- border: 'border-emerald-200'
- },
- 5: {
- bg: 'bg-amber-500',
- light: 'bg-amber-50',
- text: 'text-amber-600',
- border: 'border-amber-200'
- },
- 6: {
- bg: 'bg-rose-500',
- light: 'bg-rose-50',
- text: 'text-rose-600',
- border: 'border-rose-200'
- },
-};
+function getPhaseStatus(progress: number, totalTasks: number, phaseTasks: TaskRow[]): string {
+ if (totalTasks === 0) return 'not_started';
+ if (progress === 100) return 'completed';
+ const now = new Date();
+ const hasOverdue = phaseTasks.some(
+  (t) => t.due_date && new Date(t.due_date) < now && t.status !== TASK_STATUS.COMPLETED
+ );
+ if (hasOverdue) return 'overdue';
+ if (progress > 0) return 'in_progress';
+ return 'not_started';
+}
 
 interface PhaseCardProps {
  phase: TaskRow;
@@ -56,7 +30,6 @@ interface PhaseCardProps {
 
 export default function PhaseCard({ phase, tasks = [], milestones = [], isActive, onClick }: PhaseCardProps) {
  const order = phase.position || 1;
- const colors = phaseColors[order] || phaseColors[1];
  const isLocked = phase.is_locked;
 
  // Filter tasks that belong to this phase (via milestones)
@@ -68,6 +41,8 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
  const totalTasks = phaseTasks.length;
  const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
  const isComplete = progress === 100 && totalTasks > 0;
+ const phaseStatus = getPhaseStatus(progress, totalTasks, phaseTasks);
+ const colors = PHASE_STATUS_COLORS[phaseStatus] || PHASE_STATUS_COLORS.not_started;
 
  return (
  <motion.div whileHover={{ scale: isLocked ? 1 : 1.02 }} whileTap={{ scale: isLocked ? 1 : 0.98 }} className="h-full">
@@ -75,14 +50,14 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
  onClick={isLocked ? undefined : onClick}
  data-testid={`phase-card-${phase.id}`}
  className={cn(
- 'p-5 transition-all duration-300 border-2 bg-card text-card-foreground h-full flex flex-col',
+ 'p-5 transition-all duration-300 border-2 h-full flex flex-col',
  isLocked
  ? 'opacity-75 cursor-not-allowed border-muted bg-muted/30 text-muted-foreground'
  : cn(
  'cursor-pointer',
  isActive
- ? `${colors.border} ${colors.light} shadow-lg`
- : 'border-border hover:border-brand-300 hover:shadow-lg'
+ ? `${colors.border} bg-white shadow-lg`
+ : 'border-slate-200 bg-slate-50/50 text-muted-foreground hover:bg-white hover:border-slate-300 hover:shadow-md'
  )
  )}
  >
