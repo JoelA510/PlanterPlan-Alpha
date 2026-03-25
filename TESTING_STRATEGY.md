@@ -105,14 +105,11 @@ e2e/
 
 ### Role-Based Test Users
 
-| Role    | Email               | password    |
-| ------- | ------------------- | ----------- |
-| Primary | test@example.com    | password123 |
-| Owner   | owner@example.com   | password123 |
-| Editor  | editor@example.com  | password123 |
-| Viewer  | viewer@example.com  | password123 |
-| Limited | limited@example.com | password123 |
-| Coach   | coach@example.com   | password123 |
+| Role                              | Email                              | Password       | Notes                                          |
+| --------------------------------- | ---------------------------------- | -------------- | ---------------------------------------------- |
+| **Project Owner**                 | `planterplan.test@gmail.com`       | `roots99`      | Project: "Project to test invitation by email" |
+| **Project Full User** (Editor)    | `tim.planterplan@gmail.com`        | `roots99(E`    |                                                |
+| **Project Limited User** (Viewer) | `planterplan.role_tester@mail.com` | `roots99_role` |                                                |
 
 ### Available Test Scripts
 
