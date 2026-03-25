@@ -248,4 +248,23 @@ describe('useDeleteTask', () => {
       expect.objectContaining({ queryKey: ['task', 't1'] }),
     );
   });
+
+  it('uses ["tasks", "root"] cache key when root_id is null', async () => {
+    const existing = [makeTask({ id: 't1', root_id: null })];
+    mockDelete.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(true), 50)));
+
+    const { Wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(['tasks', 'root'], existing);
+
+    const { result } = renderHook(() => useDeleteTask(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ id: 't1', root_id: null as unknown as string });
+    });
+
+    await waitFor(() => {
+      const cached = queryClient.getQueryData<any[]>(['tasks', 'root']);
+      expect(cached).toHaveLength(0);
+    });
+  });
 });

@@ -106,6 +106,17 @@ describe('retry', () => {
     vi.useFakeTimers();
   });
 
+  it('fails immediately with retries=0', async () => {
+    vi.useRealTimers();
+    const err = new Error('fail');
+    err.name = 'AbortError';
+    const op = vi.fn().mockRejectedValue(err);
+
+    await expect(retry(op, { retries: 0 })).rejects.toThrow('fail');
+    expect(op).toHaveBeenCalledTimes(1);
+    vi.useFakeTimers();
+  });
+
   it('uses exponential backoff', async () => {
     const abortErr = new Error('aborted');
     abortErr.name = 'AbortError';

@@ -329,6 +329,12 @@ describe('calculateScheduleFromOffset', () => {
     );
     expect(result.start_date).toBe('2026-01-31');
   });
+
+  it('returns project start date when offset is 0', () => {
+    const result = calculateScheduleFromOffset(tasks, 'phase', 0);
+    expect(result.start_date).toBe('2026-01-01');
+    expect(result.due_date).toBe('2026-01-01');
+  });
 });
 
 // ---------------------------------------------------------------------------

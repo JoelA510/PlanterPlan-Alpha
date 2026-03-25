@@ -64,4 +64,9 @@ describe('getHighlightSegments', () => {
     const result = getHighlightSegments('hello', null);
     expect(result).toEqual([{ text: 'hello', isMatch: false }]);
   });
+
+  it('returns no highlights for whitespace-only query', () => {
+    const result = getHighlightSegments('hello world', '   ');
+    expect(result).toEqual([{ text: 'hello world', isMatch: false }]);
+  });
 });

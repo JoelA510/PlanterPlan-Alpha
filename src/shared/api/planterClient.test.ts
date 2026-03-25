@@ -410,3 +410,161 @@ describe('RPC wrapper', () => {
     await expect(planter.rpc('bad_fn', {})).rejects.toThrow('RPC failed');
   });
 });
+
+// ---------------------------------------------------------------------------
+// 5a: Untested methods (Category A)
+// ---------------------------------------------------------------------------
+describe('Untested methods (Category A)', () => {
+  it('auth.signOut() delegates to supabase.auth.signOut()', async () => {
+    mockSignOut.mockResolvedValue({ error: null });
+
+    await planter.auth.signOut();
+
+    expect(mockSignOut).toHaveBeenCalled();
+  });
+
+  it('Person.upsert() chains .upsert(payload, opts).select("*")', async () => {
+    const payload = { id: 'p1', name: 'Upserted' };
+    const chain = createChain({ data: [payload], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    const result = await planter.entities.Person.upsert(payload as any, { onConflict: 'id' });
+
+    expect(chain.upsert).toHaveBeenCalledWith(payload, { onConflict: 'id', ignoreDuplicates: undefined });
+    expect(chain.select).toHaveBeenCalledWith('*');
+    expect(result.data).toEqual([payload]);
+  });
+
+  it('Project.filter() adds project-specific filters before user filters', async () => {
+    const chain = createChain({ data: [], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.Project.filter({ status: 'launched' } as any);
+
+    expect(chain.is).toHaveBeenCalledWith('parent_task_id', null);
+    expect(chain.eq).toHaveBeenCalledWith('origin', 'instance');
+    expect(chain.eq).toHaveBeenCalledWith('status', 'launched');
+  });
+
+  it('TaskResource.setPrimary() calls Task.update with primary_resource_id', async () => {
+    const chain = createChain({ data: [makeTask()], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.TaskResource.setPrimary('task-1', 'res-1');
+
+    expect(mockFrom).toHaveBeenCalledWith('tasks');
+    expect(chain.update).toHaveBeenCalledWith(expect.objectContaining({ primary_resource_id: 'res-1' }));
+  });
+
+  it('Project.addMemberByEmail() calls rpc("add_project_member_by_email")', async () => {
+    mockRpc.mockResolvedValue({ data: { id: 'member-1' }, error: null });
+
+    const result = await planter.entities.Project.addMemberByEmail('proj-1', 'test@example.com', 'editor');
+
+    expect(mockRpc).toHaveBeenCalledWith('add_project_member_by_email', {
+      p_project_id: 'proj-1',
+      p_email: 'test@example.com',
+      p_role: 'editor',
+    });
+    expect(result.error).toBeNull();
+  });
+
+  it('listTemplates() applies resourceType and userId filters', async () => {
+    const chain = createChain({ data: [], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.TaskWithResources.listTemplates({
+      from: 0, limit: 10, resourceType: 'video', userId: 'user-1',
+    });
+
+    expect(chain.eq).toHaveBeenCalledWith('creator', 'user-1');
+    expect(chain.eq).toHaveBeenCalledWith('resource_type', 'video');
+  });
+
+  it('searchTemplates() truncates query > 100 chars', async () => {
+    const chain = createChain({ data: [], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    const longQuery = 'a'.repeat(150);
+    await planter.entities.TaskWithResources.searchTemplates({ query: longQuery });
+
+    // Pattern should use truncated (100 char) version
+    const truncated = 'a'.repeat(100);
+    expect(chain.or).toHaveBeenCalledWith(`title.ilike.%${truncated}%,description.ilike.%${truncated}%`);
+  });
+
+  it('searchTemplates() applies resourceType filter when not "all"', async () => {
+    const chain = createChain({ data: [], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await planter.entities.TaskWithResources.searchTemplates({ query: 'test', resourceType: 'document' });
+
+    expect(chain.eq).toHaveBeenCalledWith('resource_type', 'document');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5b: Error paths (Category B)
+// ---------------------------------------------------------------------------
+describe('Error paths (Category B)', () => {
+  it('base CRUD list() throws PlanterError on Supabase error', async () => {
+    const chain = createChain({ data: null, error: { message: 'DB error', code: '500' } });
+    mockFrom.mockReturnValue(chain);
+
+    await expect(planter.entities.Person.list()).rejects.toThrow(PlanterError);
+    await expect(planter.entities.Person.list()).rejects.toThrow('DB error');
+  });
+
+  it('Project.create() skips getUser() when creator is provided', async () => {
+    const project = { id: 'proj-2', title: 'With Creator' };
+    const chain = createChain({ data: [project], error: null });
+    mockFrom.mockReturnValue(chain);
+    mockRpc.mockResolvedValue({ data: null, error: null });
+
+    await planter.entities.Project.create({ title: 'With Creator', creator: 'explicit-user' });
+
+    expect(mockGetUser).not.toHaveBeenCalled();
+    expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({ creator: 'explicit-user' }));
+  });
+
+  it('Project.listJoined() returns [] on any error (blanket catch)', async () => {
+    // Make the chain throw when awaited
+    const chain = createChain({ data: null, error: { message: 'join failed', code: '500' } });
+    mockFrom.mockReturnValue(chain);
+
+    const result = await planter.entities.Project.listJoined('user-1');
+
+    expect(result).toEqual([]);
+  });
+
+  it('Task.fetchChildren() returns { data: null, error } on failure', async () => {
+    // First call: Task.get fails
+    const chain = createChain({ data: null, error: { message: 'not found', code: '404' } });
+    mockFrom.mockReturnValue(chain);
+
+    const result = await planter.entities.Task.fetchChildren('missing-task');
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBeTruthy();
+  });
+
+  it('Task.updateStatus() does NOT recurse for non-completed status', async () => {
+    const task = makeTask({ id: 't1' });
+    const updateChain = createChain({ data: [task], error: null });
+    mockFrom.mockReturnValue(updateChain);
+
+    await planter.entities.Task.updateStatus('t1', 'in_progress');
+
+    // Should only call from('tasks') once for the update, NOT for filter (no recursion)
+    // The first call is the update; if it recursed, there'd be a filter call too
+    const fromCalls = mockFrom.mock.calls;
+    // All calls should be 'tasks' for the single update
+    expect(fromCalls.length).toBe(1);
+  });
+
+  it('Task.updateParentDates() returns immediately for null parentId', async () => {
+    await planter.entities.Task.updateParentDates(null);
+
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
