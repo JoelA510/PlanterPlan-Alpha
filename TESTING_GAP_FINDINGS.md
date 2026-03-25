@@ -1,52 +1,58 @@
-# TESTING_GAP_FINDINGS
+# TESTING_GAP_FINDINGS (Thorough Pass)
 
-This document logs the discrepancies between the requirements listed in
-`Notion Exports/User Testing Plan` and the current E2E test coverage in
-`e2e/features`.
+This document provides a granular log of discrepancies between the comprehensive
+`Notion Exports` requirements and the current E2E test suite in `e2e/features/`.
 
-## 1. Roles & Permissions Gaps
+## 1. Hierarchy & Structural Invariants
 
-| Requirement (Notion)                     | E2E Coverage Status | Notes                                                                                                                                |
-| ---------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Coach Role**                           | 🔴 Missing          | Notion: "can view any task but can only edit coaching tasks". No E2E tests found for this role.                                      |
-| **Limited User (Viewer) Edit Exception** | 🟡 Partial          | Notion: "can view any task but can only edit their own assigned tasks". E2E tests verify view-only but not the "edit own" exception. |
-| **Invite Project Users (Full Flow)**     | 🟢 Covered          | Covered in `project/invite-member.feature` and `team/team-management.feature`.                                                       |
+| Requirement (Notion)     | E2E Status | Notes                                                                                                                  |
+| ------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **5-Level Hierarchy**    | 🔴 Missing | Notion: `Project -> Phase -> Milestone -> Task -> Subtask`. E2E lacks explicit tests for **Subtask** nesting and CRUD. |
+| **Hierarchy Invariants** | 🔴 Missing | No negative tests for logic preventing Phase $\rightarrow$ Milestone transformations, etc.                             |
+| **Default View State**   | 🔴 Missing | Notion: "every milestone is visible and expanded" by default on project load.                                          |
 
-## 2. Task Field Verification Gaps
+## 2. Functional Logic & Automation
 
-| Requirement (Notion)     | E2E Coverage Status | Notes                                                                                  |
-| ------------------------ | ------------------- | -------------------------------------------------------------------------------------- |
-| **Purpose**              | 🔴 Missing          | Field mentioned in Notion but not explicitly verified in `task-details-panel.feature`. |
-| **Actions**              | 🔴 Missing          | Field mentioned in Notion but not explicitly verified.                                 |
-| **Notes**                | 🔴 Missing          | Field mentioned in Notion but not explicitly verified.                                 |
-| **Additional Resources** | 🟢 Covered          | Covered in `project/task-resources.feature`.                                           |
+| Requirement (Notion)   | E2E Status | Notes                                                                                         |
+| ---------------------- | ---------- | --------------------------------------------------------------------------------------------- |
+| **Auto-Mark Children** | 🔴 Missing | "Auto-mark all children complete when parent marked complete".                                |
+| **Date Rollups**       | 🔴 Missing | "Phase/milestone due dates based on child task due dates".                                    |
+| **Auto-Date Shifting** | 🟡 Partial | E2E has some recalculation warnings, but lacks deep verification of automated shifts via DND. |
+| **Dependency Prompts** | 🔴 Missing | Confirmation prompt when completing tasks with outstanding dependents.                        |
 
-## 3. Hierarchy & Subtask Gaps
+## 3. Roles & Account Management
 
-| Requirement (Notion)                     | E2E Coverage Status | Notes                                                                                                                   |
-| ---------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Subtasks (Task-to-Subtask)**           | 🔴 Missing          | E2E `task-dnd-reorder.feature` covers Milestone-level DND but doesn't explicitly test nesting a task into a subtask.    |
-| **Hierarchy Invariants**                 | 🔴 Missing          | Notion: "If an item is a phase, it cannot be changed to a milestone...". No tests found for these negative constraints. |
-| **Project/Template Task Hierarchy View** | 🟢 Covered          | Covered in `project/milestone-tasks.feature` and `project/project-detail.feature`.                                      |
+| Requirement (Notion)            | E2E Status | Notes                                                                 |
+| ------------------------------- | ---------- | --------------------------------------------------------------------- |
+| **Coach Role Permissions**      | 🔴 Missing | "View any, edit only coaching-labeled tasks".                         |
+| **Limited User Edit Exception** | 🔴 Missing | Verification that Limited Users can edit _only_ their assigned tasks. |
+| **Signup Confirmation**         | 🔴 Missing | Verification of the email link confirmation flow.                     |
+| **Password Recovery**           | 🔴 Missing | "Forgot password" flow is entirely untested in E2E.                   |
 
-## 4. Master Library & Template Gaps
+## 4. Reporting & Analytics
 
-| Requirement (Notion)          | E2E Coverage Status | Notes                                                                                                         |
-| ----------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Add to Master Library**     | 🔴 Missing          | Requirement: "can add task from template to master library". No E2E tests for pushing _to_ the library.       |
-| **Direct Library Management** | 🔴 Missing          | Requirement: "create new task in the master library (not tied to any template)". No E2E tests found.          |
-| **Direct Template Editing**   | 🔴 Missing          | E2E covers creation _from_ templates but lacks testing for direct editing (CRUD) of the templates themselves. |
+| Requirement (Notion)  | E2E Status | Notes                                                          |
+| --------------------- | ---------- | -------------------------------------------------------------- |
+| **Advanced Reports**  | 🔴 Missing | Monthly reports, Progress charts for Phases (Donut charts).    |
+| **Automation/Export** | 🔴 Missing | Downloadable (CSV/PDF) and Automated Emailable status reports. |
 
-## 5. Advanced Logic ("For Later" in Notion)
+## 5. Library & Template Management (Admin)
 
-| Requirement (Notion)           | E2E Coverage Status | Notes                                                               |
-| ------------------------------ | ------------------- | ------------------------------------------------------------------- |
-| **Auto-update Children Tasks** | 🔴 Missing          | "edit milestone completeness status (auto updates children tasks)". |
-| **Mark task as N/A**           | 🔴 Missing          | Mentioned in Notion "for later" section.                            |
-| **License Restrictions**       | 🔴 Missing          | "license restrictions for project creation".                        |
+| Requirement (Notion)      | E2E Status | Notes                                                                           |
+| ------------------------- | ---------- | ------------------------------------------------------------------------------- |
+| **Resource Library CRUD** | 🔴 Missing | Admin ability to create/manage the global resource library.                     |
+| **Master Library CRUD**   | 🔴 Missing | Ability to add project tasks to library or create library-only tasks.           |
+| **In-Library Indicator**  | 🔴 Missing | Visual feedback in task details that a task exists in the Master Library.       |
+| **Direct Template Edit**  | 🔴 Missing | E2E only tests creation _from_ templates, not editing the templates themselves. |
+
+## 6. Alternate Architecture
+
+| Requirement (Notion)  | E2E Status | Notes                                        |
+| --------------------- | ---------- | -------------------------------------------- |
+| **Phase Unlocking**   | 🔴 Missing | "Next Phase unlocks when previous complete". |
+| **No Due Dates Mode** | 🔴 Missing | Interface option to omit dates.              |
 
 ---
 
-**Log Date**: 2026-03-24 **Source**:
-`Notion Exports/User Testing Plan 845f6e15795b82b58eaf0182abd6859b.md`
-**Analysis Baseline**: `e2e/features/` (18 domains)
+**Log Date**: 2026-03-24 **Source**: `Notion Exports` (Full directory audit)
+**Analysis Baseline**: 18 E2E feature domains in `e2e/features/`
