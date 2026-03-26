@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
@@ -31,7 +31,9 @@ import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
 
 export default function Project() {
-    const { projectId } = useParams<{ projectId: string }>();
+    const { projectId: paramId } = useParams<{ projectId: string }>();
+    const location = useLocation();
+    const projectId = paramId || new URLSearchParams(location.search).get('id') || undefined;
     const { user } = useAuth();
 
     const {

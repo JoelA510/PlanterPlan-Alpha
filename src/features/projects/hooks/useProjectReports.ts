@@ -45,6 +45,7 @@ export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
  const completed = phaseMilestones.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
  const total = phaseMilestones.length;
  return {
+ id: phase.id,
  name: `Phase ${(phase as { position?: number }).position || idx + 1}`,
  fullName: phase.title,
  completed,

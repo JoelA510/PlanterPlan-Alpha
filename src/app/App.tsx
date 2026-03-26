@@ -27,10 +27,11 @@ export default function App() {
  <Routes>
  <Route path="/login" element={<LoginForm />} />
  <Route path="/" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
- <Route index element={<Navigate to="/dashboard" replace />} />
+ <Route index element={<Navigate to="/tasks" replace />} />
  <Route path="dashboard" element={<Dashboard />} />
  <Route path="reports" element={<Reports />} />
  <Route path="Project/:projectId" element={<Project />} />
+ <Route path="Project" element={<Project />} />
  <Route path="tasks" element={<TasksPage />} />
  <Route path="daily" element={<DailyTasks />} />
  <Route path="settings" element={<Settings />} />

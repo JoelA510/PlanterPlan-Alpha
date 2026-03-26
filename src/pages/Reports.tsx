@@ -36,7 +36,7 @@ export default function Reports() {
     const { user } = useAuth();
 
     const { data: project } = useQuery({
-        queryKey: ['project', projectId],
+        queryKey: ['reportProject', projectId],
         queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res: TaskRow[]) => res[0]),
         enabled: !!projectId,
     });
@@ -218,7 +218,7 @@ export default function Reports() {
                                             <p className="text-sm text-muted-foreground">No upcoming deadlines.</p>
                                         )}
                                         {milestones.slice(0, 5).map((milestone) => (
-                                            <div key={milestone.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
+                                            <div key={milestone.id} onClick={() => navigate(`/Project?id=${projectId}`)} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border cursor-pointer hover:border-brand-300 hover:shadow-sm transition-all">
                                                 <div className="min-w-0 flex-1">
                                                     <h4 className="font-medium text-foreground truncate">{milestone.title}</h4>
                                                     <p className="text-xs text-muted-foreground mt-1">
@@ -249,10 +249,11 @@ export default function Reports() {
                                 <Card className="p-8 border border-border bg-card shadow-lg">
                                     <h3 className="text-xl font-bold text-foreground mb-8">Phase Details</h3>
                                     <div className="space-y-6">
-                                        {phaseData.map((phase, index) => (
+                                        {phaseData.map((phase) => (
                                             <div
-                                                key={index}
-                                                className="p-4 rounded-xl border border-border hover:border-orange-200 hover:bg-accent transition-all duration-300"
+                                                key={phase.id}
+                                                onClick={() => navigate(`/Project?id=${projectId}`)}
+                                                className="p-4 rounded-xl border border-border cursor-pointer hover:border-orange-200 hover:bg-accent transition-all duration-300"
                                             >
                                                 <div className="flex items-center gap-4 mb-3">
                                                     <div className="w-24 text-sm font-semibold text-foreground">{phase.name}</div>
