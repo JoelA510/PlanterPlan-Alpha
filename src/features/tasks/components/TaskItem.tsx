@@ -1,5 +1,5 @@
 import RoleIndicator from '@/shared/ui/RoleIndicator';
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS_BORDER } from '@/shared/constants/colors';
@@ -35,7 +35,7 @@ interface TaskItemProps {
  isAddingInline?: boolean;
  onInlineCommit?: (taskId: string, title: string, templateData?: Record<string, unknown>) => void;
  onInlineCancel?: () => void;
- dropIndicator?: { parentId: string; beforeTaskId: string | null } | null;
+ dropIndicator?: { parentId: string; beforeTaskId: string | null; nestInId?: string } | null;
 }
 
 const TaskItem = ({
@@ -119,7 +119,8 @@ const TaskItem = ({
  className={cn(
  'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
  'bg-card text-card-foreground',
- isOver && 'ring-2 ring-brand-400 bg-brand-50 z-10',
+ dropIndicator?.nestInId === task.id && 'ring-2 ring-blue-400 bg-blue-50/50 z-10',
+ isOver && !dropIndicator?.nestInId && 'ring-2 ring-brand-400 bg-brand-50 z-10',
  isSelected && !isOver
  ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-100'
  : !isOver && 'border-border hover:border-brand-300',
@@ -227,7 +228,6 @@ const TaskItem = ({
  <div className="pl-0 min-h-[40px]">
  <SortableContext
  items={task.children ? task.children.map((c) => c.id) : []}
- strategy={verticalListSortingStrategy}
  id={`sortable-context-${task.id}`}
  >
  <AnimatePresence mode="popLayout">

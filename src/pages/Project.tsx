@@ -49,7 +49,7 @@ export default function Project() {
     const { state, actions, handlers, computed } = board;
 
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
-    const [dropIndicator, setDropIndicator] = useState<{ parentId: string; beforeTaskId: string | null } | null>(null);
+    const [dropIndicator, setDropIndicator] = useState<{ parentId: string; beforeTaskId: string | null; nestInId?: string } | null>(null);
     const pointerYRef = useRef<number>(0);
 
     useEffect(() => {
@@ -62,6 +62,18 @@ export default function Project() {
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
     );
 
+    // Check if targetId is a descendant of taskId (prevents circular reparenting)
+    const isDescendant = (taskId: string, targetId: string, allTasks: TaskRow[]): boolean => {
+        const visited = new Set<string>();
+        const check = (id: string): boolean => {
+            if (visited.has(id)) return false;
+            visited.add(id);
+            const children = allTasks.filter(t => t.parent_task_id === id);
+            return children.some(c => c.id === targetId || check(c.id));
+        };
+        return check(taskId);
+    };
+
     const handleDragStart = (event: DragStartEvent) => {
         setActiveDragId(event.active.id as string);
         setDropIndicator(null);
@@ -69,8 +81,12 @@ export default function Project() {
 
     const handleDragOver = (event: DragOverEvent) => {
         const { active, over } = event;
-        if (!over || active.id === over.id) {
+        if (!over) {
             setDropIndicator(null);
+            return;
+        }
+        if (active.id === over.id) {
+            // Don't clear indicator — pointer may have crossed back over active task's original position
             return;
         }
 
@@ -86,10 +102,14 @@ export default function Project() {
             const overTask = allTasks.find(t => t.id === over.id);
             if (!overTask) return;
 
-            // Determine if pointer is in top or bottom half of the hovered task
-            const overRect = over.rect;
-            const overMidY = overRect.top + overRect.height / 2;
-            const isAboveMidpoint = pointerYRef.current < overMidY;
+            // Use fresh DOM rect — dnd-kit's over.rect can be stale (doesn't track scroll)
+            const overEl = document.querySelector(`[data-testid="task-row-${over.id}"]`);
+            const overRect = overEl ? overEl.getBoundingClientRect() : over.rect;
+            // Offset pointer by half the dragged task's height to approximate the visual center
+            // (cursor stays at drag handle = top of card, but user perceives the card center as hover point)
+            const activeEl = document.querySelector(`[data-testid="task-row-${active.id}"]`);
+            const activeHeight = activeEl ? activeEl.getBoundingClientRect().height : 0;
+            const pointerY = pointerYRef.current + activeHeight / 2;
 
             const parentId = overTask.parent_task_id || '';
             const siblings = allTasks
@@ -97,16 +117,32 @@ export default function Project() {
                 .sort((a, b) => (a.position || 0) - (b.position || 0));
             const overIndex = siblings.findIndex(t => t.id === over.id);
 
-            if (isAboveMidpoint) {
-                // Insert before this task
-                setDropIndicator({ parentId, beforeTaskId: overTask.id });
+            const isWithinTask = pointerY >= overRect.top && pointerY <= overRect.top + overRect.height;
+
+            if (isWithinTask) {
+                // Pointer is inside the task card — use 3-zone detection
+                const relativeY = (pointerY - overRect.top) / overRect.height;
+                if (relativeY < 0.25) {
+                    setDropIndicator({ parentId, beforeTaskId: overTask.id });
+                } else if (relativeY > 0.75) {
+                    const nextSibling = siblings[overIndex + 1];
+                    setDropIndicator({ parentId, beforeTaskId: nextSibling?.id ?? null });
+                } else {
+                    // Middle zone: nest as subtask
+                    const canNest = !isDescendant(active.id as string, overTask.id, allTasks) && active.id !== overTask.id;
+                    if (canNest) {
+                        setDropIndicator({ parentId, beforeTaskId: null, nestInId: overTask.id });
+                    }
+                }
             } else {
-                // Insert after this task (before the next sibling, or at end)
-                const nextSibling = siblings[overIndex + 1];
-                setDropIndicator({
-                    parentId,
-                    beforeTaskId: nextSibling?.id ?? null,
-                });
+                // Pointer is in the gap between tasks — reorder only
+                const overMidY = overRect.top + overRect.height / 2;
+                if (pointerY < overMidY) {
+                    setDropIndicator({ parentId, beforeTaskId: overTask.id });
+                } else {
+                    const nextSibling = siblings[overIndex + 1];
+                    setDropIndicator({ parentId, beforeTaskId: nextSibling?.id ?? null });
+                }
             }
         } else if (overData.type === 'container' && overData.parentId) {
             setDropIndicator({
@@ -118,41 +154,30 @@ export default function Project() {
         }
     };
 
-    // Collision detection: use closestCenter so the `over` target changes
-    // as soon as the pointer crosses a task's center — enables drag-up
+    // Collision detection: prioritise task-level hits so handleDragOver can
+    // calculate midpoint insertion, with containers as fallback for empty areas.
     const collisionDetection: CollisionDetection = (args) => {
-        // First check pointer-within for container drops (reparenting)
         const pointerCollisions = pointerWithin(args);
         const containerHits = pointerCollisions.filter(c => {
             const container = (args.droppableContainers as any[]).find?.((dc: any) => dc.id === c.id);
             return container?.data?.current?.type === 'container';
         });
 
-        // Use closestCenter for Task targets (reordering)
         const centerCollisions = closestCenter(args);
 
-        // Merge: containers from pointerWithin + tasks from closestCenter
-        const combined = [...containerHits];
-        for (const c of centerCollisions) {
-            if (!combined.some(existing => existing.id === c.id)) {
-                combined.push(c);
-            }
-        }
+        // Tasks first so handleDragOver hits the midpoint logic,
+        // containers second as fallback (empty milestone, reparenting).
+        // Exclude the active (dragged) task — its sortable rect stays in place and intercepts collisions.
+        const taskHits = centerCollisions.filter(c => {
+            if (c.id === args.active.id) return false;
+            const container = (args.droppableContainers as any[]).find?.((dc: any) => dc.id === c.id);
+            return container?.data?.current?.type !== 'container';
+        });
+
+        const combined = [...taskHits, ...containerHits];
 
         if (combined.length > 0) return combined;
         return closestCorners(args);
-    };
-
-    // Check if targetId is a descendant of taskId (prevents circular reparenting)
-    const isDescendant = (taskId: string, targetId: string, allTasks: TaskRow[]): boolean => {
-        const visited = new Set<string>();
-        const check = (id: string): boolean => {
-            if (visited.has(id)) return false;
-            visited.add(id);
-            const children = allTasks.filter(t => t.parent_task_id === id);
-            return children.some(c => c.id === targetId || check(c.id));
-        };
-        return check(taskId);
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -161,14 +186,28 @@ export default function Project() {
         setDropIndicator(null);
 
         const { active, over } = event;
-        if (!over || active.id === over.id) return;
+        if (!over) return;
+        // Allow drop when over === active if we have a nest indicator
+        if (active.id === over.id && !savedIndicator?.nestInId) return;
 
         const overData = over.data.current;
-        if (!overData) return;
 
         const allTasks = (tasks as TaskRow[]) || [];
         const activeTask = allTasks.find(t => t.id === active.id);
         if (!activeTask) return;
+
+        // Nest as subtask (middle zone drop)
+        if (savedIndicator?.nestInId) {
+            const nestTargetId = savedIndicator.nestInId;
+            if (nestTargetId === active.id) return;
+            if (isDescendant(active.id as string, nestTargetId, allTasks)) return;
+            handlers.handleTaskUpdate(active.id as string, { parent_task_id: nestTargetId });
+            const nestTarget = allTasks.find(t => t.id === nestTargetId);
+            if (nestTarget) handlers.handleToggleExpand(nestTarget as TaskRow, true);
+            return;
+        }
+
+        if (!overData) return;
 
         // Container drop with different parent: reparent
         if (overData.type === 'container' && overData.parentId) {

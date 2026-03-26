@@ -5,7 +5,7 @@ import { Progress } from '@/shared/ui/progress';
 import { ChevronRight, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext } from '@dnd-kit/sortable';
 import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/shared/constants';
 import { SortableTaskItem } from '@/features/tasks/components/TaskItem';
@@ -31,7 +31,7 @@ export interface MilestoneSectionProps {
     onInlineCancel?: () => void;
     canEdit?: boolean;
     isAddingInline?: boolean;
-    dropIndicator?: { parentId: string; beforeTaskId: string | null } | null;
+    dropIndicator?: { parentId: string; beforeTaskId: string | null; nestInId?: string } | null;
 }
 
 export default function MilestoneSection({
@@ -137,7 +137,6 @@ export default function MilestoneSection({
                                 <div className="space-y-2 pt-4">
                                     <SortableContext
                                         items={milestoneTasks.map(t => t.id)}
-                                        strategy={verticalListSortingStrategy}
                                     >
                                     <AnimatePresence mode="popLayout">
                                         {milestoneTasks
