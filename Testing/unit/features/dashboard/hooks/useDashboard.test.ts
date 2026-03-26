@@ -50,7 +50,7 @@ describe('useDashboard', () => {
     mockTeamMemberList.mockResolvedValue([]);
     // Reset search params
     mockSearchParams.delete('action');
-    localStorage.clear();
+    localStorage.removeItem('gettingStartedDismissed');
   });
 
   it('returns loading state initially', () => {

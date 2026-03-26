@@ -7,14 +7,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 type OnCallback = (payload: Record<string, unknown>) => void;
 
 let capturedOnCallback: OnCallback | null = null;
-const mockSubscribe = vi.fn();
 const mockRemoveChannel = vi.fn();
-const mockChannel = {
+const mockChannel: Record<string, unknown> = {
   on: vi.fn((_type: string, _filter: unknown, cb: OnCallback) => {
     capturedOnCallback = cb;
     return mockChannel;
   }),
-  subscribe: mockSubscribe,
+  subscribe: vi.fn(() => mockChannel),
 };
 
 vi.mock('@/shared/db/client', () => ({
@@ -48,7 +47,7 @@ describe('useProjectRealtime', () => {
     vi.clearAllMocks();
     capturedOnCallback = null;
     // Reset the .on mock to recapture callback each test
-    mockChannel.on.mockImplementation((_type: string, _filter: unknown, cb: OnCallback) => {
+    (mockChannel.on as ReturnType<typeof vi.fn>).mockImplementation((_type: string, _filter: unknown, cb: OnCallback) => {
       capturedOnCallback = cb;
       return mockChannel;
     });
@@ -76,7 +75,7 @@ describe('useProjectRealtime', () => {
     it('subscribes on mount', () => {
       renderHook(() => useProjectRealtime('proj-1'), { wrapper: createWrapper() });
 
-      expect(mockSubscribe).toHaveBeenCalled();
+      expect(mockChannel.subscribe).toHaveBeenCalled();
     });
 
     it('removes channel on unmount', () => {
@@ -126,13 +125,13 @@ describe('useProjectRealtime', () => {
       const spy = vi.spyOn(testQueryClient, 'invalidateQueries');
 
       capturedOnCallback!({
-        new: { id: 'task-uuid-1234-5678-9012-abcdef123456', root_id: 'root-uuid-1234-5678-9012-abcdef123456' },
+        new: { id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', root_id: 'f1e2d3c4-b5a6-4978-8a6b-5c4d3e2f1a0b' },
       });
 
       // Check that various query keys are invalidated
       const invalidatedKeys = spy.mock.calls.map(call => (call[0] as { queryKey: string[] }).queryKey);
-      expect(invalidatedKeys).toContainEqual(['tasks', 'tree', 'root-uuid-1234-5678-9012-abcdef123456']);
-      expect(invalidatedKeys).toContainEqual(['task', 'task-uuid-1234-5678-9012-abcdef123456']);
+      expect(invalidatedKeys).toContainEqual(['tasks', 'tree', 'f1e2d3c4-b5a6-4978-8a6b-5c4d3e2f1a0b']);
+      expect(invalidatedKeys).toContainEqual(['task', 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d']);
       expect(invalidatedKeys).toContainEqual(['tasks', 'root']);
       expect(invalidatedKeys).toContainEqual(['projects']);
       expect(invalidatedKeys).toContainEqual(['project', 'proj-1']);
@@ -146,7 +145,7 @@ describe('useProjectRealtime', () => {
       const spy = vi.spyOn(testQueryClient, 'invalidateQueries');
 
       capturedOnCallback!({
-        new: { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' },
+        new: { id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e' },
       });
 
       const invalidatedKeys = spy.mock.calls.map(call => (call[0] as { queryKey: string[] }).queryKey);
@@ -176,7 +175,7 @@ describe('useProjectRealtime', () => {
       const spy = vi.spyOn(testQueryClient, 'invalidateQueries');
 
       capturedOnCallback!({
-        new: { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' },
+        new: { id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e' },
       });
 
       const invalidatedKeys = spy.mock.calls.map(call => (call[0] as { queryKey: string[] }).queryKey);
