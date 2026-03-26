@@ -130,8 +130,8 @@ const TaskForm = ({
  <form data-testid="task-form" onSubmit={methods.handleSubmit(handleFormSubmit as any)} className="project-form">
  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
  {origin === 'template'
- ? (isEditMode ? 'Editing Template Task' : 'Template Task')
- : (isEditMode ? 'Editing Project Task' : 'Project Task')}
+ ? (isEditMode ? 'Editing Template Task' : (submitLabel?.includes('Phase') ? 'Template Phase' : 'Template Task'))
+ : (isEditMode ? 'Editing Project Task' : (submitLabel?.includes('Phase') ? 'Project Phase' : 'Project Task'))}
  </div>
 
  {!isEditMode && renderLibrarySearch && (
@@ -155,7 +155,7 @@ const TaskForm = ({
  </div>
  )}
 
- <TaskFormFields origin={origin} />
+ <TaskFormFields origin={origin} itemLabel={submitLabel?.includes('Phase') ? 'Phase' : 'Task'} />
 
  <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">
  <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>

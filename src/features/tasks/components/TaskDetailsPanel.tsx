@@ -6,8 +6,10 @@ import TaskForm from '@/features/tasks/components/TaskForm';
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 import { X } from 'lucide-react';
 
+type TaskFormState = { mode?: 'create' | 'edit'; origin?: 'instance' | 'template'; isPhase?: boolean } | null;
+
 const getPanelTitle = (
- taskFormState?: { mode?: 'create' | 'edit'; origin?: 'instance' | 'template' } | null,
+ taskFormState?: TaskFormState,
  taskBeingEdited?: TaskRow,
  selectedTask?: TaskRow,
  parentTaskForForm?: TaskRow
@@ -16,12 +18,13 @@ const getPanelTitle = (
  if (taskFormState.mode === 'edit') {
  return taskBeingEdited ? `Edit ${taskBeingEdited.title}` : 'Edit Task';
  }
+ const itemLabel = taskFormState.isPhase ? 'Phase' : 'Task';
  if (taskFormState.origin === 'template') {
  return parentTaskForForm
- ? `New Template Task in ${parentTaskForForm.title}`
- : 'New Template Task';
+ ? `New Template ${itemLabel} in ${parentTaskForForm.title}`
+ : `New Template ${itemLabel}`;
  }
- return parentTaskForForm ? `New Task in ${parentTaskForForm.title}` : 'New Task';
+ return parentTaskForForm ? `New ${itemLabel} in ${parentTaskForForm.title}` : `New ${itemLabel}`;
  }
  if (selectedTask) return selectedTask.title;
  return 'Details';
@@ -29,7 +32,7 @@ const getPanelTitle = (
 
 export interface TaskDetailsPanelProps {
  showForm: boolean;
- taskFormState?: { mode?: 'create' | 'edit'; origin?: 'instance' | 'template' } | null;
+ taskFormState?: TaskFormState;
  selectedTask?: TaskRow;
  taskBeingEdited?: TaskRow;
  parentTaskForForm?: TaskRow;
@@ -37,7 +40,7 @@ export interface TaskDetailsPanelProps {
  renderNewProjectForm?: () => React.ReactNode;
  renderLibrarySearch?: (onSelect: (task: Partial<TaskRow>) => void) => React.ReactNode;
  handleTaskSubmit?: (data: TaskFormData) => Promise<void>;
- setTaskFormState?: (state: { mode?: 'create' | 'edit'; origin?: 'instance' | 'template' } | null) => void;
+ setTaskFormState?: (state: TaskFormState) => void;
  handleAddChildTask?: (task: TaskItemData) => void;
  handleEditTask?: (task: TaskItemData) => void;
  onDeleteTaskWrapper?: (taskId: string) => Promise<void>;
@@ -87,7 +90,7 @@ export default function TaskDetailsPanel({
  initialTask={taskBeingEdited}
  origin={taskFormState?.origin}
  renderLibrarySearch={taskFormState?.mode !== 'edit' ? renderLibrarySearch : undefined}
- submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : 'Add Task'}
+ submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : (taskFormState?.isPhase ? 'Add Phase' : 'Add Task')}
  onSubmit={handleTaskSubmit || (async () => {})}
  onCancel={() => setTaskFormState(null)}
  />

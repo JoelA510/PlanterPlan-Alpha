@@ -8,10 +8,11 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 
 interface TaskFormFieldsProps {
  origin?: 'instance' | 'library' | string;
+ itemLabel?: string;
  renderExtraFields?: () => ReactNode;
 }
 
-const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
+const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields }: TaskFormFieldsProps) => {
  const {
  register,
  formState: { errors },
@@ -25,14 +26,14 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
 
  <div className="space-y-2">
  <Label htmlFor="title">
- Task Title <span className="text-red-500">*</span>
+ {itemLabel} Title <span className="text-red-500">*</span>
  </Label>
  <Input
  type="text"
  id="title"
  autoFocus
  className={errors.title ? 'border-red-500' : ''}
- placeholder="Enter task title"
+ placeholder={`Enter ${itemLabel.toLowerCase()} title`}
  {...register('title')}
  />
  {errors.title && <span className="text-sm text-red-500">{errors.title.message}</span>}
@@ -43,7 +44,7 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
  <Label htmlFor="purpose">Purpose (The Why)</Label>
  <Textarea
  id="purpose"
- placeholder="Why is this task needed?"
+ placeholder={`Why is this ${itemLabel.toLowerCase()} needed?`}
  rows={2}
  {...register('purpose')}
  />
@@ -53,7 +54,7 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
  <Label htmlFor="description">Description</Label>
  <Textarea
  id="description"
- placeholder="Describe the task..."
+ placeholder={`Describe the ${itemLabel.toLowerCase()}...`}
  rows={3}
  {...register('description')}
  />

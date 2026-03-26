@@ -5,11 +5,13 @@ import { planter } from '@/shared/api/planterClient';
 interface UseMasterLibrarySearchProps {
  query?: string;
  enabled?: boolean;
+ phasesOnly?: boolean;
 }
 
 export const useMasterLibrarySearch = ({
  query = '',
  enabled = true,
+ phasesOnly = false,
 }: UseMasterLibrarySearchProps = {}) => {
  const { data: allTemplates, isLoading, error } = useQuery({
  queryKey: ['masterLibraryTemplates'],
@@ -22,11 +24,15 @@ export const useMasterLibrarySearch = ({
 
  const results = useMemo(() => {
  if (!allTemplates) return [];
- if (!trimmed) return allTemplates;
- return allTemplates.filter(
+ let filtered = allTemplates;
+ if (phasesOnly) {
+ filtered = filtered.filter((t) => t.parent_task_id && t.parent_task_id === t.root_id);
+ }
+ if (!trimmed) return filtered;
+ return filtered.filter(
  (t) => t.title?.toLowerCase().includes(trimmed) || t.description?.toLowerCase().includes(trimmed)
  );
- }, [allTemplates, trimmed]);
+ }, [allTemplates, trimmed, phasesOnly]);
 
  return {
  results,

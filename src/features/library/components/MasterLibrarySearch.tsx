@@ -16,6 +16,7 @@ interface MasterLibrarySearchProps {
  mode?: 'copy' | 'view';
  label?: string;
  placeholder?: string;
+ phasesOnly?: boolean;
 }
 
 const MasterLibrarySearch = ({
@@ -23,6 +24,7 @@ const MasterLibrarySearch = ({
  mode = 'copy',
  label = 'Search & pick from Master Library',
  placeholder = 'Search by title or description…',
+ phasesOnly = false,
 }: MasterLibrarySearchProps) => {
  const [query, setQuery] = useState('');
  const [isOpen, setIsOpen] = useState(false);
@@ -31,7 +33,7 @@ const MasterLibrarySearch = ({
  const inputRef = useRef<HTMLInputElement>(null);
  const containerRef = useRef<HTMLDivElement>(null);
 
- const { results, isLoading, hasResults } = useMasterLibrarySearch({ query });
+ const { results, isLoading, hasResults } = useMasterLibrarySearch({ query, phasesOnly });
 
  const handleQueryChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
  setQuery(event.target.value);

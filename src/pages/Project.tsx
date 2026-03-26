@@ -418,11 +418,11 @@ export default function Project() {
 
                             {canEdit && state.activeTab === 'board' && (
                                 <Button
-                                    onClick={() => setTaskFormState({ mode: 'create', origin: projectOrigin })}
+                                    onClick={() => setTaskFormState({ mode: 'create', origin: projectOrigin, isPhase: true })}
                                     className="bg-brand-500 hover:bg-brand-600 text-white"
                                 >
                                     <Plus className="w-4 h-4 mr-2" />
-                                    Add Task
+                                    Add Phase
                                 </Button>
                             )}
                         </div>
@@ -466,7 +466,20 @@ export default function Project() {
                                         <div className="space-y-4">
                                             {phaseMilestones.length === 0 ? (
                                                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
-                                                    <p className="text-slate-500">No milestones in this phase yet</p>
+                                                    <p className="text-slate-500 mb-4">No milestones in this phase yet</p>
+                                                    {canEdit && (
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                actions.setInlineAddingParentId(activePhase.id);
+                                                                setTaskFormState({ mode: 'create', origin: projectOrigin });
+                                                            }}
+                                                            className="text-brand-600 border-brand-200 hover:bg-brand-50"
+                                                        >
+                                                            <Plus className="w-4 h-4 mr-2" />
+                                                            Add Milestone
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 phaseMilestones.map((milestone: TaskRow) => (
@@ -488,6 +501,20 @@ export default function Project() {
                                                         dropIndicator={dropIndicator}
                                                     />
                                                 ))
+                                            )}
+
+                                            {canEdit && phaseMilestones.length > 0 && (
+                                                <Button
+                                                    variant="ghost"
+                                                    className="w-full text-slate-500 hover:text-slate-700"
+                                                    onClick={() => {
+                                                        actions.setInlineAddingParentId(activePhase.id);
+                                                        setTaskFormState({ mode: 'create', origin: projectOrigin });
+                                                    }}
+                                                >
+                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    Add Milestone
+                                                </Button>
                                             )}
                                         </div>
                                     </motion.div>
@@ -536,7 +563,8 @@ export default function Project() {
                                 mode="copy"
                                 onSelect={onSelect}
                                 label="Search master library"
-                                placeholder="Start typing to copy an existing template task"
+                                placeholder={taskFormState?.isPhase ? 'Search for a template phase to copy' : 'Start typing to copy an existing template task'}
+                                phasesOnly={!!taskFormState?.isPhase}
                             />
                         )}
                         onDeleteTaskWrapper={async () => { if (state.selectedTask) await (handlers.handleDeleteTask(state.selectedTask) as any); }}
