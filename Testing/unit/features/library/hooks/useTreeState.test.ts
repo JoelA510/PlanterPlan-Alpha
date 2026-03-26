@@ -67,6 +67,17 @@ function makeNode(overrides: Partial<TaskItemData> = {}): TaskItemData {
   } as TaskItemData;
 }
 
+// Helper: renderHook with stable initialProps to avoid infinite re-render loop.
+// The hook's useEffect depends on [rootTasks] by reference — passing an inline
+// array like `useTreeState([node])` creates a new reference each render, causing
+// an infinite loop. Using initialProps keeps the reference stable.
+function renderTreeHook(tasks: TaskItemData[]) {
+  return renderHook(
+    ({ tasks: t }) => useTreeState(t),
+    { initialProps: { tasks } },
+  );
+}
+
 describe('useTreeState', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,24 +99,24 @@ describe('useTreeState', () => {
 
   describe('initialization', () => {
     it('initializes with empty tree data', () => {
-      const { result } = renderHook(() => useTreeState([]));
+      const { result } = renderTreeHook([]);
       expect(result.current.treeData).toEqual([]);
     });
 
     it('sets tree data from rootTasks', () => {
       const nodes = [makeNode({ id: 'a', position: 1000 }), makeNode({ id: 'b', position: 2000 })];
-      const { result } = renderHook(() => useTreeState(nodes));
+      const { result } = renderTreeHook(nodes);
 
       expect(result.current.treeData.length).toBeGreaterThanOrEqual(0);
     });
 
     it('initializes with empty expandedTaskIds', () => {
-      const { result } = renderHook(() => useTreeState([]));
+      const { result } = renderTreeHook([]);
       expect(result.current.expandedTaskIds.size).toBe(0);
     });
 
     it('initializes with empty loadingNodes', () => {
-      const { result } = renderHook(() => useTreeState([]));
+      const { result } = renderTreeHook([]);
       expect(result.current.loadingNodes).toEqual({});
     });
   });
@@ -113,7 +124,7 @@ describe('useTreeState', () => {
   describe('toggleExpand', () => {
     it('adds task ID to expandedTaskIds when expanding', async () => {
       const node = makeNode({ id: 'task-1', children: [makeNode({ id: 'child-1' })] });
-      const { result } = renderHook(() => useTreeState([node]));
+      const { result } = renderTreeHook([node]);
 
       await act(async () => {
         await result.current.toggleExpand(node, true);
@@ -124,7 +135,7 @@ describe('useTreeState', () => {
 
     it('removes task ID from expandedTaskIds when collapsing', async () => {
       const node = makeNode({ id: 'task-1', children: [makeNode({ id: 'child-1' })] });
-      const { result } = renderHook(() => useTreeState([node]));
+      const { result } = renderTreeHook([node]);
 
       // Expand first
       await act(async () => {
@@ -144,7 +155,7 @@ describe('useTreeState', () => {
       mockFetchChildren.mockResolvedValue({ data: childTasks, error: null });
 
       const node = makeNode({ id: 'task-1', children: [] });
-      const { result } = renderHook(() => useTreeState([node]));
+      const { result } = renderTreeHook([node]);
 
       await act(async () => {
         await result.current.toggleExpand(node, true);
@@ -158,7 +169,7 @@ describe('useTreeState', () => {
         id: 'task-1',
         children: [makeNode({ id: 'child-1' })],
       });
-      const { result } = renderHook(() => useTreeState([node]));
+      const { result } = renderTreeHook([node]);
 
       await act(async () => {
         await result.current.toggleExpand(node, true);
@@ -172,7 +183,7 @@ describe('useTreeState', () => {
       mockFetchChildren.mockResolvedValue({ data: null, error: new Error('Network error') });
 
       const node = makeNode({ id: 'task-1', children: [] });
-      const { result } = renderHook(() => useTreeState([node]));
+      const { result } = renderTreeHook([node]);
 
       await act(async () => {
         await result.current.toggleExpand(node, true);
@@ -187,7 +198,7 @@ describe('useTreeState', () => {
       mockFetchChildren.mockResolvedValue({ data: [], error: null });
 
       const node = makeNode({ id: 'task-1', children: [] });
-      const { result } = renderHook(() => useTreeState([node]));
+      const { result } = renderTreeHook([node]);
 
       await act(async () => {
         await result.current.toggleExpand(node, true);
@@ -200,7 +211,7 @@ describe('useTreeState', () => {
   describe('handleStatusChange', () => {
     it('optimistically updates status in tree', async () => {
       const node = makeNode({ id: 'task-1', status: 'todo' });
-      const { result } = renderHook(() => useTreeState([node]));
+      const { result } = renderTreeHook([node]);
 
       // Wait for initial tree to be set
       await waitFor(() => {
@@ -219,7 +230,7 @@ describe('useTreeState', () => {
       mockUpdateStatus.mockResolvedValue({ error: new Error('Update failed') });
 
       const node = makeNode({ id: 'task-1', status: 'todo' });
-      const { result } = renderHook(() => useTreeState([node]));
+      const { result } = renderTreeHook([node]);
 
       await waitFor(() => {
         expect(result.current.treeData.length).toBeGreaterThan(0);
@@ -238,7 +249,7 @@ describe('useTreeState', () => {
   describe('handleReorder', () => {
     it('returns early when activeId equals overId', async () => {
       const node = makeNode({ id: 'task-1' });
-      const { result } = renderHook(() => useTreeState([node]));
+      const { result } = renderTreeHook([node]);
 
       await act(async () => {
         await result.current.handleReorder('task-1', 'task-1');
@@ -253,7 +264,7 @@ describe('useTreeState', () => {
         makeNode({ id: 'b', position: 20000, parent_task_id: null }),
         makeNode({ id: 'c', position: 30000, parent_task_id: null }),
       ];
-      const { result } = renderHook(() => useTreeState(nodes));
+      const { result } = renderTreeHook(nodes);
 
       await waitFor(() => {
         expect(result.current.treeData.length).toBeGreaterThan(0);
@@ -278,7 +289,7 @@ describe('useTreeState', () => {
         makeNode({ id: 'a', position: 10000 }),
         makeNode({ id: 'b', position: 20000 }),
       ];
-      const { result } = renderHook(() => useTreeState(nodes));
+      const { result } = renderTreeHook(nodes);
 
       await waitFor(() => {
         expect(result.current.treeData.length).toBeGreaterThan(0);
