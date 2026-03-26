@@ -217,8 +217,8 @@ const TaskDetailsView = ({
                 </div>
             )}
 
-            {/* Notes */}
-            {task.notes && (
+            {/* Notes — only visible to P4P admins */}
+            {task.notes && (user as { role?: string })?.role === 'admin' && (
                 <div className="detail-section mb-6">
                     <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wide">Notes</h3>
                     <div className="p-3 bg-amber-50 border border-amber-100 text-slate-700 text-sm italic">

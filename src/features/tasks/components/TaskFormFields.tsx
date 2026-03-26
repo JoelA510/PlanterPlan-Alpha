@@ -4,6 +4,7 @@ import type { TaskFormData } from '@/shared/db/app.types';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 interface TaskFormFieldsProps {
  origin?: 'instance' | 'library' | string;
@@ -15,6 +16,8 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
  register,
  formState: { errors },
  } = useFormContext<TaskFormData>();
+ const { user } = useAuth();
+ const isAdmin = (user as { role?: string })?.role === 'admin';
 
  return (
  <>
@@ -66,6 +69,7 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
  />
  </div>
 
+ {isAdmin && (
  <div className="space-y-2">
  <Label htmlFor="notes">Notes / Context</Label>
  <Textarea
@@ -75,6 +79,7 @@ const TaskFormFields = ({ origin, renderExtraFields }: TaskFormFieldsProps) => {
  {...register('notes')}
  />
  </div>
+ )}
  </div>
 
  {origin === 'instance' && (
