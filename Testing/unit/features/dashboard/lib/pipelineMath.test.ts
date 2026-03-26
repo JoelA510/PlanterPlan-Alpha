@@ -5,8 +5,8 @@ import {
   groupTasksByProject,
   groupMembersByProject,
   determineNewStatus,
-} from './pipelineMath';
-import { makeTask, makeTeamMember } from '@/test-utils';
+} from '@/features/dashboard/lib/pipelineMath';
+import { makeTask, makeTeamMember } from '@test';
 import { PROJECT_STATUS } from '@/shared/constants';
 import type { Project, Task, TeamMemberRow } from '@/shared/db/app.types';
 

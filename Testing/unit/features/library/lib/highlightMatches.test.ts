@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getHighlightSegments } from './highlightMatches';
+import { getHighlightSegments } from '@/features/library/lib/highlightMatches';
 
 describe('getHighlightSegments', () => {
   it('highlights a single match', () => {

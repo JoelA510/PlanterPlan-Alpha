@@ -14,13 +14,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@test': path.resolve(__dirname, './Testing/test-utils'),
     },
   },
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: './src/setupTests.ts',
-    include: ['src/**/*.test.{ts,tsx}'],
+    setupFiles: './Testing/setupTests.ts',
+    include: ['Testing/unit/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       include: [

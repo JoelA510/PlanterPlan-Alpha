@@ -7,8 +7,8 @@ import {
   useUpdateProject,
   useDeleteProject,
   useUpdateProjectStatus,
-} from './useProjectMutations';
-import { makeTask } from '@/test-utils';
+} from '@/features/projects/hooks/useProjectMutations';
+import { makeTask } from '@test';
 
 // Mock planterClient
 const mockProjectCreate = vi.fn();

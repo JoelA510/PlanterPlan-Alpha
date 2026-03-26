@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useProjectPipelineLogic } from './useProjectPipelineLogic';
-import { makeTask, makeTeamMember } from '@/test-utils';
+import { useProjectPipelineLogic } from '@/features/dashboard/hooks/useProjectPipelineLogic';
+import { makeTask, makeTeamMember } from '@test';
 import { PROJECT_STATUS } from '@/shared/constants';
 import type { Project, Task, TeamMemberRow } from '@/shared/db/app.types';
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';

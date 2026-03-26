@@ -6,12 +6,12 @@ import {
   type CurrentTask,
   type UpdateContext,
   type CreateContext,
-} from './payloadHelpers';
+} from '@/shared/lib/date-engine/payloadHelpers';
 import { POSITION_STEP } from '@/shared/constants';
 
 // Mock nowUtcIso to return a deterministic value
-vi.mock('./index', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./index')>();
+vi.mock('@/shared/lib/date-engine/index', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/lib/date-engine/index')>();
   return {
     ...actual,
     nowUtcIso: () => '2026-03-25T00:00:00.000Z',

@@ -17,7 +17,7 @@ import {
   recalculateProjectDates,
   nowUtcIso,
   type DateEngineTask,
-} from './index';
+} from '@/shared/lib/date-engine/index';
 
 // ---------------------------------------------------------------------------
 // nowUtcIso

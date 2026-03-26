@@ -1,5 +1,7 @@
 # Testing Gap Analysis — Implementation Plan
 
+> **Note (Phase 6 — File Reorganization):** All test files have been moved from `src/` to `Testing/`. Unit tests are under `Testing/unit/` (mirroring the `src/` structure), test utilities are in `Testing/test-utils/`, setup is at `Testing/setupTests.ts`, and E2E tests are in `Testing/e2e/`. The `@test` alias resolves to `Testing/test-utils/`. File paths in the original plan below reflect the pre-move locations.
+
 ## Context
 
 PlanterPlan has **zero unit tests** despite Vitest being fully installed and configured. The `TESTING_GAP_FINDINGS.md` audit (2026-03-24) identified 6 categories of E2E gaps against Notion requirements. Meanwhile, critical pure-logic modules (date-engine, tree-helpers, retry, payloadHelpers, pipelineMath, highlightMatches, export-utils) have no test coverage at all. This plan fills both the unit-test void and the E2E gaps in a prioritized, phased approach.
@@ -334,38 +336,33 @@ Beyond TESTING_GAP_FINDINGS.md, the following gaps were identified:
 | 4 — API Layer | 1 test file | ~20 | ~616 LOC |
 | **Total** | **17-18 new files** | **~176 unit + ~15 E2E** | **~2,036 LOC** |
 
-### New files to create:
+### Current file locations (after Phase 6 reorganization):
 ```
-src/test-utils/factories.ts
-src/test-utils/supabase-mock.ts
-src/test-utils/query-wrapper.tsx
-src/test-utils/index.ts
-src/shared/lib/date-engine/index.test.ts            (Phase 1a)
-src/shared/lib/date-engine/payloadHelpers.test.ts    (Phase 1b)
-src/shared/lib/tree-helpers.test.ts                  (Phase 1c)
-src/shared/lib/retry.test.ts                         (Phase 1d)
-src/features/dashboard/lib/pipelineMath.test.ts      (Phase 1e)
-src/features/library/lib/highlightMatches.test.ts    (Phase 1f)
-src/features/projects/lib/export-utils.test.ts       (Phase 1g)
-src/features/tasks/hooks/useTaskMutations.test.ts    (Phase 2b)
-src/features/projects/hooks/useProjectMutations.test.ts (Phase 2c)
-src/features/tasks/hooks/useTaskQuery.test.ts        (Phase 2d)
-src/features/dashboard/hooks/useProjectPipelineLogic.test.ts (Phase 2e)
-src/shared/api/planterClient.test.ts                 (Phase 4a)
-e2e/features/project/subtask-hierarchy.feature       (Phase 3a)
-e2e/features/project/task-automation.feature         (Phase 3b)
-e2e/features/library/template-management.feature     (Phase 3d)
-e2e/features/project/phase-unlocking.feature         (Phase 3e)
-```
-
-### Files to modify:
-```
-vite.config.ts                                       (Phase 0a — add test config)
-e2e/features/auth/permission-enforcement.feature     (Phase 3c — add coach/limited scenarios)
-e2e/steps/permission.steps.ts                        (Phase 3c — add step definitions)
-e2e/steps/project.steps.ts                           (Phase 3a, 3e — add step definitions)
-e2e/steps/tasks.steps.ts                             (Phase 3b — add step definitions)
-e2e/steps/library.steps.ts                           (Phase 3d — add step definitions)
+Testing/test-utils/factories.ts
+Testing/test-utils/query-wrapper.tsx
+Testing/test-utils/index.ts
+Testing/setupTests.ts
+Testing/unit/shared/lib/date-engine/index.test.ts            (Phase 1a)
+Testing/unit/shared/lib/date-engine/payloadHelpers.test.ts    (Phase 1b)
+Testing/unit/shared/lib/tree-helpers.test.ts                  (Phase 1c)
+Testing/unit/shared/lib/retry.test.ts                         (Phase 1d)
+Testing/unit/features/dashboard/lib/pipelineMath.test.ts      (Phase 1e)
+Testing/unit/features/library/lib/highlightMatches.test.ts    (Phase 1f)
+Testing/unit/features/projects/lib/export-utils.test.ts       (Phase 1g)
+Testing/unit/features/tasks/hooks/useTaskMutations.test.ts    (Phase 2b)
+Testing/unit/features/projects/hooks/useProjectMutations.test.ts (Phase 2c)
+Testing/unit/features/tasks/hooks/useTaskQuery.test.ts        (Phase 2d)
+Testing/unit/features/dashboard/hooks/useProjectPipelineLogic.test.ts (Phase 2e)
+Testing/unit/shared/api/planterClient.test.ts                 (Phase 4a)
+Testing/e2e/features/project/subtask-hierarchy.feature        (Phase 3a)
+Testing/e2e/features/project/task-automation.feature          (Phase 3b)
+Testing/e2e/features/library/template-management.feature      (Phase 3d)
+Testing/e2e/features/project/phase-unlocking.feature          (Phase 3e)
+Testing/e2e/features/auth/permission-enforcement.feature      (Phase 3c)
+Testing/e2e/steps/permission.steps.ts                         (Phase 3c)
+Testing/e2e/steps/project.steps.ts                            (Phase 3a, 3e)
+Testing/e2e/steps/tasks.steps.ts                              (Phase 3b)
+Testing/e2e/steps/library.steps.ts                            (Phase 3d)
 ```
 
 ---

@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useTaskQuery } from './useTaskQuery';
-import { makeTask } from '@/test-utils';
+import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
+import { makeTask } from '@test';
 
 // Mock planterClient
 const mockListByCreator = vi.fn();

@@ -31,6 +31,12 @@
       "@/*": [
         "./src/*"
       ],
+      "@test": [
+        "./Testing/test-utils/index.ts"
+      ],
+      "@test/*": [
+        "./Testing/test-utils/*"
+      ],
       "@layouts/*": [
         "./src/shared/layouts/*"
       ],
@@ -44,15 +50,5 @@
   },
   "include": [
     "src"
-  ],
-  "exclude": [
-    "src/**/*.test.tsx",
-    "src/**/*.test.ts",
-    "src/__tests__",
-    "src/**/__tests__",
-    "src/**/*.spec.ts",
-    "src/**/*.spec.tsx",
-    "src/test",
-    "src/mocks"
   ]
 }

@@ -1,7 +1,9 @@
 # TESTING_GAP_FINDINGS (Thorough Pass)
 
+> **Note:** E2E tests have been relocated to `Testing/e2e/`. References to `e2e/` below reflect the original pre-reorganization paths.
+
 This document provides a granular log of discrepancies between the comprehensive
-`Notion Exports` requirements and the current E2E test suite in `e2e/features/`.
+`Notion Exports` requirements and the current E2E test suite in `Testing/e2e/features/`.
 
 ## 1. Hierarchy & Structural Invariants
 

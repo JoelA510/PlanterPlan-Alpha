@@ -3,7 +3,7 @@
 
 if [ "$AGENT_MODE" = "true" ]; then
   # Structured Agentic Output
-  npx bddgen --config e2e/playwright.config.ts && npx playwright test --config e2e/playwright.config.ts --project=chromium --reporter=json > e2e-report.json
+  npx bddgen --config Testing/e2e/playwright.config.ts && npx playwright test --config Testing/e2e/playwright.config.ts --project=chromium --reporter=json > e2e-report.json
   EXIT_CODE=$?
   
   if [ $EXIT_CODE -ne 0 ]; then
@@ -46,7 +46,7 @@ else
   # Human-readable output
   echo "Starting E2E Verification..." > e2e-log.txt
   date >> e2e-log.txt
-  npx bddgen --config e2e/playwright.config.ts && npx playwright test --config e2e/playwright.config.ts --project=chromium --reporter=list >> e2e-log.txt 2>&1
+  npx bddgen --config Testing/e2e/playwright.config.ts && npx playwright test --config Testing/e2e/playwright.config.ts --project=chromium --reporter=list >> e2e-log.txt 2>&1
   EXIT_CODE=$?
   echo "Finished E2E Verification with status $EXIT_CODE" >> e2e-log.txt
   date >> e2e-log.txt
