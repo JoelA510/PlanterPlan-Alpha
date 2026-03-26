@@ -1,0 +1,207 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// ---- Mocks ----
+type OnCallback = (payload: Record<string, unknown>) => void;
+
+let capturedOnCallback: OnCallback | null = null;
+const mockSubscribe = vi.fn();
+const mockRemoveChannel = vi.fn();
+const mockChannel = {
+  on: vi.fn((_type: string, _filter: unknown, cb: OnCallback) => {
+    capturedOnCallback = cb;
+    return mockChannel;
+  }),
+  subscribe: mockSubscribe,
+};
+
+vi.mock('@/shared/db/client', () => ({
+  supabase: {
+    channel: vi.fn(() => mockChannel),
+    removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
+  },
+}));
+
+vi.mock('@/shared/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'user-1' } }),
+}));
+
+import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
+import { supabase } from '@/shared/db/client';
+
+let testQueryClient: QueryClient;
+
+function createWrapper() {
+  testQueryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+    },
+  });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: testQueryClient }, children);
+}
+
+describe('useProjectRealtime', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capturedOnCallback = null;
+    // Reset the .on mock to recapture callback each test
+    mockChannel.on.mockImplementation((_type: string, _filter: unknown, cb: OnCallback) => {
+      capturedOnCallback = cb;
+      return mockChannel;
+    });
+  });
+
+  describe('channel setup', () => {
+    it('creates channel with project-specific name when projectId provided', () => {
+      renderHook(() => useProjectRealtime('proj-1'), { wrapper: createWrapper() });
+
+      expect(supabase.channel).toHaveBeenCalledWith('db-changes:project-proj-1');
+    });
+
+    it('creates global channel when no projectId', () => {
+      renderHook(() => useProjectRealtime(null), { wrapper: createWrapper() });
+
+      expect(supabase.channel).toHaveBeenCalledWith('db-changes:global');
+    });
+
+    it('creates global channel with default parameter', () => {
+      renderHook(() => useProjectRealtime(), { wrapper: createWrapper() });
+
+      expect(supabase.channel).toHaveBeenCalledWith('db-changes:global');
+    });
+
+    it('subscribes on mount', () => {
+      renderHook(() => useProjectRealtime('proj-1'), { wrapper: createWrapper() });
+
+      expect(mockSubscribe).toHaveBeenCalled();
+    });
+
+    it('removes channel on unmount', () => {
+      const { unmount } = renderHook(() => useProjectRealtime('proj-1'), { wrapper: createWrapper() });
+
+      unmount();
+
+      expect(mockRemoveChannel).toHaveBeenCalledWith(mockChannel);
+    });
+  });
+
+  describe('filter configuration', () => {
+    it('filters by root_id when projectId is provided', () => {
+      renderHook(() => useProjectRealtime('proj-1'), { wrapper: createWrapper() });
+
+      expect(mockChannel.on).toHaveBeenCalledWith(
+        'postgres_changes',
+        expect.objectContaining({
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: 'root_id=eq.proj-1',
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('filters by creator when no projectId but userId exists', () => {
+      renderHook(() => useProjectRealtime(null), { wrapper: createWrapper() });
+
+      expect(mockChannel.on).toHaveBeenCalledWith(
+        'postgres_changes',
+        expect.objectContaining({
+          filter: 'creator=eq.user-1',
+        }),
+        expect.any(Function),
+      );
+    });
+  });
+
+  describe('payload handling', () => {
+    it('invalidates task tree queries on valid payload with root_id', () => {
+      const invalidateSpy = vi.spyOn(testQueryClient || new QueryClient(), 'invalidateQueries');
+      renderHook(() => useProjectRealtime('proj-1'), { wrapper: createWrapper() });
+
+      // Now spy on the actual testQueryClient created inside the wrapper
+      const spy = vi.spyOn(testQueryClient, 'invalidateQueries');
+
+      capturedOnCallback!({
+        new: { id: 'task-uuid-1234-5678-9012-abcdef123456', root_id: 'root-uuid-1234-5678-9012-abcdef123456' },
+      });
+
+      // Check that various query keys are invalidated
+      const invalidatedKeys = spy.mock.calls.map(call => (call[0] as { queryKey: string[] }).queryKey);
+      expect(invalidatedKeys).toContainEqual(['tasks', 'tree', 'root-uuid-1234-5678-9012-abcdef123456']);
+      expect(invalidatedKeys).toContainEqual(['task', 'task-uuid-1234-5678-9012-abcdef123456']);
+      expect(invalidatedKeys).toContainEqual(['tasks', 'root']);
+      expect(invalidatedKeys).toContainEqual(['projects']);
+      expect(invalidatedKeys).toContainEqual(['project', 'proj-1']);
+
+      invalidateSpy.mockRestore();
+      spy.mockRestore();
+    });
+
+    it('invalidates global query keys on every event', () => {
+      renderHook(() => useProjectRealtime('proj-1'), { wrapper: createWrapper() });
+      const spy = vi.spyOn(testQueryClient, 'invalidateQueries');
+
+      capturedOnCallback!({
+        new: { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' },
+      });
+
+      const invalidatedKeys = spy.mock.calls.map(call => (call[0] as { queryKey: string[] }).queryKey);
+      expect(invalidatedKeys).toContainEqual(['tasks', 'root']);
+      expect(invalidatedKeys).toContainEqual(['projects']);
+
+      spy.mockRestore();
+    });
+
+    it('logs error when payload fails Zod validation', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      renderHook(() => useProjectRealtime('proj-1'), { wrapper: createWrapper() });
+
+      // Send a payload where both .new and .old are falsy — parse(undefined) will throw
+      capturedOnCallback!({});
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[Realtime] Payload violated Zod contract:',
+        expect.anything(),
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('does not invalidate project-specific key when no projectId', () => {
+      renderHook(() => useProjectRealtime(null), { wrapper: createWrapper() });
+      const spy = vi.spyOn(testQueryClient, 'invalidateQueries');
+
+      capturedOnCallback!({
+        new: { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' },
+      });
+
+      const invalidatedKeys = spy.mock.calls.map(call => (call[0] as { queryKey: string[] }).queryKey);
+      // Should NOT have project-specific invalidation
+      const hasProjectKey = invalidatedKeys.some(k => k[0] === 'project' && k.length === 2);
+      expect(hasProjectKey).toBe(false);
+
+      spy.mockRestore();
+    });
+  });
+
+  describe('channel lifecycle on rerender', () => {
+    it('recreates channel when projectId changes', () => {
+      const { rerender } = renderHook(
+        ({ pid }) => useProjectRealtime(pid),
+        { initialProps: { pid: 'proj-1' as string | null }, wrapper: createWrapper() },
+      );
+
+      expect(supabase.channel).toHaveBeenCalledWith('db-changes:project-proj-1');
+
+      rerender({ pid: 'proj-2' });
+
+      // Should remove old channel and create new one
+      expect(mockRemoveChannel).toHaveBeenCalled();
+      expect(supabase.channel).toHaveBeenCalledWith('db-changes:project-proj-2');
+    });
+  });
+});
