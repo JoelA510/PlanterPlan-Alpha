@@ -6,8 +6,8 @@ import {
   mergeTaskUpdates,
   updateTreeExpansion,
   mergeChildrenIntoTree,
-} from './tree-helpers';
-import { makeTask } from '@/test-utils';
+} from '@/shared/lib/tree-helpers';
+import { makeTask } from '@test';
 import type { TaskRow } from '@/shared/db/app.types';
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { makeTask } from '@/test-utils';
+import { makeTask } from '@test';
 
 // ---------------------------------------------------------------------------
 // Supabase mock — chainable query builder
@@ -26,7 +26,7 @@ const mockGetUser = vi.fn();
 const mockSignOut = vi.fn();
 const mockUpdateUser = vi.fn();
 
-vi.mock('../db/client', () => ({
+vi.mock('@/shared/db/client', () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
     rpc: (...args: unknown[]) => mockRpc(...args),
@@ -39,7 +39,7 @@ vi.mock('../db/client', () => ({
 }));
 
 // Mock retry as passthrough (retry logic tested separately in retry.test.ts)
-vi.mock('../lib/retry.js', () => ({
+vi.mock('@/shared/lib/retry', () => ({
   retry: (fn: () => unknown) => fn(),
 }));
 
@@ -51,7 +51,7 @@ vi.mock('@/shared/lib/date-engine', () => ({
 }));
 
 // Import after mocks
-import { planter, PlanterError } from './planterClient';
+import { planter, PlanterError } from '@/shared/api/planterClient';
 import { calculateMinMaxDates } from '@/shared/lib/date-engine';
 
 beforeEach(() => {

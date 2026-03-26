@@ -89,7 +89,7 @@ workflow: `.antigravity/workflows/05-debug-loop-5.md`
 ### E2E Directory Map
 
 ```
-e2e/
+Testing/e2e/
 ├── features/           ← Gherkin .feature files (18 domains)
 │   ├── accessibility/  ├── auth/           ├── daily/
 │   ├── dashboard/      ├── date-engine/    ├── error-states/

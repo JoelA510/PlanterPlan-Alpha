@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { exportProjectToCSV, type ExportableTask, type ExportableProject } from './export-utils';
+import { exportProjectToCSV, type ExportableTask, type ExportableProject } from '@/features/projects/lib/export-utils';
 
 describe('exportProjectToCSV', () => {
   let clickSpy: ReturnType<typeof vi.fn>;
