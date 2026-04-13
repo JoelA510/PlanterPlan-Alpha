@@ -117,7 +117,6 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 
 ### 3.8 Technical Hardening & Infrastructure
 - [/] **Build Stabilization (Wave 16)**: Eliminating `tsc` errors, dead code, and standardizing Supabase `| null` types to clear Vercel deployment blockers.
-- [ ] **Data Flow Simplification (Wave 17)**: Migrate to `@supabase-cache-helpers` to eliminate manual React Query invalidations and sunset `planterClient.ts`.
 - [ ] **Mobile Infrastructure**: PWA Support (Installable on iOS/Android) and Local-first offline mode (RxDB/WatermelonDB sync).
 
 ---

@@ -1,8 +1,48 @@
 # repo-context.yaml
 # PlanterPlan Task Management System
 # Generated from codebase analysis
-# Last Updated: 2026-03-03 (Wave 16 - Simplification Sprint & Build Stabilization)
+# Last Updated: 2026-04-13 (SSoT Architecture Consolidation)
 # Specification: spec.md
+# Definitive Architecture: docs/architecture/*.md (SINGLE SOURCE OF TRUTH)
+
+project:
+  name: planterplan-alpha
+  type: react-spa
+  stack:
+    - react
+    - typescript
+    - vite
+    - tailwindcss
+    - supabase
+    - react-query
+    - dnd-kit
+
+architecture:
+  pattern: feature-sliced-design
+  layers:
+    - src/app (Provider setup, global routing)
+    - src/layouts (Dashboard shell, sidebar, mobile FAB)
+    - src/pages (Route views orchestrating features)
+    - src/features (Business logic domains: auth, dashboard, library, projects, tasks, team)
+    - src/shared (UI primitives, API clients, date-engine, tree-helpers)
+
+data_models:
+  projects:
+    - root_tasks (parent_task_id = null)
+    - fields: id, title, target_launch_date, due_soon_days
+    - deprecated: location # DO NOT USE
+  tasks:
+    - nested_items (parent_task_id != null)
+    - hierarchy: Phase -> Milestone -> Task -> Subtask
+    - strict_constraint: Max Subtask Depth = 1
+  team:
+    - roles: owner, editor, coach, viewer, limited
+    - table: project_members
+
+key_mechanisms:
+  data_fetching: "Supabase accessed EXCLUSIVELY via src/shared/api/planterClient.ts + React Query"
+  date_cascading: "Autonomous engine in src/shared/lib/date-engine/ dynamically shifts inheritance bounds"
+  testing: "Vitest (Unit) + Playwright BDD (Testing/e2e/)"
 
 # ==========================================
 # 1. SEMANTIC DEPENDENCY GRAPH
@@ -167,6 +207,7 @@ modules:
           "FSD boundary enforcement (ADR-8)",
         ]
         location: "src/shared/constants/index.ts"
+
 # ==========================================
 # 2. BEHAVIOR SPECIFICATIONS
 # ==========================================
