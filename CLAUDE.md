@@ -14,7 +14,9 @@ npm run test:e2e     # Playwright BDD end-to-end tests
 
 **Always run `npm run build` after code changes to verify.** The build enforces `noUnusedLocals` and `noUnusedParameters` — unused variables are errors, not warnings.
 
-## Architecture
+## Architecture & Single Source of Truth (SSoT)
+
+> **CRITICAL:** For all domain business rules, state machines, and data models, refer strictly to **`docs/architecture/*.md`**. Those domain-separated files represent the definitive Single Source of Truth. Read them before attempting architectural refactors.
 
 ### Feature-Sliced Design (FSD)
 
@@ -138,12 +140,12 @@ Each feature has `components/` and `hooks/` subdirectories:
 - `useTeam` — Fetches and manages project team members.
 
 **`projects/`** — Project-level operations.
-- `ProjectHeader` — Title, status badge, date, location, team size, action buttons (wrapping row). Not sticky — scrolls with content.
+- `ProjectHeader` — Title, status badge, date, team size, action buttons (wrapping row). Not sticky — scrolls with content. *(Location field officially deprecated).*
 - `ProjectTabs` — Tab navigation between project views.
 - `PhaseCard` — Phase card with tasks, progress, lock state.
 - `MilestoneSection` — Milestones with completion tracking. Tasks rendered as `SortableTaskItem` inside `SortableContext` for drag-drop reordering.
 - `EditProjectModal` — Edit project metadata.
-- `InviteMemberModal` — Invite by email with role selection.
+- `InviteMemberModal` — Invite by email with role selection (dispatched via Supabase Edge Functions).
 - `NewProjectForm` — Project creation form with Zod validation.
 - `useProjectData` — Fetches project details + tasks + team; includes realtime listeners.
 - `useProjectMutations` — Project CRUD with optimistic updates.
@@ -156,7 +158,7 @@ Each feature has `components/` and `hooks/` subdirectories:
 - `TaskForm` / `TaskFormFields` — Task create/edit form (form state, Zod validation, fields).
 - `InlineTaskInput` — Quick inline task creation.
 - `TaskResources` — Task attachment display.
-- `TaskDependencies` — Shows prerequisites and phase unlock logic.
+- `TaskDependencies` — Shows prerequisites and phase unlock logic (horizontal constraints).
 - `TaskStatusSelect` — Status dropdown.
 - `TaskControlButtons` — Edit/delete/complete action buttons.
 - `ProjectListView` — Tree/list view with expand/collapse.
@@ -216,6 +218,7 @@ Component → React Query hook → planterClient → Supabase SDK
 - **Tasks and Projects share one DB table** (`tasks`). A "project" is a root task (`parent_task_id = null`). Hierarchy is `root_id` + `parent_task_id`.
 - **origin** field: `'template'` (library templates) vs `'instance'` (active projects).
 - **date-engine** (`src/shared/lib/date-engine/`): Handles date calculations, cascading parent dates, relative scheduling. Modify with care.
+- **Max Subtask Depth:** Subtasks cannot have child tasks (Maximum depth = 1). The drag-and-drop system actively rejects deep nesting invariants.
 
 ## Tech Stack
 
@@ -287,7 +290,7 @@ RLS is enabled on all tables. Authorization is role-based per project.
 
 ### Role Hierarchy
 
-`owner > editor > coach > viewer > limited` — defined in `project_members.role`.
+`owner > editor > coach > viewer > limited` — defined in `project_members.role` (Refer to `docs/architecture/auth-rbac.md` for specific permissions).
 
 ### Core RLS Helper Functions (SECURITY DEFINER)
 
@@ -324,6 +327,8 @@ Most tables follow the same pattern:
 
 ## Critical Files
 
+- `docs/architecture/*.md` — **SINGLE SOURCE OF TRUTH.** Read these domain files before attempting architectural refactors.
+- `docs/db/schema.sql` — Database schema source of truth
 - `src/shared/api/planterClient.ts` — All CRUD + business logic (hierarchy, cloning, cascading dates)
 - `src/shared/contexts/AuthContext.tsx` — Auth state, session, role hydration
 - `src/shared/lib/date-engine/index.ts` — Date calculations (fragile, test thoroughly)
@@ -331,4 +336,3 @@ Most tables follow the same pattern:
 - `src/features/tasks/components/TaskList.tsx` — Main project task view (project selection, tree, board UI)
 - `src/features/tasks/hooks/useTaskMutations.ts` — Task CRUD with optimistic updates
 - `src/features/tasks/hooks/useTaskQuery.ts` — Coordinates task + project queries
-- `docs/db/schema.sql` — Database schema source of truth

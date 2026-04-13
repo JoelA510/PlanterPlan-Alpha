@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.3.0 (Wave 16/17 — Build Stabilization & Data Flow Simplification) 
-> **Last Updated**: 2026-03-04 
+> **Version**: 1.4.0 (Architecture Consolidation & SSoT Alignment) 
+> **Last Updated**: 2026-04-13 
 > **Status**: Active Development (Vercel Deployment Blocker Resolution)
 
 ---
@@ -47,10 +47,10 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 ### 3.2 Projects Domain
 - [x] **Creation & Deletion**: Create project from Master Template (deep clone RPC), delete project.
 - [x] **Team Management**:
-  - [x] Invite a member via email with a specific role.
+  - [x] Invite a member via email with a specific role (Driven by Supabase Edge Functions).
   - [x] Remove a member.
   - [x] Change member role permissions.
-- [/] **Project Settings**: Edit due date, due soon thresholds, and location (Database schema `settings` JSONB exists; UI implementation ongoing).
+- [/] **Project Settings**: Edit due date and due soon thresholds. *(Note: The `Location` field is officially deprecated and will be stripped from the UI/schema).*
 - [-] **Advanced Access**: Assign Phase/Milestone to a limited viewer.
 - [ ] **Checkpoint-Based Architecture**: Alternate project type that unlocks sequential phases upon completing the previous phase, without rigid due dates.
 - [ ] **Secondary Projects**: Ability to create and toggle between multiple projects, filtering out archived/completed projects from the active menu.
@@ -64,6 +64,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Task Hierarchy & Visualization**:
   - [x] View project/template tasks in an expandable/collapsible hierarchy tree.
   - [x] Edit task, subtask, and milestone info.
+  - [x] **Max Subtask Depth Constraint**: Subtasks cannot have child tasks (Maximum depth = 1). The drag-and-drop engine strictly enforces this invariant.
   - [ ] **Kanban Board V2**: Native column-to-column drag-and-drop with strict type safety (replacing the V1 math-heavy board).
 - [x] **Drag and Drop Engine**:
   - [x] Pick up and drag tasks to any location.
@@ -72,11 +73,12 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] Strict cycle detection (Unable to drop a parent inside its own child).
   - [x] Position renormalization and cascading due-date changes based on parent movement.
 - [x] **Task Interactions**:
-  - [x] Edit completeness status.
+  - [x] Edit completeness status (`To Do` -> `In Progress` -> `Complete` -> `Blocked` -> `N/A`).
   - [x] Assign user as "Lead" (`assignee_id`).
-  - [ ] **Task Status Extensions**: Ability to mark a task as "N/A" (Not Applicable).
+  - [x] **Horizontal Dependencies**: Map dependencies between tasks that restrict out-of-sequence completion.
   - [ ] **Milestone Automation**: Auto-update a milestone's completeness status when all child tasks are marked complete.
-- [ ] **Due Date Engine**: 
+- [ ] **Date Engine (Cascading Dates)**: 
+  - [x] Drag-and-drop boundary recalculations based on inheritance bounds.
   - [ ] Recalculate and assign relative due dates to all incomplete tasks when root project start/completion dates are changed.
   - [ ] Automatically bubble up earliest start dates and latest due dates to parent milestones/phases.
   - [ ] Nightly CRON job to automatically transition task statuses ('Not Yet Due' -> 'Current' -> 'Due Soon' -> 'Overdue').
@@ -138,6 +140,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 
 ## 5. Technical Architecture
 
-For a deep dive into the system architecture, please refer to:
-- **[FULL_ARCHITECTURE.md](docs/FULL_ARCHITECTURE.md)**: Comprehensive technical reference.
+For a deep dive into the system architecture and core business rules, please refer to the domain-separated Single Source of Truth:
+- **`docs/architecture/`**: Contains the modular, definitive architecture documentation (Auth, Date Engine, Tasks, etc.).
 - **[repo-context.yaml](repo-context.yaml)**: Machine-readable dependency graph.
+*(Note: Old monolithic architecture files like `FULL_ARCHITECTURE.md` are deprecated).*
