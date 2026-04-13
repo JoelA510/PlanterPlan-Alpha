@@ -19,7 +19,6 @@
 - **`docs/`**: Source of Truth.
   - `docs/architecture/*.md`: The definitive, modular Single Source of Truth for all domain business rules (Date Engine, RBAC, Tasks). **Always check here first before attempting architectural refactors.**
   - `docs/db/schema.sql`: Current Database Schema.
-  - `docs/ENGINEERING_KNOWLEDGE.md`: Lessons learned & common pitfalls.
 
 ## 2. Key Patterns
 
@@ -72,12 +71,6 @@ The following files are generated or tracked for AI context but are not critical
 for a human code review. They can be safely ignored to save focus:
 
 - **`.ai-ignore/docs/FULL_ARCHITECTURE.md`**: Monolithic legacy architecture file. Replaced completely by `docs/architecture/`.
-- **`PR_DESCRIPTION_DRAFT.md`**: Draft content for the PR description (Root).
-- **`DEBT_REPORT.md`**: A comprehensive log of technical debt and linting
-  issues.
-- **`docs/operations/ENGINEERING_KNOWLEDGE.md`**: A cumulative knowledge base;
-  check only if solving a complex architectural problem.
-- **`browser_audit.json`**: Automated verification logs.
 - **`docs/db/drafts/*`**: Work-in-progress SQL scripts.
 - **`.antigravity/*`**: AI Agent configuration, rules, and workflows.
 - **`archive/*`**: Old code and documentation.
