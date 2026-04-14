@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks, no-empty-pattern */
 import { test as base } from 'playwright-bdd';
 import { AUTH_STATES } from './test-data';
 

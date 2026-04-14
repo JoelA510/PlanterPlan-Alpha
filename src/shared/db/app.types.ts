@@ -68,7 +68,7 @@ export interface Person extends PersonRow {
 export type UserRole = 'admin' | 'owner' | 'viewer';
 
 export interface UserMetadata {
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface User {

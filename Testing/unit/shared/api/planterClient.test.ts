@@ -263,7 +263,8 @@ describe('Task entity', () => {
 
   it('updateStatus() recursively updates children when completed', async () => {
     // Mock Task.update (base CRUD) and Task.filter
-    const parent = makeTask({ id: 'parent' });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _parent = makeTask({ id: 'parent' });
     const child1 = makeTask({ id: 'child-1', parent_task_id: 'parent' });
     const child2 = makeTask({ id: 'child-2', parent_task_id: 'parent' });
 
@@ -271,10 +272,10 @@ describe('Task entity', () => {
     const updateChains: ReturnType<typeof createChain>[] = [];
     const filterChains: ReturnType<typeof createChain>[] = [];
 
-    mockFrom.mockImplementation((table: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    mockFrom.mockImplementation((_table: string) => {
       // Each call to from() could be update or filter
       // updateStatus calls Task.update then Task.filter then recursive Task.update calls
-      const chain = createChain({ data: [parent], error: null });
 
       // For filter calls (select without update), return children first, then empty
       if (filterChains.length === 0) {

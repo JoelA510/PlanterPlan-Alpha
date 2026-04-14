@@ -157,7 +157,8 @@ Then('every input field has an associated label', async ({ page }) => {
   expect(unlabeled).toBe(0);
 });
 
-Then('labels are programmatically linked to inputs', async ({ page }) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+Then('labels are programmatically linked to inputs', async ({ page: _page }) => {
   // Covered by the previous assertion
 });
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import type { KeyboardEvent, FocusEvent } from 'react';
+import type { KeyboardEvent } from 'react';
 import { Loader2 } from 'lucide-react';
 import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
 
@@ -103,7 +103,7 @@ const InlineTaskInput = ({
  }
  };
 
- const handleBlur = (_e: FocusEvent<HTMLInputElement>) => {
+ const handleBlur = () => {
  setTimeout(() => {
  if (!title.trim() && !loading) {
  onCancel();

@@ -108,6 +108,7 @@ Then('each phase shows a progress bar', async ({ page }) => {
   await expect(page.locator('[role="progressbar"]').first()).toBeVisible();
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 Then('each phase detail shows {string} completion count', async ({ page }, _pattern: string) => {
   await expect(page.getByText(/of \d+/)).toBeVisible();
 });

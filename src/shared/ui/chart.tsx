@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ResponsiveContainer, Tooltip, Legend } from 'recharts';
-// @ts-ignore
+// @ts-expect-error - recharts types incompatible with current setup
 import type { Payload } from 'recharts/types/component/DefaultLegendContent';
 import { cn } from '@/shared/lib/utils';
 
