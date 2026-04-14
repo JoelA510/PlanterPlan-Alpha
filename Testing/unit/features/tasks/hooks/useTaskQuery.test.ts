@@ -164,7 +164,7 @@ describe('useTaskQuery', () => {
     // Re-mock useAuth to return null user for this test
     const authModule = await import('@/shared/contexts/AuthContext');
     const originalUseAuth = authModule.useAuth;
-    (authModule as any).useAuth = () => ({ user: null });
+    (authModule as unknown as { useAuth: typeof authModule.useAuth }).useAuth = () => ({ user: null });
 
     const { Wrapper } = createWrapper();
     const { result } = renderHook(() => useTaskQuery(), { wrapper: Wrapper });
@@ -174,6 +174,6 @@ describe('useTaskQuery', () => {
     expect(mockListByCreator).not.toHaveBeenCalled();
 
     // Restore
-    (authModule as any).useAuth = originalUseAuth;
+    (authModule as unknown as { useAuth: typeof authModule.useAuth }).useAuth = originalUseAuth;
   });
 });

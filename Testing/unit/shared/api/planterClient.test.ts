@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { makeTask } from '@test';
+import type { PersonInsert, PersonUpdate, PersonRow, TaskRow, UserMetadata } from '@/shared/db/app.types';
 
 // ---------------------------------------------------------------------------
 // Supabase mock — chainable query builder
@@ -16,7 +17,7 @@ function createChain(resolvedValue: { data: unknown; error: unknown } = { data: 
     chain[m] = vi.fn().mockReturnValue(chain);
   }
   // Make the chain thenable so `await query` resolves
-  (chain as any).then = (resolve: (v: unknown) => void) => resolve(resolvedValue);
+  (chain as unknown as { then: (resolve: (v: unknown) => void) => void }).then = (resolve: (v: unknown) => void) => resolve(resolvedValue);
   return chain;
 }
 
@@ -89,7 +90,7 @@ describe('Base EntityClient CRUD (Person)', () => {
     const chain = createChain({ data: [{ id: 'p2', ...payload }], error: null });
     mockFrom.mockReturnValue(chain);
 
-    await planter.entities.Person.create(payload as any);
+    await planter.entities.Person.create(payload as PersonInsert);
 
     expect(chain.insert).toHaveBeenCalledWith(payload);
     expect(chain.select).toHaveBeenCalledWith('*');
@@ -100,7 +101,7 @@ describe('Base EntityClient CRUD (Person)', () => {
     const chain = createChain({ data: [{ id: 'p1', ...payload }], error: null });
     mockFrom.mockReturnValue(chain);
 
-    await planter.entities.Person.update('p1', payload as any);
+    await planter.entities.Person.update('p1', payload as PersonUpdate);
 
     expect(chain.update).toHaveBeenCalledWith(payload);
     expect(chain.eq).toHaveBeenCalledWith('id', 'p1');
@@ -121,7 +122,7 @@ describe('Base EntityClient CRUD (Person)', () => {
     const chain = createChain({ data: [{ id: 'p1' }], error: null });
     mockFrom.mockReturnValue(chain);
 
-    await planter.entities.Person.filter({ project_id: 'proj-1', status: null } as any);
+    await planter.entities.Person.filter({ project_id: 'proj-1', status: null } as Partial<PersonRow>);
 
     expect(chain.eq).toHaveBeenCalledWith('project_id', 'proj-1');
     expect(chain.is).toHaveBeenCalledWith('status', null);
@@ -382,7 +383,7 @@ describe('Auth', () => {
     const attrs = { full_name: 'Updated Name' };
     mockUpdateUser.mockResolvedValue({ data: { user: { id: 'user-1', ...attrs } }, error: null });
 
-    await planter.auth.updateProfile(attrs as any);
+    await planter.auth.updateProfile(attrs as UserMetadata);
 
     expect(mockUpdateUser).toHaveBeenCalledWith({ data: attrs });
   });
@@ -429,7 +430,7 @@ describe('Untested methods (Category A)', () => {
     const chain = createChain({ data: [payload], error: null });
     mockFrom.mockReturnValue(chain);
 
-    const result = await planter.entities.Person.upsert(payload as any, { onConflict: 'id' });
+    const result = await planter.entities.Person.upsert(payload as PersonInsert, { onConflict: 'id' });
 
     expect(chain.upsert).toHaveBeenCalledWith(payload, { onConflict: 'id', ignoreDuplicates: undefined });
     expect(chain.select).toHaveBeenCalledWith('*');
@@ -440,7 +441,7 @@ describe('Untested methods (Category A)', () => {
     const chain = createChain({ data: [], error: null });
     mockFrom.mockReturnValue(chain);
 
-    await planter.entities.Project.filter({ status: 'launched' } as any);
+    await planter.entities.Project.filter({ status: 'launched' } as Partial<TaskRow>);
 
     expect(chain.is).toHaveBeenCalledWith('parent_task_id', null);
     expect(chain.eq).toHaveBeenCalledWith('origin', 'instance');
