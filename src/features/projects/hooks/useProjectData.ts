@@ -48,9 +48,9 @@ export function useProjectData(projectId: string | null | undefined): UseProject
         queryFn: () => planter.entities.Project.getWithStats(projectId!),
         enabled: !!projectId,
         staleTime: 1000 * 60 * 5, // 5 minutes cache
-    } as any);
+    });
 
-    const project = (data as any)?.data;
+    const project = (data as { data?: Project } | undefined)?.data;
 
     // 2. Fetch Full Project Hierarchy
     const { data: projectHierarchy = [] } = useQuery<HierarchyTask[]>({

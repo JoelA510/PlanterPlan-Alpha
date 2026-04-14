@@ -44,7 +44,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
         title: '',
         description: '',
         templateId: DEFAULT_SCAFFOLD_ID,
-        start_date: toIsoDate(nowUtcIso()) as any,
+        start_date: toIsoDate(nowUtcIso()) || '',
     });
 
     const { results: dbTemplates, isLoading: templatesLoading } = useMasterLibrarySearch({
@@ -78,7 +78,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
             const submitData = { ...formData };
             // If default scaffold, strip templateId so useCreateProject takes the blank path
             if (submitData.templateId === DEFAULT_SCAFFOLD_ID) {
-                delete (submitData as any).templateId;
+                delete (submitData as Partial<CreateProjectFormData>).templateId;
             }
             await onSubmit(submitData);
             onClose();
@@ -92,7 +92,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                 title: '',
                 description: '',
                 templateId: DEFAULT_SCAFFOLD_ID,
-                start_date: toIsoDate(nowUtcIso()) as any,
+                start_date: toIsoDate(nowUtcIso()) || '',
             });
         }
     };

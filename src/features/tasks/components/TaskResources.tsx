@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { TaskResourceRow } from '@/shared/db/app.types';
 import { Button } from '@/shared/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
@@ -43,7 +44,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }: T
 
  const queryClient = useQueryClient();
 
- const { data: resources = [] } = useQuery<any[]>({
+ const { data: resources = [] } = useQuery<TaskResourceRow[]>({
  queryKey: ['resources', taskId],
  queryFn: () => planter.entities.TaskResource.filter({ task_id: taskId }),
  enabled: !!taskId,
@@ -106,7 +107,7 @@ export default function TaskResources({ taskId, primaryResourceId, onUpdate }: T
  <p className="text-sm text-muted-foreground py-4 text-center">No resources yet</p>
  ) : (
  resources.map((resource) => {
- const type = (resource.resource_type || resource.type || 'url') as ResourceType;
+ const type = (resource.resource_type || 'url') as ResourceType;
  const Icon = resourceTypeIcons[type] || FileText;
  const isPrimary = primaryResourceId === resource.id;
 

@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { TaskRow, Project } from '@/shared/db/app.types';
+import type { TaskRow, Project, TaskInsert, CreateProjectFormData } from '@/shared/db/app.types';
+import type { Database } from '@/shared/db/database.types';
+import type { CreateProjectPayload } from '@/features/projects/hooks/useProjectMutations';
 import { Button } from '@/shared/ui/button';
 import { Plus, FolderKanban, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -31,9 +33,9 @@ export default function Dashboard() {
     const createProjectMutation = useCreateProject();
     const updateStatusMutation = useUpdateProjectStatus();
 
-    const handleCreateProject = async (projectData: any) => {
+    const handleCreateProject = async (projectData: CreateProjectFormData) => {
         try {
-            const project = await createProjectMutation.mutateAsync(projectData);
+            const project = await createProjectMutation.mutateAsync(projectData as unknown as CreateProjectPayload);
             if (project?.id) {
                 navigate(`/project/${project.id}`);
             }
@@ -67,14 +69,14 @@ export default function Dashboard() {
                 status: 'planning',
                 creator: userId,
                 assignee_id: userId,
-            } as any);
+            } as TaskInsert);
             if (template?.id) {
                 // Add creator as owner so RLS allows access
                 await planter.entities.TeamMember.create({
                     project_id: template.id,
                     user_id: userId,
                     role: 'owner',
-                } as any);
+                } as Database['public']['Tables']['project_members']['Insert']);
                 toast.success('Template created');
                 queryClient.invalidateQueries({ queryKey: ['projects', 'template'] });
                 navigate(`/project/${template.id}`);
@@ -131,7 +133,7 @@ export default function Dashboard() {
 
             {/* Stats and Top Widgets */}
             <div className="mb-8 flex-shrink-0">
-                <MobileAgenda tasks={data.filteredTasks as any} />
+                <MobileAgenda tasks={data.filteredTasks as TaskRow[]} />
                 <StatsOverview projects={data.projects as Project[]} tasks={data.filteredTasks as TaskRow[]} />
             </div>
 
@@ -179,7 +181,12 @@ export default function Dashboard() {
 
             <OnboardingWizard
                 open={!state.isLoading && data.projects.length === 0 && !state.wizardDismissed}
-                onCreateProject={handleCreateProject}
+                onCreateProject={async (wizardData) => {
+                    await handleCreateProject({
+                        title: wizardData.title,
+                        start_date: wizardData.due_date || '',
+                    } as CreateProjectFormData);
+                }}
                 onDismiss={actions.handleDismissWizard}
             />
         </div>

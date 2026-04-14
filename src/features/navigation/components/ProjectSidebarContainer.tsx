@@ -25,7 +25,7 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }: 
  const instanceTasks = tasks.filter((t) => t.origin === 'instance');
  const templateTasks = tasks.filter((t) => t.origin === 'template');
 
- const handleSelectProject = (project: Record<string, unknown>) => {
+ const handleSelectProject = (project: { id: string }) => {
  navigate(`/project/${project.id}`);
  };
 

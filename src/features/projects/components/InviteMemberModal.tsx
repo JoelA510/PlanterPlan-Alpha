@@ -12,7 +12,7 @@ interface InviteMemberModalProps {
 
 const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose, onInviteSuccess }) => {
     const [userId, setUserId] = useState('');
-    const [role, setRole] = useState(ROLES.VIEWER);
+    const [role, setRole] = useState<string>(ROLES.VIEWER);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -129,7 +129,7 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
                         <select
                             id="role"
                             value={role}
-                            onChange={(e) => setRole(e.target.value as any)}
+                            onChange={(e) => setRole(e.target.value)}
                             className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm form-select p-2 border"
                         >
                             <option value={ROLES.VIEWER}>Viewer (Read-only)</option>

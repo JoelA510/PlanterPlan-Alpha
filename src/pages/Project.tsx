@@ -17,7 +17,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/shared/ui/button';
 import { useCreateTask, useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
 import { toast } from 'sonner';
-import type { TaskRow, Project as ProjectType, TaskFormData } from '@/shared/db/app.types';
+import type { TaskRow, Project as ProjectType, TaskFormData, PersonRow } from '@/shared/db/app.types';
 
 import ProjectHeader from '@/features/projects/components/ProjectHeader';
 import ProjectTabs from '@/features/projects/components/ProjectTabs';
@@ -50,7 +50,7 @@ export default function Project() {
     const lastUpdateRef = useRef(0);
 
     // Form states restored
-    const [taskFormState, setTaskFormState] = useState<any>(null);
+    const [taskFormState, setTaskFormState] = useState<{ mode?: 'create' | 'edit'; origin?: 'instance' | 'template'; isPhase?: boolean } | null>(null);
 
     const createTask = useCreateTask();
     const updateTask = useUpdateTask();
@@ -223,7 +223,7 @@ export default function Project() {
                     <ProjectHeader
                         project={project as ProjectType}
                         tasks={tasks as TaskRow[]}
-                        teamMembers={teamMembers as any}
+                        teamMembers={teamMembers as unknown as PersonRow[]}
                         canInvite={canInvite}
                         canManageSettings={canManageSettings}
                         onInviteMember={() => actions.setShowInviteModal(true)}
@@ -254,7 +254,7 @@ export default function Project() {
                                                 <PhaseCard
                                                     phase={phase as TaskRow}
                                                     tasks={tasks as TaskRow[]}
-                                                    milestones={(milestones || []).filter((m: any) => m.parent_task_id === phase.id) as TaskRow[]}
+                                                    milestones={(milestones || []).filter((m) => (m as TaskRow).parent_task_id === phase.id) as TaskRow[]}
                                                     isActive={activePhase?.id === phase.id}
                                                     onClick={() => actions.setSelectedPhase(phase as TaskRow)}
                                                 />
@@ -303,7 +303,7 @@ export default function Project() {
                                                     <MilestoneSection
                                                         key={milestone.id}
                                                         milestone={milestone}
-                                                        tasks={(tasks as TaskRow[] || []).map(computed.mapTaskWithState) as any}
+                                                        tasks={(tasks as TaskRow[] || []).map(computed.mapTaskWithState) as TaskRow[]}
                                                         onTaskUpdate={canEdit ? (handlers.handleTaskUpdate as (id: string, updates: Partial<TaskRow>) => void) : undefined}
                                                         onAddChildTask={canEdit ? handlers.handleStartInlineAdd : undefined}
                                                         onToggleExpand={handlers.handleToggleExpand}
@@ -371,7 +371,7 @@ export default function Project() {
                                 phasesOnly={!!taskFormState?.isPhase}
                             />
                         )}
-                        onDeleteTaskWrapper={async () => { if (state.selectedTask) await (handlers.handleDeleteTask(state.selectedTask) as any); }}
+                        onDeleteTaskWrapper={async () => { if (state.selectedTask) await handlers.handleDeleteTask(state.selectedTask); }}
                         handleEditTask={(task) => {
                             actions.setSelectedTask(task as TaskRow);
                             setTaskFormState({ mode: 'edit', origin: projectOrigin });

@@ -8,9 +8,9 @@ import { TASK_STATUS } from '@/shared/constants';
 interface AgendaTask {
  id: string;
  title?: string;
- status?: string;
+ status?: string | null;
  due_date?: string | null;
- root_id?: string;
+ root_id?: string | null;
  [key: string]: unknown;
 }
 
