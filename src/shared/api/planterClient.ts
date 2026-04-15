@@ -38,6 +38,7 @@ export interface PlanterClient {
         me: () => Promise<AuthUser | null>;
         signOut: () => Promise<void>;
         updateProfile: (attributes: UserMetadata) => Promise<AuthUser>;
+        changePassword: (newPassword: string) => Promise<void>;
     };
     entities: {
         Project: ProjectEntityClient;
@@ -46,8 +47,9 @@ export interface PlanterClient {
         Phase: EntityClient<Task, TaskInsert, TaskUpdate>;
         Milestone: EntityClient<Task, TaskInsert, TaskUpdate>;
         TaskWithResources: {
-            listTemplates: (options?: { from?: number, limit?: number, resourceType?: string | null, userId?: string, signal?: AbortSignal }) => Promise<{ data: Task[], error: Error | null }>;
-            searchTemplates: (options: { query: string, limit?: number, resourceType?: string | null, userId?: string, signal?: AbortSignal }) => Promise<{ data: Task[], error: Error | null }>;
+            listTemplates: (options?: { from?: number, limit?: number, resourceType?: string | null, userId?: string, viewerId?: string, signal?: AbortSignal }) => Promise<{ data: Task[], error: Error | null }>;
+            searchTemplates: (options: { query: string, limit?: number, resourceType?: string | null, userId?: string, viewerId?: string, signal?: AbortSignal }) => Promise<{ data: Task[], error: Error | null }>;
+            listAllVisibleTemplates: (viewerId?: string) => Promise<Task[]>;
         };
         TaskResource: TaskResourceEntityClient;
         TeamMember: EntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>;
@@ -220,6 +222,12 @@ export const planter: PlanterClient = {
                 });
                 if (error) throw error;
                 return data.user as AuthUser;
+            });
+        },
+        changePassword: async (newPassword: string): Promise<void> => {
+            return retry(async () => {
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) throw error;
             });
         },
     },
@@ -473,10 +481,44 @@ export const planter: PlanterClient = {
                 }
             },
             updateStatus: async (taskId: string, status: string): Promise<{ data: Task | null, error: Error | null }> => {
+                // Inner helper: derive parent status from child statuses when parent is not fully complete.
+                const deriveParentStatus = (children: Task[]): string => {
+                    if (children.some(child => child.status === 'blocked')) return 'blocked';
+                    if (children.some(child => child.status === 'in_progress')) return 'in_progress';
+                    if (children.some(child => child.status === 'overdue')) return 'overdue';
+                    return 'todo';
+                };
+
+                // Inner helper: walk UP the tree reconciling ancestor completion/status whenever
+                // any child status changes (milestone-level automation — §3.3).
+                const reconcileAncestors = async (parentId: string, depth: number): Promise<void> => {
+                    if (depth > 1) return; // guard: hierarchy is max 1 level of subtasks (§3.3)
+                    try {
+                        const children = await planter.entities.Task.filter({ parent_task_id: parentId });
+                        if (!children.length) return;
+
+                        const allChildrenCompleted = children.every(child => child.status === 'completed');
+                        const parentPatch: TaskUpdate = allChildrenCompleted
+                            ? { is_complete: true, status: 'completed', updated_at: nowUtcIso() }
+                            : { is_complete: false, status: deriveParentStatus(children), updated_at: nowUtcIso() };
+
+                        const parent = await planter.entities.Task.update(parentId, parentPatch);
+                        if (parent?.parent_task_id) {
+                            await reconcileAncestors(parent.parent_task_id, depth + 1);
+                        }
+                    } catch (err) {
+                        console.error('[PlanterClient.updateStatus.reconcileAncestors] Error:', err);
+                    }
+                };
+
                 try {
-                    const data = await planter.entities.Task.update(taskId, { status } as TaskUpdate);
+                    const data = await planter.entities.Task.update(taskId, {
+                        status,
+                        is_complete: status === 'completed',
+                    } as TaskUpdate);
 
                     if (status === 'completed') {
+                        // Cascade DOWN: mark all children as completed
                         const children = await planter.entities.Task.filter({ parent_task_id: taskId });
                         if (children && children.length > 0) {
                             const LIMIT = 3;
@@ -487,6 +529,11 @@ export const planter: PlanterClient = {
                                 );
                             }
                         }
+                    }
+
+                    // Reconcile UP: update parent milestone/phase whether child moved into or out of completed.
+                    if (data?.parent_task_id) {
+                        await reconcileAncestors(data.parent_task_id, 0);
                     }
                     return { data, error: null };
                 } catch (error: unknown) {
@@ -547,7 +594,7 @@ export const planter: PlanterClient = {
         Milestone: createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
         TaskWithResources: {
             ...createEntityClient<unknown, unknown, unknown>('tasks_with_primary_resource'),
-            listTemplates: async ({ from = 0, limit = 25, resourceType = null as string | null, userId, signal }: { from?: number, limit?: number, resourceType?: string | null, userId?: string, signal?: AbortSignal } = {}): Promise<{ data: Task[], error: Error | null }> => {
+            listTemplates: async ({ from = 0, limit = 25, resourceType = null as string | null, userId, viewerId, signal }: { from?: number, limit?: number, resourceType?: string | null, userId?: string, viewerId?: string, signal?: AbortSignal } = {}): Promise<{ data: Task[], error: Error | null }> => {
                 return retry(async () => {
                     const end = from + limit - 1;
                     let query = supabase
@@ -556,7 +603,13 @@ export const planter: PlanterClient = {
                         .eq('origin', 'template')
                         .is('parent_task_id', null);
 
-                    if (userId) query = query.eq('creator', userId);
+                    if (userId) {
+                        // Caller wants a specific user's templates (e.g. "my templates") — no published filter
+                        query = query.eq('creator', userId);
+                    } else if (viewerId) {
+                        // Show published templates OR ones created by the viewer
+                        query = query.or(`creator.eq.${viewerId},settings->>published.eq.true`);
+                    }
                     if (resourceType && resourceType !== 'all') {
                         query = query.eq('resource_type', resourceType as string);
                     }
@@ -569,7 +622,7 @@ export const planter: PlanterClient = {
                     return { data: (data as Task[]) || [], error: null };
                 });
             },
-            searchTemplates: async ({ query, limit = 20, resourceType = null as string | null, userId, signal }: { query: string, limit?: number, resourceType?: string | null, userId?: string, signal?: AbortSignal }): Promise<{ data: Task[], error: Error | null }> => {
+            searchTemplates: async ({ query, limit = 20, resourceType = null as string | null, userId, viewerId, signal }: { query: string, limit?: number, resourceType?: string | null, userId?: string, viewerId?: string, signal?: AbortSignal }): Promise<{ data: Task[], error: Error | null }> => {
                 return retry(async () => {
                     const normalized = (query || '').trim().slice(0, 100);
                     if (!normalized) return { data: [], error: null };
@@ -580,7 +633,11 @@ export const planter: PlanterClient = {
                         .select('*')
                         .eq('origin', 'template');
 
-                    if (userId) q = q.eq('creator', userId);
+                    if (userId) {
+                        q = q.eq('creator', userId);
+                    } else if (viewerId) {
+                        q = q.or(`creator.eq.${viewerId},settings->>published.eq.true`);
+                    }
                     q = q.or(`title.ilike.${pattern},description.ilike.${pattern}`);
 
                     if (resourceType && resourceType !== 'all') {
@@ -593,6 +650,24 @@ export const planter: PlanterClient = {
                     const { data, error } = await q;
                     if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
                     return { data: (data as Task[]) || [], error: null };
+                });
+            },
+            listAllVisibleTemplates: async (viewerId?: string): Promise<Task[]> => {
+                return retry(async () => {
+                    let query = supabase
+                        .from('tasks')
+                        .select('*')
+                        .eq('origin', 'template')
+                        .is('parent_task_id', null);
+
+                    if (viewerId) {
+                        query = query.or(`creator.eq.${viewerId},settings->>published.eq.true`);
+                    }
+                    query = query.order('created_at', { ascending: false });
+
+                    const { data, error } = await query;
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return (data as Task[]) || [];
                 });
             }
         },

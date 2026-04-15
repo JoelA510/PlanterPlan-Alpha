@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 interface UseMasterLibrarySearchProps {
  query?: string;
@@ -13,9 +14,12 @@ export const useMasterLibrarySearch = ({
  enabled = true,
  phasesOnly = false,
 }: UseMasterLibrarySearchProps = {}) => {
+ const { user } = useAuth();
+ const viewerId = user?.id;
+
  const { data: allTemplates, isLoading, error } = useQuery({
- queryKey: ['masterLibraryTemplates'],
- queryFn: () => planter.entities.Task.filter({ origin: 'template' }),
+ queryKey: ['masterLibraryTemplates', viewerId],
+ queryFn: () => planter.entities.TaskWithResources.listAllVisibleTemplates(viewerId),
  enabled,
  staleTime: 1000 * 60 * 5,
  });

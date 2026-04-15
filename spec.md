@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.5.0 (Wave 17 — Project Settings & Resource Library) 
-> **Last Updated**: 2026-04-14 
+> **Version**: 1.5.0 (Wave 18 — Milestone Automation, Date Bubble-up & Account Management) 
+> **Last Updated**: 2026-04-15 
 > **Status**: Active Development
 
 ---
@@ -41,7 +41,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] Login / Logout (Supabase GoTrue)
 - [x] Account Creation / Sign up
 - [x] Basic Error Handling (Wrong password/email)
-- [ ] **Account Management**: User ability to update password and profile data. Registration CORS/case-sensitivity hardening.
+- [x] **Account Management**: Password change and profile data update (name, avatar URL, role, organization, email preferences). Security tab added to Settings page. Registration CORS/case-sensitivity hardening deferred.
 - [ ] **Localization**: Complete Foreign Language UI mapping.
 
 ### 3.2 Projects Domain
@@ -76,11 +76,11 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] Edit completeness status (`To Do` -> `In Progress` -> `Complete` -> `Blocked` -> `N/A`).
   - [x] Assign user as "Lead" (`assignee_id`).
   - [x] **Horizontal Dependencies**: Map dependencies between tasks that restrict out-of-sequence completion.
-  - [ ] **Milestone Automation**: Auto-update a milestone's completeness status when all child tasks are marked complete.
-- [ ] **Date Engine (Cascading Dates)**: 
+  - [x] **Milestone Automation**: When all child tasks of a milestone/phase are marked complete, the parent is auto-completed (`is_complete` + `status`) recursively up the hierarchy. Driven by `updateStatus` bubble-up logic in `planterClient.ts`.
+- [x] **Date Engine (Cascading Dates)**: 
   - [x] Drag-and-drop boundary recalculations based on inheritance bounds.
-  - [ ] Recalculate and assign relative due dates to all incomplete tasks when root project start/completion dates are changed.
-  - [ ] Automatically bubble up earliest start dates and latest due dates to parent milestones/phases.
+  - [x] Recalculate and assign relative due dates to all incomplete tasks when root project start/completion dates are changed.
+  - [x] Automatically bubble up earliest start dates and latest due dates to parent milestones/phases (wired into task create, edit, and delete via `updateParentDates`).
   - [ ] Nightly CRON job to automatically transition task statuses ('Not Yet Due' -> 'Current' -> 'Due Soon' -> 'Overdue').
 - [ ] **Task Detail Enhancements**: Show related tasks in the same milestone, and add an action to email task details/content to users with saved address memory.
 - [ ] **Collaboration Suite**: Threaded comments on tasks, activity/audit logs, and real-time presence (cursors).
@@ -95,13 +95,13 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Library Integration**: Search and copy tasks from the Master Library when adding to a template or active project.
   - [ ] Intelligently hide library tasks already in the instance, and show topically related tasks.
 - [x] **Promotion**: Promote an instance task back to the Master Library.
-- [ ] **Template Publishing**: Ability to mark a template as "Published/Unpublished" to control visibility.
+- [x] **Template Publishing**: Ability to mark a template as "Published/Unpublished" to control visibility.
 
 ### 3.6 Dashboard, Views & Reporting
 - [x] **Metrics Overview**: View counts for current tasks, due soon, overdue.
 - [x] **Status Breakdown**: View metrics for complete, in progress, and blocked tasks.
 - [x] **Portfolio Tracking**: Number of active projects.
-- [ ] **Progress Visualization**: Project progress donut chart visible across task list views.
+- [x] **Progress Visualization**: Project progress donut chart visible across task list views.
 - [ ] **Project Status Report**: Report interface featuring reporting month selection, donut charts, and lists of completed, overdue, and upcoming milestones. 
 - [ ] **Task List Views & Filters**: Dedicated UI tables/pages to view tasks isolated by Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All Tasks, Milestones, and My Tasks. Include chronological/alphabetical sorting.
 - [ ] **Supervisor Reports**: Add a "supervisor" field during project setup and automatically dispatch Status Reports on the 2nd of each month.
@@ -117,6 +117,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 
 ### 3.8 Technical Hardening & Infrastructure
 - [x] **Build Stabilization (Wave 16)**: Eliminated all 131 ESLint errors (`no-explicit-any`, `no-unused-vars`, Playwright false positives, etc.) and resolved TypeScript build errors across 42 files. `npm run build`, `npm run lint`, and all 385 unit tests pass cleanly. Vercel deployment blocker resolved.
+- [x] **TS 5.9 / @types/node fix (Wave 18)**: Removed deprecated `baseUrl` from `tsconfig.app.json` (TypeScript bundler mode resolves `paths` without it); installed `@types/node` required by `tsconfig.node.json`. Build: 0 errors, 385/385 tests pass.
 - [ ] **Mobile Infrastructure**: PWA Support (Installable on iOS/Android) and Local-first offline mode (RxDB/WatermelonDB sync).
 
 ---

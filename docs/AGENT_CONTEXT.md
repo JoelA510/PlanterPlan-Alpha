@@ -56,6 +56,25 @@
 - **Resource Library**: `src/features/projects/components/ResourceLibrary.tsx` +
   `src/features/projects/hooks/useProjectResources.ts` — project-scoped resource browser tab (search + type filter). Data fetched via `planterClient.entities.TaskResource.listByProject(projectId)`, which uses a Supabase `!inner` join on `tasks.root_id`. Returns `ResourceWithTask[]` (defined in `src/shared/db/app.types.ts`).
 - **Project Settings Modal**: `src/features/projects/components/EditProjectModal.tsx` — edits title, description, start date, due date, and `due_soon_threshold` (stored in `tasks.settings` JSONB). The `location` field has been deprecated and removed from the UI.
+- **Settings Page**: `src/pages/Settings.tsx` + `src/features/settings/hooks/useSettings.ts` — Profile tab (name, avatar, role, org, email prefs) and Security tab (password change). Password change calls `planter.auth.changePassword(newPassword)`.
+
+## 3a. Key Behavioral Contracts (Wave 18)
+
+### Milestone / Phase Auto-Completion (§3.3)
+`planterClient.entities.Task.updateStatus(taskId, 'completed')` now:
+1. **Cascades DOWN**: marks all descendant tasks as `completed` (recursive, batched in groups of 3 via `Promise.all`).
+2. **Bubbles UP via `reconcileAncestors(parentId, depth)`**: after the cascade, checks whether all siblings of `taskId` are `completed`. If so, marks the parent (`is_complete: true, status: 'completed'`). If not, derives the parent's status via `deriveParentStatus(children)` (priority order: `blocked` > `in_progress` > `overdue` > `todo`) and sets `is_complete: false`. Recurses up the tree **depth-capped at 1** (i.e., `if (depth > 1) return` — processes the immediate parent and grandparent only). This is the app-level equivalent of the DB `check_phase_unlock` trigger.
+3. **Re-open behavior**: when a task moves OUT of `completed` (e.g., checkbox unchecked), `reconcileAncestors` is still called. Any ancestor that previously auto-completed is automatically un-completed with a derived status (`is_complete: false`, status = `deriveParentStatus`). This prevents stale "completed" parents when a child is re-opened.
+
+`useUpdateTask` routes **status-only** mutations through `updateStatus` (vs. the raw `Task.update`) so every checkbox toggle in the UI fires the full cascade/bubble pipeline. Mixed-field updates (e.g., form saves that include status + title) bypass this path and use the generic update.
+
+### Date Bubble-up (§3.3)
+`planterClient.entities.Task.updateParentDates(parentId)` is now called automatically:
+- **After task create** — always, when the new task has a parent.
+- **After task edit** — when `start_date` or `due_date` is part of the update payload.
+- **After task delete** — always, when the deleted task had a parent (parent ID captured from React Query cache in `onMutate` before optimistic removal).
+
+This is wired in `src/features/tasks/hooks/useTaskMutations.ts` (`useCreateTask`, `useUpdateTask`, `useDeleteTask` `onSettled` callbacks).
 
 ## 4. Testing & Verification
 

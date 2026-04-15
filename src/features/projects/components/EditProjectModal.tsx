@@ -8,9 +8,11 @@ import { Button } from '@/shared/ui/button';
 import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
+import { Switch } from '@/shared/ui/switch';
 import { useUpdateProject, useDeleteProject } from '@/features/projects/hooks/useProjectMutations';
 import { toIsoDate } from '@/shared/lib/date-engine';
 import type { TaskRow } from '@/shared/db/app.types';
+import { toast } from 'sonner';
 
 const editProjectSchema = z.object({
  title: z.string().min(1, 'Title is required'),
@@ -33,9 +35,11 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
  const navigate = useNavigate();
  const updateProjectMutation = useUpdateProject();
  const deleteProjectMutation = useDeleteProject();
+ const isTemplate = project.origin === 'template';
 
  // The raw typed database row `settings` might be loose JSON, so explicitly cast what we expect internally
  const currentSettings = (project.settings as Record<string, unknown>) || {};
+ const [isPublished, setIsPublished] = useState(currentSettings.published === true);
 
  const {
   register,
@@ -68,14 +72,20 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
     settings: {
      ...currentSettings,
      due_soon_threshold,
+     ...(isTemplate ? { published: isPublished } : {}),
     },
    };
 
-   await updateProjectMutation.mutateAsync({
+   const result = await updateProjectMutation.mutateAsync({
     projectId: project.id,
     updates: updateData as Record<string, unknown>,
     oldStartDate,
    });
+   if (result.shiftedCount > 0) {
+    toast.success(`Project saved. ${result.shiftedCount} task${result.shiftedCount === 1 ? '' : 's'} rescheduled.`);
+   } else {
+    toast.success('Project settings saved.');
+   }
    onClose();
   } catch (error) {
    console.error('[EditProjectModal] Failed to update project:', error);
@@ -125,6 +135,20 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
        )}
        <p className="text-xs text-slate-500">Tasks due within this many days will be flagged.</p>
       </div>
+
+      {isTemplate && (
+       <div className="flex items-center justify-between py-2">
+        <div>
+         <Label htmlFor="published-toggle" className="font-medium">Published</Label>
+         <p className="text-xs text-slate-500 mt-0.5">Published templates are visible to all users in the library.</p>
+        </div>
+        <Switch
+         id="published-toggle"
+         checked={isPublished}
+         onCheckedChange={setIsPublished}
+        />
+       </div>
+      )}
      </div>
 
      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 space-y-4">
