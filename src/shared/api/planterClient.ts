@@ -491,7 +491,7 @@ export const planter: PlanterClient = {
                 // Inner helper: walk UP the tree reconciling ancestor completion/status whenever
                 // any child status changes (milestone-level automation — §3.3).
                 const reconcileAncestors = async (parentId: string, depth: number): Promise<void> => {
-                    if (depth > 4) return; // guard: hierarchy is max ~4 levels deep
+                    if (depth > 1) return; // guard: hierarchy is max 1 level of subtasks (§3.3)
                     try {
                         const children = await planter.entities.Task.filter({ parent_task_id: parentId });
                         if (!children.length) return;
