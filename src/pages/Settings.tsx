@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -11,9 +12,13 @@ import {
 import { motion } from 'framer-motion';
 import { useSettings } from '@/features/settings/hooks/useSettings';
 
+type SettingsTab = 'profile' | 'security';
+
 export default function Settings() {
  const { state, actions } = useSettings();
- const { profile, loading, avatarError } = state;
+ const { profile, loading, avatarError, passwordForm, passwordError, passwordLoading } = state;
+
+ const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
  return (
  <>
@@ -26,16 +31,17 @@ export default function Settings() {
  <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
  {/* Settings Navigation */}
  <div className="md:col-span-1 space-y-1">
- {[
- { label: 'Profile', icon: User, active: true },
+ {([
+ { label: 'Profile', icon: User, tab: 'profile' as SettingsTab },
  { label: 'Notifications', icon: Bell, comingSoon: true },
- { label: 'Security', icon: Lock, comingSoon: true },
- ].map((item) => (
+ { label: 'Security', icon: Lock, tab: 'security' as SettingsTab },
+ ] as Array<{ label: string; icon: React.ElementType; tab?: SettingsTab; comingSoon?: boolean }>).map((item) => (
  <Button
  key={item.label}
  variant="ghost"
  disabled={item.comingSoon}
- className={`w-full justify-start ${item.active
+ onClick={() => item.tab && setActiveTab(item.tab)}
+ className={`w-full justify-start ${activeTab === item.tab
  ? 'text-brand-600 bg-brand-50 font-semibold'
  : 'text-muted-foreground'
  } ${item.comingSoon ? 'cursor-not-allowed opacity-70' : 'hover:text-foreground hover:bg-muted'}`}
@@ -51,7 +57,10 @@ export default function Settings() {
 
  {/* Content Area */}
  <div className="md:col-span-3">
- <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+ <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+
+ {/* Profile Tab */}
+ {activeTab === 'profile' && (
  <div className="bg-card rounded-xl border border-border shadow-sm p-6">
  <div className="flex items-center gap-6 mb-8">
  <div className="relative">
@@ -160,6 +169,65 @@ export default function Settings() {
  </div>
  </form>
  </div>
+ )}
+
+ {/* Security Tab */}
+ {activeTab === 'security' && (
+ <div className="bg-card rounded-xl border border-border shadow-sm p-6">
+ <div className="mb-8">
+ <h2 className="text-xl font-bold text-slate-900">Change Password</h2>
+ <p className="text-sm text-slate-500 mt-1">Update your password to keep your account secure.</p>
+ </div>
+
+ <form
+ onSubmit={(e) => { e.preventDefault(); actions.handlePasswordChange(); }}
+ className="space-y-4"
+ >
+ <div className="space-y-2">
+ <Label htmlFor="new_password" className="text-foreground">New Password</Label>
+ <Input
+ id="new_password"
+ type="password"
+ value={passwordForm.newPassword}
+ onChange={(e) => actions.setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+ onFocus={() => { if (passwordError) actions.setPasswordError(''); }}
+ placeholder="Enter new password (min. 8 characters)"
+ className="bg-background border-border"
+ autoComplete="new-password"
+ />
+ </div>
+
+ <div className="space-y-2">
+ <Label htmlFor="confirm_password" className="text-foreground">Confirm New Password</Label>
+ <Input
+ id="confirm_password"
+ type="password"
+ value={passwordForm.confirmPassword}
+ onChange={(e) => actions.setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+ onFocus={() => { if (passwordError) actions.setPasswordError(''); }}
+ placeholder="Re-enter new password"
+ className={`bg-background border-border ${passwordError ? 'border-destructive focus:ring-destructive' : ''}`}
+ autoComplete="new-password"
+ />
+ {passwordError && (
+ <p className="text-xs text-destructive">{passwordError}</p>
+ )}
+ </div>
+
+ <div className="pt-6 border-t border-border flex justify-end">
+ <Button
+ type="submit"
+ disabled={passwordLoading || !passwordForm.newPassword}
+          className="bg-brand-500 hover:bg-brand-600 text-white"
+ >
+ {passwordLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+ Change Password
+ </Button>
+ </div>
+ </form>
+ </div>
+ )}
+
  </motion.div>
  </div>
  </div>

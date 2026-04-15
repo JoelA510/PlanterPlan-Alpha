@@ -38,6 +38,7 @@ export interface PlanterClient {
         me: () => Promise<AuthUser | null>;
         signOut: () => Promise<void>;
         updateProfile: (attributes: UserMetadata) => Promise<AuthUser>;
+        changePassword: (newPassword: string) => Promise<void>;
     };
     entities: {
         Project: ProjectEntityClient;
@@ -220,6 +221,12 @@ export const planter: PlanterClient = {
                 });
                 if (error) throw error;
                 return data.user as AuthUser;
+            });
+        },
+        changePassword: async (newPassword: string): Promise<void> => {
+            return retry(async () => {
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) throw error;
             });
         },
     },
@@ -473,10 +480,44 @@ export const planter: PlanterClient = {
                 }
             },
             updateStatus: async (taskId: string, status: string): Promise<{ data: Task | null, error: Error | null }> => {
+                // Inner helper: derive parent status from child statuses when parent is not fully complete.
+                const deriveParentStatus = (children: Task[]): string => {
+                    if (children.some(child => child.status === 'blocked')) return 'blocked';
+                    if (children.some(child => child.status === 'in_progress')) return 'in_progress';
+                    if (children.some(child => child.status === 'overdue')) return 'overdue';
+                    return 'todo';
+                };
+
+                // Inner helper: walk UP the tree reconciling ancestor completion/status whenever
+                // any child status changes (milestone-level automation — §3.3).
+                const reconcileAncestors = async (parentId: string, depth: number): Promise<void> => {
+                    if (depth > 1) return; // guard: hierarchy is max 1 level of subtasks (§3.3)
+                    try {
+                        const children = await planter.entities.Task.filter({ parent_task_id: parentId });
+                        if (!children.length) return;
+
+                        const allChildrenCompleted = children.every(child => child.status === 'completed');
+                        const parentPatch: TaskUpdate = allChildrenCompleted
+                            ? { is_complete: true, status: 'completed', updated_at: nowUtcIso() }
+                            : { is_complete: false, status: deriveParentStatus(children), updated_at: nowUtcIso() };
+
+                        const parent = await planter.entities.Task.update(parentId, parentPatch);
+                        if (parent?.parent_task_id) {
+                            await reconcileAncestors(parent.parent_task_id, depth + 1);
+                        }
+                    } catch (err) {
+                        console.error('[PlanterClient.updateStatus.reconcileAncestors] Error:', err);
+                    }
+                };
+
                 try {
-                    const data = await planter.entities.Task.update(taskId, { status } as TaskUpdate);
+                    const data = await planter.entities.Task.update(taskId, {
+                        status,
+                        is_complete: status === 'completed',
+                    } as TaskUpdate);
 
                     if (status === 'completed') {
+                        // Cascade DOWN: mark all children as completed
                         const children = await planter.entities.Task.filter({ parent_task_id: taskId });
                         if (children && children.length > 0) {
                             const LIMIT = 3;
@@ -487,6 +528,11 @@ export const planter: PlanterClient = {
                                 );
                             }
                         }
+                    }
+
+                    // Reconcile UP: update parent milestone/phase whether child moved into or out of completed.
+                    if (data?.parent_task_id) {
+                        await reconcileAncestors(data.parent_task_id, 0);
                     }
                     return { data, error: null };
                 } catch (error: unknown) {
