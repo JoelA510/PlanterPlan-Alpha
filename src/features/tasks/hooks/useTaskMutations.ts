@@ -12,7 +12,7 @@ export function useCreateTask() {
  const queryClient = useQueryClient()
  return useMutation<TaskRow, Error, TaskInsert | TaskInsert[]>({
  mutationFn: (data) => planterClient.entities.Task.create(data),
- onSettled: (_, _error, variables) => {
+ onSettled: async (data, _error, variables) => {
  const firstVar = Array.isArray(variables) ? variables[0] : variables;
  const rootId = typeof firstVar === 'object' && firstVar && 'root_id' in firstVar ? firstVar.root_id : undefined;
  if (rootId) {
@@ -20,21 +20,39 @@ export function useCreateTask() {
  } else {
  queryClient.invalidateQueries({ queryKey: ['tasks', 'root'] })
  }
+
+ // §3.3 Date Engine: bubble-up dates to parent after task creation
+ const parentId = data?.parent_task_id;
+ if (parentId) {
+ await planterClient.entities.Task.updateParentDates(parentId);
+ if (rootId) queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] });
+ }
  }
  })
 }
 
-type UpdateTaskContext = { 
- previousTasks?: TaskRow[]; 
- previousTaskInfo?: TaskRow; 
- rootId?: string | null; 
- updatedTaskId: string; 
+type UpdateTaskContext = {
+ previousTasks?: TaskRow[];
+ previousTaskInfo?: TaskRow;
+ rootId?: string | null;
+ updatedTaskId: string;
 };
 
 export function useUpdateTask() {
  const queryClient = useQueryClient()
  return useMutation<TaskRow, Error, TaskMutationPayload, UpdateTaskContext>({
- mutationFn: (data) => planterClient.entities.Task.update(data.id, data),
+ mutationFn: async (data) => {
+ // §3.3 Milestone Automation: route pure status changes through updateStatus
+ // so that cascade-down and bubble-up logic fires correctly.
+ const nonStatusNonMeta = Object.keys(data).filter(k => k !== 'id' && k !== 'root_id' && k !== 'status');
+ if (data.status != null && nonStatusNonMeta.length === 0) {
+ const result = await planterClient.entities.Task.updateStatus(data.id, data.status);
+ if (result.error) throw result.error;
+ if (!result.data) throw new Error('Status update returned no data');
+ return result.data as TaskRow;
+ }
+ return planterClient.entities.Task.update(data.id, data);
+ },
  onMutate: async (updatedTask) => {
  const rootId = updatedTask.root_id;
  const targetKey = rootId ? ['projectHierarchy', rootId] : ['tasks', 'root'];
@@ -72,7 +90,7 @@ export function useUpdateTask() {
  queryClient.setQueryData(['task', ctx.updatedTaskId], ctx.previousTaskInfo);
  }
  },
- onSettled: (_, _error, variables) => {
+ onSettled: async (data, _error, variables) => {
  const rootId = variables.root_id;
  if (rootId) {
  queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] })
@@ -80,11 +98,19 @@ export function useUpdateTask() {
  queryClient.invalidateQueries({ queryKey: ['tasks', 'root'] })
  }
  queryClient.invalidateQueries({ queryKey: ['task', variables.id] })
+
+ // §3.3 Date Engine: bubble-up dates to parent when dates change
+ const dateChanged = 'start_date' in variables || 'due_date' in variables;
+ const parentId = data?.parent_task_id;
+ if (dateChanged && parentId) {
+ await planterClient.entities.Task.updateParentDates(parentId);
+ if (rootId) queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] });
+ }
  }
  })
 }
 
-type DeleteTaskContext = { previousTasks?: TaskRow[]; rootId?: string | null; };
+type DeleteTaskContext = { previousTasks?: TaskRow[]; rootId?: string | null; parentId?: string | null; };
 
 export function useDeleteTask() {
  const queryClient = useQueryClient()
@@ -98,6 +124,10 @@ export function useDeleteTask() {
 
  const previousTasks = queryClient.getQueryData<TaskRow[]>(targetKey);
 
+ // §3.3 Date Engine: capture parent_task_id before removing task from cache
+ const deletedTask = previousTasks?.find(t => t.id === id);
+ const parentId = deletedTask?.parent_task_id ?? null;
+
  if (previousTasks) {
  queryClient.setQueryData<TaskRow[]>(targetKey, (old) => {
  if (!Array.isArray(old)) return old;
@@ -105,7 +135,7 @@ export function useDeleteTask() {
  });
  }
 
- return { previousTasks, rootId };
+ return { previousTasks, rootId, parentId };
  },
  onError: (_err, _variables, context) => {
  if (!context) return;
@@ -115,7 +145,7 @@ export function useDeleteTask() {
  queryClient.setQueryData(targetKey, ctx.previousTasks);
  }
  },
- onSettled: (_, _error, variables) => {
+ onSettled: async (_, _error, variables, context) => {
  const rootId = variables.root_id;
  if (rootId) {
  queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] })
@@ -123,7 +153,13 @@ export function useDeleteTask() {
  queryClient.invalidateQueries({ queryKey: ['tasks', 'root'] })
  }
  queryClient.removeQueries({ queryKey: ['task', variables.id] })
+
+ // §3.3 Date Engine: recalculate parent dates after task deletion
+ const parentId = context?.parentId;
+ if (parentId) {
+ await planterClient.entities.Task.updateParentDates(parentId);
+ if (rootId) queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] });
+ }
  }
  })
 }
-

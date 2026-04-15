@@ -38,6 +38,7 @@ export interface PlanterClient {
         me: () => Promise<AuthUser | null>;
         signOut: () => Promise<void>;
         updateProfile: (attributes: UserMetadata) => Promise<AuthUser>;
+        changePassword: (newPassword: string) => Promise<void>;
     };
     entities: {
         Project: ProjectEntityClient;
@@ -220,6 +221,12 @@ export const planter: PlanterClient = {
                 });
                 if (error) throw error;
                 return data.user as AuthUser;
+            });
+        },
+        changePassword: async (newPassword: string): Promise<void> => {
+            return retry(async () => {
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) throw error;
             });
         },
     },
@@ -473,10 +480,31 @@ export const planter: PlanterClient = {
                 }
             },
             updateStatus: async (taskId: string, status: string): Promise<{ data: Task | null, error: Error | null }> => {
+                // Inner helper: walk UP the tree marking ancestors complete when all their
+                // children are complete (milestone-level automation — §3.3).
+                const bubbleUp = async (parentId: string, depth: number): Promise<void> => {
+                    if (depth > 4) return; // guard: hierarchy is max ~4 levels deep
+                    try {
+                        const siblings = await planter.entities.Task.filter({ parent_task_id: parentId });
+                        if (!siblings.length || !siblings.every(s => s.status === 'completed')) return;
+                        const parent = await planter.entities.Task.update(parentId, {
+                            is_complete: true,
+                            status: 'completed',
+                            updated_at: nowUtcIso(),
+                        } as TaskUpdate);
+                        if (parent?.parent_task_id) {
+                            await bubbleUp(parent.parent_task_id, depth + 1);
+                        }
+                    } catch (err) {
+                        console.error('[PlanterClient.updateStatus.bubbleUp] Error:', err);
+                    }
+                };
+
                 try {
                     const data = await planter.entities.Task.update(taskId, { status } as TaskUpdate);
 
                     if (status === 'completed') {
+                        // Cascade DOWN: mark all children as completed
                         const children = await planter.entities.Task.filter({ parent_task_id: taskId });
                         if (children && children.length > 0) {
                             const LIMIT = 3;
@@ -486,6 +514,11 @@ export const planter: PlanterClient = {
                                     batch.map((child) => (planter.entities.Task as TaskEntityClient).updateStatus(child.id, 'completed'))
                                 );
                             }
+                        }
+
+                        // Bubble UP: auto-complete parent milestone/phase when all siblings done
+                        if (data?.parent_task_id) {
+                            await bubbleUp(data.parent_task_id, 0);
                         }
                     }
                     return { data, error: null };
