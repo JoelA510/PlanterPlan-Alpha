@@ -73,7 +73,6 @@ export function useUpdateProject() {
                 due_date: updates.due_date,
                 start_date: updates.start_date,
                 updated_at: nowUtcIso(),
-                location: updates.location,
                 settings: updates.settings,
                 status: updates.status,
             };

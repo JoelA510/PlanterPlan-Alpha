@@ -42,9 +42,11 @@ export const STORAGE_BUCKETS = {
 export const PROJECT_TABS = {
  BOARD: 'board',
  PEOPLE: 'people',
+ RESOURCES: 'resources',
 } as const;
 
 export const PROJECT_TAB_LABELS = {
  [PROJECT_TABS.BOARD]: 'Tasks & Board',
  [PROJECT_TABS.PEOPLE]: 'Team',
+ [PROJECT_TABS.RESOURCES]: 'Resources',
 } as const;

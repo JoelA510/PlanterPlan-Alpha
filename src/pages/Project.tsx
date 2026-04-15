@@ -27,6 +27,7 @@ import MilestoneSection from '@/features/projects/components/MilestoneSection';
 import InviteMemberModal from '@/features/projects/components/InviteMemberModal';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
+import ResourceLibrary from '@/features/projects/components/ResourceLibrary';
 
 export default function Project() {
     const { projectId: paramId } = useParams<{ projectId: string }>();
@@ -341,6 +342,10 @@ export default function Project() {
 
                         {state.activeTab === 'people' && (
                             <PeopleList projectId={projectId as string} canEdit={canEdit} />
+                        )}
+
+                        {state.activeTab === 'resources' && (
+                            <ResourceLibrary projectId={projectId!} />
                         )}
                     </div>
                 </div>

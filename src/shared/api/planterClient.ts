@@ -8,6 +8,7 @@ import type {
     TaskInsert,
     TaskUpdate,
     TaskResourceRow,
+    ResourceWithTask,
     TaskRelationshipRow,
     PersonRow,
     TeamMemberRow,
@@ -68,6 +69,7 @@ interface EntityClient<T, TInsert, TUpdate> {
 
 interface TaskResourceEntityClient extends EntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']> {
     setPrimary: (taskId: string, resourceId: string | null) => Promise<void>;
+    listByProject: (projectId: string, options?: { signal?: AbortSignal }) => Promise<ResourceWithTask[]>;
 }
 
 interface ProjectEntityClient extends Omit<EntityClient<Project, TaskInsert, TaskUpdate>, 'create' | 'listByCreator'> {
@@ -598,7 +600,20 @@ export const planter: PlanterClient = {
             ...createEntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']>('task_resources'),
             setPrimary: async (taskId: string, resourceId: string | null) => {
                 await planter.entities.Task.update(taskId, { primary_resource_id: resourceId } as TaskUpdate);
-            }
+            },
+            listByProject: async (projectId: string, opts?: { signal?: AbortSignal }): Promise<ResourceWithTask[]> => {
+                return retry(async () => {
+                    let query = supabase
+                        .from('task_resources')
+                        .select('*, task:tasks!inner(id, title, root_id)')
+                        .eq('tasks.root_id', projectId)
+                        .order('created_at', { ascending: false });
+                    if (opts?.signal) query = query.abortSignal(opts.signal);
+                    const { data, error } = await query;
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return (data as ResourceWithTask[]) || [];
+                });
+            },
         },
         TeamMember: createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
         Person: createEntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>('people'),

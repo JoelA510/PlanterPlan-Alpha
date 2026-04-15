@@ -50,7 +50,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] Invite a member via email with a specific role (Driven by Supabase Edge Functions).
   - [x] Remove a member.
   - [x] Change member role permissions.
-- [/] **Project Settings**: Edit due date and due soon thresholds. *(Note: The `Location` field is officially deprecated and will be stripped from the UI/schema).*
+- [x] **Project Settings**: Edit due date and due soon thresholds. *(Note: The `Location` field is officially deprecated and has been stripped from the UI.)*
 - [-] **Advanced Access**: Assign Phase/Milestone to a limited viewer.
 - [ ] **Checkpoint-Based Architecture**: Alternate project type that unlocks sequential phases upon completing the previous phase, without rigid due dates.
 - [ ] **Secondary Projects**: Ability to create and toggle between multiple projects, filtering out archived/completed projects from the active menu.
@@ -88,7 +88,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 
 ### 3.4 Resources Domain
 - [x] **Task Integration**: Add/remove external links, PDFs, and text resources directly to the task pane.
-- [/] **Resource Library**: Centralized view to search and filter project resources.
+- [x] **Resource Library**: Centralized view to search and filter project resources.
 
 ### 3.5 Master Library & Templates
 - [x] **Template Management**: Create, edit, and delete templates.

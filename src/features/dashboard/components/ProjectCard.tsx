@@ -3,7 +3,7 @@ import { Card } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { Progress } from '@/shared/ui/progress';
 import { formatDate } from '@/shared/lib/date-engine';
-import { Calendar, MapPin, Users } from 'lucide-react';
+import { Calendar, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TASK_STATUS, PROJECT_STATUS } from '@/shared/constants';
 import { PROJECT_STATUS_COLORS } from '@/shared/constants/colors';
@@ -45,12 +45,6 @@ const ProjectCard = ({ project, tasks = [], teamMembers = [] }: ProjectCardProps
  )}
 
  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-5">
- {project.location && (
- <div className="flex items-center gap-1.5">
- <MapPin className="w-4 h-4" />
- <span>{project.location}</span>
- </div>
- )}
  {project.launch_date && (
  <div className="flex items-center gap-1.5">
  <Calendar className="w-4 h-4" />

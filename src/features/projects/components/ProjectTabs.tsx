@@ -10,6 +10,7 @@ const ProjectTabs = memo(function ProjectTabs({ activeTab, onTabChange }: Projec
  const tabs = [
  { id: PROJECT_TABS.BOARD, label: PROJECT_TAB_LABELS[PROJECT_TABS.BOARD] },
  { id: PROJECT_TABS.PEOPLE, label: PROJECT_TAB_LABELS[PROJECT_TABS.PEOPLE] },
+ { id: PROJECT_TABS.RESOURCES, label: PROJECT_TAB_LABELS[PROJECT_TABS.RESOURCES] },
  ];
 
  return (
