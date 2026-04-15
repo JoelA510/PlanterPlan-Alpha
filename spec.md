@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.4.1 (Build Stabilization Complete) 
-> **Last Updated**: 2026-04-15 
+> **Version**: 1.5.0 (Wave 17 — Project Settings & Resource Library) 
+> **Last Updated**: 2026-04-14 
 > **Status**: Active Development
 
 ---

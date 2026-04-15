@@ -53,6 +53,9 @@
 - **Project Detail**: `src/pages/Project.tsx` -> `src/features/tasks/components/TaskList.tsx`
 - **Task Details**: `src/features/tasks/components/TaskDetailsPanel.tsx`
 - **Date Logic**: `src/shared/lib/date-engine/index.ts` (Handle with extreme care, heavily tested!)
+- **Resource Library**: `src/features/projects/components/ResourceLibrary.tsx` +
+  `src/features/projects/hooks/useProjectResources.ts` — project-scoped resource browser tab (search + type filter). Data fetched via `planterClient.entities.TaskResource.listByProject(projectId)`, which uses a Supabase `!inner` join on `tasks.root_id`. Returns `ResourceWithTask[]` (defined in `src/shared/db/app.types.ts`).
+- **Project Settings Modal**: `src/features/projects/components/EditProjectModal.tsx` — edits title, description, start date, due date, and `due_soon_threshold` (stored in `tasks.settings` JSONB). The `location` field has been deprecated and removed from the UI.
 
 ## 4. Testing & Verification
 
