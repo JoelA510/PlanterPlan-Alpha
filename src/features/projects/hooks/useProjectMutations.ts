@@ -93,7 +93,7 @@ export function useUpdateProject() {
                 await planter.entities.Task.upsert(upsertPayload as TaskInsert[]);
             }
 
-            return true;
+            return { shiftedCount: batchUpdates.length };
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['projects'] });

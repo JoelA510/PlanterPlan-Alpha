@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 const DEFAULT_LIMIT = 25;
 
@@ -14,14 +15,18 @@ export const useMasterLibraryTasks = ({
  resourceType = 'all',
  enabled = true,
 }: UseMasterLibraryTasksProps = {}) => {
+ const { user } = useAuth();
+ const viewerId = user?.id;
+
  const queryResult = useInfiniteQuery({
- queryKey: ['masterLibraryTasks', limit, resourceType],
+ queryKey: ['masterLibraryTasks', limit, resourceType, viewerId],
  queryFn: async ({ pageParam = 0 }) => {
  const from = pageParam * limit;
  const { data, error } = await planter.entities.TaskWithResources.listTemplates({
  from,
  limit,
  resourceType,
+ viewerId,
  });
  if (error) throw error;
  return {

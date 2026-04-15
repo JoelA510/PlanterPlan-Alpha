@@ -13,6 +13,10 @@ vi.mock('@/shared/api/planterClient', () => ({
   },
 }));
 
+vi.mock('@/shared/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'test-user-id' } }),
+}));
+
 import { useMasterLibraryTasks } from '@/features/library/hooks/useMasterLibraryTasks';
 
 function createWrapper() {
@@ -38,7 +42,7 @@ describe('useMasterLibraryTasks', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.tasks).toHaveLength(10);
-    expect(mockListTemplates).toHaveBeenCalledWith({ from: 0, limit: 10, resourceType: 'all' });
+    expect(mockListTemplates).toHaveBeenCalledWith({ from: 0, limit: 10, resourceType: 'all', viewerId: 'test-user-id' });
   });
 
   it('calculates nextPage when data length equals limit', async () => {
@@ -118,6 +122,6 @@ describe('useMasterLibraryTasks', () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(mockListTemplates).toHaveBeenCalledWith({ from: 0, limit: 50, resourceType: 'document' });
+    expect(mockListTemplates).toHaveBeenCalledWith({ from: 0, limit: 50, resourceType: 'document', viewerId: 'test-user-id' });
   });
 });

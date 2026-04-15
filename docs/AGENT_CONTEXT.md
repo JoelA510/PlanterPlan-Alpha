@@ -62,8 +62,9 @@
 
 ### Milestone / Phase Auto-Completion (§3.3)
 `planterClient.entities.Task.updateStatus(taskId, 'completed')` now:
-1. **Cascades DOWN**: marks all descendant tasks as `completed`.
-2. **Bubbles UP**: after the cascade, checks whether all siblings of `taskId` are `completed`. If so, marks the parent (`is_complete: true, status: 'completed'`) and recurses up the tree (depth-capped at 4). This is the app-level equivalent of the DB `check_phase_unlock` trigger.
+1. **Cascades DOWN**: marks all descendant tasks as `completed` (recursive, batched in groups of 3 via `Promise.all`).
+2. **Bubbles UP via `reconcileAncestors(parentId, depth)`**: after the cascade, checks whether all siblings of `taskId` are `completed`. If so, marks the parent (`is_complete: true, status: 'completed'`). If not, derives the parent's status via `deriveParentStatus(children)` (priority order: `blocked` > `in_progress` > `overdue` > `todo`) and sets `is_complete: false`. Recurses up the tree **depth-capped at 1** (i.e., `if (depth > 1) return` — processes the immediate parent and grandparent only). This is the app-level equivalent of the DB `check_phase_unlock` trigger.
+3. **Re-open behavior**: when a task moves OUT of `completed` (e.g., checkbox unchecked), `reconcileAncestors` is still called. Any ancestor that previously auto-completed is automatically un-completed with a derived status (`is_complete: false`, status = `deriveParentStatus`). This prevents stale "completed" parents when a child is re-opened.
 
 `useUpdateTask` routes **status-only** mutations through `updateStatus` (vs. the raw `Task.update`) so every checkbox toggle in the UI fires the full cascade/bubble pipeline. Mixed-field updates (e.g., form saves that include status + title) bypass this path and use the generic update.
 

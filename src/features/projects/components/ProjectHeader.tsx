@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
-import { Progress } from '@/shared/ui/progress';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { formatDate } from '@/shared/lib/date-engine';
 import {
     ArrowLeft,
@@ -57,6 +57,9 @@ export default function ProjectHeader({
     const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
     const totalTasks = tasks.length;
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const donutData = totalTasks === 0
+        ? [{ value: 1 }, { value: 0 }]
+        : [{ value: completedTasks }, { value: totalTasks - completedTasks }];
 
     return (
         <motion.div
@@ -159,8 +162,27 @@ export default function ProjectHeader({
                         )}
                     </div>
 
-                    <div className="flex-1 flex items-center gap-3 min-w-52 max-w-md ml-auto">
-                        <Progress value={progress} className="h-2 flex-1 bg-muted" />
+                    <div className="flex items-center gap-2 ml-auto">
+                        <div className="w-12 h-12">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={donutData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={14}
+                                        outerRadius={22}
+                                        startAngle={90}
+                                        endAngle={-270}
+                                        dataKey="value"
+                                        strokeWidth={0}
+                                    >
+                                        <Cell fill={totalTasks === 0 ? '#e2e8f0' : '#10b981'} />
+                                        <Cell fill="#e2e8f0" />
+                                    </Pie>
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
                         <span className="text-sm font-medium text-card-foreground whitespace-nowrap">
                             {progress}% complete
                         </span>

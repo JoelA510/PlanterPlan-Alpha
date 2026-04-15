@@ -3,14 +3,18 @@ import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const mockFilter = vi.fn();
+const mockListAllVisibleTemplates = vi.fn();
 
 vi.mock('@/shared/api/planterClient', () => ({
   planter: {
     entities: {
-      Task: { filter: (...args: unknown[]) => mockFilter(...args) },
+      TaskWithResources: { listAllVisibleTemplates: (...args: unknown[]) => mockListAllVisibleTemplates(...args) },
     },
   },
+}));
+
+vi.mock('@/shared/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'test-user-id' } }),
 }));
 
 import { useMasterLibrarySearch } from '@/features/library/hooks/useMasterLibrarySearch';
@@ -32,16 +36,16 @@ const templates = [
 describe('useMasterLibrarySearch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFilter.mockResolvedValue(templates);
+    mockListAllVisibleTemplates.mockResolvedValue(templates);
   });
 
-  it('fetches templates with origin filter', async () => {
+  it('fetches visible templates with viewerId', async () => {
     const { result } = renderHook(() => useMasterLibrarySearch(), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(mockFilter).toHaveBeenCalledWith({ origin: 'template' });
+    expect(mockListAllVisibleTemplates).toHaveBeenCalledWith('test-user-id');
     expect(result.current.results).toEqual(templates);
   });
 
@@ -106,7 +110,7 @@ describe('useMasterLibrarySearch', () => {
 
     // Give time for potential fetch
     await new Promise(r => setTimeout(r, 50));
-    expect(mockFilter).not.toHaveBeenCalled();
+    expect(mockListAllVisibleTemplates).not.toHaveBeenCalled();
     expect(result.current.results).toEqual([]);
   });
 });
