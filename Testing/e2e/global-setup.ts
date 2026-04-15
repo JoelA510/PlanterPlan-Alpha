@@ -3,6 +3,7 @@ import { TEST_USER, ROLE_USERS } from './fixtures/test-data';
 
 const AUTH_DIR = 'e2e/.auth';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function globalSetup(_config: FullConfig) {
   // Ensure auth directory exists
   const fs = await import('fs');

@@ -55,6 +55,7 @@ Given('a project exists with tasks', async ({ page }) => {
   await page.waitForURL(/\/project\//);
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 Given('a project {string} exists with a 30-day window', async ({ page }, _name: string) => {
   await page.goto('/dashboard');
   await page.waitForLoadState('networkidle');

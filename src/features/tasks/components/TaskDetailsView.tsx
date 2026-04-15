@@ -19,7 +19,6 @@ interface TaskDetailsViewProps {
 const TaskDetailsView = ({
     task,
     onAddChildTask,
-    onEditTask,
     onDeleteTask,
     onTaskUpdated,
     canEdit = true,

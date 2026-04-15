@@ -4,7 +4,8 @@ import { LayoutList, KanbanSquare } from 'lucide-react';
 import ProjectHeader from '@/features/projects/components/ProjectHeader';
 import ProjectListView from './ProjectListView';
 import ProjectBoardView from './board/ProjectBoardView';
-import type { TaskRow } from '@/shared/db/app.types';
+import type { TaskRow, Project } from '@/shared/db/app.types';
+import type { TaskItemData } from '@/shared/types/tasks';
 
 /**
  * ProjectTasksView
@@ -61,7 +62,7 @@ const ProjectTasksView = ({
         onEdit: handleEditTask,
         onDelete: handleDeleteById,
         hideExpansion: false,
-        onToggleExpand,
+        onToggleExpand: onToggleExpand ? (task: TaskItemData) => onToggleExpand(task.id) : undefined,
         onStatusChange,
     };
 
@@ -70,7 +71,7 @@ const ProjectTasksView = ({
             {/* Header Section */}
             <div className="flex-none mb-6">
                 <ProjectHeader
-                    project={project as any}
+                    project={project as Project}
                     onInviteMember={onInviteMember}
                 />
 

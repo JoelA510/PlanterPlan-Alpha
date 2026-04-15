@@ -6,8 +6,6 @@ import TemplateList from '@/features/library/components/TemplateList';
 import { LayoutDashboard, BarChart, Settings, Calendar } from 'lucide-react';
 import GlobalNavItem from './GlobalNavItem';
 
-type SidebarProject = any; // Bypass restrictive local interface
-
 const SectionSkeleton = () => (
  <div className="animate-pulse space-y-3 py-2">
  <div className="h-8 bg-slate-100 rounded-md w-full"></div>
@@ -16,11 +14,11 @@ const SectionSkeleton = () => (
 );
 
 interface ProjectSidebarProps {
- joinedProjects: SidebarProject[];
- instanceTasks: SidebarProject[];
- templateTasks: SidebarProject[];
+ joinedProjects: Array<{ id: string; title?: string; membership_role?: string }>;
+ instanceTasks: Array<{ id: string; title: string }>;
+ templateTasks: Array<{ id: string; title?: string }>;
  joinedError?: string | null;
- handleSelectProject: (task: SidebarProject) => void;
+ handleSelectProject: (task: { id: string }) => void;
  selectedTaskId?: string | null;
  onNewProjectClick: () => void;
  onNewTemplateClick: () => void;
@@ -55,7 +53,7 @@ const ProjectSidebar = ({
  const { user, signOut } = useAuth();
  const location = useLocation();
  const navigate = useNavigate();
- const handleTaskClickWrapped = (task: SidebarProject) => {
+ const handleTaskClickWrapped = (task: { id: string }) => {
  handleSelectProject(task);
  if (onNavClick) onNavClick();
  };

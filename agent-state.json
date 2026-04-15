@@ -1,4 +1,11 @@
 {
-  "status": "SUCCESS",
-  "message": "<promise>COMPLETE</promise>"
+  "wave": 17,
+  "status": "COMPLETE",
+  "completed_at": "2026-04-14",
+  "summary": "Wave 17 delivered §3.2 Project Settings (due_date field added, location deprecated) and §3.4 Resource Library (per-project resource browser tab with search and type filtering). Build clean: 0 errors, 0 lint errors, 369/385 tests passing (16 pre-existing failures).",
+  "next_candidates": [
+    "§3.3 Milestone Automation — auto-complete milestone when all child tasks done",
+    "§3.3 Date Engine — bubble earliest start / latest due dates to parent phases",
+    "§3.1 Account Management — password update, profile hardening"
+  ]
 }

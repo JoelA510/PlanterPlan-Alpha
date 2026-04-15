@@ -3,6 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core';
 import TaskItem, { SortableTaskItem } from '@/features/tasks/components/TaskItem';
 import type { TaskRow } from '@/shared/db/app.types';
+import type { TaskItemData } from '@/shared/types/tasks';
 
 interface TaskItemProps {
  onTaskClick: (task: TaskRow) => void;
@@ -11,7 +12,7 @@ interface TaskItemProps {
  onEdit?: (task: TaskRow) => void;
  onDelete?: (id: string) => void;
  hideExpansion?: boolean;
- onToggleExpand?: (id: string | any) => void;
+ onToggleExpand?: (task: TaskItemData, expanded: boolean) => void;
  onStatusChange?: (id: string, status: string) => void;
  [key: string]: unknown;
 }

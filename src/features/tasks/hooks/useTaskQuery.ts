@@ -46,7 +46,7 @@ export const useTaskQuery = () => {
         enabled: !!currentUserId,
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 30,    // 30 minutes
-    } as any);
+    });
 
     // 3. Fetch Joined Projects
     const {
@@ -66,7 +66,7 @@ export const useTaskQuery = () => {
     // Combine instances and templates into tasks
     const tasks: (Project | Task)[] = [
         ...(projectsData?.pages.flat() || []),
-        ...(templates as any[] || [])
+        ...(templates as Task[] || [])
     ];
 
     const findTask = (id: string) => {

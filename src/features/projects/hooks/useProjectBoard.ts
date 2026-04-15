@@ -49,7 +49,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
                 children: tasks
                     .filter((c) => c.parent_task_id === t.id && c.id !== t.id)
                     .map(buildNode)
-                    .sort((a: any, b: any) => (a.position || 0) - (b.position || 0)),
+                    .sort((a, b) => ((a as TaskRow).position || 0) - ((b as TaskRow).position || 0)),
             };
         };
         return buildNode(task);

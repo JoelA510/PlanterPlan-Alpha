@@ -4,7 +4,7 @@ import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useUpdateTask, useCreateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
 import { buildTree, separateTasksByOrigin } from '@/shared/lib/tree-helpers';
 import type { TaskNode } from '@/shared/lib/tree-helpers';
-import { Project, TaskRow, SelectableProject, TaskFormData } from '@/shared/db/app.types';
+import { Project, TaskRow, TaskFormData, TaskInsert } from '@/shared/db/app.types';
 import React from 'react';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 
 export interface TaskFormState {
   mode: 'create' | 'edit';
-  origin?: string;
+  origin?: 'instance' | 'template';
   parentId?: string | null;
   taskId?: string;
 }
@@ -50,7 +50,7 @@ const TaskList = () => {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const handleSelectProject = useCallback(
-    async (project: SelectableProject): Promise<void> => {
+    async (project: { id: string }): Promise<void> => {
       setActiveProjectId(project.id);
     },
     []
@@ -61,10 +61,11 @@ const TaskList = () => {
       const project =
         instanceTasks.find((p) => p.id === urlProjectId) ||
         templateTasks.find((p) => p.id === urlProjectId) ||
-        (joinedProjects || []).find((p: any) => p.id === urlProjectId);
+        (joinedProjects || []).find((p: Project) => p.id === urlProjectId);
 
       if (project) {
-        handleSelectProject(project as SelectableProject);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional URL-to-state sync
+        handleSelectProject(project);
       }
     }
   }, [urlProjectId, activeProjectId, loading, instanceTasks, templateTasks, joinedProjects, handleSelectProject]);
@@ -96,11 +97,11 @@ const TaskList = () => {
     const rootProject =
       instanceTasks.find((t) => t.id === activeProjectId) ||
       templateTasks.find((t) => t.id === activeProjectId) ||
-      (joinedProjects || []).find((t: any) => t.id === activeProjectId);
+      (joinedProjects || []).find((t: Project) => t.id === activeProjectId);
 
     if (!rootProject) return null;
 
-    const childrenFlat = (hydratedProjects as Record<string, any[]>)[activeProjectId];
+    const childrenFlat = (hydratedProjects as Record<string, TaskRow[]>)[activeProjectId];
 
     let childrenTree: TaskNode[] = [];
     if (childrenFlat) {
@@ -132,6 +133,7 @@ const TaskList = () => {
   useEffect(() => {
     const action = searchParams.get('action');
     if (action === 'new-template') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional URL-to-state sync
       setSelectedTask(null);
       setTaskFormState({ mode: 'create', origin: 'template', parentId: null });
       searchParams.delete('action');
@@ -142,7 +144,7 @@ const TaskList = () => {
   const handleAddChildTask = useCallback((parentTask: TaskRow) => {
     setTaskFormState({
       mode: 'create',
-      origin: parentTask.origin || undefined,
+      origin: (parentTask.origin as 'instance' | 'template') || undefined,
       parentId: parentTask.id,
     });
     setShowForm(false);
@@ -152,7 +154,7 @@ const TaskList = () => {
   const handleEditTask = useCallback((task: TaskRow) => {
     setTaskFormState({
       mode: 'edit',
-      origin: task.origin || undefined,
+      origin: (task.origin as 'instance' | 'template') || undefined,
       parentId: task.parent_task_id || null,
       taskId: task.id,
     });
@@ -195,9 +197,9 @@ const TaskList = () => {
 
   const createTaskOrUpdateWrapper = async (data: TaskFormData, state: TaskFormState | null) => {
     if (state?.mode === 'edit' && state?.taskId) {
-      return updateTaskAsync({ id: state.taskId, ...data } as any);
+      return updateTaskAsync({ id: state.taskId, ...data });
     }
-    return createTaskAsync({ ...data, root_id: activeProjectId || null, origin: state?.origin || 'instance', parent_task_id: state?.parentId || null } as any);
+    return createTaskAsync({ ...data, root_id: activeProjectId || null, origin: state?.origin || 'instance', parent_task_id: state?.parentId || null } as TaskInsert);
   };
 
   const handleTaskSubmit = async (formData: TaskFormData) => {
@@ -207,7 +209,7 @@ const TaskList = () => {
         refetchProjects();
       } else if (taskFormState?.parentId) {
         const parent = findTask(taskFormState.parentId);
-        if (parent && ((parent as any).root_id || parent.id)) {
+        if (parent && ((parent as TaskRow).root_id || parent.id)) {
           refetchProjects();
         }
       }
@@ -220,9 +222,9 @@ const TaskList = () => {
   };
 
   // --- Derived state for TaskDetailsPanel ---
-  const parentTaskForForm = taskFormState?.parentId ? (findTask(taskFormState.parentId) || (projectHierarchy as any[]).find((t: any) => t.id === taskFormState.parentId)) : null;
+  const parentTaskForForm = taskFormState?.parentId ? (findTask(taskFormState.parentId) || (projectHierarchy as TaskRow[]).find((t: TaskRow) => t.id === taskFormState.parentId)) : null;
   const taskBeingEdited = taskFormState?.mode === 'edit' && taskFormState.taskId
-    ? (findTask(taskFormState.taskId) || (projectHierarchy as any[]).find((t: any) => t.id === taskFormState.taskId))
+    ? (findTask(taskFormState.taskId) || (projectHierarchy as TaskRow[]).find((t: TaskRow) => t.id === taskFormState.taskId))
     : null;
 
   const sidebarContent = (
@@ -234,7 +236,7 @@ const TaskList = () => {
       joinedLoading={joinedLoading}
       templatesLoading={templatesLoading}
       error={error as string | null}
-      handleSelectProject={handleSelectProject as (p: SelectableProject) => Promise<void>}
+      handleSelectProject={handleSelectProject}
       selectedTaskId={activeProjectId}
       onNewProjectClick={() => navigate('/projects/new')}
       onNewTemplateClick={() => {
@@ -261,14 +263,14 @@ const TaskList = () => {
       <div className="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden relative">
         {activeProject ? (
           <ProjectTasksView
-            project={activeProject as any}
-            handleTaskClick={handleEditTask as any}
-            handleAddChildTask={handleAddChildTask as any}
-            handleEditTask={handleEditTask as any}
-            handleDeleteById={handleDeleteById as any}
-            onToggleExpand={handleToggleExpand as any}
-            onStatusChange={(_, status) => updateTaskAsync({ id: _, updates: { status } } as any)}
-            disableDrag={joinedProjects?.some((jp: any) => jp.id === activeProjectId)}
+            project={{ ...activeProject, origin: activeProject.origin ?? undefined } as TaskRow & { children?: TaskRow[]; origin?: string }}
+            handleTaskClick={handleEditTask}
+            handleAddChildTask={handleAddChildTask}
+            handleEditTask={handleEditTask}
+            handleDeleteById={handleDeleteById}
+            onToggleExpand={(id: string) => handleToggleExpand({ id }, true)}
+            onStatusChange={(id, status) => updateTaskAsync({ id, status })}
+            disableDrag={joinedProjects?.some((jp: Project) => jp.id === activeProjectId)}
           />
         ) : (
           <EmptyProjectState
@@ -278,16 +280,16 @@ const TaskList = () => {
 
         <TaskDetailsPanel
           showForm={showForm}
-          taskFormState={taskFormState as any}
-          selectedTask={selectedTask as any}
-          taskBeingEdited={taskBeingEdited as any}
-          parentTaskForForm={parentTaskForForm as any}
+          taskFormState={taskFormState ?? undefined}
+          selectedTask={selectedTask ?? undefined}
+          taskBeingEdited={(taskBeingEdited as TaskRow | undefined) ?? undefined}
+          parentTaskForForm={(parentTaskForForm as TaskRow | undefined) ?? undefined}
           onClose={() => setSelectedTask(null)}
           handleTaskSubmit={handleTaskSubmit}
-          setTaskFormState={setTaskFormState as any}
-          handleAddChildTask={handleAddChildTask as any}
-          handleEditTask={handleEditTask as any}
-          onDeleteTaskWrapper={onDeleteTaskWrapper as any}
+          setTaskFormState={(state) => setTaskFormState(state as TaskFormState)}
+          handleAddChildTask={handleAddChildTask}
+          handleEditTask={handleEditTask}
+          onDeleteTaskWrapper={async (taskId: string) => { const t = findTask(taskId); if (t) await onDeleteTaskWrapper(t as TaskRow); }}
           fetchTasks={refetchProjects}
           renderLibrarySearch={(onSelect) => (
             <MasterLibrarySearch

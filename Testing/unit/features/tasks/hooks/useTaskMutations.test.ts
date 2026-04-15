@@ -4,6 +4,7 @@ import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useCreateTask, useUpdateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
 import { makeTask } from '@test';
+import type { TaskRow, TaskInsert } from '@/shared/db/app.types';
 
 // Mock planterClient
 const mockCreate = vi.fn();
@@ -50,7 +51,7 @@ describe('useCreateTask', () => {
     const { result } = renderHook(() => useCreateTask(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync({ title: 'New', root_id: 'proj-1' } as any);
+      await result.current.mutateAsync({ title: 'New', root_id: 'proj-1' } as TaskInsert);
     });
 
     expect(mockCreate).toHaveBeenCalledWith({ title: 'New', root_id: 'proj-1' });
@@ -64,7 +65,7 @@ describe('useCreateTask', () => {
     const { result } = renderHook(() => useCreateTask(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync({ title: 'New', root_id: 'proj-1' } as any);
+      await result.current.mutateAsync({ title: 'New', root_id: 'proj-1' } as TaskInsert);
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith(
@@ -80,7 +81,7 @@ describe('useCreateTask', () => {
     const { result } = renderHook(() => useCreateTask(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync({ title: 'Orphan' } as any);
+      await result.current.mutateAsync({ title: 'Orphan' } as TaskInsert);
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith(
@@ -123,7 +124,7 @@ describe('useUpdateTask', () => {
 
     // Wait for optimistic update to be applied
     await waitFor(() => {
-      const cached = queryClient.getQueryData<any[]>(['projectHierarchy', 'proj-1']);
+      const cached = queryClient.getQueryData<TaskRow[]>(['projectHierarchy', 'proj-1']);
       expect(cached?.[0]?.title).toBe('New');
     });
   });
@@ -147,7 +148,7 @@ describe('useUpdateTask', () => {
 
     // Should rollback to original
     await waitFor(() => {
-      const cached = queryClient.getQueryData<any[]>(['projectHierarchy', 'proj-1']);
+      const cached = queryClient.getQueryData<TaskRow[]>(['projectHierarchy', 'proj-1']);
       expect(cached?.[0]?.title).toBe('Original');
     });
   });
@@ -203,7 +204,7 @@ describe('useDeleteTask', () => {
     });
 
     await waitFor(() => {
-      const cached = queryClient.getQueryData<any[]>(['projectHierarchy', 'proj-1']);
+      const cached = queryClient.getQueryData<TaskRow[]>(['projectHierarchy', 'proj-1']);
       expect(cached).toHaveLength(1);
       expect(cached?.[0]?.id).toBe('t2');
     });
@@ -227,7 +228,7 @@ describe('useDeleteTask', () => {
     });
 
     await waitFor(() => {
-      const cached = queryClient.getQueryData<any[]>(['projectHierarchy', 'proj-1']);
+      const cached = queryClient.getQueryData<TaskRow[]>(['projectHierarchy', 'proj-1']);
       expect(cached).toHaveLength(1);
       expect(cached?.[0]?.id).toBe('t1');
     });
@@ -263,7 +264,7 @@ describe('useDeleteTask', () => {
     });
 
     await waitFor(() => {
-      const cached = queryClient.getQueryData<any[]>(['tasks', 'root']);
+      const cached = queryClient.getQueryData<TaskRow[]>(['tasks', 'root']);
       expect(cached).toHaveLength(0);
     });
   });

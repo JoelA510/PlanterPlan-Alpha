@@ -7,7 +7,6 @@ import { formatDate } from '@/shared/lib/date-engine';
 import {
     ArrowLeft,
     Calendar,
-    MapPin,
     Users,
     BarChart2,
     Rocket,
@@ -126,12 +125,6 @@ export default function ProjectHeader({
 
                 <div className="flex flex-wrap items-center gap-6">
                     <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                        {project.location && (
-                            <div className="flex items-center gap-1.5">
-                                <MapPin className="w-4 h-4 text-slate-400" />
-                                <span>{project.location}</span>
-                            </div>
-                        )}
                         {project.due_date && (
                             <div className="flex items-center gap-1.5">
                                 <Calendar className="w-4 h-4 text-slate-400" />

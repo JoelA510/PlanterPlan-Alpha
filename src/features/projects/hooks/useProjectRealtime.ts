@@ -23,7 +23,7 @@ export const useProjectRealtime = (projectId: string | null = null): void => {
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes' as 'postgres_changes',
+        'postgres_changes' as const,
         {
           event: '*',
           schema: 'public',

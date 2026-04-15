@@ -53,6 +53,27 @@
 - **Project Detail**: `src/pages/Project.tsx` -> `src/features/tasks/components/TaskList.tsx`
 - **Task Details**: `src/features/tasks/components/TaskDetailsPanel.tsx`
 - **Date Logic**: `src/shared/lib/date-engine/index.ts` (Handle with extreme care, heavily tested!)
+- **Resource Library**: `src/features/projects/components/ResourceLibrary.tsx` +
+  `src/features/projects/hooks/useProjectResources.ts` — project-scoped resource browser tab (search + type filter). Data fetched via `planterClient.entities.TaskResource.listByProject(projectId)`, which uses a Supabase `!inner` join on `tasks.root_id`. Returns `ResourceWithTask[]` (defined in `src/shared/db/app.types.ts`).
+- **Project Settings Modal**: `src/features/projects/components/EditProjectModal.tsx` — edits title, description, start date, due date, and `due_soon_threshold` (stored in `tasks.settings` JSONB). The `location` field has been deprecated and removed from the UI.
+- **Settings Page**: `src/pages/Settings.tsx` + `src/features/settings/hooks/useSettings.ts` — Profile tab (name, avatar, role, org, email prefs) and Security tab (password change). Password change calls `planter.auth.changePassword(newPassword)`.
+
+## 3a. Key Behavioral Contracts (Wave 18)
+
+### Milestone / Phase Auto-Completion (§3.3)
+`planterClient.entities.Task.updateStatus(taskId, 'completed')` now:
+1. **Cascades DOWN**: marks all descendant tasks as `completed`.
+2. **Bubbles UP**: after the cascade, checks whether all siblings of `taskId` are `completed`. If so, marks the parent (`is_complete: true, status: 'completed'`) and recurses up the tree (depth-capped at 4). This is the app-level equivalent of the DB `check_phase_unlock` trigger.
+
+`useUpdateTask` routes **status-only** mutations through `updateStatus` (vs. the raw `Task.update`) so every checkbox toggle in the UI fires the full cascade/bubble pipeline. Mixed-field updates (e.g., form saves that include status + title) bypass this path and use the generic update.
+
+### Date Bubble-up (§3.3)
+`planterClient.entities.Task.updateParentDates(parentId)` is now called automatically:
+- **After task create** — always, when the new task has a parent.
+- **After task edit** — when `start_date` or `due_date` is part of the update payload.
+- **After task delete** — always, when the deleted task had a parent (parent ID captured from React Query cache in `onMutate` before optimistic removal).
+
+This is wired in `src/features/tasks/hooks/useTaskMutations.ts` (`useCreateTask`, `useUpdateTask`, `useDeleteTask` `onSettled` callbacks).
 
 ## 4. Testing & Verification
 

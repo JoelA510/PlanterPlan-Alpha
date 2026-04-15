@@ -23,7 +23,6 @@ export type Task = TaskRow & {
 
 /** Standardized Project type */
 export type Project = Task & {
-    location?: string | null;
     settings?: Record<string, unknown> | null;
 };
 
@@ -53,6 +52,11 @@ export type TaskResourceRow = Database['public']['Tables']['task_resources']['Ro
 export type TaskRelationshipRow = Database['public']['Tables']['task_relationships']['Row'];
 export type TeamMemberRow = Database['public']['Tables']['project_members']['Row'];
 
+/** Task resource row augmented with its parent task info (used by Resource Library). */
+export type ResourceWithTask = TaskResourceRow & {
+    task: { id: string; title: string | null; root_id: string | null } | null;
+};
+
 /** Standardized Person type for UI components */
 export interface Person extends PersonRow {
     notes: string | null;
@@ -68,7 +72,7 @@ export interface Person extends PersonRow {
 export type UserRole = 'admin' | 'owner' | 'viewer';
 
 export interface UserMetadata {
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface User {

@@ -102,6 +102,7 @@ Then('the task appears in the {string} column', async ({ page }, column: string)
   await expect(page.locator('[data-testid="board-column"]').filter({ hasText: column })).toBeVisible();
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 Then('the task status is updated to {string}', async ({ page }, _status: string) => {
   // Status reflected in the board column placement
   await expect(page.locator('[data-testid="board-task-card"]').first()).toBeVisible();

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
 import { toIsoDate, recalculateProjectDates, nowUtcIso, DateEngineTask } from '@/shared/lib/date-engine';
-import { TaskUpdate } from '@/shared/db/app.types';
+import { TaskUpdate, TaskInsert } from '@/shared/db/app.types';
 
 export interface CreateProjectPayload {
     title: string;
@@ -73,7 +73,6 @@ export function useUpdateProject() {
                 due_date: updates.due_date,
                 start_date: updates.start_date,
                 updated_at: nowUtcIso(),
-                location: updates.location,
                 settings: updates.settings,
                 status: updates.status,
             };
@@ -91,7 +90,7 @@ export function useUpdateProject() {
                 const upsertPayload = batchUpdates
                     .filter((u): u is typeof u & { id: string } => !!u.id)
                     .map(u => ({ ...u, id: u.id }));
-                await planter.entities.Task.upsert(upsertPayload as any);
+                await planter.entities.Task.upsert(upsertPayload as TaskInsert[]);
             }
 
             return true;

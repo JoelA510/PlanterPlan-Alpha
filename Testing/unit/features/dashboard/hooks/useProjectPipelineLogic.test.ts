@@ -28,7 +28,7 @@ describe('useProjectPipelineLogic', () => {
     );
 
     const planningCol = result.current.columns.find(
-      (c: any) => c.id === PROJECT_STATUS.PLANNING,
+      (c) => c.id === PROJECT_STATUS.PLANNING,
     );
     expect(planningCol?.projects).toHaveLength(1);
     expect(planningCol?.projects[0].id).toBe('p1');

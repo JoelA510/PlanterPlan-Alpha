@@ -3,7 +3,6 @@ import { exportProjectToCSV, type ExportableTask, type ExportableProject } from 
 
 describe('exportProjectToCSV', () => {
   let clickSpy: ReturnType<typeof vi.fn>;
-  let setCsvContent: (csv: string) => void;
   let lastCsvContent: string;
 
   beforeEach(() => {
@@ -20,7 +19,8 @@ describe('exportProjectToCSV', () => {
     } as unknown as HTMLElement);
 
     // Capture the CSV content passed to createObjectURL via Blob
-    vi.spyOn(URL, 'createObjectURL').mockImplementation((blob: Blob) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((_blob: Blob) => {
       // Read the blob content synchronously by inspecting the Blob constructor call
       return 'blob:mock-url';
     });
@@ -36,7 +36,6 @@ describe('exportProjectToCSV', () => {
       }
     });
 
-    setCsvContent = (csv: string) => { lastCsvContent = csv; };
   });
 
   afterEach(() => {

@@ -8,6 +8,7 @@ import type {
     TaskInsert,
     TaskUpdate,
     TaskResourceRow,
+    ResourceWithTask,
     TaskRelationshipRow,
     PersonRow,
     TeamMemberRow,
@@ -37,6 +38,7 @@ export interface PlanterClient {
         me: () => Promise<AuthUser | null>;
         signOut: () => Promise<void>;
         updateProfile: (attributes: UserMetadata) => Promise<AuthUser>;
+        changePassword: (newPassword: string) => Promise<void>;
     };
     entities: {
         Project: ProjectEntityClient;
@@ -68,6 +70,7 @@ interface EntityClient<T, TInsert, TUpdate> {
 
 interface TaskResourceEntityClient extends EntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']> {
     setPrimary: (taskId: string, resourceId: string | null) => Promise<void>;
+    listByProject: (projectId: string, options?: { signal?: AbortSignal }) => Promise<ResourceWithTask[]>;
 }
 
 interface ProjectEntityClient extends Omit<EntityClient<Project, TaskInsert, TaskUpdate>, 'create' | 'listByCreator'> {
@@ -91,11 +94,21 @@ interface TaskEntityClient extends EntityClient<Task, TaskInsert, TaskUpdate> {
 // Sub-phase 3.2a — Generic Entity Client (Supabase SDK)
 // ---------------------------------------------------------------------------
 
+// Supabase SDK requires literal table name types; this generic wrapper bridges the type gap.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fromTable = (name: string) => supabase.from(name as any);
+
+type WithAbortSignal = { abortSignal(signal: AbortSignal): unknown };
+const applySignal = <Q>(query: Q, signal?: AbortSignal): Q => {
+    if (signal) (query as unknown as WithAbortSignal).abortSignal(signal);
+    return query;
+};
+
 const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'): EntityClient<T, TInsert, TUpdate> => ({
     list: async (opts) => {
         return retry(async () => {
-            let query = supabase.from(tableName as any).select(select);
-            if (opts?.signal) (query as any).abortSignal(opts.signal);
+            const query = fromTable(tableName).select(select);
+            applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
             return (data as T[]) || [];
@@ -103,8 +116,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
     },
     get: async (id: string, opts) => {
         return retry(async () => {
-            let query = supabase.from(tableName as any).select(select).eq('id', id).maybeSingle();
-            if (opts?.signal) (query as any).abortSignal(opts.signal);
+            const query = fromTable(tableName).select(select).eq('id', id).maybeSingle();
+            applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
             return (data as T) || null;
@@ -112,8 +125,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
     },
     create: async (payload: TInsert | TInsert[], opts) => {
         return retry(async () => {
-            let query = supabase.from(tableName as any).insert(payload as Record<string, unknown>).select(select);
-            if (opts?.signal) (query as any).abortSignal(opts.signal);
+            const query = fromTable(tableName).insert(payload as Record<string, unknown>).select(select);
+            applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
             return (data as T[])?.[0] || (data as T);
@@ -121,8 +134,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
     },
     update: async (id: string, payload: TUpdate, opts) => {
         return retry(async () => {
-            let query = supabase.from(tableName as any).update(payload as Record<string, unknown>).eq('id', id).select(select);
-            if (opts?.signal) (query as any).abortSignal(opts.signal);
+            const query = fromTable(tableName).update(payload as Record<string, unknown>).eq('id', id).select(select);
+            applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
             return (data as T[])?.[0] || (data as T);
@@ -130,8 +143,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
     },
     delete: async (id: string, opts) => {
         return retry(async () => {
-            let query = supabase.from(tableName as any).delete().eq('id', id);
-            if (opts?.signal) (query as any).abortSignal(opts.signal);
+            const query = fromTable(tableName).delete().eq('id', id);
+            applySignal(query, opts?.signal);
             const { error } = await query;
             if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
             return true;
@@ -139,8 +152,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
     },
     filter: async (filters: Partial<Record<keyof T, string | number | boolean | null>>, opts) => {
         return retry(async () => {
-            let query = supabase.from(tableName as any).select(select);
-            if (opts?.signal) (query as any).abortSignal(opts.signal);
+            let query = fromTable(tableName).select(select);
+            applySignal(query, opts?.signal);
 
             Object.entries(filters).forEach(([key, val]) => {
                 if (val === null) {
@@ -157,8 +170,8 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
     },
     listByCreator: async (userId: string, opts) => {
         return retry(async () => {
-            let query = supabase.from(tableName as any).select(select).eq('creator', userId);
-            if (opts?.signal) (query as any).abortSignal(opts.signal);
+            const query = fromTable(tableName).select(select).eq('creator', userId);
+            applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
             return (data as T[]) || [];
@@ -167,7 +180,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
     upsert: async (payload: TInsert | TInsert[], options: { onConflict?: string; ignoreDuplicates?: boolean; signal?: AbortSignal } = {}) => {
         return retry(async () => {
             const onConflict = options.onConflict || 'id';
-            let query = supabase.from(tableName as any).upsert(payload as Record<string, unknown>, {
+            let query = fromTable(tableName).upsert(payload as Record<string, unknown>, {
                 onConflict,
                 ignoreDuplicates: options.ignoreDuplicates,
             }).select(select);
@@ -208,6 +221,12 @@ export const planter: PlanterClient = {
                 });
                 if (error) throw error;
                 return data.user as AuthUser;
+            });
+        },
+        changePassword: async (newPassword: string): Promise<void> => {
+            return retry(async () => {
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) throw error;
             });
         },
     },
@@ -251,8 +270,8 @@ export const planter: PlanterClient = {
                         isoLaunchDate = toIsoDate(projectData.launch_date || projectData.start_date);
                     }
 
-                    const taskPayload = {
-                        title: projectData.title || projectData.name,
+                    const taskPayload: TaskInsert = {
+                        title: projectData.title || projectData.name || 'Untitled Project',
                         description: projectData.description,
                         start_date: isoLaunchDate,
                         due_date: isoLaunchDate,
@@ -266,7 +285,7 @@ export const planter: PlanterClient = {
 
                     const { data, error } = await supabase
                         .from('tasks')
-                        .insert(taskPayload as any)
+                        .insert(taskPayload)
                         .select('*');
 
                     if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
@@ -461,10 +480,31 @@ export const planter: PlanterClient = {
                 }
             },
             updateStatus: async (taskId: string, status: string): Promise<{ data: Task | null, error: Error | null }> => {
+                // Inner helper: walk UP the tree marking ancestors complete when all their
+                // children are complete (milestone-level automation — §3.3).
+                const bubbleUp = async (parentId: string, depth: number): Promise<void> => {
+                    if (depth > 4) return; // guard: hierarchy is max ~4 levels deep
+                    try {
+                        const siblings = await planter.entities.Task.filter({ parent_task_id: parentId });
+                        if (!siblings.length || !siblings.every(s => s.status === 'completed')) return;
+                        const parent = await planter.entities.Task.update(parentId, {
+                            is_complete: true,
+                            status: 'completed',
+                            updated_at: nowUtcIso(),
+                        } as TaskUpdate);
+                        if (parent?.parent_task_id) {
+                            await bubbleUp(parent.parent_task_id, depth + 1);
+                        }
+                    } catch (err) {
+                        console.error('[PlanterClient.updateStatus.bubbleUp] Error:', err);
+                    }
+                };
+
                 try {
                     const data = await planter.entities.Task.update(taskId, { status } as TaskUpdate);
 
                     if (status === 'completed') {
+                        // Cascade DOWN: mark all children as completed
                         const children = await planter.entities.Task.filter({ parent_task_id: taskId });
                         if (children && children.length > 0) {
                             const LIMIT = 3;
@@ -474,6 +514,11 @@ export const planter: PlanterClient = {
                                     batch.map((child) => (planter.entities.Task as TaskEntityClient).updateStatus(child.id, 'completed'))
                                 );
                             }
+                        }
+
+                        // Bubble UP: auto-complete parent milestone/phase when all siblings done
+                        if (data?.parent_task_id) {
+                            await bubbleUp(data.parent_task_id, 0);
                         }
                     }
                     return { data, error: null };
@@ -588,7 +633,20 @@ export const planter: PlanterClient = {
             ...createEntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']>('task_resources'),
             setPrimary: async (taskId: string, resourceId: string | null) => {
                 await planter.entities.Task.update(taskId, { primary_resource_id: resourceId } as TaskUpdate);
-            }
+            },
+            listByProject: async (projectId: string, opts?: { signal?: AbortSignal }): Promise<ResourceWithTask[]> => {
+                return retry(async () => {
+                    let query = supabase
+                        .from('task_resources')
+                        .select('*, task:tasks!inner(id, title, root_id)')
+                        .eq('tasks.root_id', projectId)
+                        .order('created_at', { ascending: false });
+                    if (opts?.signal) query = query.abortSignal(opts.signal);
+                    const { data, error } = await query;
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return (data as ResourceWithTask[]) || [];
+                });
+            },
         },
         TeamMember: createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
         Person: createEntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>('people'),

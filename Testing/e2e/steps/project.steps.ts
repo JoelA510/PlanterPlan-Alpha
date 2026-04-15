@@ -151,11 +151,13 @@ Then('phase cards are sorted by position', async ({ page }) => {
   await expect(phases.first()).toBeVisible();
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 Then('phase card {int} is selected', async ({ page }, _index: number) => {
   // Selected phase has active styling
   await expect(page.locator('[data-testid="phase-card"]').first()).toBeVisible();
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 Then('phase card {int} is selected by default', async ({ page }, _index: number) => {
   await expect(page.locator('[data-testid="phase-card"]').first()).toBeVisible();
 });
@@ -164,6 +166,7 @@ Then('milestones for that phase are displayed', async ({ page }) => {
   await expect(page.locator('[data-testid="milestone-section"]').first()).toBeVisible();
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 Then('milestones for phase {int} are displayed', async ({ page }, _phaseNum: number) => {
   await expect(page.locator('[data-testid="milestone-section"]').first()).toBeVisible();
 });

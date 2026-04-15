@@ -8,7 +8,7 @@ import AddPersonModal from './AddPersonModal';
 import { toast } from 'sonner';
 import { planter } from '@/shared/api/planterClient';
 import { compareDateDesc } from '@/shared/lib/date-engine';
-import type { PersonRow } from '@/shared/db/app.types';
+import type { PersonRow, PersonInsert } from '@/shared/db/app.types';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -76,7 +76,7 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
                 toast.success('Person updated');
             } else {
                 // Replaces peopleService.addPerson
-                await planter.entities.Person.create({ ...personData, project_id: projectId } as any);
+                await planter.entities.Person.create({ ...personData, project_id: projectId } as PersonInsert);
                 toast.success('Person added');
             }
             loadPeople();

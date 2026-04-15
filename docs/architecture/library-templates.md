@@ -3,6 +3,10 @@
 ## Domain Overview
 The Library & Templates domain provides the administrative scaffolding for PlanterPlan. It encompasses reusable Project Templates, a standardized Master Library of tasks, and a centralized Resource Library, maintained exclusively by system Administrators.
 
+> **Note — Two distinct "Resource Library" concepts exist:**
+> 1. **Admin Resource Library** (this document): global external links/documents managed by Admins and attached to Master Library templates.
+> 2. **Per-Project Resource Library** (`src/features/projects/components/ResourceLibrary.tsx`): a user-facing tab on each active project that aggregates all `task_resources` rows across the project's task tree. Standard project members can view it; resources are added/removed per-task via the Task Details panel.
+
 ## Core Entities & Data Models
 * **Template:** A non-executable blueprint containing predefined Phase/Milestone/Task hierarchies.
 * **Master Library Item:** A reusable object strictly tagged as `Phase`, `Milestone`, or `Task`. (Subtasks are invalid in the Master Library).
