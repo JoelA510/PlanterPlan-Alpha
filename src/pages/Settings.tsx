@@ -218,7 +218,7 @@ export default function Settings() {
  <Button
  type="submit"
  disabled={passwordLoading || !passwordForm.newPassword}
- className="bg-brand-600 hover:bg-brand-700 text-white"
+          className="bg-brand-500 hover:bg-brand-600 text-white"
  >
  {passwordLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
  Change Password
