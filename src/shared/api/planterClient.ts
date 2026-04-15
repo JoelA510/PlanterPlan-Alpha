@@ -480,28 +480,41 @@ export const planter: PlanterClient = {
                 }
             },
             updateStatus: async (taskId: string, status: string): Promise<{ data: Task | null, error: Error | null }> => {
-                // Inner helper: walk UP the tree marking ancestors complete when all their
-                // children are complete (milestone-level automation — §3.3).
-                const bubbleUp = async (parentId: string, depth: number): Promise<void> => {
-                    if (depth > 4) return; // guard: hierarchy is max ~4 levels deep
+                // Inner helper: derive parent status from child statuses when parent is not fully complete.
+                const deriveParentStatus = (children: Task[]): string => {
+                    if (children.some(child => child.status === 'blocked')) return 'blocked';
+                    if (children.some(child => child.status === 'in_progress')) return 'in_progress';
+                    if (children.some(child => child.status === 'overdue')) return 'overdue';
+                    return 'todo';
+                };
+
+                // Inner helper: walk UP the tree reconciling ancestor completion/status whenever
+                // any child status changes (milestone-level automation — §3.3).
+                const reconcileAncestors = async (parentId: string, depth: number): Promise<void> => {
+                    if (depth > 1) return; // guard: hierarchy is max 1 level of subtasks (§3.3)
                     try {
-                        const siblings = await planter.entities.Task.filter({ parent_task_id: parentId });
-                        if (!siblings.length || !siblings.every(s => s.status === 'completed')) return;
-                        const parent = await planter.entities.Task.update(parentId, {
-                            is_complete: true,
-                            status: 'completed',
-                            updated_at: nowUtcIso(),
-                        } as TaskUpdate);
+                        const children = await planter.entities.Task.filter({ parent_task_id: parentId });
+                        if (!children.length) return;
+
+                        const allChildrenCompleted = children.every(child => child.status === 'completed');
+                        const parentPatch: TaskUpdate = allChildrenCompleted
+                            ? { is_complete: true, status: 'completed', updated_at: nowUtcIso() }
+                            : { is_complete: false, status: deriveParentStatus(children), updated_at: nowUtcIso() };
+
+                        const parent = await planter.entities.Task.update(parentId, parentPatch);
                         if (parent?.parent_task_id) {
-                            await bubbleUp(parent.parent_task_id, depth + 1);
+                            await reconcileAncestors(parent.parent_task_id, depth + 1);
                         }
                     } catch (err) {
-                        console.error('[PlanterClient.updateStatus.bubbleUp] Error:', err);
+                        console.error('[PlanterClient.updateStatus.reconcileAncestors] Error:', err);
                     }
                 };
 
                 try {
-                    const data = await planter.entities.Task.update(taskId, { status } as TaskUpdate);
+                    const data = await planter.entities.Task.update(taskId, {
+                        status,
+                        is_complete: status === 'completed',
+                    } as TaskUpdate);
 
                     if (status === 'completed') {
                         // Cascade DOWN: mark all children as completed
@@ -515,11 +528,11 @@ export const planter: PlanterClient = {
                                 );
                             }
                         }
+                    }
 
-                        // Bubble UP: auto-complete parent milestone/phase when all siblings done
-                        if (data?.parent_task_id) {
-                            await bubbleUp(data.parent_task_id, 0);
-                        }
+                    // Reconcile UP: update parent milestone/phase whether child moved into or out of completed.
+                    if (data?.parent_task_id) {
+                        await reconcileAncestors(data.parent_task_id, 0);
                     }
                     return { data, error: null };
                 } catch (error: unknown) {
