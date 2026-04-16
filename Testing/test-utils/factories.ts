@@ -34,6 +34,7 @@ export function makeTask(overrides: Partial<TaskRow> = {}): TaskRow {
     prerequisite_phase_id: null,
     primary_resource_id: null,
     settings: null,
+    supervisor_email: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     ...overrides,

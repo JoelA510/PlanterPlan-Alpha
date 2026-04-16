@@ -1282,6 +1282,7 @@ CREATE TABLE IF NOT EXISTS "public"."tasks" (
     "location" "text",
     "priority" "text" DEFAULT 'medium'::"text",
     "settings" "jsonb" DEFAULT '{}'::"jsonb",
+    "supervisor_email" "text",
     CONSTRAINT "tasks_project_type_check" CHECK (("project_type" = ANY (ARRAY['primary'::"text", 'secondary'::"text"]))),
     CONSTRAINT "tasks_root_id_required_for_children" CHECK ((("parent_task_id" IS NULL) OR ("root_id" IS NOT NULL)))
 );
@@ -1295,6 +1296,10 @@ COMMENT ON TABLE "public"."tasks" IS 'Tasks table. Resources are now in task_res
 
 
 COMMENT ON COLUMN "public"."tasks"."settings" IS 'Project-level settings (e.g., due_soon_threshold, location_defaults)';
+
+
+
+COMMENT ON COLUMN "public"."tasks"."supervisor_email" IS 'Optional supervisor recipient for monthly Project Status Reports. Only meaningful on project roots (parent_task_id IS NULL). UI gates the field to roots; no DB-level check constraint.';
 
 
 
@@ -1327,6 +1332,7 @@ CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource" AS
     "t"."location",
     "t"."priority",
     "t"."settings",
+    "t"."supervisor_email",
     NULL::"uuid" AS "resource_id",
     NULL::"text" AS "resource_type",
     NULL::"text" AS "resource_url",

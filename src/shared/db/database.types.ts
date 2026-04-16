@@ -442,6 +442,7 @@ export type Database = {
  settings: Json | null
  start_date: string | null
  status: string | null
+ supervisor_email: string | null
  title: string
  updated_at: string | null
  }
@@ -472,6 +473,7 @@ export type Database = {
  settings?: Json | null
  start_date?: string | null
  status?: string | null
+ supervisor_email?: string | null
  title: string
  updated_at?: string | null
  }
@@ -502,6 +504,7 @@ export type Database = {
  settings?: Json | null
  start_date?: string | null
  status?: string | null
+ supervisor_email?: string | null
  title?: string
  updated_at?: string | null
  }
@@ -635,6 +638,7 @@ export type Database = {
  start_date: string | null
  status: string | null
  storage_path: string | null
+ supervisor_email: string | null
  title: string | null
  updated_at: string | null
  }
@@ -671,6 +675,7 @@ export type Database = {
  start_date?: string | null
  status?: string | null
  storage_path?: never
+ supervisor_email?: string | null
  title?: string | null
  updated_at?: string | null
  }
@@ -707,6 +712,7 @@ export type Database = {
  start_date?: string | null
  status?: string | null
  storage_path?: never
+ supervisor_email?: string | null
  title?: string | null
  updated_at?: string | null
  }
