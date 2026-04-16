@@ -64,7 +64,13 @@ export function useDashboard() {
 
  // Derived State / Filtering
  const activeProjects = useMemo(() => {
- return Array.isArray(projects) ? projects.filter(p => p.status === PROJECT_STATUS.IN_PROGRESS) : [];
+ if (!Array.isArray(projects)) return [];
+ return projects.filter(p => p.status !== PROJECT_STATUS.ARCHIVED && !p.is_complete);
+ }, [projects]);
+
+ const archivedProjects = useMemo(() => {
+ if (!Array.isArray(projects)) return [];
+ return projects.filter(p => p.status === PROJECT_STATUS.ARCHIVED);
  }, [projects]);
 
  const filteredTasks = useMemo(() => {
@@ -109,6 +115,7 @@ export function useDashboard() {
  data: {
  projects,
  activeProjects,
+ archivedProjects,
  allTasks,
  filteredTasks,
  teamMembers

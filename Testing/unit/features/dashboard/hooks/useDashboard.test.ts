@@ -76,11 +76,12 @@ describe('useDashboard', () => {
     expect(result.current.data.teamMembers).toEqual(members);
   });
 
-  it('filters active projects', async () => {
+  it('filters active projects (excludes completed and archived)', async () => {
     const projects = [
-      { id: 'p1', status: 'in_progress' },
-      { id: 'p2', status: 'completed' },
-      { id: 'p3', status: 'in_progress' },
+      { id: 'p1', status: 'in_progress', is_complete: false },
+      { id: 'p2', status: 'completed', is_complete: true },
+      { id: 'p3', status: 'planning', is_complete: false },
+      { id: 'p4', status: 'archived', is_complete: false },
     ];
     mockProjectList.mockResolvedValue(projects);
 
@@ -90,6 +91,23 @@ describe('useDashboard', () => {
       expect(result.current.data.activeProjects).toHaveLength(2);
     });
     expect(result.current.data.activeProjects.map((p: { id: string }) => p.id)).toEqual(['p1', 'p3']);
+  });
+
+  it('exposes archivedProjects containing only status === "archived"', async () => {
+    const projects = [
+      { id: 'p1', status: 'in_progress', is_complete: false },
+      { id: 'p2', status: 'archived', is_complete: false },
+      { id: 'p3', status: 'archived', is_complete: false },
+      { id: 'p4', status: 'completed', is_complete: true },
+    ];
+    mockProjectList.mockResolvedValue(projects);
+
+    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.data.archivedProjects).toHaveLength(2);
+    });
+    expect(result.current.data.archivedProjects.map((p: { id: string }) => p.id).sort()).toEqual(['p2', 'p3']);
   });
 
   it('filters tasks by search query', async () => {

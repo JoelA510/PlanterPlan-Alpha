@@ -12,6 +12,7 @@ import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight } from 'lucide
 
 import { useUser } from '@/shared/hooks/useUser';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import ProjectSwitcher from '@/features/projects/components/ProjectSwitcher';
 
 
 interface HeaderProps {
@@ -73,6 +74,11 @@ export default function Header({ onMenuToggle, showMenuButton = false }: HeaderP
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {user && (
+                            <div className="hidden md:block">
+                                <ProjectSwitcher />
+                            </div>
+                        )}
                         {user && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

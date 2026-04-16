@@ -11,6 +11,19 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ data: unknown; error: unknown }>;
   signOut: () => Promise<void>;
   updateMe: (attributes: UserMetadata) => Promise<User>;
+  savedEmailAddresses: string[];
+  rememberEmailAddress: (address: string) => Promise<void>;
+}
+
+const SAVED_EMAIL_CAP = 5;
+
+/** Pure helper: prepend `address` (case-insensitive de-dupe), cap at 5. */
+export function mergeSavedEmailAddress(existing: string[], address: string): string[] {
+  const trimmed = address.trim();
+  if (!trimmed) return existing;
+  const lower = trimmed.toLowerCase();
+  const filtered = existing.filter((e) => typeof e === 'string' && e.toLowerCase() !== lower);
+  return [trimmed, ...filtered].slice(0, SAVED_EMAIL_CAP);
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -149,6 +162,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return updatedUser;
   }, [user]);
 
+  const savedEmailAddresses = useMemo<string[]>(() => {
+    const raw = user?.user_metadata?.saved_email_addresses;
+    return Array.isArray(raw) ? raw.filter((e): e is string => typeof e === 'string') : [];
+  }, [user]);
+
+  const rememberEmailAddress = useCallback(async (address: string) => {
+    const next = mergeSavedEmailAddress(savedEmailAddresses, address);
+    if (next.length === savedEmailAddresses.length && next[0] === savedEmailAddresses[0]) return;
+    await updateMe({ saved_email_addresses: next });
+  }, [savedEmailAddresses, updateMe]);
+
   const value = useMemo(() => ({
     user,
     loading,
@@ -156,7 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signOut,
     updateMe,
-  }), [user, loading, signUp, signIn, signOut, updateMe]);
+    savedEmailAddresses,
+    rememberEmailAddress,
+  }), [user, loading, signUp, signIn, signOut, updateMe, savedEmailAddresses, rememberEmailAddress]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,9 +1,44 @@
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import TaskResources from '@/features/tasks/components/TaskResources';
 import TaskDependencies from '@/features/tasks/components/TaskDependencies';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useTaskSiblings } from '@/features/tasks/hooks/useTaskSiblings';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from '@/shared/ui/dialog';
+import { Input } from '@/shared/ui/input';
+import { Textarea } from '@/shared/ui/textarea';
+import { Button } from '@/shared/ui/button';
+import { Label } from '@/shared/ui/label';
 import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 import type { TaskRow } from '@/shared/db/app.types';
+
+const emailDetailsSchema = z.object({
+    recipient: z.string().email('Enter a valid email'),
+});
+type EmailDetailsFormData = z.infer<typeof emailDetailsSchema>;
+
+function buildEmailBody(task: TaskItemData): string {
+    const lines: string[] = [`Task: ${task.title}`];
+    if (task.purpose) lines.push('', `Purpose:`, task.purpose);
+    if (task.actions) lines.push('', `Actions:`, task.actions);
+    lines.push('', `Start: ${formatDisplayDate(task.start_date) || '—'}`);
+    lines.push(`Due: ${formatDisplayDate(task.due_date) || '—'}`);
+    if (typeof window !== 'undefined') {
+        const projectId = task.root_id || task.id;
+        lines.push('', `Link: ${window.location.origin}/project/${projectId}`);
+    }
+    return lines.join('\n');
+}
 
 interface TaskDetailsViewProps {
     task?: TaskItemData | null;
@@ -24,11 +59,37 @@ const TaskDetailsView = ({
     canEdit = true,
     ...props
 }: TaskDetailsViewProps) => {
-    const { user } = useAuth();
+    const { user, savedEmailAddresses, rememberEmailAddress } = useAuth();
+    const { data: siblings = [] } = useTaskSiblings(task?.id, task?.parent_task_id);
+    const [emailOpen, setEmailOpen] = useState(false);
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors, isSubmitting },
+    } = useForm<EmailDetailsFormData>({
+        resolver: zodResolver(emailDetailsSchema),
+        defaultValues: { recipient: '' },
+    });
 
     if (!task) {
         return <div className="p-4 text-center text-muted-foreground">Select a task to view details</div>;
     }
+
+    const emailBody = buildEmailBody(task);
+
+    const openEmailDialog = () => {
+        reset({ recipient: savedEmailAddresses[0] || '' });
+        setEmailOpen(true);
+    };
+
+    const onEmailSubmit = async (data: EmailDetailsFormData) => {
+        await rememberEmailAddress(data.recipient);
+        const subject = encodeURIComponent(`Task: ${task.title}`);
+        const body = encodeURIComponent(emailBody);
+        window.location.assign(`mailto:${data.recipient}?subject=${subject}&body=${body}`);
+        setEmailOpen(false);
+    };
 
     // Determine hierarchy level
     const getTaskLevel = () => {
@@ -184,6 +245,33 @@ const TaskDetailsView = ({
 
             <TaskDependencies task={task as TaskRow} allProjectTasks={(props.allProjectTasks as TaskRow[]) || []} />
 
+            {/* Related Tasks (Siblings) */}
+            {task.parent_task_id && (
+                <div className="detail-section mb-6" data-testid="related-tasks-section">
+                    <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Related Tasks</h3>
+                    {siblings.length > 0 ? (
+                        <div className="space-y-2">
+                            {siblings.map((sibling) => (
+                                <div
+                                    key={sibling.id}
+                                    data-testid={`related-task-${sibling.id}`}
+                                    className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-center justify-between"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-2 h-2 rounded-full ${sibling.is_complete ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
+                                        <span className={`text-sm font-medium ${sibling.is_complete ? 'text-muted-foreground line-through' : 'text-card-foreground'}`}>
+                                            {sibling.title}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No sibling tasks in this milestone.</p>
+                    )}
+                </div>
+            )}
+
             {/* Subtasks */}
             {task.children && task.children.length > 0 && (
                 <div className="detail-section mb-6">
@@ -230,16 +318,11 @@ const TaskDetailsView = ({
             <div className="flex gap-4 mb-6">
                 <button
                     type="button"
-                    onClick={() => {
-                        const subject = encodeURIComponent(`Task: ${task.title}`);
-                        const body = encodeURIComponent(
-                            `Status: ${task.status}\nDue: ${formatDisplayDate(task.due_date)}\n\n${task.description || ''}\n\nActions:\n${task.actions || ''}`
-                        );
-                        window.location.href = `mailto:?subject=${subject}&body=${body}`;
-                    }}
+                    onClick={openEmailDialog}
+                    data-testid="email-details-btn"
                     className="flex-1 py-3 px-4 bg-card border border-border text-card-foreground rounded-lg shadow-sm hover:bg-muted hover:shadow-md transition-all font-medium text-sm"
                 >
-                    Email Task
+                    Email details
                 </button>
 
                 {onDeleteTask && canEdit && (
@@ -252,6 +335,68 @@ const TaskDetailsView = ({
                     </button>
                 )}
             </div>
+
+            {/* Email Details Dialog */}
+            <Dialog open={emailOpen} onOpenChange={setEmailOpen}>
+                <DialogContent data-testid="email-details-dialog">
+                    <DialogHeader>
+                        <DialogTitle>Email task details</DialogTitle>
+                        <DialogDescription>
+                            Send a summary of this task via your mail client.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit(onEmailSubmit)} className="space-y-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="email-recipient">Recipient</Label>
+                            <Input
+                                id="email-recipient"
+                                type="email"
+                                list="email-recipient-suggestions"
+                                placeholder="name@example.com"
+                                data-testid="email-recipient-input"
+                                {...register('recipient')}
+                            />
+                            <datalist id="email-recipient-suggestions">
+                                {savedEmailAddresses.map((addr) => (
+                                    <option key={addr} value={addr} />
+                                ))}
+                            </datalist>
+                            {errors.recipient && (
+                                <p className="text-xs text-rose-600" data-testid="email-recipient-error">
+                                    {errors.recipient.message}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="email-body">Message</Label>
+                            <Textarea
+                                id="email-body"
+                                readOnly
+                                rows={8}
+                                value={emailBody}
+                                data-testid="email-body-preview"
+                                className="font-mono text-xs"
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEmailOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={isSubmitting}
+                                data-testid="email-send-btn"
+                            >
+                                Send
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* Metadata Footer */}
             <div className="pt-6 border-t border-slate-100 text-xs text-slate-400 flex flex-col gap-1">

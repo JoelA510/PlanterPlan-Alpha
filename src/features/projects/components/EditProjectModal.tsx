@@ -9,8 +9,9 @@ import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { Switch } from '@/shared/ui/switch';
-import { useUpdateProject, useDeleteProject } from '@/features/projects/hooks/useProjectMutations';
+import { useUpdateProject, useDeleteProject, useUpdateProjectStatus } from '@/features/projects/hooks/useProjectMutations';
 import { toIsoDate } from '@/shared/lib/date-engine';
+import { PROJECT_STATUS } from '@/shared/constants/domain';
 import type { TaskRow } from '@/shared/db/app.types';
 import { toast } from 'sonner';
 
@@ -36,7 +37,21 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
  const navigate = useNavigate();
  const updateProjectMutation = useUpdateProject();
  const deleteProjectMutation = useDeleteProject();
+ const updateStatusMutation = useUpdateProjectStatus();
  const isTemplate = project.origin === 'template';
+ const isArchived = project.status === PROJECT_STATUS.ARCHIVED;
+
+ const handleArchiveToggle = async () => {
+  const nextStatus = isArchived ? PROJECT_STATUS.IN_PROGRESS : PROJECT_STATUS.ARCHIVED;
+  try {
+   await updateStatusMutation.mutateAsync({ projectId: project.id, status: nextStatus });
+   toast.success(isArchived ? 'Project unarchived.' : 'Project archived.');
+   onClose();
+  } catch (error) {
+   console.error('[EditProjectModal] Failed to toggle archive:', error);
+   toast.error('Failed to update archive status.');
+  }
+ };
 
  // The raw typed database row `settings` might be loose JSON, so explicitly cast what we expect internally
  const currentSettings = (project.settings as Record<string, unknown>) || {};
@@ -206,6 +221,35 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
        {isSubmitting ? 'Saving...' : 'Save Changes'}
       </Button>
      </div>
+
+     {!isTemplate && (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+       <div className="flex items-center justify-between gap-3">
+        <div>
+         <Label className="block mb-1 font-semibold text-amber-800">
+          {isArchived ? 'Unarchive Project' : 'Archive Project'}
+         </Label>
+         <p className="text-xs text-amber-700">
+          {isArchived
+           ? 'Restore this project to the active list. No descendants are touched.'
+           : 'Hide this project from the active menu and switcher. Reversible; no descendants are touched.'}
+         </p>
+        </div>
+        <Button
+         variant="outline"
+         size="sm"
+         data-testid="archive-project-btn"
+         onClick={handleArchiveToggle}
+         disabled={updateStatusMutation.isPending}
+         className="border-amber-300 text-amber-800 hover:bg-amber-100"
+        >
+         {updateStatusMutation.isPending
+          ? (isArchived ? 'Unarchiving…' : 'Archiving…')
+          : (isArchived ? 'Unarchive' : 'Archive')}
+        </Button>
+       </div>
+      </div>
+     )}
 
      <div className="relative py-4">
       <div className="absolute inset-0 flex items-center">
