@@ -59,7 +59,7 @@ describe('useDashboard', () => {
   });
 
   it('fetches projects, tasks, and team members', async () => {
-    const projects = [{ id: 'p1', title: 'Project 1', status: 'active' }];
+    const projects = [{ id: 'p1', title: 'Project 1', status: 'in_progress' }];
     const tasks = [{ id: 't1', title: 'Task 1', project_id: 'p1' }];
     const members = [{ id: 'm1', project_id: 'p1' }];
 
@@ -78,9 +78,9 @@ describe('useDashboard', () => {
 
   it('filters active projects', async () => {
     const projects = [
-      { id: 'p1', status: 'active' },
+      { id: 'p1', status: 'in_progress' },
       { id: 'p2', status: 'completed' },
-      { id: 'p3', status: 'active' },
+      { id: 'p3', status: 'in_progress' },
     ];
     mockProjectList.mockResolvedValue(projects);
 

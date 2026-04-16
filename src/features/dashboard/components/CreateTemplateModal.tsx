@@ -10,26 +10,29 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
+import { Switch } from '@/shared/ui/switch';
 import { BookTemplate, Loader2 } from 'lucide-react';
 
 interface CreateTemplateModalProps {
     open: boolean;
     onClose: () => void;
-    onSubmit: (data: { title: string; description: string }) => Promise<void>;
+    onSubmit: (data: { title: string; description: string; isPublished: boolean }) => Promise<void>;
 }
 
 export default function CreateTemplateModal({ open, onClose, onSubmit }: CreateTemplateModalProps) {
     const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [isPublished, setIsPublished] = useState(false);
 
     const handleSubmit = async () => {
         if (!title.trim()) return;
         setLoading(true);
         try {
-            await onSubmit({ title: title.trim(), description: description.trim() });
+            await onSubmit({ title: title.trim(), description: description.trim(), isPublished });
             setTitle('');
             setDescription('');
+            setIsPublished(false);
             onClose();
         } catch (error) {
             console.error('Failed to create template:', error);
@@ -74,6 +77,17 @@ export default function CreateTemplateModal({ open, onClose, onSubmit }: CreateT
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             className="min-h-[120px] border-slate-200 focus:ring-brand-500/20 focus:border-brand-500 rounded-xl resize-none"
+                        />
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                        <div>
+                            <Label htmlFor="template-published" className="font-medium">Published</Label>
+                            <p className="text-xs text-slate-500 mt-0.5">Published templates are visible to all users in the library.</p>
+                        </div>
+                        <Switch
+                            id="template-published"
+                            checked={isPublished}
+                            onCheckedChange={setIsPublished}
                         />
                     </div>
                     <Button

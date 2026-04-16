@@ -55,7 +55,7 @@ export default function Dashboard() {
         }
     };
 
-    const handleCreateTemplate = async (data: { title: string; description: string }) => {
+    const handleCreateTemplate = async (data: { title: string; description: string; isPublished: boolean }) => {
         try {
             const userId = state.user?.id;
             if (!userId) throw new Error('User must be logged in');
@@ -69,6 +69,7 @@ export default function Dashboard() {
                 status: 'planning',
                 creator: userId,
                 assignee_id: userId,
+                settings: { published: data.isPublished },
             } as TaskInsert);
             if (template?.id) {
                 // Add creator as owner so RLS allows access

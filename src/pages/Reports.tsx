@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { planter } from '@/shared/api/planterClient';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Progress } from '@/shared/ui/progress';
-import { ArrowLeft, Loader2, BarChart, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Loader2, BarChart, TrendingUp, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import {
@@ -58,6 +59,12 @@ export default function Reports() {
     // Tasks are everything else
     const tasks = allTasks.filter((t) => t.parent_task_id !== projectId);
 
+    const defaultMonthKey = () => {
+        const d = new Date();
+        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    };
+    const [selectedMonth, setSelectedMonth] = useState<string>(defaultMonthKey);
+
     const {
         statsConfig,
         overallProgress,
@@ -65,8 +72,10 @@ export default function Reports() {
         totalTasks,
         phaseData,
         taskDistribution,
-        milestones,
-    } = useProjectReports(tasks, phases);
+        completedThisMonth,
+        overdueMilestones,
+        upcomingThisMonth,
+    } = useProjectReports(tasks, phases, { selectedMonth });
 
     if (isLoading) {
         return (
@@ -212,30 +221,44 @@ export default function Reports() {
                                 </div>
 
                                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-                                    <h2 className="text-lg font-semibold text-foreground mb-4">Upcoming Deadlines</h2>
-                                    <div className="space-y-4">
-                                        {milestones.length === 0 && (
-                                            <p className="text-sm text-muted-foreground">No upcoming deadlines.</p>
-                                        )}
-                                        {milestones.slice(0, 5).map((milestone) => (
-                                            <div key={milestone.id} onClick={() => navigate(`/Project?id=${projectId}`)} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border cursor-pointer hover:border-brand-300 hover:shadow-sm transition-all">
-                                                <div className="min-w-0 flex-1">
-                                                    <h4 className="font-medium text-foreground truncate">{milestone.title}</h4>
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                        {milestone.due_date || 'No due date'}
-                                                    </p>
-                                                </div>
-                                                <div className="text-right ml-4 flex-shrink-0">
-                                                    <span className={`text-xs px-2 py-1 rounded-full ${
-                                                        milestone.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                        milestone.status === 'in_progress' ? 'bg-orange-100 text-orange-700' :
-                                                        'bg-slate-100 text-slate-700'
-                                                    }`}>
-                                                        {milestone.progress}%
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-lg font-semibold text-foreground">Monthly Breakdown</h2>
+                                        <label className="flex items-center gap-2 text-sm">
+                                            <span className="text-muted-foreground">Month</span>
+                                            <input
+                                                type="month"
+                                                value={selectedMonth}
+                                                onChange={(e) => setSelectedMonth(e.target.value || defaultMonthKey())}
+                                                className="px-2 py-1 rounded-md border border-border bg-card text-sm"
+                                                aria-label="Reporting month"
+                                            />
+                                        </label>
+                                    </div>
+                                    <div className="space-y-5 max-h-80 overflow-y-auto pr-1">
+                                        <MilestoneList
+                                            heading="Completed This Month"
+                                            icon={CheckCircle2}
+                                            accent="text-green-600"
+                                            emptyText="No milestones completed this month yet."
+                                            items={completedThisMonth}
+                                            onItemClick={() => navigate(`/Project?id=${projectId}`)}
+                                        />
+                                        <MilestoneList
+                                            heading="Overdue"
+                                            icon={AlertTriangle}
+                                            accent="text-red-600"
+                                            emptyText="Nothing overdue. Nice work."
+                                            items={overdueMilestones}
+                                            onItemClick={() => navigate(`/Project?id=${projectId}`)}
+                                        />
+                                        <MilestoneList
+                                            heading="Upcoming This Month"
+                                            icon={Clock}
+                                            accent="text-orange-600"
+                                            emptyText="No upcoming milestones in this month."
+                                            items={upcomingThisMonth}
+                                            onItemClick={() => navigate(`/Project?id=${projectId}`)}
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -280,5 +303,54 @@ export default function Reports() {
                 </div>
             </div>
         </>
+    );
+}
+
+interface MilestoneListItem {
+    id: string;
+    title: string | null;
+    due_date: string | null;
+    progress: number;
+}
+
+interface MilestoneListProps {
+    heading: string;
+    icon: React.ComponentType<{ className?: string }>;
+    accent: string;
+    emptyText: string;
+    items: MilestoneListItem[];
+    onItemClick: () => void;
+}
+
+function MilestoneList({ heading, icon: Icon, accent, emptyText, items, onItemClick }: MilestoneListProps) {
+    return (
+        <section>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2">
+                <Icon className={`w-4 h-4 ${accent}`} />
+                {heading}
+                <span className="ml-auto text-xs text-muted-foreground">{items.length}</span>
+            </h3>
+            {items.length === 0 ? (
+                <p className="text-xs text-muted-foreground pl-6">{emptyText}</p>
+            ) : (
+                <ul className="space-y-2">
+                    {items.map((m) => (
+                        <li
+                            key={m.id}
+                            onClick={onItemClick}
+                            className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border cursor-pointer hover:border-brand-300 hover:shadow-sm transition-all"
+                        >
+                            <div className="min-w-0 flex-1">
+                                <h4 className="font-medium text-foreground truncate text-sm">{m.title}</h4>
+                                <p className="text-xs text-muted-foreground mt-1">{m.due_date || 'No due date'}</p>
+                            </div>
+                            <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-700 ml-4 flex-shrink-0">
+                                {m.progress}%
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </section>
     );
 }

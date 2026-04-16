@@ -65,7 +65,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] View project/template tasks in an expandable/collapsible hierarchy tree.
   - [x] Edit task, subtask, and milestone info.
   - [x] **Max Subtask Depth Constraint**: Subtasks cannot have child tasks (Maximum depth = 1). The drag-and-drop engine strictly enforces this invariant.
-  - [ ] **Kanban Board V2**: Native column-to-column drag-and-drop with strict type safety (replacing the V1 math-heavy board).
+  - [x] **Kanban Board V2**: Native column-to-column drag-and-drop with strict type safety (shipped; see `src/features/tasks/components/board/`).
 - [x] **Drag and Drop Engine**:
   - [x] Pick up and drag tasks to any location.
   - [x] Drop on top of another task (reparenting / making it a child).

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { PROJECT_STATUS } from '@/shared/constants/domain';
 import type { Database } from '@/shared/db/database.types';
 import type { Task, Project } from '@/shared/db/app.types';
 
@@ -63,7 +64,7 @@ export function useDashboard() {
 
  // Derived State / Filtering
  const activeProjects = useMemo(() => {
- return Array.isArray(projects) ? projects.filter(p => p.status === 'active') : [];
+ return Array.isArray(projects) ? projects.filter(p => p.status === PROJECT_STATUS.IN_PROGRESS) : [];
  }, [projects]);
 
  const filteredTasks = useMemo(() => {

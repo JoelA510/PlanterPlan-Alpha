@@ -8,6 +8,20 @@ import { planter } from '@/shared/api/planterClient';
 import TaskItem from '@/features/tasks/components/TaskItem';
 import { Loader2, List, LayoutGrid } from 'lucide-react';
 import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView';
+import {
+       useTaskFilters,
+       FILTER_LABELS,
+       EMPTY_STATE_COPY,
+       type TaskFilterKey,
+       type TaskSortKey,
+} from '@/features/tasks/hooks/useTaskFilters';
+import {
+       Select,
+       SelectContent,
+       SelectItem,
+       SelectTrigger,
+       SelectValue,
+} from '@/shared/ui/select';
 
 export default function TasksPage() {
        const queryClient = useQueryClient();
@@ -21,6 +35,8 @@ export default function TasksPage() {
 
        // State for View Mode
        const [viewMode, setViewMode] = useState('list'); // 'list' | 'board'
+       const [filter, setFilter] = useState<TaskFilterKey>('my_tasks');
+       const [sort, setSort] = useState<TaskSortKey>('chronological');
 
        const updateTask = useCallback(
               async (taskId: string, updates: Record<string, unknown>) => {
@@ -58,8 +74,7 @@ export default function TasksPage() {
        }, [updateTask]);
        const handleNoop = useCallback(() => { }, []);
 
-       // For "My Tasks" view, we show all instance tasks that are actual tasks (not phases/milestones/roots)
-       const myTasks = tasks.filter((t) => t.parent_task_id !== null && t.origin === 'instance');
+       const visibleTasks = useTaskFilters({ tasks, filter, sort });
 
        const sensors = useSensors(
               useSensor(PointerSensor, {
@@ -112,49 +127,77 @@ export default function TasksPage() {
                      >
                             <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
                                    <div className="flex-none max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-                                          <div className="flex items-center justify-between mb-8">
+                                          <div className="flex flex-col gap-6 mb-8 md:flex-row md:items-end md:justify-between">
                                                  <div>
-                                                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">My Tasks</h1>
+                                                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{FILTER_LABELS[filter]}</h1>
                                                         <p className="text-muted-foreground mt-1">Review and manage your assignments across all projects</p>
                                                  </div>
 
-                                                 {/* View Toggler */}
-                                                 <div className="bg-muted p-1 rounded-lg flex items-center space-x-1">
-                                                        <button
-                                                               onClick={() => setViewMode('list')}
-                                                               className={`p-2 rounded-md transition-all ${viewMode === 'list'
-                                                                      ? 'bg-card shadow text-card-foreground'
-                                                                      : 'text-muted-foreground hover:text-card-foreground'
-                                                                      }`}
-                                                               aria-label="List View"
-                                                        >
-                                                               <List className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                               onClick={() => setViewMode('board')}
-                                                               className={`p-2 rounded-md transition-all ${viewMode === 'board'
-                                                                      ? 'bg-card shadow text-card-foreground'
-                                                                      : 'text-muted-foreground hover:text-card-foreground'
-                                                                      }`}
-                                                               aria-label="Board View"
-                                                        >
-                                                               <LayoutGrid className="w-4 h-4" />
-                                                        </button>
+                                                 <div className="flex flex-wrap items-center gap-3">
+                                                        <div className="flex flex-col gap-1">
+                                                               <label htmlFor="task-filter" className="text-xs font-medium text-muted-foreground">View</label>
+                                                               <Select value={filter} onValueChange={(v) => setFilter(v as TaskFilterKey)}>
+                                                                      <SelectTrigger id="task-filter" className="w-[180px] bg-card" aria-label="Task view">
+                                                                             <SelectValue />
+                                                                      </SelectTrigger>
+                                                                      <SelectContent>
+                                                                             {(Object.keys(FILTER_LABELS) as TaskFilterKey[]).map((key) => (
+                                                                                    <SelectItem key={key} value={key}>{FILTER_LABELS[key]}</SelectItem>
+                                                                             ))}
+                                                                      </SelectContent>
+                                                               </Select>
+                                                        </div>
+
+                                                        <div className="flex flex-col gap-1">
+                                                               <label htmlFor="task-sort" className="text-xs font-medium text-muted-foreground">Sort</label>
+                                                               <Select value={sort} onValueChange={(v) => setSort(v as TaskSortKey)}>
+                                                                      <SelectTrigger id="task-sort" className="w-[180px] bg-card" aria-label="Sort order">
+                                                                             <SelectValue />
+                                                                      </SelectTrigger>
+                                                                      <SelectContent>
+                                                                             <SelectItem value="chronological">Chronological</SelectItem>
+                                                                             <SelectItem value="alphabetical">Alphabetical</SelectItem>
+                                                                      </SelectContent>
+                                                               </Select>
+                                                        </div>
+
+                                                        <div className="bg-muted p-1 rounded-lg flex items-center space-x-1 self-end">
+                                                               <button
+                                                                      onClick={() => setViewMode('list')}
+                                                                      className={`p-2 rounded-md transition-all ${viewMode === 'list'
+                                                                             ? 'bg-card shadow text-card-foreground'
+                                                                             : 'text-muted-foreground hover:text-card-foreground'
+                                                                             }`}
+                                                                      aria-label="List View"
+                                                               >
+                                                                      <List className="w-4 h-4" />
+                                                               </button>
+                                                               <button
+                                                                      onClick={() => setViewMode('board')}
+                                                                      className={`p-2 rounded-md transition-all ${viewMode === 'board'
+                                                                             ? 'bg-card shadow text-card-foreground'
+                                                                             : 'text-muted-foreground hover:text-card-foreground'
+                                                                             }`}
+                                                                      aria-label="Board View"
+                                                               >
+                                                                      <LayoutGrid className="w-4 h-4" />
+                                                               </button>
+                                                        </div>
                                                  </div>
                                           </div>
                                    </div>
 
                                    <div className="flex-1 overflow-hidden">
                                           <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
-                                                 {myTasks.length === 0 ? (
+                                                 {visibleTasks.length === 0 ? (
                                                         <div className="bg-card rounded-xl border border-border shadow-sm p-12 text-center">
-                                                               <p className="text-muted-foreground">No tasks found across your projects.</p>
+                                                               <p className="text-muted-foreground">{EMPTY_STATE_COPY[filter]}</p>
                                                         </div>
                                                  ) : (
                                                         viewMode === 'list' ? (
                                                                <div className="space-y-6 overflow-y-auto h-full pb-20">
                                                                       <div className="flex flex-col gap-2">
-                                                                             {myTasks.map(task => (
+                                                                             {visibleTasks.map(task => (
                                                                                     <TaskItem
                                                                                            key={task.id}
                                                                                            task={task}
@@ -174,7 +217,7 @@ export default function TasksPage() {
                                                                <div className="h-full">
                                                                       <ProjectBoardView
                                                                              project={{ id: 'my-tasks-root' } as Project} // Dummy project ID for columns
-                                                                             childrenTasks={myTasks}
+                                                                             childrenTasks={visibleTasks}
                                                                              handleTaskClick={() => { }} // No detail view support yet in My Tasks
                                                                       />
                                                                </div>

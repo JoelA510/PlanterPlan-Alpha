@@ -27,7 +27,11 @@ export interface DateEngineTask {
  start_date?: string | null;
  due_date?: string | null;
  is_complete?: boolean | null;
+ status?: string | null;
 }
+
+/** Derived urgency label used by task-list filters and reports. */
+export type TaskUrgency = 'not_yet_due' | 'current' | 'due_soon' | 'overdue';
 
 /** Return shape for schedule calculation. */
 export interface ScheduleDates {
@@ -331,8 +335,8 @@ export const recalculateProjectDates = (
  const updates: DateUpdateRecord[] = [];
 
  projectTasks.forEach((task) => {
- // Skip if task is completed (preserve history)
- if (task.is_complete) return;
+ // Skip if task is completed by either signal (preserve history)
+ if (task.is_complete || task.status === 'completed') return;
 
  // Skip if task has no dates
  if (!task.start_date) return;
@@ -369,4 +373,56 @@ export const recalculateProjectDates = (
  });
 
  return updates;
+};
+
+// ---------------------------------------------------------------------------
+// Urgency Derivation (Wave 20)
+// ---------------------------------------------------------------------------
+
+const startOfUtcDay = (d: Date): Date => {
+ const copy = new Date(d.getTime());
+ copy.setUTCHours(0, 0, 0, 0);
+ return copy;
+};
+
+/**
+ * Derives an urgency label from a task's dates. Returns `null` when the task
+ * has no due_date (no meaningful urgency) or is already complete.
+ *
+ * Branches (evaluated against UTC day boundaries):
+ *  - `overdue`     — due_date strictly before today
+ *  - `due_soon`    — due_date between today and today + thresholdDays (inclusive)
+ *  - `not_yet_due` — start_date strictly after today
+ *  - `current`     — otherwise (active and not imminent)
+ */
+export const deriveUrgency = (
+ task: Pick<DateEngineTask, 'start_date' | 'due_date' | 'is_complete' | 'status'>,
+ dueSoonThresholdDays: number,
+ now: Date = new Date(),
+): TaskUrgency | null => {
+ if (task.is_complete || task.status === 'completed') return null;
+ if (!task.due_date) return null;
+
+ const dueIso = toIsoDate(task.due_date);
+ if (!dueIso) return null;
+ const due = startOfUtcDay(new Date(`${dueIso}T00:00:00.000Z`));
+ if (isNaN(due.getTime())) return null;
+
+ const today = startOfUtcDay(now);
+
+ if (due.getTime() < today.getTime()) return 'overdue';
+
+ const threshold = Math.max(0, Math.floor(dueSoonThresholdDays));
+ const soonCutoff = startOfUtcDay(addDays(today, threshold));
+ if (due.getTime() <= soonCutoff.getTime()) return 'due_soon';
+
+ if (task.start_date) {
+  const startIso = toIsoDate(task.start_date);
+  if (startIso) {
+   const start = startOfUtcDay(new Date(`${startIso}T00:00:00.000Z`));
+   if (!isNaN(start.getTime()) && start.getTime() > today.getTime()) return 'not_yet_due';
+  }
+ }
+
+ return 'current';
 };

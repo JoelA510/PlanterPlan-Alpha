@@ -655,7 +655,7 @@ export const planter: PlanterClient = {
             listAllVisibleTemplates: async (viewerId?: string): Promise<Task[]> => {
                 return retry(async () => {
                     let query = supabase
-                        .from('tasks')
+                        .from('tasks_with_primary_resource')
                         .select('*')
                         .eq('origin', 'template')
                         .is('parent_task_id', null);

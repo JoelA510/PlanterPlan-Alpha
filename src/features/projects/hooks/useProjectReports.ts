@@ -3,7 +3,43 @@ import { TASK_STATUS } from '@/shared/constants';
 import { CheckCircle2, Clock, AlertTriangle, Circle } from 'lucide-react';
 import type { TaskRow } from '@/shared/db/app.types';
 
-export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
+export interface UseProjectReportsOptions {
+ /** Selected month in `YYYY-MM` format. Defaults to the month of `now`. */
+ selectedMonth?: string;
+ /** Reference time (testable clock). Defaults to `new Date()`. */
+ now?: Date;
+}
+
+const toMonthKey = (d: Date): string => {
+ const year = d.getUTCFullYear();
+ const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+ return `${year}-${month}`;
+};
+
+const dateStringToMonthKey = (raw: string | null | undefined): string | null => {
+ if (!raw) return null;
+ // Accepts "YYYY-MM-DD" and "YYYY-MM-DDTHH:mm:ssZ".
+ if (/^\d{4}-\d{2}/.test(raw)) return raw.slice(0, 7);
+ const d = new Date(raw);
+ if (isNaN(d.getTime())) return null;
+ return toMonthKey(d);
+};
+
+const dateStringToUtcMidnight = (raw: string | null | undefined): number | null => {
+ if (!raw) return null;
+ const iso = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00.000Z` : raw;
+ const d = new Date(iso);
+ if (isNaN(d.getTime())) return null;
+ d.setUTCHours(0, 0, 0, 0);
+ return d.getTime();
+};
+
+export function useProjectReports(
+ tasks: TaskRow[],
+ phases: TaskRow[],
+ options: UseProjectReportsOptions = {},
+) {
+ const { selectedMonth, now = new Date() } = options;
  return useMemo(() => {
  // Basic task counts
  const tasksByStatus = {
@@ -66,7 +102,9 @@ export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
   id: m.id,
   title: m.title,
   due_date: m.due_date,
+  updated_at: m.updated_at,
   status: m.status,
+  is_complete: m.is_complete,
   completed: completedCount,
   total: totalCount,
   progress: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
@@ -85,6 +123,40 @@ export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
  { name: 'Done', value: tasksByStatus.completed },
  ];
 
+ // Month-scoped milestone lists (Wave 20)
+ const monthKey = selectedMonth ?? toMonthKey(now);
+ const todayMidnight = (() => {
+  const d = new Date(now.getTime());
+  d.setUTCHours(0, 0, 0, 0);
+  return d.getTime();
+ })();
+
+ const isMilestoneComplete = (m: (typeof milestones)[number]) =>
+  Boolean(m.is_complete) || m.status === TASK_STATUS.COMPLETED;
+
+ const completedThisMonth = milestones.filter((m) => {
+  if (!isMilestoneComplete(m)) return false;
+  const dueMonth = dateStringToMonthKey(m.due_date);
+  const updatedMonth = dateStringToMonthKey(m.updated_at);
+  return dueMonth === monthKey || updatedMonth === monthKey;
+ });
+
+ const overdueMilestones = milestones.filter((m) => {
+  if (isMilestoneComplete(m)) return false;
+  const dueMs = dateStringToUtcMidnight(m.due_date);
+  if (dueMs === null) return false;
+  return dueMs < todayMidnight;
+ });
+
+ const upcomingThisMonth = milestones.filter((m) => {
+  if (isMilestoneComplete(m)) return false;
+  const dueMonth = dateStringToMonthKey(m.due_date);
+  if (dueMonth !== monthKey) return false;
+  const dueMs = dateStringToUtcMidnight(m.due_date);
+  if (dueMs === null) return false;
+  return dueMs >= todayMidnight;
+ });
+
  return {
  statsConfig,
  overallProgress,
@@ -93,6 +165,10 @@ export function useProjectReports(tasks: TaskRow[], phases: TaskRow[]) {
  phaseData,
  taskDistribution,
  milestones,
+ selectedMonth: monthKey,
+ completedThisMonth,
+ overdueMilestones,
+ upcomingThisMonth,
  };
- }, [tasks, phases]);
+ }, [tasks, phases, selectedMonth, now]);
 }
