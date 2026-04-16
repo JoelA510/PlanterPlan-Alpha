@@ -75,7 +75,7 @@ describe('useProjectData', () => {
     });
 
     it('extracts project from nested data.data', async () => {
-      mockGetWithStats.mockResolvedValue({ data: { id: projectId, title: 'My Project', status: 'active' } });
+      mockGetWithStats.mockResolvedValue({ data: { id: projectId, title: 'My Project', status: 'in_progress' } });
 
       const { result } = renderHook(() => useProjectData(projectId), { wrapper: createWrapper() });
 

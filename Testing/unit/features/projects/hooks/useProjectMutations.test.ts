@@ -183,6 +183,55 @@ describe('useUpdateProject', () => {
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['project', 'proj-1'] }));
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['projectHierarchy', 'proj-1'] }));
   });
+
+  it('returns shiftedCount: 0 when start_date is unchanged', async () => {
+    mockProjectUpdate.mockResolvedValueOnce(makeTask());
+    const { Wrapper } = createWrapper();
+
+    const { result } = renderHook(() => useUpdateProject(), { wrapper: Wrapper });
+
+    let returned: { shiftedCount: number } | undefined;
+    await act(async () => {
+      returned = await result.current.mutateAsync({
+        projectId: 'proj-1',
+        updates: { title: 'Rename only' },
+      });
+    });
+
+    expect(returned).toEqual({ shiftedCount: 0 });
+    expect(mockTaskFilter).not.toHaveBeenCalled();
+    expect(mockTaskUpsert).not.toHaveBeenCalled();
+  });
+
+  it('returns shiftedCount matching incomplete tasks and skips completed ones', async () => {
+    const tasks = [
+      makeTask({ id: 't1', start_date: '2026-01-10', due_date: '2026-01-20', is_complete: false }),
+      makeTask({ id: 't2', start_date: '2026-01-12', due_date: '2026-01-22', is_complete: false }),
+      makeTask({ id: 't3', start_date: '2026-01-14', due_date: '2026-01-24', is_complete: false }),
+      makeTask({ id: 't4', start_date: '2026-01-16', due_date: '2026-01-26', is_complete: true }),
+    ];
+    mockTaskFilter.mockResolvedValueOnce(tasks);
+    mockProjectUpdate.mockResolvedValueOnce(makeTask());
+    mockTaskUpsert.mockResolvedValueOnce({ data: [], error: null });
+    const { Wrapper } = createWrapper();
+
+    const { result } = renderHook(() => useUpdateProject(), { wrapper: Wrapper });
+
+    let returned: { shiftedCount: number } | undefined;
+    await act(async () => {
+      returned = await result.current.mutateAsync({
+        projectId: 'proj-1',
+        updates: { start_date: '2026-01-08' },
+        oldStartDate: '2026-01-01',
+      });
+    });
+
+    expect(returned).toEqual({ shiftedCount: 3 });
+    expect(mockTaskUpsert).toHaveBeenCalledTimes(1);
+    const upsertArg = mockTaskUpsert.mock.calls[0][0] as Array<{ id: string }>;
+    expect(upsertArg).toHaveLength(3);
+    expect(upsertArg.map(u => u.id).sort()).toEqual(['t1', 't2', 't3']);
+  });
 });
 
 // ---------------------------------------------------------------------------

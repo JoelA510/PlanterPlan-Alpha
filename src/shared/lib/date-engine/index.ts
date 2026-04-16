@@ -27,6 +27,7 @@ export interface DateEngineTask {
  start_date?: string | null;
  due_date?: string | null;
  is_complete?: boolean | null;
+ status?: string | null;
 }
 
 /** Return shape for schedule calculation. */
@@ -331,8 +332,8 @@ export const recalculateProjectDates = (
  const updates: DateUpdateRecord[] = [];
 
  projectTasks.forEach((task) => {
- // Skip if task is completed (preserve history)
- if (task.is_complete) return;
+ // Skip if task is completed by either signal (preserve history)
+ if (task.is_complete || task.status === 'completed') return;
 
  // Skip if task has no dates
  if (!task.start_date) return;
