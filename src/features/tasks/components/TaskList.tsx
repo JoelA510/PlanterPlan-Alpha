@@ -4,7 +4,8 @@ import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useUpdateTask, useCreateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
 import { buildTree, separateTasksByOrigin } from '@/shared/lib/tree-helpers';
 import type { TaskNode } from '@/shared/lib/tree-helpers';
-import { Project, TaskRow, TaskFormData, TaskInsert } from '@/shared/db/app.types';
+import { Project, TaskRow, TaskFormData, TaskInsert, Json } from '@/shared/db/app.types';
+import { formDataToRecurrenceRule } from '@/features/tasks/lib/recurrence-form';
 import React from 'react';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
@@ -196,10 +197,54 @@ const TaskList = () => {
   );
 
   const createTaskOrUpdateWrapper = async (data: TaskFormData, state: TaskFormState | null) => {
-    if (state?.mode === 'edit' && state?.taskId) {
-      return updateTaskAsync({ id: state.taskId, ...data });
+    // Extract recurrence_* form fields so we can stash the normalised rule
+    // into `settings.recurrence` without leaking flat fields onto the DB row.
+    const {
+      recurrence_kind,
+      recurrence_weekday,
+      recurrence_day_of_month,
+      recurrence_target_project_id,
+      ...rest
+    } = data;
+
+    const isTemplate = state?.origin === 'template';
+    let settingsPatch: Record<string, unknown> | undefined;
+    if (isTemplate) {
+      const existing = state?.mode === 'edit' && state?.taskId
+        ? (findTask(state.taskId) as TaskRow | undefined)?.settings
+        : null;
+      const existingObj = existing && typeof existing === 'object' && !Array.isArray(existing)
+        ? (existing as Record<string, unknown>)
+        : {};
+      const rule = formDataToRecurrenceRule({
+        recurrence_kind,
+        recurrence_weekday,
+        recurrence_day_of_month,
+        recurrence_target_project_id,
+      } as TaskFormData);
+      if (recurrence_kind === 'none' || rule === null) {
+        const withoutRec = { ...existingObj };
+        delete withoutRec.recurrence;
+        settingsPatch = withoutRec;
+      } else {
+        settingsPatch = { ...existingObj, recurrence: rule };
+      }
     }
-    return createTaskAsync({ ...data, root_id: activeProjectId || null, origin: state?.origin || 'instance', parent_task_id: state?.parentId || null } as TaskInsert);
+
+    if (state?.mode === 'edit' && state?.taskId) {
+      return updateTaskAsync({
+        id: state.taskId,
+        ...rest,
+        ...(settingsPatch ? { settings: settingsPatch as unknown as Json } : {}),
+      });
+    }
+    return createTaskAsync({
+      ...rest,
+      root_id: activeProjectId || null,
+      origin: state?.origin || 'instance',
+      parent_task_id: state?.parentId || null,
+      ...(settingsPatch ? { settings: settingsPatch as unknown as Json } : {}),
+    } as TaskInsert);
   };
 
   const handleTaskSubmit = async (formData: TaskFormData) => {

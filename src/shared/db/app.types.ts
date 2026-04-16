@@ -107,4 +107,25 @@ export interface TaskFormData {
     start_date?: string | null;
     due_date?: string | null;
     templateId?: string | null;
+    /** Template-only: recurrence picker UI state. Normalised to `settings.recurrence` before persist. */
+    recurrence_kind?: 'none' | 'weekly' | 'monthly';
+    recurrence_weekday?: number;
+    recurrence_day_of_month?: number;
+    recurrence_target_project_id?: string | null;
 }
+
+// ----------------------------------------------------------------------------
+// Recurrence (Wave 21)
+// ----------------------------------------------------------------------------
+
+/**
+ * Recurrence rule stored on a template task under `settings.recurrence`.
+ * When the rule fires (evaluated in UTC by nightly-sync), the edge function
+ * clones the template into `targetProjectId`'s subtree as an instance task.
+ *
+ * `dayOfMonth` is capped at 28 to avoid Feb/leap-year edge cases. No end dates
+ * or intervals — deliberately minimal per Wave 21 scope.
+ */
+export type RecurrenceRule =
+    | { kind: 'weekly'; weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6; targetProjectId: string }
+    | { kind: 'monthly'; dayOfMonth: number; targetProjectId: string };

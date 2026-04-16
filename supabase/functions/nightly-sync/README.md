@@ -1,6 +1,7 @@
 # nightly-sync
 
-Supabase Edge Function that transitions task statuses on a schedule:
+Supabase Edge Function that transitions task statuses and spawns recurring
+tasks on a schedule:
 
 1. **Overdue**: any task with `due_date < now`, `is_complete = false`, and
    `status NOT IN ('completed', 'overdue')` is set to `status = 'overdue'`.
@@ -8,6 +9,14 @@ Supabase Edge Function that transitions task statuses on a schedule:
    `status NOT IN ('completed', 'overdue', 'due_soon')` whose `due_date` falls
    within its project root's `settings.due_soon_threshold` (in days, default
    `3`) is set to `status = 'due_soon'`.
+3. **Recurrence (Wave 21)**: template tasks with a valid `settings.recurrence`
+   rule that fires today (evaluated in UTC) are cloned into the configured
+   target project via the `clone_project_template` RPC. The clone is stamped
+   with `settings.spawnedFromTemplate` + `settings.spawnedOn` so same-day
+   re-invocations of the function are a no-op. Rule shape (see
+   `supabase/functions/_shared/recurrence.ts`):
+   - `{ kind: 'weekly', weekday: 0..6, targetProjectId }`
+   - `{ kind: 'monthly', dayOfMonth: 1..28, targetProjectId }`
 
 ## Response
 
@@ -16,8 +25,11 @@ Supabase Edge Function that transitions task statuses on a schedule:
   "success": true,
   "overdue": 4,
   "due_soon": 9,
+  "recurrence_spawned": 1,
+  "recurrence_skipped": 0,
   "overdue_ids": ["..."],
-  "due_soon_ids": ["..."]
+  "due_soon_ids": ["..."],
+  "recurrence_spawned_ids": ["..."]
 }
 ```
 
