@@ -286,6 +286,123 @@ describe('useProjectReports', () => {
     });
   });
 
+  describe('month-scoped milestone lists (Wave 20)', () => {
+    const NOW = new Date('2026-04-16T12:00:00.000Z');
+
+    it('returns selectedMonth from options', () => {
+      const { result } = renderHook(() =>
+        useProjectReports([], [], { selectedMonth: '2026-03', now: NOW }),
+      );
+      expect(result.current.selectedMonth).toBe('2026-03');
+    });
+
+    it('defaults selectedMonth to the current UTC month when not provided', () => {
+      const { result } = renderHook(() => useProjectReports([], [], { now: NOW }));
+      expect(result.current.selectedMonth).toBe('2026-04');
+    });
+
+    it("completedThisMonth keeps milestones completed in the selected month via due_date", () => {
+      const phases = [makeTask({ id: 'phase-1' })];
+      const tasks = [
+        makeTask({
+          id: 'ms-april',
+          parent_task_id: 'phase-1',
+          status: 'completed',
+          is_complete: true,
+          due_date: '2026-04-05',
+          updated_at: '2026-04-05T12:00:00.000Z',
+        }),
+        makeTask({
+          id: 'ms-march',
+          parent_task_id: 'phase-1',
+          status: 'completed',
+          is_complete: true,
+          due_date: '2026-03-10',
+          updated_at: '2026-03-10T12:00:00.000Z',
+        }),
+      ];
+      const { result } = renderHook(() =>
+        useProjectReports(tasks, phases, { selectedMonth: '2026-04', now: NOW }),
+      );
+      expect(result.current.completedThisMonth.map((m) => m.id)).toEqual(['ms-april']);
+    });
+
+    it("completedThisMonth also matches via updated_at when due_date is outside the selected month", () => {
+      const phases = [makeTask({ id: 'phase-1' })];
+      const tasks = [
+        makeTask({
+          id: 'ms-done-this-month',
+          parent_task_id: 'phase-1',
+          status: 'completed',
+          is_complete: true,
+          due_date: '2026-02-05',
+          updated_at: '2026-04-10T12:00:00.000Z',
+        }),
+      ];
+      const { result } = renderHook(() =>
+        useProjectReports(tasks, phases, { selectedMonth: '2026-04', now: NOW }),
+      );
+      expect(result.current.completedThisMonth.map((m) => m.id)).toEqual(['ms-done-this-month']);
+    });
+
+    it('overdueMilestones keeps incomplete milestones past today regardless of month', () => {
+      const phases = [makeTask({ id: 'phase-1' })];
+      const tasks = [
+        makeTask({
+          id: 'ms-late',
+          parent_task_id: 'phase-1',
+          status: 'todo',
+          due_date: '2026-04-10',
+        }),
+        makeTask({
+          id: 'ms-future',
+          parent_task_id: 'phase-1',
+          status: 'todo',
+          due_date: '2026-05-10',
+        }),
+        makeTask({
+          id: 'ms-done',
+          parent_task_id: 'phase-1',
+          status: 'completed',
+          is_complete: true,
+          due_date: '2026-04-01',
+        }),
+      ];
+      const { result } = renderHook(() =>
+        useProjectReports(tasks, phases, { selectedMonth: '2026-04', now: NOW }),
+      );
+      expect(result.current.overdueMilestones.map((m) => m.id)).toEqual(['ms-late']);
+    });
+
+    it('upcomingThisMonth keeps future milestones due later in the selected month', () => {
+      const phases = [makeTask({ id: 'phase-1' })];
+      const tasks = [
+        makeTask({
+          id: 'ms-later-april',
+          parent_task_id: 'phase-1',
+          status: 'todo',
+          due_date: '2026-04-25',
+        }),
+        makeTask({
+          id: 'ms-past-april',
+          parent_task_id: 'phase-1',
+          status: 'todo',
+          due_date: '2026-04-10',
+        }),
+        makeTask({
+          id: 'ms-may',
+          parent_task_id: 'phase-1',
+          status: 'todo',
+          due_date: '2026-05-01',
+        }),
+      ];
+      const { result } = renderHook(() =>
+        useProjectReports(tasks, phases, { selectedMonth: '2026-04', now: NOW }),
+      );
+      expect(result.current.upcomingThisMonth.map((m) => m.id)).toEqual(['ms-later-april']);
+    });
+  });
+
   describe('mixed scenario', () => {
     it('handles realistic data with multiple phases and varied statuses', () => {
       const phases = [
