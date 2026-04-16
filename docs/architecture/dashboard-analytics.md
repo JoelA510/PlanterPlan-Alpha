@@ -22,7 +22,8 @@ The Dashboard & Analytics domain aggregates telemetry across Projects, Tasks, an
   * Status Breakdown: Complete, In Progress, Blocked, Not Started.
   * Progress Charts: Milestone/Phase completion ratios.
 * **Reporting Outputs:**
-  * Generate chronological "By Month" reports.
+  * Generate chronological "By Month" reports. Shipped in Wave 20 as `src/pages/Reports.tsx` (month picker + donut charts + lists of completed / overdue / upcoming milestones), sourced from `src/features/projects/hooks/useProjectReports.ts`.
+  * **Task List Views & Filters (Wave 20):** `/tasks` (`src/pages/TasksPage.tsx`) now exposes filtered task lists via `src/features/tasks/hooks/useTaskFilters.ts` (Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All, Milestones, My Tasks) with chronological/alphabetical sort.
   * Exportable static data (e.g., via `export-utils.ts`).
 * **Admin Notifications:** Automated dispatch to Admins upon new project creation.
 

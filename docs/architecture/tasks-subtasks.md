@@ -24,6 +24,7 @@ Transitions strictly through: `To Do` -> `In Progress` -> `Complete` -> `Blocked
   * Items dropped adjacent to peers reorder the list index.
   * A childless Task dropped inside another Task becomes a Subtask.
   * Dragging a Task moves all of its nested Subtasks concurrently.
+* **Kanban Board V2 (Wave 20):** Native column-to-column drag-and-drop is implemented in `src/features/tasks/components/board/` (`ProjectBoardView.tsx`, `BoardColumn.tsx`, `BoardTaskCard.tsx`). Drops between columns change task `status`; depth constraints and cycle detection still apply.
 * **Dependencies:** Tasks mapped as dependencies cannot be closed out of sequence without throwing a warning.
 * **Deletion Invariants:** Deleting an item triggers a warning and cascades a hard delete to all descendants.
 

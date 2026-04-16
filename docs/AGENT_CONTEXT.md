@@ -52,7 +52,11 @@
   `src/features/dashboard/components/ProjectPipelineBoard.tsx`
 - **Project Detail**: `src/pages/Project.tsx` -> `src/features/tasks/components/TaskList.tsx`
 - **Task Details**: `src/features/tasks/components/TaskDetailsPanel.tsx`
+- **Kanban Board V2 (Wave 20)**: `src/features/tasks/components/board/ProjectBoardView.tsx` → `BoardColumn.tsx` / `BoardTaskCard.tsx`. Native column-to-column drag-and-drop; `deriveUrgency` helper lives in `src/shared/lib/date-engine/index.ts`.
+- **Task List Views & Filters (Wave 20)**: `/tasks` → `src/pages/TasksPage.tsx` → `src/features/tasks/hooks/useTaskFilters.ts`. Filtered views: Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All, Milestones, My Tasks. Chronological/alphabetical sort.
+- **Project Status Report (Wave 20)**: `/reports` → `src/pages/Reports.tsx` → `src/features/projects/hooks/useProjectReports.ts`. Month picker + lists of completed / overdue / upcoming milestones, donut charts.
 - **Date Logic**: `src/shared/lib/date-engine/index.ts` (Handle with extreme care, heavily tested!)
+- **Nightly CRON (Wave 20)**: `supabase/functions/nightly-sync/` (see its `README.md`) — owns urgency-status transitions (`not_started → in_progress → due_soon → overdue`) using per-project `settings.due_soon_threshold`. The app-layer Date Engine no longer writes status to the DB.
 - **Resource Library**: `src/features/projects/components/ResourceLibrary.tsx` +
   `src/features/projects/hooks/useProjectResources.ts` — project-scoped resource browser tab (search + type filter). Data fetched via `planterClient.entities.TaskResource.listByProject(projectId)`, which uses a Supabase `!inner` join on `tasks.root_id`. Returns `ResourceWithTask[]` (defined in `src/shared/db/app.types.ts`).
 - **Project Settings Modal**: `src/features/projects/components/EditProjectModal.tsx` — edits title, description, start date, due date, and `due_soon_threshold` (stored in `tasks.settings` JSONB). The `location` field has been deprecated and removed from the UI.
