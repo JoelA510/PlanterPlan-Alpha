@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isRecurrenceRule, shouldFireRecurrenceOn, RecurrenceRule } from '../_shared/recurrence.ts'
+import { toUtcIsoDate } from '../_shared/date.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -66,17 +67,6 @@ async function loadThresholds(
 }
 
 /**
- * Returns the ISO date (YYYY-MM-DD) of the given UTC moment — used as both
- * the spawn's `start_date`/`due_date` and the idempotency key.
- */
-const toUtcIsoDate = (d: Date): string => {
-    const y = d.getUTCFullYear()
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0')
-    const day = String(d.getUTCDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-}
-
-/**
  * Recurrence-clone pass. For each template task with a valid `settings.recurrence`
  * rule that fires today, clone the template into the configured target project
  * as an instance task. The clone stamps `settings.spawnedFromTemplate` +
@@ -137,16 +127,32 @@ async function runRecurrencePass(
             continue
         }
 
-        // The RPC returns the cloned root id (jsonb). Stamp provenance so the
-        // next run can short-circuit via the idempotency check above.
-        const clonedId = typeof cloned === 'string'
-            ? cloned
-            : (cloned && typeof cloned === 'object' && 'id' in cloned ? (cloned as { id: string }).id : null)
+        // The RPC returns `{ new_root_id, root_project_id, tasks_cloned }`
+        // (see `clone_project_template` in docs/db/schema.sql). Narrow to a
+        // non-empty string so the idempotency stamp below actually lands.
+        const clonedId = ((): string | null => {
+            if (typeof cloned === 'string') return cloned
+            if (cloned && typeof cloned === 'object' && 'new_root_id' in cloned) {
+                const v = (cloned as { new_root_id: unknown }).new_root_id
+                return typeof v === 'string' && v.length > 0 ? v : null
+            }
+            return null
+        })()
         if (clonedId) {
+            // Merge the template's settings into the stamp and explicitly
+            // strip the recurrence rule — instances must never carry the
+            // spawn rule, even if a future change starts copying settings
+            // through the RPC.
+            const stampedSettings: Record<string, unknown> = {
+                ...(tmpl.settings ?? {}),
+                spawnedFromTemplate: tmpl.id,
+                spawnedOn: todayIso,
+            }
+            delete stampedSettings.recurrence
             const { error: stampErr } = await supabase
                 .from('tasks')
                 .update({
-                    settings: { spawnedFromTemplate: tmpl.id, spawnedOn: todayIso },
+                    settings: stampedSettings,
                     updated_at: nowIso,
                 })
                 .eq('id', clonedId)
@@ -244,9 +250,11 @@ Deno.serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         )
     } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
+        // Log the raw error server-side; return a generic message to the
+        // caller to avoid leaking stack details.
+        console.error('[nightly-sync] unhandled error', error)
         return new Response(
-            JSON.stringify({ success: false, error: message }),
+            JSON.stringify({ success: false, error: 'Internal server error' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 },
         )
     }

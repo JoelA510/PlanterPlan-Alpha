@@ -1,4 +1,10 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import {
+    dateStringToUtcMidnightMs,
+    dateStringToUtcMonthKey,
+    toUtcIsoDate,
+    toUtcMonthKey,
+} from '../_shared/date.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -23,6 +29,7 @@ interface MilestoneSummary {
     due_date: string | null
     status: string | null
     is_complete: boolean | null
+    updated_at: string | null
 }
 
 interface ProjectReportPayload {
@@ -40,29 +47,6 @@ interface DispatchResult {
     payloads_built: number
     payloads_logged: number
     payloads_dispatched: number
-}
-
-const toMonthKey = (d: Date): string => {
-    const year = d.getUTCFullYear()
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0')
-    return `${year}-${month}`
-}
-
-const dateStringToMonthKey = (raw: string | null): string | null => {
-    if (!raw) return null
-    if (/^\d{4}-\d{2}/.test(raw)) return raw.slice(0, 7)
-    const d = new Date(raw)
-    if (isNaN(d.getTime())) return null
-    return toMonthKey(d)
-}
-
-const dateStringToUtcMidnightMs = (raw: string | null): number | null => {
-    if (!raw) return null
-    const iso = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00.000Z` : raw
-    const d = new Date(iso)
-    if (isNaN(d.getTime())) return null
-    d.setUTCHours(0, 0, 0, 0)
-    return d.getTime()
 }
 
 const isMilestoneComplete = (m: { status: string | null; is_complete: boolean | null }): boolean =>
@@ -93,15 +77,13 @@ function buildProjectPayload(
             due_date: m.due_date,
             status: m.status,
             is_complete: m.is_complete,
+            updated_at: m.updated_at,
         }))
 
     const completedThisMonth = milestones.filter((m) => {
         if (!isMilestoneComplete(m)) return false
-        const dueMonth = dateStringToMonthKey(m.due_date)
-        // `updated_at` on the filtered rows is on the projectTasks entry, not
-        // the MilestoneSummary — re-derive it.
-        const source = projectTasks.find((t) => t.id === m.id)
-        const updatedMonth = dateStringToMonthKey(source?.updated_at ?? null)
+        const dueMonth = dateStringToUtcMonthKey(m.due_date)
+        const updatedMonth = dateStringToUtcMonthKey(m.updated_at)
         return dueMonth === monthKey || updatedMonth === monthKey
     })
 
@@ -114,7 +96,7 @@ function buildProjectPayload(
 
     const upcomingThisMonth = milestones.filter((m) => {
         if (isMilestoneComplete(m)) return false
-        const dueMonth = dateStringToMonthKey(m.due_date)
+        const dueMonth = dateStringToUtcMonthKey(m.due_date)
         if (dueMonth !== monthKey) return false
         const dueMs = dateStringToUtcMidnightMs(m.due_date)
         if (dueMs === null) return false
@@ -169,10 +151,10 @@ Deno.serve(async (req) => {
         )
 
         const now = new Date()
-        const monthKey = toMonthKey(now)
-        const todayMidnight = new Date(now.getTime())
-        todayMidnight.setUTCHours(0, 0, 0, 0)
-        const todayMidnightMs = todayMidnight.getTime()
+        const monthKey = toUtcMonthKey(now)
+        const todayMidnightMs =
+            dateStringToUtcMidnightMs(toUtcIsoDate(now)) ??
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
 
         const roots = await fetchProjectRoots(supabase)
         const rootIds = roots.map((r) => r.id)
@@ -209,9 +191,11 @@ Deno.serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         )
     } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
+        // Log the raw error server-side; return a generic message to the
+        // caller to avoid leaking stack details.
+        console.error('[supervisor-report] unhandled error', error)
         return new Response(
-            JSON.stringify({ success: false, error: message }),
+            JSON.stringify({ success: false, error: 'Internal server error' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 },
         )
     }
