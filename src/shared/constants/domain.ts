@@ -22,6 +22,7 @@ export const TASK_STATUS = {
  BLOCKED: 'blocked',
  COMPLETED: 'completed',
  OVERDUE: 'overdue',
+ DUE_SOON: 'due_soon',
 } as const;
 
 export type TaskStatus = (typeof TASK_STATUS)[keyof typeof TASK_STATUS];
