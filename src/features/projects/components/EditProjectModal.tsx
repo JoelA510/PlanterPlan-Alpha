@@ -20,6 +20,7 @@ const editProjectSchema = z.object({
  start_date: z.string().min(1, 'Start date is required'),
  due_date: z.string().optional(),
  due_soon_threshold: z.coerce.number().min(1).max(30),
+ supervisor_email: z.string().email('Enter a valid email').optional().or(z.literal('')),
 });
 
 type EditProjectFormData = z.infer<typeof editProjectSchema>;
@@ -58,17 +59,19 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
     typeof currentSettings.due_soon_threshold === 'number'
      ? currentSettings.due_soon_threshold
      : 3,
+   supervisor_email: project.supervisor_email || '',
   },
  });
 
  const onSubmit = async (data: EditProjectFormData) => {
   try {
    const oldStartDate = toIsoDate(project.start_date || project.created_at);
-   const { due_soon_threshold, due_date, ...rest } = data;
+   const { due_soon_threshold, due_date, supervisor_email, ...rest } = data;
 
    const updateData = {
     ...rest,
     due_date: due_date ? due_date : null,
+    supervisor_email: supervisor_email ? supervisor_email : null,
     settings: {
      ...currentSettings,
      due_soon_threshold,
@@ -135,6 +138,25 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
        )}
        <p className="text-xs text-slate-500">Tasks due within this many days will be flagged.</p>
       </div>
+
+      {!isTemplate && (
+       <div className="grid gap-2">
+        <Label htmlFor="supervisor_email">Supervisor Email</Label>
+        <Input
+         type="email"
+         id="supervisor_email"
+         placeholder="supervisor@example.com"
+         {...register('supervisor_email')}
+         className={errors.supervisor_email ? 'border-red-500' : ''}
+        />
+        {errors.supervisor_email && (
+         <p className="text-sm text-red-500">{errors.supervisor_email.message}</p>
+        )}
+        <p className="text-xs text-slate-500">
+         Optional. Receives the monthly Project Status Report on the 2nd of each month.
+        </p>
+       </div>
+      )}
 
       {isTemplate && (
        <div className="flex items-center justify-between py-2">

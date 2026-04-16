@@ -75,6 +75,7 @@ export function useUpdateProject() {
                 updated_at: nowUtcIso(),
                 settings: updates.settings,
                 status: updates.status,
+                supervisor_email: updates.supervisor_email,
             };
 
             let batchUpdates: Partial<TaskUpdate>[] = [];

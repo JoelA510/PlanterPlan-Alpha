@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.5.0 (Wave 18 — Milestone Automation, Date Bubble-up & Account Management) 
-> **Last Updated**: 2026-04-15 
+> **Version**: 1.7.0 (Wave 21 — Supervisor Reports & Recurring Tasks) 
+> **Last Updated**: 2026-04-16 
 > **Status**: Active Development
 
 ---
@@ -81,10 +81,10 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] Drag-and-drop boundary recalculations based on inheritance bounds.
   - [x] Recalculate and assign relative due dates to all incomplete tasks when root project start/completion dates are changed.
   - [x] Automatically bubble up earliest start dates and latest due dates to parent milestones/phases (wired into task create, edit, and delete via `updateParentDates`).
-  - [ ] Nightly CRON job to automatically transition task statuses ('Not Yet Due' -> 'Current' -> 'Due Soon' -> 'Overdue').
+  - [x] **Nightly CRON job** to automatically transition task statuses ('Not Yet Due' -> 'Current' -> 'Due Soon' -> 'Overdue'). Shipped via `supabase/functions/nightly-sync/` (per-project `settings.due_soon_threshold`).
 - [ ] **Task Detail Enhancements**: Show related tasks in the same milestone, and add an action to email task details/content to users with saved address memory.
 - [ ] **Collaboration Suite**: Threaded comments on tasks, activity/audit logs, and real-time presence (cursors).
-- [ ] **Automation Engine**: Recurring tasks ("Every Monday", "First of Month").
+- [x] **Automation Engine — Recurring Tasks**: Template tasks carry a weekly or monthly rule under `settings.recurrence`; `supabase/functions/nightly-sync/` clones matching templates into the configured target project (deep-clone via `clone_project_template`, idempotent via `settings.spawnedFromTemplate` + `spawnedOn`). Picker shipped in `src/features/tasks/components/RecurrencePicker.tsx`.
 
 ### 3.4 Resources Domain
 - [x] **Task Integration**: Add/remove external links, PDFs, and text resources directly to the task pane.
@@ -102,9 +102,9 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Status Breakdown**: View metrics for complete, in progress, and blocked tasks.
 - [x] **Portfolio Tracking**: Number of active projects.
 - [x] **Progress Visualization**: Project progress donut chart visible across task list views.
-- [ ] **Project Status Report**: Report interface featuring reporting month selection, donut charts, and lists of completed, overdue, and upcoming milestones. 
-- [ ] **Task List Views & Filters**: Dedicated UI tables/pages to view tasks isolated by Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All Tasks, Milestones, and My Tasks. Include chronological/alphabetical sorting.
-- [ ] **Supervisor Reports**: Add a "supervisor" field during project setup and automatically dispatch Status Reports on the 2nd of each month.
+- [x] **Project Status Report**: Report interface featuring reporting month selection, donut charts, and lists of completed, overdue, and upcoming milestones. Shipped via `src/pages/Reports.tsx` + `src/features/projects/hooks/useProjectReports.ts`.
+- [x] **Task List Views & Filters**: Dedicated UI tables/pages to view tasks isolated by Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All Tasks, Milestones, and My Tasks. Include chronological/alphabetical sorting. Shipped via `src/pages/TasksPage.tsx` + `src/features/tasks/hooks/useTaskFilters.ts`.
+- [x] **Supervisor Reports**: Project settings accept a `supervisor_email` (stored on the root task). The `supabase/functions/supervisor-report/` edge function builds a monthly Project Status Report payload for every project that has one set. **Currently log-only** — email dispatch is gated behind `EMAIL_PROVIDER_API_KEY` and tracked in §6 Backlog (Wave 22).
 - [ ] **Gantt Chart**: Timeline view based on `start_date` and `due_date` showing Phases and Milestones.
 
 ### 3.7 Platform Admin, Monetization & Ecosystem
@@ -144,3 +144,11 @@ For a deep dive into the system architecture and core business rules, please ref
 - **`docs/architecture/`**: Contains the modular, definitive architecture documentation (Auth, Date Engine, Tasks, etc.).
 - **[repo-context.yaml](repo-context.yaml)**: Machine-readable dependency graph.
 *(Note: Old monolithic architecture files like `FULL_ARCHITECTURE.md` are deprecated).*
+
+---
+
+## 6. Backlog (Deferred)
+
+Items originally documented "for later" and items carved out of recent waves for scope control.
+
+- [ ] **Wire SMTP/Resend provider for supervisor reports** — Wave 21 ships the `supabase/functions/supervisor-report/` edge function in a log-only state (pg_cron wiring + payload shape verifiable end-to-end without a provider). Follow-up wave must wire the actual dispatch (gated today behind `EMAIL_PROVIDER_API_KEY`). See the `TODO(wave-22)` marker in `supabase/functions/supervisor-report/index.ts`.

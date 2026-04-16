@@ -5,7 +5,9 @@ import { isDateValid, isBeforeDate } from '@/shared/lib/date-engine';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import TaskFormFields from '@/features/tasks/components/TaskFormFields';
+import RecurrencePicker from '@/features/tasks/components/RecurrencePicker';
 import { Button } from '@/shared/ui/button';
+import { isRecurrenceRule } from '@/shared/lib/recurrence';
 import type { TaskFormData, TaskRow } from '@/shared/db/app.types';
 
 const extractDateInput = (value?: string | null) => {
@@ -27,6 +29,18 @@ const getTaskSchema = (origin: 'instance' | 'template') => z.object({
  start_date: z.string().optional().nullable(),
  due_date: z.string().optional().nullable(),
  templateId: z.string().nullable().optional(),
+ recurrence_kind: z.enum(['none', 'weekly', 'monthly']).optional(),
+ recurrence_weekday: z.preprocess((val) => {
+ if (val === '' || val === null || val === undefined) return undefined;
+ const num = typeof val === 'number' ? val : Number(val);
+ return isNaN(num) ? undefined : num;
+ }, z.number().min(0).max(6).optional()),
+ recurrence_day_of_month: z.preprocess((val) => {
+ if (val === '' || val === null || val === undefined) return undefined;
+ const num = typeof val === 'number' ? val : Number(val);
+ return isNaN(num) ? undefined : num;
+ }, z.number().min(1).max(28).optional()),
+ recurrence_target_project_id: z.string().optional().nullable(),
 }).refine((data) => {
  if (origin === 'instance' && data.start_date && data.due_date) {
  const start = `${data.start_date}T00:00:00.000Z`;
@@ -39,9 +53,27 @@ const getTaskSchema = (origin: 'instance' | 'template') => z.object({
 }, {
  message: 'Due date cannot be before start date',
  path: ['due_date']
+}).refine((data) => {
+ // Template recurrence rules must specify a target project.
+ if (origin === 'template' && (data.recurrence_kind === 'weekly' || data.recurrence_kind === 'monthly')) {
+ return Boolean(data.recurrence_target_project_id);
+ }
+ return true;
+}, {
+ message: 'Select a project for the recurrence to clone into',
+ path: ['recurrence_target_project_id'],
 });
 
-const createInitialState = (task?: Partial<TaskRow> | null) => ({
+const extractRecurrence = (task?: Partial<TaskRow> | null) => {
+ const settings = task?.settings;
+ if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return null;
+ const rec = (settings as Record<string, unknown>).recurrence;
+ return isRecurrenceRule(rec) ? rec : null;
+};
+
+const createInitialState = (task?: Partial<TaskRow> | null) => {
+ const rec = extractRecurrence(task);
+ return {
  title: task?.title ?? '',
  description: task?.description ?? '',
  notes: task?.notes ?? '',
@@ -54,7 +86,12 @@ const createInitialState = (task?: Partial<TaskRow> | null) => ({
  start_date: extractDateInput(task?.start_date),
  due_date: extractDateInput(task?.due_date),
  templateId: null,
-});
+ recurrence_kind: (rec?.kind ?? 'none') as 'none' | 'weekly' | 'monthly',
+ recurrence_weekday: rec?.kind === 'weekly' ? rec.weekday : 1,
+ recurrence_day_of_month: rec?.kind === 'monthly' ? rec.dayOfMonth : 1,
+ recurrence_target_project_id: rec?.targetProjectId ?? '',
+ };
+};
 
 export interface TaskFormProps {
  onSubmit: (data: TaskFormData) => Promise<void>;
@@ -156,6 +193,8 @@ const TaskForm = ({
  )}
 
  <TaskFormFields origin={origin} itemLabel={submitLabel?.includes('Phase') ? 'Phase' : 'Task'} />
+
+ {origin === 'template' && <RecurrencePicker />}
 
  <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">
  <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>

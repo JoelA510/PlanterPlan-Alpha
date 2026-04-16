@@ -1,4 +1,6 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isRecurrenceRule, shouldFireRecurrenceOn, RecurrenceRule } from '../_shared/recurrence.ts'
+import { toUtcIsoDate } from '../_shared/date.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -16,11 +18,20 @@ type TaskRow = {
     settings: Record<string, unknown> | null
 }
 
+type TemplateRow = {
+    id: string
+    creator: string | null
+    settings: Record<string, unknown> | null
+}
+
 interface SyncResult {
     overdue: number
     due_soon: number
+    recurrence_spawned: number
+    recurrence_skipped: number
     overdue_ids: string[]
     due_soon_ids: string[]
+    recurrence_spawned_ids: string[]
 }
 
 /**
@@ -53,6 +64,107 @@ async function loadThresholds(
         map.set(row.id, threshold)
     }
     return map
+}
+
+/**
+ * Recurrence-clone pass. For each template task with a valid `settings.recurrence`
+ * rule that fires today, clone the template into the configured target project
+ * as an instance task. The clone stamps `settings.spawnedFromTemplate` +
+ * `settings.spawnedOn` so a same-day re-run is a no-op.
+ */
+async function runRecurrencePass(
+    supabase: SupabaseClient,
+    nowUtc: Date,
+    nowIso: string,
+): Promise<{ spawnedIds: string[]; skipped: number }> {
+    const todayIso = toUtcIsoDate(nowUtc)
+    const spawnedIds: string[] = []
+    let skipped = 0
+
+    // Pull candidate templates. JSONB filter: `settings -> 'recurrence'` is not null.
+    const { data, error } = await supabase
+        .from('tasks')
+        .select('id, creator, settings')
+        .eq('origin', 'template')
+        .not('settings->recurrence', 'is', null)
+    if (error) throw error
+
+    const templates = (data ?? []) as TemplateRow[]
+    for (const tmpl of templates) {
+        const rule = (tmpl.settings ?? {}).recurrence as unknown
+        if (!isRecurrenceRule(rule)) continue
+        const valid = rule as RecurrenceRule
+
+        if (!shouldFireRecurrenceOn(valid, nowUtc)) continue
+
+        // Idempotency: skip if we already spawned this template into this
+        // target on this UTC day.
+        const { data: existing, error: existErr } = await supabase
+            .from('tasks')
+            .select('id')
+            .eq('origin', 'instance')
+            .eq('parent_task_id', valid.targetProjectId)
+            .eq('settings->>spawnedFromTemplate', tmpl.id)
+            .eq('settings->>spawnedOn', todayIso)
+            .limit(1)
+        if (existErr) throw existErr
+        if ((existing ?? []).length > 0) {
+            skipped += 1
+            continue
+        }
+
+        // Deep-clone via the existing RPC, then stamp provenance on the root.
+        const { data: cloned, error: cloneErr } = await supabase.rpc('clone_project_template', {
+            p_template_id: tmpl.id,
+            p_new_parent_id: valid.targetProjectId,
+            p_new_origin: 'instance',
+            p_user_id: tmpl.creator,
+            p_start_date: todayIso,
+            p_due_date: todayIso,
+        })
+        if (cloneErr) {
+            console.error('[nightly-sync] recurrence clone failed', { templateId: tmpl.id, cloneErr })
+            continue
+        }
+
+        // The RPC returns `{ new_root_id, root_project_id, tasks_cloned }`
+        // (see `clone_project_template` in docs/db/schema.sql). Narrow to a
+        // non-empty string so the idempotency stamp below actually lands.
+        const clonedId = ((): string | null => {
+            if (typeof cloned === 'string') return cloned
+            if (cloned && typeof cloned === 'object' && 'new_root_id' in cloned) {
+                const v = (cloned as { new_root_id: unknown }).new_root_id
+                return typeof v === 'string' && v.length > 0 ? v : null
+            }
+            return null
+        })()
+        if (clonedId) {
+            // Merge the template's settings into the stamp and explicitly
+            // strip the recurrence rule — instances must never carry the
+            // spawn rule, even if a future change starts copying settings
+            // through the RPC.
+            const stampedSettings: Record<string, unknown> = {
+                ...(tmpl.settings ?? {}),
+                spawnedFromTemplate: tmpl.id,
+                spawnedOn: todayIso,
+            }
+            delete stampedSettings.recurrence
+            const { error: stampErr } = await supabase
+                .from('tasks')
+                .update({
+                    settings: stampedSettings,
+                    updated_at: nowIso,
+                })
+                .eq('id', clonedId)
+            if (stampErr) {
+                console.error('[nightly-sync] recurrence stamp failed', { clonedId, stampErr })
+                continue
+            }
+            spawnedIds.push(clonedId)
+        }
+    }
+
+    return { spawnedIds, skipped }
 }
 
 Deno.serve(async (req) => {
@@ -118,11 +230,19 @@ Deno.serve(async (req) => {
             if (updateErr) throw updateErr
         }
 
+        // 3. Recurrence pass: clone matching template tasks into their target
+        //    project roots. Idempotent — if an instance already exists for
+        //    (template, target, today) we skip the spawn.
+        const recurrence = await runRecurrencePass(supabase, new Date(nowIso), nowIso)
+
         const result: SyncResult = {
             overdue: overdueIds.length,
             due_soon: dueSoonIds.length,
+            recurrence_spawned: recurrence.spawnedIds.length,
+            recurrence_skipped: recurrence.skipped,
             overdue_ids: overdueIds,
             due_soon_ids: dueSoonIds,
+            recurrence_spawned_ids: recurrence.spawnedIds,
         }
 
         return new Response(
@@ -130,9 +250,11 @@ Deno.serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         )
     } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
+        // Log the raw error server-side; return a generic message to the
+        // caller to avoid leaking stack details.
+        console.error('[nightly-sync] unhandled error', error)
         return new Response(
-            JSON.stringify({ success: false, error: message }),
+            JSON.stringify({ success: false, error: 'Internal server error' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 },
         )
     }
