@@ -151,4 +151,6 @@ For a deep dive into the system architecture and core business rules, please ref
 
 Items originally documented "for later" and items carved out of recent waves for scope control.
 
-- [x] **Wire SMTP/Resend provider for supervisor reports** — Shipped in Wave 22. `supabase/functions/_shared/email.ts` houses a single HTTPS POST against Resend plus a pure `renderSupervisorReportEmail` renderer; `supervisor-report/index.ts` dispatches per project when the Resend env vars are set and degrades to log-only otherwise. See §3.6.
+- [ ] **Strategy Template task type** — the other half of §3.3 Specialized Task Types. When a task flagged as a Strategy Template is completed, prompt the user to add follow-up tasks from the Master Library. Wave 22 shipped the Coaching half only.
+- [ ] **Coach auto-assignment on coaching-task creation** — Wave 22 shipped tagging + RLS; auto-assigning the project Coach as `assignee_id` when a coaching task is created stays deferred.
+- [ ] **Topically related library suggestions** — the recommender half of the §3.5 "Library Integration" bullet. Wave 22 shipped the "hide already-present" half via `settings.spawnedFromTemplate`; surfacing *related* templates is deferred.

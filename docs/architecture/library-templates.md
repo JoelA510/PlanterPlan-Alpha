@@ -23,6 +23,7 @@ The Library & Templates domain provides the administrative scaffolding for Plant
 * **Master Library Strictness:**
   * Items created dynamically inside a Template are *not* automatically added to the Master Library. They must be explicitly promoted via UI action.
   * Instantiating a Master Library task into a project copies its data completely, allowing decoupled custom edits by the user.
+  * **De-duplication (Wave 22):** after a successful `clone_project_template` RPC, `Task.clone` in `src/shared/api/planterClient.ts` stamps `settings.spawnedFromTemplate = <source_template_id>` onto the cloned root (non-fatal merge — a stamp failure never rolls back the clone). `useMasterLibrarySearch` accepts an `excludeTemplateIds` set and drops any result whose id is in the set; it also surfaces an `exclusionDrained` flag so the combobox can show "All matching templates are already in this project." when the full list was drained by exclusion. `TaskList.tsx` and `pages/Project.tsx` derive the exclude set from the already-loaded project hierarchy via the shared `collectSpawnedTemplateIds` helper in `src/shared/lib/tree-helpers.ts` — no extra round trip.
 * **Creation Interface:** Adding new entities to templates triggers a dedicated modal form titled dynamically based on the entity type.
 
 ## Integration Points
@@ -31,3 +32,5 @@ The Library & Templates domain provides the administrative scaffolding for Plant
 
 ## Known Gaps / Technical Debt
 * Versioning of templates: Currently, if an Admin updates a Template, existing Projects created from it are not updated (which is intended), but tracking the original template version on the Project instance is missing.
+* **Topically-related library suggestions (deferred):** Wave 22 shipped the "hide already-present templates" half of the §3.5 bullet. Surfacing templates *related to* the ones already in the project (recommender) stays in §6 Backlog.
+* **Pre-Wave-22 clone backfill:** instances cloned before Wave 22 have no `settings.spawnedFromTemplate` stamp on their roots, so the Master Library combobox still lists them as "available" until re-cloned. A backfill migration wasn't worth it given how cheap re-cloning is and the stamp ships forward for every new clone.

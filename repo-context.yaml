@@ -1,7 +1,7 @@
 # repo-context.yaml
 # PlanterPlan Task Management System
 # Generated from codebase analysis
-# Last Updated: 2026-04-13 (SSoT Architecture Consolidation)
+# Last Updated: 2026-04-17 (Wave 22 — Supervisor Dispatch, Library Dedupe & Coaching Tags)
 # Specification: spec.md
 # Definitive Architecture: docs/architecture/*.md (SINGLE SOURCE OF TRUTH)
 
@@ -80,8 +80,9 @@ modules:
     capabilities:
       - "Supabase auth integration"
       - "User profile fetching from users table"
-      - "Role-based permission checking (Owner, Editor, Coach, Viewer)"
+      - "Role-based permission checking (Owner, Editor, Coach, Viewer, Limited)"
       - "Timeout-guarded admin checks"
+      - "Wave 22: coach role edits gated to tasks with settings.is_coaching_task = true (RLS policy Enable update for coaches on coaching tasks)"
     dependencies:
       strong: [supabaseClient, planterClient]
     exports:
@@ -152,7 +153,10 @@ modules:
     purpose: "Library fetching and state"
     modules:
       useMasterLibrarySearch:
-        capabilities: ["TanStack useQuery", "Debounced search"]
+        capabilities:
+          - "TanStack useQuery"
+          - "Debounced search"
+          - "Wave 22: accepts excludeTemplateIds set; exposes exclusionDrained flag for empty-state branching"
       useMasterLibraryTasks:
         capabilities: ["TanStack useInfiniteQuery", "Paginated fetching"]
 
@@ -191,14 +195,15 @@ modules:
     purpose: "Supabase data access via planterClient adapter"
     modules:
       planterClient:
-        capabilities: [
-          "Entity CRUD with RLS",
-          "Direct RPC execution",
-          "Optimistic query structures",
-          "Strict mapping to real DB schema columns (no PostgREST aliasing)",
-          "Date math routed through date-engine (ADR-9)",
-          "Typed form payloads via CreateProjectFormData/TaskFormData",
-        ]
+        capabilities:
+          - "Entity CRUD with RLS"
+          - "Direct RPC execution"
+          - "Optimistic query structures"
+          - "Strict mapping to real DB schema columns (no PostgREST aliasing)"
+          - "Date math routed through date-engine (ADR-9)"
+          - "Typed form payloads via CreateProjectFormData/TaskFormData"
+          - "Wave 22: functions.invoke() passthrough for Edge Functions (so UI never touches supabase.functions directly)"
+          - "Wave 22: Task.clone stamps settings.spawnedFromTemplate on the cloned root (non-fatal)"
         entities: ["Project", "Task", "TaskRelationship", "TaskResource"]
       sharedConstants:
         capabilities: [
@@ -274,8 +279,33 @@ health_metrics:
       - "date-engine consolidation (no raw Date math)"
 
   wave_status:
-    current: "Wave 17 (Feature Expansion)"
-    last_completed: "Wave 16 (Simplification Sprint & Stabilization)"
+    current: "Wave 22 (Supervisor Dispatch, Library Dedupe & Coaching Tags)"
+    last_completed: "Wave 22"
+    spec_version: "1.9.0"
+    wave_22_highlights:
+      - "supervisor-report Edge Function dispatches via Resend (EMAIL_PROVIDER_API_KEY + RESEND_FROM_ADDRESS); degrades to log-only when either env var is missing or {dry_run:true}"
+      - "Task.clone stamps settings.spawnedFromTemplate on the cloned root; Master Library combobox hides already-cloned templates via useMasterLibrarySearch.excludeTemplateIds"
+      - "settings.is_coaching_task flag + additive RLS UPDATE policy Enable update for coaches on coaching tasks — project coaches can edit tagged instance rows"
+      - "planterClient.functions.invoke() passthrough; EditProjectModal Send test report button scopes runs via {project_id, dry_run:false}"
+      - "Shared helpers: tree-helpers.collectSpawnedTemplateIds, coaching-form.{extractCoachingFlag, formDataToCoachingFlag, applyCoachingFlag}"
+    wave_21_5_highlights:
+      - "Secondary Projects: archive/unarchive toggle on EditProjectModal; ProjectSidebar + ProjectSwitcher filter archived/completed roots with a Show archived toggle"
+      - "Task Detail Enhancements: Related Tasks section (useTaskSiblings) and Email details dialog with remembered recipients on user_metadata.saved_email_addresses"
+    wave_21_highlights:
+      - "Recurring tasks: settings.recurrence rules on templates, cloned nightly by supabase/functions/nightly-sync/ with idempotency via settings.spawnedFromTemplate + spawnedOn"
+      - "Supervisor email on root task; supervisor-report Edge Function initial log-only ship"
+    wave_20_highlights:
+      - "Kanban Board V2 (src/features/tasks/components/board/) with native column-to-column DnD"
+      - "Task List Views & Filters at /tasks (Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All, Milestones, My Tasks)"
+      - "Project Status Report at /reports (month picker + donut charts + milestone lists)"
+      - "Nightly CRON transitions task urgency (not_started → in_progress → due_soon → overdue)"
+    wave_19_highlights:
+      - "Wave 19 cleanup — date-engine, templates, dashboard, library, tests"
+    wave_18_highlights:
+      - "Milestone/Phase auto-completion: cascade DOWN + bubble UP with depth-capped reconcileAncestors"
+      - "Date bubble-up wired into useCreateTask / useUpdateTask / useDeleteTask onSettled"
+    wave_17_highlights:
+      - "Feature expansion pass post-stabilization"
     wave_16_highlights:
       - "Zero `tsc` errors achieved across the entire repository."
       - "Full removal of Dark Mode artifacts (enforced Single Light Theme)."
