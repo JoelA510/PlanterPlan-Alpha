@@ -6,6 +6,7 @@ import { buildTree, separateTasksByOrigin } from '@/shared/lib/tree-helpers';
 import type { TaskNode } from '@/shared/lib/tree-helpers';
 import { Project, TaskRow, TaskFormData, TaskInsert, Json } from '@/shared/db/app.types';
 import { formDataToRecurrenceRule } from '@/features/tasks/lib/recurrence-form';
+import { applyCoachingFlag, formDataToCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import React from 'react';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
@@ -224,14 +225,15 @@ const TaskList = () => {
     } = data;
 
     const isTemplate = state?.origin === 'template';
+    const existingSettings = state?.mode === 'edit' && state?.taskId
+      ? (findTask(state.taskId) as TaskRow | undefined)?.settings
+      : null;
+    const existingObj = existingSettings && typeof existingSettings === 'object' && !Array.isArray(existingSettings)
+      ? (existingSettings as Record<string, unknown>)
+      : {};
+
     let settingsPatch: Record<string, unknown> | undefined;
     if (isTemplate) {
-      const existing = state?.mode === 'edit' && state?.taskId
-        ? (findTask(state.taskId) as TaskRow | undefined)?.settings
-        : null;
-      const existingObj = existing && typeof existing === 'object' && !Array.isArray(existing)
-        ? (existing as Record<string, unknown>)
-        : {};
       const rule = formDataToRecurrenceRule({
         recurrence_kind,
         recurrence_weekday,
@@ -245,6 +247,9 @@ const TaskList = () => {
       } else {
         settingsPatch = { ...existingObj, recurrence: rule };
       }
+    } else {
+      // Instance: apply the coaching flag merge, preserving any other keys.
+      settingsPatch = applyCoachingFlag(existingObj, formDataToCoachingFlag(data));
     }
 
     if (state?.mode === 'edit' && state?.taskId) {

@@ -1662,6 +1662,10 @@ CREATE POLICY "Enable update for users" ON "public"."tasks" FOR UPDATE USING (((
 
 
 
+CREATE POLICY "Enable update for coaches on coaching tasks" ON "public"."tasks" FOR UPDATE USING (("public"."has_project_role"(COALESCE("root_id", "id"), (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['coach'::"text"]) AND ((("settings" ->> 'is_coaching_task'))::boolean IS TRUE) AND ("origin" IS DISTINCT FROM 'template'::"text")));
+
+
+
 CREATE POLICY "Manage people for owners and editors" ON "public"."people" USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 

@@ -113,6 +113,27 @@ export interface TaskFormData {
     recurrence_weekday?: number;
     recurrence_day_of_month?: number;
     recurrence_target_project_id?: string | null;
+    /** Wave 22: flag the task as a coaching task so project Coaches may edit it. */
+    is_coaching_task?: boolean;
+}
+
+/**
+ * Documented shape of the loose JSONB stored on `tasks.settings`. Every key
+ * is optional; the object is persisted as JSON so shape drift is tolerated.
+ * Cast from `task.settings` when reading — do not assume this is the
+ * runtime type. Keep in sync with `supabase/functions/nightly-sync` and the
+ * recurrence / dedupe / coaching flows.
+ */
+export interface TaskSettings {
+    published?: boolean;
+    recurrence?: RecurrenceRule | null;
+    /** Wave 22: template id from which this task was cloned; used to hide already-cloned templates in Master Library search. */
+    spawnedFromTemplate?: string;
+    /** Wave 21: idempotency marker stamped by nightly-sync's recurrence pass. */
+    spawnedOn?: string;
+    due_soon_threshold?: number;
+    /** Wave 22: when true, users with the `coach` project role may update this task (RLS policy "Enable update for coaches on coaching tasks"). */
+    is_coaching_task?: boolean;
 }
 
 // ----------------------------------------------------------------------------
