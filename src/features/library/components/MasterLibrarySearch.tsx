@@ -17,6 +17,7 @@ interface MasterLibrarySearchProps {
  label?: string;
  placeholder?: string;
  phasesOnly?: boolean;
+ excludeTemplateIds?: readonly string[];
 }
 
 const MasterLibrarySearch = ({
@@ -25,6 +26,7 @@ const MasterLibrarySearch = ({
  label = 'Search & pick from Master Library',
  placeholder = 'Search by title or description…',
  phasesOnly = false,
+ excludeTemplateIds,
 }: MasterLibrarySearchProps) => {
  const [query, setQuery] = useState('');
  const [isOpen, setIsOpen] = useState(false);
@@ -33,7 +35,11 @@ const MasterLibrarySearch = ({
  const inputRef = useRef<HTMLInputElement>(null);
  const containerRef = useRef<HTMLDivElement>(null);
 
- const { results, isLoading, hasResults } = useMasterLibrarySearch({ query, phasesOnly });
+ const { results, isLoading, hasResults, exclusionDrained } = useMasterLibrarySearch({
+ query,
+ phasesOnly,
+ excludeTemplateIds,
+ });
 
  const handleQueryChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
  setQuery(event.target.value);
@@ -138,7 +144,11 @@ const MasterLibrarySearch = ({
 
  {!isLoading && results.length === 0 && (
  <div className="px-4 py-3 text-sm text-slate-500">
- {query ? 'No matching templates found.' : 'No templates available.'}
+ {exclusionDrained
+ ? 'All matching templates are already in this project.'
+ : query
+ ? 'No matching templates found.'
+ : 'No templates available.'}
  </div>
  )}
 
