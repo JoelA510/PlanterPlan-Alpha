@@ -4,11 +4,12 @@ Supabase Edge Function that assembles monthly Project Status Report payloads
 for every project with a `supervisor_email` set on its root task, and
 (eventually) dispatches them to the configured supervisor.
 
-**Wave 21 status: log-only.** Email dispatch is gated behind
-`EMAIL_PROVIDER_API_KEY`. When the key is unset (the only supported state in
-Wave 21), the function builds the payload for each project and writes it to
-function logs. Provider integration is tracked in `spec.md` §6 Backlog and
-will land in a follow-up wave. See the `TODO(wave-22)` marker in `index.ts`.
+**Wave 22 status: live via Resend.** When both `EMAIL_PROVIDER_API_KEY`
+(Resend API key) and `RESEND_FROM_ADDRESS` are set, the function POSTs a
+monthly report email per project via `https://api.resend.com/emails`. When
+either env var is missing, the function degrades to log-only — it writes
+each payload as a JSON line to function logs. Callers can also force the
+log-only path by passing `{ "dry_run": true }` in the JSON body.
 
 ## What it does
 
@@ -19,10 +20,26 @@ will land in a follow-up wave. See the `TODO(wave-22)` marker in `index.ts`.
    the same rules as the in-app report
    (`src/features/projects/hooks/useProjectReports.ts`). Keep the two in sync
    when the filter rules change.
-3. Per project: if `EMAIL_PROVIDER_API_KEY` is set, invokes the dispatch path
-   (no-op this wave); otherwise logs the payload JSON. The response summarises
-   how many projects were considered, how many payloads were built, and how
-   many were logged vs. dispatched.
+3. Per project: if both `EMAIL_PROVIDER_API_KEY` and `RESEND_FROM_ADDRESS`
+   are set (and `dry_run !== true`), the payload is rendered to subject/html/
+   text and POSTed to Resend. Otherwise the payload JSON is logged. The
+   response summarises how many projects were considered, how many payloads
+   were built, and the dispatch/log/failure breakdown.
+
+## Request body
+
+Invocations may POST a JSON body to scope the run:
+
+```json
+{
+  "project_id": "<uuid of a root task>",
+  "dry_run": false
+}
+```
+
+Both fields are optional. `project_id` restricts the run to a single project
+(used by the "Send test report" button in Edit Project). `dry_run: true`
+forces the log-only path even when the Resend env vars are set.
 
 ## Response
 
@@ -31,10 +48,14 @@ will land in a follow-up wave. See the `TODO(wave-22)` marker in `index.ts`.
   "success": true,
   "projects_considered": 4,
   "payloads_built": 4,
-  "payloads_logged": 4,
-  "payloads_dispatched": 0
+  "payloads_logged": 0,
+  "payloads_dispatched": 4,
+  "dispatch_failures": 0
 }
 ```
+
+`dispatch_failures` counts projects where the Resend POST returned a non-2xx
+or threw — operators can alert on it for partial delivery.
 
 ## Env contract
 
@@ -42,7 +63,8 @@ will land in a follow-up wave. See the `TODO(wave-22)` marker in `index.ts`.
 | --- | --- | --- |
 | `SUPABASE_URL` | yes | Supabase project URL (set by the platform). |
 | `SUPABASE_SERVICE_ROLE_KEY` | yes | Service role for RLS-bypassing reads (set by the platform). |
-| `EMAIL_PROVIDER_API_KEY` | no (Wave 21) | When set, the function will route payloads through a real dispatcher. Wiring deferred to Wave 22. |
+| `EMAIL_PROVIDER_API_KEY` | no | Resend API key. When unset, the function stays log-only. |
+| `RESEND_FROM_ADDRESS` | no | Verified `from` address for Resend. Required alongside the API key. |
 
 ## Timezone
 

@@ -56,6 +56,9 @@ export interface PlanterClient {
         Person: EntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>;
     };
     rpc: <T = unknown, P extends object = object>(functionName: string, params: P) => Promise<{ data: T | null, error: Error | null }>;
+    functions: {
+        invoke: <T = unknown>(functionName: string, opts?: { body?: Record<string, unknown> }) => Promise<{ data: T | null, error: Error | null }>;
+    };
 }
 
 interface EntityClient<T, TInsert, TUpdate> {
@@ -727,6 +730,27 @@ export const planter: PlanterClient = {
                 return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
             }
         });
+    },
+
+    // ---------------------------------------------------------------------------
+    // Edge Function wrapper (Supabase SDK)
+    // ---------------------------------------------------------------------------
+
+    functions: {
+        invoke: async <T = unknown>(
+            functionName: string,
+            opts?: { body?: Record<string, unknown> },
+        ): Promise<{ data: T | null, error: Error | null }> => {
+            try {
+                const { data, error } = await supabase.functions.invoke<T>(functionName, opts);
+                if (error) {
+                    return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
+                }
+                return { data: (data ?? null) as T | null, error: null };
+            } catch (error: unknown) {
+                return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
+            }
+        },
     },
 };
 
