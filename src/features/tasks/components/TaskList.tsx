@@ -79,6 +79,22 @@ const TaskList = () => {
     return { [activeProjectId]: projectHierarchy };
   }, [activeProjectId, projectHierarchy]);
 
+  // Collect every template id already cloned into the active project so the
+  // Master Library combobox can hide them. Pre-Wave-22 clones lack the stamp
+  // and will still appear — call that out in PRs / release notes.
+  const excludedTemplateIds = React.useMemo(() => {
+    if (!projectHierarchy) return [] as string[];
+    const ids: string[] = [];
+    for (const t of projectHierarchy) {
+      const settings = (t as { settings?: unknown }).settings;
+      if (settings && typeof settings === 'object') {
+        const spawned = (settings as Record<string, unknown>).spawnedFromTemplate;
+        if (typeof spawned === 'string') ids.push(spawned);
+      }
+    }
+    return ids;
+  }, [projectHierarchy]);
+
   // --- Expanded Tasks (was useExpandedTasks) ---
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
 
@@ -342,6 +358,7 @@ const TaskList = () => {
               onSelect={onSelect}
               label="Search master library"
               placeholder="Start typing to copy an existing template task"
+              excludeTemplateIds={excludedTemplateIds}
             />
           )}
         />

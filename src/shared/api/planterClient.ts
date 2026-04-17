@@ -581,6 +581,30 @@ export const planter: PlanterClient = {
                     const { data, error } = await planter.rpc('clone_project_template', rpcParams);
                     if (error) throw error;
 
+                    // Stamp the cloned root with `settings.spawnedFromTemplate` so the
+                    // Master Library combobox can hide templates already present in the
+                    // project. Merges onto existing settings (preserving any keys the
+                    // clone RPC or a future migration may add) and is non-fatal — a stamp
+                    // failure must never roll back a successful clone. Mirrors the
+                    // recurrence-spawn convention in nightly-sync/index.ts.
+                    const cloneResult = data as { new_root_id?: string } | null;
+                    const newRootId = cloneResult?.new_root_id;
+                    if (newRootId) {
+                        try {
+                            const existing = await planter.entities.Task.get(newRootId);
+                            const prevSettings = (existing?.settings ?? {}) as Record<string, unknown>;
+                            const mergedSettings = {
+                                ...prevSettings,
+                                spawnedFromTemplate: templateId,
+                            };
+                            await planter.entities.Task.update(newRootId, {
+                                settings: mergedSettings as unknown as TaskUpdate['settings'],
+                            });
+                        } catch (stampErr) {
+                            console.error('[PlanterClient.clone] stamp failed', stampErr);
+                        }
+                    }
+
                     return { data: data as Task, error: null };
                 } catch (error) {
                     console.error('[PlanterClient.clone] Error:', error);

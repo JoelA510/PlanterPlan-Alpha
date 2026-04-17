@@ -44,6 +44,21 @@ export default function Project() {
         teamMembers,
     } = useProjectData(projectId);
 
+    // Template ids already cloned into this project — excluded from the
+    // Master Library combobox so the same template can't be added twice.
+    const excludedTemplateIds = useMemo(() => {
+        if (!tasks) return [] as string[];
+        const ids: string[] = [];
+        for (const t of tasks) {
+            const settings = (t as { settings?: unknown }).settings;
+            if (settings && typeof settings === 'object') {
+                const spawned = (settings as Record<string, unknown>).spawnedFromTemplate;
+                if (typeof spawned === 'string') ids.push(spawned);
+            }
+        }
+        return ids;
+    }, [tasks]);
+
     const board = useProjectBoard(projectId, (tasks as TaskRow[]) || []);
     const { state, actions, handlers, computed } = board;
 
@@ -374,6 +389,7 @@ export default function Project() {
                                 label="Search master library"
                                 placeholder={taskFormState?.isPhase ? 'Search for a template phase to copy' : 'Start typing to copy an existing template task'}
                                 phasesOnly={!!taskFormState?.isPhase}
+                                excludeTemplateIds={excludedTemplateIds}
                             />
                         )}
                         onDeleteTaskWrapper={async () => { if (state.selectedTask) await handlers.handleDeleteTask(state.selectedTask); }}
