@@ -37,6 +37,12 @@ export function formDataToCoachingFlag(data: TaskFormData): boolean | null {
  * preserving every other key. Returns `undefined` when there is nothing to
  * persist (`flag === null` AND no existing settings), so the caller can
  * skip including `settings` in the outgoing payload entirely.
+ *
+ * Companion DB behavior (Wave 23): the BEFORE INSERT/UPDATE trigger
+ * `set_coaching_assignee` on `public.tasks` auto-assigns the row's
+ * `assignee_id` to the project's sole `coach`-role member when this
+ * helper persists `is_coaching_task: true` on a row the caller left
+ * unassigned. See `docs/db/migrations/2026_04_17_coaching_auto_assign.sql`.
  * @param currentSettings - Existing settings object on the task (nullable).
  * @param flag - Normalised coaching intent (see `formDataToCoachingFlag`).
  * @returns The merged settings patch, or `undefined` to skip the update.

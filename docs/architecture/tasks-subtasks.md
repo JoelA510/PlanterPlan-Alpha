@@ -91,6 +91,19 @@ additive — the owner/editor/admin UPDATE policy is unchanged, so coaches
 retain zero access to non-coaching rows and to templates. Policy text is
 mirrored into `docs/db/schema.sql` as the SSoT.
 
+**Auto-assignment (Wave 23):**
+`docs/db/migrations/2026_04_17_coaching_auto_assign.sql` adds a
+`BEFORE INSERT OR UPDATE ON public.tasks` trigger (`trg_set_coaching_assignee`
+→ `set_coaching_assignee()`). When a row carries
+`settings.is_coaching_task = true` AND `assignee_id` is null, the trigger
+looks up `project_members WHERE project_id = COALESCE(NEW.root_id, NEW.id)
+AND role = 'coach'`. If *exactly one* coach is found, `NEW.assignee_id` is
+set to that user. **Zero or multiple coaches → no-op**, leaving the field
+null so a human can pick. **User intent wins:** the trigger never
+overwrites a non-null `assignee_id` the caller supplied. The UI picks up
+the server-assigned coach via the standard `useUpdateTask` / `useCreateTask`
+`onSettled` invalidation of `['projectHierarchy', rootId]`.
+
 ## Integration Points
 * **Date Engine:** Dragging tasks triggers date inheritance logic (`dateInheritance.ts`) to adjust bounds automatically.
 * **Dashboard:** Feeds raw status counts.
