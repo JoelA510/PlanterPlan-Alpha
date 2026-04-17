@@ -5,6 +5,12 @@ import {
     toUtcIsoDate,
     toUtcMonthKey,
 } from '../_shared/date.ts'
+import {
+    renderSupervisorReportEmail,
+    sendEmail,
+    type MilestoneSummary,
+    type ProjectReportPayload,
+} from '../_shared/email.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -23,30 +29,17 @@ type TaskRow = {
     supervisor_email: string | null
 }
 
-interface MilestoneSummary {
-    id: string
-    title: string | null
-    due_date: string | null
-    status: string | null
-    is_complete: boolean | null
-    updated_at: string | null
-}
-
-interface ProjectReportPayload {
-    project_id: string
-    project_title: string | null
-    supervisor_email: string
-    month: string
-    completed_this_month: MilestoneSummary[]
-    overdue: MilestoneSummary[]
-    upcoming_this_month: MilestoneSummary[]
-}
-
 interface DispatchResult {
     projects_considered: number
     payloads_built: number
     payloads_logged: number
     payloads_dispatched: number
+    dispatch_failures: number
+}
+
+interface InvocationBody {
+    project_id?: string
+    dry_run?: boolean
 }
 
 const isMilestoneComplete = (m: { status: string | null; is_complete: boolean | null }): boolean =>
@@ -116,12 +109,17 @@ function buildProjectPayload(
 
 async function fetchProjectRoots(
     supabase: SupabaseClient,
+    projectId?: string,
 ): Promise<TaskRow[]> {
-    const { data, error } = await supabase
+    let query = supabase
         .from('tasks')
         .select('id, root_id, parent_task_id, title, status, is_complete, due_date, updated_at, supervisor_email')
         .is('parent_task_id', null)
         .not('supervisor_email', 'is', null)
+    if (projectId) {
+        query = query.eq('id', projectId)
+    }
+    const { data, error } = await query
     if (error) throw error
     return (data ?? []) as TaskRow[]
 }
@@ -139,6 +137,19 @@ async function fetchTasksForRoots(
     return (data ?? []) as TaskRow[]
 }
 
+async function parseInvocationBody(req: Request): Promise<InvocationBody> {
+    if (req.method !== 'POST') return {}
+    try {
+        const parsed = (await req.json()) as unknown
+        if (parsed && typeof parsed === 'object') {
+            return parsed as InvocationBody
+        }
+    } catch {
+        // Ignore malformed bodies — cron invocations send an empty body.
+    }
+    return {}
+}
+
 Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
@@ -150,22 +161,26 @@ Deno.serve(async (req) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
         )
 
+        const { project_id, dry_run } = await parseInvocationBody(req)
+
         const now = new Date()
         const monthKey = toUtcMonthKey(now)
         const todayMidnightMs =
             dateStringToUtcMidnightMs(toUtcIsoDate(now)) ??
             Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
 
-        const roots = await fetchProjectRoots(supabase)
+        const roots = await fetchProjectRoots(supabase, project_id)
         const rootIds = roots.map((r) => r.id)
         const allTasks = await fetchTasksForRoots(supabase, rootIds)
 
         const providerKey = Deno.env.get('EMAIL_PROVIDER_API_KEY')
+        const shouldDispatch = Boolean(providerKey) && dry_run !== true
         const result: DispatchResult = {
             projects_considered: roots.length,
             payloads_built: 0,
             payloads_logged: 0,
             payloads_dispatched: 0,
+            dispatch_failures: 0,
         }
 
         for (const root of roots) {
@@ -173,13 +188,19 @@ Deno.serve(async (req) => {
             const payload = buildProjectPayload(root, allTasks, monthKey, todayMidnightMs)
             result.payloads_built += 1
 
-            if (providerKey) {
-                // TODO(wave-22): wire real email dispatch (Resend/SMTP) here.
-                // Intentionally a no-op this wave — provider integration is
-                // deferred so the pg_cron -> edge function -> payload shape
-                // wiring can ship first without adding an email SDK or a
-                // secret requirement. See spec.md §6 Backlog.
-                result.payloads_dispatched += 1
+            if (shouldDispatch) {
+                const rendered = renderSupervisorReportEmail(payload)
+                const dispatched = await sendEmail({
+                    to: root.supervisor_email,
+                    subject: rendered.subject,
+                    html: rendered.html,
+                    text: rendered.text,
+                })
+                if (dispatched.ok) {
+                    result.payloads_dispatched += 1
+                } else {
+                    result.dispatch_failures += 1
+                }
             } else {
                 console.log('[supervisor-report] log-only payload', JSON.stringify(payload))
                 result.payloads_logged += 1

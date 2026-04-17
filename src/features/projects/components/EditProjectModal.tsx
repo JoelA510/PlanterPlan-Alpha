@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
@@ -14,6 +14,15 @@ import { toIsoDate } from '@/shared/lib/date-engine';
 import { PROJECT_STATUS } from '@/shared/constants/domain';
 import type { TaskRow } from '@/shared/db/app.types';
 import { toast } from 'sonner';
+import planter from '@/shared/api/planterClient';
+
+const emailSchema = z.string().email();
+
+interface SupervisorReportResponse {
+ success?: boolean;
+ payloads_dispatched?: number;
+ dispatch_failures?: number;
+}
 
 const editProjectSchema = z.object({
  title: z.string().min(1, 'Title is required'),
@@ -57,9 +66,12 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
  const currentSettings = (project.settings as Record<string, unknown>) || {};
  const [isPublished, setIsPublished] = useState(currentSettings.published === true);
 
+ const [isSendingTest, setIsSendingTest] = useState(false);
+
  const {
   register,
   handleSubmit,
+  control,
   formState: { errors, isSubmitting },
  } = useForm<EditProjectFormData>({
   // z.coerce.number() produces an input/output type mismatch in zodResolver's generic — known limitation.
@@ -77,6 +89,32 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
    supervisor_email: project.supervisor_email || '',
   },
  });
+
+ const watchedSupervisorEmail = useWatch({ control, name: 'supervisor_email' }) ?? '';
+ const trimmedSupervisorEmail = watchedSupervisorEmail.trim();
+ const isSupervisorEmailValid = emailSchema.safeParse(trimmedSupervisorEmail).success;
+ const canSendTestReport = Boolean(project.id) && isSupervisorEmailValid && !isSendingTest;
+
+ const handleSendTestReport = async () => {
+  if (!canSendTestReport) return;
+  setIsSendingTest(true);
+  try {
+   const { data, error } = await planter.functions.invoke<SupervisorReportResponse>(
+    'supervisor-report',
+    { body: { project_id: project.id, dry_run: false } },
+   );
+   if (error || !data?.success || (data.payloads_dispatched ?? 0) < 1) {
+    toast.error('Failed to send test report');
+    return;
+   }
+   toast.success('Test report sent');
+  } catch (error) {
+   console.error('[EditProjectModal] test report dispatch failed', error);
+   toast.error('Failed to send test report');
+  } finally {
+   setIsSendingTest(false);
+  }
+ };
 
  const onSubmit = async (data: EditProjectFormData) => {
   try {
@@ -167,9 +205,21 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
         {errors.supervisor_email && (
          <p className="text-sm text-red-500">{errors.supervisor_email.message}</p>
         )}
-        <p className="text-xs text-slate-500">
-         Optional. Receives the monthly Project Status Report on the 2nd of each month.
-        </p>
+        <div className="flex items-center justify-between gap-2">
+         <p className="text-xs text-slate-500">
+          Optional. Receives the monthly Project Status Report on the 2nd of each month.
+         </p>
+         <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          data-testid="send-test-report-btn"
+          onClick={handleSendTestReport}
+          disabled={!canSendTestReport}
+         >
+          {isSendingTest ? 'Sending…' : 'Send test report'}
+         </Button>
+        </div>
        </div>
       )}
 

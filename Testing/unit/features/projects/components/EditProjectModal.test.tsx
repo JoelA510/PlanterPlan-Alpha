@@ -26,6 +26,14 @@ vi.mock('sonner', () => ({
   },
 }));
 
+vi.mock('@/shared/api/planterClient', () => ({
+  default: {
+    functions: {
+      invoke: vi.fn(),
+    },
+  },
+}));
+
 import EditProjectModal from '@/features/projects/components/EditProjectModal';
 
 function renderModal(project: TaskRow) {
