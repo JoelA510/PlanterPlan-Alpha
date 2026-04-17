@@ -39,9 +39,11 @@ export function useSettings() {
     const [passwordError, setPasswordError] = useState('');
     const [passwordLoading, setPasswordLoading] = useState(false);
 
-    // Load initial data from User Metadata
+    // Load initial data from User Metadata. The form must stay editable after hydration,
+    // so derived-memo won't work — we intentionally seed state from the auth user.
     useEffect(() => {
         if (user) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setProfile({
                 full_name: String(user.user_metadata?.full_name || ''),
                 email: user.email || '',

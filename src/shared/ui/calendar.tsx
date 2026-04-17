@@ -5,7 +5,7 @@ import { buttonVariants } from '@/shared/ui/button';
 
 type CalendarProps = DayPickerProps;
 
-function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps): JSX.Element {
+function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
  return (
  <DayPicker
  showOutsideDays={showOutsideDays}

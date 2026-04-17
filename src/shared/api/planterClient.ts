@@ -308,7 +308,7 @@ export const planter: PlanterClient = {
                         try {
                             await supabase.from('tasks').delete().eq('id', project.id);
                         } catch { /* ignore deletion failure */ }
-                        throw new Error('Project initialization failed. Please try again.');
+                        throw new Error('Project initialization failed. Please try again.', { cause: rpcCatchError });
                     }
 
                     return project;

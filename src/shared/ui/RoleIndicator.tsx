@@ -14,7 +14,7 @@ const roleColors: Record<string, string> = {
  default: 'bg-slate-50 text-slate-700 border-slate-200',
 };
 
-const RoleIndicator = ({ role }: RoleIndicatorProps): JSX.Element => {
+const RoleIndicator = ({ role }: RoleIndicatorProps) => {
  const normalizedRole = role ? role.toLowerCase() : ROLES.VIEWER;
  const colorClass = roleColors[normalizedRole] || roleColors.default;
  const label = normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1);

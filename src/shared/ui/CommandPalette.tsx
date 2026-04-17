@@ -28,7 +28,7 @@ interface CommandPaletteProps {
  projects?: CommandPaletteProject[];
 }
 
-export function CommandPalette({ projects = [] }: CommandPaletteProps): JSX.Element {
+export function CommandPalette({ projects = [] }: CommandPaletteProps) {
  const [open, setOpen] = useState(false);
  const navigate = useNavigate();
 

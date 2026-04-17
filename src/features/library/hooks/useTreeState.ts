@@ -27,17 +27,20 @@ export const useTreeState = (rootTasks: TreeNode[]): UseTreeStateReturn => {
     const [loadingNodes, setLoadingNodes] = useState<Record<string, boolean>>({});
     const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
 
-    // Effect 1: Handle data updates from props
+    // Effect 1: Handle data updates from props. Hook owns mutable tree state
+    // (reorders, status changes, lazily-loaded children) so we can't derive via useMemo.
     useEffect(() => {
         if (rootTasks && rootTasks.length > 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setTreeData(() => mergeTaskUpdates(rootTasks));
         } else if (rootTasks) {
             setTreeData([]);
         }
     }, [rootTasks]);
 
-    // Effect 2: Sync persistent expansion state to tree UI
+    // Effect 2: Sync persistent expansion state onto the tree. Same rationale as above.
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTreeData((prevTree) => updateTreeExpansion(prevTree, expandedTaskIds));
     }, [expandedTaskIds]);
 

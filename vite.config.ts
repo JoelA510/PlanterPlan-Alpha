@@ -36,10 +36,11 @@ export default defineConfig({
     outDir: 'build',
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', '@supabase/supabase-js', 'date-fns'],
-          charts: ['recharts'],
-          motion: ['framer-motion'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('@supabase/supabase-js') || id.includes('node_modules/date-fns/')) return 'vendor';
+          if (id.includes('node_modules/recharts/')) return 'charts';
+          if (id.includes('node_modules/framer-motion/')) return 'motion';
+          return undefined;
         },
       },
     },

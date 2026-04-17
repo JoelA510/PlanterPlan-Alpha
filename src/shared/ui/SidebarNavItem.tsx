@@ -18,7 +18,7 @@ interface SidebarNavItemProps {
  to?: string;
 }
 
-const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }: SidebarNavItemProps): JSX.Element => {
+const SidebarNavItem = ({ task, isSelected, onClick, showRole = false, to }: SidebarNavItemProps) => {
  const handleClick = (): void => {
  if (onClick) {
  onClick(task);

@@ -5,7 +5,7 @@ interface ErrorFallbackProps {
  resetErrorBoundary: () => void;
 }
 
-const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps): JSX.Element => {
+const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps) => {
  return (
  <div data-testid="error-fallback" className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
  <StatusCard
