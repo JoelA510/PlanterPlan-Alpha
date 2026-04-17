@@ -79,7 +79,7 @@
 
 `useUpdateTask` routes **status-only** mutations through `updateStatus` (vs. the raw `Task.update`) so every checkbox toggle in the UI fires the full cascade/bubble pipeline. Mixed-field updates (e.g., form saves that include status + title) bypass this path and use the generic update.
 
-**Completion-flag invariant (Wave 23):** `is_complete === (status === 'completed')` is enforced at the DB layer by the `sync_task_completion_flags` BEFORE INSERT/UPDATE trigger on `public.tasks` (migration: `docs/db/migrations/2026_04_17_sync_task_completion.sql`). Accordingly, `updateStatus` and `reconcileAncestors` now send **only** `status` on every server payload; `is_complete` is derived by the trigger. React Query optimistic caches still hold both fields locally because the UI reads both — the trim is server-facing only.
+**Completion-flag invariant (Wave 23):** `is_complete === (status === 'completed')` is enforced *unconditionally* at the DB layer by the `sync_task_completion_flags` BEFORE INSERT/UPDATE trigger on `public.tasks` (migration: `docs/db/migrations/2026_04_17_sync_task_completion.sql`). **`status` is the source of truth** — any dual-field write with inconsistent values is reconciled to match `status`, not accepted verbatim. Accordingly, `updateStatus` and `reconcileAncestors` now send **only** `status` on every server payload; `is_complete` is derived by the trigger. React Query optimistic caches still hold both fields locally because the UI reads both — the trim is server-facing only.
 
 ### Date Bubble-up (§3.3)
 `planterClient.entities.Task.updateParentDates(parentId)` is now called automatically:

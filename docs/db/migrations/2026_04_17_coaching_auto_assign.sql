@@ -13,8 +13,12 @@
 --   Rules:
 --     * Fires only when NEW carries the coaching flag AND either the row is new,
 --       the flag just flipped from falsy → true, or `NEW.assignee_id IS NULL`.
---     * Looks up `project_members WHERE project_id = COALESCE(NEW.root_id, NEW.id)
---       AND role = 'coach'`. Exactly one row → assign. Zero/multiple → no-op.
+--     * Resolves the project id via `NEW.root_id`, falling back to a lookup on
+--       `NEW.parent_task_id` when `NEW.root_id` is still null (which is the
+--       common case for subtask INSERTs: this trigger sorts alphabetically
+--       before `trg_set_root_id_from_parent`, so the root_id isn't populated
+--       yet). Looks up `project_members WHERE project_id = <resolved> AND
+--       role = 'coach'`. Exactly one row → assign. Zero/multiple → no-op.
 --     * Never overwrites a non-null `assignee_id` the caller passed in — user
 --       intent wins over automation.
 --
@@ -56,9 +60,19 @@ BEGIN
         END IF;
     END IF;
 
-    v_project_id := COALESCE(NEW.root_id, NEW.id);
+    -- Resolve the project id. `trg_set_coaching_assignee` sorts alphabetically
+    -- before `trg_set_root_id_from_parent`, so for a subtask INSERT the caller
+    -- frequently leaves `NEW.root_id` null. Walk `parent_task_id` the same way
+    -- the root-id resolver does so the coach lookup targets the real project.
+    v_project_id := NEW.root_id;
+    IF v_project_id IS NULL AND NEW.parent_task_id IS NOT NULL THEN
+        SELECT COALESCE(root_id, id)
+          INTO v_project_id
+          FROM public.tasks
+         WHERE id = NEW.parent_task_id;
+    END IF;
     IF v_project_id IS NULL THEN
-        RETURN NEW;
+        v_project_id := NEW.id;
     END IF;
 
     SELECT COUNT(*), MIN(user_id)

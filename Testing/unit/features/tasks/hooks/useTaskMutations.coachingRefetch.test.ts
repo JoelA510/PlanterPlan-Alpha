@@ -8,8 +8,9 @@ import { makeTask } from '@test';
 // Wave 23 Task 1: when a mutation flips `settings.is_coaching_task` to true,
 // `useUpdateTask` must invalidate the `projectHierarchy` query so the UI
 // picks up the auto-assigned coach that the DB trigger set on the row.
-// The server payload is trimmed by the planterClient / trigger; the hook's
-// job here is to force a refetch on success.
+// The server row is augmented by the DB trigger (it populates `assignee_id`
+// from project_members); the hook's job here is to force a refetch on
+// success so the client cache reflects that server-side write.
 
 const mockUpdate = vi.fn();
 

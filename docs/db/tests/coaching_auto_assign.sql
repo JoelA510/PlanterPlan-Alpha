@@ -140,5 +140,28 @@ BEGIN
            'Branch 5 (flag flip on update): expected assignee_id = coach1';
 END $$;
 
+-- Branch 6: INSERT subtask with ONLY parent_task_id (no root_id supplied) --
+-- Exercises the trigger's parent_task_id → root_id lookup path. Without the
+-- walk in `set_coaching_assignee`, the coach query would target `NEW.id`
+-- (since trg_set_coaching_assignee runs alphabetically BEFORE
+-- trg_set_root_id_from_parent) and return zero rows even though the project
+-- has exactly one coach.
+
+INSERT INTO public.tasks (id, parent_task_id, creator, title, origin, settings)
+VALUES
+  ('bbbbbbbb-0004-0000-0000-000000000000',
+   'bbbbbbbb-0000-0000-0000-000000000000',
+   '11111111-1111-1111-1111-111111111111',
+   'Coaching subtask without root_id', 'instance',
+   jsonb_build_object('is_coaching_task', true));
+
+DO $$
+BEGIN
+    ASSERT (SELECT assignee_id = '22222222-2222-2222-2222-222222222222'
+              FROM public.tasks
+             WHERE id = 'bbbbbbbb-0004-0000-0000-000000000000'),
+           'Branch 6 (subtask, no root_id): expected assignee_id = coach1 via parent_task_id lookup';
+END $$;
+
 -- Always roll back — this is a smoke test, not a seeded migration.
 ROLLBACK;

@@ -14,14 +14,17 @@
 --   layer already best-effort mirrors both in `updateStatus`; this guarantees
 --   the invariant holds even when a raw SQL write touches only one side.
 --
---   Rules:
+--   Rules (status is the source of truth — it's the text domain the UI and
+--   RLS policies reason about, so ties go to it):
 --     * INSERT:
---         - If NEW.status = 'completed'       → NEW.is_complete := true
---         - Else                              → NEW.is_complete := COALESCE(NEW.is_complete, false)
+--         - NEW.is_complete := (COALESCE(NEW.status, '') = 'completed')
 --     * UPDATE:
---         - Both sides changed in the same write → trust the caller, no-op.
---         - Only status changed   → NEW.is_complete := (NEW.status = 'completed')
---         - Only is_complete changed → NEW.status := CASE WHEN NEW.is_complete THEN 'completed' ELSE 'todo' END
+--         - status changed                      → NEW.is_complete := (NEW.status = 'completed')
+--         - status unchanged, is_complete moved → NEW.status := CASE WHEN NEW.is_complete THEN 'completed' ELSE 'todo' END
+--     * Dual-field UPDATEs where the caller supplied inconsistent values
+--       (e.g. `status = 'completed', is_complete = false`) are also reconciled
+--       — the trigger rewrites `is_complete` to match `status`. There is no
+--       "both sides trusted" escape hatch; the invariant is unconditional.
 --
 --   Ordering: runs BEFORE all AFTER triggers on the same row, so
 --   `check_phase_unlock` (AFTER UPDATE OF is_complete) and
@@ -41,11 +44,9 @@ DECLARE
     v_complete_changed boolean;
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        IF NEW.status = 'completed' THEN
-            NEW.is_complete := true;
-        ELSE
-            NEW.is_complete := COALESCE(NEW.is_complete, false);
-        END IF;
+        -- status wins. An INSERT that supplies both keys with inconsistent
+        -- values still lands as a consistent row.
+        NEW.is_complete := (COALESCE(NEW.status, '') = 'completed');
         RETURN NEW;
     END IF;
 
@@ -53,13 +54,11 @@ BEGIN
     v_status_changed   := NEW.status IS DISTINCT FROM OLD.status;
     v_complete_changed := NEW.is_complete IS DISTINCT FROM OLD.is_complete;
 
-    IF v_status_changed AND v_complete_changed THEN
-        -- Both sides moving → trust the caller's intent on both fields.
-        RETURN NEW;
-    END IF;
-
+    -- status is the source of truth — if it moved (alone OR alongside
+    -- is_complete), derive is_complete from it. Only when status is fixed
+    -- do we accept a raw is_complete toggle and reflect it back into status.
     IF v_status_changed THEN
-        NEW.is_complete := (NEW.status = 'completed');
+        NEW.is_complete := (COALESCE(NEW.status, '') = 'completed');
     ELSIF v_complete_changed THEN
         NEW.status := CASE WHEN NEW.is_complete THEN 'completed' ELSE 'todo' END;
     END IF;

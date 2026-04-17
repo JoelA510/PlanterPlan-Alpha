@@ -30,10 +30,13 @@
 CREATE OR REPLACE FUNCTION public.check_project_creatorship(p_id uuid, u_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
+STABLE
 SECURITY DEFINER
 SET search_path TO ''
 AS $$
 BEGIN
+  -- STABLE: pure read, no side effects — lets the planner cache the result
+  -- across the evaluation of a single RLS policy query.
   RETURN EXISTS (
     SELECT 1
     FROM public.tasks
@@ -44,6 +47,9 @@ END;
 $$;
 
 ALTER FUNCTION public.check_project_creatorship(uuid, uuid) OWNER TO postgres;
+
+REVOKE ALL ON FUNCTION public.check_project_creatorship(uuid, uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.check_project_creatorship(uuid, uuid) TO "authenticated";
 
 -- 2. Backwards-compatibility shim ------------------------------------------
 --
@@ -62,6 +68,12 @@ AS $$
 $$;
 
 ALTER FUNCTION public.check_project_ownership(uuid, uuid) OWNER TO postgres;
+
+-- CREATE OR REPLACE preserves existing grants, but re-declare them so a fresh
+-- install of the migration set ends in the same permission state as an
+-- upgraded one.
+REVOKE ALL ON FUNCTION public.check_project_ownership(uuid, uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.check_project_ownership(uuid, uuid) TO "authenticated";
 
 COMMENT ON FUNCTION public.check_project_ownership(uuid, uuid) IS
   'Deprecated shim (Wave 23). Delegates to public.check_project_creatorship. Kept one release for the RLS policy audit; drop once every callsite migrates.';

@@ -179,7 +179,7 @@ ALTER FUNCTION "public"."check_phase_unlock"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."check_project_creatorship"("p_id" "uuid", "u_id" "uuid") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 BEGIN
@@ -1165,9 +1165,19 @@ BEGIN
         END IF;
     END IF;
 
-    v_project_id := COALESCE(NEW.root_id, NEW.id);
+    -- Resolve the project id. `trg_set_coaching_assignee` sorts alphabetically
+    -- before `trg_set_root_id_from_parent`, so for a subtask INSERT the caller
+    -- frequently leaves `NEW.root_id` null. Walk `parent_task_id` the same way
+    -- the root-id resolver does so the coach lookup targets the real project.
+    v_project_id := NEW.root_id;
+    IF v_project_id IS NULL AND NEW.parent_task_id IS NOT NULL THEN
+        SELECT COALESCE(root_id, id)
+          INTO v_project_id
+          FROM public.tasks
+         WHERE id = NEW.parent_task_id;
+    END IF;
     IF v_project_id IS NULL THEN
-        RETURN NEW;
+        v_project_id := NEW.id;
     END IF;
 
     SELECT COUNT(*), MIN(user_id)
@@ -1216,25 +1226,19 @@ DECLARE
     v_complete_changed boolean;
 BEGIN
     -- Wave 23: keep is_complete and status = 'completed' in lockstep.
-    -- See docs/db/migrations/2026_04_17_sync_task_completion.sql.
+    -- status is the source of truth; inconsistent dual-field writes are
+    -- reconciled, not trusted. See
+    -- docs/db/migrations/2026_04_17_sync_task_completion.sql.
     IF TG_OP = 'INSERT' THEN
-        IF NEW.status = 'completed' THEN
-            NEW.is_complete := true;
-        ELSE
-            NEW.is_complete := COALESCE(NEW.is_complete, false);
-        END IF;
+        NEW.is_complete := (COALESCE(NEW.status, '') = 'completed');
         RETURN NEW;
     END IF;
 
     v_status_changed   := NEW.status IS DISTINCT FROM OLD.status;
     v_complete_changed := NEW.is_complete IS DISTINCT FROM OLD.is_complete;
 
-    IF v_status_changed AND v_complete_changed THEN
-        RETURN NEW;
-    END IF;
-
     IF v_status_changed THEN
-        NEW.is_complete := (NEW.status = 'completed');
+        NEW.is_complete := (COALESCE(NEW.status, '') = 'completed');
     ELSIF v_complete_changed THEN
         NEW.status := CASE WHEN NEW.is_complete THEN 'completed' ELSE 'todo' END;
     END IF;

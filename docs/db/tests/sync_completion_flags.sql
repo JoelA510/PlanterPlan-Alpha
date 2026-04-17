@@ -117,10 +117,41 @@ BEGIN
            'Branch 6 (UPDATE is_complete=false): expected status = todo';
 END $$;
 
--- Branch 7: UPDATE both sides at once → both preserved verbatim -------------
--- Caller's intent wins: is_complete=true + status='blocked' is an unusual
--- pairing that indicates an explicit non-synced write (e.g. marking a block
--- on an already-checked task). The trigger must NOT overwrite either field.
+-- Branch 7a: UPDATE both sides consistently (status='completed' + is_complete=true)
+-- → both preserved. Exercises the common-case where the app layer explicitly
+-- writes both fields in the same statement; the trigger must be a no-op when
+-- the payload is already consistent.
+
+UPDATE public.tasks
+   SET is_complete = true,
+       status = 'completed'
+ WHERE id = 'dddddddd-0002-0000-0000-000000000000';
+
+DO $$
+BEGIN
+    ASSERT (SELECT is_complete = true AND status = 'completed'
+              FROM public.tasks
+             WHERE id = 'dddddddd-0002-0000-0000-000000000000'),
+           'Branch 7a (consistent dual-write): expected is_complete=true AND status=completed';
+END $$;
+
+-- Branch 7b: UPDATE both sides INCONSISTENTLY → status wins, is_complete
+-- reconciled. Without this guarantee a raw SQL writer could desync the row
+-- and silently break phase-unlock (the exact bug this migration exists to
+-- close). The trigger must enforce the invariant unconditionally.
+
+UPDATE public.tasks
+   SET is_complete = false,
+       status = 'completed'
+ WHERE id = 'dddddddd-0002-0000-0000-000000000000';
+
+DO $$
+BEGIN
+    ASSERT (SELECT is_complete = true AND status = 'completed'
+              FROM public.tasks
+             WHERE id = 'dddddddd-0002-0000-0000-000000000000'),
+           'Branch 7b (inconsistent dual-write): expected status to win, is_complete auto-true';
+END $$;
 
 UPDATE public.tasks
    SET is_complete = true,
@@ -129,10 +160,10 @@ UPDATE public.tasks
 
 DO $$
 BEGIN
-    ASSERT (SELECT is_complete = true AND status = 'blocked'
+    ASSERT (SELECT is_complete = false AND status = 'blocked'
               FROM public.tasks
              WHERE id = 'dddddddd-0002-0000-0000-000000000000'),
-           'Branch 7 (UPDATE both sides): expected caller values preserved';
+           'Branch 7b (inconsistent dual-write, non-completed status): expected is_complete auto-false';
 END $$;
 
 ROLLBACK;
