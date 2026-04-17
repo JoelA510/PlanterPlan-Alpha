@@ -1,6 +1,6 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.9.0 (Wave 22 — Supervisor Dispatch, Library Dedupe & Coaching Tags) 
+> **Version**: 1.9.1 (Wave 23 — Coach Auto-Assign, Creatorship Audit, Completion-Flag Trigger) 
 > **Last Updated**: 2026-04-17 
 > **Status**: Active Development
 
