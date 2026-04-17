@@ -45,6 +45,7 @@ export interface TaskDetailsPanelProps {
  handleEditTask?: (task: TaskItemData) => void;
  onDeleteTaskWrapper?: (taskId: string) => Promise<void>;
  fetchTasks?: () => void;
+ membershipRole?: string;
 }
 
 export default function TaskDetailsPanel({
@@ -62,6 +63,7 @@ export default function TaskDetailsPanel({
  handleEditTask,
  onDeleteTaskWrapper,
  fetchTasks,
+ membershipRole,
 }: TaskDetailsPanelProps) {
  const panelTitle = useMemo(() => {
  return getPanelTitle(taskFormState, taskBeingEdited, selectedTask, parentTaskForForm);
@@ -93,6 +95,7 @@ export default function TaskDetailsPanel({
  submitLabel={taskFormState?.mode === 'edit' ? 'Save Changes' : (taskFormState?.isPhase ? 'Add Phase' : 'Add Task')}
  onSubmit={handleTaskSubmit || (async () => {})}
  onCancel={() => setTaskFormState(null)}
+ membershipRole={membershipRole}
  />
  ) : selectedTask ? (
  <TaskDetailsView

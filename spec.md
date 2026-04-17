@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.8.0 (Wave 21.5 — Archive Filtering & Task Detail Enhancements) 
-> **Last Updated**: 2026-04-16 
+> **Version**: 1.9.0 (Wave 22 — Supervisor Dispatch, Library Dedupe & Coaching Tags) 
+> **Last Updated**: 2026-04-17 
 > **Status**: Active Development
 
 ---
@@ -60,7 +60,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Task Creation/Deletion**: 
   - [x] Add Task / Subtask / Milestone.
   - [x] Delete Task (with cascading effect on existing due dates).
-- [ ] **Specialized Task Types**: "Strategy Template" prompts user to add tasks from library on completion; "Coaching" auto-assigns to users with Coach role.
+- [/] **Specialized Task Types**: "Strategy Template" prompts user to add tasks from library on completion (deferred). **Coaching half shipped (Wave 22)**: task settings carry `is_coaching_task`, surfaced via an owner/editor-gated checkbox in TaskForm and a "Coaching" badge in TaskDetailsView. An additive RLS policy (`"Enable update for coaches on coaching tasks"`) grants project coaches UPDATE access on tagged rows only. Auto-assignment to the project Coach on creation stays deferred until the Strategy Template half lands.
 - [x] **Task Hierarchy & Visualization**:
   - [x] View project/template tasks in an expandable/collapsible hierarchy tree.
   - [x] Edit task, subtask, and milestone info.
@@ -93,7 +93,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 ### 3.5 Master Library & Templates
 - [x] **Template Management**: Create, edit, and delete templates.
 - [x] **Library Integration**: Search and copy tasks from the Master Library when adding to a template or active project.
-  - [ ] Intelligently hide library tasks already in the instance, and show topically related tasks.
+  - [/] **Hide-already-present shipped (Wave 22)**: cloned roots are stamped with `settings.spawnedFromTemplate` and the Master Library combobox filters them out, with an "All matching templates are already in this project." empty-state. Pre-Wave-22 instances lack the stamp and still appear until re-cloned. The "show topically related tasks" half stays deferred (recommender scope).
 - [x] **Promotion**: Promote an instance task back to the Master Library.
 - [x] **Template Publishing**: Ability to mark a template as "Published/Unpublished" to control visibility.
 
@@ -104,7 +104,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Progress Visualization**: Project progress donut chart visible across task list views.
 - [x] **Project Status Report**: Report interface featuring reporting month selection, donut charts, and lists of completed, overdue, and upcoming milestones. Shipped via `src/pages/Reports.tsx` + `src/features/projects/hooks/useProjectReports.ts`.
 - [x] **Task List Views & Filters**: Dedicated UI tables/pages to view tasks isolated by Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All Tasks, Milestones, and My Tasks. Include chronological/alphabetical sorting. Shipped via `src/pages/TasksPage.tsx` + `src/features/tasks/hooks/useTaskFilters.ts`.
-- [x] **Supervisor Reports**: Project settings accept a `supervisor_email` (stored on the root task). The `supabase/functions/supervisor-report/` edge function builds a monthly Project Status Report payload for every project that has one set. **Currently log-only** — email dispatch is gated behind `EMAIL_PROVIDER_API_KEY` and tracked in §6 Backlog (Wave 22).
+- [x] **Supervisor Reports**: Project settings accept a `supervisor_email` (stored on the root task). The `supabase/functions/supervisor-report/` edge function renders a monthly Project Status Report for every project that has one set and dispatches via Resend when `EMAIL_PROVIDER_API_KEY` and `RESEND_FROM_ADDRESS` are set (degrades cleanly to log-only otherwise). The Edit Project modal exposes a "Send test report" button that invokes the function with `{ project_id, dry_run: false }`; response includes a `dispatch_failures` counter for partial delivery alerting.
 - [ ] **Gantt Chart**: Timeline view based on `start_date` and `due_date` showing Phases and Milestones.
 
 ### 3.7 Platform Admin, Monetization & Ecosystem
@@ -151,4 +151,4 @@ For a deep dive into the system architecture and core business rules, please ref
 
 Items originally documented "for later" and items carved out of recent waves for scope control.
 
-- [ ] **Wire SMTP/Resend provider for supervisor reports** — Wave 21 ships the `supabase/functions/supervisor-report/` edge function in a log-only state (pg_cron wiring + payload shape verifiable end-to-end without a provider). Follow-up wave must wire the actual dispatch (gated today behind `EMAIL_PROVIDER_API_KEY`). See the `TODO(wave-22)` marker in `supabase/functions/supervisor-report/index.ts`.
+- [x] **Wire SMTP/Resend provider for supervisor reports** — Shipped in Wave 22. `supabase/functions/_shared/email.ts` houses a single HTTPS POST against Resend plus a pure `renderSupervisorReportEmail` renderer; `supervisor-report/index.ts` dispatches per project when the Resend env vars are set and degrades to log-only otherwise. See §3.6.

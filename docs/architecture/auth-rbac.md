@@ -37,5 +37,8 @@ The Auth & RBAC system manages application-level authentication, user account li
 * **Team Management:** Feeds contextual role data into the UI (e.g., `RoleIndicator.tsx`) to conditionally render administrative components.
 
 ## Known Gaps / Technical Debt
-* **Coach Role Tagging:** "Coaching tasks" must be explicitly tagged in the database schema to grant edit access to Coach users.
 * **Licensing Enforcement:** Logic mapping Stripe subscription states to project creation limits requires further hardening.
+
+## Resolved
+
+* **Coach Role Tagging (Wave 22, 2026-04-17):** Resolved. Tasks intended for coach editing are now flagged via `settings -> 'is_coaching_task' = true`. A project owner or editor tags the task through the "Coaching task" checkbox in TaskForm; TaskDetailsView surfaces a "Coaching" badge. An additive RLS UPDATE policy — `"Enable update for coaches on coaching tasks"` (see `docs/db/migrations/2026_04_17_coaching_task_rls.sql`) — allows any user with the project `coach` role to update rows where the flag is true, scoped to non-template origins. The pre-existing owner/editor/admin UPDATE policy is unchanged, so coaches retain zero access to non-coaching rows.

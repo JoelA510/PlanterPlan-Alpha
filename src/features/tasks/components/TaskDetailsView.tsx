@@ -238,6 +238,29 @@ const TaskDetailsView = ({
                             </span>
                         </div>
                     )}
+
+                    {(() => {
+                        const settings = (task as { settings?: unknown }).settings;
+                        const isCoaching =
+                            settings &&
+                            typeof settings === 'object' &&
+                            !Array.isArray(settings) &&
+                            (settings as Record<string, unknown>).is_coaching_task === true;
+                        if (!isCoaching) return null;
+                        return (
+                            <div className="flex flex-col gap-1" data-testid="coaching-badge-group">
+                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    Access
+                                </span>
+                                <span
+                                    data-testid="coaching-badge"
+                                    className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border bg-sky-50 text-sky-700 border-sky-100"
+                                >
+                                    Coaching
+                                </span>
+                            </div>
+                        );
+                    })()}
                 </div>
             </div>
 

@@ -10,15 +10,23 @@ interface TaskFormFieldsProps {
  origin?: 'instance' | 'library' | string;
  itemLabel?: string;
  renderExtraFields?: () => ReactNode;
+ /**
+  * The current user's project-level role (owner/editor/coach/viewer/limited).
+  * Optional — when omitted, permission-scoped controls like the "Coaching task"
+  * checkbox stay hidden. Project.tsx derives this from `teamMembers`.
+  */
+ membershipRole?: string;
 }
 
-const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields }: TaskFormFieldsProps) => {
+const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, membershipRole }: TaskFormFieldsProps) => {
  const {
  register,
  formState: { errors },
  } = useFormContext<TaskFormData>();
  const { user } = useAuth();
  const isAdmin = (user as { role?: string })?.role === 'admin';
+ const canTagCoaching =
+ origin === 'instance' && (membershipRole === 'owner' || membershipRole === 'editor');
 
  return (
  <>
@@ -103,6 +111,26 @@ const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields }: TaskF
  {errors.days_from_start && <span className="text-sm text-red-500">{errors.days_from_start.message}</span>}
  <p className="text-xs text-slate-500">
  Auto-calculates dates based on project start
+ </p>
+ </div>
+ </div>
+ )}
+
+ {canTagCoaching && (
+ <div className="mt-4 flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+ <input
+ type="checkbox"
+ id="is_coaching_task"
+ data-testid="is-coaching-task-checkbox"
+ className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+ {...register('is_coaching_task')}
+ />
+ <div className="flex flex-col gap-0.5">
+ <Label htmlFor="is_coaching_task" className="cursor-pointer text-sm font-medium">
+ Coaching task
+ </Label>
+ <p className="text-xs text-slate-500">
+ Allow users with the Coach role on this project to edit this task.
  </p>
  </div>
  </div>

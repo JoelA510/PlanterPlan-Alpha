@@ -9,6 +9,7 @@ import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
 import { ROLES, TASK_STATUS } from '@/shared/constants';
 import { compareDateAsc, toIsoDate } from '@/shared/lib/date-engine';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
+import { applyCoachingFlag, formDataToCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { planter } from '@/shared/api/planterClient';
 import { ProjectDndShell } from '@/pages/components/ProjectDndShell';
 
@@ -73,9 +74,15 @@ export default function Project() {
 
             if (mode === 'edit' && state.selectedTask) {
                 const updatePayload = constructUpdatePayload(formData, state.selectedTask, payloadContext);
+                const coachingFlag = formDataToCoachingFlag(formData);
+                const settingsPatch = applyCoachingFlag(
+                    state.selectedTask.settings as Record<string, unknown> | null | undefined,
+                    coachingFlag,
+                );
                 await updateTask.mutateAsync({
                     id: state.selectedTask.id,
                     ...updatePayload,
+                    ...(settingsPatch !== undefined ? { settings: settingsPatch as TaskRow['settings'] } : {}),
                     root_id: projectId
                 });
                 setTaskFormState(null);
@@ -100,10 +107,13 @@ export default function Project() {
                     queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
                 } else {
                     const createPayload = constructCreatePayload(formData, payloadContext);
+                    const coachingFlag = formDataToCoachingFlag(formData);
+                    const settingsPatch = applyCoachingFlag(null, coachingFlag);
                     await createTask.mutateAsync({
                         ...createPayload,
                         root_id: projectId,
-                        is_complete: false
+                        is_complete: false,
+                        ...(settingsPatch !== undefined ? { settings: settingsPatch as TaskRow['settings'] } : {})
                     });
                 }
                 setTaskFormState(null);
@@ -360,6 +370,7 @@ export default function Project() {
                         selectedTask={state.selectedTask || undefined}
                         taskBeingEdited={taskFormState?.mode === 'edit' ? state.selectedTask || undefined : undefined}
                         parentTaskForForm={state.inlineAddingParentId ? (tasks?.find(t => t.id === state.inlineAddingParentId) as TaskRow) : undefined}
+                        membershipRole={userRole}
                         onClose={() => {
                             actions.setSelectedTask(null);
                             setTaskFormState(null);

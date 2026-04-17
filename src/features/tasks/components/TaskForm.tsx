@@ -41,6 +41,7 @@ const getTaskSchema = (origin: 'instance' | 'template') => z.object({
  return isNaN(num) ? undefined : num;
  }, z.number().min(1).max(28).optional()),
  recurrence_target_project_id: z.string().optional().nullable(),
+ is_coaching_task: z.boolean().optional(),
 }).refine((data) => {
  if (origin === 'instance' && data.start_date && data.due_date) {
  const start = `${data.start_date}T00:00:00.000Z`;
@@ -71,6 +72,12 @@ const extractRecurrence = (task?: Partial<TaskRow> | null) => {
  return isRecurrenceRule(rec) ? rec : null;
 };
 
+const extractCoachingFlag = (task?: Partial<TaskRow> | null): boolean => {
+ const settings = task?.settings;
+ if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return false;
+ return Boolean((settings as Record<string, unknown>).is_coaching_task);
+};
+
 const createInitialState = (task?: Partial<TaskRow> | null) => {
  const rec = extractRecurrence(task);
  return {
@@ -90,6 +97,7 @@ const createInitialState = (task?: Partial<TaskRow> | null) => {
  recurrence_weekday: rec?.kind === 'weekly' ? rec.weekday : 1,
  recurrence_day_of_month: rec?.kind === 'monthly' ? rec.dayOfMonth : 1,
  recurrence_target_project_id: rec?.targetProjectId ?? '',
+ is_coaching_task: extractCoachingFlag(task),
  };
 };
 
@@ -101,6 +109,8 @@ export interface TaskFormProps {
  origin?: 'instance' | 'template';
  submitLabel?: string;
  renderLibrarySearch?: (onSelect: (task: Partial<TaskRow>) => void) => React.ReactNode;
+ /** Forwarded to TaskFormFields to gate permission-scoped controls. */
+ membershipRole?: string;
 }
 
 const TaskForm = ({
@@ -111,6 +121,7 @@ const TaskForm = ({
  origin = 'instance',
  submitLabel = 'Add New Task',
  renderLibrarySearch,
+ membershipRole,
 }: TaskFormProps) => {
  const isEditMode = Boolean(initialTask);
  const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
@@ -192,7 +203,11 @@ const TaskForm = ({
  </div>
  )}
 
- <TaskFormFields origin={origin} itemLabel={submitLabel?.includes('Phase') ? 'Phase' : 'Task'} />
+ <TaskFormFields
+ origin={origin}
+ itemLabel={submitLabel?.includes('Phase') ? 'Phase' : 'Task'}
+ membershipRole={membershipRole}
+ />
 
  {origin === 'template' && <RecurrencePicker />}
 
