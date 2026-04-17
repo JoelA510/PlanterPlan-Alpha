@@ -136,12 +136,20 @@ describe('determineNewStatus', () => {
 // Phase 5d: COLUMNS constant structure
 // ---------------------------------------------------------------------------
 describe('COLUMNS constant', () => {
-  it('has entries for all PROJECT_STATUS values', () => {
-    const statusValues = Object.values(PROJECT_STATUS);
-    for (const status of statusValues) {
+  it('has entries for every pipeline PROJECT_STATUS value (archived excluded)', () => {
+    // Archived projects are filtered at the data boundary (useDashboard)
+    // and never reach the pipeline kanban, so there is no archived column.
+    const pipelineStatuses = Object.values(PROJECT_STATUS).filter(
+      (s) => s !== PROJECT_STATUS.ARCHIVED,
+    );
+    for (const status of pipelineStatuses) {
       const col = COLUMNS.find((c) => c.id === status);
       expect(col, `Missing column for status: ${status}`).toBeDefined();
-      expect(col.title).toBeTruthy();
+      expect(col!.title).toBeTruthy();
     }
+  });
+
+  it('does not include an archived column', () => {
+    expect(COLUMNS.find((c) => c.id === PROJECT_STATUS.ARCHIVED)).toBeUndefined();
   });
 });

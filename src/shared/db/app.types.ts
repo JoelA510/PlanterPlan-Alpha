@@ -72,6 +72,7 @@ export interface Person extends PersonRow {
 export type UserRole = 'admin' | 'owner' | 'viewer';
 
 export interface UserMetadata {
+    saved_email_addresses?: string[];
     [key: string]: unknown;
 }
 

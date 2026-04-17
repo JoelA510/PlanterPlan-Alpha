@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
+import { PROJECT_STATUS } from '@/shared/constants/domain';
 import ProjectSidebar from './ProjectSidebar';
 
 export interface ProjectSidebarContainerProps {
@@ -22,7 +23,9 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }: 
  isFetchingMore,
  } = useTaskQuery();
 
- const instanceTasks = tasks.filter((t) => t.origin === 'instance');
+ const instanceTasks = tasks.filter(
+ (t) => t.origin === 'instance' && t.status !== PROJECT_STATUS.ARCHIVED && !t.is_complete
+ );
  const templateTasks = tasks.filter((t) => t.origin === 'template');
 
  const handleSelectProject = (project: { id: string }) => {

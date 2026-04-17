@@ -8,10 +8,12 @@ import type { TaskRow } from '@/shared/db/app.types';
 
 const mockUpdateMutateAsync = vi.fn();
 const mockDeleteMutateAsync = vi.fn();
+const mockUpdateStatusMutateAsync = vi.fn();
 
 vi.mock('@/features/projects/hooks/useProjectMutations', () => ({
   useUpdateProject: () => ({ mutateAsync: mockUpdateMutateAsync }),
   useDeleteProject: () => ({ mutateAsync: mockDeleteMutateAsync }),
+  useUpdateProjectStatus: () => ({ mutateAsync: mockUpdateStatusMutateAsync, isPending: false }),
 }));
 
 const mockToastSuccess = vi.fn();
@@ -42,6 +44,7 @@ function renderModal(project: TaskRow) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockUpdateMutateAsync.mockResolvedValue({ shiftedCount: 0 });
+  mockUpdateStatusMutateAsync.mockResolvedValue(undefined);
 });
 
 describe('EditProjectModal — Published toggle visibility', () => {
@@ -223,6 +226,86 @@ describe('EditProjectModal — Supervisor Email field (Wave 21)', () => {
       expect(screen.getByText(/enter a valid email/i)).toBeInTheDocument();
     });
     expect(mockUpdateMutateAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('EditProjectModal — Archive / Unarchive (Wave 21.5)', () => {
+  it('renders Archive button for active instance projects', () => {
+    const instance = makeTask({
+      id: 'proj-1',
+      title: 'A Project',
+      origin: 'instance',
+      status: 'in_progress',
+      start_date: '2026-01-01',
+    });
+    renderModal(instance);
+    expect(screen.getByTestId('archive-project-btn')).toHaveTextContent(/archive/i);
+  });
+
+  it('renders Unarchive button for archived projects', () => {
+    const instance = makeTask({
+      id: 'proj-1',
+      title: 'A Project',
+      origin: 'instance',
+      status: 'archived',
+      start_date: '2026-01-01',
+    });
+    renderModal(instance);
+    expect(screen.getByTestId('archive-project-btn')).toHaveTextContent(/unarchive/i);
+  });
+
+  it('does NOT render the Archive button for templates', () => {
+    const template = makeTask({
+      id: 'tmpl-1',
+      title: 'A Template',
+      origin: 'template',
+      start_date: '2026-01-01',
+      settings: null,
+    });
+    renderModal(template);
+    expect(screen.queryByTestId('archive-project-btn')).toBeNull();
+  });
+
+  it('archive click fires updateStatus with status=archived', async () => {
+    const instance = makeTask({
+      id: 'proj-1',
+      title: 'A Project',
+      origin: 'instance',
+      status: 'in_progress',
+      start_date: '2026-01-01',
+    });
+    renderModal(instance);
+    const button = screen.getByTestId('archive-project-btn');
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    await waitFor(() => {
+      expect(mockUpdateStatusMutateAsync).toHaveBeenCalledWith({
+        projectId: 'proj-1',
+        status: 'archived',
+      });
+    });
+  });
+
+  it('unarchive click fires updateStatus with status=in_progress', async () => {
+    const instance = makeTask({
+      id: 'proj-1',
+      title: 'A Project',
+      origin: 'instance',
+      status: 'archived',
+      start_date: '2026-01-01',
+    });
+    renderModal(instance);
+    const button = screen.getByTestId('archive-project-btn');
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    await waitFor(() => {
+      expect(mockUpdateStatusMutateAsync).toHaveBeenCalledWith({
+        projectId: 'proj-1',
+        status: 'in_progress',
+      });
+    });
   });
 });
 

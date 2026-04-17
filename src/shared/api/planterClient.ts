@@ -89,6 +89,7 @@ interface TaskEntityClient extends EntityClient<Task, TaskInsert, TaskUpdate> {
     updateParentDates: (parentId: string | null) => Promise<void>;
     clone: (templateId: string, newParentId: string | null, newOrigin: string, userId: string, overrides?: Partial<Pick<TaskInsert, 'title' | 'description' | 'start_date' | 'due_date'>>) => Promise<{ data: Task | null, error: Error | null }>;
     addMember?: (taskId: string, userId: string, role: string) => Promise<{ data: TeamMemberRow | undefined, error: Error | null }>;
+    listSiblings: (taskId: string) => Promise<Task[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -582,6 +583,22 @@ export const planter: PlanterClient = {
                     console.error('[PlanterClient.clone] Error:', error);
                     return { data: null, error: error instanceof Error ? error : new PlanterError(String(error)) };
                 }
+            },
+            listSiblings: async (taskId: string): Promise<Task[]> => {
+                return retry(async () => {
+                    const target = await planter.entities.Task.get(taskId);
+                    if (!target || !target.parent_task_id) return [];
+
+                    const { data, error } = await supabase
+                        .from('tasks')
+                        .select('*')
+                        .eq('parent_task_id', target.parent_task_id)
+                        .neq('id', taskId)
+                        .order('position', { ascending: true });
+
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return (data as Task[]) || [];
+                });
             }
         },
 

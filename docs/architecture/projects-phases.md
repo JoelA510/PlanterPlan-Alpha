@@ -25,6 +25,12 @@ This domain defines the highest-level structural containers of the application. 
 * **Strict Hierarchy Invariant:** `Project -> Phases -> Milestones -> Tasks -> Subtasks`.
 * **Deprecation:** Project `Location` field is officially deprecated.
 
+## Archive & Completion Semantics
+* **Archived project:** Root task carries `status = 'archived'` (set/cleared via the Archive / Unarchive action in `EditProjectModal`). Archiving is reversible and **never cascades** to descendants — children keep their own status and continue to resolve dates normally.
+* **Active project:** Any project root where `status !== 'archived'` **and** `is_complete !== true`. This is the predicate used by `useDashboard`, `ProjectSidebar`, and `ProjectSwitcher` to populate the default active list.
+* **Completed project:** Indicated by `is_complete = true` on the root task. The `updateStatus` bubble-up logic keeps `status === 'completed'` in sync with the flag (see `tasks-subtasks.md`), so the UI filter inspects `is_complete` only.
+* **No auto-archive:** Completing a project does not archive it; archive remains an explicit user action.
+
 ## Integration Points
 * **Dashboard & Analytics:** Dashboard heavily queries Project completeness metrics to render the Pipeline Board.
 * **Date Engine:** Project settings define the bounds and horizons applied to all child elements.

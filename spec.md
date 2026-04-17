@@ -1,6 +1,6 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.7.0 (Wave 21 — Supervisor Reports & Recurring Tasks) 
+> **Version**: 1.8.0 (Wave 21.5 — Archive Filtering & Task Detail Enhancements) 
 > **Last Updated**: 2026-04-16 
 > **Status**: Active Development
 
@@ -53,7 +53,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Project Settings**: Edit due date and due soon thresholds. *(Note: The `Location` field is officially deprecated and has been stripped from the UI.)*
 - [-] **Advanced Access**: Assign Phase/Milestone to a limited viewer.
 - [ ] **Checkpoint-Based Architecture**: Alternate project type that unlocks sequential phases upon completing the previous phase, without rigid due dates.
-- [ ] **Secondary Projects**: Ability to create and toggle between multiple projects, filtering out archived/completed projects from the active menu.
+- [x] **Secondary Projects**: Active menu and project switcher filter out archived (`status = 'archived'`) and completed (`is_complete = true`) projects; archive/unarchive is a toggle on the project's Edit modal. The `ProjectSwitcher` dropdown in the header lists active projects by default and reveals archived entries behind a "Show archived" toggle.
 
 ### 3.3 Tasks Domain (Shared Project & Template Functionality)
 - [x] **Task Schema**: Title, Description, Purpose, Actions, Start Date, Due Date, Notes, Status, Completion.
@@ -82,7 +82,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] Recalculate and assign relative due dates to all incomplete tasks when root project start/completion dates are changed.
   - [x] Automatically bubble up earliest start dates and latest due dates to parent milestones/phases (wired into task create, edit, and delete via `updateParentDates`).
   - [x] **Nightly CRON job** to automatically transition task statuses ('Not Yet Due' -> 'Current' -> 'Due Soon' -> 'Overdue'). Shipped via `supabase/functions/nightly-sync/` (per-project `settings.due_soon_threshold`).
-- [ ] **Task Detail Enhancements**: Show related tasks in the same milestone, and add an action to email task details/content to users with saved address memory.
+- [x] **Task Detail Enhancements**: The task detail pane now shows a "Related Tasks" section listing sibling tasks (same `parent_task_id`, in `position` order, current task excluded), with an empty state for single-child milestones. An "Email details" action opens a Shadcn Dialog that dispatches a `mailto:` with the task summary; recipients are remembered (case-insensitive de-dupe, cap of 5) on `user_metadata.saved_email_addresses` and surfaced via a `<datalist>` on subsequent opens.
 - [ ] **Collaboration Suite**: Threaded comments on tasks, activity/audit logs, and real-time presence (cursors).
 - [x] **Automation Engine — Recurring Tasks**: Template tasks carry a weekly or monthly rule under `settings.recurrence`; `supabase/functions/nightly-sync/` clones matching templates into the configured target project (deep-clone via `clone_project_template`, idempotent via `settings.spawnedFromTemplate` + `spawnedOn`). Picker shipped in `src/features/tasks/components/RecurrencePicker.tsx`.
 
