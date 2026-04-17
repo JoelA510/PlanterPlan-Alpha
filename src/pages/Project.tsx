@@ -8,6 +8,7 @@ import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
 import { ROLES, TASK_STATUS } from '@/shared/constants';
 import { compareDateAsc, toIsoDate } from '@/shared/lib/date-engine';
+import { collectSpawnedTemplateIds } from '@/shared/lib/tree-helpers';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
 import { applyCoachingFlag, formDataToCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { planter } from '@/shared/api/planterClient';
@@ -47,18 +48,10 @@ export default function Project() {
 
     // Template ids already cloned into this project — excluded from the
     // Master Library combobox so the same template can't be added twice.
-    const excludedTemplateIds = useMemo(() => {
-        if (!tasks) return [] as string[];
-        const ids: string[] = [];
-        for (const t of tasks) {
-            const settings = (t as { settings?: unknown }).settings;
-            if (settings && typeof settings === 'object') {
-                const spawned = (settings as Record<string, unknown>).spawnedFromTemplate;
-                if (typeof spawned === 'string') ids.push(spawned);
-            }
-        }
-        return ids;
-    }, [tasks]);
+    const excludedTemplateIds = useMemo(
+        () => collectSpawnedTemplateIds(tasks),
+        [tasks],
+    );
 
     const board = useProjectBoard(projectId, (tasks as TaskRow[]) || []);
     const { state, actions, handlers, computed } = board;

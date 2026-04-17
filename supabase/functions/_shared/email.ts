@@ -43,6 +43,9 @@ const RESEND_ENDPOINT = 'https://api.resend.com/emails'
  * POST a single transactional email via Resend. The return value never
  * contains raw upstream response bodies — the caller gets a boolean plus a
  * sanitized error string. Full response details are logged server-side.
+ * @param input - Email envelope: `to`, `subject`, `html`, `text`.
+ * @returns Sanitized `{ ok, id?, error? }` — `ok: false` when the Resend env
+ *   vars are missing, the POST returns non-2xx, or the network throws.
  */
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
     const apiKey = Deno.env.get('EMAIL_PROVIDER_API_KEY')
@@ -88,6 +91,13 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 // Pure rendering (unit-testable)
 // ----------------------------------------------------------------------------
 
+/**
+ * Escape the five HTML-significant characters (`&`, `<`, `>`, `"`, `'`) so
+ * arbitrary user-supplied strings can safely be interpolated into the HTML
+ * body without opening an XSS vector.
+ * @param value - Raw string to escape.
+ * @returns The escaped string.
+ */
 function escapeHtml(value: string): string {
     return value
         .replace(/&/g, '&amp;')
@@ -134,6 +144,8 @@ export interface RenderedEmail {
  * report. Pure: same input always produces the same output. Keep the payload
  * shape in sync with `src/features/projects/hooks/useProjectReports.ts` and
  * with `supervisor-report/index.ts:buildProjectPayload`.
+ * @param payload - Per-project report payload (milestone arrays + month key).
+ * @returns `{ subject, html, text }` ready to pass to `sendEmail`.
  */
 export function renderSupervisorReportEmail(payload: ProjectReportPayload): RenderedEmail {
     const projectName = payload.project_title?.trim() || 'Untitled project'

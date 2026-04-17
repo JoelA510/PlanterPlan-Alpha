@@ -1,4 +1,17 @@
-import type { TaskFormData } from '@/shared/db/app.types';
+import type { TaskFormData, TaskRow } from '@/shared/db/app.types';
+
+/**
+ * Read the coaching flag from a task's `settings` JSONB. Tolerates loose
+ * shapes: returns `false` for null / undefined / non-object settings, for a
+ * missing `is_coaching_task` key, or for any non-`true` value.
+ * @param task - Task-like object (possibly partial, nullable).
+ * @returns `true` iff `task.settings.is_coaching_task === true`.
+ */
+export function extractCoachingFlag(task?: Partial<TaskRow> | null): boolean {
+    const settings = task?.settings;
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return false;
+    return (settings as Record<string, unknown>).is_coaching_task === true;
+}
 
 /**
  * Normalise the flat `is_coaching_task` form field emitted by TaskForm into
@@ -11,6 +24,8 @@ import type { TaskFormData } from '@/shared/db/app.types';
  *   - `null`  → caller should leave `settings` untouched (e.g., the UI gate
  *               hid the checkbox for the current user's role, so the field
  *               never rendered and submission didn't emit a value)
+ * @param data - Task form data.
+ * @returns The normalised coaching intent (or `null` to leave settings alone).
  */
 export function formDataToCoachingFlag(data: TaskFormData): boolean | null {
     if (data.is_coaching_task === undefined) return null;
@@ -22,6 +37,9 @@ export function formDataToCoachingFlag(data: TaskFormData): boolean | null {
  * preserving every other key. Returns `undefined` when there is nothing to
  * persist (`flag === null` AND no existing settings), so the caller can
  * skip including `settings` in the outgoing payload entirely.
+ * @param currentSettings - Existing settings object on the task (nullable).
+ * @param flag - Normalised coaching intent (see `formDataToCoachingFlag`).
+ * @returns The merged settings patch, or `undefined` to skip the update.
  */
 export function applyCoachingFlag(
     currentSettings: Record<string, unknown> | null | undefined,

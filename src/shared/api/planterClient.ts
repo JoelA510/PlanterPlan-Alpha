@@ -57,6 +57,16 @@ export interface PlanterClient {
     };
     rpc: <T = unknown, P extends object = object>(functionName: string, params: P) => Promise<{ data: T | null, error: Error | null }>;
     functions: {
+        /**
+         * Invoke a Supabase Edge Function by name. Thin wrapper around
+         * `supabase.functions.invoke` so components never touch the SDK
+         * directly.
+         * @param functionName - Edge Function name (e.g. 'supervisor-report').
+         * @param opts - Optional invocation options; currently only a JSON body.
+         * @returns Promise resolving to `{ data, error }` — `data` is the
+         *   parsed function response (or `null`); `error` is a normalized
+         *   `Error` (never an upstream body).
+         */
         invoke: <T = unknown>(functionName: string, opts?: { body?: Record<string, unknown> }) => Promise<{ data: T | null, error: Error | null }>;
     };
 }
@@ -583,26 +593,39 @@ export const planter: PlanterClient = {
 
                     // Stamp the cloned root with `settings.spawnedFromTemplate` so the
                     // Master Library combobox can hide templates already present in the
-                    // project. Merges onto existing settings (preserving any keys the
-                    // clone RPC or a future migration may add) and is non-fatal — a stamp
-                    // failure must never roll back a successful clone. Mirrors the
-                    // recurrence-spawn convention in nightly-sync/index.ts.
+                    // project. The RPC returns `{ new_root_id, root_project_id,
+                    // tasks_cloned }` (NOT a full Task), so resolve the cloned row
+                    // before returning. Merges onto existing settings (preserving any
+                    // keys the RPC or a future migration may add) and is non-fatal —
+                    // a stamp failure must never roll back a successful clone.
+                    // Mirrors the recurrence-spawn convention in nightly-sync/index.ts.
                     const cloneResult = data as { new_root_id?: string } | null;
                     const newRootId = cloneResult?.new_root_id;
                     if (newRootId) {
                         try {
                             const existing = await planter.entities.Task.get(newRootId);
-                            const prevSettings = (existing?.settings ?? {}) as Record<string, unknown>;
-                            const mergedSettings = {
-                                ...prevSettings,
-                                spawnedFromTemplate: templateId,
-                            };
-                            await planter.entities.Task.update(newRootId, {
-                                settings: mergedSettings as unknown as TaskUpdate['settings'],
-                            });
+                            // Only stamp when we could actually read the cloned row — a
+                            // null here (transient error / RLS) would otherwise clobber
+                            // any settings the RPC populated.
+                            if (existing) {
+                                const prevSettings = (existing.settings ?? {}) as Record<string, unknown>;
+                                const mergedSettings = {
+                                    ...prevSettings,
+                                    spawnedFromTemplate: templateId,
+                                };
+                                const updated = await planter.entities.Task.update(newRootId, {
+                                    settings: mergedSettings as unknown as TaskUpdate['settings'],
+                                });
+                                return { data: (updated ?? existing) as Task, error: null };
+                            }
                         } catch (stampErr) {
                             console.error('[PlanterClient.clone] stamp failed', stampErr);
                         }
+                        // Stamp was skipped or failed — still try to return a hydrated
+                        // Task rather than the RPC's result object, which has
+                        // `new_root_id` and not `id`.
+                        const fallback = await planter.entities.Task.get(newRootId).catch(() => null);
+                        if (fallback) return { data: fallback as Task, error: null };
                     }
 
                     return { data: data as Task, error: null };
@@ -761,6 +784,15 @@ export const planter: PlanterClient = {
     // ---------------------------------------------------------------------------
 
     functions: {
+        /**
+         * Invoke a Supabase Edge Function by name. Normalizes SDK errors into
+         * the standard `{ data, error }` shape used across planterClient.
+         * @param functionName - Edge Function name (e.g. 'supervisor-report').
+         * @param opts - Optional invocation options; currently only a JSON body.
+         * @returns Promise resolving to `{ data, error }` — `data` is the
+         *   parsed function response (or `null`); `error` is a normalized
+         *   `Error` (never an upstream body).
+         */
         invoke: async <T = unknown>(
             functionName: string,
             opts?: { body?: Record<string, unknown> },

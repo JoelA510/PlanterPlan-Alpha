@@ -174,7 +174,11 @@ Deno.serve(async (req) => {
         const allTasks = await fetchTasksForRoots(supabase, rootIds)
 
         const providerKey = Deno.env.get('EMAIL_PROVIDER_API_KEY')
-        const shouldDispatch = Boolean(providerKey) && dry_run !== true
+        const fromAddress = Deno.env.get('RESEND_FROM_ADDRESS')
+        // Only dispatch when BOTH Resend env vars are set — if either is
+        // missing, sendEmail would bail out and bump dispatch_failures, so
+        // fall through to log-only instead and keep the response truthful.
+        const shouldDispatch = Boolean(providerKey) && Boolean(fromAddress) && dry_run !== true
         const result: DispatchResult = {
             projects_considered: roots.length,
             payloads_built: 0,

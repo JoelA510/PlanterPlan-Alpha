@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useUpdateTask, useCreateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
-import { buildTree, separateTasksByOrigin } from '@/shared/lib/tree-helpers';
+import { buildTree, collectSpawnedTemplateIds, separateTasksByOrigin } from '@/shared/lib/tree-helpers';
 import type { TaskNode } from '@/shared/lib/tree-helpers';
 import { Project, TaskRow, TaskFormData, TaskInsert, Json } from '@/shared/db/app.types';
 import { formDataToRecurrenceRule } from '@/features/tasks/lib/recurrence-form';
@@ -83,18 +83,10 @@ const TaskList = () => {
   // Collect every template id already cloned into the active project so the
   // Master Library combobox can hide them. Pre-Wave-22 clones lack the stamp
   // and will still appear — call that out in PRs / release notes.
-  const excludedTemplateIds = React.useMemo(() => {
-    if (!projectHierarchy) return [] as string[];
-    const ids: string[] = [];
-    for (const t of projectHierarchy) {
-      const settings = (t as { settings?: unknown }).settings;
-      if (settings && typeof settings === 'object') {
-        const spawned = (settings as Record<string, unknown>).spawnedFromTemplate;
-        if (typeof spawned === 'string') ids.push(spawned);
-      }
-    }
-    return ids;
-  }, [projectHierarchy]);
+  const excludedTemplateIds = React.useMemo(
+    () => collectSpawnedTemplateIds(projectHierarchy),
+    [projectHierarchy],
+  );
 
   // --- Expanded Tasks (was useExpandedTasks) ---
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());

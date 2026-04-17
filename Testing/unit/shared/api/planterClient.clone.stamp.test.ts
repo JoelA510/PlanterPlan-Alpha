@@ -135,4 +135,44 @@ describe('Task.clone — spawnedFromTemplate stamping (Wave 22)', () => {
     expect(result.error).toBeNull();
     expect(mockFrom).not.toHaveBeenCalled();
   });
+
+  it('skips the stamp UPDATE when the cloned row cannot be fetched (null), preserving any RPC-populated settings', async () => {
+    // Guard against a transient Task.get → null from clobbering settings the
+    // RPC (or a future migration) might have populated on the clone.
+    const rpcResult = { new_root_id: 'cloned-root-uuid', tasks_cloned: 1 };
+    mockRpc.mockResolvedValueOnce({ data: rpcResult, error: null });
+
+    const nullGetChain = createChain({ data: null, error: null });
+    // Fallback Task.get after the skip — return null too, so clone falls back
+    // to returning the raw RPC result.
+    const fallbackGetChain = createChain({ data: null, error: null });
+    mockFrom
+      .mockReturnValueOnce(nullGetChain)
+      .mockReturnValueOnce(fallbackGetChain);
+
+    const result = await planter.entities.Task.clone('tmpl-xyz', null, 'instance', 'user-1');
+
+    expect(result.error).toBeNull();
+    // Critical: no update was issued — we never clobber settings on a null read.
+    expect(nullGetChain.update).not.toHaveBeenCalled();
+    expect(fallbackGetChain.update).not.toHaveBeenCalled();
+  });
+
+  it('returns a hydrated Task object (not the raw RPC result) after a successful stamp', async () => {
+    const rpcResult = { new_root_id: 'cloned-root-uuid', tasks_cloned: 1 };
+    mockRpc.mockResolvedValueOnce({ data: rpcResult, error: null });
+
+    const existingRow = makeTask({ id: 'cloned-root-uuid', settings: null });
+    const updatedRow = { ...existingRow, settings: { spawnedFromTemplate: 'tmpl-xyz' } };
+    const getChain = createChain({ data: existingRow, error: null });
+    const updateChain = createChain({ data: [updatedRow], error: null });
+    mockFrom.mockReturnValueOnce(getChain).mockReturnValueOnce(updateChain);
+
+    const result = await planter.entities.Task.clone('tmpl-xyz', null, 'instance', 'user-1');
+
+    expect(result.error).toBeNull();
+    // Not the RPC result — the returned data must be a Task (has `id`).
+    expect((result.data as { id?: string } | null)?.id).toBe('cloned-root-uuid');
+    expect((result.data as { new_root_id?: string } | null)?.new_root_id).toBeUndefined();
+  });
 });

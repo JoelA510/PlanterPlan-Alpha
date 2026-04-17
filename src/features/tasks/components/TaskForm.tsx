@@ -8,6 +8,7 @@ import TaskFormFields from '@/features/tasks/components/TaskFormFields';
 import RecurrencePicker from '@/features/tasks/components/RecurrencePicker';
 import { Button } from '@/shared/ui/button';
 import { isRecurrenceRule } from '@/shared/lib/recurrence';
+import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import type { TaskFormData, TaskRow } from '@/shared/db/app.types';
 
 const extractDateInput = (value?: string | null) => {
@@ -70,12 +71,6 @@ const extractRecurrence = (task?: Partial<TaskRow> | null) => {
  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return null;
  const rec = (settings as Record<string, unknown>).recurrence;
  return isRecurrenceRule(rec) ? rec : null;
-};
-
-const extractCoachingFlag = (task?: Partial<TaskRow> | null): boolean => {
- const settings = task?.settings;
- if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return false;
- return Boolean((settings as Record<string, unknown>).is_coaching_task);
 };
 
 const createInitialState = (task?: Partial<TaskRow> | null) => {

@@ -51,10 +51,9 @@ export const useMasterLibrarySearch = ({
  const queryFiltered = filtered.filter(
  (t) => t.title?.toLowerCase().includes(trimmed) || t.description?.toLowerCase().includes(trimmed)
  );
- // Keep `exclusionDrained` truthful even after a query further narrows the
- // list — if the pre-query list was already empty due to exclusion, the
- // empty-state copy should reflect that root cause.
- return { results: queryFiltered, exclusionDrained: drainedByExclusion && queryFiltered.length === 0 };
+ // `drainedByExclusion === true` already implies `filtered.length === 0`,
+ // and therefore `queryFiltered.length === 0`, so no extra clause needed.
+ return { results: queryFiltered, exclusionDrained: drainedByExclusion };
  }, [allTemplates, trimmed, phasesOnly, excludeTemplateIds]);
 
  return {

@@ -97,3 +97,27 @@ export function mergeChildrenIntoTree(nodes: TaskNode[], parentId: string, child
         return node;
     });
 }
+
+/**
+ * Walk a flat task list (typically a project hierarchy) and collect every
+ * `settings.spawnedFromTemplate` string that's present. Used by Master
+ * Library search callers to hide templates already cloned into the active
+ * project. Tolerates loose JSONB: non-object `settings`, missing keys, and
+ * non-string values are all skipped.
+ * @param tasks - Flat array of tasks (may be undefined/empty).
+ * @returns Array of template ids found on `settings.spawnedFromTemplate`.
+ */
+export function collectSpawnedTemplateIds(
+    tasks: ReadonlyArray<Record<string, unknown> | null | undefined> | null | undefined,
+): string[] {
+    if (!tasks || tasks.length === 0) return [];
+    const ids: string[] = [];
+    for (const t of tasks) {
+        if (!t) continue;
+        const settings = (t as { settings?: unknown }).settings;
+        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) continue;
+        const spawned = (settings as Record<string, unknown>).spawnedFromTemplate;
+        if (typeof spawned === 'string') ids.push(spawned);
+    }
+    return ids;
+}
