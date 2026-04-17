@@ -29,6 +29,6 @@ If these two fields get out of sync (e.g., `status` is set to `'completed'` but 
 
 ### `check_project_ownership` is a latent auth bug
 
-The `check_project_ownership(pid, uid)` function checks `tasks.creator = uid`, **not** the `owner` role in `project_members`. This means if someone creates a project and later gets removed as a member, they still pass this check. The `project_members` RLS policies that use this function could grant access to removed users.
+**Renamed + audited (Wave 23).** `public.check_project_creatorship(pid, uid)` now holds the original body; `public.check_project_ownership` is a thin SQL shim delegating to the new name so the four RLS policies on `public.project_members` continue evaluating byte-for-byte identically. Each callsite has an inline intent comment in `docs/db/schema.sql`, and `docs/architecture/auth-rbac.md` carries the full per-policy audit table. Migration: `docs/db/migrations/2026_04_17_rename_project_creatorship.sql`.
 
-Fix: rewrite `check_project_ownership` to check `project_members.role = 'owner'` instead of `tasks.creator`, or rename it to `check_project_creatorship` to avoid confusion and audit all call sites.
+**Behavior-change still deferred.** The leak (a removed creator still passing the check) is not closed yet — this wave was audit-only. A follow-up wave will rewrite each policy to either `check_project_creatorship` (bootstrap-only) or a genuine ownership helper that queries `project_members.role = 'owner'`, then drop the shim.

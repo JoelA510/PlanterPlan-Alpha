@@ -32,6 +32,33 @@ The Auth & RBAC system manages application-level authentication, user account li
 | **Invite / Manage Users** | Yes | No | No | No |
 | **Edit project settings** | Yes | No | No | No |
 
+### Creatorship vs. Ownership (Wave 23 audit)
+
+Historically `public.check_project_ownership(pid, uid)` has been used as the
+"is this user allowed to act on a project"-gate in RLS policies on
+`public.project_members`. The function actually checks `tasks.creator =
+uid` — i.e. whether the user was the original *creator* — **not** whether
+they currently hold the `owner` role in `project_members`. A user who
+creates a project and is later removed still passes the check.
+
+Wave 23 splits the two concepts at the name level only (no behavior
+change): a new `public.check_project_creatorship(pid, uid)` holds the
+original body; the legacy `check_project_ownership` becomes a thin SQL
+shim delegating to the new name so existing policies keep working
+unchanged. Each of the four callsites on `public.project_members` now
+carries an inline intent comment (see `docs/db/schema.sql`).
+
+| Policy | Op | Inferred intent | Follow-up action |
+| --- | --- | --- | --- |
+| `members_delete_policy` | DELETE | **Ownership** — creator branch is a convenient bypass, not documented intent. | Replace `check_project_ownership` with a genuine `role = 'owner'` helper. |
+| `members_insert_policy` | INSERT | **Creatorship (bootstrap)** — the project creator must self-insert as the initial `owner` row before any `owner`-role rows exist. | Migrate to `check_project_creatorship` directly. |
+| `members_select_policy` | SELECT | **Redundant** — `is_active_member` OR the `user_id` self-check already covers every legitimate read. The creatorship branch only fires for removed creators — the exact leak called out in dev-notes. | Delete the creatorship clause. |
+| `members_update_policy` | UPDATE | **Ownership** — same rationale as delete. | Replace with the real `role = 'owner'` helper. |
+
+The rewrite + shim removal belong to a follow-up wave once each row's
+intent is confirmed with the domain owner. The shim is scoped to one
+release of runway.
+
 ## Integration Points
 * **Supabase Client:** Handles session persistence and edge-function authentication tokens.
 * **Team Management:** Feeds contextual role data into the UI (e.g., `RoleIndicator.tsx`) to conditionally render administrative components.
