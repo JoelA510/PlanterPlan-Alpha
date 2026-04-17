@@ -1,6 +1,6 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.9.0 (Wave 22 — Supervisor Dispatch, Library Dedupe & Coaching Tags) 
+> **Version**: 1.9.1 (Wave 23 — Coach Auto-Assign, Creatorship Audit, Completion-Flag Trigger) 
 > **Last Updated**: 2026-04-17 
 > **Status**: Active Development
 
@@ -60,7 +60,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Task Creation/Deletion**: 
   - [x] Add Task / Subtask / Milestone.
   - [x] Delete Task (with cascading effect on existing due dates).
-- [/] **Specialized Task Types**: "Strategy Template" prompts user to add tasks from library on completion (deferred). **Coaching half shipped (Wave 22)**: task settings carry `is_coaching_task`, surfaced via an owner/editor-gated checkbox in TaskForm and a "Coaching" badge in TaskDetailsView. An additive RLS policy (`"Enable update for coaches on coaching tasks"`) grants project coaches UPDATE access on tagged rows only. Auto-assignment to the project Coach on creation stays deferred until the Strategy Template half lands.
+- [/] **Specialized Task Types**: "Strategy Template" prompts user to add tasks from library on completion (deferred). **Coaching half shipped (Wave 22 + 23)**: task settings carry `is_coaching_task`, surfaced via an owner/editor-gated checkbox in TaskForm and a "Coaching" badge in TaskDetailsView. An additive RLS policy (`"Enable update for coaches on coaching tasks"`) grants project coaches UPDATE access on tagged rows only. **Wave 23** adds the `set_coaching_assignee` BEFORE trigger that auto-assigns tagged tasks to the sole project coach when `assignee_id` is null; zero or multiple coaches → no-op.
 - [x] **Task Hierarchy & Visualization**:
   - [x] View project/template tasks in an expandable/collapsible hierarchy tree.
   - [x] Edit task, subtask, and milestone info.
@@ -152,5 +152,5 @@ For a deep dive into the system architecture and core business rules, please ref
 Items originally documented "for later" and items carved out of recent waves for scope control.
 
 - [ ] **Strategy Template task type** — the other half of §3.3 Specialized Task Types. When a task flagged as a Strategy Template is completed, prompt the user to add follow-up tasks from the Master Library. Wave 22 shipped the Coaching half only.
-- [ ] **Coach auto-assignment on coaching-task creation** — Wave 22 shipped tagging + RLS; auto-assigning the project Coach as `assignee_id` when a coaching task is created stays deferred.
+- [x] **Coach auto-assignment on coaching-task creation** — **Shipped Wave 23.** `set_coaching_assignee` BEFORE trigger on `public.tasks` auto-assigns a coaching task to the project's sole `coach`-role member when `assignee_id` is null. Zero or multiple coaches → no-op. User-supplied `assignee_id` is never overwritten.
 - [ ] **Topically related library suggestions** — the recommender half of the §3.5 "Library Integration" bullet. Wave 22 shipped the "hide already-present" half via `settings.spawnedFromTemplate`; surfacing *related* templates is deferred.

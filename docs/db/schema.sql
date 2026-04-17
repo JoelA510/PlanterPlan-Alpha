@@ -1109,6 +1109,60 @@ $$;
 ALTER FUNCTION "public"."rag_get_project_context"("p_project_id" "uuid", "p_limit" integer) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."set_coaching_assignee"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+    v_project_id uuid;
+    v_coach_count int;
+    v_coach_id uuid;
+    v_is_coaching boolean;
+    v_was_coaching boolean;
+BEGIN
+    -- Wave 23: auto-assign coaching tasks to the sole project coach.
+    -- See docs/db/migrations/2026_04_17_coaching_auto_assign.sql.
+    v_is_coaching := (NEW.settings ->> 'is_coaching_task')::boolean IS TRUE;
+
+    IF NOT v_is_coaching THEN
+        RETURN NEW;
+    END IF;
+
+    -- User intent wins: if the caller supplied an assignee, leave it alone.
+    IF NEW.assignee_id IS NOT NULL THEN
+        RETURN NEW;
+    END IF;
+
+    IF TG_OP = 'UPDATE' THEN
+        v_was_coaching := (OLD.settings ->> 'is_coaching_task')::boolean IS TRUE;
+        IF v_was_coaching AND OLD.assignee_id IS NOT NULL AND NEW.assignee_id IS NOT NULL THEN
+            RETURN NEW;
+        END IF;
+    END IF;
+
+    v_project_id := COALESCE(NEW.root_id, NEW.id);
+    IF v_project_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT COUNT(*), MIN(user_id)
+      INTO v_coach_count, v_coach_id
+      FROM public.project_members
+     WHERE project_id = v_project_id
+       AND role = 'coach';
+
+    IF v_coach_count = 1 THEN
+        NEW.assignee_id := v_coach_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_coaching_assignee"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."set_root_id_from_parent"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -1509,6 +1563,10 @@ CREATE INDEX "task_resources_type_idx" ON "public"."task_resources" USING "btree
 
 
 CREATE OR REPLACE TRIGGER "trg_people_updated_at" BEFORE UPDATE ON "public"."people" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_set_coaching_assignee" BEFORE INSERT OR UPDATE ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."set_coaching_assignee"();
 
 
 
