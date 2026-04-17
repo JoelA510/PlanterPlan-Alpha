@@ -1208,6 +1208,45 @@ $$;
 ALTER FUNCTION "public"."set_root_id_from_parent"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."sync_task_completion_flags"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    v_status_changed   boolean;
+    v_complete_changed boolean;
+BEGIN
+    -- Wave 23: keep is_complete and status = 'completed' in lockstep.
+    -- See docs/db/migrations/2026_04_17_sync_task_completion.sql.
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.status = 'completed' THEN
+            NEW.is_complete := true;
+        ELSE
+            NEW.is_complete := COALESCE(NEW.is_complete, false);
+        END IF;
+        RETURN NEW;
+    END IF;
+
+    v_status_changed   := NEW.status IS DISTINCT FROM OLD.status;
+    v_complete_changed := NEW.is_complete IS DISTINCT FROM OLD.is_complete;
+
+    IF v_status_changed AND v_complete_changed THEN
+        RETURN NEW;
+    END IF;
+
+    IF v_status_changed THEN
+        NEW.is_complete := (NEW.status = 'completed');
+    ELSIF v_complete_changed THEN
+        NEW.status := CASE WHEN NEW.is_complete THEN 'completed' ELSE 'todo' END;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."sync_task_completion_flags"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."trigger_set_updated_at"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
@@ -1596,6 +1635,10 @@ CREATE OR REPLACE TRIGGER "trg_set_coaching_assignee" BEFORE INSERT OR UPDATE ON
 
 
 CREATE OR REPLACE TRIGGER "trg_set_root_id_from_parent" BEFORE INSERT OR UPDATE OF "parent_task_id" ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."set_root_id_from_parent"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_sync_task_completion" BEFORE INSERT OR UPDATE ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."sync_task_completion_flags"();
 
 
 

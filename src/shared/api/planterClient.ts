@@ -494,6 +494,25 @@ export const planter: PlanterClient = {
                     return { data: null, error: error instanceof Error ? error : new PlanterError(String(error)) };
                 }
             },
+            /**
+             * Update a task's status and cascade completion state through the tree.
+             *
+             * **Server payload invariant (Wave 23):** this method writes only
+             * `status`; the `sync_task_completion_flags` BEFORE trigger on
+             * `public.tasks` derives `is_complete` from it at the DB layer. See
+             * `docs/db/migrations/2026_04_17_sync_task_completion.sql`. React
+             * Query callers that hold both fields in the client cache must
+             * still patch both locally (`useUpdateTask.onMutate`) — the UI
+             * reads both; only the *server* payload is trimmed here.
+             *
+             * Cascade semantics (unchanged — this method is the app-layer
+             * orchestrator for multi-row state that triggers cannot express):
+             *   - **Cascade DOWN**: a `completed` status propagates to every
+             *     descendant task.
+             *   - **Bubble UP**: `reconcileAncestors` walks parents/grandparents,
+             *     marking them `completed` when every child is complete, or
+             *     reverting to a derived non-completed status otherwise.
+             */
             updateStatus: async (taskId: string, status: string): Promise<{ data: Task | null, error: Error | null }> => {
                 // Inner helper: derive parent status from child statuses when parent is not fully complete.
                 const deriveParentStatus = (children: Task[]): string => {
@@ -505,6 +524,7 @@ export const planter: PlanterClient = {
 
                 // Inner helper: walk UP the tree reconciling ancestor completion/status whenever
                 // any child status changes (milestone-level automation — §3.3).
+                // Wave 23: parent patch writes only `status`; the DB trigger keeps `is_complete` in sync.
                 const reconcileAncestors = async (parentId: string, depth: number): Promise<void> => {
                     if (depth > 1) return; // guard: hierarchy is max 1 level of subtasks (§3.3)
                     try {
@@ -513,8 +533,8 @@ export const planter: PlanterClient = {
 
                         const allChildrenCompleted = children.every(child => child.status === 'completed');
                         const parentPatch: TaskUpdate = allChildrenCompleted
-                            ? { is_complete: true, status: 'completed', updated_at: nowUtcIso() }
-                            : { is_complete: false, status: deriveParentStatus(children), updated_at: nowUtcIso() };
+                            ? { status: 'completed', updated_at: nowUtcIso() }
+                            : { status: deriveParentStatus(children), updated_at: nowUtcIso() };
 
                         const parent = await planter.entities.Task.update(parentId, parentPatch);
                         if (parent?.parent_task_id) {
@@ -528,7 +548,6 @@ export const planter: PlanterClient = {
                 try {
                     const data = await planter.entities.Task.update(taskId, {
                         status,
-                        is_complete: status === 'completed',
                     } as TaskUpdate);
 
                     if (status === 'completed') {

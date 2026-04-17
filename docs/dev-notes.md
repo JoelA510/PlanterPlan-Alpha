@@ -20,12 +20,9 @@ Project  → parent_task_id = null, root_id = id
 
 ### Dual completion signals
 
-`is_complete` (boolean) and `status = 'completed'` (text) represent the same concept but are consumed by different triggers:
+**Resolved (Wave 23).** `sync_task_completion_flags` BEFORE INSERT/UPDATE trigger on `public.tasks` now guarantees `is_complete === (status === 'completed')` at the DB layer. `check_phase_unlock()` (reads `is_complete`) and `handle_phase_completion()` (reads `status`) both see the synced row since the BEFORE trigger fires first. The app-layer mirror in `planterClient.updateStatus` is simplified: only `status` is sent on every server payload; the trigger derives `is_complete`. Migration: `docs/db/migrations/2026_04_17_sync_task_completion.sql`. Architecture note: `docs/architecture/tasks-subtasks.md` — Auto-Completion Automation.
 
-- `check_phase_unlock()` listens for `is_complete = true` — unlocks dependent phases via `prerequisite_phase_id`
-- `handle_phase_completion()` listens for `status = 'completed'` — unlocks the next sibling by `position`
-
-If these two fields get out of sync (e.g., `status` is set to `'completed'` but `is_complete` stays `false`), only one trigger fires. This should be unified — either derive one from the other via trigger, or drop `is_complete` entirely and have `check_phase_unlock` read `status` instead.
+_Historical:_ `is_complete` (boolean) and `status = 'completed'` (text) represented the same concept but were consumed by different triggers. If they drifted — e.g., raw SQL updated only one side — only one trigger fired and phase unlocking silently broke. The fix is belt-and-suspenders: the app layer no longer deliberately writes both; the DB trigger enforces the invariant regardless.
 
 ### `check_project_ownership` is a latent auth bug
 

@@ -16,6 +16,7 @@ Transitions strictly through: `To Do` -> `In Progress` -> `Complete` -> `Blocked
 ### Auto-Completion Automation
 * Toggling a parent to `Complete` forces a confirmation prompt if dependent sub-items exist. Confirmation cascades `Complete` status to all children.
 * Any status toggle instantly recalculates parent Milestone/Project completion percentages.
+* **Completion-flag invariant (Wave 23):** `is_complete === (status === 'completed')` is enforced at the DB layer by the `sync_task_completion_flags` BEFORE INSERT/UPDATE trigger on `public.tasks` (migration: `docs/db/migrations/2026_04_17_sync_task_completion.sql`). The app-layer cascade/bubble-up logic in `planterClient.updateStatus` still owns multi-row orchestration — it now writes **only** `status` on every server payload and relies on the trigger to derive `is_complete`. Raw SQL writes that touch only one side are automatically reconciled: `UPDATE tasks SET status = 'completed'` flips `is_complete` to `true`, and vice versa. Writes that change both sides in the same statement are trusted verbatim. Cross-ref: `docs/dev-notes.md` "Dual completion signals" (resolved Wave 23).
 
 ## Business Rules & Constraints
 * **Max Subtask Depth:** Subtasks *cannot* have child tasks (Maximum depth = 1).
