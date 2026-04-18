@@ -105,6 +105,22 @@ overwrites a non-null `assignee_id` the caller supplied. The UI picks up
 the server-assigned coach via the standard `useUpdateTask` / `useCreateTask`
 `onSettled` invalidation of `['projectHierarchy', rootId]`.
 
+**Backfill on membership change (Wave 24):**
+`docs/db/migrations/2026_04_18_coaching_backfill_on_membership.sql` adds
+a symmetric `AFTER INSERT OR UPDATE OR DELETE ON public.project_members`
+trigger (`trg_backfill_coaching_assignees` → `backfill_coaching_assignees()`).
+Wave 23's trigger fires only on task writes, so coaching tasks that were
+created while the project had zero or multiple coaches retained
+`assignee_id = NULL` forever. This wave closes that gap: when a
+membership change causes the project to have **exactly one** coach, the
+trigger runs `UPDATE public.tasks SET assignee_id = <sole coach>` over
+every instance task on that project where `settings.is_coaching_task = true`
+AND `assignee_id IS NULL`. **Never un-assigns:** transitioning from
+1 → 0 coaches leaves existing assignments intact. **User intent still
+wins:** the `assignee_id IS NULL` filter skips any task that already has
+a caller-supplied assignee. Scoped via `root_id = <project_id>` so
+unrelated projects are never touched.
+
 ## Strategy Templates (Wave 24)
 
 Any **instance task** (`origin = 'instance'`) may be tagged as a *strategy

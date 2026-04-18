@@ -1136,6 +1136,62 @@ $$;
 ALTER FUNCTION "public"."rag_get_project_context"("p_project_id" "uuid", "p_limit" integer) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."backfill_coaching_assignees"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+    v_project_id uuid;
+    v_coach_count int;
+    v_coach_id uuid;
+    v_relevant boolean;
+BEGIN
+    -- Wave 24: backfill `assignee_id` on coaching tasks when the project's
+    -- coach membership transitions to exactly one coach. Complements
+    -- `set_coaching_assignee` (the tasks-side trigger from Wave 23).
+    -- See docs/db/migrations/2026_04_18_coaching_backfill_on_membership.sql.
+    IF TG_OP = 'DELETE' THEN
+        v_project_id := OLD.project_id;
+        v_relevant := (OLD.role = 'coach');
+    ELSIF TG_OP = 'INSERT' THEN
+        v_project_id := NEW.project_id;
+        v_relevant := (NEW.role = 'coach');
+    ELSE
+        v_project_id := NEW.project_id;
+        v_relevant := (OLD.role IS DISTINCT FROM NEW.role)
+                   AND ((OLD.role = 'coach') OR (NEW.role = 'coach'));
+        IF OLD.project_id IS DISTINCT FROM NEW.project_id THEN
+            v_relevant := TRUE;
+        END IF;
+    END IF;
+
+    IF NOT v_relevant OR v_project_id IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    SELECT COUNT(*), MIN(user_id)
+      INTO v_coach_count, v_coach_id
+      FROM public.project_members
+     WHERE project_id = v_project_id
+       AND role = 'coach';
+
+    IF v_coach_count = 1 THEN
+        UPDATE public.tasks
+           SET assignee_id = v_coach_id
+         WHERE root_id = v_project_id
+           AND origin = 'instance'
+           AND assignee_id IS NULL
+           AND (settings ->> 'is_coaching_task')::boolean IS TRUE;
+    END IF;
+
+    RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."backfill_coaching_assignees"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."set_coaching_assignee"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -1633,6 +1689,10 @@ CREATE INDEX "task_resources_type_idx" ON "public"."task_resources" USING "btree
 
 
 CREATE OR REPLACE TRIGGER "trg_people_updated_at" BEFORE UPDATE ON "public"."people" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_backfill_coaching_assignees" AFTER INSERT OR UPDATE OR DELETE ON "public"."project_members" FOR EACH ROW EXECUTE FUNCTION "public"."backfill_coaching_assignees"();
 
 
 
