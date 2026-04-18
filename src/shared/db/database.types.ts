@@ -443,6 +443,7 @@ export type Database = {
  start_date: string | null
  status: string | null
  supervisor_email: string | null
+ task_type: string | null
  title: string
  updated_at: string | null
  }
@@ -474,6 +475,7 @@ export type Database = {
  start_date?: string | null
  status?: string | null
  supervisor_email?: string | null
+ task_type?: string | null
  title: string
  updated_at?: string | null
  }
@@ -505,6 +507,7 @@ export type Database = {
  start_date?: string | null
  status?: string | null
  supervisor_email?: string | null
+ task_type?: string | null
  title?: string
  updated_at?: string | null
  }
@@ -639,6 +642,7 @@ export type Database = {
  status: string | null
  storage_path: string | null
  supervisor_email: string | null
+ task_type: string | null
  title: string | null
  updated_at: string | null
  }
@@ -676,6 +680,7 @@ export type Database = {
  status?: string | null
  storage_path?: never
  supervisor_email?: string | null
+ task_type?: string | null
  title?: string | null
  updated_at?: string | null
  }
@@ -713,6 +718,7 @@ export type Database = {
  status?: string | null
  storage_path?: never
  supervisor_email?: string | null
+ task_type?: string | null
  title?: string | null
  updated_at?: string | null
  }
@@ -945,6 +951,10 @@ export type Database = {
  check_project_ownership_by_role: {
  Args: { p_id: string; u_id: string }
  Returns: boolean
+ }
+ derive_task_type: {
+ Args: { p_parent_task_id: string | null }
+ Returns: string
  }
  clone_project_template:
  | {

@@ -8,6 +8,7 @@ This domain governs the atomic execution units within a Project. It provides the
   * **Fields:** `Title`, `Description`, `Purpose`, `Actions`, `Additional Resources`, `Start Date`, `End Date`, `Notes`, `Assignee`, `Status`.
 * **Subtask:** A child node of a Task.
 * **Dependency:** A horizontal link between tasks dictating order of execution.
+* **`task_type` discriminator (Wave 25):** a `text` column on `public.tasks` kept in lockstep with the row's depth in the `parent_task_id` tree. Possible values: `'project' | 'phase' | 'milestone' | 'task' | 'subtask'` (the last is reserved; `derive_task_type` returns `'task'` for depth ≥ 3 today, matching the app-level max-subtask-depth-1 invariant). Writers do not set the column manually — the `trg_set_task_type` BEFORE INSERT OR UPDATE OF `parent_task_id` trigger calls `public.derive_task_type(parent_task_id)` and assigns the result. Consumers can use the column to skip recursive tree walks ("all phases", "all milestones", "all leaves"). Migration: `docs/db/migrations/2026_04_18_task_type_discriminator.sql`.
 
 ## State Machines / Lifecycles
 ### Task Completion Lifecycle

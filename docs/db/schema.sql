@@ -634,6 +634,45 @@ $$;
 ALTER FUNCTION "public"."debug_create_project"("p_title" "text", "p_creator_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") RETURNS "text"
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+    v_parent uuid := p_parent_task_id;
+    v_grandparent uuid;
+    v_great_grandparent uuid;
+BEGIN
+    -- Wave 25: classify a task by its depth in the parent_task_id tree.
+    -- See docs/db/migrations/2026_04_18_task_type_discriminator.sql.
+    IF v_parent IS NULL THEN
+        RETURN 'project';
+    END IF;
+
+    SELECT parent_task_id INTO v_grandparent
+      FROM public.tasks
+     WHERE id = v_parent;
+
+    IF v_grandparent IS NULL THEN
+        RETURN 'phase';
+    END IF;
+
+    SELECT parent_task_id INTO v_great_grandparent
+      FROM public.tasks
+     WHERE id = v_grandparent;
+
+    IF v_great_grandparent IS NULL THEN
+        RETURN 'milestone';
+    END IF;
+
+    RETURN 'task';
+END;
+$$;
+
+
+ALTER FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_invite_details"("p_token" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -1276,6 +1315,22 @@ $$;
 ALTER FUNCTION "public"."set_root_id_from_parent"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."set_task_type"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+    -- Wave 25: keep NEW.task_type in lockstep with the row's depth in the
+    -- parent_task_id tree. See docs/db/migrations/2026_04_18_task_type_discriminator.sql.
+    NEW.task_type := public.derive_task_type(NEW.parent_task_id);
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_task_type"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."sync_task_completion_flags"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -1463,8 +1518,10 @@ CREATE TABLE IF NOT EXISTS "public"."tasks" (
     "priority" "text" DEFAULT 'medium'::"text",
     "settings" "jsonb" DEFAULT '{}'::"jsonb",
     "supervisor_email" "text",
+    "task_type" "text",
     CONSTRAINT "tasks_project_type_check" CHECK (("project_type" = ANY (ARRAY['primary'::"text", 'secondary'::"text"]))),
-    CONSTRAINT "tasks_root_id_required_for_children" CHECK ((("parent_task_id" IS NULL) OR ("root_id" IS NOT NULL)))
+    CONSTRAINT "tasks_root_id_required_for_children" CHECK ((("parent_task_id" IS NULL) OR ("root_id" IS NOT NULL))),
+    CONSTRAINT "tasks_task_type_check" CHECK ((("task_type" IS NULL) OR ("task_type" = ANY (ARRAY['project'::"text", 'phase'::"text", 'milestone'::"text", 'task'::"text", 'subtask'::"text"]))))
 );
 
 
@@ -1664,6 +1721,10 @@ CREATE INDEX "idx_tasks_root_id" ON "public"."tasks" USING "btree" ("root_id");
 
 
 
+CREATE INDEX "idx_tasks_task_type" ON "public"."tasks" USING "btree" ("task_type");
+
+
+
 CREATE INDEX "rag_chunks_fts_idx" ON "public"."rag_chunks" USING "gin" ("fts");
 
 
@@ -1701,6 +1762,10 @@ CREATE OR REPLACE TRIGGER "trg_set_coaching_assignee" BEFORE INSERT OR UPDATE ON
 
 
 CREATE OR REPLACE TRIGGER "trg_set_root_id_from_parent" BEFORE INSERT OR UPDATE OF "parent_task_id" ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."set_root_id_from_parent"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_set_task_type" BEFORE INSERT OR UPDATE OF "parent_task_id" ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."set_task_type"();
 
 
 
@@ -2158,6 +2223,8 @@ REVOKE ALL ON FUNCTION "public"."check_project_creatorship"("p_id" "uuid", "u_id
 GRANT ALL ON FUNCTION "public"."check_project_creatorship"("p_id" "uuid", "u_id" "uuid") TO "authenticated";
 REVOKE ALL ON FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") TO "authenticated";
 
 
 

@@ -6,11 +6,12 @@ Technical debt and architectural notes for the team.
 
 ### No type discriminator on `tasks`
 
-The `tasks` table stores Projects, Phases, Milestones, and Tasks in a single table. There's no column to distinguish between them — the only way to know what "level" a row is at is to walk the tree via `parent_task_id`.
+**Resolved (Wave 25).** `public.tasks` now carries a `task_type text` column with a CHECK constraint (`'project' | 'phase' | 'milestone' | 'task' | 'subtask'`) and a supporting btree index. `public.derive_task_type(parent_task_id uuid)` returns the correct value by walking up to three levels of the parent chain. The `trg_set_task_type` BEFORE INSERT OR UPDATE OF `parent_task_id` trigger keeps `NEW.task_type` in lockstep so writers never have to set the column manually. Existing rows were backfilled by the migration. `'subtask'` stays reserved in the CHECK constraint for future use but isn't emitted today (the max-depth-1 subtask invariant lives in app code). Migration: `docs/db/migrations/2026_04_18_task_type_discriminator.sql`.
 
-This means queries like "give me all phases" or "give me all leaf tasks" require recursive lookups. A `depth` or `task_type` column would make these queries trivial and improve performance.
+No existing query has been rewritten to consume `task_type` yet — this wave is additive only. Future perf passes can drop recursive tree walks in favour of `WHERE task_type = ...` as needed.
 
-Current hierarchy (determined only by tree depth):
+_Historical:_ the `tasks` table stored Projects, Phases, Milestones, and Tasks in a single table with no discriminator column. Queries like "all phases" or "all leaf tasks" required recursive `parent_task_id` walks.
+
 ```
 Project  → parent_task_id = null, root_id = id
   Phase  → parent_task_id = project_id
