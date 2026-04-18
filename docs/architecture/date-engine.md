@@ -14,7 +14,7 @@ Calculated dynamically based on system time vs. Task End Dates:
 1. **Not Yet Due:** Current date is prior to the active horizon.
 2. **Current:** Task is within the active window.
 3. **Due Soon:** Task End Date falls within the project's configured `Due soon time horizon`.
-4. **Overdue:** Current date has passed the End Date, and the task is not marked complete by either signal (`is_complete === true` **or** `status === 'completed'`).
+4. **Overdue:** Current date has passed the End Date, and the task is not marked complete (`status !== 'completed'`). *Wave 23 note:* `is_complete` and `status === 'completed'` are kept in lockstep by the `sync_task_completion_flags` DB trigger (see `tasks-subtasks.md`), so either field can be used safely — `status` is the canonical check.
 
 ## Business Rules & Constraints
 * **Cascading Logic:** Phase and Milestone due dates are dynamically calculated based on the furthest due dates of their underlying child tasks.

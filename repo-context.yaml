@@ -1,7 +1,7 @@
 # repo-context.yaml
 # PlanterPlan Task Management System
 # Generated from codebase analysis
-# Last Updated: 2026-04-17 (Wave 22 — Supervisor Dispatch, Library Dedupe & Coaching Tags)
+# Last Updated: 2026-04-17 (Wave 23 — Coach Auto-Assign, Creatorship Audit, Completion-Flag Trigger)
 # Specification: spec.md
 # Definitive Architecture: docs/architecture/*.md (SINGLE SOURCE OF TRUTH)
 
@@ -83,6 +83,7 @@ modules:
       - "Role-based permission checking (Owner, Editor, Coach, Viewer, Limited)"
       - "Timeout-guarded admin checks"
       - "Wave 22: coach role edits gated to tasks with settings.is_coaching_task = true (RLS policy Enable update for coaches on coaching tasks)"
+      - "Wave 23: coaching tasks auto-assigned to the project's sole coach via set_coaching_assignee BEFORE trigger (no-op when zero/multiple coaches or when assignee_id is already set)"
     dependencies:
       strong: [supabaseClient, planterClient]
     exports:
@@ -279,9 +280,13 @@ health_metrics:
       - "date-engine consolidation (no raw Date math)"
 
   wave_status:
-    current: "Wave 22 (Supervisor Dispatch, Library Dedupe & Coaching Tags)"
-    last_completed: "Wave 22"
-    spec_version: "1.9.0"
+    current: "Wave 23 (Coach Auto-Assign, Creatorship Audit, Completion-Flag Trigger)"
+    last_completed: "Wave 23"
+    spec_version: "1.9.1"
+    wave_23_highlights:
+      - "Coaching task auto-assignment: BEFORE INSERT/UPDATE trigger set_coaching_assignee on public.tasks auto-sets assignee_id to the project's sole coach when settings.is_coaching_task = true; parent_task_id lookup handles subtask INSERTs where root_id isn't populated yet; zero/multiple coaches or a caller-supplied assignee → no-op"
+      - "check_project_ownership rename + audit: new check_project_creatorship(pid, uid) STABLE function holds the correctly-named body; check_project_ownership is a SQL shim delegating to it (audit-only, zero behavior change). Per-policy intent audit on the four project_members RLS policies lives in docs/architecture/auth-rbac.md — shopping list for a follow-up wave's rewrite"
+      - "Completion-flag invariant: sync_task_completion_flags BEFORE INSERT/UPDATE trigger on public.tasks unconditionally enforces is_complete === (status === 'completed'). status is the source of truth; inconsistent dual-field writes are reconciled (no trust-caller escape hatch). Task.updateStatus + reconcileAncestors in planterClient now send only status on every server payload; the trigger derives is_complete"
     wave_22_highlights:
       - "supervisor-report Edge Function dispatches via Resend (EMAIL_PROVIDER_API_KEY + RESEND_FROM_ADDRESS); degrades to log-only when either env var is missing or {dry_run:true}"
       - "Task.clone stamps settings.spawnedFromTemplate on the cloned root; Master Library combobox hides already-cloned templates via useMasterLibrarySearch.excludeTemplateIds"

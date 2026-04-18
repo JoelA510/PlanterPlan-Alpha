@@ -149,8 +149,11 @@ Most tables follow the same pattern:
 
 ### Known Issues
 
-- **Dual completion signals**: `is_complete` (boolean) and `status = 'completed'` (text) are used by different triggers. If they get out of sync, phase unlocking breaks.
-- **`check_project_ownership` is misleading**: checks `creator` field, not the `owner` role in `project_members`.
+- **`check_project_ownership` checks creatorship, not ownership**: the function checks `tasks.creator`, not the `owner` role in `project_members`. **Renamed + audited (Wave 23):** `check_project_creatorship(pid, uid)` now holds the correctly-named implementation; `check_project_ownership` is a shim delegating to it so the four RLS policies on `project_members` continue evaluating identically. Per-policy intent audit lives in `docs/architecture/auth-rbac.md`; the policy rewrite is deferred to a follow-up wave.
+
+### Resolved
+
+- **Dual completion signals** *(resolved Wave 23)*: `is_complete` and `status = 'completed'` are now kept in lockstep by the `sync_task_completion_flags` BEFORE INSERT/UPDATE trigger on `public.tasks`. `status` is the source of truth; inconsistent dual-field writes are reconciled unconditionally. See `docs/architecture/tasks-subtasks.md` and migration `docs/db/migrations/2026_04_17_sync_task_completion.sql`.
 
 ## Critical Files
 
