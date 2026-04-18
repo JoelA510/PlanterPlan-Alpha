@@ -1,0 +1,64 @@
+# Normalize all text files to LF in the repository and the working tree.
+# Repo is built/linted on Linux CI and edited on Windows + macOS;
+# forcing LF everywhere avoids CRLF churn in `git status`.
+* text=auto eol=lf
+
+# --- Source ---
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.cjs       text eol=lf
+*.mjs       text eol=lf
+*.json      text eol=lf
+*.jsonc     text eol=lf
+*.md        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.toml      text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.scss      text eol=lf
+*.svg       text eol=lf
+*.sql       text eol=lf
+*.feature   text eol=lf
+*.code-workspace text eol=lf
+
+# --- Shell scripts must be LF for bash on Linux/CI ---
+*.sh        text eol=lf
+*.bash      text eol=lf
+
+# --- Windows-only scripts keep CRLF ---
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# --- Binary assets (never touch) ---
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.ico       binary
+*.icns      binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.eot       binary
+*.otf       binary
+*.pdf       binary
+*.zip       binary
+*.gz        binary
+*.tar       binary
+*.7z        binary
+*.docx      binary
+*.xlsx      binary
+*.pptx      binary
+*.mp3       binary
+*.mp4       binary
+*.mov       binary
+*.wav       binary
+
+# --- Generated / coverage output: don't diff churn ---
+coverage/**     -text -diff
+package-lock.json -diff

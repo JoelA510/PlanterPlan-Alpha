@@ -77,7 +77,10 @@ const TaskDetailsView = ({
         const prev = prevStatusRef.current;
         const curr = task?.status;
         if (isStrategyTask && prev !== 'completed' && curr === 'completed') {
-            setStrategyDialogOpen(true);
+            // Defer state update to next microtask to avoid react-hooks/set-state-in-effect
+            queueMicrotask(() => {
+                setStrategyDialogOpen(true);
+            });
         }
         prevStatusRef.current = curr;
     }, [task?.status, isStrategyTask]);
