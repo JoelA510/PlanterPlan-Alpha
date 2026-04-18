@@ -3,17 +3,37 @@
 PlanterPlan is a church planting project management app (React 19 + TypeScript + Supabase + Vite). Read `CLAUDE.md` for conventions and architecture. Strict typing, Feature-Sliced Design (FSD) boundaries, no direct Supabase calls in components, no raw date math — all enforced. See `.gemini/styleguide.md` for the full bar.
 
 Wave 37 shipped to `main`:
-- Date engine: opt-in weekend + holiday skipping with per-org holiday calendars
-- Invite escrow: pending-invites table + auto-claim trigger on signup
+- Date engine: opt-in weekend + holiday skipping with per-org `holiday_calendars` table
+- Invite escrow: extended existing `project_invites` table with `claimed_at`/`claimed_by`; auto-claim trigger on signup; 90-day default expiry for new invites
 - Template versioning: per-template `template_version` + per-instance `cloned_from_template_version` stamps
 - Template immutability: `cloned_from_task_id` + UI delete-guard for non-owners
-- Task-tree virtualization: react-virtuoso for projects with >500 tasks
+- Task-tree virtualization: `react-virtuoso` for projects with >500 tasks
 
 Spec is at **1.22.0**. Every functional roadmap item is `[x]`. Every architecture-doc known-gap is closed. The wave-by-wave feature delivery loop is **complete**.
 
-Wave 38 is the **final QA + release readiness pass** for the **1.0.0 cutover**. No new features. Five workstreams converge into one wave because each individually wouldn't justify its own — but they together represent the difference between "app works" and "app ships."
+Wave 38 is the **final QA + release readiness pass** for the **1.0.0 cutover**. No new features. Five workstreams converge into one wave.
 
-**Gate baseline going into Wave 38:** confirm the current `main` baseline. Run `npm run lint`, `npm run build`, `npx vitest run`, `npm run test:e2e`. Snapshot every metric: lint warning count, bundle size by chunk, test count, E2E pass rate, Lighthouse scores (PWA, Performance, Accessibility, SEO, Best Practices), and Supabase RLS smoke status. The wave's verification gate compares against this snapshot — anything that regresses must be fixed before the 1.0.0 cutover.
+**Test baseline going into Wave 38:** Wave 37 shipped at ≥800 tests (unit) and an unmeasured E2E baseline (the existing Playwright BDD suite — record the count). Lint baseline: 0 errors, ≤7 warnings — do not regress.
+
+## Pre-flight verification (run before any task)
+
+1. `git log --oneline` includes the 5 Wave 37 commits + docs sweep.
+2. **Snapshot every metric** at the start of Wave 38, write into a `docs/operations/release-metrics-baseline.md` working file:
+   - Lint warning count (`npm run lint 2>&1 | tail -5`)
+   - Test count (`npm test 2>&1 | tail -5`)
+   - Bundle size by chunk (`npm run build` output)
+   - E2E pass rate (`npm run test:e2e`)
+   - Existing Lighthouse scores (run before any change to know the floor)
+   - Supabase RLS smoke status (`bash docs/db/tests/run_all_rls_smokes.sh` if Task 3's runner already exists; otherwise note "TBD until Task 3")
+3. These files exist:
+   - `package.json` (version target: bump from current to `1.0.0` in Task 5)
+   - `Testing/e2e/` directory with existing Playwright BDD scenarios
+   - `Testing/test-utils/` directory
+   - `vite.config.ts`
+   - `eslint.config.js`
+   - `README.md`
+4. Existing test scripts in `package.json`: `test` (vitest --run), `test:e2e` (bddgen + playwright), `test:e2e:mobile`, `test:e2e:headed`, `test:e2e:vision`, `test:e2e:a11y` (the last is already wired to a `--project=accessibility` Playwright project — Task 2 builds on it).
+5. **No `LICENSE` file at repo root yet** — Task 5 adds MIT (confirm with user before committing if any license question).
 
 ## Branch
 
@@ -215,7 +235,7 @@ This task **lands last**. Only after Tasks 1-4 merge and the verification gate i
    npm install                    # clean install
    npm run lint                   # 0 errors, ≤7 warnings
    npm run build                  # clean
-   npx vitest run                 # all passing
+   npm test                       # all passing
    npm run test:e2e               # ≥150 scenarios passing
    npx lighthouse --view          # all budgets met
    bash docs/db/tests/run_all_rls_smokes.sh  # all green
@@ -263,7 +283,7 @@ Treat this as the strictest pass of all the prior wave reviews. The 1.0.0 cutove
 ## Commit & Push to Main (final)
 
 After all five Tasks merge:
-1. `git checkout main && git pull && npm install && npm run lint && npm run build && npx vitest run && npm run test:e2e`.
+1. `git checkout main && git pull && npm install && npm run lint && npm run build && npm test && npm run test:e2e`.
 2. The history should show: 5 task commits + 1 docs sweep commit (or rolled into Task 5) on top of Wave 37.
 3. Push to `origin/main`. CI green.
 4. **Tag v1.0.0** per Task 5 step 7.
@@ -275,7 +295,7 @@ Standard:
 ```bash
 npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
 npm run build     # clean (tsc -b && vite build)
-npx vitest run    # baseline + new tests
+npm test          # baseline + new tests
 git status        # clean
 ```
 

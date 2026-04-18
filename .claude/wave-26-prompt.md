@@ -7,11 +7,39 @@ Wave 25 shipped to `main`:
 - `b770209 feat(wave-25): add task_type discriminator column + BEFORE trigger + backfill`
 - `4f48b53 feat(wave-25): ProjectSwitcher reveals completed projects behind a toggle`
 
-Spec is at **1.10.1**. §6 Backlog is **empty** — every Wave 22/23/24 carve-out has shipped, the `task_type` discriminator dev-note is closed, and the §3.5 Library Integration loop (hide-already-present + topically-related) is fully wired.
+Spec is at **1.10.1**. §6 Backlog is empty (every Wave 22/23/24 carve-out shipped, the `task_type` discriminator dev-note is closed, and the §3.5 Library Integration loop is fully wired).
 
-The big remaining roadmap surfaces sit in §3.3 Collaboration Suite, §3.6 Gantt Chart, §3.7 platform features, §3.8 mobile infra, and §3.1 localization. Wave 26 opens the Collaboration Suite by shipping its **first** column: threaded task comments. Activity log + realtime presence land in Wave 27 on top of this foundation.
+Wave 26 opens the §3.3 Collaboration Suite by shipping its **first** column: threaded task comments. Activity log + realtime presence land in Wave 27 on top of this foundation.
 
-**Gate baseline going into Wave 26:** confirm the current `main` baseline before you start. Run `npm run lint` (expect 0 errors, 7 pre-existing warnings — do not regress), `npm run build` (expect clean), `npx vitest run` (record the file/test count — Wave 25 left ≥547 passing across ≥47 files; the actual baseline at the start of Wave 26 is whatever HEAD on `main` is producing). Write the observed numbers into the wave's PR description as the "starting baseline" so the verification gate at the end has a reference to compare against.
+**Test baseline going into Wave 26:** Wave 25 shipped at ≥547 tests across ≥47 files. **At the start of this wave, run `npm test` (which runs `vitest --run`) and record the actual count as the starting baseline. Use that number for the verification gate at the end.** Lint baseline: 0 errors, 7 pre-existing warnings — do not regress.
+
+## Pre-flight verification (run before any task)
+
+Sonnet-friendly drift check. Verify these facts hold on `main` before touching anything. If any fact is wrong, STOP and report — the wave plan was written against a snapshot and assumes them.
+
+1. `git log --oneline -5` first commit reads `4f48b53 feat(wave-25): ProjectSwitcher reveals completed projects behind a toggle`.
+2. These files exist:
+   - `src/features/tasks/components/TaskDetailsView.tsx`
+   - `src/features/tasks/components/TaskList.tsx`
+   - `src/features/tasks/hooks/useTaskSiblings.ts`
+   - `src/features/tasks/hooks/useTaskMutations.ts`
+   - `src/shared/api/planterClient.ts`
+   - `src/shared/contexts/AuthContext.tsx`
+   - `src/shared/db/app.types.ts`
+   - `src/shared/db/database.types.ts`
+   - `src/pages/Project.tsx`
+   - `src/shared/ui/avatar.tsx`
+   - `src/shared/ui/button.tsx`
+   - `src/shared/ui/textarea.tsx`
+   - `src/shared/ui/dialog.tsx`
+   - `docs/db/schema.sql`
+   - `docs/architecture/tasks-subtasks.md`
+   - `docs/architecture/auth-rbac.md`
+3. `src/shared/api/planterClient.ts` exposes `entities.Task.listSiblings(taskId)` (Wave 21.5 precedent for `entities.TaskComment`).
+4. `src/shared/contexts/AuthContext.tsx` exposes `user`, `loading`, `signUp`, `signIn`, `signOut`, `updateMe`, `savedEmailAddresses`, `rememberEmailAddress`.
+5. `src/shared/db/database.types.ts` lists tables `admin_users, people, project_invites, project_members, rag_chunks, task_relationships, task_resources, tasks` under `Database['public']['Tables']`. (Note: there are **8** existing tables; Wave 26 adds a 9th.)
+6. `docs/db/schema.sql` already has `is_active_member`, `is_admin`, `check_project_ownership_by_role`, and `handle_updated_at` defined — the new policies and triggers below reuse them.
+7. Routes live in `src/app/App.tsx` (NOT `src/app/router.tsx`). Provider wrapping order: `QueryClientProvider` → `AuthProvider` → `BrowserRouter` → `Toaster`.
 
 ## Branch
 
@@ -20,11 +48,11 @@ One branch per task, cut from `main`:
 - Task 2 → `claude/wave-26-comments-ui`
 - Task 3 → `claude/wave-26-comments-realtime`
 
-Open a PR to `main` after each task's verification gate passes. Do **not** push directly to `main` unless the user explicitly says to.
+Open a PR to `main` after each task's verification gate passes. Do **not** push directly to `main`.
 
 ## Wave 26 scope
 
-Three tightly scoped tasks delivering the threaded-comments half of the §3.3 Collaboration Suite. The activity-log and realtime-presence halves are reserved for Wave 27 — explicitly out of scope here.
+Three tightly scoped tasks delivering the threaded-comments half of the §3.3 Collaboration Suite. Activity log + realtime presence are explicitly out of scope (Wave 27).
 
 ---
 
@@ -32,39 +60,248 @@ Three tightly scoped tasks delivering the threaded-comments half of the §3.3 Co
 
 **Commit:** `feat(wave-26): task_comments table + threading + RLS`
 
-Lay down the data model with first-class threading and additive RLS that mirrors the per-project access pattern already used by `tasks` and `task_resources`.
+**Migration file**: `docs/db/migrations/2026_04_18_task_comments.sql` (NEW)
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_task_comments.sql`, NEW)
-   - `CREATE TABLE public.task_comments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), task_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE, root_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE, parent_comment_id uuid REFERENCES public.task_comments(id) ON DELETE CASCADE, author_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT, body text NOT NULL CHECK (length(trim(body)) BETWEEN 1 AND 10000), mentions uuid[] NOT NULL DEFAULT ARRAY[]::uuid[], created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), edited_at timestamptz, deleted_at timestamptz)`.
-   - Indexes: `idx_task_comments_task_id` on `(task_id, created_at DESC)`, `idx_task_comments_root_id` on `(root_id, created_at DESC)`, `idx_task_comments_parent_comment_id` on `(parent_comment_id)` WHERE `parent_comment_id IS NOT NULL`.
-   - Trigger `trg_task_comments_set_root_id BEFORE INSERT ON public.task_comments FOR EACH ROW EXECUTE FUNCTION public.set_task_comments_root_id()` — function looks up `tasks.root_id` (or falls back to `tasks.id` when `root_id IS NULL`) for `NEW.task_id` and assigns to `NEW.root_id`. Mirrors the `set_root_id_from_parent()` pattern on `tasks`.
-   - Trigger `trg_task_comments_handle_updated_at BEFORE UPDATE ON public.task_comments FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at()` (reuses the existing function — same as `tasks`).
-   - **RLS** — enable, then four policies:
-     - SELECT: project members (any role) via `is_active_member(root_id, auth.uid())` OR `is_admin(auth.uid())`. (Comments are visible to everyone who can see the task.)
-     - INSERT: project members (any role except where the project would naturally exclude them) — match the SELECT clause; the per-task UPDATE-style permission grids do **not** gate read/write of comments. WITH CHECK additionally requires `author_id = auth.uid()`.
-     - UPDATE: `author_id = auth.uid()` AND `deleted_at IS NULL` (own comments only) OR `is_admin(auth.uid())`. WITH CHECK forbids changing `task_id`, `root_id`, `parent_comment_id`, `author_id` (immutable).
-     - DELETE: `author_id = auth.uid()` OR project owner via `check_project_ownership_by_role(root_id, auth.uid())` OR `is_admin(auth.uid())`. **Soft-delete preferred:** the UI calls UPDATE `SET deleted_at = now()` instead of DELETE; hard DELETE is reserved for admin/cleanup.
-   - **Realtime publication:** `ALTER PUBLICATION supabase_realtime ADD TABLE public.task_comments;` — required so Wave 26 Task 3 (and Wave 27) can subscribe.
-   - Mirror everything (table, indexes, triggers, policies, publication add) into `docs/db/schema.sql` per the SSoT pattern.
+Use this exact DDL (header includes the revert path; inline comments documented for future readers):
 
-2. **Generated types** (`src/shared/db/database.types.ts`)
-   - Hand-add the `task_comments` table block (Row/Insert/Update) following the same pattern Wave 23/24/25 used when types lagged the DB. Rows: `id: string, task_id: string, root_id: string, parent_comment_id: string | null, author_id: string, body: string, mentions: string[], created_at: string, updated_at: string, edited_at: string | null, deleted_at: string | null`.
+```sql
+-- Migration: Wave 26 — task_comments table
+-- Date: 2026-04-18
+-- Description:
+--   First column of the §3.3 Collaboration Suite. Adds a threaded comments table
+--   scoped to project membership via tasks.root_id, with soft-delete semantics so
+--   the Wave 27 activity log can report deletion events without losing the row.
+--
+--   Threading is unbounded at the DB layer (`parent_comment_id` is a self-FK with
+--   no depth check) — the UI in Wave 26 Task 2 enforces a 1-level visual cap with
+--   reply-to-reply chain-lift. This split keeps the data faithful while keeping
+--   the UI predictable.
+--
+-- Revert path:
+--   ALTER PUBLICATION supabase_realtime DROP TABLE public.task_comments;
+--   DROP TABLE IF EXISTS public.task_comments CASCADE;
+--   DROP FUNCTION IF EXISTS public.set_task_comments_root_id();
 
-3. **Domain types** (`src/shared/db/app.types.ts`)
-   - `export type TaskCommentRow = Database['public']['Tables']['task_comments']['Row'];`
-   - `export type TaskCommentInsert = Database['public']['Tables']['task_comments']['Insert'];`
-   - `export type TaskCommentUpdate = Database['public']['Tables']['task_comments']['Update'];`
-   - Add `TaskCommentWithAuthor = TaskCommentRow & { author: { id: string; email: string; user_metadata?: UserMetadata } | null }` for the join shape the UI needs.
+CREATE TABLE public.task_comments (
+  id                uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id           uuid          NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+  root_id           uuid          NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+  parent_comment_id uuid          REFERENCES public.task_comments(id) ON DELETE CASCADE,
+  author_id         uuid          NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+  body              text          NOT NULL CHECK (length(trim(body)) BETWEEN 1 AND 10000),
+  mentions          text[]        NOT NULL DEFAULT ARRAY[]::text[],
+  created_at        timestamptz   NOT NULL DEFAULT now(),
+  updated_at        timestamptz   NOT NULL DEFAULT now(),
+  edited_at         timestamptz,
+  deleted_at        timestamptz
+);
 
-4. **Architecture doc** (`docs/architecture/tasks-subtasks.md`)
-   - New `## Comments (Wave 26)` section under the existing wave-tagged sections. Document the table shape, threading model (`parent_comment_id`, no depth cap at the DB layer — UI will enforce a 1-level reply nesting in Task 2), soft-delete semantics, and the RLS rule that "anyone who can see the task can read/comment, but only authors edit; owners + authors + admins delete."
+CREATE INDEX idx_task_comments_task_id           ON public.task_comments (task_id, created_at DESC);
+CREATE INDEX idx_task_comments_root_id           ON public.task_comments (root_id, created_at DESC);
+CREATE INDEX idx_task_comments_parent_comment_id ON public.task_comments (parent_comment_id) WHERE parent_comment_id IS NOT NULL;
 
-5. **Tests**
-   - Manual `psql` smoke at `docs/db/tests/task_comments_rls.sql` (NEW) — exercise each policy under the four personas (owner, editor, viewer, non-member) plus the soft-delete vs. hard-delete branches and `set_task_comments_root_id` correctness on a comment posted directly to a phase row vs. a leaf task.
+-- root_id auto-fill (mirrors the set_root_id_from_parent pattern on public.tasks)
+CREATE OR REPLACE FUNCTION public.set_task_comments_root_id()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $$
+DECLARE
+  v_root uuid;
+BEGIN
+  SELECT COALESCE(t.root_id, t.id) INTO v_root
+  FROM public.tasks t
+  WHERE t.id = NEW.task_id;
+  IF v_root IS NULL THEN
+    RAISE EXCEPTION 'task_comments: parent task % not found', NEW.task_id;
+  END IF;
+  NEW.root_id := v_root;
+  RETURN NEW;
+END;
+$$;
 
-**DB migration?** Yes — additive (new table + indexes + 2 triggers + 4 policies + publication add). Revertable via the migration header.
+REVOKE ALL ON FUNCTION public.set_task_comments_root_id() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.set_task_comments_root_id() TO authenticated;
 
-**Out of scope:** Mention resolution to actual `auth.users` rows (Task 2 stores raw uuids in `mentions[]`; the `@username → uuid` lookup is deferred — comments still render the typed handle via the optimistic field). Anything related to the activity log or presence (Wave 27).
+CREATE TRIGGER trg_task_comments_set_root_id
+BEFORE INSERT ON public.task_comments
+FOR EACH ROW
+EXECUTE FUNCTION public.set_task_comments_root_id();
+
+CREATE TRIGGER trg_task_comments_handle_updated_at
+BEFORE UPDATE ON public.task_comments
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_updated_at();
+
+-- Realtime publication add (required for Task 3's channel subscription)
+ALTER PUBLICATION supabase_realtime ADD TABLE public.task_comments;
+
+ALTER TABLE public.task_comments ENABLE ROW LEVEL SECURITY;
+
+-- SELECT: any project member, plus admin
+CREATE POLICY "Comments select by project members"
+ON public.task_comments
+FOR SELECT
+TO authenticated
+USING (
+  is_active_member(root_id, auth.uid())
+  OR public.is_admin(auth.uid())
+);
+
+-- INSERT: any project member; author must be self
+CREATE POLICY "Comments insert by project members"
+ON public.task_comments
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  author_id = auth.uid()
+  AND (
+    is_active_member(root_id, auth.uid())
+    OR public.is_admin(auth.uid())
+  )
+);
+
+-- UPDATE: author edits own undeleted comments only; immutable fields enforced via WITH CHECK
+CREATE POLICY "Comments update by author"
+ON public.task_comments
+FOR UPDATE
+TO authenticated
+USING (
+  (author_id = auth.uid() AND deleted_at IS NULL)
+  OR public.is_admin(auth.uid())
+)
+WITH CHECK (
+  task_id           = (SELECT task_id           FROM public.task_comments WHERE id = task_comments.id)
+  AND root_id       = (SELECT root_id           FROM public.task_comments WHERE id = task_comments.id)
+  AND parent_comment_id IS NOT DISTINCT FROM (SELECT parent_comment_id FROM public.task_comments WHERE id = task_comments.id)
+  AND author_id     = (SELECT author_id         FROM public.task_comments WHERE id = task_comments.id)
+);
+
+-- DELETE: author, project owner, or admin (soft-delete preferred via UPDATE)
+CREATE POLICY "Comments delete by author or owner"
+ON public.task_comments
+FOR DELETE
+TO authenticated
+USING (
+  author_id = auth.uid()
+  OR public.check_project_ownership_by_role(root_id, auth.uid())
+  OR public.is_admin(auth.uid())
+);
+```
+
+**Mirror into `docs/db/schema.sql`** at the end of the table definitions block, then append the trigger functions / triggers / policies in sequence to match the migration's order.
+
+**Generated types** — hand-add to `src/shared/db/database.types.ts` under `Database['public']['Tables']` (mirrors how Waves 23/24/25 hand-edited when types lagged the DB). Use this exact block:
+
+```ts
+task_comments: {
+  Row: {
+    id: string
+    task_id: string
+    root_id: string
+    parent_comment_id: string | null
+    author_id: string
+    body: string
+    mentions: string[]
+    created_at: string
+    updated_at: string
+    edited_at: string | null
+    deleted_at: string | null
+  }
+  Insert: {
+    id?: string
+    task_id: string
+    root_id?: string
+    parent_comment_id?: string | null
+    author_id: string
+    body: string
+    mentions?: string[]
+    created_at?: string
+    updated_at?: string
+    edited_at?: string | null
+    deleted_at?: string | null
+  }
+  Update: {
+    id?: string
+    task_id?: string
+    root_id?: string
+    parent_comment_id?: string | null
+    author_id?: string
+    body?: string
+    mentions?: string[]
+    created_at?: string
+    updated_at?: string
+    edited_at?: string | null
+    deleted_at?: string | null
+  }
+  Relationships: []
+}
+```
+
+**Domain types** — append to `src/shared/db/app.types.ts` after the `TaskResource` block:
+
+```ts
+// ----------------------------------------------------------------------------
+// Comments (Wave 26)
+// ----------------------------------------------------------------------------
+export type TaskCommentRow    = Database['public']['Tables']['task_comments']['Row'];
+export type TaskCommentInsert = Database['public']['Tables']['task_comments']['Insert'];
+export type TaskCommentUpdate = Database['public']['Tables']['task_comments']['Update'];
+
+/** Task comment row joined with author profile for UI rendering. */
+export type TaskCommentWithAuthor = TaskCommentRow & {
+  author: {
+    id: string;
+    email: string;
+    user_metadata?: UserMetadata;
+  } | null;
+};
+```
+
+**Architecture doc** — append to `docs/architecture/tasks-subtasks.md` between the Strategy Templates section and Integration Points:
+
+```md
+## Comments (Wave 26)
+
+Threaded task comments live in `public.task_comments`. Each row carries
+`task_id` (the comment's target), `root_id` (auto-filled from the parent
+task's root via `trg_task_comments_set_root_id`, mirrors the
+`set_root_id_from_parent` pattern on `public.tasks`), and an optional
+`parent_comment_id` self-FK for replies. The DB places **no depth cap** on
+threading — the UI in `src/features/tasks/components/TaskComments/`
+enforces a single-level visual nest with chain-lift for reply-to-reply.
+
+**Soft-delete contract**: callers issue `UPDATE ... SET deleted_at = now(),
+body = ''` (clearing the body to scrub the cached query payload).
+`useTaskComments` filters `deleted_at IS NULL` by default. Hard `DELETE` is
+reserved for admin/cleanup paths.
+
+**RLS** (migration `docs/db/migrations/2026_04_18_task_comments.sql`):
+* SELECT — any project member via `is_active_member(root_id, auth.uid())`.
+* INSERT — any project member; `author_id` pinned to `auth.uid()` via
+  `WITH CHECK`.
+* UPDATE — author of the comment, undeleted only. Immutable fields:
+  `task_id`, `root_id`, `parent_comment_id`, `author_id`.
+* DELETE — author, project owner (`check_project_ownership_by_role`), or
+  admin.
+
+**Realtime** — table is in the `supabase_realtime` publication; the
+per-task channel in `src/features/tasks/hooks/useTaskCommentsRealtime.ts`
+invalidates `['taskComments', taskId]` on any payload.
+```
+
+**Architecture cross-ref** — append a single line to `docs/architecture/auth-rbac.md` under "Resolved" or "Business Rules":
+
+```md
+**Comments (Wave 26):** SELECT inherits project membership; INSERT requires `author_id = auth.uid()`; UPDATE restricted to authors on undeleted rows; DELETE allowed for authors, project owners (`check_project_ownership_by_role`), or admins. Full policy text in `docs/architecture/tasks-subtasks.md`.
+```
+
+**Tests** — manual `psql` smoke at `docs/db/tests/task_comments_rls.sql` (NEW) covering each policy under four personas (owner, editor, viewer, non-member) plus the soft-delete vs. hard-delete branches and `set_task_comments_root_id` correctness on a comment posted directly to a phase row vs. a leaf task. Header begins `-- EXPECT: every persona-row pair returns the documented oracle`.
+
+**DB migration?** Yes — additive (one table + 3 indexes + 1 function + 2 triggers + 4 policies + publication add). Revert path in the migration header.
+
+**Out of scope:** Mention resolution to `auth.users` rows (Task 2 stores raw `@handle` strings in `mentions[]`; resolution to uuids is Wave 30); markdown rendering; file attachments; emoji reactions; activity log / presence (Wave 27).
 
 ---
 
@@ -72,45 +309,133 @@ Lay down the data model with first-class threading and additive RLS that mirrors
 
 **Commit:** `feat(wave-26): TaskComments component + planterClient.entities.TaskComment`
 
-Wire the full read + write UX into the existing task detail surface. No new route — the comments live inside `TaskDetailsView.tsx` directly below the existing "Related Tasks" section.
+Wires read + write UX into the existing task detail surface. No new route — comments live inside `TaskDetailsView.tsx` directly below the Wave 21.5 "Related Tasks" section.
 
-1. **planterClient methods** (`src/shared/api/planterClient.ts`)
-   - New `entities.TaskComment` namespace with:
-     - `listByTask(taskId: string): Promise<TaskCommentWithAuthor[]>` — joins via `select('*, author:users(id, email, user_metadata)')` (or whatever the existing user-join shape is in `planterClient`). Filters `deleted_at IS NULL` by default; second-arg `{ includeDeleted: boolean }` opens up the soft-deleted rows for the audit log in Wave 27 — wire the parameter now even though Wave 26 callers always pass `false`.
-     - `create({ task_id, parent_comment_id, body, mentions }): Promise<TaskCommentWithAuthor>` — `author_id` is filled from `auth.uid()` on the server (it's the WITH CHECK contract). Returns the inserted row joined with author.
-     - `updateBody(commentId, { body, mentions }): Promise<TaskCommentRow>` — server `UPDATE` sets `edited_at = now()` via the trigger; the trigger also bumps `updated_at`. Returns the updated row.
-     - `softDelete(commentId): Promise<TaskCommentRow>` — `UPDATE … SET deleted_at = now(), body = ''` (clear body to avoid leaking content through cached query results post-delete).
-   - All four methods pass through React Query keys named `['taskComments', taskId]`.
+**1. planterClient methods** — append to `src/shared/api/planterClient.ts` after the existing `entities.TaskRelationship` block. Follow the existing entity pattern (extend `EntityClient` if appropriate; otherwise hand-roll like `entities.TaskWithResources`). Required surface:
 
-2. **Hook** (`src/features/tasks/hooks/useTaskComments.ts`, NEW)
-   - `useTaskComments(taskId: string | null)` — `useQuery({ queryKey: ['taskComments', taskId], enabled: !!taskId })`.
-   - `useCreateComment(taskId: string)` — `useMutation` with optimistic insert into the cache (newComment with a temp uuid). On error: rollback + toast. On success: invalidate `['taskComments', taskId]`.
-   - `useUpdateComment(taskId: string)` — same optimistic pattern; on error rollback + toast.
-   - `useDeleteComment(taskId: string)` — soft-delete; optimistic removal from the displayed list; rollback on error.
+```ts
+entities.TaskComment = {
+  // RLS handles project-membership filtering. By default deleted_at IS NULL is filtered;
+  // pass { includeDeleted: true } to surface soft-deleted rows for the Wave 27 audit log.
+  listByTask: (taskId: string, opts?: { includeDeleted?: boolean }) => Promise<TaskCommentWithAuthor[]>,
 
-3. **Mention parser** (`src/features/tasks/lib/comment-mentions.ts`, NEW)
-   - Pure function `extractMentions(body: string): string[]` returning the unique handles after `@` (anything matching `/@([a-zA-Z0-9_.\-]+)/g`). Stored in `mentions[]` as **strings** for Wave 26; the future resolver to `auth.users.id` lands in Wave 30 alongside the notification stack. Document this in a JSDoc comment on the function so the next wave doesn't have to re-discover the contract.
+  // author_id is server-pinned by RLS WITH CHECK. Returns the row joined with author.
+  create: (payload: {
+    task_id: string;
+    parent_comment_id?: string | null;
+    body: string;
+    mentions?: string[];
+  }) => Promise<TaskCommentWithAuthor>,
 
-4. **UI components** (`src/features/tasks/components/TaskComments/`, NEW directory — tasks domain)
-   - `TaskComments.tsx` — top-level composition mounted by `TaskDetailsView.tsx`. Props: `{ taskId: string }`. Renders compose form + threaded list. Uses `useTaskComments`, `useCreateComment`, `useUpdateComment`, `useDeleteComment`.
-   - `CommentList.tsx` — consumes `TaskCommentWithAuthor[]`, groups top-level comments (`parent_comment_id IS NULL`) and renders each with its replies underneath. **UI-side depth cap = 1**: replies to a reply collapse to the same level (the `parent_comment_id` chain on the DB can go deeper, but the UI only ever renders one nesting level — replies-to-replies threadlift to the same indent as the original reply, with a `↪ in reply to @author` chip).
-   - `CommentItem.tsx` — single comment with author avatar (initials fallback), body, edit/delete affordances (only shown when `author_id === currentUser.id`), reply button.
-   - `CommentComposer.tsx` — `<Textarea>` + Send button + `Esc` to cancel. `react-hook-form` + zod (`body: z.string().trim().min(1).max(10000)`). On submit: parses mentions via `extractMentions`, calls `useCreateComment.mutate({ task_id, parent_comment_id, body, mentions })`. Disabled when `body` is empty; submitting shows a Sonner toast.
-   - All four components use only existing Shadcn primitives (`Button`, `Textarea`, `Avatar` if it exists, otherwise build a small `<div>` with initials). No arbitrary Tailwind values; no pure black; reuse the existing `slate-200` borders and `rounded-xl` card pattern from `TaskDetailsView`.
+  // updated_at + edited_at are server-set by trg_task_comments_handle_updated_at.
+  // The trigger sets updated_at; the planterClient method also writes edited_at = now().
+  updateBody: (commentId: string, payload: { body: string; mentions?: string[] }) => Promise<TaskCommentRow>,
 
-5. **Integration** (`src/features/tasks/components/TaskDetailsView.tsx`)
-   - Mount `<TaskComments taskId={task.id} />` directly below the existing "Related Tasks" section. Comment count appears as a chip in the section header (`{count} comments`).
-   - Empty state: "No comments yet — be the first to add one."
+  // Soft-delete: UPDATE ... SET deleted_at = now(), body = ''. Clears the body so cached
+  // query results don't leak content post-delete.
+  softDelete: (commentId: string) => Promise<TaskCommentRow>,
+};
+```
 
-6. **Tests**
-   - `Testing/unit/shared/api/planterClient.taskComments.test.ts` (NEW) — query shape for list/create/update/softDelete; soft-delete sets both `deleted_at` and `body = ''`; `includeDeleted` flag toggles the filter.
-   - `Testing/unit/features/tasks/lib/comment-mentions.test.ts` (NEW) — `extractMentions` covers empty body, no mentions, single mention, multiple mentions, dupes deduplicated, punctuation trimmed (`@joe.` → `joe`), repeated `@` adjacency.
-   - `Testing/unit/features/tasks/hooks/useTaskComments.test.tsx` (NEW) — optimistic insert, rollback on error, cache key invalidation.
-   - `Testing/unit/features/tasks/components/TaskComments/TaskComments.test.tsx` (NEW) — renders empty state; renders threaded list with replies grouped under parents; reply-to-reply renders at depth-1 with the in-reply-to chip; edit/delete affordances visible only for own comments; soft-deleted rows are hidden from the default render.
+The `listByTask` SELECT must hydrate the author by selecting `*, author:users(id, email, user_metadata)` (or the closest equivalent the existing planterClient already uses for user joins — grep `select(.*users\(`).
 
-**DB migration?** No — Task 1 owns the schema. Task 2 is purely app code.
+**2. Hook** — `src/features/tasks/hooks/useTaskComments.ts` (NEW):
 
-**Out of scope:** Markdown rendering in comment bodies (plain text + line breaks only — wave-aware MD support is a Wave 31 nice-to-have when localization lands a richer text-render layer); rich text editor; file attachments on comments; reactions/emoji; mention resolution to actual users (handles are stored raw — see Task 2 step 3).
+```ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { planter } from '@/shared/api/planterClient';
+import type { TaskCommentWithAuthor } from '@/shared/db/app.types';
+
+export function useTaskComments(taskId: string | null) {
+  return useQuery({
+    queryKey: ['taskComments', taskId],
+    queryFn: () => planter.entities.TaskComment.listByTask(taskId!),
+    enabled: !!taskId,
+  });
+}
+
+export function useCreateComment(taskId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { parent_comment_id?: string | null; body: string; mentions: string[] }) =>
+      planter.entities.TaskComment.create({ task_id: taskId, ...payload }),
+    // Optimistic insert with temp uuid; rollback + force-refetch on error per styleguide §5.
+    onMutate: async (payload) => { /* snapshot prev, optimistic add, return ctx */ },
+    onError: (_err, _vars, ctx) => {
+      // Force-refetch on rollback (styleguide §5 mandate).
+      qc.invalidateQueries({ queryKey: ['taskComments', taskId] });
+      toast.error('Could not post comment');
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['taskComments', taskId] }),
+  });
+}
+
+export function useUpdateComment(taskId: string) { /* same shape as useCreateComment */ }
+export function useDeleteComment(taskId: string) { /* soft-delete via planter.entities.TaskComment.softDelete */ }
+```
+
+All three mutation hooks **must** include the rollback `qc.invalidateQueries(...)` in `onError` per `.gemini/styleguide.md` §5 ("optimistic mutations must force-refetch in catch block").
+
+**3. Mention parser** — `src/features/tasks/lib/comment-mentions.ts` (NEW):
+
+```ts
+/**
+ * Extract @-mentions from a comment body.
+ *
+ * Wave 26 stores raw handles (the literal text after '@'); Wave 30 resolves
+ * each handle to an auth.users row id and writes the uuid array. The two-step
+ * design lets the comment composer ship before the notification stack exists.
+ *
+ * @param body Raw comment text.
+ * @returns Unique handles, lowercased, trimmed of trailing punctuation, in
+ *   first-occurrence order.
+ */
+export function extractMentions(body: string): string[] {
+  const matches = body.matchAll(/@([a-zA-Z0-9_.\-]+)/g);
+  const handles = new Set<string>();
+  for (const m of matches) {
+    const h = m[1].replace(/[.\-_]+$/, '').toLowerCase();
+    if (h.length > 0) handles.add(h);
+  }
+  return [...handles];
+}
+```
+
+**4. UI components** — new directory `src/features/tasks/components/TaskComments/` with four files (no barrel — import each directly):
+
+| File | Responsibility |
+| --- | --- |
+| `TaskComments.tsx` | Top-level composition. Props: `{ taskId: string }`. Mounts `useTaskComments`, `useTaskCommentsRealtime` (Task 3), `useCreateComment`. Renders compose form + list + empty state. |
+| `CommentList.tsx` | Consumes `TaskCommentWithAuthor[]`. Groups top-level comments (`parent_comment_id IS NULL`); renders each with replies underneath. **UI-side depth cap = 1**: replies-to-replies render at the same indent as their grandparent reply, with a `↪ in reply to @author` chip pulled from the `author.email` of the immediate parent. |
+| `CommentItem.tsx` | One comment row. Avatar (initials fallback via `<Avatar>` from `src/shared/ui/avatar.tsx`), body, "Edited" suffix when `edited_at !== null`, edit/delete affordances visible only when `comment.author_id === currentUser.id`, reply button. |
+| `CommentComposer.tsx` | `<Textarea>` + Send button + `Esc` to cancel + `Cmd/Ctrl+Enter` to submit. `react-hook-form` + zod (`body: z.string().trim().min(1).max(10000)`). On submit: call `extractMentions(body)`, then `useCreateComment.mutate({ parent_comment_id, body, mentions })`. |
+
+Styling: reuse the existing card pattern from `TaskDetailsView.tsx` (`bg-white border border-slate-200 rounded-xl shadow-sm`) and the brand button from `src/index.css` (`.btn-primary` → `bg-brand-600 hover:bg-brand-700`). **No arbitrary Tailwind values.** **No pure black** — slate-900 / zinc-900 only.
+
+**5. Integration** — `src/features/tasks/components/TaskDetailsView.tsx`:
+* Mount `<TaskComments taskId={task.id} />` directly below the existing "Related Tasks" section. The exact location: after the `<RelatedTasks>` JSX block, before the existing footer/actions row. **Read the file first to find the precise insertion point** — don't guess.
+* Add a comment count chip next to the section heading: `<span className="text-sm text-slate-500">{count} comments</span>`. The count comes from the same `useTaskComments` query already mounted by `<TaskComments>` — pass it down as a prop OR call the hook a second time (React Query dedupes, so either is fine).
+* Empty state copy (rendered inside `TaskComments` when `comments.length === 0`): `"No comments yet — be the first to add one."`
+
+**6. Tests** — every new file gets a mirror test. Use `@test/` alias for shared test utilities.
+
+| Source path | Test path |
+| --- | --- |
+| `src/shared/api/planterClient.ts` (TaskComment block) | `Testing/unit/shared/api/planterClient.taskComments.test.ts` |
+| `src/features/tasks/lib/comment-mentions.ts` | `Testing/unit/features/tasks/lib/comment-mentions.test.ts` |
+| `src/features/tasks/hooks/useTaskComments.ts` | `Testing/unit/features/tasks/hooks/useTaskComments.test.tsx` |
+| `src/features/tasks/components/TaskComments/TaskComments.tsx` | `Testing/unit/features/tasks/components/TaskComments/TaskComments.test.tsx` |
+
+Coverage requirements:
+* `planterClient.taskComments.test.ts` — query shape for `listByTask` (default vs `includeDeleted: true`); `create` payload shape; `softDelete` writes both `deleted_at` and `body = ''`.
+* `comment-mentions.test.ts` — empty body; no mentions; one mention; multiple mentions; duplicates dedup; trailing-punctuation trim (`@joe.` → `joe`); adjacency (`@@joe` → `joe`); first-occurrence order preserved.
+* `useTaskComments.test.tsx` — optimistic insert; **rollback fires `invalidateQueries` on error**; cache key shape.
+* `TaskComments.test.tsx` — empty state copy; threaded list with replies grouped under parents; reply-to-reply renders at depth-1 with the in-reply-to chip; edit/delete affordances visible only for own comments; soft-deleted rows hidden from default render.
+
+**DB migration?** No — Task 1 owns the schema.
+
+**Out of scope:** Markdown / rich-text rendering; file attachments; reactions; mention-uuid resolution (Wave 30).
 
 ---
 
@@ -118,95 +443,149 @@ Wire the full read + write UX into the existing task detail surface. No new rout
 
 **Commit:** `feat(wave-26): subscribe to task_comments realtime channel for live updates`
 
-The `task_comments` table is now in the realtime publication. Wire a channel subscription that invalidates the React Query cache when a remote insert/update/delete arrives, so two users editing the same task see each other's comments without a manual refresh.
+The `task_comments` table is now in the realtime publication (Task 1). Wire a per-task channel that invalidates the React Query cache when a remote insert/update/delete arrives, so two users editing the same task see each other's comments without a manual refresh.
 
-1. **Subscription hook** (`src/features/tasks/hooks/useTaskCommentsRealtime.ts`, NEW)
-   - `useTaskCommentsRealtime(taskId: string | null)` — opens a Supabase realtime channel scoped to the row filter `task_id=eq.<taskId>`.
-   - On any `INSERT | UPDATE | DELETE`, dispatch `queryClient.invalidateQueries({ queryKey: ['taskComments', taskId] })`. Don't try to merge the payload manually — invalidation is cheap, and the WITH CHECK shape makes manual merging risky (the realtime payload doesn't include the joined author).
-   - Cleanup on unmount: `supabase.removeChannel(channel)`.
-   - **No-op when `taskId` is null** so the hook can be called unconditionally inside `TaskComments.tsx`.
+**1. Subscription hook** — `src/features/tasks/hooks/useTaskCommentsRealtime.ts` (NEW):
 
-2. **Wire into `TaskComments.tsx`** — call `useTaskCommentsRealtime(taskId)` at the top of the component (sibling of the data hook).
+```ts
+import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/shared/db/client';
 
-3. **`Project.tsx` realtime audit** — `pages/Project.tsx` already opens the project-scoped task realtime channel. Do **not** add comments-on-`tasks` filtering there; the comments channel lives at the per-task level so it's not noisy when the panel is closed. Document this split in a one-line comment in `pages/Project.tsx` near the existing channel setup so the next reader doesn't try to merge them.
+export function useTaskCommentsRealtime(taskId: string | null) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!taskId) return;
+    const channel = supabase
+      .channel(`task_comments:task=${taskId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'task_comments', filter: `task_id=eq.${taskId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ['taskComments', taskId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [taskId, qc]);
+}
+```
 
-4. **AGENT_CONTEXT.md** — add a new "Comments (Wave 26)" golden-path bullet describing the data flow: `TaskDetailsView → TaskComments → useTaskComments + useTaskCommentsRealtime → planterClient.entities.TaskComment → Supabase`.
+**Do not** attempt to merge the realtime payload into the cache manually — the realtime payload doesn't include the joined author column. Invalidation is cheap and correct.
 
-5. **Tests**
-   - `Testing/unit/features/tasks/hooks/useTaskCommentsRealtime.test.ts` (NEW) — mocks `supabase.channel(...)`, asserts that `INSERT` / `UPDATE` / `DELETE` payloads each fire one `invalidateQueries` call with the right key. Asserts cleanup removes the channel on unmount. Asserts `taskId === null` results in no channel subscription at all.
+**2. Wire into `TaskComments.tsx`** — call `useTaskCommentsRealtime(taskId)` at the top of the component, sibling of the data hook. **No-op when `taskId === null`** so the hook can be called unconditionally.
 
-**DB migration?** No — the publication add is part of Task 1's migration.
+**3. Channel scope note** — `src/pages/Project.tsx` already opens a project-scoped task realtime channel (verify with `grep -n 'supabase.channel' src/pages/Project.tsx` before editing). Do **not** add comments-on-`tasks` filtering there; comments live at the per-task channel level so they're not noisy when the panel is closed. Add a one-line comment near the existing channel setup in `Project.tsx`:
 
-**Out of scope:** Optimistic UI for *remote* writes (we just invalidate); presence cursors (Wave 27); typing indicators (deferred — needs presence first).
+```ts
+// Comments use a per-task channel mounted by TaskComments — see useTaskCommentsRealtime. Don't merge here.
+```
+
+**4. AGENT_CONTEXT.md** — add a new "Comments (Wave 26)" golden-path bullet describing the data flow:
+
+```md
+- **Comments (Wave 26)**: `TaskDetailsView.tsx` mounts `<TaskComments taskId>` →
+  `useTaskComments` (`['taskComments', taskId]`) + `useTaskCommentsRealtime`
+  (channel `task_comments:task=:id`) → `planter.entities.TaskComment.{listByTask, create, updateBody, softDelete}`
+  → `public.task_comments` (RLS by project membership). UI caps reply nesting
+  at 1 level via chain-lift; DB allows arbitrary depth. Soft-delete clears body.
+```
+
+**5. Tests** — `Testing/unit/features/tasks/hooks/useTaskCommentsRealtime.test.ts` (NEW):
+* Mocks `supabase.channel(...)` chain.
+* Asserts INSERT / UPDATE / DELETE payloads each fire one `invalidateQueries({ queryKey: ['taskComments', taskId] })`.
+* Asserts `removeChannel` called on unmount.
+* Asserts `taskId === null` → no `channel(...)` call.
+
+**DB migration?** No — publication add is part of Task 1.
+
+**Out of scope:** Optimistic UI for *remote* writes (we just invalidate); presence cursors (Wave 27); typing indicators (Wave 27 / 30 territory).
 
 ---
 
 ## Documentation Currency Pass (mandatory — before review)
 
-Every wave from here forward includes an explicit doc-update step **inside** the wave so the docs never lag the code. Run this pass as a final commit on each task's branch (or as one consolidated commit on a `claude/wave-26-docs` branch after all three tasks merge — operator's choice, default to per-task for tighter PR reviews):
+Run as a single `docs(wave-26): documentation currency sweep` commit on a `claude/wave-26-docs` branch (or fold into Task 3's branch — operator's choice; default to a separate branch for cleanest review).
 
-1. **`spec.md`** — flip §3.3 Collaboration Suite from `[ ]` to `[/]` (in progress) and append a sub-bullet `[x] Threaded comments (Wave 26)` so the Wave 27 work has a clear scope-line. Bump version to **1.11.0** (a meaningful new collaboration surface). Update `Last Updated` to today's date.
-2. **`docs/AGENT_CONTEXT.md`** — confirm Task 3's "Comments (Wave 26)" golden path is in. Add a note in the §3a "Key Behavioral Contracts" section about the comments soft-delete invariant if it shapes future ancestor logic.
-3. **`docs/architecture/tasks-subtasks.md`** — Task 1's `## Comments (Wave 26)` section is in. Cross-link to `docs/architecture/auth-rbac.md` if the SELECT/INSERT/UPDATE/DELETE matrix should also live there. Default: keep policy text in `tasks-subtasks.md` since it's the primary owning doc; add only a one-line pointer in `auth-rbac.md` under "Resolved" or a new "Wave 26 RLS additions" sub-section.
-4. **`docs/architecture/auth-rbac.md`** — one-line sub-section under "Resolved" or "Business Rules": "Comments inherit project SELECT scope; authors hold UPDATE; owners + authors + admins hold DELETE. See `tasks-subtasks.md` for the full policy text."
-5. **`docs/dev-notes.md`** — no entry needed (no new tech-debt). If the deferred items list in this file's earlier sections is stale, prune.
-6. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 26 (Comments)`, update `last_completed`, `spec_version`, and add a `wave_26_highlights:` block listing the migration filename, the new `entities.TaskComment` namespace, and the realtime hook.
-7. **`CLAUDE.md`** — under "Schema Overview", add `task_comments` to the Tables list with a one-line summary. Under "RLS Policy Pattern", note the comments-specific divergence (any-member can INSERT — no editor-gate).
+Each item below has an explicit edit operation. Do them all.
 
-Each doc edit lands as a single `docs(wave-26): documentation currency sweep` commit at the close of the wave (or per task if you prefer; either is OK, but **the docs-sweep commit MUST land before the wave is marked complete**).
+1. **`spec.md`**:
+   - Find `### 3.3 Tasks Domain` section → flip `[ ] **Collaboration Suite**: ...` from `[ ]` to `[/]` (in progress).
+   - Append a sub-bullet under it: `  - [x] **Threaded comments (Wave 26)**: `task_comments` table + `<TaskComments>` in `TaskDetailsView.tsx`. Soft-delete; UI-side 1-level nest cap; `useTaskCommentsRealtime` for live sync.`
+   - Header lines: bump `> **Version**: 1.10.1 ...` to `> **Version**: 1.11.0 (Wave 26 — Threaded Comments)`. Update `> **Last Updated**: 2026-XX-XX` to today.
+
+2. **`docs/AGENT_CONTEXT.md`** — add the bullet from Task 3 step 4 to the Golden Paths list (alphabetically near "Coaching task tagging").
+
+3. **`docs/architecture/tasks-subtasks.md`** — Task 1's `## Comments (Wave 26)` section is in.
+
+4. **`docs/architecture/auth-rbac.md`** — Task 1's one-line cross-ref is in.
+
+5. **`docs/dev-notes.md`** — no entry expected. If the existing list has any "Active" entries that are actually closed by prior waves, prune.
+
+6. **`repo-context.yaml`**:
+   - `wave_status.current: 'Wave 26 (Threaded Comments)'`
+   - `wave_status.last_completed: 'Wave 26'`
+   - `wave_status.spec_version: '1.11.0'`
+   - Add a `wave_26_highlights:` block (yaml list) listing: migration filename, `entities.TaskComment` namespace, `useTaskComments` + `useTaskCommentsRealtime` hooks, the per-task realtime channel naming, the soft-delete contract.
+
+7. **`CLAUDE.md`**:
+   - Under "Schema Overview" Tables list, add: `- **`task_comments`** — Threaded comments per task. RLS by project membership; soft-delete via `deleted_at`. Wave 26.`
+   - Under "RLS Policy Pattern", add a one-liner about the comments INSERT divergence: `- **`task_comments`**: INSERT allowed for any project member (not just owner/editor) — comments are a collaboration surface, not a structural mutation.`
 
 ## Wave Review (mandatory — before commit + push to main)
 
-Treat this as a self-PR-review pass. Open the wave's commits in `git log -p` and walk:
+Self-PR-review pass. Do this BEFORE pushing the docs sweep commit, in addition to the per-task verification gates below.
 
-1. **Schema review** — does the migration header carry: a one-paragraph description, the revert path, and the cross-reference to the SSoT (`docs/db/schema.sql`)? Did you mirror every object into `schema.sql` verbatim?
-2. **RLS coverage** — for each new policy, can you name the four personas it gates (owner, editor, viewer/limited, non-member) and explain what each can/can't do? If you can't, write that audit table into the architecture doc before merging.
-3. **App-layer correctness** — does every `useMutation` have a rollback in `onError` and a `queryClient.invalidateQueries` in `onSettled` (or `onSuccess` if you don't need to refetch on error)? The optimistic-rollback rule from `.gemini/styleguide.md` §5 is non-negotiable.
-4. **Realtime** — does `useTaskCommentsRealtime` clean up its channel on unmount? Run it twice in dev (open task → close → open again) and confirm no zombie channels. Use `Supabase Studio → Realtime` if available locally.
-5. **No FSD drift** — `shared/` does not import from `features/`; no new barrel files; `@/` aliases only.
-6. **Type drift** — `database.types.ts` was hand-edited in Task 1; if you ever ran `npm run generate:types` in the session, **stop**, revert that file, and re-apply the hand edit (the generator overwrites our additions). Document this in the PR.
-7. **Test coverage** — every new file in `src/` has a matching `Testing/unit/...` mirror. Snapshot the test count delta in the PR description.
-8. **Lint + build + tests** — all four pass with zero regression vs. the starting baseline you recorded at the top of the wave.
-
-If any item above is "no", **fix it before pushing**. The review is the wave; the merge is just paperwork.
+1. **Schema review** — does the migration header carry: description, revert path, cross-ref to `docs/db/schema.sql`? Did you mirror every object into `schema.sql` verbatim? Run `git diff docs/db/schema.sql` and confirm one new table + 3 indexes + 1 function + 2 triggers + 4 policies + the publication ALTER appear.
+2. **RLS coverage** — for each of the four policies, name the persona scenarios it gates (owner / editor / coach / viewer / non-member / admin) and confirm the smoke script in `docs/db/tests/task_comments_rls.sql` exercises each.
+3. **App-layer correctness** — `useCreateComment`, `useUpdateComment`, `useDeleteComment` each have `onError` that calls `qc.invalidateQueries(...)` per `.gemini/styleguide.md` §5. Grep: `grep -n 'invalidateQueries' src/features/tasks/hooks/useTaskComments.ts` should return ≥3 lines.
+4. **Realtime cleanup** — open a task in dev → close → open another. Browser DevTools → Network → WS frames: confirm only one `task_comments:task=*` channel is open at a time and unsubscribed channels close cleanly.
+5. **No FSD drift** — `useTaskComments` lives in `src/features/tasks/hooks/`. No barrel files. `shared/` has no imports from `features/`. Grep: `grep -r "from '@/features" src/shared/` should return zero results.
+6. **Type drift** — `database.types.ts` was hand-edited in Task 1. Do **not** run `npm run generate:types` (or any equivalent script if one exists in `package.json`) after the edit — it would overwrite the addition. Verify `git diff src/shared/db/database.types.ts` shows only the `task_comments` block addition.
+7. **Test coverage** — `find Testing/unit/features/tasks -name "*comment*"` should return all four planned test files. Snapshot the test count delta in the PR description (target: +20 tests minimum).
+8. **Lint + build + tests** — `npm run lint` (0 errors, ≤7 warnings), `npm run build` (clean), `npm test` (baseline + new tests, no regressions).
 
 ## Commit & Push to Main (mandatory — gates Wave 27)
 
-After the Documentation Currency Pass and Wave Review both pass:
+After all task PRs and the docs sweep commit are merged:
 
-1. Confirm each task's PR has been merged (squash or rebase per the user's preference — default to squash so each task lands as one commit on `main`).
-2. Run the verification gate one last time on a fresh `main` checkout: `git checkout main && git pull && npm install && npm run lint && npm run build && npx vitest run`.
-3. The commit history on `main` after the wave should show, in order: 3 task commits (Task 1, 2, 3) + 1 docs sweep commit. `git log --oneline main..origin/main` should return empty (i.e., nothing pending push).
-4. Push to `origin/main` (https://github.com/JoelA510/PlanterPlan-Alpha/). If the user has a CI pipeline gate, wait for it to go green before declaring the wave complete.
-5. **Do not start Wave 27** until all of the above is true. The next wave's "Session Context" recap pulls from `main`.
+1. `git checkout main && git pull && npm install && npm run lint && npm run build && npm test`.
+2. The new commits on `main` should be: 3 task commits (Task 1, 2, 3) + 1 docs sweep commit on top of `4f48b53`.
+3. `git log --oneline main..origin/main` returns empty (nothing pending push).
+4. `git push origin main` if any commits aren't yet pushed. Wait for any CI to pass.
+5. **Do not start Wave 27** until all of the above is green.
 
 ## Verification Gate (per task, before push)
 
 ```bash
-npm run lint      # 0 errors (warnings baseline 7, do not regress)
+npm run lint      # 0 errors, ≤7 warnings (do not regress)
 npm run build     # clean (tsc -b && vite build)
-npx vitest run    # ≥547 + new tests added this wave
+npm test          # baseline + new tests added this wave
 git status        # clean
 ```
 
-Manual smoke checks (dev server + local Supabase):
-- **Task 1:** `psql -c "\d public.task_comments"` shows the table + indexes; `\dp public.task_comments` shows the four policies; `SELECT * FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'task_comments'` returns one row.
-- **Task 2:** open any task detail → "Comments" section renders with the empty state. Post a top-level comment → appears immediately. Reply → appears nested under the parent. Reply-to-reply → appears at depth-1 with the in-reply-to chip. Edit own comment → `edited_at` populates and the UI shows an "(edited)" suffix. Delete → comment disappears from the default render. Open the same task as a non-member → 0 comments + no compose form.
-- **Task 3:** open the task in two browser windows (different users on the same project). Post a comment in window A → window B's list refreshes within a couple seconds without a manual reload. Edit + delete behave the same way.
+Manual smoke checks (dev server + local Supabase via `supabase start`):
+- **Task 1:** `psql $DB_URL -c "\d public.task_comments"` shows the table + indexes; `\dp public.task_comments` shows 4 policies; `SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'task_comments'` returns one row.
+- **Task 2:** open any task detail → "Comments" section renders with the empty state. Post a top-level comment → appears immediately. Reply → appears nested under the parent. Reply-to-reply → appears at depth-1 with the in-reply-to chip. Edit own comment → `edited_at` populates and the UI shows an "(edited)" suffix. Delete → comment disappears from the default render. Open the same task as a non-member of the project → 0 comments + no compose form.
+- **Task 3:** open the task in two browser windows (different users on the same project — use the seeded `crossway-network` test users if Wave 19's seed scripts were preserved; otherwise create two test users via Supabase Studio). Post a comment in window A → window B's list refreshes within 2 seconds without a manual reload. Edit + delete behave the same way.
 
-## Key references
+## Key references (read these BEFORE writing code)
 
 - `CLAUDE.md` — conventions, commands, architecture overview
-- `.gemini/styleguide.md` — strict typing, FSD boundaries, Tailwind constraints, no arbitrary values
-- `docs/architecture/*.md` — domain SSoT (read before touching business logic)
-- `docs/AGENT_CONTEXT.md` — codebase map with golden paths
-- `docs/db/schema.sql` — SSoT for DB objects; mirror every migration here
-- `docs/db/migrations/2026_04_17_coaching_task_rls.sql` — RLS additive-policy precedent
-- `docs/db/migrations/2026_04_18_task_type_discriminator.sql` — column + index + trigger + backfill precedent
-- `src/features/tasks/hooks/useTaskSiblings.ts` — Wave 21.5 task-scoped hook precedent (good shape to mirror for `useTaskComments`)
-- `src/features/tasks/components/TaskDetailsView.tsx` — Task 2 mounts the new component here
-- `src/shared/api/planterClient.ts` — `entities.Task.listSiblings` (Wave 21.5) is the closest precedent for the `entities.TaskComment` namespace shape
-- `pages/Project.tsx` — existing realtime channel setup; Task 3 documents the split between project-level vs. comment-level subscriptions
+- `.gemini/styleguide.md` — strict typing, FSD boundaries, Tailwind constraints, no arbitrary values, optimistic-rollback rule
+- `docs/architecture/tasks-subtasks.md` — domain SSoT for tasks; Task 1 appends to this
+- `docs/architecture/auth-rbac.md` — `is_active_member`, `is_admin`, `check_project_ownership_by_role` definitions
+- `docs/AGENT_CONTEXT.md` — Wave 26 adds a golden-path bullet
+- `docs/db/schema.sql` — SSoT for DB objects; mirror the migration here
+- `docs/db/migrations/2026_04_17_coaching_task_rls.sql` — additive-policy precedent (Wave 22)
+- `docs/db/migrations/2026_04_18_task_type_discriminator.sql` — column + index + trigger + function precedent (Wave 25)
+- `src/features/tasks/hooks/useTaskSiblings.ts` — Wave 21.5 task-scoped hook precedent (mirror its shape for `useTaskComments`)
+- `src/features/tasks/components/TaskDetailsView.tsx` — Task 2 mounts `<TaskComments>` here
+- `src/shared/api/planterClient.ts` — `entities.Task.listSiblings` (Wave 21.5) is the closest precedent for `entities.TaskComment` shape; grep the file for `listSiblings` to find the surrounding namespace pattern
+- `src/pages/Project.tsx` — existing realtime channel setup; Task 3 leaves a one-line comment about the channel split
+- Supabase Realtime docs — `https://supabase.com/docs/guides/realtime/postgres-changes`
 
 ## Critical Files
 
@@ -214,19 +593,19 @@ Manual smoke checks (dev server + local Supabase):
 - `docs/db/schema.sql` (mirror Task 1 migration)
 - `docs/architecture/tasks-subtasks.md` (Comments section)
 - `docs/architecture/auth-rbac.md` (one-line cross-reference)
-- `docs/AGENT_CONTEXT.md` (Wave 26 golden-path additions)
-- `docs/dev-notes.md` (no entry expected; verify currency)
-- `src/shared/db/database.types.ts` (hand-add `task_comments` block)
-- `src/shared/db/app.types.ts` (`TaskCommentRow/Insert/Update`, `TaskCommentWithAuthor`)
-- `src/shared/api/planterClient.ts` (`entities.TaskComment`)
-- `src/features/tasks/components/TaskDetailsView.tsx` (mount `<TaskComments />`)
-- `pages/Project.tsx` (one-line comment about channel split)
+- `docs/AGENT_CONTEXT.md` (Wave 26 golden-path bullet)
+- `docs/dev-notes.md` (currency check; likely no edit)
+- `src/shared/db/database.types.ts` (hand-add `task_comments` block — exact code given above)
+- `src/shared/db/app.types.ts` (`TaskCommentRow/Insert/Update`, `TaskCommentWithAuthor` — exact code given above)
+- `src/shared/api/planterClient.ts` (`entities.TaskComment` namespace)
+- `src/features/tasks/components/TaskDetailsView.tsx` (mount `<TaskComments>`; add count chip)
+- `src/pages/Project.tsx` (one-line comment about channel split)
 - `spec.md` (flip §3.3 to `[/]` + sub-bullet, bump to 1.11.0)
 - `repo-context.yaml` (Wave 26 highlights block)
-- `CLAUDE.md` (`task_comments` schema row + RLS pattern divergence note)
+- `CLAUDE.md` (`task_comments` row in Tables; INSERT-divergence note in RLS Policy Pattern)
 
 **Will create:**
-- `docs/db/migrations/2026_XX_XX_task_comments.sql`
+- `docs/db/migrations/2026_04_18_task_comments.sql`
 - `docs/db/tests/task_comments_rls.sql`
 - `src/features/tasks/components/TaskComments/TaskComments.tsx`
 - `src/features/tasks/components/TaskComments/CommentList.tsx`
@@ -245,10 +624,9 @@ Manual smoke checks (dev server + local Supabase):
 - Activity log / audit trail (Wave 27)
 - Realtime presence cursors / typing indicators (Wave 27)
 - Mention resolution to `auth.users` rows + notifications on @-mention (Wave 30 — needs the Wave 30 notification stack)
-- Markdown rendering, file attachments, emoji reactions
-- Comment-level RLS that mirrors the Coaching task per-flag pattern (no equivalent need; SELECT scope is project-membership, edit scope is authorship)
-- Backfill of any historical "comment" data — none exists pre-Wave-26
+- Markdown / rich-text rendering, file attachments, emoji reactions
+- A separate `task_comments` per-flag RLS pattern (no equivalent need; SELECT scope is project-membership)
 
 ## Ground Rules (non-negotiable — from `CLAUDE.md` + `.gemini/styleguide.md`)
 
-TypeScript-only; no `.js` / `.jsx`; no barrel files (import directly from concrete paths); path alias `@/` → `src/`; no raw date math (use `date-engine` — comments use `created_at`/`updated_at`/`edited_at` strings; format via `formatDisplayDate`); no direct `supabase.from()` in components (go through `planterClient`); Tailwind utility classes only (no arbitrary values, no pure black — use `slate-900` / `zinc-900`); optimistic mutations must force-refetch on error; max subtask depth = 1 (does not apply to comments — comment threading goes deeper at the DB but the UI caps at 1); template vs instance clarified on any cross-cutting work (`origin = 'template' | 'instance'` — comments only attach to instance tasks in practice, but the schema doesn't restrict; document this UX convention in the architecture doc); frontend/Deno recurrence + date helpers stay in lock-step; only add dependencies if truly necessary (motivate in the PR — Wave 26 should add **zero** new npm deps); atomic revertable commits; build + lint + tests all clean before every push; DB migrations are additive-only unless the user explicitly approves a breaking change in-session.
+TypeScript only; no `.js` / `.jsx`; no barrel files (import directly from concrete paths); path alias `@/` → `src/` (use `@test/` for `Testing/test-utils` imports); no raw date math (comments use `created_at`/`updated_at`/`edited_at` ISO strings; format via `formatDisplayDate` from `@/shared/lib/date-engine`); no direct `supabase.from()` in components — go through `planter.entities.TaskComment.*`; Tailwind utility classes only (no arbitrary values, no pure black — use `slate-900` / `zinc-900`); brand button uses `bg-brand-600 hover:bg-brand-700` (mirrors `.btn-primary` in `src/index.css`); optimistic mutations must force-refetch in `onError` — every `useMutation` in this wave gets `onError: () => qc.invalidateQueries(...)`; max subtask depth = 1 (does not apply to comment threading — DB has no depth cap, UI caps at 1); template vs instance: comments only attach to instance tasks in practice (UI mounts `<TaskComments>` only on `TaskDetailsView`, which is instance-only); frontend/Deno mirrors not affected this wave; **zero new npm dependencies**; atomic revertable commits; build + lint + tests all clean before every push; DB migrations are additive-only.

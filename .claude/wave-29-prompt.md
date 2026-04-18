@@ -3,15 +3,40 @@
 PlanterPlan is a church planting project management app (React 19 + TypeScript + Supabase + Vite). Read `CLAUDE.md` for conventions and architecture. Strict typing, Feature-Sliced Design (FSD) boundaries, no direct Supabase calls in components, no raw date math — all enforced. See `.gemini/styleguide.md` for the full bar.
 
 Wave 28 shipped to `main`:
-- Gantt chart at `/gantt?projectId=:id` — read-only render + drag-to-shift dates with full date-engine cascade respect
-- New `features/gantt/` slice with `ProjectGantt`, `useGanttDragShift`, `tasksToGanttRows` adapter
-- Lazy-loaded route chunk; one new gantt-rendering dep added with motivation in the PR
+- Gantt chart at `/gantt?projectId=:id` (lazy-loaded, `gantt-task-react@0.3.9` pinned)
+- `tasksToGanttRows` adapter + `useGanttDragShift` (parent-bounds enforcement, `useUpdateTask` cascade reuse)
 
-Spec is at **1.13.0**. Outstanding roadmap: §3.2 Checkpoint-Based Architecture, §3.2 Advanced Access (backlog item — promote in this wave), §3.7 platform/admin/monetization, §3.8 mobile infra, §3.1 localization, plus the Wave 37 architecture-doc gap closures.
+Spec is at **1.13.0**. Outstanding: §3.2 Checkpoint + §3.2 Advanced Access (this wave), §3.7 platform features (Waves 30+), §3.8 mobile (Wave 32), §3.1 localization (Wave 31), Wave 37 doc-gap closures.
 
-Wave 29 ships **two related items together**: the Checkpoint-Based Architecture for §3.2 (alternate project type that gates phase progression by sibling completion instead of date), and the long-deferred §3.2 Advanced Access (Phase Lead) backlog item — they pair naturally because both reshape per-phase access semantics. The dashboard donut chart for checkpoint phases (the `dashboard-analytics.md` known-gap) closes alongside.
+Wave 29 ships **two related items**: Checkpoint-Based Architecture for §3.2 (alternate project type) and the long-deferred §3.2 Advanced Access (Phase Lead) backlog item — they pair naturally because both reshape per-phase access semantics. Closes the `dashboard-analytics.md` "Donut Charts for Checkpoint-based project phases" gap.
 
-**Gate baseline going into Wave 29:** confirm the current `main` baseline. Run `npm run lint`, `npm run build`, `npx vitest run`. Record the test count from Wave 28's verification gate as the starting baseline.
+**Test baseline going into Wave 29:** Wave 28 shipped at ≥600 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
+
+## Pre-flight verification (run before any task)
+
+1. `git log --oneline -5` includes the 2 Wave 28 commits.
+2. These files exist:
+   - `src/features/projects/components/EditProjectModal.tsx`
+   - `src/features/projects/components/PhaseCard.tsx`
+   - `src/features/projects/components/ProjectHeader.tsx` (donut chart precedent — `recharts` `<PieChart>`; grep to confirm)
+   - `src/features/tasks/components/TaskList.tsx`
+   - `src/features/tasks/components/TaskFormFields.tsx`
+   - `src/features/tasks/components/TaskDetailsView.tsx`
+   - `src/features/tasks/lib/coaching-form.ts` (helper-trio precedent)
+   - `src/features/tasks/lib/strategy-form.ts` (helper-trio precedent)
+   - `src/shared/lib/date-engine/index.ts`
+   - `supabase/functions/_shared/date.ts` (Deno mirror site)
+   - `supabase/functions/nightly-sync/index.ts` (urgency transition pass)
+   - `src/shared/db/app.types.ts` (extend `TaskSettings`)
+   - `src/shared/ui/radio-group.tsx`
+   - `src/shared/ui/dialog.tsx`
+   - `docs/architecture/projects-phases.md`, `auth-rbac.md`, `date-engine.md`, `dashboard-analytics.md`
+3. Schema fact-check:
+   - `tasks.is_locked` (boolean, default false) and `tasks.prerequisite_phase_id` (uuid, FK to tasks) exist — verify in `docs/db/schema.sql`. **These already exist; Wave 29 does not add them.**
+   - Existing triggers `check_phase_unlock` (AFTER UPDATE OF is_complete) and `handle_phase_completion` (AFTER UPDATE OF status) handle phase unlocking. **Wave 29 does NOT modify these.**
+   - `tasks.task_type` exists (Wave 25); `task_type IN ('phase','milestone')` is the gate for the Phase Lead picker.
+4. Project-members fetching — the codebase exposes project members via `useTeam` in `src/features/people/hooks/useTeam.ts`. Confirm by reading the file. If `useTeam` returns members of a given project, reuse it. If not, add a lookup via `planter.entities.TeamMember.filter({ project_id: ... })` (the entity exists per the planterClient inventory).
+5. `RecurrenceRule` is the lock-step pattern: `src/shared/lib/recurrence.ts` ↔ `supabase/functions/_shared/recurrence.ts`. Wave 29's `isCheckpointProject` follows the same lock-step convention.
 
 ## Branch
 
@@ -23,7 +48,7 @@ Open a PR to `main` after each task's verification gate passes. Do **not** push 
 
 ## Wave 29 scope
 
-Two tasks. Task 1 is the bigger lift (alternate project kind, date-engine carve-out, donut chart). Task 2 is a tighter RLS + UI change that promotes the §3.2 Advanced Access backlog bullet.
+Two tasks. Task 1 is heavier (project kind discriminator, date-engine carve-out, donut UI). Task 2 is a tighter additive RLS + UI change.
 
 ---
 
@@ -31,62 +56,205 @@ Two tasks. Task 1 is the bigger lift (alternate project kind, date-engine carve-
 
 **Commit:** `feat(wave-29): checkpoint project kind + sequential phase unlock + donut visualization`
 
-A new "kind" of project that drops the rigid date model in favor of sequential phase gating. Phase N is locked until Phase N-1 hits 100% completion. The existing `is_locked` and `prerequisite_phase_id` columns on `tasks` are already wired into the DB-level unlock triggers (`check_phase_unlock`, `handle_phase_completion`); this wave wires the project-level "kind" toggle, the date-engine carve-out, the donut UI, and the RLS-respecting unlock UX.
+A new "kind" of project that drops the rigid date model in favor of sequential phase gating. The DB-level unlock (`check_phase_unlock`) already does the work; this wave wires the project-level "kind" toggle, the date-engine carve-out, the donut UI, and the kind-switch reversal UX.
 
-1. **Project kind discriminator** (`docs/db/migrations/2026_XX_XX_project_kind.sql`, NEW)
-   - Convention: store on the **root task's** `settings` JSONB as `settings.project_kind: 'date' | 'checkpoint'` (defaults to `'date'` when absent — matches every existing project's behavior). No new column — follows the `settings.published` / `settings.recurrence` precedent.
-   - **However**, also write a **CHECK constraint** at the table level via a `tasks_project_kind_check`-style constraint applied only to root rows: `ADD CONSTRAINT tasks_project_kind_check CHECK (parent_task_id IS NOT NULL OR settings ->> 'project_kind' IS NULL OR settings ->> 'project_kind' IN ('date','checkpoint'))`. This keeps the JSONB safe at the DB layer without a column.
-   - **Backfill confirmation only**: no UPDATE needed — absence of the key already means `'date'`. Document this in the migration header.
-   - Mirror the constraint into `docs/db/schema.sql`.
+**Convention (locked, no alternatives):** Store on the **root task's** `settings` JSONB as `settings.project_kind: 'date' | 'checkpoint'` (defaults to `'date'` when absent — every existing project's behavior). No new column — follows the `settings.published`, `settings.recurrence`, `settings.is_coaching_task` precedent.
 
-2. **Domain types + helper** (`src/shared/db/app.types.ts`, `src/features/projects/lib/project-kind.ts` NEW)
-   - Extend `TaskSettings` with `project_kind?: 'date' | 'checkpoint'`.
-   - Helper trio mirrors the `coaching-form` / `strategy-form` precedent:
-     - `extractProjectKind(rootTask): 'date' | 'checkpoint'` (defaults `'date'` when absent).
-     - `formDataToProjectKind(data): 'date' | 'checkpoint' | null` (null = no change).
-     - `applyProjectKind(currentSettings, kind): Json` — preserves all other settings keys.
+**Migration**: `docs/db/migrations/2026_04_18_project_kind.sql` (NEW). Use this DDL:
 
-3. **Edit Project modal** (`src/features/projects/components/EditProjectModal.tsx`)
-   - Add a Shadcn `RadioGroup` toggle: "Project type" → `Date-driven (default)` | `Checkpoint-based`.
-   - **Switching from `date` → `checkpoint` is allowed and additive** (date-engine carve-out below makes existing dates render as informational only).
-   - **Switching from `checkpoint` → `date` requires a confirmation `AlertDialog`**: "Switching back to date-driven will re-enable due-date logic and may flag existing tasks as overdue. Continue?" — the operator confirms. Once confirmed, the kind flips and the user may need to use the existing project-edit date-shift to re-anchor the timeline.
+```sql
+-- Migration: Wave 29 — project_kind (checkpoint vs date) discriminator on root tasks
+-- Date: 2026-04-18
+-- Description:
+--   Adds an additive CHECK constraint that gates settings->>'project_kind' to the
+--   two-value vocabulary on root tasks (parent_task_id IS NULL). Non-root tasks
+--   are unaffected. Absence of the key (the default for every existing project)
+--   means 'date' — backfill is a no-op, no UPDATE statement.
+--
+--   The kind toggle lives in EditProjectModal; the date-engine and nightly-sync
+--   short-circuit checkpoint projects (see src/shared/lib/date-engine/index.ts
+--   and supabase/functions/nightly-sync/index.ts).
+--
+-- Revert path:
+--   ALTER TABLE public.tasks DROP CONSTRAINT IF EXISTS tasks_project_kind_check;
 
-4. **Date Engine carve-out** (`src/shared/lib/date-engine/index.ts`)
-   - New helper `isCheckpointProject(rootTask): boolean` exported. Read-only — no caller in this file.
-   - In `recalculateProjectDates`: short-circuit and return `{ shifted: 0, skipped: descendants.length }` when `isCheckpointProject(root) === true`. Add a JSDoc note: "Checkpoint projects intentionally don't bulk-shift — phase progression is unlock-driven, not date-driven."
-   - In `deriveUrgency`: when called on a task whose root is checkpoint, return `'not_started'` for everything that isn't already `completed`/`in_progress`/`blocked`. The urgency states `due_soon` and `overdue` are meaningless for checkpoint projects (no due dates).
-   - In `supabase/functions/nightly-sync/`: also short-circuit the urgency-transition pass for checkpoint projects (read `settings.project_kind` from each project root before applying transitions). The recurrence pass is unaffected (templates are project-kind-agnostic).
-   - **Lock-step requirement** — add a Deno mirror of `isCheckpointProject` to `supabase/functions/_shared/date.ts` so the nightly-sync carve-out can read it. Keep the two implementations in lock-step (precedent: Wave 21 recurrence helpers).
+ALTER TABLE public.tasks
+ADD CONSTRAINT tasks_project_kind_check CHECK (
+  parent_task_id IS NOT NULL
+  OR settings ->> 'project_kind' IS NULL
+  OR settings ->> 'project_kind' IN ('date','checkpoint')
+);
+```
 
-5. **Phase-lock UX** (`src/features/tasks/components/TaskList.tsx`, `PhaseCard.tsx`)
-   - When `extractProjectKind(rootTask) === 'checkpoint'`, render a small lock icon on every phase whose `is_locked === true`. The phase row is still expandable (visible) but its tasks render as `text-slate-400` and the status checkbox is `disabled`.
-   - When the previous phase reaches 100% complete (existing `check_phase_unlock` trigger fires), the lock automatically lifts — the realtime subscription on the project (`Project.tsx` channel) picks it up and re-renders. Verify this flow in the smoke test below.
+Mirror into `docs/db/schema.sql`.
 
-6. **Donut visualization for checkpoint phases** (`docs/architecture/dashboard-analytics.md` known gap)
-   - Replace the standard progress bar inside `src/features/projects/components/PhaseCard.tsx` with the existing donut from `src/features/projects/components/ProjectHeader.tsx` (shipped Wave 19) **only when the project kind is `checkpoint`**. Date-driven projects keep their bar.
-   - Donut shows `completed / total` ratio across the phase's tasks. Color: brand-500 fill, slate-200 track.
-   - Center label: `{percentage}%` or `Locked` when `is_locked === true`.
-   - Closes the `dashboard-analytics.md` "Donut Charts for Checkpoint-based project phases" known-gap.
+**Domain types** — extend `TaskSettings` in `src/shared/db/app.types.ts`:
 
-7. **Architecture doc** (`docs/architecture/projects-phases.md`)
-   - Expand the existing "Checkpoint-Based Projects" section into the SSoT for this wave: kind discriminator location (`settings.project_kind`), the date-engine carve-out (with cross-ref to `date-engine.md`), the unlock trigger flow (`check_phase_unlock` is unchanged — it already does the work; the new bit is the project-kind gating), the kind-switch reversal AlertDialog UX, the donut-vs-bar swap.
-   - Update `docs/architecture/date-engine.md` "Business Rules & Constraints" with a new bullet: "Checkpoint projects: `recalculateProjectDates` and `deriveUrgency` short-circuit; nightly-sync skips urgency transitions; due dates render as informational only."
-   - Update `docs/architecture/dashboard-analytics.md` to flip the "Donut Charts for Checkpoint-based project phases" gap to **Resolved (Wave 29)**.
+```ts
+// Wave 29: project kind for root tasks
+project_kind?: 'date' | 'checkpoint';
+// Wave 29: phase-lead designation on phase/milestone rows (Task 2)
+phase_lead_user_ids?: string[];
+```
 
-8. **Tests**
-   - `Testing/unit/features/projects/lib/project-kind.test.ts` (NEW) — extract/apply/formDataTo helper trio, mirroring `coaching-form.test.ts`.
-   - `Testing/unit/shared/lib/date-engine/checkpoint.test.ts` (NEW) — `recalculateProjectDates` short-circuits for checkpoint root; `deriveUrgency` returns `not_started` for non-completed checkpoint tasks; `isCheckpointProject` honors absence-as-date.
-   - `Testing/unit/features/projects/components/EditProjectModal.kind.test.tsx` (NEW) — radio toggle renders; checkpoint-to-date switch shows confirmation dialog; submit fires expected `useUpdateProject` payload.
-   - `Testing/unit/features/projects/components/PhaseCard.donut.test.tsx` (NEW) — bar renders for date-kind, donut renders for checkpoint-kind, locked phase shows "Locked" center label.
-   - Manual `psql` smoke at `docs/db/tests/checkpoint_unlock.sql` — exercise the existing `check_phase_unlock` trigger on a checkpoint project (set `is_locked = true` on phase 2, mark phase 1 complete, observe phase 2 unlock).
+**Helper trio** — `src/features/projects/lib/project-kind.ts` (NEW), mirrors the coaching/strategy precedent:
 
-**DB migration?** Yes — one CHECK constraint addition (additive, revertable).
+```ts
+import type { TaskRow } from '@/shared/db/app.types';
 
-**Out of scope:**
-- A migration that retroactively classifies any existing project as `'checkpoint'` (default-`'date'` is the right behavior; users who want checkpoint flip the toggle themselves).
-- Auto-suggesting checkpoint kind based on whether a project has dates set (deferred — could be a Wave 33 admin nice-to-have).
-- Fancy unlock animations (just refresh + chevron).
-- Cross-phase prerequisite chains beyond the existing `prerequisite_phase_id` (already supported by the trigger — scope is wiring, not extending).
+export type ProjectKind = 'date' | 'checkpoint';
+
+/**
+ * Reads settings.project_kind from a root task; defaults to 'date'.
+ * Safe on null/undefined and missing keys.
+ */
+export function extractProjectKind(rootTask: Pick<TaskRow, 'settings'> | null | undefined): ProjectKind {
+  const settings = (rootTask?.settings ?? {}) as Record<string, unknown>;
+  const raw = settings.project_kind;
+  return raw === 'checkpoint' ? 'checkpoint' : 'date';
+}
+
+/**
+ * Normalises a form's `project_kind` field into the settings shape.
+ * Returns null when the form did not include the field (no change).
+ */
+export function formDataToProjectKind(data: { project_kind?: ProjectKind }): ProjectKind | null {
+  if (data.project_kind === 'checkpoint' || data.project_kind === 'date') return data.project_kind;
+  return null;
+}
+
+/**
+ * Merges a project_kind into the existing settings JSONB. Preserves all other keys.
+ * Pass `null` to leave settings untouched.
+ */
+export function applyProjectKind(
+  currentSettings: Record<string, unknown> | null | undefined,
+  kind: ProjectKind | null,
+): Record<string, unknown> | undefined {
+  if (kind === null) return currentSettings ?? undefined;
+  return { ...(currentSettings ?? {}), project_kind: kind };
+}
+```
+
+**Date Engine carve-out** — `src/shared/lib/date-engine/index.ts`. Add this exported helper:
+
+```ts
+/**
+ * True when the task's settings indicate a checkpoint project. Safe on
+ * non-root tasks (always false). Defaults to date-driven when the key is absent.
+ *
+ * MUST stay byte-equivalent with the Deno mirror at
+ * `supabase/functions/_shared/date.ts`. Lock-step convention per Wave 21
+ * recurrence helpers.
+ */
+export function isCheckpointProject(rootTask: { parent_task_id?: string | null; settings?: Record<string, unknown> | null } | null | undefined): boolean {
+  if (!rootTask) return false;
+  if (rootTask.parent_task_id) return false; // not a root
+  const kind = (rootTask.settings ?? {})['project_kind'];
+  return kind === 'checkpoint';
+}
+```
+
+Then modify the existing `recalculateProjectDates` to early-return `[]` when called with a checkpoint root:
+
+```ts
+// Pseudocode: at the top of recalculateProjectDates(projectTasks, newStart, oldStart):
+const root = projectTasks.find((t) => !t.parent_task_id);
+if (isCheckpointProject(root)) return []; // checkpoint projects don't bulk-shift
+```
+
+And modify `deriveUrgency` to accept an optional `rootTask` and short-circuit:
+
+```ts
+// New optional param: if provided AND isCheckpointProject(rootTask), return 'not_yet_due' for any non-completed task.
+// Backward-compatible: if rootTask omitted, behavior unchanged.
+```
+
+For minimal-diff safety, **don't** widen the existing `deriveUrgency` signature. Instead add a new helper `deriveUrgencyForProject(task, rootTask, threshold, now)` that wraps `deriveUrgency` with the checkpoint check. Existing call sites stay; new gantt/nightly-sync sites use the wrapped version.
+
+**Deno mirror** — `supabase/functions/_shared/date.ts`. Append a byte-equivalent `isCheckpointProject` (no React imports). Header comment: `// Lock-step with src/shared/lib/date-engine/index.ts → isCheckpointProject. Update both together.`
+
+**Nightly-sync carve-out** — `supabase/functions/nightly-sync/index.ts`. In the urgency-transition passes (overdue + due_soon), look up each task's project root and skip when `isCheckpointProject(root)`. Recurrence pass is unaffected.
+
+```ts
+// Pseudocode:
+// Before INSERTing the status update for a task, fetch the task's root_id, look up the root's
+// settings, and call isCheckpointProject(root). Skip the update if true.
+//
+// Implementation: load all roots for the affected projects in one query and build a Set<string>
+// of checkpoint project IDs once per invocation. Then filter the per-task update list.
+```
+
+**Edit Project modal** — `src/features/projects/components/EditProjectModal.tsx`. Add a `<RadioGroup>` (from `src/shared/ui/radio-group.tsx`):
+
+```tsx
+<RadioGroup value={projectKind} onValueChange={setProjectKind}>
+  <RadioGroupItem value="date" id="kind-date" />
+  <Label htmlFor="kind-date">Date-driven (default)</Label>
+  <RadioGroupItem value="checkpoint" id="kind-checkpoint" />
+  <Label htmlFor="kind-checkpoint">Checkpoint-based</Label>
+</RadioGroup>
+```
+
+**Switching `date` → `checkpoint`** is direct (no confirmation needed; date data is preserved; the date-engine just stops shifting it).
+
+**Switching `checkpoint` → `date`** **REQUIRES** a Shadcn `<AlertDialog>` confirmation (use `<Dialog>` from `src/shared/ui/dialog.tsx` with destructive-secondary button styling — confirm `<AlertDialog>` is not in the codebase; if not, use `<Dialog>` with manual button setup). Copy:
+
+> **Switch back to date-driven scheduling?**
+> Existing due dates will become active again. Tasks that are past due will appear as overdue. Locked phases stay locked until you toggle `is_locked` directly.
+> [Cancel] [Switch to date-driven]
+
+On confirm: call `useUpdateProject` with `{ settings: applyProjectKind(currentSettings, 'date') }`.
+
+**Phase-lock UX** — `src/features/projects/components/PhaseCard.tsx`. When `extractProjectKind(rootTask) === 'checkpoint'` AND `phase.is_locked === true`:
+* Render a `<Lock>` icon (from `lucide-react`, already in the project) on the phase row.
+* The phase's tasks render with `text-slate-400` and the status checkbox is `disabled`.
+
+When `is_locked` flips to `false` (via the existing `check_phase_unlock` trigger when the prerequisite phase completes), the realtime channel in `Project.tsx` fires a refetch and the lock icon disappears + tasks become interactive.
+
+**Donut visualization** — also `PhaseCard.tsx`. When `extractProjectKind(rootTask) === 'checkpoint'`:
+* Replace the existing progress bar with a donut chart (reuse the recharts `<PieChart>` pattern from `ProjectHeader.tsx` — grep for `<PieChart` in `ProjectHeader.tsx` to find the exact shape).
+* Donut: `completed_count` vs `total_count` of tasks under the phase. Color: brand-600 fill, slate-200 track.
+* Center label: `{percentage}%` when not locked; `Locked` when `is_locked === true`.
+
+When project kind is `'date'`, keep the existing progress bar.
+
+Closes the `dashboard-analytics.md` "Donut Charts for Checkpoint-based project phases" gap (close in the docs sweep).
+
+**Architecture doc** — expand the existing "Alternate Architecture: Checkpoint-Based Projects" section in `docs/architecture/projects-phases.md`:
+
+```md
+### Checkpoint-Based Projects (Wave 29 — Implementation Complete)
+
+**Discriminator**: `settings.project_kind: 'date' | 'checkpoint'` on root tasks (defaults to `'date'` when absent). CHECK constraint `tasks_project_kind_check` enforces the two-value vocabulary; absence-as-date keeps existing projects un-migrated.
+
+**Helpers**: `src/features/projects/lib/project-kind.ts` mirrors the coaching/strategy form-helper trio (`extractProjectKind`, `formDataToProjectKind`, `applyProjectKind`). Migration: `docs/db/migrations/2026_04_18_project_kind.sql`.
+
+**Date-engine carve-out**: `recalculateProjectDates` short-circuits when the root is checkpoint (no bulk-shift). `deriveUrgencyForProject` returns `'not_yet_due'` for any non-completed checkpoint task. `isCheckpointProject` is mirrored byte-equivalent in `supabase/functions/_shared/date.ts` (lock-step).
+
+**Nightly-sync**: the urgency-transition passes skip checkpoint projects. The recurrence pass is unaffected (templates are project-kind-agnostic).
+
+**Phase unlock**: existing `check_phase_unlock` trigger and `is_locked`/`prerequisite_phase_id` columns do all the unlocking work — Wave 29 changes nothing about the trigger. The new bit is the project-kind gating in the UI: locked phases visually communicate the lock state in checkpoint projects only.
+
+**Kind switching**: `date → checkpoint` is direct. `checkpoint → date` requires an `<AlertDialog>` confirmation in `EditProjectModal`. Date data is preserved across switches (no destructive operation).
+
+**Donut visualization**: `PhaseCard.tsx` swaps its progress bar for a `<PieChart>` (same pattern as `ProjectHeader.tsx`) when the project is checkpoint. Center label is `{percentage}%` or `Locked`.
+```
+
+**Cross-doc updates**:
+* `docs/architecture/date-engine.md` — append to "Business Rules & Constraints": `* **Checkpoint projects (Wave 29)**: `recalculateProjectDates` and `deriveUrgencyForProject` short-circuit; nightly-sync skips urgency transitions; due dates render as informational only.`
+* `docs/architecture/dashboard-analytics.md` — flip the "Donut Charts for Checkpoint-based project phases" gap to **Resolved (Wave 29)**.
+
+**Tests**:
+* `Testing/unit/features/projects/lib/project-kind.test.ts` (NEW) — extract/apply/formDataTo trio, mirror `coaching-form.test.ts`. Cases: absent key → `'date'`; explicit `'checkpoint'`; explicit `'date'`; invalid value → `'date'`; preservation of other settings keys.
+* `Testing/unit/shared/lib/date-engine/checkpoint.test.ts` (NEW) — `isCheckpointProject(null)` → false; non-root with checkpoint kind → false; root with checkpoint → true; root without kind key → false; `recalculateProjectDates` returns `[]` for checkpoint root.
+* `Testing/unit/features/projects/components/EditProjectModal.kind.test.tsx` (NEW) — radio renders; checkpoint→date triggers AlertDialog; submit fires expected payload via `useUpdateProject`.
+* `Testing/unit/features/projects/components/PhaseCard.donut.test.tsx` (NEW) — bar renders for date; donut renders for checkpoint; locked phase shows "Locked" label.
+* Manual `psql` smoke at `docs/db/tests/checkpoint_kind.sql` — assert constraint accepts `null`, `'date'`, `'checkpoint'`; rejects `'foo'`. Header: `-- EXPECT: 3 inserts succeed, 1 insert raises constraint violation`.
+
+**DB migration?** Yes — one CHECK constraint, additive, revertable.
+
+**Out of scope:** Auto-classifying existing projects as checkpoint (default-`'date'` is correct; users opt in). Cross-phase prerequisite chain editor UI (the column exists; setting it via UI is deferred). Fancy unlock animations.
 
 ---
 
@@ -94,135 +262,253 @@ A new "kind" of project that drops the rigid date model in favor of sequential p
 
 **Commit:** `feat(wave-29): assign limited viewer as Phase Lead with scoped UPDATE policy`
 
-Closes the `[-]` "Advanced Access: Assign Phase/Milestone to a limited viewer" backlog item from §3.2. A Project Owner may assign a `viewer`-role member as the **Lead** of a specific phase or milestone; that member may then read AND update tasks under that phase/milestone (but no other phases). Mirrors the Coaching pattern from Waves 22/23 — additive RLS policy + UI affordance — but scoped by hierarchy ancestry instead of a per-task flag.
+Closes the `[-]` "Advanced Access: Assign Phase/Milestone to a limited viewer" backlog item from §3.2. A Project Owner may assign a `viewer`-role member as the Lead of a specific phase or milestone; that member may then edit tasks under that phase/milestone (but no other phases). Mirrors the Coaching pattern (Waves 22/23): additive RLS + UI affordance — but scoped by hierarchy ancestry instead of a per-task flag.
 
-1. **RLS migration** (`docs/db/migrations/2026_XX_XX_phase_lead_rls.sql`, NEW)
-   - **Helper function**: `public.is_phase_lead_for_task(task_row tasks, uid uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO ''`. Body: walks up `parent_task_id` until it hits a row with `assignee_id = uid` or NULL; returns true if found, false otherwise.
-   - **Wait** — the existing `tasks.assignee_id` column is already used for individual task assignment. We need a *separate* concept of "phase lead" so that assigning a person to a milestone doesn't automatically grant them edit on every task under it via `assignee_id`. **Decision**: store phase-lead assignments in `settings.phase_lead_user_ids: string[]` on the phase or milestone row. A phase has a list (allow multiple leads in a phase). Helper rewrites:
-   - `public.user_is_phase_lead(target_task_id uuid, uid uuid) RETURNS boolean` — recursive CTE walks `parent_task_id` from `target_task_id`, checks each ancestor's `settings -> 'phase_lead_user_ids'` array via `? uid::text`. Returns true on first match. Stops at root.
-   - **Additive UPDATE policy** on `public.tasks`: `"Enable update for phase leads on tasks under their phase"` — `USING (origin = 'instance' AND user_is_phase_lead(id, auth.uid()))`. Mirrors the Coaching policy precedent (Wave 22).
-   - **No SELECT change** — viewer role already grants project-wide SELECT on tasks. The new policy widens UPDATE only.
-   - Mirror everything into `docs/db/schema.sql`.
+**Convention (locked):** Store assignments on the phase or milestone row's `settings` JSONB as `settings.phase_lead_user_ids: string[]` (a list to allow multiple leads in a phase). Already added to `TaskSettings` in Task 1.
 
-2. **Domain types + helper** (`src/features/projects/lib/phase-lead.ts`, NEW)
-   - Helper trio:
-     - `extractPhaseLeads(task): string[]` → reads `settings.phase_lead_user_ids` safely (returns `[]` when absent).
-     - `addPhaseLead(currentSettings, userId): Json` — append + dedupe.
-     - `removePhaseLead(currentSettings, userId): Json` — filter.
-   - Extend `TaskSettings` with `phase_lead_user_ids?: string[]`.
+**RLS migration** — `docs/db/migrations/2026_04_18_phase_lead_rls.sql` (NEW):
 
-3. **UI — Phase Lead picker** (`src/features/tasks/components/TaskFormFields.tsx` + `TaskDetailsView.tsx`)
-   - On a Phase or Milestone task (`task_type IN ('phase','milestone')` — Wave 25's discriminator pays off here), show a "Phase Leads" multi-select field. Owner-only (gate by `membershipRole === 'owner'`).
-   - Source the multi-select options from `useProjectMembers(projectId)` filtered to `role === 'viewer' || role === 'limited'` (limited users are the only ones who'd benefit; owners/editors already have project-wide UPDATE).
-   - Submit emits a flat `phase_lead_user_ids: string[]` field; the submit-merge in `TaskList.tsx` calls `applyPhaseLeads`.
-   - On `TaskDetailsView`: when `extractPhaseLeads(task).length > 0`, render a "Phase Leads: @user1, @user2" badge row (purple — distinct from coaching/strategy badges).
+```sql
+-- Migration: Wave 29 — Phase Lead RLS for limited viewers
+-- Date: 2026-04-18
+-- Description:
+--   Adds `user_is_phase_lead(target_task_id uuid, uid uuid)` SECURITY DEFINER
+--   helper that walks up the parent_task_id chain looking for any ancestor whose
+--   `settings -> 'phase_lead_user_ids'` contains uid. Adds an additive RLS UPDATE
+--   policy on public.tasks letting users update tasks under any phase/milestone
+--   they're a Phase Lead for. Mirrors the Wave 22 coaching policy precedent.
+--
+--   No SELECT change — viewers already have project-wide SELECT.
+--
+-- Revert path:
+--   DROP POLICY IF EXISTS "Enable update for phase leads" ON public.tasks;
+--   DROP FUNCTION IF EXISTS public.user_is_phase_lead(uuid, uuid);
 
-4. **Architecture doc** (`docs/architecture/auth-rbac.md`)
-   - Update the Project Role Permission Matrix to add a footnote: "**Limited viewers may also edit tasks under any phase or milestone they are designated as Phase Lead for** (see Phase Lead section below)."
-   - New `### Phase Lead (Wave 29)` section under "Business Rules & Constraints". Document: how to designate (Edit Task on phase/milestone → Phase Leads picker, owner-only); RLS policy name + migration file; the recursive ancestor-walk used by `user_is_phase_lead`; the cap (no cap — multiple leads per phase, single user can lead multiple phases).
+CREATE OR REPLACE FUNCTION public.user_is_phase_lead(target_task_id uuid, uid uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO ''
+AS $$
+  WITH RECURSIVE ancestors AS (
+    SELECT id, parent_task_id, settings
+    FROM public.tasks
+    WHERE id = target_task_id
+    UNION ALL
+    SELECT t.id, t.parent_task_id, t.settings
+    FROM public.tasks t
+    JOIN ancestors a ON t.id = a.parent_task_id
+  )
+  SELECT EXISTS (
+    SELECT 1
+    FROM ancestors
+    WHERE settings ? 'phase_lead_user_ids'
+      AND (settings -> 'phase_lead_user_ids') ? uid::text
+  );
+$$;
 
-5. **Tests**
-   - `Testing/unit/features/projects/lib/phase-lead.test.ts` (NEW) — extract/add/remove dedupe, settings preservation.
-   - `Testing/unit/features/tasks/components/TaskFormFields.phaseLead.test.tsx` (NEW) — picker visible only for owners on phase/milestone rows; submit payload shape.
-   - Manual `psql` smoke at `docs/db/tests/phase_lead_rls.sql` — exercise: viewer with no phase-lead assignment cannot UPDATE a task; viewer with phase-lead on milestone CAN UPDATE a task under that milestone; same viewer CANNOT update a task under a sibling milestone.
+REVOKE ALL ON FUNCTION public.user_is_phase_lead(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.user_is_phase_lead(uuid, uuid) TO authenticated;
 
-**DB migration?** Yes — one helper function + one additive RLS policy. Revertable.
+CREATE POLICY "Enable update for phase leads"
+ON public.tasks
+FOR UPDATE
+TO authenticated
+USING (
+  origin = 'instance'
+  AND public.user_is_phase_lead(id, auth.uid())
+)
+WITH CHECK (
+  origin = 'instance'
+  AND public.user_is_phase_lead(id, auth.uid())
+);
+```
 
-**Out of scope:**
-- Project-Owner-can-be-Phase-Lead UX (owners already have project-wide UPDATE; the picker filters them out).
-- Per-task lead designation finer than phase/milestone level (defer — the §3.2 backlog item is phrased as Phase/Milestone scope).
-- Notification when assigned as Phase Lead (Wave 30).
+Mirror into `docs/db/schema.sql`.
+
+**Helper trio** — `src/features/projects/lib/phase-lead.ts` (NEW):
+
+```ts
+import type { TaskRow } from '@/shared/db/app.types';
+
+export function extractPhaseLeads(task: Pick<TaskRow, 'settings'> | null | undefined): string[] {
+  const settings = (task?.settings ?? {}) as Record<string, unknown>;
+  const raw = settings.phase_lead_user_ids;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((v): v is string => typeof v === 'string');
+}
+
+export function applyPhaseLeads(
+  currentSettings: Record<string, unknown> | null | undefined,
+  userIds: string[],
+): Record<string, unknown> {
+  const dedup = [...new Set(userIds)];
+  return { ...(currentSettings ?? {}), phase_lead_user_ids: dedup };
+}
+```
+
+(No `formDataToPhaseLeads` needed — the form passes the array directly.)
+
+**UI — Phase Lead picker** — `src/features/tasks/components/TaskFormFields.tsx`. When `task.task_type IN ('phase','milestone')` AND `membershipRole === 'owner'`:
+* Render a multi-select using `<Select>` with `multiple` (Shadcn `<Select>` doesn't support multi-select natively — implement as a list of checkboxes rendered inside a `<Popover>`, or use a `<Command>` with multi-pick).
+* **Default implementation (locked)**: use `<Command>` from `src/shared/ui/command.tsx` rendered inside a `<Popover>` with manual checkbox state. Each item is one project member with role `viewer` or `limited` (filter from `useTeam(projectId)` results — owners/editors already have project-wide UPDATE, no need to designate them as Phase Lead).
+* The form field name is `phase_lead_user_ids: string[]` (added to `TaskFormData` in `app.types.ts`).
+* On submit, the existing submit-merge in `TaskList.tsx` (or wherever `TaskFormFields` submits — read the file to confirm) calls `applyPhaseLeads(currentSettings, formData.phase_lead_user_ids)` after `applyCoachingFlag` / `applyStrategyTemplateFlag`.
+
+Owners/editors/coaches/admins are NOT in the picker (the policy carve-out doesn't apply to them — they have full UPDATE via existing policies).
+
+**Badge** — `src/features/tasks/components/TaskDetailsView.tsx`. When `extractPhaseLeads(task).length > 0`, render a "Phase Leads: @user1, @user2" badge row. Use a purple variant (distinct from the sky-coaching and emerald-strategy badges). To resolve user_id → email, use `useTeam(projectId)` and look up by id.
+
+**Architecture doc** — append to `docs/architecture/auth-rbac.md`:
+
+```md
+### Phase Lead (Wave 29)
+
+A project Owner may designate any `viewer` or `limited`-role member as the **Lead** of a specific phase or milestone via `settings.phase_lead_user_ids` (a JSONB array on the phase/milestone row). The list allows multiple leads per phase; a single user can lead multiple phases.
+
+**RLS** (migration `docs/db/migrations/2026_04_18_phase_lead_rls.sql`):
+* Helper: `user_is_phase_lead(target_task_id uuid, uid uuid)` walks up the `parent_task_id` chain and returns true if any ancestor's `settings.phase_lead_user_ids` contains `uid`.
+* Policy: `"Enable update for phase leads"` on `public.tasks` — `USING (origin = 'instance' AND user_is_phase_lead(id, auth.uid()))`.
+* **Additive only** — owner/editor/coach UPDATE policies are unchanged. SELECT for viewers is unchanged (already project-wide).
+
+**UI** (`src/features/tasks/components/TaskFormFields.tsx`): a multi-select picker on phase/milestone rows, gated to `membershipRole === 'owner'`. Sources options from `useTeam(projectId).teamMembers.filter(m => m.role === 'viewer' || m.role === 'limited')` — note the hook field is `teamMembers`, not `members`. Badge in `TaskDetailsView.tsx` lists current leads.
+
+**Permission matrix update**: limited viewers may now edit tasks under any phase/milestone they are designated as Phase Lead for. See the matrix at the top of this file (footnote added).
+```
+
+**Permission matrix footnote** — append to the existing "Project Role Permission Matrix" table in `auth-rbac.md`:
+
+```md
+> **Footnote (Wave 29):** Viewer/Limited users may also edit tasks under any phase or milestone they are designated as Phase Lead for. See "Phase Lead" section below.
+```
+
+**Tests**:
+* `Testing/unit/features/projects/lib/phase-lead.test.ts` (NEW) — extract/apply with dedup; settings preservation; type guard against non-string array elements.
+* `Testing/unit/features/tasks/components/TaskFormFields.phaseLead.test.tsx` (NEW) — picker visible only for owners on phase/milestone rows; hidden on leaf tasks; hidden for editor/coach/viewer roles; submit payload includes `phase_lead_user_ids`.
+* Manual `psql` smoke at `docs/db/tests/phase_lead_rls.sql` (NEW). Cases:
+  * Insert a milestone with `settings.phase_lead_user_ids = [<viewer_user_id>]`.
+  * As that viewer, attempt to UPDATE a task under that milestone → succeeds.
+  * As same viewer, attempt to UPDATE a task under a sibling milestone (no Phase Lead) → fails with RLS denial.
+  * As the same viewer, attempt to UPDATE the milestone row itself → fails (the policy gates `tasks` updates under the phase, not the phase row itself; that requires owner/editor).
+  * Header: `-- EXPECT: viewer-with-phase-lead can update child task; cannot update sibling phase's child; cannot update phase row`.
+
+**DB migration?** Yes — one helper function + one additive RLS policy.
+
+**Out of scope:** Owner/editor in the picker (already have UPDATE). Per-task lead designation finer than phase/milestone (defer). Notification when assigned as Phase Lead (Wave 30).
 
 ---
 
 ## Documentation Currency Pass (mandatory — before review)
 
-1. **`spec.md`** — flip §3.2 Checkpoint-Based Architecture to `[x]` with a note pointing to `settings.project_kind` + `docs/architecture/projects-phases.md`. Promote §3.2 Advanced Access from `[-]` (Backlog) to `[x]` shipped, with the Phase Lead pointer. Bump version to **1.14.0**. Update `Last Updated`.
-2. **`docs/AGENT_CONTEXT.md`** — add "Checkpoint Project Kind (Wave 29)" and "Phase Lead (Wave 29)" golden-path bullets. List `settings.project_kind` and `settings.phase_lead_user_ids` alongside the existing `settings.is_coaching_task` etc.
-3. **`docs/architecture/projects-phases.md`** — Checkpoint section is the SSoT; cross-references in.
-4. **`docs/architecture/auth-rbac.md`** — Phase Lead section is in; matrix footnote added.
-5. **`docs/architecture/date-engine.md`** — Checkpoint carve-out bullet is in.
-6. **`docs/architecture/dashboard-analytics.md`** — Checkpoint donut gap flipped to Resolved.
-7. **`docs/architecture/tasks-subtasks.md`** — append a one-line cross-ref to the Phase Lead RLS policy under the existing wave-tagged sections.
-8. **`docs/dev-notes.md`** — no entry expected. Confirm currency.
-9. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 29 (Checkpoint + Phase Lead)`, update `last_completed`, `spec_version`, add `wave_29_highlights:` block.
-10. **`CLAUDE.md`** — under Schema Overview, add a one-line note about `settings.project_kind` and `settings.phase_lead_user_ids` being canonical settings keys (alongside the existing `published` / `recurrence` / etc. mention).
+`docs(wave-29): documentation currency sweep`. Operations:
+
+1. **`spec.md`**:
+   - §3.2: flip `[ ] **Checkpoint-Based Architecture** ...` → `[x]` with sub-note pointing to `settings.project_kind` + `docs/architecture/projects-phases.md`.
+   - §3.2: promote `[-] **Advanced Access** ...` from Backlog to `[x]` shipped with the Phase Lead pointer.
+   - Bump header to `> **Version**: 1.14.0 (Wave 29 — Checkpoint Projects + Phase Lead)`. Update `Last Updated`.
+
+2. **`docs/AGENT_CONTEXT.md`** — add two golden-path bullets:
+   - `**Checkpoint Project Kind (Wave 29)**: `settings.project_kind` on root tasks; helpers in `src/features/projects/lib/project-kind.ts`; `isCheckpointProject` in `date-engine` (lock-step with `supabase/functions/_shared/date.ts`); UI gates `<RadioGroup>` in `EditProjectModal` with `<AlertDialog>` confirmation on switch back to date.`
+   - `**Phase Lead (Wave 29)**: `settings.phase_lead_user_ids[]` on phase/milestone rows; `user_is_phase_lead` recursive ancestor-walk function + additive RLS UPDATE policy; multi-select picker in `TaskFormFields` for owners only; viewer/limited members in the options.`
+
+3. **`docs/architecture/projects-phases.md`** — Checkpoint section is the SSoT.
+
+4. **`docs/architecture/auth-rbac.md`** — Phase Lead section + matrix footnote in.
+
+5. **`docs/architecture/date-engine.md`** — Business Rules bullet in.
+
+6. **`docs/architecture/dashboard-analytics.md`** — Checkpoint donut gap → Resolved.
+
+7. **`docs/architecture/tasks-subtasks.md`** — append one-line cross-ref under wave-tagged sections: `**Phase Lead (Wave 29):** `settings.phase_lead_user_ids[]` on phase/milestone rows is consumed by the additive RLS UPDATE policy `"Enable update for phase leads"`. See `auth-rbac.md` for the policy text and `src/features/projects/lib/phase-lead.ts` for the form helpers.`
+
+8. **`docs/dev-notes.md`** — confirm currency. No new entries.
+
+9. **`repo-context.yaml`**:
+   - `wave_status.current: 'Wave 29 (Checkpoint Projects + Phase Lead)'`, `last_completed: 'Wave 29'`, `spec_version: '1.14.0'`.
+   - `wave_29_highlights:` list: `settings.project_kind` discriminator, `isCheckpointProject` lock-step, donut viz on PhaseCard, `user_is_phase_lead` RLS, phase-lead picker in TaskFormFields.
+
+10. **`CLAUDE.md`**:
+    - Schema Overview: under `tasks` settings JSONB notes, append `project_kind ('date' | 'checkpoint'), phase_lead_user_ids (string[])` to the canonical settings keys list.
+    - Add a one-liner under "Schema Overview → tasks": `**Wave 29:** `settings.project_kind` gates the date-engine; `settings.phase_lead_user_ids` widens UPDATE access via the `"Enable update for phase leads"` RLS policy.`
 
 Land docs as `docs(wave-29): documentation currency sweep`.
 
 ## Wave Review (mandatory — before commit + push to main)
 
-1. **Kind switch reversibility** — flip a project to checkpoint, mark phase 1 complete, see phase 2 unlock. Flip back to date — confirmation dialog appears; submit; due dates re-engage. Flip to checkpoint again. The whole cycle should be lossless.
-2. **Date-engine quietness on checkpoint projects** — open the dev console while interacting with a checkpoint project. The nightly-sync function logs (visible via `supabase functions serve nightly-sync` locally) should report 0 urgency transitions for that project.
-3. **Phase Lead RLS** — manual psql smoke per Task 2; **also** sign in as the assigned phase lead in the dev UI and confirm the per-task status checkbox is enabled on assigned-phase tasks and disabled on others.
-4. **Donut renders correctly for both kinds** — date-kind project shows bar; checkpoint shows donut; locked checkpoint phase shows "Locked" center label.
-5. **No FSD drift** — `features/projects/lib/project-kind.ts` and `features/projects/lib/phase-lead.ts` mirror the `coaching-form` precedent. No barrel files. No new dependencies.
-6. **Type drift** — `database.types.ts` may not have changed (no new column), but verify.
-7. **Lock-step Deno mirror** — `supabase/functions/_shared/date.ts` carries `isCheckpointProject` byte-equivalent to the frontend; document the lock-step rule in the file header.
+1. **Kind switch reversibility** — flip a project to checkpoint, complete phase 1's tasks, see phase 2 unlock via the existing trigger. Flip back to date — confirmation dialog appears; submit; due dates re-engage. Flip to checkpoint again. The whole cycle should be lossless.
+2. **Date-engine quietness on checkpoint projects** — open the dev console while interacting with a checkpoint project. The nightly-sync function logs (visible via `supabase functions serve nightly-sync` locally) should report 0 urgency transitions for that project's tasks.
+3. **Phase Lead RLS** — manual `psql` smoke per Task 2; **also** sign in as the assigned phase lead in the dev UI and confirm the per-task status checkbox is enabled on assigned-phase tasks and disabled on others.
+4. **Donut renders correctly** — date-kind project shows progress bar; checkpoint shows donut; locked checkpoint phase shows "Locked" center label.
+5. **Lock-step Deno mirror** — `supabase/functions/_shared/date.ts` carries `isCheckpointProject` byte-equivalent. Eyeball-diff the two functions.
+6. **No FSD drift** — `features/projects/lib/project-kind.ts` and `features/projects/lib/phase-lead.ts` mirror the coaching-form precedent. No barrel files. No new dependencies.
+7. **Type drift** — `database.types.ts` did not change (no new column); verify no accidental touch.
 8. **Lint + build + tests** — green.
 
 ## Commit & Push to Main (mandatory — gates Wave 30)
 
-After both Tasks 1 and 2 PRs merge:
-1. `git checkout main && git pull && npm install && npm run lint && npm run build && npx vitest run`.
-2. The history should show: 2 task commits + 1 docs sweep commit.
-3. Push to `origin/main`. CI green.
-4. **Do not start Wave 30** until `main` is green and the Documentation Currency Pass has merged.
+After both task PRs and the docs sweep merge:
+1. `git checkout main && git pull && npm install && npm run lint && npm run build && npm test`.
+2. The new commits: 2 task commits + 1 docs sweep on top of Wave 28.
+3. `git push origin main`. CI green.
+4. **Do not start Wave 30** until the above is true.
 
 ## Verification Gate (per task, before push)
 
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npx vitest run    # baseline + new tests
+npm run lint      # 0 errors, ≤7 warnings
+npm run build     # clean
+npm test          # baseline + new tests
 git status        # clean
 ```
 
 Manual smoke checks (dev server + local Supabase):
-- **Task 1:** create a project → Edit → flip to Checkpoint → see lock icons on phases 2+. Mark phase 1 tasks complete one by one — donut fills; at 100%, phase 2 unlocks (re-render via realtime channel). Flip back to Date — confirmation dialog → submit → due dates resume rendering, donuts revert to bars.
-- **Task 2:** as Owner, assign a `viewer`-role member as Phase Lead on a milestone. Sign in as that member → confirm the milestone's tasks are editable, sibling milestones are read-only. Sign in as a viewer with **no** Phase Lead assignment → confirm everything is read-only.
+- **Task 1:** create a project → Edit → flip to Checkpoint → see lock icons on phases 2+. Mark phase 1 tasks complete one by one → donut fills; at 100%, phase 2 unlocks via the existing `check_phase_unlock` trigger; realtime channel updates the lock icon. Flip back to Date → AlertDialog → submit → due dates resume rendering, donuts revert to bars.
+- **Task 2:** as Owner, assign a `viewer`-role member as Phase Lead on a milestone (multi-select in TaskFormFields). Sign in as that member → confirm the milestone's tasks are editable, sibling milestones are read-only, the milestone row itself is NOT editable. Sign in as a viewer with no Phase Lead → confirm everything is read-only.
 
 ## Key references
 
-- `CLAUDE.md` — conventions, commands, architecture overview
-- `.gemini/styleguide.md` — strict typing, FSD boundaries, Tailwind constraints, no arbitrary values
-- `docs/architecture/projects-phases.md` — host doc for Task 1's checkpoint section
-- `docs/architecture/auth-rbac.md` — host doc for Task 2's Phase Lead section
-- `docs/architecture/date-engine.md` — must update Integration Points
-- `docs/architecture/dashboard-analytics.md` — close the donut chart known-gap
-- `docs/db/migrations/2026_04_17_coaching_task_rls.sql` — additive UPDATE policy precedent (Wave 22) — Task 2 mirrors this shape
-- `src/features/tasks/lib/coaching-form.ts` — helper-trio precedent for both Task 1 (`project-kind.ts`) and Task 2 (`phase-lead.ts`)
-- `src/features/projects/components/ProjectHeader.tsx` — donut chart precedent (Wave 19) for Task 1's PhaseCard swap
-- `supabase/functions/_shared/date.ts` — Deno mirror site; Task 1's `isCheckpointProject` lives here too
+- `CLAUDE.md` — conventions
+- `.gemini/styleguide.md` — strict typing, FSD, Tailwind, optimistic-rollback
+- `docs/architecture/projects-phases.md` — host doc for Task 1
+- `docs/architecture/auth-rbac.md` — host doc for Task 2; existing helper definitions
+- `docs/architecture/date-engine.md` — Business Rules update
+- `docs/architecture/dashboard-analytics.md` — donut gap closes
+- `docs/db/migrations/2026_04_17_coaching_task_rls.sql` — additive UPDATE policy precedent
+- `src/features/tasks/lib/coaching-form.ts` — helper-trio template for both new helpers
+- `src/features/tasks/lib/strategy-form.ts` — helper-trio template
+- `src/features/projects/components/ProjectHeader.tsx` — recharts `<PieChart>` precedent for the donut swap
+- `supabase/functions/_shared/date.ts` — Deno mirror site
+- `supabase/functions/_shared/recurrence.ts` — lock-step convention precedent
 
 ## Critical Files
 
 **Will edit:**
 - `docs/db/schema.sql` (mirror Tasks 1 + 2 migrations)
 - `docs/architecture/projects-phases.md` (Checkpoint SSoT)
-- `docs/architecture/auth-rbac.md` (Phase Lead section)
+- `docs/architecture/auth-rbac.md` (Phase Lead section + matrix footnote)
 - `docs/architecture/date-engine.md` (Checkpoint carve-out bullet)
 - `docs/architecture/dashboard-analytics.md` (donut gap → Resolved)
 - `docs/architecture/tasks-subtasks.md` (Phase Lead one-line cross-ref)
-- `docs/AGENT_CONTEXT.md` (Wave 29 golden-path bullets)
+- `docs/AGENT_CONTEXT.md` (two Wave 29 golden-path bullets)
 - `docs/dev-notes.md` (currency check)
-- `src/shared/db/app.types.ts` (`TaskSettings.project_kind`, `phase_lead_user_ids`)
-- `src/shared/lib/date-engine/index.ts` (`isCheckpointProject`, carve-outs)
-- `src/features/projects/components/EditProjectModal.tsx` (kind picker + reversal dialog)
-- `src/features/projects/components/PhaseCard.tsx` (donut/bar swap)
-- `src/features/tasks/components/TaskList.tsx` (phase-lock UX, submit-merge for phase leads)
-- `src/features/tasks/components/TaskFormFields.tsx` (Phase Leads multi-select)
+- `src/shared/db/app.types.ts` (`TaskSettings.project_kind`, `TaskSettings.phase_lead_user_ids`, `TaskFormData.phase_lead_user_ids`)
+- `src/shared/lib/date-engine/index.ts` (`isCheckpointProject`, carve-outs in `recalculateProjectDates` and a new `deriveUrgencyForProject`)
+- `src/features/projects/components/EditProjectModal.tsx` (kind picker + reversal AlertDialog)
+- `src/features/projects/components/PhaseCard.tsx` (donut/bar swap + lock UX)
+- `src/features/tasks/components/TaskList.tsx` (submit-merge for phase leads alongside coaching/strategy)
+- `src/features/tasks/components/TaskFormFields.tsx` (Phase Leads multi-select picker)
 - `src/features/tasks/components/TaskDetailsView.tsx` (Phase Leads badge row)
 - `supabase/functions/_shared/date.ts` (Deno mirror of `isCheckpointProject`)
-- `supabase/functions/nightly-sync/index.ts` (skip checkpoint projects in urgency pass)
+- `supabase/functions/nightly-sync/index.ts` (skip checkpoint projects in urgency passes)
 - `spec.md` (flip §3.2 Checkpoint + §3.2 Advanced Access, bump to 1.14.0)
 - `repo-context.yaml` (Wave 29 highlights)
 - `CLAUDE.md` (settings keys note)
 
 **Will create:**
-- `docs/db/migrations/2026_XX_XX_project_kind.sql`
-- `docs/db/migrations/2026_XX_XX_phase_lead_rls.sql`
-- `docs/db/tests/checkpoint_unlock.sql`
+- `docs/db/migrations/2026_04_18_project_kind.sql`
+- `docs/db/migrations/2026_04_18_phase_lead_rls.sql`
+- `docs/db/tests/checkpoint_kind.sql`
 - `docs/db/tests/phase_lead_rls.sql`
 - `src/features/projects/lib/project-kind.ts`
 - `src/features/projects/lib/phase-lead.ts`
@@ -234,12 +520,12 @@ Manual smoke checks (dev server + local Supabase):
 - `Testing/unit/features/tasks/components/TaskFormFields.phaseLead.test.tsx`
 
 **Explicitly out of scope this wave:**
-- Project-kind auto-detection / suggestion
-- Bulk-flip multiple projects to checkpoint via admin tool (Wave 33 if needed)
+- Project-kind auto-detection
+- Bulk-flip multiple projects via admin tool (Wave 33)
 - Notification when assigned as Phase Lead (Wave 30)
-- Cross-phase prerequisite chain editor UI (the column exists; setting it via UI is deferred)
+- Cross-phase prerequisite chain editor UI
 - Mobile-friendly phase-lock UX polish (Wave 32)
 
-## Ground Rules (non-negotiable — from `CLAUDE.md` + `.gemini/styleguide.md`)
+## Ground Rules
 
-TypeScript-only; no `.js` / `.jsx`; no barrel files (import directly from concrete paths); path alias `@/` → `src/`; no raw date math (the date-engine carve-out in Task 1 must use `date-engine` helpers — never bypass with raw arithmetic); no direct `supabase.from()` in components; Tailwind utility classes only (no arbitrary values, no pure black — use `slate-900` / `zinc-900`); optimistic mutations must force-refetch on error; max subtask depth = 1; template vs instance clarified on any cross-cutting work (`origin = 'template' | 'instance'` — checkpoint kind is instance-only; templates have no project_kind); frontend/Deno date helpers stay in lock-step (`isCheckpointProject` is mirrored — keep it byte-equivalent); only add dependencies if truly necessary (Wave 29 should add **zero** new npm deps); atomic revertable commits; build + lint + tests all clean before every push; DB migrations are additive-only unless the user explicitly approves a breaking change in-session.
+TypeScript only; no `.js`/`.jsx`; no barrel files; `@/` → `src/`, `@test/` → `Testing/test-utils`; **no raw date math** — Task 1's date-engine carve-out uses existing helpers; no direct `supabase.from()` in components; Tailwind utilities only (no arbitrary values, no pure black — slate-900/zinc-900); brand button uses `bg-brand-600 hover:bg-brand-700`; optimistic mutations must force-refetch in `onError`; max subtask depth = 1; template vs instance: checkpoint kind is instance-only (templates have no project_kind); frontend/Deno date helpers stay in lock-step (`isCheckpointProject` mirrored byte-equivalent — keep updates synchronized); **zero new npm dependencies** (recharts already bundled); atomic revertable commits; build + lint + tests clean before every push; DB migrations are additive-only.
