@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, FolderOpen, Archive } from 'lucide-react';
+import { ChevronDown, FolderOpen, Archive, CheckCircle2 } from 'lucide-react';
 import {
  DropdownMenu,
  DropdownMenuTrigger,
@@ -15,12 +15,15 @@ import { PROJECT_STATUS } from '@/shared/constants/domain';
 import type { Project, Task } from '@/shared/db/app.types';
 
 const isArchived = (p: Project | Task) => p.status === PROJECT_STATUS.ARCHIVED;
+const isCompleted = (p: Project | Task) => !isArchived(p) && p.is_complete === true;
 const isActive = (p: Project | Task) => !isArchived(p) && !p.is_complete;
 
 const ProjectSwitcher = () => {
  const navigate = useNavigate();
  const { projectId } = useParams<{ projectId: string }>();
  const [showArchived, setShowArchived] = useState(false);
+ // Wave 25: independent "Show completed" toggle mirroring the archived pattern.
+ const [showCompleted, setShowCompleted] = useState(false);
  const { tasks = [], projectsLoading } = useTaskQuery();
 
  const instanceProjects = useMemo(
@@ -30,6 +33,14 @@ const ProjectSwitcher = () => {
 
  const activeProjects = useMemo(
  () => instanceProjects.filter(isActive),
+ [instanceProjects]
+ );
+
+ // Wave 25: completed projects are active (not archived) AND is_complete = true.
+ // A project that is both archived and completed is NOT listed here — it
+ // requires both toggles to be visible.
+ const completedProjects = useMemo(
+ () => instanceProjects.filter(isCompleted),
  [instanceProjects]
  );
 
@@ -100,6 +111,34 @@ const ProjectSwitcher = () => {
  key={p.id}
  onSelect={() => handleSelect(p.id)}
  data-testid={`project-switcher-archived-${p.id}`}
+ className="cursor-pointer text-slate-500"
+ >
+ <span className="truncate">{p.title}</span>
+ </DropdownMenuItem>
+ ))
+ )}
+ </div>
+ )}
+ <button
+ type="button"
+ onClick={() => setShowCompleted((v) => !v)}
+ data-testid="project-switcher-toggle-completed"
+ className="flex items-center w-full gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-sm"
+ >
+ <CheckCircle2 className="w-4 h-4" />
+ {showCompleted ? 'Hide completed' : 'Show completed'}
+ <span className="ml-auto text-xs text-slate-400">{completedProjects.length}</span>
+ </button>
+ {showCompleted && (
+ <div data-testid="project-switcher-completed-list">
+ {completedProjects.length === 0 ? (
+ <div className="px-3 py-2 text-sm text-slate-500">No completed projects.</div>
+ ) : (
+ completedProjects.map((p) => (
+ <DropdownMenuItem
+ key={p.id}
+ onSelect={() => handleSelect(p.id)}
+ data-testid={`project-switcher-completed-${p.id}`}
  className="cursor-pointer text-slate-500"
  >
  <span className="truncate">{p.title}</span>

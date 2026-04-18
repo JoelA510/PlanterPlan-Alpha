@@ -27,9 +27,10 @@ This domain defines the highest-level structural containers of the application. 
 
 ## Archive & Completion Semantics
 * **Archived project:** Root task carries `status = 'archived'` (set/cleared via the Archive / Unarchive action in `EditProjectModal`). Archiving is reversible and **never cascades** to descendants — children keep their own status and continue to resolve dates normally.
-* **Active project:** Any project root where `status !== 'archived'` **and** `is_complete !== true`. This is the predicate used by `useDashboard`, `ProjectSidebar`, and `ProjectSwitcher` to populate the default active list.
-* **Completed project:** Indicated by `is_complete = true` on the root task. Wave 23's `sync_task_completion_flags` DB trigger makes `is_complete === (status === 'completed')` an unconditional invariant (see `tasks-subtasks.md`); the `updateStatus` bubble-up logic keeps the value propagating up the tree. The UI filter inspects `is_complete` only.
+* **Active project:** Any project root where `status !== 'archived'` **and** `is_complete !== true`. This is the default-visible set for `useDashboard`, `ProjectSidebar`, and `ProjectSwitcher`.
+* **Completed project:** Indicated by `is_complete = true` on the root task (and `status !== 'archived'`). Wave 23's `sync_task_completion_flags` DB trigger makes `is_complete === (status === 'completed')` an unconditional invariant (see `tasks-subtasks.md`); the `updateStatus` bubble-up logic keeps the value propagating up the tree. The UI filter inspects `is_complete` only.
 * **No auto-archive:** Completing a project does not archive it; archive remains an explicit user action.
+* **Reachable behind toggles (Wave 25):** `ProjectSwitcher` exposes two independent toggles — "Show archived" (Wave 21.5) and "Show completed" (Wave 25) — so users can navigate back to either subset without leaving the header dropdown. Toggles are independent: a project that is **both** archived **and** completed is classified as archived by the component's filters, and therefore appears only when "Show archived" is on. Defaults stay OFF; active behavior is unchanged.
 
 ## Integration Points
 * **Dashboard & Analytics:** Dashboard heavily queries Project completeness metrics to render the Pipeline Board.
