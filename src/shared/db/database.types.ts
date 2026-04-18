@@ -938,7 +938,11 @@ export type Database = {
  }
  }
  Functions: {
- check_project_ownership: {
+ check_project_creatorship: {
+ Args: { p_id: string; u_id: string }
+ Returns: boolean
+ }
+ check_project_ownership_by_role: {
  Args: { p_id: string; u_id: string }
  Returns: boolean
  }

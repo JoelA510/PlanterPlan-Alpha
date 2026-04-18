@@ -200,25 +200,27 @@ $$;
 ALTER FUNCTION "public"."check_project_creatorship"("p_id" "uuid", "u_id" "uuid") OWNER TO "postgres";
 
 
--- Wave 23: `check_project_ownership` was misleadingly named — it actually
--- checks `tasks.creator`, not the `owner` role. Kept here as a thin shim for
--- one release so the four RLS policies below continue to work byte-for-byte
--- identically while the per-callsite intent audit (see comments on each
--- policy) is completed. Drop in a follow-up wave once every caller migrates
--- to either `check_project_creatorship` or a genuine ownership helper.
-CREATE OR REPLACE FUNCTION "public"."check_project_ownership"("p_id" "uuid", "u_id" "uuid") RETURNS boolean
-    LANGUAGE "sql" STABLE SECURITY DEFINER
+-- Wave 24: canonical ownership check. Unlike `check_project_creatorship`, a
+-- user who is removed from `project_members` stops passing this check — which
+-- is what the DELETE/UPDATE policies on project_members actually want.
+-- See docs/db/migrations/2026_04_18_rewrite_project_members_policies.sql.
+CREATE OR REPLACE FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
-  SELECT public.check_project_creatorship(p_id, u_id);
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.project_members
+    WHERE project_id = p_id
+      AND user_id    = u_id
+      AND role       = 'owner'
+  );
+END;
 $$;
 
 
-ALTER FUNCTION "public"."check_project_ownership"("p_id" "uuid", "u_id" "uuid") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."check_project_ownership"("p_id" "uuid", "u_id" "uuid") IS
-  'Deprecated shim (Wave 23). Delegates to public.check_project_creatorship. Kept one release for the RLS policy audit; drop once every callsite migrates.';
+ALTER FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."clone_project_template"("p_template_id" "uuid", "p_new_parent_id" "uuid", "p_new_origin" "text", "p_user_id" "uuid") RETURNS "jsonb"
@@ -1863,43 +1865,36 @@ CREATE POLICY "View resources" ON "public"."task_resources" FOR SELECT USING (((
 ALTER TABLE "public"."admin_users" ENABLE ROW LEVEL SECURITY;
 
 
--- Wave 23 audit (intent: OWNERSHIP). Allowing the row's creator to delete
--- any project_members row is a convenient bypass, not the documented intent.
--- The OR (project_id IN ... role = 'owner') clause is the right gate; a
--- follow-up wave should replace `check_project_ownership` here with a helper
--- that queries `project_members.role = 'owner'`.
-CREATE POLICY "members_delete_policy" ON "public"."project_members" FOR DELETE USING ((("user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."check_project_ownership"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
+-- Wave 24: rewritten from the Wave 23 audit. Ownership is now checked via
+-- `check_project_ownership_by_role` (queries project_members.role = 'owner')
+-- rather than the deprecated shim that checked tasks.creator. A user who was
+-- removed from project_members no longer passes.
+CREATE POLICY "members_delete_policy" ON "public"."project_members" FOR DELETE USING ((("user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."check_project_ownership_by_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid))));
+
+
+
+-- Wave 24: bootstrap path — the project creator self-inserts the first
+-- owner row before any owner-role row exists. Switched from the deprecated
+-- `check_project_ownership` shim to the correctly-named
+-- `check_project_creatorship` directly. The "already-owner" branch is
+-- preserved for subsequent member additions.
+CREATE POLICY "members_insert_policy" ON "public"."project_members" FOR INSERT WITH CHECK (("public"."check_project_creatorship"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
    FROM "public"."project_members" "project_members_1"
   WHERE (("project_members_1"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) AND ("project_members_1"."role" = 'owner'::"text"))))));
 
 
 
--- Wave 23 audit (intent: CREATORSHIP — bootstrap). The project creator
--- needs to self-insert as the initial `owner` row in project_members before
--- any `owner`-role rows exist, so the creator check is genuinely required
--- here. Safe to migrate to `check_project_creatorship` directly.
-CREATE POLICY "members_insert_policy" ON "public"."project_members" FOR INSERT WITH CHECK (("public"."check_project_ownership"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
-   FROM "public"."project_members" "project_members_1"
-  WHERE (("project_members_1"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) AND ("project_members_1"."role" = 'owner'::"text"))))));
+-- Wave 24: creatorship branch dropped (redundant + leaky). is_active_member
+-- + the user_id self-check cover every legitimate read; the old creatorship
+-- branch only fired for *removed* creators.
+CREATE POLICY "members_select_policy" ON "public"."project_members" FOR SELECT USING ((("user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."is_active_member"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
--- Wave 23 audit (intent: REDUNDANT — safe to drop). `is_active_member` OR
--- the user_id self-check already covers every legitimate read. The
--- creatorship branch only fires for a creator who has been removed from
--- project_members — the exact "removed-user still sees rows" leak called
--- out in dev-notes. A follow-up wave should delete the clause entirely.
-CREATE POLICY "members_select_policy" ON "public"."project_members" FOR SELECT USING ((("user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."is_active_member"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)) OR "public"."check_project_ownership"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid))));
-
-
-
--- Wave 23 audit (intent: OWNERSHIP). Same rationale as members_delete_policy
--- — the creator-based bypass is a latent leak; the `role = 'owner'` branch
--- is the documented intent. Migrate to a real ownership helper in a
--- follow-up wave.
-CREATE POLICY "members_update_policy" ON "public"."project_members" FOR UPDATE USING (("public"."check_project_ownership"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("project_id" IN ( SELECT "project_members_1"."project_id"
-   FROM "public"."project_members" "project_members_1"
-  WHERE (("project_members_1"."user_id" = (SELECT (auth.jwt() ->> 'sub')::uuid)) AND ("project_members_1"."role" = 'owner'::"text")))))) WITH CHECK ((("user_id" <> (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("role" <> 'viewer'::"text")));
+-- Wave 24: ownership rewrite, same rationale as members_delete_policy. The
+-- WITH CHECK is preserved verbatim from Wave 23 (prevents a user from
+-- self-demoting to viewer).
+CREATE POLICY "members_update_policy" ON "public"."project_members" FOR UPDATE USING (("public"."check_project_ownership_by_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid)))) WITH CHECK ((("user_id" <> (SELECT (auth.jwt() ->> 'sub')::uuid)) OR ("role" <> 'viewer'::"text")));
 
 
 
@@ -2101,8 +2096,8 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 REVOKE ALL ON FUNCTION "public"."check_project_creatorship"("p_id" "uuid", "u_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."check_project_creatorship"("p_id" "uuid", "u_id" "uuid") TO "authenticated";
-REVOKE ALL ON FUNCTION "public"."check_project_ownership"("p_id" "uuid", "u_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."check_project_ownership"("p_id" "uuid", "u_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") TO "authenticated";
 
 
 

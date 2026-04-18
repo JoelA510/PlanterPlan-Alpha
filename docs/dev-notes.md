@@ -26,6 +26,11 @@ _Historical:_ `is_complete` (boolean) and `status = 'completed'` (text) represen
 
 ### `check_project_ownership` is a latent auth bug
 
-**Renamed + audited (Wave 23).** `public.check_project_creatorship(pid, uid)` now holds the original body; `public.check_project_ownership` is a thin SQL shim delegating to the new name so the four RLS policies on `public.project_members` continue evaluating byte-for-byte identically. Each callsite has an inline intent comment in `docs/db/schema.sql`, and `docs/architecture/auth-rbac.md` carries the full per-policy audit table. Migration: `docs/db/migrations/2026_04_17_rename_project_creatorship.sql`.
+**Resolved (Wave 24).** The leak is closed. Each of the four RLS policies on `public.project_members` has been rewritten per the Wave 23 audit:
+* `members_insert_policy` → uses `check_project_creatorship` directly (bootstrap only).
+* `members_select_policy` → creatorship branch dropped (redundant + was the actual leak).
+* `members_delete_policy` / `members_update_policy` → use a new `check_project_ownership_by_role(pid, uid)` helper that queries `project_members.role = 'owner'`. A former creator who has been removed from `project_members` no longer passes.
 
-**Behavior-change still deferred.** The leak (a removed creator still passing the check) is not closed yet — this wave was audit-only. A follow-up wave will rewrite each policy to either `check_project_creatorship` (bootstrap-only) or a genuine ownership helper that queries `project_members.role = 'owner'`, then drop the shim.
+The `check_project_ownership` shim has been dropped. Migration: `docs/db/migrations/2026_04_18_rewrite_project_members_policies.sql`. Audit table and final policy states: `docs/architecture/auth-rbac.md`.
+
+_Historical (Wave 23 audit):_ `public.check_project_creatorship(pid, uid)` was introduced carrying the original body; `public.check_project_ownership` became a thin SQL shim delegating to it so the four policies could be rewritten in Wave 24 without a byte-for-byte semantic change window.

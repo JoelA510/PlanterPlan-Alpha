@@ -32,32 +32,37 @@ The Auth & RBAC system manages application-level authentication, user account li
 | **Invite / Manage Users** | Yes | No | No | No |
 | **Edit project settings** | Yes | No | No | No |
 
-### Creatorship vs. Ownership (Wave 23 audit)
+### Creatorship vs. Ownership (resolved Wave 24)
 
-Historically `public.check_project_ownership(pid, uid)` has been used as the
+Historically `public.check_project_ownership(pid, uid)` was used as the
 "is this user allowed to act on a project"-gate in RLS policies on
-`public.project_members`. The function actually checks `tasks.creator =
-uid` — i.e. whether the user was the original *creator* — **not** whether
-they currently hold the `owner` role in `project_members`. A user who
-creates a project and is later removed still passes the check.
+`public.project_members`. The function actually checked `tasks.creator =
+uid` — whether the user was the original *creator* — **not** whether
+they currently held the `owner` role. A creator who was later removed
+from `project_members` still passed the check, which was the latent auth
+bug called out in `docs/dev-notes.md`.
 
-Wave 23 splits the two concepts at the name level only (no behavior
-change): a new `public.check_project_creatorship(pid, uid)` holds the
-original body; the legacy `check_project_ownership` becomes a thin SQL
-shim delegating to the new name so existing policies keep working
-unchanged. Each of the four callsites on `public.project_members` now
-carries an inline intent comment (see `docs/db/schema.sql`).
+**Wave 23 (audit only):** split the concepts at the name level. Added
+`public.check_project_creatorship(pid, uid)` carrying the original body;
+rewrote `check_project_ownership` to a SQL shim delegating to it so the
+four policies on `project_members` kept evaluating byte-for-byte
+identically. Per-policy intent captured as inline comments.
 
-| Policy | Op | Inferred intent | Follow-up action |
-| --- | --- | --- | --- |
-| `members_delete_policy` | DELETE | **Ownership** — creator branch is a convenient bypass, not documented intent. | Replace `check_project_ownership` with a genuine `role = 'owner'` helper. |
-| `members_insert_policy` | INSERT | **Creatorship (bootstrap)** — the project creator must self-insert as the initial `owner` row before any `owner`-role rows exist. | Migrate to `check_project_creatorship` directly. |
-| `members_select_policy` | SELECT | **Redundant** — `is_active_member` OR the `user_id` self-check already covers every legitimate read. The creatorship branch only fires for removed creators — the exact leak called out in dev-notes. | Delete the creatorship clause. |
-| `members_update_policy` | UPDATE | **Ownership** — same rationale as delete. | Replace with the real `role = 'owner'` helper. |
+**Wave 24 (behavior change — closes the leak):** rewrote each policy per
+the audited intent, introduced `public.check_project_ownership_by_role(pid,
+uid)` (STABLE, SECURITY DEFINER) for genuine ownership checks against
+`project_members.role = 'owner'`, and **dropped the
+`check_project_ownership` shim**. A former creator who is no longer in
+`project_members` no longer passes the DELETE / UPDATE gates.
 
-The rewrite + shim removal belong to a follow-up wave once each row's
-intent is confirmed with the domain owner. The shim is scoped to one
-release of runway.
+| Policy | Op | Final state (Wave 24) |
+| --- | --- | --- |
+| `members_delete_policy` | DELETE | `user_id = auth.uid()` OR `check_project_ownership_by_role(project_id, auth.uid())`. |
+| `members_insert_policy` | INSERT | `check_project_creatorship(project_id, auth.uid())` (bootstrap) OR `project_id ∈ (SELECT … WHERE user_id = auth.uid() AND role = 'owner')` (already an owner). |
+| `members_select_policy` | SELECT | `user_id = auth.uid()` OR `is_active_member(project_id, auth.uid())`. Creatorship branch removed. |
+| `members_update_policy` | UPDATE | `check_project_ownership_by_role(project_id, auth.uid())`; `WITH CHECK` still blocks self-demotion to `viewer`. |
+
+Migration: `docs/db/migrations/2026_04_18_rewrite_project_members_policies.sql`.
 
 ## Integration Points
 * **Supabase Client:** Handles session persistence and edge-function authentication tokens.
