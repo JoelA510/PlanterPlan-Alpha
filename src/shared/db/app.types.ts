@@ -115,6 +115,8 @@ export interface TaskFormData {
     recurrence_target_project_id?: string | null;
     /** Wave 22: flag the task as a coaching task so project Coaches may edit it. */
     is_coaching_task?: boolean;
+    /** Wave 24: flag the task as a strategy template so completing it opens the Master Library follow-up dialog. */
+    is_strategy_template?: boolean;
 }
 
 /**
@@ -122,7 +124,7 @@ export interface TaskFormData {
  * is optional; the object is persisted as JSON so shape drift is tolerated.
  * Cast from `task.settings` when reading — do not assume this is the
  * runtime type. Keep in sync with `supabase/functions/nightly-sync` and the
- * recurrence / dedupe / coaching flows.
+ * recurrence / dedupe / coaching / strategy-template flows.
  */
 export interface TaskSettings {
     published?: boolean;
@@ -134,6 +136,8 @@ export interface TaskSettings {
     due_soon_threshold?: number;
     /** Wave 22: when true, users with the `coach` project role may update this task (RLS policy "Enable update for coaches on coaching tasks"). */
     is_coaching_task?: boolean;
+    /** Wave 24: when true, completing this instance task opens a dialog offering Master Library follow-ups (cloned as siblings). */
+    is_strategy_template?: boolean;
 }
 
 // ----------------------------------------------------------------------------

@@ -7,6 +7,7 @@ import type { TaskNode } from '@/shared/lib/tree-helpers';
 import { Project, TaskRow, TaskFormData, TaskInsert, Json } from '@/shared/db/app.types';
 import { formDataToRecurrenceRule } from '@/features/tasks/lib/recurrence-form';
 import { applyCoachingFlag, formDataToCoachingFlag } from '@/features/tasks/lib/coaching-form';
+import { applyStrategyTemplateFlag, formDataToStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
 import React from 'react';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
@@ -240,8 +241,12 @@ const TaskList = () => {
         settingsPatch = { ...existingObj, recurrence: rule };
       }
     } else {
-      // Instance: apply the coaching flag merge, preserving any other keys.
-      settingsPatch = applyCoachingFlag(existingObj, formDataToCoachingFlag(data));
+      // Instance: apply the coaching + strategy flags in sequence, preserving any other keys.
+      const afterCoaching = applyCoachingFlag(existingObj, formDataToCoachingFlag(data));
+      settingsPatch = applyStrategyTemplateFlag(
+        afterCoaching ?? existingObj,
+        formDataToStrategyTemplateFlag(data),
+      );
     }
 
     if (state?.mode === 'edit' && state?.taskId) {

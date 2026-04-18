@@ -11,6 +11,7 @@ import { compareDateAsc, toIsoDate } from '@/shared/lib/date-engine';
 import { collectSpawnedTemplateIds } from '@/shared/lib/tree-helpers';
 import { constructCreatePayload, constructUpdatePayload } from '@/shared/lib/date-engine/payloadHelpers';
 import { applyCoachingFlag, formDataToCoachingFlag } from '@/features/tasks/lib/coaching-form';
+import { applyStrategyTemplateFlag, formDataToStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
 import { planter } from '@/shared/api/planterClient';
 import { ProjectDndShell } from '@/pages/components/ProjectDndShell';
 
@@ -83,9 +84,14 @@ export default function Project() {
             if (mode === 'edit' && state.selectedTask) {
                 const updatePayload = constructUpdatePayload(formData, state.selectedTask, payloadContext);
                 const coachingFlag = formDataToCoachingFlag(formData);
-                const settingsPatch = applyCoachingFlag(
+                const strategyFlag = formDataToStrategyTemplateFlag(formData);
+                const afterCoaching = applyCoachingFlag(
                     state.selectedTask.settings as Record<string, unknown> | null | undefined,
                     coachingFlag,
+                );
+                const settingsPatch = applyStrategyTemplateFlag(
+                    afterCoaching ?? (state.selectedTask.settings as Record<string, unknown> | null | undefined),
+                    strategyFlag,
                 );
                 await updateTask.mutateAsync({
                     id: state.selectedTask.id,
@@ -116,7 +122,9 @@ export default function Project() {
                 } else {
                     const createPayload = constructCreatePayload(formData, payloadContext);
                     const coachingFlag = formDataToCoachingFlag(formData);
-                    const settingsPatch = applyCoachingFlag(null, coachingFlag);
+                    const strategyFlag = formDataToStrategyTemplateFlag(formData);
+                    const afterCoaching = applyCoachingFlag(null, coachingFlag);
+                    const settingsPatch = applyStrategyTemplateFlag(afterCoaching, strategyFlag);
                     await createTask.mutateAsync({
                         ...createPayload,
                         root_id: projectId,

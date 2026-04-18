@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -22,6 +22,9 @@ import { Label } from '@/shared/ui/label';
 import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 import type { TaskRow } from '@/shared/db/app.types';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
+import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
+import StrategyFollowUpDialog from '@/features/tasks/components/StrategyFollowUpDialog';
+import { collectSpawnedTemplateIds } from '@/shared/lib/tree-helpers';
 
 const emailDetailsSchema = z.object({
     recipient: z.string().email('Enter a valid email'),
@@ -63,6 +66,27 @@ const TaskDetailsView = ({
     const { user, savedEmailAddresses, rememberEmailAddress } = useAuth();
     const { data: siblings = [] } = useTaskSiblings(task?.id, task?.parent_task_id);
     const [emailOpen, setEmailOpen] = useState(false);
+    const [strategyDialogOpen, setStrategyDialogOpen] = useState(false);
+
+    // Edge-trigger the Strategy Template follow-up dialog: fires exactly once
+    // per transition into `completed`, regardless of how many re-renders happen
+    // with the already-completed row in cache.
+    const prevStatusRef = useRef<string | null | undefined>(task?.status);
+    const isStrategyTask = extractStrategyTemplateFlag(task as TaskRow | undefined);
+    useEffect(() => {
+        const prev = prevStatusRef.current;
+        const curr = task?.status;
+        if (isStrategyTask && prev !== 'completed' && curr === 'completed') {
+            setStrategyDialogOpen(true);
+        }
+        prevStatusRef.current = curr;
+    }, [task?.status, isStrategyTask]);
+
+    const allProjectTasksProp = props.allProjectTasks as TaskRow[] | undefined;
+    const strategyExcludeIds = useMemo(
+        () => Array.from(collectSpawnedTemplateIds(allProjectTasksProp ?? [])),
+        [allProjectTasksProp],
+    );
     const {
         register,
         handleSubmit,
@@ -253,6 +277,20 @@ const TaskDetailsView = ({
                             </span>
                         </div>
                     )}
+
+                    {isStrategyTask && (
+                        <div className="flex flex-col gap-1" data-testid="strategy-badge-group">
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                Type
+                            </span>
+                            <span
+                                data-testid="strategy-badge"
+                                className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border bg-emerald-50 text-emerald-700 border-emerald-100"
+                            >
+                                Strategy Template
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -412,6 +450,15 @@ const TaskDetailsView = ({
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {isStrategyTask && (
+                <StrategyFollowUpDialog
+                    task={task as TaskRow}
+                    open={strategyDialogOpen}
+                    onOpenChange={setStrategyDialogOpen}
+                    excludeTemplateIds={strategyExcludeIds}
+                />
+            )}
 
             {/* Metadata Footer */}
             <div className="pt-6 border-t border-slate-100 text-xs text-slate-400 flex flex-col gap-1">

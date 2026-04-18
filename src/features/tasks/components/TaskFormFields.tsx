@@ -27,6 +27,7 @@ const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, members
  const isAdmin = (user as { role?: string })?.role === 'admin';
  const canTagCoaching =
  origin === 'instance' && (membershipRole === 'owner' || membershipRole === 'editor');
+ const canTagStrategy = canTagCoaching;
 
  return (
  <>
@@ -131,6 +132,26 @@ const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, members
  </Label>
  <p className="text-xs text-slate-500">
  Allow users with the Coach role on this project to edit this task.
+ </p>
+ </div>
+ </div>
+ )}
+
+ {canTagStrategy && (
+ <div className="mt-3 flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+ <input
+ type="checkbox"
+ id="is_strategy_template"
+ data-testid="is-strategy-template-checkbox"
+ className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+ {...register('is_strategy_template')}
+ />
+ <div className="flex flex-col gap-0.5">
+ <Label htmlFor="is_strategy_template" className="cursor-pointer text-sm font-medium">
+ Strategy template
+ </Label>
+ <p className="text-xs text-slate-500">
+ Offer Master Library follow-ups when this task is completed.
  </p>
  </div>
  </div>

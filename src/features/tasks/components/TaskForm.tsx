@@ -9,6 +9,7 @@ import RecurrencePicker from '@/features/tasks/components/RecurrencePicker';
 import { Button } from '@/shared/ui/button';
 import { isRecurrenceRule } from '@/shared/lib/recurrence';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
+import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
 import type { TaskFormData, TaskRow } from '@/shared/db/app.types';
 
 const extractDateInput = (value?: string | null) => {
@@ -43,6 +44,7 @@ const getTaskSchema = (origin: 'instance' | 'template') => z.object({
  }, z.number().min(1).max(28).optional()),
  recurrence_target_project_id: z.string().optional().nullable(),
  is_coaching_task: z.boolean().optional(),
+ is_strategy_template: z.boolean().optional(),
 }).refine((data) => {
  if (origin === 'instance' && data.start_date && data.due_date) {
  const start = `${data.start_date}T00:00:00.000Z`;
@@ -93,6 +95,7 @@ const createInitialState = (task?: Partial<TaskRow> | null) => {
  recurrence_day_of_month: rec?.kind === 'monthly' ? rec.dayOfMonth : 1,
  recurrence_target_project_id: rec?.targetProjectId ?? '',
  is_coaching_task: extractCoachingFlag(task),
+ is_strategy_template: extractStrategyTemplateFlag(task),
  };
 };
 

@@ -105,6 +105,59 @@ overwrites a non-null `assignee_id` the caller supplied. The UI picks up
 the server-assigned coach via the standard `useUpdateTask` / `useCreateTask`
 `onSettled` invalidation of `['projectHierarchy', rootId]`.
 
+## Strategy Templates (Wave 24)
+
+Any **instance task** (`origin = 'instance'`) may be tagged as a *strategy
+template* via `settings.is_strategy_template: true`. The flag is purely a
+UX convention — no RLS carve-out, no additional DB triggers. It tells the
+UI to surface Master Library follow-ups when the task is marked
+`completed`, so planters can pull in a curated set of next-step tasks
+right at the moment of completion.
+
+**Flag shape** (`src/shared/db/app.types.ts` → `TaskSettings`):
+* `is_strategy_template?: boolean` — absence / `false` both mean "not a
+  strategy template"; only `=== true` activates the follow-up dialog.
+
+**Authoring:** the "Strategy template" checkbox in
+`src/features/tasks/components/TaskFormFields.tsx` sits next to the
+"Coaching task" checkbox and shares the same permission gate
+(`membershipRole ∈ {owner, editor}`, `origin === 'instance'`). The prop
+chain matches Coaching: `pages/Project.tsx` → `TaskDetailsPanel` →
+`TaskForm` → `TaskFormFields`.
+
+**Normalisation:** submit emits a flat `is_strategy_template` field. The
+helper trio in `src/features/tasks/lib/strategy-form.ts` mirrors
+`coaching-form.ts`:
+* `formDataToStrategyTemplateFlag(data)` → `true | false | null` (null =
+  leave settings untouched — the UI gate hid the checkbox).
+* `applyStrategyTemplateFlag(currentSettings, flag)` — preserves every
+  other settings key, sets or deletes `is_strategy_template` per the flag.
+  Designed to chain after `applyCoachingFlag` in the merge sequence.
+* `extractStrategyTemplateFlag(task)` — canonical reader used by both
+  `TaskForm` (seed `defaultValues`) and `TaskDetailsView` (badge + dialog
+  edge-trigger).
+
+**Surface:** `TaskDetailsView` renders a "Strategy Template" emerald
+badge next to the Coaching sky badge when the flag is true, and edge-
+triggers `StrategyFollowUpDialog` exactly once per transition of
+`status` into `'completed'` (via a `prevStatusRef` comparison in
+`useEffect` so repeated re-renders with an already-completed row don't
+reopen the dialog).
+
+**Follow-up dialog**
+(`src/features/tasks/components/StrategyFollowUpDialog.tsx`): wraps
+`MasterLibrarySearch` in a Shadcn `Dialog`. Each pick calls
+`planter.entities.Task.clone(templateId, parent_task_id, 'instance',
+userId)` — the cloned task lands as a **sibling** of the completed
+strategy task (same `parent_task_id`). Already-present templates are
+hidden via the `excludeTemplateIds` prop (same dedupe convention as the
+Wave 22 Master Library work). Dismissal is first-class; users may add
+zero or many follow-ups.
+
+**No DB migration.** The flag rides on existing `settings` JSONB; no new
+RLS policy needed. Owners / editors already have UPDATE access on
+instance tasks.
+
 ## Integration Points
 * **Date Engine:** Dragging tasks triggers date inheritance logic (`dateInheritance.ts`) to adjust bounds automatically.
 * **Dashboard:** Feeds raw status counts.
