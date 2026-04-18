@@ -55,6 +55,14 @@ vi.mock('@/features/library/components/MasterLibrarySearch', () => ({
     ),
 }));
 
+// Wave 25: the dialog also calls `useRelatedTemplates`. Stub it out here so
+// these tests focus on the search path — the related-section has its own
+// dedicated test file (`StrategyFollowUpDialog.related.test.tsx`).
+vi.mock('@/features/library/hooks/useRelatedTemplates', () => ({
+    default: () => ({ results: [], isLoading: false, hasResults: false }),
+    useRelatedTemplates: () => ({ results: [], isLoading: false, hasResults: false }),
+}));
+
 import StrategyFollowUpDialog from '@/features/tasks/components/StrategyFollowUpDialog';
 
 function renderDialog(task: TaskRow, open = true) {

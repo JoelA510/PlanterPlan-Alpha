@@ -11,6 +11,7 @@ import {
 } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
 import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
+import useRelatedTemplates from '@/features/library/hooks/useRelatedTemplates';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { planter } from '@/shared/api/planterClient';
 import type { TaskRow } from '@/shared/db/app.types';
@@ -83,6 +84,16 @@ const StrategyFollowUpDialog = ({
 
     const excludeSet = useMemo(() => excludeTemplateIds ?? [], [excludeTemplateIds]);
 
+    const seedForRelated = useMemo(
+        () => ({ id: task.id, title: task.title, description: task.description }),
+        [task.id, task.title, task.description],
+    );
+    const hasSeedText = Boolean(task.title?.trim() || task.description?.trim());
+    const { results: relatedResults, isLoading: relatedLoading } = useRelatedTemplates(
+        seedForRelated,
+        { excludeTemplateIds: excludeSet, limit: 5, enabled: open && hasSeedText },
+    );
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
@@ -96,6 +107,47 @@ const StrategyFollowUpDialog = ({
                         templates to add as sibling tasks under the same parent.
                     </DialogDescription>
                 </DialogHeader>
+                {hasSeedText && (
+                    <div
+                        className="py-2"
+                        data-testid="strategy-followup-related"
+                    >
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Related templates
+                        </p>
+                        {relatedResults.length > 0 ? (
+                            <ul className="flex flex-col gap-1" role="list">
+                                {relatedResults.map((tmpl) => (
+                                    <li key={tmpl.id}>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleSelect({
+                                                    id: tmpl.id,
+                                                    title: tmpl.title ?? undefined,
+                                                })
+                                            }
+                                            disabled={pendingTemplateId === tmpl.id}
+                                            data-testid={`strategy-followup-related-row-${tmpl.id}`}
+                                            className="flex w-full flex-col items-start rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-800 transition-colors hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            <span className="font-medium">{tmpl.title ?? 'Untitled template'}</span>
+                                            {tmpl.description && (
+                                                <span className="line-clamp-2 text-xs text-slate-500">
+                                                    {tmpl.description}
+                                                </span>
+                                            )}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : relatedLoading ? (
+                            <p className="text-xs text-slate-500">Finding related templates…</p>
+                        ) : (
+                            <p className="text-xs text-slate-500">No related templates found.</p>
+                        )}
+                    </div>
+                )}
                 <div className="py-2">
                     <MasterLibrarySearch
                         onSelect={handleSelect}

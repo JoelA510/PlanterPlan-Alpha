@@ -1,6 +1,6 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.10.0 (Wave 24 — Project_Members RLS Rewrite, Strategy Templates, Coach Backfill) 
+> **Version**: 1.10.1 (Wave 25 — Related Templates, Task-Type Discriminator, Completed-Project Toggle) 
 > **Last Updated**: 2026-04-18 
 > **Status**: Active Development
 
@@ -93,7 +93,8 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 ### 3.5 Master Library & Templates
 - [x] **Template Management**: Create, edit, and delete templates.
 - [x] **Library Integration**: Search and copy tasks from the Master Library when adding to a template or active project.
-  - [/] **Hide-already-present shipped (Wave 22)**: cloned roots are stamped with `settings.spawnedFromTemplate` and the Master Library combobox filters them out, with an "All matching templates are already in this project." empty-state. Pre-Wave-22 instances lack the stamp and still appear until re-cloned. The "show topically related tasks" half stays deferred (recommender scope).
+  - [x] **Hide-already-present (Wave 22)**: cloned roots are stamped with `settings.spawnedFromTemplate` and the Master Library combobox filters them out, with an "All matching templates are already in this project." empty-state. Pre-Wave-22 instances lack the stamp and still appear until re-cloned.
+  - [x] **Topically related suggestions (Wave 25)**: a client-side similarity heuristic (title/description token overlap, title-weighted 2×) ranks Master Library templates and surfaces the top-N in a "Related templates" section of `StrategyFollowUpDialog`. Lib: `src/features/library/lib/related-templates.ts`; hook: `src/features/library/hooks/useRelatedTemplates.ts`.
 - [x] **Promotion**: Promote an instance task back to the Master Library.
 - [x] **Template Publishing**: Ability to mark a template as "Published/Unpublished" to control visibility.
 
@@ -153,4 +154,4 @@ Items originally documented "for later" and items carved out of recent waves for
 
 - [x] **Strategy Template task type** — **Shipped Wave 24.** `settings.is_strategy_template` on instance tasks; transitioning `status` into `'completed'` opens `StrategyFollowUpDialog` with the Master Library combobox. Picks are cloned as sibling tasks via `Task.clone`. Dismissal is first-class.
 - [x] **Coach auto-assignment on coaching-task creation** — **Shipped Wave 23.** `set_coaching_assignee` BEFORE trigger on `public.tasks` auto-assigns a coaching task to the project's sole `coach`-role member when `assignee_id` is null. Zero or multiple coaches → no-op. User-supplied `assignee_id` is never overwritten.
-- [ ] **Topically related library suggestions** — the recommender half of the §3.5 "Library Integration" bullet. Wave 22 shipped the "hide already-present" half via `settings.spawnedFromTemplate`; surfacing *related* templates is deferred.
+- [x] **Topically related library suggestions** — **Shipped Wave 25.** Client-side similarity heuristic (title/description token overlap, title-weighted 2×) ranks Master Library templates. Surfaced as a "Related templates" section above the search in `StrategyFollowUpDialog`. Picks reuse the existing `Task.clone` path. Ranking lib at `src/features/library/lib/related-templates.ts`, hook at `src/features/library/hooks/useRelatedTemplates.ts`.
