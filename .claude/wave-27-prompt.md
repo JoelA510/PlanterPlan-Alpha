@@ -588,7 +588,8 @@ Per-project presence channel `presence:project:<id>`, opened once in `src/pages/
 5. **Self-hide** — confirm your own avatar never appears in `<PresenceBar>` or in per-row focus chips.
 6. **No FSD drift** — `useProjectPresence` lives in `features/projects/hooks/`; `useTaskFocusBroadcast` lives in `features/tasks/hooks/`. No shared imports back from features.
 7. **Type drift** — `database.types.ts` was hand-edited again; do not run any types-regen script.
-8. **Lint + build + tests** — green.
+8. **Test-impact reconciled** — every "existing test at risk" listed in `.claude/wave-testing-strategy.md` §3 (Wave 27) has been mocked/extended (specifically: `useTaskActivity` mock added to all four `TaskDetailsView.*.test.tsx` files); no `it.skip`; test count ≥ baseline + new tests.
+9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
 ## Commit & Push to Main (mandatory — gates Wave 28)
 
@@ -600,10 +601,12 @@ After both task PRs and the docs sweep merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. If any check fails, STOP — do not push, do not advance to the next task.**
+
 ```bash
-npm run lint      # 0 errors, ≤7 warnings
-npm run build     # clean
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean. FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 

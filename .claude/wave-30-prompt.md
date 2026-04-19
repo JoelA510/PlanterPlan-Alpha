@@ -634,7 +634,8 @@ Land docs as `docs(wave-30): documentation currency sweep`.
 6. **No FSD drift** — `usePushSubscription` lives in `features/settings/hooks/`; `comment-mentions.ts` extension stays in `features/tasks/lib/`.
 7. **Service-worker exception is documented** — comment header in `public/sw.js`; entry in `dev-notes.md`.
 8. **Type drift** — `database.types.ts` hand-edited cleanly; do not regen.
-9. **Lint + build + tests** — green.
+9. **Test-impact reconciled** — `Testing/test-utils/mocks/service-worker.ts` + `notification-api.ts` installed and called from `setupTests.ts`; existing `useTaskComments.test.tsx` (Wave 26) still green (resolveMentions falls through on RPC mock failure); no `it.skip`. Test count ≥ baseline + new tests.
+10. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
 ## Commit & Push to Main (mandatory — gates Wave 31)
 
@@ -646,10 +647,12 @@ After all three task PRs and the docs sweep merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. If any check fails, STOP — do not push, do not advance.**
+
 ```bash
-npm run lint      # 0 errors, ≤7 warnings
-npm run build     # clean
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean. FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 

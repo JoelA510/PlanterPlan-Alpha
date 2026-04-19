@@ -197,7 +197,8 @@ Land docs as `docs(wave-34): documentation currency sweep`.
 6. **Bootstrap trigger** — sign up a brand-new user → confirm they're added as `member` to the default org via the existing trigger logic (or a new trigger if added in Task 1).
 7. **No FSD drift** — `TenantContext` lives in `shared/contexts/` (cross-cutting, no domain-specific business logic).
 8. **Type drift** — `database.types.ts` hand-edited cleanly with new tables + column.
-9. **Lint + build + tests** — green.
+9. **Test-impact reconciled** — every component updated to consume `useTenant()` has its existing test extended with `vi.mock('@/shared/contexts/TenantContext', ...)`; `renderWithProviders` (Wave 31) extended with optional `tenant?` parameter; `Testing/test-utils/mocks/tenant.ts` (NEW) provides `mockUseTenant()`; no `it.skip`. Test count ≥ baseline + new tests.
+10. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure). The one-shot backfill is a §8.1 protocol concern — if it fails to apply, HALT.
 
 ## Commit & Push to Main (mandatory — gates Wave 35)
 
@@ -209,10 +210,12 @@ After all three Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Wave 34's `tasks.organization_id` backfill is a one-shot data migration (§8.1) — if the migration fails to apply cleanly, HALT and surface; do NOT manually run partial steps.**
+
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 

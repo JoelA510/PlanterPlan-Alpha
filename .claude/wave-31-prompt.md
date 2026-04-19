@@ -449,7 +449,8 @@ Land docs as `docs(wave-31): documentation currency sweep`.
 5. **Bundle size** — `npm run build` size delta should add ~50–80 KB to the main bundle (i18next + react-i18next + locales). Verify in the build output.
 6. **No FSD drift** — `shared/i18n/` is in `shared/`; `LocaleSwitcher` is in `features/settings/`.
 7. **Test coverage** — every new file has a matching test mirror. Snapshot updates from Task 2 reviewed and committed.
-8. **Lint + build + tests** — green.
+8. **Test-impact reconciled** — `Testing/test-utils/render-with-providers.tsx` (NEW) wraps `<I18nextProvider>` with eagerly-imported en.json; every existing `renderWithQueryClient` call bulk-migrated to `renderWithProviders` BEFORE string extraction; snapshot diffs reviewed manually (no blind `-u`); no `it.skip`. Test count ≥ baseline + new tests.
+9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
 ## Commit & Push to Main (mandatory — gates Wave 32)
 
@@ -461,10 +462,12 @@ After all three task PRs and the docs sweep merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. If any check fails, STOP. Wave 31 also requires the migration ordering in §3.2 of the protocol — build the i18n provider wrapper FIRST, migrate every existing test BEFORE string extraction, snapshot updates require manual diff review.**
+
 ```bash
-npm run lint      # 0 errors, ≤7 warnings
-npm run build     # clean
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean. FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 

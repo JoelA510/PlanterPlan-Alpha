@@ -280,7 +280,8 @@ Treat this as the strictest pass of all the prior wave reviews. The 1.0.0 cutove
 5. **Doc accuracy** — random-spot-check three architecture docs against the current code state. Any drift → fix before tagging.
 6. **CHANGELOG honesty** — every wave's commit is reflected. No "minor cleanup" omissions.
 7. **Deployment runbook end-to-end** — a fresh ops-engineer should be able to follow `docs/operations/deployment.md` from `git clone` to `https://app.example.com loaded` without consulting any team member.
-8. **Lint + build + tests + e2e + lighthouse + RLS smokes** — every one of the seven gates green.
+8. **Test-impact reconciled** — `@axe-core/playwright` integrated into accessibility steps; `expectNoA11yViolations(page)` fixture passes on every E2E scenario; RLS smoke runner exits 0 across every `docs/db/tests/*.sql` file; no `it.skip`. Final test count ≥ Wave 37 baseline + ≥150 E2E + ≥30 unit additions.
+9. **Lint + build + tests + e2e + lighthouse + RLS smokes** — every one of the seven gates green per `.claude/wave-execution-protocol.md` §4 + §7. v1.0.0 tag is irreversible socially — verify everything twice.
 
 ## Commit & Push to Main (final)
 
@@ -293,11 +294,13 @@ After all five Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Wave 38 is the release wave — the final cutover gate (Task 5) requires ALL seven checks green: lint + build + vitest + e2e + lighthouse + RLS smokes + git clean. Tagging v1.0.0 is irreversible socially; verify everything twice.**
+
 Standard:
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build). FAIL → HALT.
+npm test          # 100% pass rate. FAIL → HALT.
 git status        # clean
 ```
 

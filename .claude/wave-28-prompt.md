@@ -296,7 +296,8 @@ Land docs as `docs(wave-28): documentation currency sweep`.
 4. **Empty + loading + error states** — every state has a user-visible affordance.
 5. **Out-of-bounds toast** — read the copy aloud ("Move the parent phase first."). Actionable.
 6. **Lib quirks** — walk the dev console for runtime warnings from `gantt-task-react`. If non-trivial warnings appear, file a one-line entry in `dev-notes.md` for a future wave.
-7. **Lint + build + tests** — green. New tests should add ~12-15 to the suite.
+7. **Test-impact reconciled** — `gantt-task-react` mocked per-test or via `Testing/test-utils/mocks/gantt.ts`; no existing test broken by gantt slice addition; no `it.skip`. Test count ≥ baseline + new tests.
+8. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure). New tests add ~12-15 to the suite.
 
 ## Commit & Push to Main (mandatory — gates Wave 29)
 
@@ -308,10 +309,12 @@ After PR merges:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. If any check fails, STOP — do not push, do not advance.**
+
 ```bash
-npm run lint      # 0 errors, ≤7 warnings
-npm run build     # clean
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (verify the gantt chunk lazy-loads — see wave §6). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 

@@ -228,7 +228,8 @@ Land docs as `docs(wave-36): documentation currency sweep`.
 5. **Failure handling** — register a webhook to an invalid URL → confirm 3 retries + `last_failure` stamped + after 10 failures the subscription auto-deactivates.
 6. **No FSD drift** — every integration's UI lives in `features/settings/`; data layer in `planterClient.integrations.*`; no shared imports back from features.
 7. **Type drift** — multiple new tables hand-edited; verify all are in sync.
-8. **Lint + build + tests** — green.
+8. **Test-impact reconciled** — zero existing-test impact (all four integrations are new + isolated); webhook HMAC test verifies signature; ICS test parses generated `.ics` for structural correctness; cron schedules added to `docs/operations/edge-function-schedules.md`; no `it.skip`. Test count ≥ baseline + new tests.
+9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 + §8.6 (cron schedules go to operations doc, NOT pg_cron — HALT if any plan reference says otherwise).
 
 ## Commit & Push to Main (mandatory — gates Wave 37)
 
@@ -240,10 +241,12 @@ After all four Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Cron schedules go to `docs/operations/edge-function-schedules.md` (Wave 30) — `pg_cron` is NOT enabled (§8.6 of the protocol).**
+
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 

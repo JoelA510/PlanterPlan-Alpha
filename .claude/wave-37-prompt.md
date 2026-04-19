@@ -344,7 +344,8 @@ Land docs as `docs(wave-37): documentation currency sweep`.
 5. **Virtualization** — seed 1500 tasks; open the project → renders smoothly; scroll to bottom → DOM has only ~30 rendered rows. Drag-drop still works.
 6. **No FSD drift** — every new file lives in the right slice. Helpers in `lib/`, hooks in `hooks/`, components in `components/`. No barrel files. No `shared/` → `features/` imports.
 7. **Type drift** — `database.types.ts` hand-edited cleanly across the four migrations.
-8. **Lint + build + tests** — green.
+8. **Test-impact reconciled** — Wave 22 `planterClient.clone.stamp.test.ts` stays green (Tasks 3+4 stamps happen server-side in the RPC); `react-virtuoso` mocked for Task 5 virtualization tests; existing `date-engine` tests unchanged (Task 1 ADDS `addBusinessDays` as a NEW export); `project_invites` (NOT `pending_invites`) extended with `claimed_at`/`claimed_by`; no `it.skip`. Test count ≥ baseline + new tests.
+9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
 ## Commit & Push to Main (mandatory — gates Wave 38)
 
@@ -356,10 +357,12 @@ After all five Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Wave 37 Task 2 EXTENDS `project_invites` (does NOT create a new `pending_invites` table — pre-flight verification §29 catches this).**
+
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 

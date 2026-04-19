@@ -445,7 +445,8 @@ Land docs as `docs(wave-29): documentation currency sweep`.
 5. **Lock-step Deno mirror** — `supabase/functions/_shared/date.ts` carries `isCheckpointProject` byte-equivalent. Eyeball-diff the two functions.
 6. **No FSD drift** — `features/projects/lib/project-kind.ts` and `features/projects/lib/phase-lead.ts` mirror the coaching-form precedent. No barrel files. No new dependencies.
 7. **Type drift** — `database.types.ts` did not change (no new column); verify no accidental touch.
-8. **Lint + build + tests** — green.
+8. **Test-impact reconciled** — `EditProjectModal.test.tsx` updated for new `<RadioGroup>` field (if it queries by structure); `date-engine.urgency.test.ts` + `index.test.ts` stay green (Wave 29 adds `deriveUrgencyForProject` as a NEW wrapper, doesn't widen `deriveUrgency`); no `it.skip`. Test count ≥ baseline + new tests.
+9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
 ## Commit & Push to Main (mandatory — gates Wave 30)
 
@@ -457,10 +458,12 @@ After both task PRs and the docs sweep merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. If any check fails, STOP — do not push, do not advance.**
+
 ```bash
-npm run lint      # 0 errors, ≤7 warnings
-npm run build     # clean
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean. FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 

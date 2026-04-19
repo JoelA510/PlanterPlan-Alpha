@@ -480,7 +480,8 @@ Land docs as `docs(wave-32): documentation currency sweep`.
 5. **Bundle size** — `npm run build` size delta should be ≤ ~100 KB total (workbox + idb + persist).
 6. **iOS install hint** — open in iOS Safari (or DevTools mobile emulation iPhone) → `<InstallHintIos>` popover appears.
 7. **Type drift** — no `database.types.ts` change expected.
-8. **Lint + build + tests** — green.
+8. **Test-impact reconciled** — `fake-indexeddb` installed; `setupTests.ts` sets `navigator.onLine = true` default; `Testing/test-utils/mocks/online.ts` (NEW) provides `setOnlineStatus(value)`; existing `useTaskMutations.test.ts` + `useTaskComments.test.tsx` pass through unchanged (online branch); new `.offline.test.ts` exercises queue path; no `it.skip`. Test count ≥ baseline + new tests.
+9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 + §8.5 (workbox/SW drift is a HALT).
 
 ## Commit & Push to Main (mandatory — gates Wave 33)
 
@@ -492,11 +493,13 @@ After all three task PRs and the docs sweep merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4 + §8.5. If any check fails, STOP — workbox/SW drift is a protocol-level halt.**
+
 ```bash
-npm run lint      # 0 errors, ≤7 warnings
-npm run build     # clean (verify gantt + admin + other lazy chunks still split)
-npm test          # baseline + new tests
-git status        # clean
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (verify gantt + admin + other lazy chunks still split; verify src/sw.ts replaces public/sw.js). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
+git status        # clean (public/sw.js DELETED — confirm in `git status` before commit)
 ```
 
 ## Key references

@@ -547,7 +547,8 @@ Self-PR-review pass. Do this BEFORE pushing the docs sweep commit, in addition t
 5. **No FSD drift** — `useTaskComments` lives in `src/features/tasks/hooks/`. No barrel files. `shared/` has no imports from `features/`. Grep: `grep -r "from '@/features" src/shared/` should return zero results.
 6. **Type drift** — `database.types.ts` was hand-edited in Task 1. Do **not** run `npm run generate:types` (or any equivalent script if one exists in `package.json`) after the edit — it would overwrite the addition. Verify `git diff src/shared/db/database.types.ts` shows only the `task_comments` block addition.
 7. **Test coverage** — `find Testing/unit/features/tasks -name "*comment*"` should return all four planned test files. Snapshot the test count delta in the PR description (target: +20 tests minimum).
-8. **Lint + build + tests** — `npm run lint` (0 errors, ≤7 warnings), `npm run build` (clean), `npm test` (baseline + new tests, no regressions).
+8. **Test-impact reconciled** — every "existing test at risk" listed in `.claude/wave-testing-strategy.md` §3 (Wave 26) has been mocked/extended; no `it.skip` or `describe.skip` introduced; test count ≥ baseline + new tests added.
+9. **Lint + build + tests** — `npm run lint` (0 errors, ≤7 warnings), `npm run build` (clean), `npm test` (100% pass rate; HALT if any failure per `.claude/wave-execution-protocol.md` §3 + §4).
 
 ## Commit & Push to Main (mandatory — gates Wave 27)
 
@@ -561,10 +562,12 @@ After all task PRs and the docs sweep commit are merged:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. If any check fails, STOP — do not push, do not advance to the next task. Diagnose and fix per the protocol.**
+
 ```bash
-npm run lint      # 0 errors, ≤7 warnings (do not regress)
-npm run build     # clean (tsc -b && vite build)
-npm test          # baseline + new tests added this wave
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean tsc -b && vite build. FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 

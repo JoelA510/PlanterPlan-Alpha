@@ -208,7 +208,8 @@ Land docs as `docs(wave-35): documentation currency sweep`.
 6. **Webhook signature** — POST a forged event with bad signature → 401.
 7. **No FSD drift** — `useSubscription` lives in `features/settings/hooks/`; constants in `shared/constants/`; admin pages in `pages/admin/`.
 8. **Type drift** — three new tables hand-edited cleanly.
-9. **Lint + build + tests** — green.
+9. **Test-impact reconciled** — Stripe webhook test signs payloads via `Testing/test-utils/mocks/stripe.ts` `signStripePayload`; idempotency test exercises duplicate-event-id; `seed-e2e.js` extended to upgrade ALL 6 personas to `pro` plan via direct `subscriptions` UPDATE BEFORE E2E run (without this, every multi-project E2E scenario fails); no `it.skip`. Test count ≥ baseline + new tests.
+10. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure). Stripe signature verification + idempotency are §8.2 RLS/security concerns — HALT if any test fails.
 
 ## Commit & Push to Main (mandatory — gates Wave 36)
 
@@ -220,10 +221,12 @@ After all three Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Wave 35's E2E persona upgrade is a hard prerequisite — if any persona is still on the `free` plan when E2E runs, multi-project scenarios will fail. HALT and re-seed.**
+
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npm test          # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 
