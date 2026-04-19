@@ -5,6 +5,8 @@ import * as z from 'zod';
 import TaskResources from '@/features/tasks/components/TaskResources';
 import TaskDependencies from '@/features/tasks/components/TaskDependencies';
 import TaskComments from '@/features/tasks/components/TaskComments/TaskComments';
+import { useTaskActivity } from '@/features/projects/hooks/useProjectActivity';
+import { ActivityRow } from '@/features/projects/components/ActivityRow';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useTaskSiblings } from '@/features/tasks/hooks/useTaskSiblings';
@@ -332,6 +334,9 @@ const TaskDetailsView = ({
             {/* Comments (Wave 26) */}
             <TaskComments taskId={task.id} />
 
+            {/* Activity (Wave 27) */}
+            <TaskActivityRail taskId={task.id} />
+
             {/* Subtasks */}
             {task.children && task.children.length > 0 && (
                 <div className="detail-section mb-6">
@@ -487,5 +492,36 @@ const TaskDetailsView = ({
         </div >
     );
 };
+
+/** Collapsed per-task activity rail. Always mounts the query so the
+ *  count surfaces in the summary; body renders only when `<details>` is open. */
+function TaskActivityRail({ taskId }: { taskId: string }) {
+    const { data: rows = [], isLoading } = useTaskActivity(taskId, { limit: 20 });
+    return (
+        <details className="detail-section mb-6 group" data-testid="task-activity-rail">
+            <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wide">
+                <span>Activity</span>
+                <span className="text-xs text-slate-500 normal-case font-medium">
+                    ({rows.length})
+                </span>
+            </summary>
+            <div className="mt-3 bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+                {isLoading ? (
+                    <p className="text-sm text-slate-500">Loading activity…</p>
+                ) : rows.length === 0 ? (
+                    <p className="text-sm text-slate-500" data-testid="task-activity-empty">
+                        No activity yet.
+                    </p>
+                ) : (
+                    <div className="divide-y divide-slate-100">
+                        {rows.map((r) => (
+                            <ActivityRow key={r.id} row={r} hideEntityLink />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </details>
+    );
+}
 
 export default TaskDetailsView;

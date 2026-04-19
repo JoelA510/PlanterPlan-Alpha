@@ -31,6 +31,7 @@ import InviteMemberModal from '@/features/projects/components/InviteMemberModal'
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
 import ResourceLibrary from '@/features/projects/components/ResourceLibrary';
+import ProjectActivityTab from '@/features/projects/components/ProjectActivityTab';
 
 export default function Project() {
     const { projectId: paramId } = useParams<{ projectId: string }>();
@@ -373,6 +374,10 @@ export default function Project() {
 
                         {state.activeTab === 'resources' && (
                             <ResourceLibrary projectId={projectId!} />
+                        )}
+
+                        {state.activeTab === 'activity' && (
+                            <ProjectActivityTab projectId={projectId ?? null} />
                         )}
                     </div>
                 </div>

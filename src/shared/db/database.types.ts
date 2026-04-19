@@ -14,6 +14,64 @@ export type Database = {
  }
  public: {
  Tables: {
+ activity_log: {
+ Row: {
+ id: string
+ project_id: string
+ actor_id: string | null
+ entity_type: 'task' | 'comment' | 'member' | 'project'
+ entity_id: string
+ action:
+ | 'created' | 'updated' | 'deleted' | 'status_changed'
+ | 'member_added' | 'member_removed' | 'member_role_changed'
+ | 'comment_posted' | 'comment_edited' | 'comment_deleted'
+ payload: Json
+ created_at: string
+ }
+ Insert: {
+ id?: string
+ project_id: string
+ actor_id?: string | null
+ entity_type: 'task' | 'comment' | 'member' | 'project'
+ entity_id: string
+ action: string
+ payload?: Json
+ created_at?: string
+ }
+ Update: {
+ id?: string
+ project_id?: string
+ actor_id?: string | null
+ entity_type?: 'task' | 'comment' | 'member' | 'project'
+ entity_id?: string
+ action?: string
+ payload?: Json
+ created_at?: string
+ }
+ Relationships: [
+ {
+ foreignKeyName: "activity_log_project_id_fkey"
+ columns: ["project_id"]
+ isOneToOne: false
+ referencedRelation: "tasks"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "activity_log_project_id_fkey"
+ columns: ["project_id"]
+ isOneToOne: false
+ referencedRelation: "tasks_with_primary_resource"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "activity_log_project_id_fkey"
+ columns: ["project_id"]
+ isOneToOne: false
+ referencedRelation: "view_master_library"
+ referencedColumns: ["id"]
+ },
+ ]
+ }
  admin_users: {
  Row: {
  email: string

@@ -28,6 +28,23 @@ The Dashboard & Analytics domain aggregates telemetry across Projects, Tasks, an
   * Exportable static data (e.g., via `export-utils.ts`).
 * **Admin Notifications:** Automated dispatch to Admins upon new project creation.
 
+## Activity Log (Wave 27)
+
+Append-only audit trail in `public.activity_log`. Three SECURITY DEFINER trigger
+functions (`log_task_change`, `log_comment_change`, `log_member_change`) AFTER-fire
+on every write to `tasks`, `task_comments`, `project_members`. Each row carries:
+* `project_id` — derived from the entity (`COALESCE(NEW.root_id, OLD.root_id, NEW.id, OLD.id)` for tasks; `root_id` for comments; `project_id` for members).
+* `actor_id` — `auth.uid()` at write time (NULL for server-side cron / nightly-sync).
+* `entity_type` — one of `'task' | 'comment' | 'member' | 'project'`.
+* `action` — one of nine values; see migration `docs/db/migrations/2026_04_18_activity_log.sql`.
+* `payload` — small JSONB. **Body previews** are `substring(body, 1, 140)`, not full body.
+
+**Comment-change trigger ordering**: soft-delete detection (`OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL`) runs **before** body-change detection. Wave 26's `softDelete` writes both `deleted_at = now()` AND `body = ''` in one UPDATE; without this ordering, a soft-delete would emit `comment_edited` instead of `comment_deleted`.
+
+**RLS** — SELECT for project members + admin; INSERT/UPDATE/DELETE denied (no policy). Triggers bypass via SECURITY DEFINER. Admin hard-delete is a future maintenance path; not exposed in Wave 27.
+
+**Consumers** — project tab `src/features/projects/components/ProjectActivityTab.tsx` (full feed); per-task rail in `TaskDetailsView` (collapsed `<details>`, default 20 entries).
+
 ## Integration Points
 * **Date Engine:** Sources calculations for 'Due Soon' and 'Overdue' task arrays.
 * **Projects & Phases:** Supplies the hierarchical data required to build the pipeline board.

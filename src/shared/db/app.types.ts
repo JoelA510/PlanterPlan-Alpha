@@ -73,6 +73,20 @@ export type TaskCommentWithAuthor = TaskCommentRow & {
     } | null;
 };
 
+// ----------------------------------------------------------------------------
+// Activity Log (Wave 27)
+// ----------------------------------------------------------------------------
+export type ActivityLogRow = Database['public']['Tables']['activity_log']['Row'];
+
+/** Activity log row joined with the actor's auth profile for UI rendering. */
+export type ActivityLogWithActor = ActivityLogRow & {
+    actor: {
+        id: string;
+        email: string;
+        user_metadata?: UserMetadata;
+    } | null;
+};
+
 /** Standardized Person type for UI components */
 export interface Person extends PersonRow {
     notes: string | null;

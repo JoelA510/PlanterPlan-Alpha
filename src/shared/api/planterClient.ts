@@ -14,7 +14,8 @@ import type {
     TeamMemberRow,
     UserMetadata,
     TaskCommentRow,
-    TaskCommentWithAuthor
+    TaskCommentWithAuthor,
+    ActivityLogWithActor
 } from '@/shared/db/app.types';
 import type { User as AuthUser } from '@supabase/supabase-js';
 
@@ -57,6 +58,7 @@ export interface PlanterClient {
         TeamMember: EntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>;
         Person: EntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>;
         TaskComment: TaskCommentEntityClient;
+        ActivityLog: ActivityLogEntityClient;
     };
     rpc: <T = unknown, P extends object = object>(functionName: string, params: P) => Promise<{ data: T | null, error: Error | null }>;
     functions: {
@@ -154,6 +156,40 @@ interface TaskCommentEntityClient {
      * @returns The soft-deleted row.
      */
     softDelete: (commentId: string) => Promise<TaskCommentRow>;
+}
+
+type ActivityEntityType = 'task' | 'comment' | 'member' | 'project';
+
+interface ActivityLogEntityClient {
+    /**
+     * Project-scoped activity feed, joined with actor profile. Default limit
+     * 50. Pass `before` (created_at ISO string) to paginate backwards.
+     * Pass `entityTypes` to filter server-side; omit to return all types.
+     *
+     * @param projectId The project's root task id.
+     * @param opts Pagination + entity-type filter.
+     * @returns Activity rows newest-first with the actor join.
+     */
+    listByProject: (projectId: string, opts?: {
+        limit?: number;
+        before?: string;
+        entityTypes?: ReadonlyArray<ActivityEntityType>;
+    }) => Promise<ActivityLogWithActor[]>;
+
+    /**
+     * Per-entity feed for the collapsed activity rail in `TaskDetailsView`
+     * and future consumers. Default limit 20.
+     *
+     * @param entityType One of `'task' | 'comment' | 'member' | 'project'`.
+     * @param entityId The row id in the target table.
+     * @param opts Pagination.
+     * @returns Activity rows newest-first with the actor join.
+     */
+    listByEntity: (
+        entityType: ActivityEntityType,
+        entityId: string,
+        opts?: { limit?: number },
+    ) => Promise<ActivityLogWithActor[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -904,6 +940,58 @@ export const planter: PlanterClient = {
                 });
             },
         } satisfies TaskCommentEntityClient,
+
+        // -----------------------------------------------------------------
+        // ActivityLog (Wave 27)
+        // -----------------------------------------------------------------
+        // Cross-schema author join via `actor:users(...)` mirrors the Wave 26
+        // TaskComment pattern and inherits the same typed-client limitation;
+        // the cast to `unknown` sidesteps `SelectQueryError`. See
+        // `docs/dev-notes.md` for the Wave 30 RPC replacement plan.
+        ActivityLog: {
+            listByProject: async (projectId: string, opts?: {
+                limit?: number;
+                before?: string;
+                entityTypes?: ReadonlyArray<ActivityEntityType>;
+            }): Promise<ActivityLogWithActor[]> => {
+                return retry(async () => {
+                    let query = supabase
+                        .from('activity_log')
+                        .select('*, actor:users(id, email, user_metadata)')
+                        .eq('project_id', projectId)
+                        .order('created_at', { ascending: false })
+                        .limit(opts?.limit ?? 50);
+                    if (opts?.before) query = query.lt('created_at', opts.before);
+                    if (opts?.entityTypes && opts.entityTypes.length > 0) {
+                        // Supabase's typed `.in()` expects its literal enum union.
+                        // Route through unknown to keep the runtime call happy.
+                        query = (query as unknown as {
+                            in: (c: string, v: readonly string[]) => typeof query;
+                        }).in('entity_type', opts.entityTypes);
+                    }
+                    const { data, error } = await query;
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return ((data as unknown) as ActivityLogWithActor[]) || [];
+                });
+            },
+            listByEntity: async (
+                entityType: ActivityEntityType,
+                entityId: string,
+                opts?: { limit?: number },
+            ): Promise<ActivityLogWithActor[]> => {
+                return retry(async () => {
+                    const { data, error } = await supabase
+                        .from('activity_log')
+                        .select('*, actor:users(id, email, user_metadata)')
+                        .eq('entity_type', entityType)
+                        .eq('entity_id', entityId)
+                        .order('created_at', { ascending: false })
+                        .limit(opts?.limit ?? 20);
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return ((data as unknown) as ActivityLogWithActor[]) || [];
+                });
+            },
+        } satisfies ActivityLogEntityClient,
     },
 
     // ---------------------------------------------------------------------------
