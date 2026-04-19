@@ -2,6 +2,14 @@ import '@testing-library/jest-dom';
 import { vi, beforeEach } from 'vitest';
 
 // Mocks for JSDOM
+// Wave 30: Radix Select / Popover uses ResizeObserver; jsdom doesn't ship it.
+class ResizeObserverStub {
+ observe(): void {}
+ unobserve(): void {}
+ disconnect(): void {}
+}
+(globalThis as unknown as { ResizeObserver: typeof ResizeObserverStub }).ResizeObserver ??= ResizeObserverStub;
+
 Object.defineProperty(window, 'matchMedia', {
  writable: true,
  value: vi.fn().mockImplementation(query => ({

@@ -74,6 +74,13 @@ export type TaskCommentWithAuthor = TaskCommentRow & {
 };
 
 // ----------------------------------------------------------------------------
+// Notifications (Wave 30)
+// ----------------------------------------------------------------------------
+export type NotificationPreferencesRow    = Database['public']['Tables']['notification_preferences']['Row'];
+export type NotificationPreferencesUpdate = Database['public']['Tables']['notification_preferences']['Update'];
+export type NotificationLogRow            = Database['public']['Tables']['notification_log']['Row'];
+
+// ----------------------------------------------------------------------------
 // Activity Log (Wave 27)
 // ----------------------------------------------------------------------------
 export type ActivityLogRow = Database['public']['Tables']['activity_log']['Row'];

@@ -15,7 +15,10 @@ import type {
     UserMetadata,
     TaskCommentRow,
     TaskCommentWithAuthor,
-    ActivityLogWithActor
+    ActivityLogWithActor,
+    NotificationPreferencesRow,
+    NotificationPreferencesUpdate,
+    NotificationLogRow
 } from '@/shared/db/app.types';
 import type { User as AuthUser } from '@supabase/supabase-js';
 
@@ -73,6 +76,15 @@ export interface PlanterClient {
          *   `Error` (never an upstream body).
          */
         invoke: <T = unknown>(functionName: string, opts?: { body?: Record<string, unknown> }) => Promise<{ data: T | null, error: Error | null }>;
+    };
+    /** Wave 30 — per-user notification preferences + audit log. */
+    notifications: {
+        /** Returns the authenticated user's preferences row (RLS auto-filters to own). */
+        getPreferences: () => Promise<NotificationPreferencesRow>;
+        /** Partial update of the caller's preferences row; returns the updated row. */
+        updatePreferences: (patch: NotificationPreferencesUpdate) => Promise<NotificationPreferencesRow>;
+        /** Returns recent notification-log rows for the caller (newest first). */
+        listLog: (opts?: { limit?: number; before?: string; eventType?: string }) => Promise<NotificationLogRow[]>;
     };
 }
 
@@ -1039,6 +1051,55 @@ export const planter: PlanterClient = {
             } catch (error: unknown) {
                 return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
             }
+        },
+    },
+
+    // ---------------------------------------------------------------------------
+    // Notifications (Wave 30)
+    // ---------------------------------------------------------------------------
+    // RLS auto-filters SELECTs + UPDATEs to `user_id = auth.uid()`, so these
+    // helpers never need to thread the caller id explicitly. See
+    // docs/architecture/auth-rbac.md → "Notification Preferences (Wave 30)".
+
+    notifications: {
+        getPreferences: async (): Promise<NotificationPreferencesRow> => {
+            return retry(async () => {
+                const { data, error } = await supabase
+                    .from('notification_preferences')
+                    .select('*')
+                    .limit(1)
+                    .maybeSingle();
+                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (!data) {
+                    throw new PlanterError('notification_preferences row missing for caller', 404);
+                }
+                return data as NotificationPreferencesRow;
+            });
+        },
+        updatePreferences: async (patch: NotificationPreferencesUpdate): Promise<NotificationPreferencesRow> => {
+            return retry(async () => {
+                const { data, error } = await supabase
+                    .from('notification_preferences')
+                    .update(patch)
+                    .select('*')
+                    .single();
+                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                return data as NotificationPreferencesRow;
+            });
+        },
+        listLog: async (opts?: { limit?: number; before?: string; eventType?: string }): Promise<NotificationLogRow[]> => {
+            return retry(async () => {
+                let query = supabase
+                    .from('notification_log')
+                    .select('*')
+                    .order('sent_at', { ascending: false })
+                    .limit(opts?.limit ?? 50);
+                if (opts?.before) query = query.lt('sent_at', opts.before);
+                if (opts?.eventType) query = query.eq('event_type', opts.eventType);
+                const { data, error } = await query;
+                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                return (data as NotificationLogRow[]) || [];
+            });
         },
     },
 };
