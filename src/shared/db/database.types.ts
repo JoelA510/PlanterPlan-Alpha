@@ -305,7 +305,57 @@ export type Database = {
  edited_at?: string | null
  deleted_at?: string | null
  }
- Relationships: []
+ Relationships: [
+ {
+ foreignKeyName: "task_comments_task_id_fkey"
+ columns: ["task_id"]
+ isOneToOne: false
+ referencedRelation: "tasks"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_task_id_fkey"
+ columns: ["task_id"]
+ isOneToOne: false
+ referencedRelation: "tasks_with_primary_resource"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_task_id_fkey"
+ columns: ["task_id"]
+ isOneToOne: false
+ referencedRelation: "view_master_library"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_root_id_fkey"
+ columns: ["root_id"]
+ isOneToOne: false
+ referencedRelation: "tasks"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_root_id_fkey"
+ columns: ["root_id"]
+ isOneToOne: false
+ referencedRelation: "tasks_with_primary_resource"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_root_id_fkey"
+ columns: ["root_id"]
+ isOneToOne: false
+ referencedRelation: "view_master_library"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_parent_comment_id_fkey"
+ columns: ["parent_comment_id"]
+ isOneToOne: false
+ referencedRelation: "task_comments"
+ referencedColumns: ["id"]
+ },
+ ]
  }
  task_relationships: {
  Row: {

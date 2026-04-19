@@ -105,10 +105,10 @@ USING (
   OR public.is_admin(auth.uid())
 )
 WITH CHECK (
-  task_id           = (SELECT task_id           FROM public.task_comments WHERE id = task_comments.id)
-  AND root_id       = (SELECT root_id           FROM public.task_comments WHERE id = task_comments.id)
-  AND parent_comment_id IS NOT DISTINCT FROM (SELECT parent_comment_id FROM public.task_comments WHERE id = task_comments.id)
-  AND author_id     = (SELECT author_id         FROM public.task_comments WHERE id = task_comments.id)
+  task_id           = (SELECT task_comments_1.task_id           FROM public.task_comments task_comments_1 WHERE task_comments_1.id = task_comments.id)
+  AND root_id       = (SELECT task_comments_1.root_id           FROM public.task_comments task_comments_1 WHERE task_comments_1.id = task_comments.id)
+  AND parent_comment_id IS NOT DISTINCT FROM (SELECT task_comments_1.parent_comment_id FROM public.task_comments task_comments_1 WHERE task_comments_1.id = task_comments.id)
+  AND author_id     = (SELECT task_comments_1.author_id         FROM public.task_comments task_comments_1 WHERE task_comments_1.id = task_comments.id)
 );
 
 -- DELETE: author, project owner, or admin (soft-delete preferred via UPDATE)
