@@ -280,9 +280,15 @@ health_metrics:
       - "date-engine consolidation (no raw Date math)"
 
   wave_status:
-    current: "Wave 23 (Coach Auto-Assign, Creatorship Audit, Completion-Flag Trigger)"
-    last_completed: "Wave 23"
-    spec_version: "1.9.1"
+    current: "Wave 26 (Threaded Comments)"
+    last_completed: "Wave 26"
+    spec_version: "1.11.0"
+    wave_26_highlights:
+      - "task_comments table + threading: docs/db/migrations/2026_04_18_task_comments.sql adds public.task_comments (self-FK parent_comment_id, unbounded DB depth, UI caps at 1-level via chain-lift), 3 indexes, trg_task_comments_set_root_id BEFORE INSERT (mirrors set_root_id_from_parent pattern), 4 RLS policies (SELECT/INSERT project members, UPDATE author on undeleted only with immutable-field WITH CHECK, DELETE author+owner+admin), supabase_realtime publication add"
+      - "planterClient.entities.TaskComment namespace: listByTask (author join, includes tombstones), create, updateBody (stamps edited_at), softDelete (deleted_at + blank body). Soft-delete contract preserves thread lineage; CommentItem renders tombstones for deleted ancestors so reply chains stay intact"
+      - "useTaskComments hook family: useTaskComments query + useCreateComment/useUpdateComment/useDeleteComment mutations. All 3 mutations optimistic with rollback + invalidateQueries force-refetch on error per styleguide §5"
+      - "useTaskCommentsRealtime hook: per-task channel task_comments:task=:id, filter task_id=eq.:id, invalidates ['taskComments', taskId] on any postgres_changes payload. Intentionally split from Project.tsx's project-wide task channel so closed detail pane doesn't receive comment traffic"
+      - "Testing infra: makeComment + makeCommentWithAuthor factories (Testing/test-utils/factories.ts); mockSupabaseChannel test helper (Testing/test-utils/mocks/supabase-channel.ts) with __fire / __subscribed / __removed for realtime lifecycle assertions"
     wave_23_highlights:
       - "Coaching task auto-assignment: BEFORE INSERT/UPDATE trigger set_coaching_assignee on public.tasks auto-sets assignee_id to the project's sole coach when settings.is_coaching_task = true; parent_task_id lookup handles subtask INSERTs where root_id isn't populated yet; zero/multiple coaches or a caller-supplied assignee → no-op"
       - "check_project_ownership rename + audit: new check_project_creatorship(pid, uid) STABLE function holds the correctly-named body; check_project_ownership is a SQL shim delegating to it (audit-only, zero behavior change). Per-policy intent audit on the four project_members RLS policies lives in docs/architecture/auth-rbac.md — shopping list for a follow-up wave's rewrite"

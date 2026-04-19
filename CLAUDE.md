@@ -100,6 +100,7 @@ RLS is enabled on all tables. Authorization is role-based per project.
 - **`task_resources`** — Attachments on tasks. `resource_type` enum, optional `storage_bucket`/`storage_path` for files.
 - **`task_relationships`** — Links between tasks (`from_task_id` → `to_task_id`, `type` defaults to `'relates_to'`).
 - **`admin_users`** — Admin whitelist. `user_id` + `email`.
+- **`task_comments`** — Threaded comments per task. RLS by project membership; soft-delete via `deleted_at`. Wave 26.
 
 **Views:**
 - **`tasks_with_primary_resource`** — Tasks LEFT JOINed with their primary `task_resources` row. Used by `planterClient.ts` for reads.
@@ -132,6 +133,7 @@ Most tables follow the same pattern:
 - **SELECT**: project members (any role) OR admin
 - **INSERT/UPDATE/DELETE**: owner + editor OR admin
 - **`tasks` table**: also allows `creator` to read/update/delete their own tasks, and templates (`origin = 'template'`) are publicly readable by authenticated users
+- **`task_comments`**: INSERT allowed for any project member (not just owner/editor) — comments are a collaboration surface, not a structural mutation.
 
 ### Trigger Functions (on `tasks` table)
 
