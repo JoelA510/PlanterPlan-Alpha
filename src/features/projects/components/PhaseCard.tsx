@@ -1,11 +1,13 @@
 import { Card } from '@/shared/ui/card';
 import { Progress } from '@/shared/ui/progress';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 import { ChevronRight, CheckCircle2, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/shared/constants';
 import { PHASE_STATUS_COLORS } from '@/shared/constants/colors';
+import { extractProjectKind } from '@/features/projects/lib/project-kind';
 import type { TaskRow } from '@/shared/db/app.types';
 
 function getPhaseStatus(progress: number, totalTasks: number, phaseTasks: TaskRow[]): string {
@@ -26,9 +28,11 @@ interface PhaseCardProps {
  milestones?: TaskRow[];
  isActive?: boolean;
  onClick?: () => void;
+ /** Wave 29: the project root; when `settings.project_kind === 'checkpoint'` the progress bar swaps to a donut. */
+ rootTask?: TaskRow | null;
 }
 
-export default function PhaseCard({ phase, tasks = [], milestones = [], isActive, onClick }: PhaseCardProps) {
+export default function PhaseCard({ phase, tasks = [], milestones = [], isActive, onClick, rootTask }: PhaseCardProps) {
  const order = phase.position || 1;
  const isLocked = phase.is_locked;
 
@@ -43,6 +47,11 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
  const isComplete = progress === 100 && totalTasks > 0;
  const phaseStatus = getPhaseStatus(progress, totalTasks, phaseTasks);
  const colors = PHASE_STATUS_COLORS[phaseStatus] || PHASE_STATUS_COLORS.not_started;
+ const isCheckpoint = extractProjectKind(rootTask) === 'checkpoint';
+ const donutData = [
+  { name: 'Completed', value: completedTasks },
+  { name: 'Remaining', value: Math.max(0, totalTasks - completedTasks) },
+ ];
 
  return (
  <motion.div whileHover={{ scale: isLocked ? 1 : 1.02 }} whileTap={{ scale: isLocked ? 1 : 0.98 }} className="h-full">
@@ -101,7 +110,38 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
  </div>
 
  <div className="space-y-2">
- {isLocked ? (
+ {isCheckpoint ? (
+ <div className="flex items-center justify-between gap-3" data-testid="phase-donut">
+ <div className="relative h-16 w-16">
+ <ResponsiveContainer width="100%" height="100%">
+ <PieChart>
+ <Pie
+ data={donutData}
+ cx="50%"
+ cy="50%"
+ innerRadius={18}
+ outerRadius={30}
+ startAngle={90}
+ endAngle={-270}
+ dataKey="value"
+ strokeWidth={0}
+ >
+ <Cell fill={totalTasks === 0 || isLocked ? 'var(--color-slate-200)' : 'var(--color-brand-600)'} />
+ <Cell fill="var(--color-slate-200)" />
+ </Pie>
+ </PieChart>
+ </ResponsiveContainer>
+ <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-medium text-slate-900">
+ {isLocked ? 'Locked' : `${progress}%`}
+ </div>
+ </div>
+ <p className="text-xs text-slate-600">
+ {isLocked
+  ? `Complete Phase ${order - 1} to unlock`
+  : `${completedTasks} of ${totalTasks} tasks`}
+ </p>
+ </div>
+ ) : isLocked ? (
  <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded justify-center">
  <Lock className="w-3 h-3" />
  <span>Complete Phase {order - 1} to unlock</span>

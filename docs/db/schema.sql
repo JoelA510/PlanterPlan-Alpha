@@ -1662,6 +1662,7 @@ CREATE TABLE IF NOT EXISTS "public"."tasks" (
     "settings" "jsonb" DEFAULT '{}'::"jsonb",
     "supervisor_email" "text",
     "task_type" "text",
+    CONSTRAINT "tasks_project_kind_check" CHECK ((("parent_task_id" IS NOT NULL) OR (("settings" ->> 'project_kind'::"text") IS NULL) OR (("settings" ->> 'project_kind'::"text") = ANY (ARRAY['date'::"text", 'checkpoint'::"text"])))),
     CONSTRAINT "tasks_project_type_check" CHECK (("project_type" = ANY (ARRAY['primary'::"text", 'secondary'::"text"]))),
     CONSTRAINT "tasks_root_id_required_for_children" CHECK ((("parent_task_id" IS NULL) OR ("root_id" IS NOT NULL))),
     CONSTRAINT "tasks_task_type_check" CHECK ((("task_type" IS NULL) OR ("task_type" = ANY (ARRAY['project'::"text", 'phase'::"text", 'milestone'::"text", 'task'::"text", 'subtask'::"text"]))))

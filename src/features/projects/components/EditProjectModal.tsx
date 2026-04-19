@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
 import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { Switch } from '@/shared/ui/switch';
+import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { useUpdateProject, useDeleteProject, useUpdateProjectStatus } from '@/features/projects/hooks/useProjectMutations';
+import { applyProjectKind, extractProjectKind, type ProjectKind } from '@/features/projects/lib/project-kind';
 import { toIsoDate } from '@/shared/lib/date-engine';
 import { PROJECT_STATUS } from '@/shared/constants/domain';
 import type { TaskRow } from '@/shared/db/app.types';
@@ -65,6 +67,10 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
  // The raw typed database row `settings` might be loose JSON, so explicitly cast what we expect internally
  const currentSettings = (project.settings as Record<string, unknown>) || {};
  const [isPublished, setIsPublished] = useState(currentSettings.published === true);
+ const [projectKind, setProjectKind] = useState<ProjectKind>(() => extractProjectKind(project));
+ const [pendingKindRevert, setPendingKindRevert] = useState(false);
+ const isRoot = project.parent_task_id === null || project.parent_task_id === undefined;
+ const isInstance = project.origin === 'instance';
 
  const [isSendingTest, setIsSendingTest] = useState(false);
 
@@ -121,15 +127,20 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
    const oldStartDate = toIsoDate(project.start_date || project.created_at);
    const { due_soon_threshold, due_date, supervisor_email, ...rest } = data;
 
+   const mergedSettings = {
+    ...currentSettings,
+    due_soon_threshold,
+    ...(isTemplate ? { published: isPublished } : {}),
+   };
+   const settingsWithKind = isRoot && isInstance
+    ? applyProjectKind(mergedSettings, projectKind) ?? mergedSettings
+    : mergedSettings;
+
    const updateData = {
     ...rest,
     due_date: due_date ? due_date : null,
     supervisor_email: supervisor_email ? supervisor_email : null,
-    settings: {
-     ...currentSettings,
-     due_soon_threshold,
-     ...(isTemplate ? { published: isPublished } : {}),
-    },
+    settings: settingsWithKind,
    };
 
    const result = await updateProjectMutation.mutateAsync({
@@ -150,6 +161,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
  };
 
  return (
+  <>
   <Dialog open={isOpen} onOpenChange={onClose}>
    <DialogContent data-testid="edit-project-modal" className="sm:max-w-[500px]">
     <DialogHeader>
@@ -234,6 +246,36 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
          checked={isPublished}
          onCheckedChange={setIsPublished}
         />
+       </div>
+      )}
+
+      {isRoot && isInstance && (
+       <div className="grid gap-2 py-2" data-testid="project-kind-section">
+        <Label className="font-medium">Project Type</Label>
+        <p className="text-xs text-slate-500">
+         Date-driven projects shift incomplete task dates when you change the launch date. Checkpoint projects unlock phases one at a time without date math.
+        </p>
+        <RadioGroup
+         value={projectKind}
+         onValueChange={(v) => {
+          const next = v as ProjectKind;
+          if (projectKind === 'checkpoint' && next === 'date') {
+           setPendingKindRevert(true);
+           return;
+          }
+          setProjectKind(next);
+         }}
+         className="flex flex-col gap-2"
+        >
+         <div className="flex items-center gap-2">
+          <RadioGroupItem value="date" id="kind-date" />
+          <Label htmlFor="kind-date" className="font-normal">Date-driven (default)</Label>
+         </div>
+         <div className="flex items-center gap-2">
+          <RadioGroupItem value="checkpoint" id="kind-checkpoint" />
+          <Label htmlFor="kind-checkpoint" className="font-normal">Checkpoint-based</Label>
+         </div>
+        </RadioGroup>
        </div>
       )}
      </div>
@@ -349,5 +391,31 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
     </div>
    </DialogContent>
   </Dialog>
+
+  <Dialog open={pendingKindRevert} onOpenChange={setPendingKindRevert}>
+   <DialogContent data-testid="project-kind-revert-dialog" className="sm:max-w-[440px]">
+    <DialogHeader>
+     <DialogTitle>Switch back to date-driven scheduling?</DialogTitle>
+    </DialogHeader>
+    <p className="text-sm text-slate-600">
+     Existing due dates will become active again. Tasks that are past due will appear as overdue. Locked phases will remain locked until you manually unlock them.
+    </p>
+    <DialogFooter className="gap-2 sm:justify-end">
+     <Button variant="outline" onClick={() => setPendingKindRevert(false)}>
+      Cancel
+     </Button>
+     <Button
+      variant="destructive"
+      onClick={() => {
+       setProjectKind('date');
+       setPendingKindRevert(false);
+      }}
+     >
+      Switch to date-driven
+     </Button>
+    </DialogFooter>
+   </DialogContent>
+  </Dialog>
+  </>
  );
 }
