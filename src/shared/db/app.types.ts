@@ -147,6 +147,8 @@ export interface TaskFormData {
     is_coaching_task?: boolean;
     /** Wave 24: flag the task as a strategy template so completing it opens the Master Library follow-up dialog. */
     is_strategy_template?: boolean;
+    /** Wave 29: user ids designated as Phase Leads on a phase/milestone row (owner-only picker in TaskFormFields). */
+    phase_lead_user_ids?: string[];
 }
 
 /**

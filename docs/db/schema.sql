@@ -223,6 +223,37 @@ $$;
 ALTER FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") OWNER TO "postgres";
 
 
+-- Wave 29: Phase Lead. Recursive ancestor walk returning TRUE when any
+-- ancestor (EXCLUDING the target row itself) carries
+-- `settings -> 'phase_lead_user_ids'` containing uid. Excluding self is
+-- load-bearing: a Phase Lead on milestone M may UPDATE tasks under M but
+-- NOT the row M itself (owner-level gate on lead assignment).
+CREATE OR REPLACE FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  WITH RECURSIVE ancestors AS (
+    SELECT parent_task_id
+    FROM public.tasks
+    WHERE id = target_task_id
+    UNION ALL
+    SELECT t.parent_task_id
+    FROM public.tasks t
+    JOIN ancestors a ON t.id = a.parent_task_id
+  )
+  SELECT EXISTS (
+    SELECT 1
+    FROM ancestors a
+    JOIN public.tasks t ON t.id = a.parent_task_id
+    WHERE t.settings ? 'phase_lead_user_ids'
+      AND (t.settings -> 'phase_lead_user_ids') ? uid::text
+  );
+$$;
+
+
+ALTER FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."clone_project_template"("p_template_id" "uuid", "p_new_parent_id" "uuid", "p_new_origin" "text", "p_user_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -2172,6 +2203,10 @@ CREATE POLICY "Enable update for coaches on coaching tasks" ON "public"."tasks" 
 
 
 
+CREATE POLICY "Enable update for phase leads" ON "public"."tasks" FOR UPDATE TO "authenticated" USING ((("origin" = 'instance'::"text") AND "public"."user_is_phase_lead"("id", (SELECT (auth.jwt() ->> 'sub')::uuid)))) WITH CHECK ((("origin" = 'instance'::"text") AND "public"."user_is_phase_lead"("id", (SELECT (auth.jwt() ->> 'sub')::uuid))));
+
+
+
 CREATE POLICY "Manage people for owners and editors" ON "public"."people" USING (("public"."has_project_role"("project_id", (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"((SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
@@ -2498,6 +2533,8 @@ REVOKE ALL ON FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid",
 GRANT ALL ON FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") TO "authenticated";
 REVOKE ALL ON FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") TO "authenticated";
 
 
 

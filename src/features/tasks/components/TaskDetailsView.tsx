@@ -26,6 +26,8 @@ import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 import type { TaskRow } from '@/shared/db/app.types';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
+import { extractPhaseLeads } from '@/features/projects/lib/phase-lead';
+import { useTeam } from '@/features/people/hooks/useTeam';
 import StrategyFollowUpDialog from '@/features/tasks/components/StrategyFollowUpDialog';
 import { collectSpawnedTemplateIds } from '@/shared/lib/tree-helpers';
 
@@ -76,6 +78,20 @@ const TaskDetailsView = ({
     // with the already-completed row in cache.
     const prevStatusRef = useRef<string | null | undefined>(task?.status);
     const isStrategyTask = extractStrategyTemplateFlag(task as TaskRow | undefined);
+    const phaseLeadIds = useMemo(
+        () => extractPhaseLeads(task as TaskRow | undefined),
+        [task],
+    );
+    const phaseLeadProjectId = task?.root_id ?? task?.id ?? null;
+    const { teamMembers: phaseLeadMembers } = useTeam(phaseLeadIds.length > 0 ? phaseLeadProjectId : null);
+    const phaseLeadLabels = useMemo(
+        () => phaseLeadIds.map((id) => {
+            const member = phaseLeadMembers.find((m) => m.user_id === id);
+            const email = member ? (member as unknown as { email?: string }).email : undefined;
+            return email ?? `User ${id.slice(0, 8)}`;
+        }),
+        [phaseLeadIds, phaseLeadMembers],
+    );
     useEffect(() => {
         const prev = prevStatusRef.current;
         const curr = task?.status;
@@ -294,6 +310,20 @@ const TaskDetailsView = ({
                                 className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border bg-emerald-50 text-emerald-700 border-emerald-100"
                             >
                                 Strategy Template
+                            </span>
+                        </div>
+                    )}
+
+                    {phaseLeadIds.length > 0 && (
+                        <div className="flex flex-col gap-1" data-testid="phase-lead-badge-group">
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                Phase Leads
+                            </span>
+                            <span
+                                data-testid="phase-lead-badge"
+                                className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border bg-purple-50 text-purple-700 border-purple-100"
+                            >
+                                {phaseLeadLabels.join(', ')}
                             </span>
                         </div>
                     )}

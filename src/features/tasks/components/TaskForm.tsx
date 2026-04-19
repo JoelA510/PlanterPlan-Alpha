@@ -10,6 +10,7 @@ import { Button } from '@/shared/ui/button';
 import { isRecurrenceRule } from '@/shared/lib/recurrence';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
+import { extractPhaseLeads } from '@/features/projects/lib/phase-lead';
 import type { TaskFormData, TaskRow } from '@/shared/db/app.types';
 
 const extractDateInput = (value?: string | null) => {
@@ -96,6 +97,7 @@ const createInitialState = (task?: Partial<TaskRow> | null) => {
  recurrence_target_project_id: rec?.targetProjectId ?? '',
  is_coaching_task: extractCoachingFlag(task),
  is_strategy_template: extractStrategyTemplateFlag(task),
+ phase_lead_user_ids: extractPhaseLeads(task),
  };
 };
 
@@ -109,6 +111,8 @@ export interface TaskFormProps {
  renderLibrarySearch?: (onSelect: (task: Partial<TaskRow>) => void) => React.ReactNode;
  /** Forwarded to TaskFormFields to gate permission-scoped controls. */
  membershipRole?: string;
+ /** Wave 29: project root id threaded to TaskFormFields for the Phase Lead picker. */
+ projectId?: string | null;
 }
 
 const TaskForm = ({
@@ -120,6 +124,7 @@ const TaskForm = ({
  submitLabel = 'Add New Task',
  renderLibrarySearch,
  membershipRole,
+ projectId,
 }: TaskFormProps) => {
  const isEditMode = Boolean(initialTask);
  const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
@@ -205,6 +210,8 @@ const TaskForm = ({
  origin={origin}
  itemLabel={submitLabel?.includes('Phase') ? 'Phase' : 'Task'}
  membershipRole={membershipRole}
+ taskType={initialTask?.task_type ?? null}
+ projectId={projectId ?? initialTask?.root_id ?? null}
  />
 
  {origin === 'template' && <RecurrencePicker />}
