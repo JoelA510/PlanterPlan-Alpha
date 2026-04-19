@@ -45,7 +45,7 @@ export default function Gantt() {
                 <h1 className="text-2xl font-semibold text-slate-900">Gantt Chart</h1>
                 <p className="text-sm text-slate-600">Pick a project to render its timeline.</p>
                 {activeProjects.length === 0 ? (
-                    <p className="rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600">
+                    <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
                         No active projects yet.
                     </p>
                 ) : (

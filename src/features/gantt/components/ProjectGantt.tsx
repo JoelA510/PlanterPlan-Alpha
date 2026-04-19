@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { Gantt as GanttLib, type Task as GanttTaskApiType, ViewMode } from 'gantt-task-react';
 import 'gantt-task-react/dist/index.css';
 import { Calendar, FileDown } from 'lucide-react';
@@ -41,6 +41,8 @@ export function ProjectGantt({
     onIncludeLeafTasksChange,
     onShiftDates,
 }: ProjectGanttProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
+
     const handleDateChange = useCallback(
         async (task: GanttTaskApiType) => {
             if (!onShiftDates) return;
@@ -52,10 +54,10 @@ export function ProjectGantt({
     const handleTodayClick = useCallback(() => {
         // gantt-task-react doesn't expose a "jump to today" API — the library always
         // renders around `min(tasks.start)`. The chart scroll position is owned by
-        // the library's internal state; the best we can do is nudge the user. If
-        // the library ever gains a ref-based scroll API, route it here.
-        const el = document.querySelector<HTMLElement>('.gantt-container');
-        el?.scrollTo({ left: 0, behavior: 'smooth' });
+        // the library's internal state; the best we can do is nudge the user back
+        // to the leftmost column. If the library ever gains a ref-based scroll API,
+        // route it here.
+        containerRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
     }, []);
 
     return (
@@ -112,15 +114,21 @@ export function ProjectGantt({
             ) : null}
 
             {rows.length === 0 ? (
-                <p className="rounded-md border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
+                <p className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm">
                     This project has no tasks with scheduled dates yet.
                 </p>
             ) : (
-                <div className="gantt-container overflow-x-auto rounded-md border border-slate-200 bg-white p-2">
+                <div
+                    ref={containerRef}
+                    className="gantt-container overflow-x-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm"
+                >
                     <GanttLib
                         tasks={rows}
                         viewMode={zoom}
                         onDateChange={onShiftDates ? handleDateChange : undefined}
+                        /* Empty string hides the library's built-in task-list column
+                         * (lib reads `if (!listCellWidth)`); the app already has
+                         * TaskList elsewhere, so keep the gantt bars-only. */
                         listCellWidth=""
                     />
                 </div>
