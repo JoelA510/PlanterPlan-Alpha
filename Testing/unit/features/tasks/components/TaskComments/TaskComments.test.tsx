@@ -17,6 +17,10 @@ vi.mock('@/features/tasks/hooks/useTaskComments', () => ({
     useDeleteComment: () => ({ mutate: mockDeleteMutate, isPending: false }),
 }));
 
+vi.mock('@/features/tasks/hooks/useTaskCommentsRealtime', () => ({
+    useTaskCommentsRealtime: () => undefined,
+}));
+
 vi.mock('@/shared/contexts/AuthContext', () => ({
     useAuth: () => ({
         user: {
@@ -175,6 +179,9 @@ describe('TaskComments (Wave 26)', () => {
             useCreateComment: () => ({ mutate: vi.fn(), isPending: false }),
             useUpdateComment: () => ({ mutate: vi.fn(), isPending: false }),
             useDeleteComment: () => ({ mutate: vi.fn(), isPending: false }),
+        }));
+        vi.doMock('@/features/tasks/hooks/useTaskCommentsRealtime', () => ({
+            useTaskCommentsRealtime: () => undefined,
         }));
         const { default: SignedOutTaskComments } = await import(
             '@/features/tasks/components/TaskComments/TaskComments'
