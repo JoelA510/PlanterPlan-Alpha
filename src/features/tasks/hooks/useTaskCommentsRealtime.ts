@@ -18,6 +18,7 @@ import { supabase } from '@/shared/db/client';
  * @param taskId The task whose comments we're listening to. `null` is a
  *   no-op (so the hook can be called unconditionally at the top of
  *   `TaskComments` regardless of whether a task is selected).
+ * @returns {void}
  */
 export function useTaskCommentsRealtime(taskId: string | null): void {
     const qc = useQueryClient();
@@ -34,7 +35,11 @@ export function useTaskCommentsRealtime(taskId: string | null): void {
                     qc.invalidateQueries({ queryKey: ['taskComments', taskId] });
                 },
             )
-            .subscribe();
+            .subscribe((status, err) => {
+                if (err) {
+                    console.error(`[Task Comments Realtime] Channel error (${status}):`, err);
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);
