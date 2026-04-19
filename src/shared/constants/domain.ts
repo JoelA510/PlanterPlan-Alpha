@@ -45,10 +45,12 @@ export const PROJECT_TABS = {
  BOARD: 'board',
  PEOPLE: 'people',
  RESOURCES: 'resources',
+ ACTIVITY: 'activity',
 } as const;
 
 export const PROJECT_TAB_LABELS = {
  [PROJECT_TABS.BOARD]: 'Tasks & Board',
  [PROJECT_TABS.PEOPLE]: 'Team',
  [PROJECT_TABS.RESOURCES]: 'Resources',
+ [PROJECT_TABS.ACTIVITY]: 'Activity',
 } as const;

@@ -24,6 +24,11 @@ vi.mock('@/features/tasks/hooks/useTaskCommentsRealtime', () => ({
   useTaskCommentsRealtime: () => undefined,
 }));
 
+vi.mock('@/features/projects/hooks/useProjectActivity', () => ({
+  useProjectActivity: () => ({ data: [], isLoading: false }),
+  useTaskActivity: () => ({ data: [], isLoading: false }),
+}));
+
 vi.mock('@/shared/db/client', () => ({
   supabase: {
     auth: {
