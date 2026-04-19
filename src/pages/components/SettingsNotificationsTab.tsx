@@ -3,6 +3,7 @@ import { Label } from '@/shared/ui/label';
 import { Switch } from '@/shared/ui/switch';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
+import { formatDate } from '@/shared/lib/date-engine';
 import {
     Select,
     SelectContent,
@@ -16,6 +17,11 @@ import {
     useNotificationLog,
 } from '@/features/settings/hooks/useNotificationPreferences';
 import type { NotificationPreferencesRow } from '@/shared/db/app.types';
+
+/** Turns `mention_pending` into `Mention Pending` for user-facing display. */
+function humanizeEventType(eventType: string): string {
+    return eventType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 const COMMON_TIMEZONES = [
     'UTC',
@@ -70,12 +76,12 @@ export default function SettingsNotificationsTab() {
         <div className="space-y-6" data-testid="settings-notifications">
             <div className="bg-card rounded-xl border border-border shadow-sm p-6">
                 <h2 className="text-xl font-bold text-slate-900">Email</h2>
-                <p className="text-sm text-slate-500 mt-1">Control which events produce an email.</p>
+                <p className="text-sm text-slate-600 mt-1">Control which events produce an email.</p>
 
                 <div className="mt-6 flex items-center justify-between gap-4">
                     <div>
                         <Label htmlFor="email-mentions" className="text-sm font-medium">Mentions</Label>
-                        <p className="text-xs text-slate-500">Email me when someone `@`-mentions me in a task comment.</p>
+                        <p className="text-xs text-slate-600">Email me when someone `@`-mentions me in a task comment.</p>
                     </div>
                     <Switch
                         id="email-mentions"
@@ -87,7 +93,7 @@ export default function SettingsNotificationsTab() {
                 <div className="mt-4 flex items-center justify-between gap-4">
                     <div>
                         <Label htmlFor="email-overdue-digest" className="text-sm font-medium">Overdue digest</Label>
-                        <p className="text-xs text-slate-500">Scheduled summary of tasks past due.</p>
+                        <p className="text-xs text-slate-600">Scheduled summary of tasks past due.</p>
                     </div>
                     <Select
                         value={prefs.email_overdue_digest}
@@ -107,7 +113,7 @@ export default function SettingsNotificationsTab() {
                 <div className="mt-4 flex items-center justify-between gap-4">
                     <div>
                         <Label htmlFor="email-assignment" className="text-sm font-medium">Task assignment</Label>
-                        <p className="text-xs text-slate-500">Email me when a task is assigned to me.</p>
+                        <p className="text-xs text-slate-600">Email me when a task is assigned to me.</p>
                     </div>
                     <Switch
                         id="email-assignment"
@@ -121,7 +127,7 @@ export default function SettingsNotificationsTab() {
                 <div className="flex items-center justify-between gap-4">
                     <div>
                         <h2 className="text-xl font-bold text-slate-900">Push</h2>
-                        <p className="text-sm text-slate-500 mt-1">Browser push notifications via the service worker.</p>
+                        <p className="text-sm text-slate-600 mt-1">Browser push notifications via the service worker.</p>
                     </div>
                     <Button
                         type="button"
@@ -167,7 +173,7 @@ export default function SettingsNotificationsTab() {
 
             <div className="bg-card rounded-xl border border-border shadow-sm p-6">
                 <h2 className="text-xl font-bold text-slate-900">Quiet hours</h2>
-                <p className="text-sm text-slate-500 mt-1">Dispatchers skip sends when local-now is within this window.</p>
+                <p className="text-sm text-slate-600 mt-1">Dispatchers skip sends when local-now is within this window.</p>
 
                 <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
@@ -213,15 +219,15 @@ export default function SettingsNotificationsTab() {
                 </summary>
                 <div className="mt-4 space-y-2" data-testid="notif-log">
                     {logQuery.isLoading ? (
-                        <p className="text-xs text-slate-500">Loading recent sends…</p>
+                        <p className="text-xs text-slate-600">Loading recent sends…</p>
                     ) : (logQuery.data?.length ?? 0) === 0 ? (
-                        <p className="text-xs text-slate-500">No notifications have been sent yet.</p>
+                        <p className="text-xs text-slate-600">No notifications have been sent yet.</p>
                     ) : (
                         (logQuery.data ?? []).map((row) => (
                             <div key={row.id} className="flex items-start justify-between gap-3 border-b border-slate-100 py-2 text-xs last:border-0">
                                 <div>
-                                    <p className="font-medium text-slate-700">{row.event_type}</p>
-                                    <p className="text-slate-500">{row.channel} · {row.sent_at}</p>
+                                    <p className="font-medium text-slate-700">{humanizeEventType(row.event_type)}</p>
+                                    <p className="text-slate-600">{row.channel} · {formatDate(row.sent_at, 'PPp')}</p>
                                 </div>
                                 {row.error ? (
                                     <span className="text-red-600">error</span>
@@ -255,7 +261,7 @@ function ToggleRow({ id, label, description, checked, disabled, disabledTooltip,
         >
             <div>
                 <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
-                <p className="text-xs text-slate-500">{description}</p>
+                <p className="text-xs text-slate-600">{description}</p>
             </div>
             <Switch
                 id={id}
