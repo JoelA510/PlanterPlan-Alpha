@@ -14,6 +14,8 @@ Wave 33 ships **Advanced Admin Management** (§3.7). The existing `admin_users` 
 
 **Test baseline going into Wave 33:** Wave 32 shipped at ≥685 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 33 specific: zero existing-test impact. New admin RPC mocks follow the existing planterClient pattern (`vi.mock('@/shared/api/planterClient', () => ({ planter: { admin: { searchUsers: vi.fn().mockResolvedValue([...]) }}}))`). E2E persona addition: extend `scripts/seed-e2e.js` to insert an `admin@example.com` user into `auth.users` AND `public.admin_users`; create `Testing/e2e/.auth/admin.json` via the global setup login flow.
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline` includes the 3 Wave 32 commits + docs sweep.

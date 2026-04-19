@@ -23,6 +23,8 @@ The known-gaps list this wave attacks (sourced from `docs/architecture/*.md` + `
 
 **Test baseline going into Wave 37:** Wave 36 shipped at ≥770 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress. This wave adds no new functional surfaces — just hardening — so the test count delta is modest (~30-50 new tests).
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 37 specific: Task 3 + 4 modify the `clone_project_template` RPC server-side. The existing `Testing/unit/shared/api/planterClient.clone.stamp.test.ts` test (Wave 22) asserts that `Task.clone` follows up with a `Task.update` writing `settings.spawnedFromTemplate`. Read this file first — if Task 3's stamp of `cloned_from_template_version` is added on the server side (in the RPC body) rather than the client-side follow-up, the existing test stays unchanged. Task 4's `cloned_from_task_id` populates server-side too, so client-side test is also unchanged. Add NEW assertions for both stamps in `Testing/unit/shared/api/planterClient.template.versioning.test.ts`. Mock `react-virtuoso` for Task 5's virtualization test: `vi.mock('react-virtuoso', () => ({ Virtuoso: vi.fn(({ data, itemContent }) => data.map((d, i) => itemContent(i, d))) }))` (renders all items synchronously — virtualization correctness is the lib's responsibility, not ours).
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline` includes the 4 Wave 36 commits + docs sweep.

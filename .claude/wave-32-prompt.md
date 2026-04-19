@@ -13,6 +13,13 @@ Wave 32 ships **PWA + offline infrastructure** (§3.8). Two concerns: (a) instal
 
 **Test baseline going into Wave 32:** Wave 31 shipped at ≥660 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 32 wraps `useUpdateTask` (existing test: `useTaskMutations.test.ts`) and `useCreateComment` (Wave 26 test: `useTaskComments.test.tsx`) with offline-queue logic. Required test infrastructure setup, in this exact order at the start of Task 3:
+1. Add dev dep `"fake-indexeddb": "^6.0.0"` to `package.json` (counted in Wave 32's allowed dep additions; mention in PR alongside the 5 prod deps).
+2. Prepend `import 'fake-indexeddb/auto';` to `Testing/setupTests.ts` (line 1 — must be before any other import).
+3. In a new `beforeEach` in `Testing/setupTests.ts`: `Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true })`. This sets the default to "online" so existing `useTaskMutations` and `useTaskComments` tests pass through the existing planterClient mock path unchanged.
+4. Create `Testing/test-utils/mocks/online.ts` with `setOnlineStatus(value: boolean)` that flips the flag AND dispatches the matching `online`/`offline` event so React listeners react.
+5. Then write the new `Testing/unit/features/tasks/hooks/useTaskMutations.offline.test.ts` exercising the offline branch via `setOnlineStatus(false)`.
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline` includes the Wave 31 commits + docs sweep.

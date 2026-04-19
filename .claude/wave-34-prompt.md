@@ -14,6 +14,8 @@ Wave 34 ships **White Labeling** (§3.7). This is multi-tenant infrastructure �
 
 **Test baseline going into Wave 34:** Wave 33 shipped at ≥705 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 34 specific: any component that's updated to consume `useTenant()` directly must add `vi.mock('@/shared/contexts/TenantContext', () => ({ useTenant: () => mockUseTenant() }))` to its existing tests, otherwise the test throws on missing context. Extend `Testing/test-utils/render-with-providers.tsx` (created in Wave 31) with a `tenant?: Partial<OrganizationRow>` option. E2E: existing tests run against the default `planterplan` org and pass unchanged.
+
 **Breaking-change pre-approval (logged here for the migration header to reference):** Wave 34's `tasks.organization_id` backfill is a one-shot data migration that touches every existing row. The user has pre-approved this in the planning session — log the approval source as "Wave 34 plan in `.claude/wave-34-prompt.md` — pre-approved by user during planning" in the migration's revert-path block.
 
 ## Pre-flight verification (run before any task)

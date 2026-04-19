@@ -14,6 +14,13 @@ Wave 31 ships the **Localization Framework** (§3.1). Foundational infrastructur
 
 **Test baseline going into Wave 31:** Wave 30 shipped at ≥640 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress. **Note**: Task 2's string-extraction will touch ~every component file; expect a large diff but mostly mechanical.
 
+**Read `.claude/wave-testing-strategy.md` before starting — Wave 31 is the highest-impact wave for existing tests.** Locked migration path:
+1. Task 1 creates `Testing/test-utils/render-with-providers.tsx` (NEW) wrapping `<QueryClientProvider>` + `<I18nextProvider i18n={i18n}>` with eagerly-imported en.json resources.
+2. After Task 1 lands but BEFORE Task 2 begins: bulk-migrate every existing `renderWithQueryClient(...)` call in `Testing/unit/` to `renderWithProviders(...)`. Most tests pass unchanged because the rendered text is identical (en.json's `t('common.save')` resolves to "Save"; the assertion `getByText('Save')` keeps working).
+3. Run `npm test` after the migration and BEFORE any string extraction. The test count and pass rate should match the Wave 30 baseline exactly. If anything breaks here, the wrapper is wrong — fix it before extracting strings.
+4. During Task 2's per-domain extraction commits, run `npm test` after each. Snapshot drift is allowed (`npm test -- -u` per the wave plan); assertion drift on rendered text should be near-zero (paths A guarantee).
+5. Toast assertions (`expect(mockToastSuccess).toHaveBeenCalledWith('Project updated')`) keep working because `t('errors.project_update_success')` returns "Project updated" when en.json is loaded.
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline -5` includes the 3 Wave 30 commits + docs sweep.

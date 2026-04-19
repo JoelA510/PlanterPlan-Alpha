@@ -12,6 +12,8 @@ Spec is at **1.11.0**. §3.3 Collaboration Suite is `[/]` with `[x] Threaded com
 
 **Test baseline going into Wave 27:** Wave 26 shipped at ≥567 tests (≥547 prior + ≥20 new). Run `npm test` at the start of this wave and record the actual count. Lint baseline: 0 errors, 7 warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 27 specific: extend the four `Testing/unit/features/tasks/components/TaskDetailsView.*.test.tsx` files with `vi.mock('@/features/projects/hooks/useProjectActivity', () => ({ useTaskActivity: () => ({ data: [], isLoading: false }) }))` so the new collapsed activity rail doesn't throw when the test mounts `TaskDetailsView`. Wave 27 also extends the Wave 26 `Testing/test-utils/mocks/supabase-channel.ts` helper to support presence events (`presence.sync`, `.join`, `.leave`).
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline -5` includes the 4 Wave 26 commits (3 task + 1 docs).

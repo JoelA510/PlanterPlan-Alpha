@@ -14,6 +14,8 @@ Wave 35 ships **Stripe-backed monetization + license enforcement** (§3.7). Two 
 
 **Test baseline going into Wave 35:** Wave 34 shipped at ≥720 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 35 has a CRITICAL E2E gotcha: the new license-enforcement trigger blocks any user from creating more than 1 project on the free plan. Every existing E2E scenario that creates more than one project per user (the `owner`, `editor`, `test@example.com` personas all do) will start failing UNLESS you upgrade those personas to the `pro` plan before the E2E run. **Required step in Task 2 (license enforcement)**: extend `scripts/seed-e2e.js` (or add a Wave 35 step in `Testing/e2e/global-setup.ts`) to run `UPDATE public.subscriptions SET plan = 'pro' WHERE user_id IN (SELECT id FROM auth.users WHERE email IN ('planterplan.test@gmail.com', 'tim.planterplan@gmail.com', 'test@example.com', 'planterplan.role_tester@mail.com', 'limited@example.com', 'coach@example.com'))` after the bootstrap trigger has created their `subscriptions` rows. Document this seed extension in the Task 2 PR description as a hard prerequisite for E2E. Without it, the entire E2E suite breaks.
+
 **Stripe test-mode keys**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, plus the three price IDs (`STRIPE_PRICE_FREE`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_NETWORK`) must be available in your local Supabase environment for end-to-end smoke testing. Without them the edge functions degrade to log-only (mirrors the Wave 22 Resend pattern). The webhook endpoint is publicly POST'd to by Stripe — it is NOT cron-driven; `pg_cron` is not relevant here.
 
 ## Pre-flight verification (run before any task)

@@ -15,6 +15,8 @@ Wave 38 is the **final QA + release readiness pass** for the **1.0.0 cutover**. 
 
 **Test baseline going into Wave 38:** Wave 37 shipped at ≥800 tests (unit) and an unmeasured E2E baseline (the existing Playwright BDD suite — record the count). Lint baseline: 0 errors, ≤7 warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 38 IS the testing wave — Task 1 expands the E2E persona × flow matrix to ≥150 new scenarios (target total: ≥470). Task 2 wires `@axe-core/playwright` into the existing `Testing/e2e/features/accessibility/*.feature` setup (currently uses raw Playwright APIs for keyboard/ARIA checks; adds programmatic axe scans via a `expectNoA11yViolations(page)` fixture). Task 3 stands up the RLS smoke runner consuming every `docs/db/tests/*.sql` file added across the wave plans. Task 4 adds Lighthouse + bundle-size budgets that verify Wave 28 (gantt) and Wave 33 (admin) routes are properly lazy-loaded.
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline` includes the 5 Wave 37 commits + docs sweep.

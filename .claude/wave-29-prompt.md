@@ -12,6 +12,8 @@ Wave 29 ships **two related items**: Checkpoint-Based Architecture for §3.2 (al
 
 **Test baseline going into Wave 29:** Wave 28 shipped at ≥600 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 29 specific: `EditProjectModal.test.tsx` adds a `<RadioGroup>` for `project_kind` — if the existing test queries by structural index, update to query by role/label. The `date-engine` Task 1 work adds `isCheckpointProject` and a NEW `deriveUrgencyForProject` wrapper (does NOT widen the existing `deriveUrgency` signature) — existing `date-engine.urgency.test.ts` and `index.test.ts` stay green; new tests live in `Testing/unit/shared/lib/date-engine/checkpoint.test.ts`.
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline -5` includes the 2 Wave 28 commits.

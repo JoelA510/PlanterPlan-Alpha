@@ -13,6 +13,8 @@ Wave 26 opens the §3.3 Collaboration Suite by shipping its **first** column: th
 
 **Test baseline going into Wave 26:** Wave 25 shipped at ≥547 tests across ≥47 files. **At the start of this wave, run `npm test` (which runs `vitest --run`) and record the actual count as the starting baseline. Use that number for the verification gate at the end.** Lint baseline: 0 errors, 7 pre-existing warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** It catalogs the existing test infrastructure and per-wave test impact across all of Waves 26-38. Wave 26 specifically: the four existing `Testing/unit/features/tasks/components/TaskDetailsView.*.test.tsx` files will throw on missing `useTaskComments` data unless you add `vi.mock('@/features/tasks/hooks/useTaskComments', () => ({ useTaskComments: () => ({ data: [], isLoading: false }) }))` (and a matching no-op for `useTaskCommentsRealtime`) to each. Add these mock injections as part of Task 2's commit so existing tests stay green after the `<TaskComments>` mount lands in `TaskDetailsView.tsx`.
+
 ## Pre-flight verification (run before any task)
 
 Sonnet-friendly drift check. Verify these facts hold on `main` before touching anything. If any fact is wrong, STOP and report — the wave plan was written against a snapshot and assumes them.

@@ -12,6 +12,8 @@ Wave 30 wires the **Push & Email Notifications** stack (§3.7). Email infrastruc
 
 **Test baseline going into Wave 30:** Wave 29 shipped at ≥620 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 30 specific: install `Testing/test-utils/mocks/service-worker.ts` and `Testing/test-utils/mocks/notification-api.ts` (NEW); call both from a `beforeAll` in `Testing/setupTests.ts` so every test starts with stub implementations of `navigator.serviceWorker` and `Notification`. Individual tests can override `Notification.permission = 'granted'` etc. Existing `useTaskComments` test (Wave 26) doesn't break because the new `resolveMentions` step in `CommentComposer` falls through to verbatim handles when the RPC mock returns an error.
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline -5` includes the 3 Wave 29 commits.

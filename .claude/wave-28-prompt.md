@@ -12,6 +12,8 @@ Wave 28 ships the §3.6 Gantt Chart. **One task, two phases.** Both phases ship 
 
 **Test baseline going into Wave 28:** Wave 27 shipped at ≥585 tests. Run `npm test` at the start of this wave and record the actual count. Lint baseline: 0 errors, 7 warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 28 has minimal existing-test impact — the gantt is a new isolated route. Required: per-test mock of `gantt-task-react` (`vi.mock('gantt-task-react', () => ({ Gantt: vi.fn(({ tasks, onDateChange }) => null), ViewMode: { Day: 'Day', Week: 'Week', Month: 'Month' } }))`) so unit tests don't try to render the full library. If used in >1 test, extract to `Testing/test-utils/mocks/gantt.ts`.
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline -5` includes the 3 Wave 27 commits.

@@ -15,6 +15,8 @@ Wave 36 ships **External Integrations** (§3.7 last bullet): Zoho CRM/Analytics 
 
 **Test baseline going into Wave 36:** Wave 35 shipped at ≥740 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
 
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 36 specific: zero existing-test impact (all four integrations are new + isolated). For `webhook-dispatch.test.ts`, jsdom should provide `crypto.subtle` for HMAC; verify by `console.log(typeof crypto.subtle)` in a one-off test if anything fails. AWS SDK mocks live per-test via `vi.mock('@aws-sdk/s3-request-presigner', ...)` since these are Deno-only deps that don't bundle into frontend tests.
+
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline` includes the 3 Wave 35 commits + docs sweep.
