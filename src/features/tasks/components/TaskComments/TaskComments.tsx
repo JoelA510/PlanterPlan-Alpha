@@ -5,6 +5,7 @@ import {
     useUpdateComment,
     useDeleteComment,
 } from '@/features/tasks/hooks/useTaskComments';
+import { useTaskCommentsRealtime } from '@/features/tasks/hooks/useTaskCommentsRealtime';
 import { CommentList } from './CommentList';
 import { CommentComposer } from './CommentComposer';
 
@@ -14,6 +15,7 @@ interface TaskCommentsProps {
 
 export default function TaskComments({ taskId }: TaskCommentsProps) {
     const { user } = useAuth();
+    useTaskCommentsRealtime(taskId);
     const { data: comments = [], isLoading } = useTaskComments(taskId);
     const createComment = useCreateComment(taskId);
     const updateComment = useUpdateComment(taskId);

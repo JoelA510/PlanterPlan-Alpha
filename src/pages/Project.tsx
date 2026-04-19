@@ -146,6 +146,7 @@ export default function Project() {
     useEffect(() => {
         if (!projectId) return;
 
+        // Comments use a per-task channel mounted by TaskComments — see useTaskCommentsRealtime. Don't merge here.
         const channel = supabase
             .channel(`project-tasks:${projectId}`)
             .on(

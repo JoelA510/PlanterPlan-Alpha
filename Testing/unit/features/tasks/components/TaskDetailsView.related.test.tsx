@@ -20,6 +20,10 @@ vi.mock('@/features/tasks/hooks/useTaskComments', () => ({
   useDeleteComment: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
+vi.mock('@/features/tasks/hooks/useTaskCommentsRealtime', () => ({
+  useTaskCommentsRealtime: () => undefined,
+}));
+
 vi.mock('@/shared/db/client', () => ({
   supabase: {
     auth: {
