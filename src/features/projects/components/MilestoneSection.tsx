@@ -13,6 +13,7 @@ import InlineTaskInput from '@/features/tasks/components/InlineTaskInput';
 
 import { TaskRow, Task } from '@/shared/db/app.types';
 import type { TaskUpdate } from '@/shared/db/app.types';
+import type { PresenceState } from '@/features/projects/hooks/useProjectPresence';
 
 interface TaskWithState extends Task {
     isExpanded?: boolean;
@@ -32,6 +33,10 @@ export interface MilestoneSectionProps {
     canEdit?: boolean;
     isAddingInline?: boolean;
     dropIndicator?: { parentId: string; beforeTaskId: string | null; nestInId?: string } | null;
+    /** Wave 27: presence roster forwarded to each TaskItem so rows can render focus chips. */
+    presentUsers?: PresenceState[];
+    /** Wave 27: current viewer's id so TaskItem hides its own focus chip. */
+    currentUserId?: string | null;
 }
 
 export default function MilestoneSection({
@@ -46,6 +51,8 @@ export default function MilestoneSection({
     canEdit = true,
     isAddingInline = false,
     dropIndicator,
+    presentUsers = [],
+    currentUserId = null,
 }: MilestoneSectionProps) {
     const [isExpanded, setIsExpanded] = useState(true);
 
@@ -163,6 +170,8 @@ export default function MilestoneSection({
                                                         onInlineCommit={onInlineCommit}
                                                         onInlineCancel={onInlineCancel}
                                                         dropIndicator={dropIndicator}
+                                                        presentUsers={presentUsers}
+                                                        currentUserId={currentUserId}
                                                     />
                                                 </motion.div>
                                             ))}

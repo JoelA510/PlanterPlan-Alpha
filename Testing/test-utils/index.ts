@@ -6,4 +6,6 @@ export {
   makeTeamMember,
   makeComment,
   makeCommentWithAuthor,
+  makePresenceState,
 } from './factories';
+export type { PresenceState } from './factories';

@@ -45,6 +45,16 @@ on every write to `tasks`, `task_comments`, `project_members`. Each row carries:
 
 **Consumers** — project tab `src/features/projects/components/ProjectActivityTab.tsx` (full feed); per-task rail in `TaskDetailsView` (collapsed `<details>`, default 20 entries).
 
+## Realtime Presence (Wave 27)
+
+Per-project presence channel `presence:project:<id>`, opened once in `src/pages/Project.tsx` via `useProjectPresence` and consumed by `<PresenceBar>` in the project header. Each presence row carries `{ user_id, email, joinedAt, focusedTaskId }`.
+
+**Self-hide** — the user never sees their own chip. **Multi-tab dedup** — the same `user_id` from two tabs collapses to one chip, sorted by earliest `joinedAt`.
+
+**Task focus** — `useTaskFocusBroadcast` in `src/features/tasks/components/TaskDetailsPanel.tsx` debounces (250ms) and updates the same presence state with `focusedTaskId`. `TaskItem.tsx` reads `presentUsers` (threaded from the project route via `MilestoneSection`) and renders a chip when any peer's `focusedTaskId === task.id`. No second channel — one channel, one track call, two consumers.
+
+**Disabled** outside the project route — Dashboard, Reports, Tasks, Settings do not open presence channels (`projectId` is only defined on `/project/:id`).
+
 ## Integration Points
 * **Date Engine:** Sources calculations for 'Due Soon' and 'Overdue' task arrays.
 * **Projects & Phases:** Supplies the hierarchical data required to build the pipeline board.

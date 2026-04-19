@@ -155,3 +155,23 @@ export function makeCommentWithAuthor(
     author: overrides.author === undefined ? defaultAuthor : overrides.author,
   };
 }
+
+/**
+ * Creates a PresenceState stub (Wave 27). `joinedAt` defaults to `Date.now()`
+ * so tests can override for deterministic ordering. `focusedTaskId` is null.
+ */
+export interface PresenceState {
+  user_id: string;
+  email: string;
+  joinedAt: number;
+  focusedTaskId: string | null;
+}
+
+export function makePresenceState(overrides: Partial<PresenceState> = {}): PresenceState {
+  return {
+    user_id: overrides.user_id ?? faker.string.uuid(),
+    email: overrides.email ?? faker.internet.email(),
+    joinedAt: overrides.joinedAt ?? Date.now(),
+    focusedTaskId: overrides.focusedTaskId ?? null,
+  };
+}

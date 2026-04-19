@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
 import InlineTaskInput from './InlineTaskInput';
+import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import type { PresenceState } from '@/features/projects/hooks/useProjectPresence';
 
 export type { TaskItemData } from '@/shared/types/tasks';
 import type { TaskItemData } from '@/shared/types/tasks';
@@ -36,6 +38,17 @@ interface TaskItemProps {
  onInlineCommit?: (taskId: string, title: string, templateData?: Record<string, unknown>) => void;
  onInlineCancel?: () => void;
  dropIndicator?: { parentId: string; beforeTaskId: string | null; nestInId?: string } | null;
+ /** Wave 27: project-scoped presence roster (threaded from Project.tsx via MilestoneSection). */
+ presentUsers?: PresenceState[];
+ /** Wave 27: viewer's id — used to hide self from the focus chip group. */
+ currentUserId?: string | null;
+}
+
+const MAX_FOCUS_CHIPS = 3;
+
+function focusInitials(email: string): string {
+ const local = email.split('@')[0] ?? email;
+ return local.slice(0, 2).toUpperCase();
 }
 
 const TaskItem = ({
@@ -56,6 +69,8 @@ const TaskItem = ({
  onInlineCommit,
  onInlineCancel,
  dropIndicator,
+ presentUsers = [],
+ currentUserId = null,
 }: TaskItemProps) => {
  const indentWidth = level * 20;
  const isSelected = selectedTaskId === task.id;
@@ -112,6 +127,12 @@ const TaskItem = ({
 
  const isLocked = !!task.is_locked;
 
+ // Wave 27: peers currently focused on this task (self-hidden, cap 3).
+ const focusPeers = presentUsers
+ .filter((u) => u.focusedTaskId === task.id && u.user_id !== currentUserId);
+ const visibleFocusPeers = focusPeers.slice(0, MAX_FOCUS_CHIPS);
+ const focusOverflow = focusPeers.length - visibleFocusPeers.length;
+
  return (
  <>
  <div
@@ -131,6 +152,32 @@ const TaskItem = ({
  onClick={!isLocked ? handleCardClick : undefined}
  data-testid={`task-row-${task.id}`}
  >
+ {focusPeers.length > 0 && (
+ <div
+ className="absolute right-2 top-2 flex items-center gap-1 pointer-events-none"
+ data-testid={`task-row-focus-${task.id}`}
+ data-focus-peer-count={focusPeers.length}
+ >
+ {visibleFocusPeers.map((u) => (
+ <Avatar
+ key={u.user_id}
+ className="h-5 w-5 ring-2 ring-white"
+ aria-label={`${u.email} is viewing this task.`}
+ >
+ <AvatarFallback className="bg-brand-100 text-brand-700 text-xs font-semibold">
+ {focusInitials(u.email)}
+ </AvatarFallback>
+ </Avatar>
+ ))}
+ {focusOverflow > 0 && (
+ <Avatar className="h-5 w-5 ring-2 ring-white" aria-label={`${focusOverflow} more viewing this task`}>
+ <AvatarFallback className="bg-slate-100 text-slate-500 text-xs font-semibold">
+ +{focusOverflow}
+ </AvatarFallback>
+ </Avatar>
+ )}
+ </div>
+ )}
  <div className="flex items-center justify-between gap-4">
  <div className="flex-1 flex items-center min-w-0 overflow-hidden">
  {!disableDrag && (
