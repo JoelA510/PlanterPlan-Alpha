@@ -57,6 +57,22 @@ export type ResourceWithTask = TaskResourceRow & {
     task: { id: string; title: string | null; root_id: string | null } | null;
 };
 
+// ----------------------------------------------------------------------------
+// Comments (Wave 26)
+// ----------------------------------------------------------------------------
+export type TaskCommentRow    = Database['public']['Tables']['task_comments']['Row'];
+export type TaskCommentInsert = Database['public']['Tables']['task_comments']['Insert'];
+export type TaskCommentUpdate = Database['public']['Tables']['task_comments']['Update'];
+
+/** Task comment row joined with author profile for UI rendering. */
+export type TaskCommentWithAuthor = TaskCommentRow & {
+    author: {
+        id: string;
+        email: string;
+        user_metadata?: UserMetadata;
+    } | null;
+};
+
 /** Standardized Person type for UI components */
 export interface Person extends PersonRow {
     notes: string | null;

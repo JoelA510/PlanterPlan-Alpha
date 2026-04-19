@@ -1377,6 +1377,28 @@ $$;
 
 ALTER FUNCTION "public"."trigger_set_updated_at"() OWNER TO "postgres";
 
+
+CREATE OR REPLACE FUNCTION "public"."set_task_comments_root_id"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_root uuid;
+BEGIN
+  SELECT COALESCE(t.root_id, t.id) INTO v_root
+  FROM public.tasks t
+  WHERE t.id = NEW.task_id;
+  IF v_root IS NULL THEN
+    RAISE EXCEPTION 'task_comments: parent task % not found', NEW.task_id;
+  END IF;
+  NEW.root_id := v_root;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_task_comments_root_id"() OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
@@ -1538,6 +1560,24 @@ COMMENT ON COLUMN "public"."tasks"."settings" IS 'Project-level settings (e.g., 
 
 COMMENT ON COLUMN "public"."tasks"."supervisor_email" IS 'Optional supervisor recipient for monthly Project Status Reports. Only meaningful on project roots (parent_task_id IS NULL). UI gates the field to roots; no DB-level check constraint.';
 
+
+CREATE TABLE IF NOT EXISTS "public"."task_comments" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "task_id" "uuid" NOT NULL,
+    "root_id" "uuid" NOT NULL,
+    "parent_comment_id" "uuid",
+    "author_id" "uuid" NOT NULL,
+    "body" "text" NOT NULL,
+    "mentions" "text"[] DEFAULT ARRAY[]::"text"[] NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "edited_at" timestamp with time zone,
+    "deleted_at" timestamp with time zone,
+    CONSTRAINT "task_comments_body_check" CHECK (("length"("trim"("body")) BETWEEN 1 AND 10000))
+);
+
+
+ALTER TABLE "public"."task_comments" OWNER TO "postgres";
 
 
 CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource" AS
@@ -1749,6 +1789,18 @@ CREATE INDEX "task_resources_type_idx" ON "public"."task_resources" USING "btree
 
 
 
+CREATE INDEX "idx_task_comments_task_id" ON "public"."task_comments" USING "btree" ("task_id", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_task_comments_root_id" ON "public"."task_comments" USING "btree" ("root_id", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_task_comments_parent_comment_id" ON "public"."task_comments" USING "btree" ("parent_comment_id") WHERE ("parent_comment_id" IS NOT NULL);
+
+
+
 CREATE OR REPLACE TRIGGER "trg_people_updated_at" BEFORE UPDATE ON "public"."people" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
 
 
@@ -1790,6 +1842,14 @@ CREATE OR REPLACE TRIGGER "trigger_phase_unlock" AFTER UPDATE OF "is_complete" O
 
 
 CREATE OR REPLACE TRIGGER "trigger_tasks_set_updated_at" BEFORE UPDATE ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."trigger_set_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_task_comments_set_root_id" BEFORE INSERT ON "public"."task_comments" FOR EACH ROW EXECUTE FUNCTION "public"."set_task_comments_root_id"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_task_comments_handle_updated_at" BEFORE UPDATE ON "public"."task_comments" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
 
 
 
@@ -1845,6 +1905,26 @@ ALTER TABLE ONLY "public"."task_relationships"
 
 ALTER TABLE ONLY "public"."task_resources"
     ADD CONSTRAINT "task_resources_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."task_comments"
+    ADD CONSTRAINT "task_comments_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."task_comments"
+    ADD CONSTRAINT "task_comments_root_id_fkey" FOREIGN KEY ("root_id") REFERENCES "public"."tasks"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."task_comments"
+    ADD CONSTRAINT "task_comments_parent_comment_id_fkey" FOREIGN KEY ("parent_comment_id") REFERENCES "public"."task_comments"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."task_comments"
+    ADD CONSTRAINT "task_comments_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;
 
 
 
@@ -2044,9 +2124,27 @@ ALTER TABLE "public"."task_resources" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."tasks" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."task_comments" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Comments select by project members" ON "public"."task_comments" FOR SELECT TO "authenticated" USING (("public"."is_active_member"("root_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+
+
+CREATE POLICY "Comments insert by project members" ON "public"."task_comments" FOR INSERT TO "authenticated" WITH CHECK ((("author_id" = "auth"."uid"()) AND ("public"."is_active_member"("root_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"()))));
+
+
+CREATE POLICY "Comments update by author" ON "public"."task_comments" FOR UPDATE TO "authenticated" USING (((("author_id" = "auth"."uid"()) AND ("deleted_at" IS NULL)) OR "public"."is_admin"("auth"."uid"()))) WITH CHECK ((("task_id" = (SELECT "task_comments_1"."task_id" FROM "public"."task_comments" "task_comments_1" WHERE ("task_comments_1"."id" = "task_comments"."id"))) AND ("root_id" = (SELECT "task_comments_1"."root_id" FROM "public"."task_comments" "task_comments_1" WHERE ("task_comments_1"."id" = "task_comments"."id"))) AND ("parent_comment_id" IS NOT DISTINCT FROM (SELECT "task_comments_1"."parent_comment_id" FROM "public"."task_comments" "task_comments_1" WHERE ("task_comments_1"."id" = "task_comments"."id"))) AND ("author_id" = (SELECT "task_comments_1"."author_id" FROM "public"."task_comments" "task_comments_1" WHERE ("task_comments_1"."id" = "task_comments"."id")))));
+
+
+CREATE POLICY "Comments delete by author or owner" ON "public"."task_comments" FOR DELETE TO "authenticated" USING ((("author_id" = "auth"."uid"()) OR "public"."check_project_ownership_by_role"("root_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+
+
 
 
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE "public"."task_comments";
 
 
 
@@ -2267,6 +2365,9 @@ GRANT ALL ON FUNCTION "public"."is_active_member"("p_project_id" "uuid", "p_user
 REVOKE ALL ON FUNCTION "public"."is_admin"("p_user_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_admin"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."is_admin"("p_user_id" "uuid") TO "service_role";
+
+REVOKE ALL ON FUNCTION "public"."set_task_comments_root_id"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."set_task_comments_root_id"() TO "authenticated";
 
 
 

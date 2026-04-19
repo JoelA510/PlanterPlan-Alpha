@@ -74,3 +74,5 @@ Migration: `docs/db/migrations/2026_04_18_rewrite_project_members_policies.sql`.
 ## Resolved
 
 * **Coach Role Tagging (Wave 22, 2026-04-17):** Resolved. Tasks intended for coach editing are now flagged via `settings -> 'is_coaching_task' = true`. A project owner or editor tags the task through the "Coaching task" checkbox in TaskForm; TaskDetailsView surfaces a "Coaching" badge. An additive RLS UPDATE policy — `"Enable update for coaches on coaching tasks"` (see `docs/db/migrations/2026_04_17_coaching_task_rls.sql`) — allows any user with the project `coach` role to update rows where the flag is true, scoped to non-template origins. The pre-existing owner/editor/admin UPDATE policy is unchanged, so coaches retain zero access to non-coaching rows.
+
+* **Comments (Wave 26):** SELECT inherits project membership; INSERT requires `author_id = auth.uid()`; UPDATE restricted to authors on undeleted rows; DELETE allowed for authors, project owners (`check_project_ownership_by_role`), or admins. Full policy text in `docs/architecture/tasks-subtasks.md`.

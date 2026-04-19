@@ -265,6 +265,48 @@ export type Database = {
  },
  ]
  }
+ task_comments: {
+ Row: {
+ id: string
+ task_id: string
+ root_id: string
+ parent_comment_id: string | null
+ author_id: string
+ body: string
+ mentions: string[]
+ created_at: string
+ updated_at: string
+ edited_at: string | null
+ deleted_at: string | null
+ }
+ Insert: {
+ id?: string
+ task_id: string
+ root_id?: string
+ parent_comment_id?: string | null
+ author_id: string
+ body: string
+ mentions?: string[]
+ created_at?: string
+ updated_at?: string
+ edited_at?: string | null
+ deleted_at?: string | null
+ }
+ Update: {
+ id?: string
+ task_id?: string
+ root_id?: string
+ parent_comment_id?: string | null
+ author_id?: string
+ body?: string
+ mentions?: string[]
+ created_at?: string
+ updated_at?: string
+ edited_at?: string | null
+ deleted_at?: string | null
+ }
+ Relationships: []
+ }
  task_relationships: {
  Row: {
  created_at: string | null

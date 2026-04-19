@@ -175,6 +175,34 @@ zero or many follow-ups.
 RLS policy needed. Owners / editors already have UPDATE access on
 instance tasks.
 
+## Comments (Wave 26)
+
+Threaded task comments live in `public.task_comments`. Each row carries
+`task_id` (the comment's target), `root_id` (auto-filled from the parent
+task's root via `trg_task_comments_set_root_id`, mirrors the
+`set_root_id_from_parent` pattern on `public.tasks`), and an optional
+`parent_comment_id` self-FK for replies. The DB places **no depth cap** on
+threading — the UI in `src/features/tasks/components/TaskComments/`
+enforces a single-level visual nest with chain-lift for reply-to-reply.
+
+**Soft-delete contract**: callers issue `UPDATE ... SET deleted_at = now(),
+body = ''` (clearing the body to scrub the cached query payload).
+`useTaskComments` filters `deleted_at IS NULL` by default. Hard `DELETE` is
+reserved for admin/cleanup paths.
+
+**RLS** (migration `docs/db/migrations/2026_04_18_task_comments.sql`):
+* SELECT — any project member via `is_active_member(root_id, auth.uid())`.
+* INSERT — any project member; `author_id` pinned to `auth.uid()` via
+  `WITH CHECK`.
+* UPDATE — author of the comment, undeleted only. Immutable fields:
+  `task_id`, `root_id`, `parent_comment_id`, `author_id`.
+* DELETE — author, project owner (`check_project_ownership_by_role`), or
+  admin.
+
+**Realtime** — table is in the `supabase_realtime` publication; the
+per-task channel in `src/features/tasks/hooks/useTaskCommentsRealtime.ts`
+invalidates `['taskComments', taskId]` on any payload.
+
 ## Integration Points
 * **Date Engine:** Dragging tasks triggers date inheritance logic (`dateInheritance.ts`) to adjust bounds automatically.
 * **Dashboard:** Feeds raw status counts.
