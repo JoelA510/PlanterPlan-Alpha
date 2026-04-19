@@ -117,7 +117,12 @@ export function useUpdateComment(taskId: string) {
     });
 }
 
-/** Optimistic soft-delete (removes row from the default view). Rollback + refetch on error. */
+/**
+ * Optimistic soft-delete: marks `deleted_at` + blanks `body` in place so the
+ * row survives and `CommentItem` renders a tombstone. Keeping the row means
+ * replies whose parent was just deleted don't orphan off the thread.
+ * Rollback + force-refetch on error per styleguide §5.
+ */
 export function useDeleteComment(taskId: string) {
     const qc = useQueryClient();
     const key = ['taskComments', taskId];
@@ -127,7 +132,10 @@ export function useDeleteComment(taskId: string) {
         onMutate: async (commentId) => {
             await qc.cancelQueries({ queryKey: key });
             const previous = qc.getQueryData<CommentsCache>(key);
-            qc.setQueryData<CommentsCache>(key, (old = []) => old.filter((c) => c.id !== commentId));
+            const now = new Date().toISOString();
+            qc.setQueryData<CommentsCache>(key, (old = []) =>
+                old.map((c) => (c.id === commentId ? { ...c, deleted_at: now, body: '' } : c)),
+            );
             return { previous };
         },
         onError: (_err, _vars, ctx) => {

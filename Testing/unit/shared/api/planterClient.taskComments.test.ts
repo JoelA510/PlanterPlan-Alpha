@@ -45,7 +45,7 @@ beforeEach(() => {
 
 describe('planter.entities.TaskComment (Wave 26)', () => {
     describe('listByTask', () => {
-        it('selects with author join, filters by task_id, orders by created_at asc, filters deleted_at by default', async () => {
+        it('selects with author join, filters by task_id, orders by created_at asc', async () => {
             const chain = createChain({ data: [], error: null });
             mockFrom.mockReturnValue(chain);
 
@@ -55,14 +55,13 @@ describe('planter.entities.TaskComment (Wave 26)', () => {
             expect(chain.select).toHaveBeenCalledWith('*, author:users(id, email, user_metadata)');
             expect(chain.eq).toHaveBeenCalledWith('task_id', 'task-1');
             expect(chain.order).toHaveBeenCalledWith('created_at', { ascending: true });
-            expect(chain.is).toHaveBeenCalledWith('deleted_at', null);
         });
 
-        it('skips the deleted_at filter when includeDeleted: true', async () => {
+        it('does NOT filter out soft-deleted rows (tombstones preserve thread lineage; body is already blanked)', async () => {
             const chain = createChain({ data: [], error: null });
             mockFrom.mockReturnValue(chain);
 
-            await planter.entities.TaskComment.listByTask('task-1', { includeDeleted: true });
+            await planter.entities.TaskComment.listByTask('task-1');
 
             expect(chain.is).not.toHaveBeenCalledWith('deleted_at', null);
         });

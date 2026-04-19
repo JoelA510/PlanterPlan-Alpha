@@ -35,11 +35,46 @@ export function CommentItem({
 }: CommentItemProps) {
     const [mode, setMode] = useState<'view' | 'edit' | 'reply'>('view');
     const isOwn = comment.author_id === currentUserId;
+    const isDeleted = comment.deleted_at !== null;
     const fullName =
         typeof comment.author?.user_metadata?.full_name === 'string'
             ? comment.author.user_metadata.full_name
             : null;
     const displayName = fullName || comment.author?.email || 'Unknown';
+
+    // Tombstone render — preserves thread lineage for replies without leaking
+    // the original body (softDelete blanks it server-side; optimistic update
+    // mirrors locally). No edit/delete/reply affordances.
+    if (isDeleted) {
+        return (
+            <div className="flex gap-3 opacity-70" data-testid={`comment-${comment.id}`}>
+                <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="bg-slate-100 text-slate-400 text-xs font-semibold">
+                        {initials(comment.author?.email, fullName)}
+                    </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-slate-500 italic">{displayName}</span>
+                        {inReplyToAuthor && (
+                            <span
+                                className="inline-flex items-center gap-1 text-xs text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5"
+                                data-testid="comment-in-reply-to-chip"
+                            >
+                                ↪ in reply to @{inReplyToAuthor}
+                            </span>
+                        )}
+                    </div>
+                    <p
+                        className="mt-1 text-sm text-slate-400 italic"
+                        data-testid="comment-tombstone"
+                    >
+                        This comment was deleted.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex gap-3" data-testid={`comment-${comment.id}`}>

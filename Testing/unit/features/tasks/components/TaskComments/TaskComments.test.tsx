@@ -187,4 +187,49 @@ describe('TaskComments (Wave 26)', () => {
         );
         expect(queryByTestId('comment-composer-textarea')).toBeNull();
     });
+
+    it('renders a tombstone for soft-deleted comments (no body, no affordances) — keeps thread lineage intact', () => {
+        const mineLive = makeCommentWithAuthor({
+            id: 'live-1',
+            task_id: 'task-1',
+            parent_comment_id: null,
+            author_id: 'user-me',
+            body: 'Alive comment',
+        });
+        const deletedParent = makeCommentWithAuthor({
+            id: 'deleted-parent',
+            task_id: 'task-1',
+            parent_comment_id: null,
+            author_id: 'user-me',
+            body: '',
+            deleted_at: '2026-04-18T10:00:00.000Z',
+        });
+        const replyUnderDeleted = makeCommentWithAuthor({
+            id: 'reply-under-deleted',
+            task_id: 'task-1',
+            parent_comment_id: 'deleted-parent',
+            author_id: 'someone-else',
+            body: 'Still visible reply',
+        });
+        mockUseTaskComments.mockReturnValue({
+            data: [mineLive, deletedParent, replyUnderDeleted],
+            isLoading: false,
+        });
+
+        renderSut();
+
+        // Deleted parent renders a tombstone, no body, no edit/delete/reply.
+        const deletedRow = screen.getByTestId('comment-deleted-parent');
+        expect(deletedRow.querySelector('[data-testid="comment-tombstone"]')).not.toBeNull();
+        expect(deletedRow).not.toHaveTextContent('Alive comment'); // sanity — not the wrong row
+        expect(deletedRow.querySelector('[data-testid="comment-edit-btn"]')).toBeNull();
+        expect(deletedRow.querySelector('[data-testid="comment-delete-btn"]')).toBeNull();
+        expect(deletedRow.querySelector('[data-testid="comment-reply-btn"]')).toBeNull();
+
+        // Reply under the deleted parent still renders — thread lineage preserved.
+        expect(screen.getByTestId('comment-reply-under-deleted')).toHaveTextContent('Still visible reply');
+
+        // Count chip shows live count (2 = mineLive + replyUnderDeleted), not 3.
+        expect(screen.getByTestId('task-comments-count')).toHaveTextContent('2 comments');
+    });
 });

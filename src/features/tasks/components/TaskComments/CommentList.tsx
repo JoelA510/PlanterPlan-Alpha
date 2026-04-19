@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { TaskCommentWithAuthor } from '@/shared/db/app.types';
 import { CommentItem } from './CommentItem';
 
@@ -9,6 +10,47 @@ interface CommentListProps {
     onDelete: (commentId: string) => void;
 }
 
+interface Grouped {
+    topLevel: TaskCommentWithAuthor[];
+    byId: Map<string, TaskCommentWithAuthor>;
+    repliesByTop: Map<string, TaskCommentWithAuthor[]>;
+}
+
+/**
+ * Build top-level + replies-by-top maps in a single O(N) pass with a
+ * memoized ancestor walk. A parent-chain that dead-ends (parent row not in
+ * the set) treats the orphan's nearest known ancestor as its top-level.
+ */
+function groupComments(comments: TaskCommentWithAuthor[]): Grouped {
+    const byId = new Map<string, TaskCommentWithAuthor>();
+    for (const c of comments) byId.set(c.id, c);
+
+    const ancestorCache = new Map<string, string>();
+    function topLevelIdOf(comment: TaskCommentWithAuthor): string {
+        if (!comment.parent_comment_id) return comment.id;
+        const cached = ancestorCache.get(comment.id);
+        if (cached !== undefined) return cached;
+        const parent = byId.get(comment.parent_comment_id);
+        const topId = parent ? topLevelIdOf(parent) : comment.id;
+        ancestorCache.set(comment.id, topId);
+        return topId;
+    }
+
+    const topLevel: TaskCommentWithAuthor[] = [];
+    const repliesByTop = new Map<string, TaskCommentWithAuthor[]>();
+    for (const c of comments) {
+        if (!c.parent_comment_id) {
+            topLevel.push(c);
+        } else {
+            const topId = topLevelIdOf(c);
+            const arr = repliesByTop.get(topId);
+            if (arr) arr.push(c);
+            else repliesByTop.set(topId, [c]);
+        }
+    }
+    return { topLevel, byId, repliesByTop };
+}
+
 /**
  * Groups comments into top-level rows with their descendants rendered in a
  * single reply column. The DB stores threads without a depth cap; the UI
@@ -16,29 +58,12 @@ interface CommentListProps {
  * labels it with `↪ in reply to @author` so lineage stays visible.
  */
 export function CommentList({ comments, currentUserId, onReply, onEdit, onDelete }: CommentListProps) {
-    const byId = new Map(comments.map((c) => [c.id, c]));
-    const topLevel = comments.filter((c) => !c.parent_comment_id);
-
-    /** Walks parent_comment_id chain until it hits a top-level comment. */
-    function topLevelAncestorOf(comment: TaskCommentWithAuthor): TaskCommentWithAuthor {
-        let cursor: TaskCommentWithAuthor = comment;
-        while (cursor.parent_comment_id) {
-            const parent = byId.get(cursor.parent_comment_id);
-            if (!parent) break;
-            cursor = parent;
-        }
-        return cursor;
-    }
-
-    /** Collects every descendant (at any depth) of a top-level comment. */
-    function descendantsOf(topId: string): TaskCommentWithAuthor[] {
-        return comments.filter((c) => c.parent_comment_id && topLevelAncestorOf(c).id === topId);
-    }
+    const { topLevel, byId, repliesByTop } = useMemo(() => groupComments(comments), [comments]);
 
     return (
         <div className="space-y-6" data-testid="comment-list">
             {topLevel.map((top) => {
-                const replies = descendantsOf(top.id);
+                const replies = repliesByTop.get(top.id) ?? [];
                 return (
                     <div key={top.id} className="space-y-3">
                         <CommentItem

@@ -109,9 +109,25 @@ interface TaskEntityClient extends EntityClient<Task, TaskInsert, TaskUpdate> {
 }
 
 interface TaskCommentEntityClient {
-    /** RLS handles project-membership filtering. Soft-deleted rows (`deleted_at IS NOT NULL`) are hidden by default. */
-    listByTask: (taskId: string, opts?: { includeDeleted?: boolean }) => Promise<TaskCommentWithAuthor[]>;
-    /** `author_id` is server-pinned by RLS WITH CHECK; caller passes it for client-side optimistic display. */
+    /**
+     * Fetches every comment for the task — including soft-deleted rows — so
+     * the UI can render tombstones for deleted ancestors and keep reply
+     * threads intact. `softDelete` blanks `body`, so pulling deleted rows
+     * never leaks content. RLS handles project-membership filtering.
+     *
+     * @param taskId The target task's id.
+     * @returns Chronologically-ordered comments with the author join.
+     */
+    listByTask: (taskId: string) => Promise<TaskCommentWithAuthor[]>;
+    /**
+     * Inserts a new comment. `author_id` is also enforced by RLS
+     * `WITH CHECK (author_id = auth.uid())`; the caller passes it so
+     * client-side optimistic rendering doesn't need a round-trip.
+     *
+     * @param payload Insert fields. `parent_comment_id` defaults to null
+     *   (top-level) and `mentions` defaults to [].
+     * @returns The inserted row hydrated with its author.
+     */
     create: (payload: {
         task_id: string;
         author_id: string;
@@ -119,9 +135,24 @@ interface TaskCommentEntityClient {
         body: string;
         mentions?: string[];
     }) => Promise<TaskCommentWithAuthor>;
-    /** Stamps `edited_at = now()`; `updated_at` is set by `trg_task_comments_handle_updated_at`. */
+    /**
+     * Edits `body` + optional `mentions`. Stamps `edited_at = nowUtcIso()`;
+     * `updated_at` is set by the `trg_task_comments_handle_updated_at` DB
+     * trigger. RLS UPDATE policy restricts to author on undeleted rows.
+     *
+     * @param commentId The comment row id.
+     * @param payload New body and (optional) resolved mentions.
+     * @returns The updated row.
+     */
     updateBody: (commentId: string, payload: { body: string; mentions?: string[] }) => Promise<TaskCommentRow>;
-    /** Soft-delete: writes `deleted_at = now()` and clears `body` so cached query payloads don't leak content. */
+    /**
+     * Soft-deletes a comment: writes `deleted_at = nowUtcIso()` and clears
+     * `body` so cached query payloads don't leak content. The row survives
+     * so replies keep their lineage; `CommentItem` renders a tombstone.
+     *
+     * @param commentId The comment row id.
+     * @returns The soft-deleted row.
+     */
     softDelete: (commentId: string) => Promise<TaskCommentRow>;
 }
 
@@ -806,17 +837,17 @@ export const planter: PlanterClient = {
             // The author join points at auth.users across a schema boundary. PostgREST
             // handles it at runtime but the generated types don't model the cross-schema
             // FK, so the cast to unknown sidesteps the typed-client's SelectQueryError.
-            listByTask: async (taskId: string, opts?: { includeDeleted?: boolean }): Promise<TaskCommentWithAuthor[]> => {
+            //
+            // Returns soft-deleted rows too — the UI renders tombstones so reply chains
+            // stay intact when an ancestor is soft-deleted. `softDelete` blanks body, so
+            // no content leaks via this query.
+            listByTask: async (taskId: string): Promise<TaskCommentWithAuthor[]> => {
                 return retry(async () => {
-                    let query = supabase
+                    const { data, error } = await supabase
                         .from('task_comments')
                         .select('*, author:users(id, email, user_metadata)')
                         .eq('task_id', taskId)
                         .order('created_at', { ascending: true });
-                    if (!opts?.includeDeleted) {
-                        query = query.is('deleted_at', null);
-                    }
-                    const { data, error } = await query;
                     if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
                     return ((data as unknown) as TaskCommentWithAuthor[]) || [];
                 });

@@ -36,13 +36,18 @@ export default function TaskComments({ taskId }: TaskCommentsProps) {
     };
 
     const canPost = !!user;
+    // Tombstones remain in the cache to preserve reply lineage but aren't
+    // counted as "live" comments. Keep the full list for CommentList so the
+    // thread structure stays intact.
+    const liveCount = comments.reduce((n, c) => (c.deleted_at === null ? n + 1 : n), 0);
+    const isEmpty = comments.length === 0;
 
     return (
         <div className="detail-section mb-6" data-testid="task-comments-section">
             <div className="flex items-baseline gap-2 mb-3">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Comments</h3>
                 <span className="text-sm text-slate-500" data-testid="task-comments-count">
-                    {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+                    {liveCount} {liveCount === 1 ? 'comment' : 'comments'}
                 </span>
             </div>
 
@@ -51,7 +56,7 @@ export default function TaskComments({ taskId }: TaskCommentsProps) {
                     <p className="text-sm text-slate-500" data-testid="task-comments-loading">
                         Loading comments…
                     </p>
-                ) : comments.length === 0 ? (
+                ) : isEmpty ? (
                     <p className="text-sm text-slate-500" data-testid="task-comments-empty">
                         No comments yet — be the first to add one.
                     </p>
