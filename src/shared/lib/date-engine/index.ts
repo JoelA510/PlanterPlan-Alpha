@@ -84,8 +84,17 @@ export const isPastDate = (date: DateInput | null | undefined): boolean => {
  return isPast(d) && !isToday(d);
 };
 
-/** Returns `true` if the date is today. */
+/** Returns `true` if the date is today.
+ *
+ * Date-only strings (`YYYY-MM-DD`) are compared as UTC calendar days to
+ * match the codebase convention used by `toIsoDate` / `formatDisplayDate`
+ * and to remain stable regardless of the runner's TZ offset.
+ */
 export const isTodayDate = (date: DateInput | null | undefined): boolean => {
+ if (date == null) return false;
+ if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+ return date === new Date().toISOString().split('T')[0];
+ }
  const d = resolve(date);
  if (!d) return false;
  return isToday(d);
