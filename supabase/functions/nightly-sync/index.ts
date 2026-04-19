@@ -197,17 +197,19 @@ Deno.serve(async (req) => {
         if (overdueCandErr) throw overdueCandErr
 
         // 2. Pre-fetch candidates for the due_soon pass so we can load root info once
-        //    covering BOTH passes.
+        //    covering BOTH passes. Checkpoint filtering is applied AFTER loadRootInfo
+        //    using each root's settings; the per-task `settings` column isn't needed.
         const { data: dueSoonCandidates, error: dueSoonCandErr } = await supabase
             .from('tasks')
-            .select('id, root_id, due_date, status, is_complete, settings')
+            .select('id, root_id, due_date, status, is_complete')
             .gte('due_date', nowIso)
             .eq('is_complete', false)
             .not('status', 'in', '("completed","overdue","due_soon")')
         if (dueSoonCandErr) throw dueSoonCandErr
 
+        type DueSoonCandidate = Omit<TaskRow, 'settings'>
         const overdueCandRows = (overdueCandidates ?? []) as Array<{ id: string; root_id: string | null }>
-        const dueSoonCandRows = (dueSoonCandidates ?? []) as TaskRow[]
+        const dueSoonCandRows = (dueSoonCandidates ?? []) as DueSoonCandidate[]
         const rootIds = [
             ...overdueCandRows.map((r) => r.root_id),
             ...dueSoonCandRows.map((r) => r.root_id),

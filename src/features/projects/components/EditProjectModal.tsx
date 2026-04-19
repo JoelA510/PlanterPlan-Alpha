@@ -398,7 +398,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
      <DialogTitle>Switch back to date-driven scheduling?</DialogTitle>
     </DialogHeader>
     <p className="text-sm text-slate-600">
-     Existing due dates will become active again. Tasks that are past due will appear as overdue. Locked phases stay locked until you toggle <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">is_locked</code> directly.
+     Existing due dates will become active again. Tasks that are past due will appear as overdue. Locked phases will remain locked until you manually unlock them.
     </p>
     <DialogFooter className="gap-2 sm:justify-end">
      <Button variant="outline" onClick={() => setPendingKindRevert(false)}>

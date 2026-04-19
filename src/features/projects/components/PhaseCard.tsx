@@ -126,8 +126,8 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
  dataKey="value"
  strokeWidth={0}
  >
- <Cell fill={totalTasks === 0 || isLocked ? '#e2e8f0' : 'hsl(19, 96%, 41%)'} />
- <Cell fill="#e2e8f0" />
+ <Cell fill={totalTasks === 0 || isLocked ? 'var(--color-slate-200)' : 'var(--color-brand-600)'} />
+ <Cell fill="var(--color-slate-200)" />
  </Pie>
  </PieChart>
  </ResponsiveContainer>
