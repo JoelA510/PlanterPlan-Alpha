@@ -24,11 +24,11 @@ class MemoryStorage implements Storage {
  get length(): number { return this.store.size; }
  clear(): void { this.store.clear(); }
  getItem(key: string): string | null {
- return this.store.has(key) ? this.store.get(key)! : null;
+  return this.store.get(key) ?? null;
  }
  key(index: number): string | null {
- const keys = Array.from(this.store.keys());
- return index < keys.length ? keys[index] : null;
+  const keys = Array.from(this.store.keys());
+  return (index >= 0 && index < keys.length) ? keys[index] : null;
  }
  removeItem(key: string): void { this.store.delete(key); }
  setItem(key: string, value: string): void { this.store.set(key, String(value)); }
