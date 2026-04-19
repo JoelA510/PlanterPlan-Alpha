@@ -11,6 +11,13 @@ vi.mock('@/features/tasks/hooks/useTaskSiblings', () => ({
   useTaskSiblings: () => ({ data: [], isLoading: false }),
 }));
 
+vi.mock('@/features/tasks/hooks/useTaskComments', () => ({
+  useTaskComments: () => ({ data: [], isLoading: false }),
+  useCreateComment: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateComment: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteComment: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
 vi.mock('@/shared/db/client', () => ({
   supabase: {
     auth: {

@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import type { TaskRow, TeamMemberRow } from '@/shared/db/app.types';
+import type { TaskRow, TeamMemberRow, TaskCommentRow, TaskCommentWithAuthor } from '@/shared/db/app.types';
 
 /**
  * Creates a minimal TaskRow stub with sensible defaults.
@@ -112,4 +112,46 @@ export function makeTeamMember(overrides: Partial<TeamMemberRow> = {}): TeamMemb
     created_at: new Date().toISOString(),
     ...overrides,
   } as TeamMemberRow;
+}
+
+/**
+ * Creates a TaskCommentRow stub (Wave 26). `root_id` defaults to `task_id`
+ * since the trigger resolves them to the same project root in practice.
+ */
+export function makeComment(overrides: Partial<TaskCommentRow> = {}): TaskCommentRow {
+  const taskId = overrides.task_id ?? faker.string.uuid();
+  const now = new Date().toISOString();
+  return {
+    id: overrides.id ?? faker.string.uuid(),
+    task_id: taskId,
+    root_id: overrides.root_id ?? taskId,
+    parent_comment_id: null,
+    author_id: faker.string.uuid(),
+    body: faker.lorem.sentence(),
+    mentions: [],
+    created_at: now,
+    updated_at: now,
+    edited_at: null,
+    deleted_at: null,
+    ...overrides,
+  };
+}
+
+/**
+ * Creates a TaskCommentWithAuthor stub. Author defaults to a fake user;
+ * override `author` for anonymous / deleted-author edge cases.
+ */
+export function makeCommentWithAuthor(
+  overrides: Partial<TaskCommentWithAuthor> = {},
+): TaskCommentWithAuthor {
+  const base = makeComment(overrides as Partial<TaskCommentRow>);
+  const defaultAuthor = {
+    id: base.author_id,
+    email: faker.internet.email(),
+    user_metadata: { full_name: faker.person.fullName() },
+  };
+  return {
+    ...base,
+    author: overrides.author === undefined ? defaultAuthor : overrides.author,
+  };
 }

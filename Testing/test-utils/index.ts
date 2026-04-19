@@ -1,1 +1,9 @@
-export { makeTask, makeProject, makeTaskChain, makeSiblingTasks, makeTeamMember } from './factories';
+export {
+  makeTask,
+  makeProject,
+  makeTaskChain,
+  makeSiblingTasks,
+  makeTeamMember,
+  makeComment,
+  makeCommentWithAuthor,
+} from './factories';

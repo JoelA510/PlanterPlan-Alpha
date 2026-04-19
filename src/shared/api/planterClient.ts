@@ -12,7 +12,9 @@ import type {
     TaskRelationshipRow,
     PersonRow,
     TeamMemberRow,
-    UserMetadata
+    UserMetadata,
+    TaskCommentRow,
+    TaskCommentWithAuthor
 } from '@/shared/db/app.types';
 import type { User as AuthUser } from '@supabase/supabase-js';
 
@@ -54,6 +56,7 @@ export interface PlanterClient {
         TaskResource: TaskResourceEntityClient;
         TeamMember: EntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>;
         Person: EntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>;
+        TaskComment: TaskCommentEntityClient;
     };
     rpc: <T = unknown, P extends object = object>(functionName: string, params: P) => Promise<{ data: T | null, error: Error | null }>;
     functions: {
@@ -103,6 +106,23 @@ interface TaskEntityClient extends EntityClient<Task, TaskInsert, TaskUpdate> {
     clone: (templateId: string, newParentId: string | null, newOrigin: string, userId: string, overrides?: Partial<Pick<TaskInsert, 'title' | 'description' | 'start_date' | 'due_date'>>) => Promise<{ data: Task | null, error: Error | null }>;
     addMember?: (taskId: string, userId: string, role: string) => Promise<{ data: TeamMemberRow | undefined, error: Error | null }>;
     listSiblings: (taskId: string) => Promise<Task[]>;
+}
+
+interface TaskCommentEntityClient {
+    /** RLS handles project-membership filtering. Soft-deleted rows (`deleted_at IS NOT NULL`) are hidden by default. */
+    listByTask: (taskId: string, opts?: { includeDeleted?: boolean }) => Promise<TaskCommentWithAuthor[]>;
+    /** `author_id` is server-pinned by RLS WITH CHECK; caller passes it for client-side optimistic display. */
+    create: (payload: {
+        task_id: string;
+        author_id: string;
+        parent_comment_id?: string | null;
+        body: string;
+        mentions?: string[];
+    }) => Promise<TaskCommentWithAuthor>;
+    /** Stamps `edited_at = now()`; `updated_at` is set by `trg_task_comments_handle_updated_at`. */
+    updateBody: (commentId: string, payload: { body: string; mentions?: string[] }) => Promise<TaskCommentRow>;
+    /** Soft-delete: writes `deleted_at = now()` and clears `body` so cached query payloads don't leak content. */
+    softDelete: (commentId: string) => Promise<TaskCommentRow>;
 }
 
 // ---------------------------------------------------------------------------
@@ -778,6 +798,81 @@ export const planter: PlanterClient = {
         },
         TeamMember: createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
         Person: createEntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>('people'),
+
+        // -----------------------------------------------------------------
+        // TaskComment (Wave 26)
+        // -----------------------------------------------------------------
+        TaskComment: {
+            // The author join points at auth.users across a schema boundary. PostgREST
+            // handles it at runtime but the generated types don't model the cross-schema
+            // FK, so the cast to unknown sidesteps the typed-client's SelectQueryError.
+            listByTask: async (taskId: string, opts?: { includeDeleted?: boolean }): Promise<TaskCommentWithAuthor[]> => {
+                return retry(async () => {
+                    let query = supabase
+                        .from('task_comments')
+                        .select('*, author:users(id, email, user_metadata)')
+                        .eq('task_id', taskId)
+                        .order('created_at', { ascending: true });
+                    if (!opts?.includeDeleted) {
+                        query = query.is('deleted_at', null);
+                    }
+                    const { data, error } = await query;
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return ((data as unknown) as TaskCommentWithAuthor[]) || [];
+                });
+            },
+            create: async (payload): Promise<TaskCommentWithAuthor> => {
+                return retry(async () => {
+                    const insert: Database['public']['Tables']['task_comments']['Insert'] = {
+                        task_id: payload.task_id,
+                        author_id: payload.author_id,
+                        parent_comment_id: payload.parent_comment_id ?? null,
+                        body: payload.body,
+                        mentions: payload.mentions ?? [],
+                    };
+                    const { data, error } = await supabase
+                        .from('task_comments')
+                        .insert(insert)
+                        .select('*, author:users(id, email, user_metadata)')
+                        .single();
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return (data as unknown) as TaskCommentWithAuthor;
+                });
+            },
+            updateBody: async (commentId: string, payload: { body: string; mentions?: string[] }): Promise<TaskCommentRow> => {
+                return retry(async () => {
+                    const patch: Database['public']['Tables']['task_comments']['Update'] = {
+                        body: payload.body,
+                        edited_at: nowUtcIso(),
+                    };
+                    if (payload.mentions !== undefined) patch.mentions = payload.mentions;
+                    const { data, error } = await supabase
+                        .from('task_comments')
+                        .update(patch)
+                        .eq('id', commentId)
+                        .select('*')
+                        .single();
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return data as TaskCommentRow;
+                });
+            },
+            softDelete: async (commentId: string): Promise<TaskCommentRow> => {
+                return retry(async () => {
+                    const patch: Database['public']['Tables']['task_comments']['Update'] = {
+                        deleted_at: nowUtcIso(),
+                        body: '',
+                    };
+                    const { data, error } = await supabase
+                        .from('task_comments')
+                        .update(patch)
+                        .eq('id', commentId)
+                        .select('*')
+                        .single();
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return data as TaskCommentRow;
+                });
+            },
+        } satisfies TaskCommentEntityClient,
     },
 
     // ---------------------------------------------------------------------------
