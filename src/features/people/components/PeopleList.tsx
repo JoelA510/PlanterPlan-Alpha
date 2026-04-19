@@ -65,7 +65,6 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
     }, [projectId]);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount sets loading/people via loadPeople
         loadPeople();
     }, [loadPeople]);
 
