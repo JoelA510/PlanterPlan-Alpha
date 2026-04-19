@@ -1,6 +1,6 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.12.0 (Wave 27 — Activity Log + Realtime Presence) 
+> **Version**: 1.13.0 (Wave 28 — Gantt Chart) 
 > **Last Updated**: 2026-04-19 
 > **Status**: Active Development
 
@@ -109,7 +109,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Project Status Report**: Report interface featuring reporting month selection, donut charts, and lists of completed, overdue, and upcoming milestones. Shipped via `src/pages/Reports.tsx` + `src/features/projects/hooks/useProjectReports.ts`.
 - [x] **Task List Views & Filters**: Dedicated UI tables/pages to view tasks isolated by Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All Tasks, Milestones, and My Tasks. Include chronological/alphabetical sorting. Shipped via `src/pages/TasksPage.tsx` + `src/features/tasks/hooks/useTaskFilters.ts`.
 - [x] **Supervisor Reports**: Project settings accept a `supervisor_email` (stored on the root task). The `supabase/functions/supervisor-report/` edge function renders a monthly Project Status Report for every project that has one set and dispatches via Resend when `EMAIL_PROVIDER_API_KEY` and `RESEND_FROM_ADDRESS` are set (degrades cleanly to log-only otherwise). The Edit Project modal exposes a "Send test report" button that invokes the function with `{ project_id, dry_run: false }`; response includes a `dispatch_failures` counter for partial delivery alerting.
-- [ ] **Gantt Chart**: Timeline view based on `start_date` and `due_date` showing Phases and Milestones.
+- [x] **Gantt Chart**: Standalone `/gantt?projectId=:id` route built on `gantt-task-react@0.3.9`. Lazy-loaded; drag-to-shift dates routed through `useUpdateTask` with parent-bounds enforcement. (Wave 28)
 
 ### 3.7 Platform Admin, Monetization & Ecosystem
 - [ ] **White Labeling**: Support for partner organizations to use custom URLs, logos, and branding, including white-label administrator controls.

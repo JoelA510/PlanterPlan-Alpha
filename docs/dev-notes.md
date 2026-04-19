@@ -53,3 +53,7 @@ Until that lands, the UI degrades gracefully but any mention-based feature is bl
 The right fix is cross-cutting, not local: when the admin / account-deletion flow ships (Wave 33 Admin Management or Wave 35 Licensing), it needs to decide how to anonymise or reassign user-owned rows across all three tables (`tasks.creator`, `project_members.user_id`, `task_comments.author_id`, plus whatever Wave 27 adds on `activity_log` / presence). Options: (a) nullable FKs with `ON DELETE SET NULL` + tombstone display everywhere, (b) a `public.deleted_users` row-retention table that every FK can reassign to during account-deletion, (c) hard-delete cascade gated by an admin-only "purge" action. (b) is cleanest for GDPR audit trails.
 
 Flagging at the Wave 26 level so the admin-flow plan doesn't miss `task_comments` when it audits the FK surface.
+
+### Gantt PDF export deferred
+
+**Active. Target: Wave 33 (Admin Management).** The gantt toolbar in `src/features/gantt/components/ProjectGantt.tsx` renders a disabled "Export PDF" button with a `title="PDF export coming soon"` tooltip. Deferred because Wave 28 intentionally ships the core timeline render + drag-shift only; print/PDF export pairs better with the Wave 33 admin reporting surface (same user flow as report scheduling). No technical blocker — wire to `window.print()` with a gantt-only print stylesheet when Wave 33 lands, or use a headless-browser export from a Deno edge function if output fidelity matters.

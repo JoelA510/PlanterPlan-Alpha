@@ -55,6 +55,25 @@ Per-project presence channel `presence:project:<id>`, opened once in `src/pages/
 
 **Disabled** outside the project route — Dashboard, Reports, Tasks, Settings do not open presence channels (`projectId` is only defined on `/project/:id`).
 
+## Gantt Chart (Wave 28)
+
+Standalone route `/gantt?projectId=:id` (registered in `src/app/App.tsx`, lazy-loaded). Reads project hierarchy from the same `useTaskQuery` React Query cache as `TaskList`.
+
+**Stack**: `gantt-task-react@0.3.9` (pinned, no `^`). Bundle impact ~13 KB gzipped, lazy-loaded.
+
+**Adapter** (`src/features/gantt/lib/gantt-adapter.ts`):
+* Walks the hierarchy; emits one row per phase, milestone, and (optionally) leaf task.
+* **Subtasks always excluded** — max-depth-1 invariant means they roll up.
+* Free-floating rows (no derivable bounds) excluded with a `skippedCount` returned alongside for the UI to surface "N tasks excluded".
+* **Boundary exemption from no-raw-date-math**: the file constructs `Date` from ISO strings for the library — strictly data marshalling, not math. Internal comparisons still go through `compareDateAsc`/`isBeforeDate` from `date-engine`.
+
+**Drag-to-shift** (`src/features/gantt/hooks/useGanttDragShift.ts`):
+* Routes through `useUpdateTask` from `useTaskMutations`. Cascade-up on parent dates is automatic via the Wave 18 `onSettled → updateParentDates` wiring.
+* Bounds check before mutation: child cannot exceed parent's bounds; error toast + no mutation if violated.
+* On error: force-refetch `['projectHierarchy', projectId]` per styleguide §5.
+
+**Out of scope (this wave)**: Print/PDF (button rendered disabled with tooltip — for Wave 33 admin tooling); critical-path lines; resource swimlanes; mobile-optimized rendering; weekend/holiday awareness (Wave 37).
+
 ## Integration Points
 * **Date Engine:** Sources calculations for 'Due Soon' and 'Overdue' task arrays.
 * **Projects & Phases:** Supplies the hierarchical data required to build the pipeline board.

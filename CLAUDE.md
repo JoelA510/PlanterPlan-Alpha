@@ -57,6 +57,7 @@ Component → React Query hook → planterClient → Supabase SDK
 - **dnd-kit** (drag and drop)
 - **Lucide React** (icons)
 - **Sonner** (toast notifications)
+- **gantt-task-react** `0.3.9` (pinned exact; Wave 28 Gantt Chart — lazy-loaded)
 
 ## Conventions
 
@@ -76,6 +77,7 @@ Component → React Query hook → planterClient → Supabase SDK
 /project/:id    → Project detail
 /tasks          → TasksPage (My Tasks view)
 /settings       → Settings
+/gantt          → Gantt (lazy-loaded; reads ?projectId=:id)
 ```
 
 ## Environment

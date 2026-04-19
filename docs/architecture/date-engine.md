@@ -26,6 +26,7 @@ Calculated dynamically based on system time vs. Task End Dates:
 * **Tasks & Subtasks:** The drag-and-drop system relies heavily on the Date Engine to recalculate bounds when items are moved.
 * **Dashboard:** Feeds 'Due Soon' and 'Overdue' metrics to `StatsOverview`.
 * **Nightly CRON (Wave 20):** `supabase/functions/nightly-sync/` owns the *write* path for urgency-status transitions (`not_started` → `in_progress` → `due_soon` → `overdue`) using per-project `settings.due_soon_threshold`. The app-layer Date Engine computes urgency for display (`deriveUrgency`) but no longer writes status to the DB itself. See `supabase/functions/nightly-sync/README.md`.
+* **Gantt drag-shift (Wave 28):** `src/features/gantt/hooks/useGanttDragShift.ts` validates bounds via `isBeforeDate`/`compareDateAsc`, then routes through `useUpdateTask`. Cascade-up logic in `updateParentDates` unchanged.
 
 ## Known Gaps / Technical Debt
 * Algorithms for auto-adjusting dates currently lack logic for skipping weekends and regional holidays.

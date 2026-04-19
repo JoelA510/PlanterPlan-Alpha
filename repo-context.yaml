@@ -280,9 +280,16 @@ health_metrics:
       - "date-engine consolidation (no raw Date math)"
 
   wave_status:
-    current: "Wave 27 (Activity Log + Realtime Presence)"
-    last_completed: "Wave 27"
-    spec_version: "1.12.0"
+    current: "Wave 28 (Gantt Chart)"
+    last_completed: "Wave 28"
+    spec_version: "1.13.0"
+    wave_28_highlights:
+      - "New /gantt?projectId=:id standalone route in src/app/App.tsx (lazy-loaded via React.lazy + <Suspense>). Empty state renders a project picker sourced from useDashboard().data.activeProjects; valid projectId mounts <ProjectGantt>"
+      - "gantt-task-react@0.3.9 pinned exact (no ^) in package.json — peer dep is react@^18 but verified working under React 19 via --legacy-peer-deps install. Post-lazy chunk: 42 kB raw / 13 kB gzipped"
+      - "src/features/gantt/lib/gantt-adapter.ts walks phases → milestones → optional leaves, excludes subtasks (max-depth-1 invariant), falls back to ancestor bounds when a row has no dates, counts free-floating rows in skippedCount, and computes progress from completed descendants. Documented boundary exemption: constructs Date from ISO strings for library handoff ONLY; internal comparisons still route through compareDateAsc/isBeforeDate from date-engine"
+      - "src/features/gantt/hooks/useGanttDragShift.ts validates bounds before persistence (child cannot exceed parent phase bounds; end ≥ start) and routes through useUpdateTask — cascade-up on parent dates is free via the Wave 18 onSettled → updateParentDates wiring. On error: force-refetch ['projectHierarchy', projectId] per styleguide §5"
+      - "src/features/gantt/components/ProjectGantt.tsx hosts the toolbar (Zoom: Day/Week/Month via Select, Today button with containerRef-based scroll, Include-leaf-tasks Switch, disabled Export-PDF Button with tooltip 'PDF export coming soon' — Wave 33 admin tooling). listCellWidth='' passed intentionally to hide the library's built-in task-list column (lib reads `if (!listCellWidth)`)"
+      - "Tests: +21 (65 files / 667 total). gantt-adapter covers empty input, type mapping, ancestor fallback, skippedCount accuracy, leaf toggle, subtask exclusion, color fallback, inverted-date collapse + warn, progress computation. useGanttDragShift covers happy path, parent-bounds rejection, inverted-date rejection, error rollback. ProjectGantt covers empty-state copy, skippedCount banner, disabled PDF button, leaf-toggle wiring. Gantt page covers empty state, no-active-projects copy, valid projectId mount. Testing/test-utils/mocks/gantt.ts shared mock helper"
     wave_27_highlights:
       - "activity_log table + 3 SECURITY DEFINER triggers: docs/db/migrations/2026_04_18_activity_log.sql adds public.activity_log (entity_type + action CHECKs, 2 indexes on project_id+created_at DESC and entity_type+entity_id+created_at DESC), trigger functions log_task_change / log_comment_change / log_member_change AFTER-fire on tasks / task_comments / project_members. RLS grants SELECT to project members + admin; INSERT/UPDATE/DELETE have no policies — only the SECURITY DEFINER triggers write rows"
       - "Comment-change trigger ordering: soft-delete detection (OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL) runs BEFORE body-change detection so Wave 26's softDelete (which writes both deleted_at = now() AND body = '' in one UPDATE) emits exactly one comment_deleted row, never a comment_edited row"
