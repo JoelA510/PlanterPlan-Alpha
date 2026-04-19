@@ -13,6 +13,11 @@
 --   DROP POLICY IF EXISTS "Enable update for phase leads" ON public.tasks;
 --   DROP FUNCTION IF EXISTS public.user_is_phase_lead(uuid, uuid);
 
+-- IMPORTANT: the recursive CTE starts at the PARENT of `target_task_id`, never the
+-- row itself. Consequence: a Phase Lead on milestone M can UPDATE tasks *under* M
+-- but CANNOT UPDATE the row M itself (assigning/removing leads is an owner-level
+-- act). An earlier draft included the row itself in the base case; Gemini's PR
+-- review flagged it as a self-match regression against the wave-plan contract.
 CREATE OR REPLACE FUNCTION public.user_is_phase_lead(target_task_id uuid, uid uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -21,19 +26,20 @@ SECURITY DEFINER
 SET search_path TO ''
 AS $$
   WITH RECURSIVE ancestors AS (
-    SELECT id, parent_task_id, settings
+    SELECT parent_task_id
     FROM public.tasks
     WHERE id = target_task_id
     UNION ALL
-    SELECT t.id, t.parent_task_id, t.settings
+    SELECT t.parent_task_id
     FROM public.tasks t
     JOIN ancestors a ON t.id = a.parent_task_id
   )
   SELECT EXISTS (
     SELECT 1
-    FROM ancestors
-    WHERE settings ? 'phase_lead_user_ids'
-      AND (settings -> 'phase_lead_user_ids') ? uid::text
+    FROM ancestors a
+    JOIN public.tasks t ON t.id = a.parent_task_id
+    WHERE t.settings ? 'phase_lead_user_ids'
+      AND (t.settings -> 'phase_lead_user_ids') ? uid::text
   );
 $$;
 

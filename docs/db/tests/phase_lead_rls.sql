@@ -1,4 +1,4 @@
--- EXPECT: viewer-with-phase-lead can update child task; cannot update sibling phase's child; cannot update phase row
+-- EXPECT: 3 helper-branch cases pass — lead→task=TRUE, sibling→task=FALSE, phase-self=FALSE
 --
 -- Wave 29: manual psql smoke for the `user_is_phase_lead` helper + the
 -- additive "Enable update for phase leads" RLS policy on public.tasks.
@@ -68,8 +68,11 @@ BEGIN
     RAISE NOTICE '[OK] task_b returned FALSE';
 END $$;
 
--- CASE 3: `user_is_phase_lead(phase_a_id, viewer_uid)` → TRUE
--- (the recursive CTE's base row is the task itself, and phase A carries the settings)
+-- CASE 3: `user_is_phase_lead(phase_a_id, viewer_uid)` → FALSE
+-- The recursive CTE starts at the PARENT of target_task_id, so the row
+-- itself is never matched against its own settings. Load-bearing: the
+-- Phase Lead can edit tasks UNDER phase A, but cannot edit phase A itself
+-- (assigning/removing leads is owner-only).
 DO $$
 DECLARE
     ok boolean;
@@ -78,10 +81,10 @@ BEGIN
         '00000000-0000-0000-0000-00000000aabb'::uuid,
         '00000000-0000-0000-0000-00000000aaff'::uuid
     ) INTO ok;
-    IF NOT ok THEN
-        RAISE EXCEPTION '[FAIL] phase_a self-match should return TRUE';
+    IF ok THEN
+        RAISE EXCEPTION '[FAIL] phase_a self-match should return FALSE (lead cannot edit phase row)';
     END IF;
-    RAISE NOTICE '[OK] phase_a self-match returned TRUE';
+    RAISE NOTICE '[OK] phase_a self-match returned FALSE';
 END $$;
 
 -- NOTE: policy-level UPDATE checks require `SET ROLE` to a non-service user

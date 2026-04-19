@@ -224,25 +224,29 @@ ALTER FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" 
 
 
 -- Wave 29: Phase Lead. Recursive ancestor walk returning TRUE when any
--- ancestor row carries `settings -> 'phase_lead_user_ids'` containing uid.
+-- ancestor (EXCLUDING the target row itself) carries
+-- `settings -> 'phase_lead_user_ids'` containing uid. Excluding self is
+-- load-bearing: a Phase Lead on milestone M may UPDATE tasks under M but
+-- NOT the row M itself (owner-level gate on lead assignment).
 CREATE OR REPLACE FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
   WITH RECURSIVE ancestors AS (
-    SELECT id, parent_task_id, settings
+    SELECT parent_task_id
     FROM public.tasks
     WHERE id = target_task_id
     UNION ALL
-    SELECT t.id, t.parent_task_id, t.settings
+    SELECT t.parent_task_id
     FROM public.tasks t
     JOIN ancestors a ON t.id = a.parent_task_id
   )
   SELECT EXISTS (
     SELECT 1
-    FROM ancestors
-    WHERE settings ? 'phase_lead_user_ids'
-      AND (settings -> 'phase_lead_user_ids') ? uid::text
+    FROM ancestors a
+    JOIN public.tasks t ON t.id = a.parent_task_id
+    WHERE t.settings ? 'phase_lead_user_ids'
+      AND (t.settings -> 'phase_lead_user_ids') ? uid::text
   );
 $$;
 

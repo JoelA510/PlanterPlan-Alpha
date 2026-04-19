@@ -78,14 +78,20 @@ const TaskDetailsView = ({
     // with the already-completed row in cache.
     const prevStatusRef = useRef<string | null | undefined>(task?.status);
     const isStrategyTask = extractStrategyTemplateFlag(task as TaskRow | undefined);
-    const phaseLeadIds = extractPhaseLeads(task as TaskRow | undefined);
+    const phaseLeadIds = useMemo(
+        () => extractPhaseLeads(task as TaskRow | undefined),
+        [task],
+    );
     const phaseLeadProjectId = task?.root_id ?? task?.id ?? null;
     const { teamMembers: phaseLeadMembers } = useTeam(phaseLeadIds.length > 0 ? phaseLeadProjectId : null);
-    const phaseLeadLabels = phaseLeadIds.map((id) => {
-        const member = phaseLeadMembers.find((m) => m.user_id === id);
-        const email = member ? (member as unknown as { email?: string }).email : undefined;
-        return email ?? `User ${id.slice(0, 8)}`;
-    });
+    const phaseLeadLabels = useMemo(
+        () => phaseLeadIds.map((id) => {
+            const member = phaseLeadMembers.find((m) => m.user_id === id);
+            const email = member ? (member as unknown as { email?: string }).email : undefined;
+            return email ?? `User ${id.slice(0, 8)}`;
+        }),
+        [phaseLeadIds, phaseLeadMembers],
+    );
     useEffect(() => {
         const prev = prevStatusRef.current;
         const curr = task?.status;

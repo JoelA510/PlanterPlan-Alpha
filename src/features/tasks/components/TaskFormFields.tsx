@@ -31,9 +31,13 @@ interface TaskFormFieldsProps {
  * QueryClientProvider as a per-test optional dependency for pre-existing
  * TaskForm tests that don't exercise Phase Leads.
  */
-function PhaseLeadPicker({ projectId, taskType }: { projectId: string; taskType: 'phase' | 'milestone' }) {
+function PhaseLeadPicker({ projectId, taskType }: { projectId: string | null | undefined; taskType: string | null | undefined }) {
+ // Wider props so the call site doesn't need TS-narrowing ceremony; we guard
+ // AFTER hooks below to stay within rules-of-hooks. useTeam disables its
+ // internal query when projectId is falsy, so the extra hook call is cheap.
+ const active = Boolean(projectId) && (taskType === 'phase' || taskType === 'milestone');
  const { setValue, control } = useFormContext<TaskFormData>();
- const { teamMembers } = useTeam(projectId);
+ const { teamMembers } = useTeam(active ? projectId ?? null : null);
  const eligibleMembers = useMemo(
  () => teamMembers.filter((m) => m.role === 'viewer' || m.role === 'limited'),
  [teamMembers],
@@ -47,9 +51,7 @@ function PhaseLeadPicker({ projectId, taskType }: { projectId: string; taskType:
  const label = (m as unknown as { email?: string }).email ?? `User ${m.user_id.slice(0, 8)}`;
  byId.set(m.user_id, label);
  }
- return selectedLeads
- .map((id) => byId.get(id) ?? `User ${id.slice(0, 8)}`)
- .filter(Boolean);
+ return selectedLeads.map((id) => byId.get(id) ?? `User ${id.slice(0, 8)}`);
  }, [eligibleMembers, selectedLeads]);
  const togglePhaseLead = (userId: string) => {
  const next = selectedSet.has(userId)
@@ -57,6 +59,7 @@ function PhaseLeadPicker({ projectId, taskType }: { projectId: string; taskType:
  : [...selectedLeads, userId];
  setValue('phase_lead_user_ids', next, { shouldDirty: true });
  };
+ if (!active) return null;
  return (
  <div
   className="mt-3 flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-3"
@@ -260,7 +263,7 @@ const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, members
  </div>
  )}
 
- {canAssignPhaseLeads && projectId && (taskType === 'phase' || taskType === 'milestone') && (
+ {canAssignPhaseLeads && (
  <PhaseLeadPicker projectId={projectId} taskType={taskType} />
  )}
 
