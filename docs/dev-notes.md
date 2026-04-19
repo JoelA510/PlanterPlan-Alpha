@@ -35,3 +35,21 @@ _Historical:_ `is_complete` (boolean) and `status = 'completed'` (text) represen
 The `check_project_ownership` shim has been dropped. Migration: `docs/db/migrations/2026_04_18_rewrite_project_members_policies.sql`. Audit table and final policy states: `docs/architecture/auth-rbac.md`.
 
 _Historical (Wave 23 audit):_ `public.check_project_creatorship(pid, uid)` was introduced carrying the original body; `public.check_project_ownership` became a thin SQL shim delegating to it so the four policies could be rewritten in Wave 24 without a byte-for-byte semantic change window.
+
+### `task_comments.author:users(...)` PostgREST join is typed-client-hostile
+
+**Active. Target: Wave 30.** `planter.entities.TaskComment.{listByTask, create}` select `*, author:users(id, email, user_metadata)` across the `public`/`auth` schema boundary. The Supabase generated types don't model a FK from `task_comments.author_id` to `auth.users.id`, so the typed client surfaces a `SelectQueryError<"could not find the relation between task_comments and users">`. The current workaround casts through `unknown` and ships: at runtime PostgREST sometimes resolves the join, sometimes returns `author: null` (the row-level type already allows null, so the UI falls back to initials + "Unknown" via `<Avatar>`).
+
+Problem: when the join fails silently, `TaskCommentWithAuthor.author` is `null` and the UI can't show a real name. More importantly, Wave 30's notification stack needs resolved `author_id → auth.users.email` for mention dispatch — the null-author case is a soft failure for display but a hard miss for notifications.
+
+Fix in Wave 30 (prefer): ship a `public.list_task_comments_with_authors(p_task_id uuid)` SECURITY DEFINER RPC that JOINs `task_comments` against `auth.users` internally and returns the hydrated shape. Swap `listByTask` to `planter.rpc('list_task_comments_with_authors', { p_task_id: taskId })`. Drop the cross-schema PostgREST select. The RPC also centralises the `resolve_user_handles` path Wave 30 already plans to ship. Alternative: add a `public.comment_authors` view that mirrors the relevant `auth.users` columns with an RLS policy keyed on `is_active_member`, and switch the select to `author:comment_authors!author_id(...)` — less elegant but avoids the RPC round trip.
+
+Until that lands, the UI degrades gracefully but any mention-based feature is blocked on a reliable author hydrate.
+
+### `task_comments.author_id ON DELETE RESTRICT` blocks account deletion
+
+**Active. Target: Wave 33 or Wave 35.** `task_comments.author_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT` (Wave 26). This matches `tasks.creator` / `project_members.user_id` — the RESTRICT was chosen deliberately per the Wave 26 plan so a comment can't go authorless while the app's `TaskCommentWithAuthor.author` contract treats non-soft-deleted rows as having an author. Trade-off: deleting an `auth.users` row is blocked if they've ever posted a comment (same blocker exists on the other two FKs).
+
+The right fix is cross-cutting, not local: when the admin / account-deletion flow ships (Wave 33 Admin Management or Wave 35 Licensing), it needs to decide how to anonymise or reassign user-owned rows across all three tables (`tasks.creator`, `project_members.user_id`, `task_comments.author_id`, plus whatever Wave 27 adds on `activity_log` / presence). Options: (a) nullable FKs with `ON DELETE SET NULL` + tombstone display everywhere, (b) a `public.deleted_users` row-retention table that every FK can reassign to during account-deletion, (c) hard-delete cascade gated by an admin-only "purge" action. (b) is cleanest for GDPR audit trails.
+
+Flagging at the Wave 26 level so the admin-flow plan doesn't miss `task_comments` when it audits the FK surface.
