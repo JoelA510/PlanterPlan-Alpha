@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import TaskResources from '@/features/tasks/components/TaskResources';
 import TaskDependencies from '@/features/tasks/components/TaskDependencies';
+import TaskComments from '@/features/tasks/components/TaskComments/TaskComments';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useTaskSiblings } from '@/features/tasks/hooks/useTaskSiblings';
@@ -327,6 +328,9 @@ const TaskDetailsView = ({
                     )}
                 </div>
             )}
+
+            {/* Comments (Wave 26) */}
+            <TaskComments taskId={task.id} />
 
             {/* Subtasks */}
             {task.children && task.children.length > 0 && (
