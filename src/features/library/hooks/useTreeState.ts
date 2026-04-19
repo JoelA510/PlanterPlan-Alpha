@@ -31,7 +31,7 @@ export const useTreeState = (rootTasks: TreeNode[]): UseTreeStateReturn => {
     // (reorders, status changes, lazily-loaded children) so we can't derive via useMemo.
     useEffect(() => {
         if (rootTasks && rootTasks.length > 0) {
-            setTreeData(() => mergeTaskUpdates(rootTasks));
+            setTreeData(mergeTaskUpdates(rootTasks));
         } else if (rootTasks) {
             setTreeData([]);
         }
