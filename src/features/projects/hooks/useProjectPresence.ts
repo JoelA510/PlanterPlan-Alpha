@@ -29,10 +29,11 @@ interface UseProjectPresenceResult {
  * - No-op when `projectId` or `user` is null (route guards outside the
  *   Project page don't open the channel at all).
  *
- * @param projectId The project's root task id, or null.
- * @returns `{ presentUsers, myPresenceKey }` — `presentUsers` is the
- *   deduped + sorted roster; `myPresenceKey` is the current user's id once
- *   subscribed (used by consumers that want to filter self).
+ * @param {string | null} projectId The project's root task id, or null.
+ * @returns {UseProjectPresenceResult} `{ presentUsers, myPresenceKey }` —
+ *   `presentUsers` is the deduped + sorted roster; `myPresenceKey` is the
+ *   current user's id once subscribed (consumers that want to filter self
+ *   can compare against it).
  */
 export function useProjectPresence(projectId: string | null): UseProjectPresenceResult {
     const { user } = useAuth();
@@ -51,7 +52,7 @@ export function useProjectPresence(projectId: string | null): UseProjectPresence
                 // Dedup by user_id (multi-tab); keep earliest joinedAt per user.
                 const byUser = new Map<string, PresenceState>();
                 for (const userKey of Object.keys(state)) {
-                    for (const slot of state[userKey] as unknown as PresenceState[]) {
+                    for (const slot of state[userKey]) {
                         const existing = byUser.get(slot.user_id);
                         if (!existing || slot.joinedAt < existing.joinedAt) {
                             byUser.set(slot.user_id, slot);

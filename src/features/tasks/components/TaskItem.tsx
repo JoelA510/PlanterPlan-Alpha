@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
@@ -128,8 +129,11 @@ const TaskItem = ({
  const isLocked = !!task.is_locked;
 
  // Wave 27: peers currently focused on this task (self-hidden, cap 3).
- const focusPeers = presentUsers
- .filter((u) => u.focusedTaskId === task.id && u.user_id !== currentUserId);
+ // Memoize so DnD reorders / parent re-renders don't re-filter per row.
+ const focusPeers = useMemo(
+ () => presentUsers.filter((u) => u.focusedTaskId === task.id && u.user_id !== currentUserId),
+ [presentUsers, task.id, currentUserId],
+ );
  const visibleFocusPeers = focusPeers.slice(0, MAX_FOCUS_CHIPS);
  const focusOverflow = focusPeers.length - visibleFocusPeers.length;
 

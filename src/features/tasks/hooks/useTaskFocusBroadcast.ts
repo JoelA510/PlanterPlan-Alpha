@@ -12,9 +12,9 @@ import { useAuth } from '@/shared/contexts/AuthContext';
  * reconstructed here from the projectId; both sides must use the same
  * `presence:project:<id>` shape.
  *
- * @param projectId The project's root task id.
- * @param focusedTaskId The task id the user is currently viewing, or null
- *   when the details panel is closed.
+ * @param {string | null} projectId The project's root task id.
+ * @param {string | null} focusedTaskId The task id the user is currently
+ *   viewing, or null when the details panel is closed.
  * @returns {void}
  */
 export function useTaskFocusBroadcast(projectId: string | null, focusedTaskId: string | null): void {
