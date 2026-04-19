@@ -203,6 +203,8 @@ reserved for admin/cleanup paths.
 per-task channel in `src/features/tasks/hooks/useTaskCommentsRealtime.ts`
 invalidates `['taskComments', taskId]` on any payload.
 
+**Phase Lead (Wave 29):** `settings.phase_lead_user_ids: string[]` on phase/milestone rows is consumed by the additive RLS UPDATE policy `"Enable update for phase leads"` and the `user_is_phase_lead` recursive ancestor-walk (starts at the parent; the row itself is never matched). See `auth-rbac.md` for the policy text and `src/features/projects/lib/phase-lead.ts` for the form helpers.
+
 ## Integration Points
 * **Date Engine:** Dragging tasks triggers date inheritance logic (`dateInheritance.ts`) to adjust bounds automatically.
 * **Dashboard:** Feeds raw status counts.

@@ -16,10 +16,26 @@ This domain defines the highest-level structural containers of the application. 
 2. **Active:** Standard operation. Completing tasks triggers upward recalculation of Milestone and Project completeness.
 3. **Deletion:** Triggers a cascading hard delete of all nested descendants and scrubs from dashboards.
 
-### Alternate Architecture: Checkpoint-Based Projects
+### Checkpoint-Based Projects (Wave 29 — Implementation Complete)
+
+**Discriminator**: `settings.project_kind: 'date' | 'checkpoint'` on root tasks (defaults to `'date'` when absent). CHECK constraint `tasks_project_kind_check` enforces the two-value vocabulary; absence-as-date keeps every pre-Wave-29 project un-migrated.
+
+**Helpers**: `src/features/projects/lib/project-kind.ts` mirrors the coaching/strategy form-helper trio (`extractProjectKind`, `formDataToProjectKind`, `applyProjectKind`). Migration: `docs/db/migrations/2026_04_18_project_kind.sql`.
+
+**Date-engine carve-out**: `recalculateProjectDates` short-circuits when the root is checkpoint (no bulk-shift on launch-date edits). `deriveUrgencyForProject` returns `'not_yet_due'` for any non-completed checkpoint task. `isCheckpointProject` is mirrored byte-equivalent in `supabase/functions/_shared/date.ts` (lock-step).
+
+**Nightly-sync**: the overdue + due_soon urgency passes skip checkpoint projects via `loadRootInfo` (one combined root-settings query covers both passes). The recurrence pass is unaffected — templates are project-kind-agnostic.
+
+**Phase unlock**: existing `check_phase_unlock` + `handle_phase_completion` triggers and `is_locked` / `prerequisite_phase_id` columns do all the unlocking work — Wave 29 did NOT modify them. What's new is the UI gating in checkpoint mode: locked phases visually communicate the lock state.
+
+**Kind switching**: `date → checkpoint` is direct. `checkpoint → date` requires a Shadcn `<Dialog>` confirmation in `EditProjectModal` because re-engaging dates may surface overdue tasks. Date data is preserved across switches — no destructive operation.
+
+**Donut visualization**: `PhaseCard.tsx` swaps its progress bar for a recharts `<PieChart>` donut (same pattern as `ProjectHeader.tsx`) when the project is checkpoint. Center label is `{progress}%` or `Locked` when `is_locked === true`. Brand-600 fill, slate-200 track (via CSS variables, not raw hex).
+
+_Historical lifecycle summary:_
 1. **Locked:** Subsequent phases are visually locked.
 2. **Current:** Phase is active and tracking progress visually (Donut Chart) without strict Date Engine due dates.
-3. **Unlocked:** A locked Phase transitions to "Current" strictly when the preceding Phase hits 100% completion.
+3. **Unlocked:** A locked Phase transitions to "Current" strictly when the preceding Phase hits 100% completion (via `check_phase_unlock` trigger).
 
 ## Business Rules & Constraints
 * **Strict Hierarchy Invariant:** `Project -> Phases -> Milestones -> Tasks -> Subtasks`.

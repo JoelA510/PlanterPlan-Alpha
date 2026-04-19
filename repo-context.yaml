@@ -280,9 +280,21 @@ health_metrics:
       - "date-engine consolidation (no raw Date math)"
 
   wave_status:
-    current: "Wave 28 (Gantt Chart)"
-    last_completed: "Wave 28"
-    spec_version: "1.13.0"
+    current: "Wave 29 (Checkpoint Projects + Phase Lead)"
+    last_completed: "Wave 29"
+    spec_version: "1.14.0"
+    wave_29_highlights:
+      - "settings.project_kind discriminator on root tasks: 'date' | 'checkpoint', gated by the additive tasks_project_kind_check CHECK (migration docs/db/migrations/2026_04_18_project_kind.sql). Absence defaults to 'date' so every pre-Wave-29 project is un-migrated"
+      - "Helper trio in src/features/projects/lib/project-kind.ts (extractProjectKind / formDataToProjectKind / applyProjectKind). Mirrors the Wave 22 coaching/strategy form-helper precedent"
+      - "Date-engine carve-out: isCheckpointProject + NEW deriveUrgencyForProject wrapper in src/shared/lib/date-engine/index.ts. recalculateProjectDates early-returns on checkpoint roots. Existing deriveUrgency signature untouched — backward-compat"
+      - "Deno mirror: supabase/functions/_shared/date.ts carries a byte-equivalent isCheckpointProject. nightly-sync's overdue + due_soon passes filter out checkpoint roots via a consolidated loadRootInfo query"
+      - "EditProjectModal hosts a <RadioGroup> kind picker + a confirmation <Dialog> on the checkpoint→date revert. date→checkpoint is direct; settings preserved across switches"
+      - "PhaseCard.tsx swaps its progress bar for a recharts <PieChart> donut when the project is checkpoint. Center label is {progress}% or 'Locked' when is_locked === true. Uses var(--color-brand-600) / var(--color-slate-200) — no raw hex"
+      - "settings.phase_lead_user_ids[] on phase/milestone rows. Migration docs/db/migrations/2026_04_18_phase_lead_rls.sql adds user_is_phase_lead(target_task_id, uid) SECURITY DEFINER + additive RLS UPDATE policy 'Enable update for phase leads'. CTE starts at the PARENT of target (not self) — leads edit tasks UNDER a phase but cannot edit the phase row itself. Gemini review round 1 flagged the self-match regression and fix landed before merge"
+      - "Helper pair src/features/projects/lib/phase-lead.ts (extractPhaseLeads with dedup + non-string filter; applyPhaseLeads preserves other settings keys). TaskFormData grew a phase_lead_user_ids?: string[] field"
+      - "<PhaseLeadPicker> sub-component extracted inside TaskFormFields so useTeam only mounts when the picker renders — preserves pre-existing TaskForm tests that didn't wrap in QueryClientProvider. Owner-only on phase/milestone rows; options filtered to viewer/limited members from useTeam(projectId); purple Phase Leads badge in TaskDetailsView"
+      - "Submit-merge in TaskList.createTaskOrUpdateWrapper applies phase leads after coaching/strategy flags, only when data.phase_lead_user_ids is actually present (avoids clobbering on non-picker edits)"
+      - "Tests: +51 (71 files / 718 total). project-kind helpers (16), date-engine checkpoint (11), EditProjectModal kind (5), PhaseCard donut (4), phase-lead helpers (9), TaskFormFields phase-lead picker (7)"
     wave_28_highlights:
       - "New /gantt?projectId=:id standalone route in src/app/App.tsx (lazy-loaded via React.lazy + <Suspense>). Empty state renders a project picker sourced from useDashboard().data.activeProjects; valid projectId mounts <ProjectGantt>"
       - "gantt-task-react@0.3.9 pinned exact (no ^) in package.json — peer dep is react@^18 but verified working under React 19 via --legacy-peer-deps install. Post-lazy chunk: 42 kB raw / 13 kB gzipped"

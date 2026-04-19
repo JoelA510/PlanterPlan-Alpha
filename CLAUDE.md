@@ -115,7 +115,7 @@ RLS is enabled on all tables. Authorization is role-based per project.
 - `is_complete` — Boolean completion flag (used by `check_phase_unlock` trigger).
 - `is_locked` / `prerequisite_phase_id` — Phase locking system.
 - `position` — Sort order among siblings.
-- `settings` — JSONB (stores phase color/icon).
+- `settings` — JSONB. Canonical keys: `published`, `recurrence`, `spawnedFromTemplate`/`spawnedOn`, `due_soon_threshold`, `is_coaching_task`, `is_strategy_template`, `project_kind` (`'date' | 'checkpoint'` on roots only, Wave 29), `phase_lead_user_ids` (string[] on phase/milestone rows, Wave 29). **Wave 29:** `settings.project_kind` gates the date-engine + nightly-sync urgency passes; `settings.phase_lead_user_ids` widens UPDATE access via the `"Enable update for phase leads"` RLS policy (CTE walks from parent — leads may edit tasks UNDER a phase, not the phase row itself).
 - `days_from_start` — Relative scheduling offset.
 - `assignee_id` — FK to auth user.
 

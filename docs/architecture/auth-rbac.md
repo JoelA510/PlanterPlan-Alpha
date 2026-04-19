@@ -32,6 +32,8 @@ The Auth & RBAC system manages application-level authentication, user account li
 | **Invite / Manage Users** | Yes | No | No | No |
 | **Edit project settings** | Yes | No | No | No |
 
+> **Footnote (Wave 29):** Viewer/Limited users may also edit tasks **under** any phase or milestone they are designated as Phase Lead for (not the phase/milestone row itself — assignment stays owner-only). See "Phase Lead" section below.
+
 ### Creatorship vs. Ownership (resolved Wave 24)
 
 Historically `public.check_project_ownership(pid, uid)` was used as the
@@ -78,3 +80,16 @@ Migration: `docs/db/migrations/2026_04_18_rewrite_project_members_policies.sql`.
 * **Comments (Wave 26):** SELECT inherits project membership; INSERT requires `author_id = auth.uid()`; UPDATE restricted to authors on undeleted rows; DELETE allowed for authors, project owners (`check_project_ownership_by_role`), or admins. Full policy text in `docs/architecture/tasks-subtasks.md`.
 
 * **Activity Log (Wave 27):** SELECT inherits project membership; INSERT/UPDATE/DELETE denied at policy level — only SECURITY DEFINER trigger functions write rows.
+
+### Phase Lead (Wave 29)
+
+A project Owner may designate any `viewer` or `limited`-role member as the **Lead** of a specific phase or milestone via `settings.phase_lead_user_ids` (a JSONB array on the phase/milestone row). The list allows multiple leads per phase; a single user can lead multiple phases.
+
+**RLS** (migration `docs/db/migrations/2026_04_18_phase_lead_rls.sql`):
+* Helper: `user_is_phase_lead(target_task_id uuid, uid uuid)` walks up the `parent_task_id` chain **starting at the parent** (the row itself is never matched) and returns true if any ancestor's `settings.phase_lead_user_ids` contains `uid`. Self-exclusion is load-bearing: a Phase Lead can edit tasks UNDER a phase but cannot edit the phase row itself.
+* Policy: `"Enable update for phase leads"` on `public.tasks` — `USING (origin = 'instance' AND user_is_phase_lead(id, auth.uid()))` with a matching `WITH CHECK`.
+* **Additive only** — owner/editor/coach UPDATE policies are unchanged. SELECT for viewers is unchanged (already project-wide).
+
+**UI** (`src/features/tasks/components/TaskFormFields.tsx`): the `<PhaseLeadPicker>` sub-component (multi-select popover) renders only for `membershipRole === 'owner'` on phase/milestone rows. Options come from `useTeam(projectId).teamMembers.filter(m => m.role === 'viewer' || m.role === 'limited')` — owners/editors/coaches/admins are NOT in the picker because they already have UPDATE via existing policies. Badge in `TaskDetailsView.tsx` lists current leads.
+
+**Permission matrix update**: limited viewers may now edit tasks under any phase/milestone they are designated as Phase Lead for. See the matrix footnote above.

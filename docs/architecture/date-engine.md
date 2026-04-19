@@ -21,6 +21,7 @@ Calculated dynamically based on system time vs. Task End Dates:
 * **Global Date Shifts:** Editing the Project-level due date automatically shifts the due dates of *all* nested Phases, Milestones, and Tasks to preserve relative spacing.
 * **Dependency Auto-Adjustment:** Modifying a task date or moving an item via drag-and-drop (`dateInheritance.ts`) strictly conforms to parent bounds and auto-adjusts dependent child items.
 * **Template Exclusion:** The Date Engine is entirely disabled for Library Templates. Template tasks use `duration` and `days from start until due`.
+* **Checkpoint projects (Wave 29):** `recalculateProjectDates` and `deriveUrgencyForProject` short-circuit when the project root carries `settings.project_kind === 'checkpoint'`; nightly-sync skips urgency transitions for those roots; due dates render as informational only. `isCheckpointProject` is lock-step with `supabase/functions/_shared/date.ts`.
 
 ## Integration Points
 * **Tasks & Subtasks:** The drag-and-drop system relies heavily on the Date Engine to recalculate bounds when items are moved.

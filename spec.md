@@ -1,6 +1,6 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.13.0 (Wave 28 — Gantt Chart) 
+> **Version**: 1.14.0 (Wave 29 — Checkpoint Projects + Phase Lead) 
 > **Last Updated**: 2026-04-19 
 > **Status**: Active Development
 
@@ -51,8 +51,8 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] Remove a member.
   - [x] Change member role permissions.
 - [x] **Project Settings**: Edit due date and due soon thresholds. *(Note: The `Location` field is officially deprecated and has been stripped from the UI.)*
-- [-] **Advanced Access**: Assign Phase/Milestone to a limited viewer.
-- [ ] **Checkpoint-Based Architecture**: Alternate project type that unlocks sequential phases upon completing the previous phase, without rigid due dates.
+- [x] **Advanced Access (Phase Lead)**: A project Owner may designate any `viewer` or `limited`-role member as the Lead of a specific phase or milestone via `settings.phase_lead_user_ids`. Additive RLS `"Enable update for phase leads"` on `public.tasks` plus the `user_is_phase_lead(target_task_id, uid)` helper walk the `parent_task_id` chain excluding the row itself — leads may edit tasks UNDER the phase/milestone but not the row itself (assignment stays owner-only). UI picker in `TaskFormFields`, purple badge in `TaskDetailsView`. (Wave 29)
+- [x] **Checkpoint-Based Architecture**: Alternate project type that drops date scheduling in favor of sequential phase-unlock. `settings.project_kind: 'date' | 'checkpoint'` on root tasks (gated by `tasks_project_kind_check` CHECK; defaults to `'date'`). Date-engine (`isCheckpointProject`, `deriveUrgencyForProject`) and nightly-sync urgency passes short-circuit checkpoint projects; `PhaseCard` swaps its progress bar for a `<PieChart>` donut; `EditProjectModal` hosts the `<RadioGroup>` picker with confirmation on revert. Existing `check_phase_unlock` trigger + `is_locked`/`prerequisite_phase_id` columns do the DB-level unlock (untouched by this wave). (Wave 29)
 - [x] **Secondary Projects**: Active menu and project switcher filter out archived (`status = 'archived'`) and completed (`is_complete = true`) projects; archive/unarchive is a toggle on the project's Edit modal. The `ProjectSwitcher` dropdown in the header lists active projects by default. **Wave 25:** two independent toggles — "Show archived" (Wave 21.5) and "Show completed" — reveal each inactive subset inline so users can navigate back to any project without typing the URL.
 
 ### 3.3 Tasks Domain (Shared Project & Template Functionality)

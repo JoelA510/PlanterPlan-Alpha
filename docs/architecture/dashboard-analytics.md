@@ -79,4 +79,7 @@ Standalone route `/gantt?projectId=:id` (registered in `src/app/App.tsx`, lazy-l
 * **Projects & Phases:** Supplies the hierarchical data required to build the pipeline board.
 
 ## Known Gaps / Technical Debt
-* Implementation of Donut Charts specifically for Checkpoint-based project phases is pending full UI integration.
+
+## Resolved
+
+* **Donut Charts for Checkpoint-based project phases (resolved Wave 29)**: `PhaseCard.tsx` swaps its progress bar for a recharts `<PieChart>` donut when `extractProjectKind(rootTask) === 'checkpoint'`. Center label is `{progress}%` when unlocked or `Locked` when `phase.is_locked === true`. Fill uses the project's `--color-brand-600` / `--color-slate-200` CSS variables (no raw hex).
