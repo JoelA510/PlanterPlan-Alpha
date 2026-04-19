@@ -265,6 +265,98 @@ export type Database = {
  },
  ]
  }
+ task_comments: {
+ Row: {
+ id: string
+ task_id: string
+ root_id: string
+ parent_comment_id: string | null
+ author_id: string
+ body: string
+ mentions: string[]
+ created_at: string
+ updated_at: string
+ edited_at: string | null
+ deleted_at: string | null
+ }
+ Insert: {
+ id?: string
+ task_id: string
+ root_id?: string
+ parent_comment_id?: string | null
+ author_id: string
+ body: string
+ mentions?: string[]
+ created_at?: string
+ updated_at?: string
+ edited_at?: string | null
+ deleted_at?: string | null
+ }
+ Update: {
+ id?: string
+ task_id?: string
+ root_id?: string
+ parent_comment_id?: string | null
+ author_id?: string
+ body?: string
+ mentions?: string[]
+ created_at?: string
+ updated_at?: string
+ edited_at?: string | null
+ deleted_at?: string | null
+ }
+ Relationships: [
+ {
+ foreignKeyName: "task_comments_task_id_fkey"
+ columns: ["task_id"]
+ isOneToOne: false
+ referencedRelation: "tasks"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_task_id_fkey"
+ columns: ["task_id"]
+ isOneToOne: false
+ referencedRelation: "tasks_with_primary_resource"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_task_id_fkey"
+ columns: ["task_id"]
+ isOneToOne: false
+ referencedRelation: "view_master_library"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_root_id_fkey"
+ columns: ["root_id"]
+ isOneToOne: false
+ referencedRelation: "tasks"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_root_id_fkey"
+ columns: ["root_id"]
+ isOneToOne: false
+ referencedRelation: "tasks_with_primary_resource"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_root_id_fkey"
+ columns: ["root_id"]
+ isOneToOne: false
+ referencedRelation: "view_master_library"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_parent_comment_id_fkey"
+ columns: ["parent_comment_id"]
+ isOneToOne: false
+ referencedRelation: "task_comments"
+ referencedColumns: ["id"]
+ },
+ ]
+ }
  task_relationships: {
  Row: {
  created_at: string | null
