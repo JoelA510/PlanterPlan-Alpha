@@ -89,11 +89,11 @@ export function ActivityRow({ row, hideEntityLink = false }: ActivityRowProps) {
             data-activity-entity={row.entity_type}
         >
             <Avatar className="h-7 w-7 shrink-0">
-                <AvatarFallback className="bg-slate-100 text-slate-700 text-[11px] font-semibold">
+                <AvatarFallback className="bg-slate-100 text-slate-700 text-xs font-semibold">
                     {initials(row.actor?.email, fullName)}
                 </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0 text-sm text-slate-700">
+            <div className="flex-1 min-w-0 text-sm text-slate-600">
                 <span className="font-semibold text-slate-900">{name}</span>{' '}
                 <span>{verbPhrase(row)}</span>
                 {!hideEntityLink && (

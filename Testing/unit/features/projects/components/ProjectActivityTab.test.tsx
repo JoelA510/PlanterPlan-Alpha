@@ -5,10 +5,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ActivityLogWithActor } from '@/shared/db/app.types';
 
 const mockUseProjectActivity = vi.fn();
+const mockListByProject = vi.fn();
 
 vi.mock('@/features/projects/hooks/useProjectActivity', () => ({
     useProjectActivity: (...args: unknown[]) => mockUseProjectActivity(...args),
     useTaskActivity: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock('@/shared/api/planterClient', () => ({
+    planter: {
+        entities: {
+            ActivityLog: {
+                listByProject: (...args: unknown[]) => mockListByProject(...args),
+            },
+        },
+    },
 }));
 
 import ProjectActivityTab from '@/features/projects/components/ProjectActivityTab';
@@ -125,5 +136,52 @@ describe('ProjectActivityTab (Wave 27)', () => {
         });
         renderSut();
         expect(screen.queryByTestId('activity-load-older')).toBeNull();
+    });
+
+    it('"Load older" pages backwards via the `before` cursor and appends (no limit-bump refetch)', async () => {
+        const firstPage = Array.from({ length: 50 }, (_, i) =>
+            rowOf({
+                id: `first-${i}`,
+                entity_type: 'task',
+                created_at: new Date(2026, 3, 18, 12, 59 - i).toISOString(),
+            }),
+        );
+        const olderBatch = [
+            rowOf({ id: 'older-1', entity_type: 'comment', action: 'comment_posted' }),
+            rowOf({ id: 'older-2', entity_type: 'task' }),
+        ];
+        mockUseProjectActivity.mockReturnValue({ data: firstPage, isLoading: false });
+        mockListByProject.mockResolvedValue(olderBatch);
+
+        renderSut({ projectId: 'p1' });
+
+        const btn = screen.getByTestId('activity-load-older');
+        await React.act(async () => {
+            fireEvent.click(btn);
+        });
+
+        // Server call was keyed by the last row's created_at, not a bigger limit.
+        expect(mockListByProject).toHaveBeenCalledTimes(1);
+        const [pid, opts] = mockListByProject.mock.calls[0] as [string, Record<string, unknown>];
+        expect(pid).toBe('p1');
+        expect(opts).toMatchObject({ limit: 50, before: firstPage[firstPage.length - 1].created_at });
+
+        // The older rows append to the view — both page slices are present.
+        expect(screen.getByTestId('activity-row-first-0')).toBeInTheDocument();
+        expect(screen.getByTestId('activity-row-older-1')).toBeInTheDocument();
+        expect(screen.getByTestId('activity-row-older-2')).toBeInTheDocument();
+    });
+
+    it('shows a filter-specific empty state when no rows match the active filter', () => {
+        // Rows exist (all tasks), but switching to "comment" filter leaves the view empty.
+        const rows = [rowOf({ id: 'r-task', entity_type: 'task' })];
+        mockUseProjectActivity.mockReturnValue({ data: rows, isLoading: false });
+
+        renderSut();
+        fireEvent.click(screen.getByTestId('activity-filter-comment'));
+
+        const empty = screen.getByTestId('activity-empty');
+        expect(empty).toHaveTextContent(/no activity matches this filter\./i);
+        expect(empty).not.toHaveTextContent(/create a task or invite a teammate/i);
     });
 });
