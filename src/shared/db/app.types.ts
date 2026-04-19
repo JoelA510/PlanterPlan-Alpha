@@ -168,6 +168,10 @@ export interface TaskSettings {
     is_coaching_task?: boolean;
     /** Wave 24: when true, completing this instance task opens a dialog offering Master Library follow-ups (cloned as siblings). */
     is_strategy_template?: boolean;
+    /** Wave 29: on root tasks only — selects the project type ('date' = date-driven scheduling, default; 'checkpoint' = sequential phase-unlock). */
+    project_kind?: 'date' | 'checkpoint';
+    /** Wave 29: on phase/milestone rows — user ids designated as Phase Leads; consumed by the `user_is_phase_lead` RLS helper. */
+    phase_lead_user_ids?: string[];
 }
 
 // ----------------------------------------------------------------------------

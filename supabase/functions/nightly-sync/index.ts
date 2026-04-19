@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isRecurrenceRule, shouldFireRecurrenceOn, RecurrenceRule } from '../_shared/recurrence.ts'
-import { toUtcIsoDate } from '../_shared/date.ts'
+import { isCheckpointProject, toUtcIsoDate } from '../_shared/date.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -35,25 +35,28 @@ interface SyncResult {
 }
 
 /**
- * Build a map of rootId → due_soon_threshold days by loading the project root
- * tasks referenced by `rootIds`. Falls back to DEFAULT_DUE_SOON_THRESHOLD_DAYS
- * for any root whose settings don't explicitly set a threshold.
+ * Build a map of rootId → due_soon_threshold days plus a set of rootIds whose
+ * settings identify them as checkpoint projects (Wave 29). Loads the root
+ * tasks referenced by `rootIds` in one query. Falls back to
+ * DEFAULT_DUE_SOON_THRESHOLD_DAYS for any root whose settings don't set a
+ * threshold.
  */
-async function loadThresholds(
+async function loadRootInfo(
     supabase: SupabaseClient,
     rootIds: string[],
-): Promise<Map<string, number>> {
+): Promise<{ thresholds: Map<string, number>; checkpointRoots: Set<string> }> {
     const unique = Array.from(new Set(rootIds.filter(Boolean)))
-    const map = new Map<string, number>()
-    if (unique.length === 0) return map
+    const thresholds = new Map<string, number>()
+    const checkpointRoots = new Set<string>()
+    if (unique.length === 0) return { thresholds, checkpointRoots }
 
     const { data, error } = await supabase
         .from('tasks')
-        .select('id, settings')
+        .select('id, parent_task_id, settings')
         .in('id', unique)
     if (error) throw error
 
-    for (const row of (data ?? []) as Array<{ id: string; settings: Record<string, unknown> | null }>) {
+    for (const row of (data ?? []) as Array<{ id: string; parent_task_id: string | null; settings: Record<string, unknown> | null }>) {
         let threshold = DEFAULT_DUE_SOON_THRESHOLD_DAYS
         const s = row.settings
         if (s && typeof s === 'object' && !Array.isArray(s)) {
@@ -61,9 +64,10 @@ async function loadThresholds(
             const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
             if (Number.isFinite(n) && n >= 0) threshold = Math.floor(n)
         }
-        map.set(row.id, threshold)
+        thresholds.set(row.id, threshold)
+        if (isCheckpointProject(row)) checkpointRoots.add(row.id)
     }
-    return map
+    return { thresholds, checkpointRoots }
 }
 
 /**
@@ -181,38 +185,52 @@ Deno.serve(async (req) => {
         const nowIso = new Date().toISOString()
 
         // 1. Transition past-due, incomplete tasks to 'overdue'.
-        const { data: overdueRows, error: overdueErr } = await supabase
+        //    Select candidates first so we can filter out tasks in checkpoint projects
+        //    (Wave 29: those project kinds treat due_dates as informational only).
+        const { data: overdueCandidates, error: overdueCandErr } = await supabase
             .from('tasks')
-            .update({ status: 'overdue', updated_at: nowIso })
+            .select('id, root_id')
             .lt('due_date', nowIso)
             .neq('status', 'completed')
             .neq('status', 'overdue')
             .eq('is_complete', false)
-            .select('id')
-        if (overdueErr) throw overdueErr
+        if (overdueCandErr) throw overdueCandErr
 
-        const overdueIds = (overdueRows ?? []).map((r: { id: string }) => r.id)
-
-        // 2. Transition tasks due within their project's due_soon threshold to 'due_soon'.
-        //    Candidate set: not complete, due_date >= now, status not already terminal/overdue/due_soon.
-        const { data: candidates, error: candErr } = await supabase
+        // 2. Pre-fetch candidates for the due_soon pass so we can load root info once
+        //    covering BOTH passes.
+        const { data: dueSoonCandidates, error: dueSoonCandErr } = await supabase
             .from('tasks')
             .select('id, root_id, due_date, status, is_complete, settings')
             .gte('due_date', nowIso)
             .eq('is_complete', false)
             .not('status', 'in', '("completed","overdue","due_soon")')
-        if (candErr) throw candErr
+        if (dueSoonCandErr) throw dueSoonCandErr
 
-        const candidateRows = (candidates ?? []) as TaskRow[]
-        const rootIds = candidateRows
-            .map((r) => r.root_id)
-            .filter((v): v is string => typeof v === 'string' && v.length > 0)
-        const thresholds = await loadThresholds(supabase, rootIds)
+        const overdueCandRows = (overdueCandidates ?? []) as Array<{ id: string; root_id: string | null }>
+        const dueSoonCandRows = (dueSoonCandidates ?? []) as TaskRow[]
+        const rootIds = [
+            ...overdueCandRows.map((r) => r.root_id),
+            ...dueSoonCandRows.map((r) => r.root_id),
+        ].filter((v): v is string => typeof v === 'string' && v.length > 0)
+        const { thresholds, checkpointRoots } = await loadRootInfo(supabase, rootIds)
+
+        const overdueIds = overdueCandRows
+            .filter((r) => !(r.root_id && checkpointRoots.has(r.root_id)))
+            .map((r) => r.id)
+
+        if (overdueIds.length > 0) {
+            const { error: overdueUpdateErr } = await supabase
+                .from('tasks')
+                .update({ status: 'overdue', updated_at: nowIso })
+                .in('id', overdueIds)
+            if (overdueUpdateErr) throw overdueUpdateErr
+        }
 
         const nowMs = new Date(nowIso).getTime()
         const dueSoonIds: string[] = []
-        for (const row of candidateRows) {
+        for (const row of dueSoonCandRows) {
             if (!row.due_date) continue
+            if (row.root_id && checkpointRoots.has(row.root_id)) continue
             const threshold = row.root_id
                 ? thresholds.get(row.root_id) ?? DEFAULT_DUE_SOON_THRESHOLD_DAYS
                 : DEFAULT_DUE_SOON_THRESHOLD_DAYS

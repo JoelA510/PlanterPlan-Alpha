@@ -32,3 +32,22 @@ export const dateStringToUtcMonthKey = (raw: string | null): string | null => {
     if (Number.isNaN(d.getTime())) return null
     return toUtcMonthKey(d)
 }
+
+// ---------------------------------------------------------------------------
+// Wave 29 — Checkpoint project kind (project-type discriminator)
+// Lock-step with src/shared/lib/date-engine/index.ts → isCheckpointProject.
+// Update both together.
+// ---------------------------------------------------------------------------
+
+export interface CheckpointRootLike {
+    parent_task_id?: string | null
+    settings?: Record<string, unknown> | null
+}
+
+export function isCheckpointProject(rootTask: CheckpointRootLike | null | undefined): boolean {
+    if (!rootTask) return false
+    if (rootTask.parent_task_id) return false
+    const settings = rootTask.settings
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return false
+    return (settings as Record<string, unknown>).project_kind === 'checkpoint'
+}
