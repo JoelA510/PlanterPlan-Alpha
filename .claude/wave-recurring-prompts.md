@@ -1,6 +1,6 @@
 # Recurring Wave Execution Prompts
 
-> **Current pointer:** Wave 30, Task 1 — use PROMPT A below.
+> **Current pointer:** Wave 30, Task 2 — use PROMPT A below.
 >
 > ## Workflow (operator)
 > 1. Read the pointer line above.
@@ -17,14 +17,14 @@
 Copy everything inside the fence below into a fresh Code session.
 
 ````
-Execute Wave 30, Task 1 of the PlanterPlan delivery loop.
+Execute Wave 30, Task 2 of the PlanterPlan delivery loop.
 
 Repo: D:\PlanterPlan\PlanterPlan-Alpha (origin: github.com/JoelA510/PlanterPlan-Alpha)
 
 ## Required reading — in this exact order, BEFORE writing any code
 1. `.claude/wave-execution-protocol.md` — halt conditions + per-task execution playbook. Every "FAIL → HALT" is binding.
 2. `.claude/wave-testing-strategy.md` — find the Wave 30 section. Lists existing tests at risk + new test infrastructure to build first.
-3. `.claude/wave-30-prompt.md` — authoritative wave spec. Your task is the `### Task 1 — ...` section.
+3. `.claude/wave-30-prompt.md` — authoritative wave spec. Your task is the `### Task 2 — ...` section.
 4. `CLAUDE.md` and `.gemini/styleguide.md` — conventions.
 
 ## Steps (per execution-protocol §1)
@@ -47,10 +47,10 @@ Do NOT touch the wave-level Documentation Currency Pass, Wave Review, or push-to
 Advance the pointer in `.claude/wave-recurring-prompts.md`:
 
 1. Determine the total task count for this wave: `grep -c '^### Task' .claude/wave-30-prompt.md` — call the result `TOTAL`.
-2. If just-completed task number (1) is **less than** `TOTAL`:
-   - In `.claude/wave-recurring-prompts.md`, replace the line `> **Current pointer:** Wave 30, Task 1 — use PROMPT A below.` with `> **Current pointer:** Wave 30, Task 2 — use PROMPT A below.`
-   - Inside the PROMPT A fenced block, replace every `Wave 30, Task 1` → `Wave 30, Task 2`. Also replace `### Task 1 — ...` → `### Task 2 — ...`. Also update the "If just-completed task number (1) is less than" line to `(2)`.
-3. If just-completed task number (1) **equals** `TOTAL` (this was the last task in the wave):
+2. If just-completed task number (2) is **less than** `TOTAL`:
+   - In `.claude/wave-recurring-prompts.md`, replace the line `> **Current pointer:** Wave 30, Task 2 — use PROMPT A below.` with `> **Current pointer:** Wave 30, Task 3 — use PROMPT A below.`
+   - Inside the PROMPT A fenced block, replace every `Wave 30, Task 2` → `Wave 30, Task 3`. Also replace `### Task 2 — ...` → `### Task 3 — ...`. Also update the "If just-completed task number (2) is less than" line to `(3)`.
+3. If just-completed task number (2) **equals** `TOTAL` (this was the last task in the wave):
    - Replace the pointer line with `> **Current pointer:** Wave 30 finalize — use PROMPT B below.`
    - Leave PROMPT A's `Wave 30, Task 1` numbers alone (the next wave will reset them via PROMPT B's final step).
 4. `git add .claude/wave-recurring-prompts.md && git commit -m "chore(planning): advance recurring prompt pointer" && git push origin main`
