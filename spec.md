@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.11.0 (Wave 26 — Threaded Comments) 
-> **Last Updated**: 2026-04-18 
+> **Version**: 1.12.0 (Wave 27 — Activity Log + Realtime Presence) 
+> **Last Updated**: 2026-04-19 
 > **Status**: Active Development
 
 ---
@@ -83,8 +83,10 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] Automatically bubble up earliest start dates and latest due dates to parent milestones/phases (wired into task create, edit, and delete via `updateParentDates`).
   - [x] **Nightly CRON job** to automatically transition task statuses ('Not Yet Due' -> 'Current' -> 'Due Soon' -> 'Overdue'). Shipped via `supabase/functions/nightly-sync/` (per-project `settings.due_soon_threshold`).
 - [x] **Task Detail Enhancements**: The task detail pane now shows a "Related Tasks" section listing sibling tasks (same `parent_task_id`, in `position` order, current task excluded), with an empty state for single-child milestones. An "Email details" action opens a Shadcn Dialog that dispatches a `mailto:` with the task summary; recipients are remembered (case-insensitive de-dupe, cap of 5) on `user_metadata.saved_email_addresses` and surfaced via a `<datalist>` on subsequent opens.
-- [/] **Collaboration Suite**: Threaded comments on tasks, activity/audit logs, and real-time presence (cursors).
+- [x] **Collaboration Suite**: Threaded comments on tasks, activity/audit logs, and real-time presence (cursors).
   - [x] **Threaded comments (Wave 26)**: `task_comments` table + `<TaskComments>` in `TaskDetailsView.tsx`. Soft-delete; UI-side 1-level nest cap; `useTaskCommentsRealtime` for live sync.
+  - [x] **Activity log (Wave 27)**: `activity_log` table + three SECURITY DEFINER trigger functions (`log_task_change`, `log_comment_change`, `log_member_change`). Project-scoped feed in `<ProjectActivityTab>`; collapsed `<details>` rail in `TaskDetailsView.tsx`. Comment-change trigger orders soft-delete before body-edit so Wave 26's `deleted_at + body = ''` UPDATE emits `comment_deleted`, not `comment_edited`.
+  - [x] **Realtime presence (Wave 27)**: per-project `presence:project:<id>` channel opened in `src/pages/Project.tsx` via `useProjectPresence`; `<PresenceBar>` in the project header plus per-row focus chips on `TaskItem` driven by `useTaskFocusBroadcast` (250ms debounce). Single channel, two consumers; self-hidden and multi-tab deduped by earliest `joinedAt`.
 - [x] **Automation Engine — Recurring Tasks**: Template tasks carry a weekly or monthly rule under `settings.recurrence`; `supabase/functions/nightly-sync/` clones matching templates into the configured target project (deep-clone via `clone_project_template`, idempotent via `settings.spawnedFromTemplate` + `spawnedOn`). Picker shipped in `src/features/tasks/components/RecurrencePicker.tsx`.
 
 ### 3.4 Resources Domain

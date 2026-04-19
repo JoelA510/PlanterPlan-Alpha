@@ -101,6 +101,7 @@ RLS is enabled on all tables. Authorization is role-based per project.
 - **`task_relationships`** — Links between tasks (`from_task_id` → `to_task_id`, `type` defaults to `'relates_to'`).
 - **`admin_users`** — Admin whitelist. `user_id` + `email`.
 - **`task_comments`** — Threaded comments per task. RLS by project membership; soft-delete via `deleted_at`. Wave 26.
+- **`activity_log`** — Append-only audit trail. RLS by project membership; INSERT denied at policy level. Wave 27.
 
 **Views:**
 - **`tasks_with_primary_resource`** — Tasks LEFT JOINed with their primary `task_resources` row. Used by `planterClient.ts` for reads.

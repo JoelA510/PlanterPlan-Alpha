@@ -67,6 +67,8 @@
   (channel `task_comments:task=:id`) → `planter.entities.TaskComment.{listByTask, create, updateBody, softDelete}`
   → `public.task_comments` (RLS by project membership). UI caps reply nesting
   at 1 level via chain-lift; DB allows arbitrary depth. Soft-delete clears body.
+- **Activity Log (Wave 27)**: `entities.ActivityLog.{listByProject, listByEntity}` → `useProjectActivity` / `useTaskActivity` → `<ProjectActivityTab>` (project tab) + collapsed `<details>` rail in `TaskDetailsView`. Append-only via three SECURITY DEFINER triggers; comment-change trigger orders soft-delete BEFORE body-edit.
+- **Realtime Presence (Wave 27)**: per-project channel `presence:project:<id>` mounted by `useProjectPresence` in `src/pages/Project.tsx`. `<PresenceBar>` in header; per-row focus chips on `TaskItem` driven by `useTaskFocusBroadcast` (250ms debounce) — single channel, two consumers.
 - **Resource Library**: `src/features/projects/components/ResourceLibrary.tsx` +
   `src/features/projects/hooks/useProjectResources.ts` — project-scoped resource browser tab (search + type filter). Data fetched via `planterClient.entities.TaskResource.listByProject(projectId)`, which uses a Supabase `!inner` join on `tasks.root_id`. Returns `ResourceWithTask[]` (defined in `src/shared/db/app.types.ts`).
 - **Project Settings Modal**: `src/features/projects/components/EditProjectModal.tsx` — edits title, description, start date, due date, and `due_soon_threshold` (stored in `tasks.settings` JSONB). The `location` field has been deprecated and removed from the UI. **Wave 21.5**: also exposes an Archive / Unarchive toggle that flips `status` to/from `'archived'` via `useUpdateProjectStatus`.
