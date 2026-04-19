@@ -1,10 +1,13 @@
-import { useFormContext } from 'react-hook-form';
-import type { ReactNode } from 'react';
+import { useFormContext, useWatch } from 'react-hook-form';
+import { useMemo, type ReactNode } from 'react';
 import type { TaskFormData } from '@/shared/db/app.types';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
+import { Button } from '@/shared/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useTeam } from '@/features/people/hooks/useTeam';
 
 interface TaskFormFieldsProps {
  origin?: 'instance' | 'library' | string;
@@ -16,9 +19,104 @@ interface TaskFormFieldsProps {
   * checkbox stay hidden. Project.tsx derives this from `teamMembers`.
   */
  membershipRole?: string;
+ /** Wave 29: the row's task_type — gates the Phase Lead picker to phases/milestones. */
+ taskType?: string | null;
+ /** Wave 29: the project root id — required for `useTeam(projectId)` when the Phase Lead picker renders. */
+ projectId?: string | null;
 }
 
-const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, membershipRole }: TaskFormFieldsProps) => {
+/**
+ * Wave 29: Phase Leads picker. Extracted as a sub-component so the `useTeam`
+ * query hook is only mounted when the picker actually renders — keeping
+ * QueryClientProvider as a per-test optional dependency for pre-existing
+ * TaskForm tests that don't exercise Phase Leads.
+ */
+function PhaseLeadPicker({ projectId, taskType }: { projectId: string; taskType: 'phase' | 'milestone' }) {
+ const { setValue, control } = useFormContext<TaskFormData>();
+ const { teamMembers } = useTeam(projectId);
+ const eligibleMembers = useMemo(
+ () => teamMembers.filter((m) => m.role === 'viewer' || m.role === 'limited'),
+ [teamMembers],
+ );
+ const watched = useWatch({ control, name: 'phase_lead_user_ids' });
+ const selectedLeads = useMemo(() => watched ?? [], [watched]);
+ const selectedSet = useMemo(() => new Set(selectedLeads), [selectedLeads]);
+ const selectedLabels = useMemo(() => {
+ const byId = new Map<string, string>();
+ for (const m of eligibleMembers) {
+ const label = (m as unknown as { email?: string }).email ?? `User ${m.user_id.slice(0, 8)}`;
+ byId.set(m.user_id, label);
+ }
+ return selectedLeads
+ .map((id) => byId.get(id) ?? `User ${id.slice(0, 8)}`)
+ .filter(Boolean);
+ }, [eligibleMembers, selectedLeads]);
+ const togglePhaseLead = (userId: string) => {
+ const next = selectedSet.has(userId)
+ ? selectedLeads.filter((v) => v !== userId)
+ : [...selectedLeads, userId];
+ setValue('phase_lead_user_ids', next, { shouldDirty: true });
+ };
+ return (
+ <div
+  className="mt-3 flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-3"
+  data-testid="phase-lead-picker"
+ >
+  <div className="flex flex-col gap-0.5">
+   <Label className="text-sm font-medium">Phase Leads</Label>
+   <p className="text-xs text-slate-500">
+    Viewer/Limited members chosen here may edit tasks under this {taskType}.
+   </p>
+  </div>
+  <Popover>
+   <PopoverTrigger asChild>
+    <Button
+     type="button"
+     variant="outline"
+     size="sm"
+     data-testid="phase-lead-picker-trigger"
+     className="w-full justify-between"
+    >
+     <span className="truncate text-left">
+      {selectedLabels.length === 0 ? 'Select members…' : selectedLabels.join(', ')}
+     </span>
+     <span className="ml-2 text-xs text-slate-500">{selectedLabels.length}</span>
+    </Button>
+   </PopoverTrigger>
+   <PopoverContent align="start" className="w-72 p-2">
+    {eligibleMembers.length === 0 ? (
+     <p className="px-2 py-3 text-sm text-slate-500">
+      No viewer or limited members to designate.
+     </p>
+    ) : (
+     <ul className="flex flex-col gap-1">
+      {eligibleMembers.map((m) => {
+       const label = (m as unknown as { email?: string }).email ?? `User ${m.user_id.slice(0, 8)}`;
+       const checked = selectedSet.has(m.user_id);
+       return (
+        <li key={m.user_id}>
+         <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-slate-100">
+          <input
+           type="checkbox"
+           checked={checked}
+           onChange={() => togglePhaseLead(m.user_id)}
+           className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+          />
+          <span className="flex-1 truncate">{label}</span>
+          <span className="text-xs text-slate-400">{m.role}</span>
+         </label>
+        </li>
+       );
+      })}
+     </ul>
+    )}
+   </PopoverContent>
+  </Popover>
+ </div>
+ );
+}
+
+const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, membershipRole, taskType, projectId }: TaskFormFieldsProps) => {
  const {
  register,
  formState: { errors },
@@ -28,6 +126,11 @@ const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, members
  const canTagCoaching =
  origin === 'instance' && (membershipRole === 'owner' || membershipRole === 'editor');
  const canTagStrategy = canTagCoaching;
+ const canAssignPhaseLeads =
+ origin === 'instance'
+ && membershipRole === 'owner'
+ && (taskType === 'phase' || taskType === 'milestone')
+ && Boolean(projectId);
 
  return (
  <>
@@ -155,6 +258,10 @@ const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, members
  </p>
  </div>
  </div>
+ )}
+
+ {canAssignPhaseLeads && projectId && (taskType === 'phase' || taskType === 'milestone') && (
+ <PhaseLeadPicker projectId={projectId} taskType={taskType} />
  )}
 
  {renderExtraFields && renderExtraFields()}

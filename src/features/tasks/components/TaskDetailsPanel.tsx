@@ -103,6 +103,7 @@ export default function TaskDetailsPanel({
  onSubmit={handleTaskSubmit || (async () => {})}
  onCancel={() => setTaskFormState(null)}
  membershipRole={membershipRole}
+ projectId={projectId}
  />
  ) : selectedTask ? (
  <TaskDetailsView
