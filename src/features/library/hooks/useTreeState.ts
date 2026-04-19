@@ -31,8 +31,7 @@ export const useTreeState = (rootTasks: TreeNode[]): UseTreeStateReturn => {
     // (reorders, status changes, lazily-loaded children) so we can't derive via useMemo.
     useEffect(() => {
         if (rootTasks && rootTasks.length > 0) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setTreeData(() => mergeTaskUpdates(rootTasks));
+            setTreeData(mergeTaskUpdates(rootTasks));
         } else if (rootTasks) {
             setTreeData([]);
         }
@@ -40,7 +39,6 @@ export const useTreeState = (rootTasks: TreeNode[]): UseTreeStateReturn => {
 
     // Effect 2: Sync persistent expansion state onto the tree. Same rationale as above.
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTreeData((prevTree) => updateTreeExpansion(prevTree, expandedTaskIds));
     }, [expandedTaskIds]);
 
