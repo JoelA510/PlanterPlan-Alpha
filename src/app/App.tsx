@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -10,6 +11,8 @@ import Settings from '../pages/Settings';
 import TasksPage from '../pages/TasksPage';
 import DailyTasks from '../pages/DailyTasks';
 import LoginForm from '@/pages/components/LoginForm';
+
+const Gantt = lazy(() => import('@/pages/Gantt'));
 
 const queryClient = new QueryClient();
 
@@ -35,6 +38,10 @@ export default function App() {
  <Route path="tasks" element={<TasksPage />} />
  <Route path="daily" element={<DailyTasks />} />
  <Route path="settings" element={<Settings />} />
+ <Route
+ path="gantt"
+ element={<Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading gantt…</div>}><Gantt /></Suspense>}
+ />
  </Route>
  </Routes>
  </Router>
