@@ -1750,6 +1750,57 @@ CREATE TABLE IF NOT EXISTS "public"."activity_log" (
 ALTER TABLE "public"."activity_log" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."notification_preferences" (
+    "user_id" "uuid" NOT NULL,
+    "email_mentions" boolean DEFAULT true NOT NULL,
+    "email_overdue_digest" "text" DEFAULT 'daily'::"text" NOT NULL,
+    "email_assignment" boolean DEFAULT true NOT NULL,
+    "push_mentions" boolean DEFAULT true NOT NULL,
+    "push_overdue" boolean DEFAULT true NOT NULL,
+    "push_assignment" boolean DEFAULT false NOT NULL,
+    "quiet_hours_start" time without time zone,
+    "quiet_hours_end" time without time zone,
+    "timezone" "text" DEFAULT 'UTC'::"text" NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "notification_preferences_email_overdue_digest_check" CHECK (("email_overdue_digest" = ANY (ARRAY['off'::"text", 'daily'::"text", 'weekly'::"text"])))
+);
+
+
+ALTER TABLE "public"."notification_preferences" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."notification_log" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "channel" "text" NOT NULL,
+    "event_type" "text" NOT NULL,
+    "payload" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "sent_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "provider_id" "text",
+    "error" "text",
+    CONSTRAINT "notification_log_channel_check" CHECK (("channel" = ANY (ARRAY['email'::"text", 'push'::"text"])))
+);
+
+
+ALTER TABLE "public"."notification_log" OWNER TO "postgres";
+
+
+-- Wave 30: Bootstrap a notification_preferences row for every auth.users INSERT.
+CREATE OR REPLACE FUNCTION "public"."bootstrap_notification_prefs"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  INSERT INTO public.notification_preferences (user_id) VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."bootstrap_notification_prefs"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource" AS
  SELECT "t"."id",
     "t"."parent_task_id",
@@ -1976,6 +2027,42 @@ CREATE INDEX "idx_activity_log_project_id" ON "public"."activity_log" USING "btr
 
 
 CREATE INDEX "idx_activity_log_entity" ON "public"."activity_log" USING "btree" ("entity_type", "entity_id", "created_at" DESC);
+
+
+
+ALTER TABLE ONLY "public"."notification_preferences"
+    ADD CONSTRAINT "notification_preferences_pkey" PRIMARY KEY ("user_id");
+
+
+
+ALTER TABLE ONLY "public"."notification_log"
+    ADD CONSTRAINT "notification_log_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."notification_preferences"
+    ADD CONSTRAINT "notification_preferences_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."notification_log"
+    ADD CONSTRAINT "notification_log_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+CREATE INDEX "idx_notification_log_user_id_sent_at" ON "public"."notification_log" USING "btree" ("user_id", "sent_at" DESC);
+
+
+
+CREATE INDEX "idx_notification_log_event_type" ON "public"."notification_log" USING "btree" ("event_type", "sent_at" DESC);
+
+
+
+CREATE OR REPLACE TRIGGER "trg_notification_preferences_handle_updated_at" BEFORE UPDATE ON "public"."notification_preferences" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_bootstrap_notification_prefs" AFTER INSERT ON "auth"."users" FOR EACH ROW EXECUTE FUNCTION "public"."bootstrap_notification_prefs"();
 
 
 
@@ -2337,6 +2424,24 @@ ALTER TABLE "public"."activity_log" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Activity log select by project members" ON "public"."activity_log" FOR SELECT TO "authenticated" USING (("public"."is_active_member"("project_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
 
 
+ALTER TABLE "public"."notification_preferences" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."notification_log" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Notif prefs: select own" ON "public"."notification_preferences" FOR SELECT TO "authenticated" USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Notif prefs: insert own" ON "public"."notification_preferences" FOR INSERT TO "authenticated" WITH CHECK (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Notif prefs: update own" ON "public"."notification_preferences" FOR UPDATE TO "authenticated" USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Notif log: select own or admin" ON "public"."notification_log" FOR SELECT TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+
+
 CREATE POLICY "Comments select by project members" ON "public"."task_comments" FOR SELECT TO "authenticated" USING (("public"."is_active_member"("root_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
 
 
@@ -2535,6 +2640,8 @@ REVOKE ALL ON FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") FR
 GRANT ALL ON FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") TO "authenticated";
 REVOKE ALL ON FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."bootstrap_notification_prefs"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."bootstrap_notification_prefs"() TO "authenticated";
 
 
 

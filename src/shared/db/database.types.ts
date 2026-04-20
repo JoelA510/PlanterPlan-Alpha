@@ -93,6 +93,81 @@ export type Database = {
  }
  Relationships: []
  }
+ notification_preferences: {
+ Row: {
+ user_id: string
+ email_mentions: boolean
+ email_overdue_digest: 'off' | 'daily' | 'weekly'
+ email_assignment: boolean
+ push_mentions: boolean
+ push_overdue: boolean
+ push_assignment: boolean
+ quiet_hours_start: string | null
+ quiet_hours_end: string | null
+ timezone: string
+ updated_at: string
+ }
+ Insert: {
+ user_id: string
+ email_mentions?: boolean
+ email_overdue_digest?: 'off' | 'daily' | 'weekly'
+ email_assignment?: boolean
+ push_mentions?: boolean
+ push_overdue?: boolean
+ push_assignment?: boolean
+ quiet_hours_start?: string | null
+ quiet_hours_end?: string | null
+ timezone?: string
+ updated_at?: string
+ }
+ Update: {
+ user_id?: string
+ email_mentions?: boolean
+ email_overdue_digest?: 'off' | 'daily' | 'weekly'
+ email_assignment?: boolean
+ push_mentions?: boolean
+ push_overdue?: boolean
+ push_assignment?: boolean
+ quiet_hours_start?: string | null
+ quiet_hours_end?: string | null
+ timezone?: string
+ updated_at?: string
+ }
+ Relationships: []
+ }
+ notification_log: {
+ Row: {
+ id: string
+ user_id: string
+ channel: 'email' | 'push'
+ event_type: string
+ payload: Json
+ sent_at: string
+ provider_id: string | null
+ error: string | null
+ }
+ Insert: {
+ id?: string
+ user_id: string
+ channel: 'email' | 'push'
+ event_type: string
+ payload?: Json
+ sent_at?: string
+ provider_id?: string | null
+ error?: string | null
+ }
+ Update: {
+ id?: string
+ user_id?: string
+ channel?: 'email' | 'push'
+ event_type?: string
+ payload?: Json
+ sent_at?: string
+ provider_id?: string | null
+ error?: string | null
+ }
+ Relationships: []
+ }
  people: {
  Row: {
  created_at: string | null

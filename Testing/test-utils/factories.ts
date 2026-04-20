@@ -1,5 +1,12 @@
 import { faker } from '@faker-js/faker';
-import type { TaskRow, TeamMemberRow, TaskCommentRow, TaskCommentWithAuthor } from '@/shared/db/app.types';
+import type {
+  TaskRow,
+  TeamMemberRow,
+  TaskCommentRow,
+  TaskCommentWithAuthor,
+  NotificationPreferencesRow,
+  NotificationLogRow,
+} from '@/shared/db/app.types';
 
 /**
  * Creates a minimal TaskRow stub with sensible defaults.
@@ -173,5 +180,36 @@ export function makePresenceState(overrides: Partial<PresenceState> = {}): Prese
     email: overrides.email ?? faker.internet.email(),
     joinedAt: overrides.joinedAt ?? Date.now(),
     focusedTaskId: overrides.focusedTaskId ?? null,
+  };
+}
+
+/** Wave 30: NotificationPreferencesRow stub with documented canonical defaults. */
+export function makeNotificationPref(overrides: Partial<NotificationPreferencesRow> = {}): NotificationPreferencesRow {
+  return {
+    user_id: overrides.user_id ?? faker.string.uuid(),
+    email_mentions: overrides.email_mentions ?? true,
+    email_overdue_digest: overrides.email_overdue_digest ?? 'daily',
+    email_assignment: overrides.email_assignment ?? true,
+    push_mentions: overrides.push_mentions ?? true,
+    push_overdue: overrides.push_overdue ?? true,
+    push_assignment: overrides.push_assignment ?? false,
+    quiet_hours_start: overrides.quiet_hours_start ?? null,
+    quiet_hours_end: overrides.quiet_hours_end ?? null,
+    timezone: overrides.timezone ?? 'UTC',
+    updated_at: overrides.updated_at ?? new Date().toISOString(),
+  };
+}
+
+/** Wave 30: NotificationLogRow stub. Defaults to an email mention send. */
+export function makeNotificationLogRow(overrides: Partial<NotificationLogRow> = {}): NotificationLogRow {
+  return {
+    id: overrides.id ?? faker.string.uuid(),
+    user_id: overrides.user_id ?? faker.string.uuid(),
+    channel: overrides.channel ?? 'email',
+    event_type: overrides.event_type ?? 'mention_pending',
+    payload: overrides.payload ?? {},
+    sent_at: overrides.sent_at ?? new Date().toISOString(),
+    provider_id: overrides.provider_id ?? null,
+    error: overrides.error ?? null,
   };
 }

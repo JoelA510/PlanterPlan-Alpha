@@ -93,3 +93,15 @@ A project Owner may designate any `viewer` or `limited`-role member as the **Lea
 **UI** (`src/features/tasks/components/TaskFormFields.tsx`): the `<PhaseLeadPicker>` sub-component (multi-select popover) renders only for `membershipRole === 'owner'` on phase/milestone rows. Options come from `useTeam(projectId).teamMembers.filter(m => m.role === 'viewer' || m.role === 'limited')` — owners/editors/coaches/admins are NOT in the picker because they already have UPDATE via existing policies. Badge in `TaskDetailsView.tsx` lists current leads.
 
 **Permission matrix update**: limited viewers may now edit tasks under any phase/milestone they are designated as Phase Lead for. See the matrix footnote above.
+
+### Notification Preferences (Wave 30)
+
+Per-user `public.notification_preferences` row, bootstrapped by `trg_bootstrap_notification_prefs` AFTER INSERT on `auth.users`. Append-only `public.notification_log` audit trail captures every dispatch attempt (sent or skipped) for debugging, idempotency, and the user-visible "Recent notifications" section in Settings.
+
+**RLS**:
+* `notification_preferences`: SELECT/INSERT/UPDATE for `user_id = auth.uid()`. DELETE not exposed — UPDATE is the off-switch.
+* `notification_log`: SELECT for `user_id = auth.uid() OR is_admin(auth.uid())`. INSERT/UPDATE/DELETE denied at policy level — only SECURITY DEFINER dispatch functions (Task 2 + Task 3) write rows.
+
+**Quiet hours**: stored as `TIME` in the user-supplied `timezone` column. Tasks 2 + 3 dispatch functions are responsible for skipping + logging when local-now is within the quiet window.
+
+Migration: `docs/db/migrations/2026_04_18_notification_preferences.sql`.

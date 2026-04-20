@@ -11,8 +11,9 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSettings } from '@/features/settings/hooks/useSettings';
+import SettingsNotificationsTab from '@/pages/components/SettingsNotificationsTab';
 
-type SettingsTab = 'profile' | 'security';
+type SettingsTab = 'profile' | 'security' | 'notifications';
 
 export default function Settings() {
  const { state, actions } = useSettings();
@@ -33,7 +34,7 @@ export default function Settings() {
  <div className="md:col-span-1 space-y-1">
  {([
  { label: 'Profile', icon: User, tab: 'profile' as SettingsTab },
- { label: 'Notifications', icon: Bell, comingSoon: true },
+ { label: 'Notifications', icon: Bell, tab: 'notifications' as SettingsTab },
  { label: 'Security', icon: Lock, tab: 'security' as SettingsTab },
  ] as Array<{ label: string; icon: React.ElementType; tab?: SettingsTab; comingSoon?: boolean }>).map((item) => (
  <Button
@@ -169,6 +170,11 @@ export default function Settings() {
  </div>
  </form>
  </div>
+ )}
+
+ {/* Notifications Tab (Wave 30) */}
+ {activeTab === 'notifications' && (
+ <SettingsNotificationsTab />
  )}
 
  {/* Security Tab */}
