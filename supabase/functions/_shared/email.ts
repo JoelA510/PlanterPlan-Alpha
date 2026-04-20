@@ -139,6 +139,77 @@ export interface RenderedEmail {
     text: string
 }
 
+// ----------------------------------------------------------------------------
+// Wave 30 — Overdue digest (daily / weekly)
+// ----------------------------------------------------------------------------
+
+export interface OverdueTaskSummary {
+    id: string
+    title: string | null
+    due_date: string | null
+    project_title: string | null
+}
+
+export interface OverdueDigestPayload {
+    recipient_email: string
+    cadence: 'daily' | 'weekly'
+    tasks: OverdueTaskSummary[]
+}
+
+function renderDigestTaskLineText(t: OverdueTaskSummary): string {
+    const title = t.title?.trim() || 'Untitled task'
+    const project = t.project_title?.trim() || 'Untitled project'
+    const due = t.due_date ? ` (due ${t.due_date})` : ''
+    return `  - ${title} — ${project}${due}`
+}
+
+function renderDigestTaskLineHtml(t: OverdueTaskSummary): string {
+    const title = escapeHtml(t.title?.trim() || 'Untitled task')
+    const project = escapeHtml(t.project_title?.trim() || 'Untitled project')
+    const due = t.due_date
+        ? ` <span style="color:#64748b">(due ${escapeHtml(t.due_date)})</span>`
+        : ''
+    return `<li><strong>${title}</strong> — ${project}${due}</li>`
+}
+
+/**
+ * Build the subject + HTML + plain-text body for the overdue-digest email
+ * dispatched by `supabase/functions/overdue-digest/`. Pure: same input
+ * always produces the same output. The caller (the edge function) decides
+ * cadence and tz-filtering BEFORE invoking this — the renderer never sees
+ * a zero-task payload.
+ *
+ * Callers SHOULD skip the dispatch entirely when `tasks.length === 0`; this
+ * renderer tolerates the empty case for safety but produces a "nothing to
+ * report" body that isn't meant for user delivery.
+ */
+export function renderOverdueDigestEmail(payload: OverdueDigestPayload): RenderedEmail {
+    const n = payload.tasks.length
+    const subject = `PlanterPlan — ${n} overdue task${n === 1 ? '' : 's'}`
+
+    if (n === 0) {
+        const text = 'No overdue tasks to report.'
+        const html = '<p>No overdue tasks to report.</p>'
+        return { subject, html, text }
+    }
+
+    const cadenceLabel = payload.cadence === 'weekly' ? 'weekly' : 'daily'
+    const intro = `Your ${cadenceLabel} overdue task digest — ${n} task${n === 1 ? '' : 's'} past due.`
+
+    const text = [
+        intro,
+        '',
+        ...payload.tasks.map(renderDigestTaskLineText),
+    ].join('\n')
+
+    const html = [
+        `<p>${escapeHtml(intro)}</p>`,
+        `<ul>${payload.tasks.map(renderDigestTaskLineHtml).join('')}</ul>`,
+    ].join('')
+
+    return { subject, html, text }
+}
+
 /**
  * Build the subject + HTML + plain-text body for a supervisor monthly
  * report. Pure: same input always produces the same output. Keep the payload

@@ -10,6 +10,17 @@ const mockCreateMutate = vi.fn();
 const mockUpdateMutate = vi.fn();
 const mockDeleteMutate = vi.fn();
 
+// Wave 30: CommentComposer transitively imports `planter` from planterClient
+// (for `resolveMentions` → `planter.rpc`). The planterClient module throws at
+// import time when VITE_SUPABASE_URL is unset, so the whole test file fails
+// to load without this stub. Resolving to verbatim handles (error path) keeps
+// the existing Wave 26 assertions valid.
+vi.mock('@/shared/api/planterClient', () => ({
+    planter: {
+        rpc: vi.fn().mockResolvedValue({ data: null, error: new Error('mocked rpc') }),
+    },
+}));
+
 vi.mock('@/features/tasks/hooks/useTaskComments', () => ({
     useTaskComments: (...args: unknown[]) => mockUseTaskComments(...args),
     useCreateComment: () => ({ mutate: mockCreateMutate, isPending: false }),

@@ -1816,6 +1816,69 @@ $$;
 ALTER FUNCTION "public"."bootstrap_notification_prefs"() OWNER TO "postgres";
 
 
+-- Wave 30 Task 3: resolve @-handles to auth.users ids. Called client-side from
+-- CommentComposer before persisting task_comments.mentions as uuids.
+CREATE OR REPLACE FUNCTION "public"."resolve_user_handles"("p_handles" "text"[])
+    RETURNS TABLE("handle" "text", "user_id" "uuid")
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT h, u.id
+  FROM unnest(p_handles) AS h
+  LEFT JOIN auth.users u
+    ON lower(u.email) LIKE lower(h) || '@%'
+    OR lower(u.raw_user_meta_data ->> 'username') = lower(h);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."resolve_user_handles"("p_handles" "text"[]) OWNER TO "postgres";
+
+
+-- Wave 30 Task 3: AFTER INSERT on task_comments → enqueue a mention_pending
+-- notification_log row per resolved uuid in NEW.mentions (skips author).
+CREATE OR REPLACE FUNCTION "public"."enqueue_comment_mentions"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_user_id uuid;
+BEGIN
+  IF NEW.mentions IS NULL OR array_length(NEW.mentions, 1) IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  FOR v_user_id IN
+    SELECT DISTINCT t::uuid
+    FROM unnest(NEW.mentions) AS t
+    WHERE t IS NOT NULL
+      AND t ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+      AND t::uuid <> NEW.author_id
+  LOOP
+    INSERT INTO public.notification_log (user_id, channel, event_type, payload)
+    VALUES (
+      v_user_id,
+      'email',
+      'mention_pending',
+      jsonb_build_object(
+        'comment_id', NEW.id,
+        'task_id', NEW.task_id,
+        'author_id', NEW.author_id,
+        'body_preview', substring(NEW.body, 1, 140)
+      )
+    );
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."enqueue_comment_mentions"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource" AS
  SELECT "t"."id",
     "t"."parent_task_id",
@@ -2157,6 +2220,10 @@ CREATE OR REPLACE TRIGGER "trg_log_task_change" AFTER INSERT OR UPDATE OR DELETE
 
 
 CREATE OR REPLACE TRIGGER "trg_log_comment_change" AFTER INSERT OR UPDATE OR DELETE ON "public"."task_comments" FOR EACH ROW EXECUTE FUNCTION "public"."log_comment_change"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_enqueue_comment_mentions" AFTER INSERT ON "public"."task_comments" FOR EACH ROW EXECUTE FUNCTION "public"."enqueue_comment_mentions"();
 
 
 
