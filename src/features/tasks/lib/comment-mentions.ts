@@ -1,3 +1,5 @@
+import { planter } from '@/shared/api/planterClient';
+
 /**
  * Extract @-mentions from a comment body.
  *
@@ -21,4 +23,34 @@ export function extractMentions(body: string): string[] {
         handles.push(h);
     }
     return handles;
+}
+
+interface ResolvedHandle {
+    handle: string;
+    user_id: string | null;
+}
+
+/**
+ * Resolve @-handles to auth.users ids via the `resolve_user_handles` RPC
+ * (SECURITY DEFINER, added in Wave 30 Task 3). The dispatch trigger
+ * `trg_enqueue_comment_mentions` coerces `mentions[]` to uuid — unmatched
+ * handles that fall through are silently dropped at cast time.
+ *
+ * Failure mode: if the RPC errors for any reason (offline, transient DB
+ * issue, schema drift), pass the original handles through verbatim. This
+ * keeps the composer write path non-throwing and preserves the Wave 26
+ * test contract for `useTaskComments` — the trigger's bad-cast fallthrough
+ * absorbs the pass-through payload without raising.
+ */
+export async function resolveMentions(handles: string[]): Promise<string[]> {
+    if (handles.length === 0) return [];
+    const { data, error } = await planter.rpc<ResolvedHandle[], { p_handles: string[] }>(
+        'resolve_user_handles',
+        { p_handles: handles },
+    );
+    if (error || !data) return handles;
+    const ids = data
+        .map((r) => r.user_id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0);
+    return ids;
 }

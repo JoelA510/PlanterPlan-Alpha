@@ -64,7 +64,11 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
         }
     }, [projectId]);
 
+    // eslint-plugin-react-hooks@7 flags `loadPeople` for setting state inside
+    // an effect; refactoring this fetch-on-mount pattern is out of Wave 30
+    // Task 3 scope — tracked for a future cleanup wave.
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadPeople();
     }, [loadPeople]);
 

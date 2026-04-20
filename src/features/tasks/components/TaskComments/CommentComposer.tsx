@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Textarea } from '@/shared/ui/textarea';
 import { Button } from '@/shared/ui/button';
-import { extractMentions } from '@/features/tasks/lib/comment-mentions';
+import { extractMentions, resolveMentions } from '@/features/tasks/lib/comment-mentions';
 
 const schema = z.object({
     body: z.string().trim().min(1, 'Comment cannot be empty').max(10000),
@@ -35,9 +35,10 @@ export function CommentComposer({
         defaultValues: { body: initialBody },
     });
 
-    const submit = handleSubmit((data) => {
+    const submit = handleSubmit(async (data) => {
         const trimmed = data.body.trim();
-        const mentions = extractMentions(trimmed);
+        const handles = extractMentions(trimmed);
+        const mentions = await resolveMentions(handles);
         onSubmit(trimmed, mentions);
         reset({ body: '' });
     });

@@ -41,8 +41,11 @@ export function useSettings() {
 
     // Load initial data from User Metadata. The form must stay editable after hydration,
     // so derived-memo won't work — we intentionally seed state from the auth user.
+    // eslint-plugin-react-hooks@7 flags setState-in-effect; refactoring this
+    // form-hydration pattern is out of Wave 30 Task 3 scope — tracked for cleanup.
     useEffect(() => {
         if (user) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setProfile({
                 full_name: String(user.user_metadata?.full_name || ''),
                 email: user.email || '',
