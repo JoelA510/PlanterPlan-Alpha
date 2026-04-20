@@ -104,74 +104,103 @@ export async function dispatchToUsers(
         subsByUser.set(s.user_id, bucket)
     }
 
+    // Payload is identical across every subscription for a single dispatch call,
+    // so build it ONCE up front. Previously it was stringified inside the
+    // per-subscription loop (Gemini PR review).
+    const payload = JSON.stringify({
+        title: body.title,
+        body: body.body,
+        url: body.url ?? '/',
+        tag: body.tag,
+    })
+
+    // Process users in parallel; within each user, process subscriptions in
+    // parallel. `Promise.allSettled` guarantees a single failure can't poison
+    // the batch. Sequential awaits would be fine for 1–10 users but risked
+    // edge-function timeouts for large fan-outs (Gemini PR review).
+    const perUser = await Promise.allSettled(
+        body.user_ids.map(async (uid): Promise<DispatchResult> => {
+            const prefs = prefsByUser.get(uid)
+            if (!prefs) {
+                await logDispatch(supabase, { user_id: uid, event_type: body.event_type, payload: { title: body.title }, error: 'prefs_missing' })
+                return { sent: 0, skipped: 1, failed: 0 }
+            }
+            if (prefs[prefColumn] !== true) {
+                await logDispatch(supabase, { user_id: uid, event_type: body.event_type, payload: { title: body.title }, error: 'pref_disabled' })
+                return { sent: 0, skipped: 1, failed: 0 }
+            }
+            if (inQuietHours(now, prefs.timezone, prefs.quiet_hours_start, prefs.quiet_hours_end)) {
+                await logDispatch(supabase, { user_id: uid, event_type: body.event_type, payload: { title: body.title }, error: 'quiet_hours' })
+                return { sent: 0, skipped: 1, failed: 0 }
+            }
+
+            const subs = subsByUser.get(uid) ?? []
+            if (subs.length === 0) {
+                await logDispatch(supabase, { user_id: uid, event_type: body.event_type, payload: { title: body.title }, error: 'no_subscription' })
+                return { sent: 0, skipped: 1, failed: 0 }
+            }
+
+            const subResults = await Promise.allSettled(subs.map(async (s) => {
+                try {
+                    const result = await send(s, payload)
+                    const providerId = result.headers?.['x-message-id'] ?? null
+                    await logDispatch(supabase, {
+                        user_id: uid,
+                        event_type: body.event_type,
+                        payload: { title: body.title, endpoint_id: s.id },
+                        provider_id: providerId,
+                    })
+                    return 'sent' as const
+                } catch (err) {
+                    const status = (err as { statusCode?: number }).statusCode
+                    if (status === 410 || status === 404) {
+                        await supabase.from('push_subscriptions').delete().eq('id', s.id)
+                        await logDispatch(supabase, {
+                            user_id: uid,
+                            event_type: body.event_type,
+                            payload: { title: body.title, endpoint_id: s.id },
+                            error: '410_gone',
+                        })
+                    } else {
+                        await logDispatch(supabase, {
+                            user_id: uid,
+                            event_type: body.event_type,
+                            payload: { title: body.title, endpoint_id: s.id },
+                            error: String(status ?? (err as Error).message),
+                        })
+                    }
+                    return 'failed' as const
+                }
+            }))
+
+            let uSent = 0
+            let uFailed = 0
+            for (const r of subResults) {
+                // `fn` never throws; `.catch` inside returns 'failed'. If something DOES
+                // throw unexpectedly, count it as a failure (defensive).
+                if (r.status === 'fulfilled') {
+                    if (r.value === 'sent') uSent += 1
+                    else uFailed += 1
+                } else {
+                    uFailed += 1
+                }
+            }
+            return { sent: uSent, skipped: 0, failed: uFailed }
+        }),
+    )
+
     let sent = 0
     let skipped = 0
     let failed = 0
-
-    for (const uid of body.user_ids) {
-        const prefs = prefsByUser.get(uid)
-        if (!prefs) {
-            await logDispatch(supabase, { user_id: uid, event_type: body.event_type, payload: { title: body.title }, error: 'prefs_missing' })
-            skipped += 1
-            continue
-        }
-        if (prefs[prefColumn] !== true) {
-            await logDispatch(supabase, { user_id: uid, event_type: body.event_type, payload: { title: body.title }, error: 'pref_disabled' })
-            skipped += 1
-            continue
-        }
-        if (inQuietHours(now, prefs.timezone, prefs.quiet_hours_start, prefs.quiet_hours_end)) {
-            await logDispatch(supabase, { user_id: uid, event_type: body.event_type, payload: { title: body.title }, error: 'quiet_hours' })
-            skipped += 1
-            continue
-        }
-
-        const subs = subsByUser.get(uid) ?? []
-        if (subs.length === 0) {
-            await logDispatch(supabase, { user_id: uid, event_type: body.event_type, payload: { title: body.title }, error: 'no_subscription' })
-            skipped += 1
-            continue
-        }
-
-        for (const s of subs) {
-            const payload = JSON.stringify({
-                title: body.title,
-                body: body.body,
-                url: body.url ?? '/',
-                tag: body.tag,
-            })
-            try {
-                const result = await send(s, payload)
-                const providerId = result.headers?.['x-message-id'] ?? null
-                await logDispatch(supabase, {
-                    user_id: uid,
-                    event_type: body.event_type,
-                    payload: { title: body.title, endpoint_id: s.id },
-                    provider_id: providerId,
-                })
-                sent += 1
-            } catch (err) {
-                const status = (err as { statusCode?: number }).statusCode
-                if (status === 410 || status === 404) {
-                    await supabase.from('push_subscriptions').delete().eq('id', s.id)
-                    await logDispatch(supabase, {
-                        user_id: uid,
-                        event_type: body.event_type,
-                        payload: { title: body.title, endpoint_id: s.id },
-                        error: '410_gone',
-                    })
-                } else {
-                    await logDispatch(supabase, {
-                        user_id: uid,
-                        event_type: body.event_type,
-                        payload: { title: body.title, endpoint_id: s.id },
-                        error: String(status ?? (err as Error).message),
-                    })
-                }
-                failed += 1
-            }
+    for (const r of perUser) {
+        if (r.status === 'fulfilled') {
+            sent += r.value.sent
+            skipped += r.value.skipped
+            failed += r.value.failed
+        } else {
+            // Entire per-user task threw (e.g., logDispatch I/O failure).
+            failed += 1
         }
     }
-
     return { sent, skipped, failed }
 }

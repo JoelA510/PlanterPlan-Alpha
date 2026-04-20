@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { planter } from '@/shared/api/planterClient';
 import type { PushSubscriptionRow } from '@/shared/db/app.types';
@@ -25,6 +25,11 @@ function readPermission(): NotificationPermission | 'unsupported' {
  * prompts + service-worker registration + a push subscription + the
  * planterClient insert; `unsubscribe()` reverses it and DELETEs the row.
  *
+ * Multi-device aware: `subscription` always reflects THIS browser's row
+ * (matched by endpoint against the DB's full list for the user), so Device A
+ * never shows "Disable" because Device B happens to be subscribed, and
+ * unsubscribe never deletes a sibling device's row.
+ *
  * `isSupported` is true only when the browser exposes both `navigator.serviceWorker`
  * and `window.PushManager`. Falsy on the server (SSR / test) and on Safari
  * without an installed PWA (Wave 32 gates the PWA shell).
@@ -35,22 +40,39 @@ export function usePushSubscription() {
     const [isSubscribing, setIsSubscribing] = useState(false);
     const [permissionState, setPermissionState] = useState<NotificationPermission | 'unsupported'>(() => readPermission());
 
-    const isSupported = typeof navigator !== 'undefined'
-        && 'serviceWorker' in navigator
-        && typeof window !== 'undefined'
-        && 'PushManager' in window
-        && typeof Notification !== 'undefined';
+    // Computed once per mount — browser API availability doesn't change during a session.
+    const isSupported = useMemo(
+        () =>
+            typeof navigator !== 'undefined'
+            && 'serviceWorker' in navigator
+            && typeof window !== 'undefined'
+            && 'PushManager' in window
+            && typeof Notification !== 'undefined',
+        [],
+    );
 
-    // On mount (when supported and logged in) fetch the caller's row — RLS filters automatically.
+    // On mount (when supported and logged in) match the DB row to the CURRENT
+    // browser's endpoint. RLS filters to the caller's rows; `pushManager.getSubscription()`
+    // returns THIS browser's push handle (or null). Picking `rows[0]` blindly breaks
+    // multi-device — flagged in the Gemini PR review.
     useEffect(() => {
         if (!isSupported || !user) return;
         let cancelled = false;
         (async () => {
             try {
-                const rows = await planter.entities.PushSubscription.list();
-                if (!cancelled) setSubscription(rows[0] ?? null);
+                const [rows, registration] = await Promise.all([
+                    planter.entities.PushSubscription.list(),
+                    navigator.serviceWorker.getRegistration('/'),
+                ]);
+                if (cancelled) return;
+                const browserSub = await registration?.pushManager.getSubscription();
+                if (cancelled) return;
+                const currentSub = browserSub
+                    ? rows.find((r) => r.endpoint === browserSub.endpoint) ?? null
+                    : null;
+                setSubscription(currentSub);
             } catch (err) {
-                console.warn('[usePushSubscription] list() failed', err);
+                console.warn('[usePushSubscription] hydrate failed', err);
             }
         })();
         return () => { cancelled = true; };
@@ -101,7 +123,9 @@ export function usePushSubscription() {
         if (!subscription) return;
         try {
             if (isSupported) {
-                const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+                // Scope URL (`/`), not script URL. The service worker registers from
+                // `/sw.js` but its scope is the origin root.
+                const registration = await navigator.serviceWorker.getRegistration('/');
                 const existing = await registration?.pushManager.getSubscription();
                 if (existing) await existing.unsubscribe();
             }

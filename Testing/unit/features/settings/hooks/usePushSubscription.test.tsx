@@ -62,11 +62,32 @@ describe('usePushSubscription (Wave 30)', () => {
         expect(result.current.isSupported).toBe(true);
     });
 
-    it('hydrates subscription from planterClient.list on mount', async () => {
-        const row = makePushSubscription({ user_id: 'user-abc' });
+    it('hydrates THIS browser\'s subscription by matching endpoint against the DB row set', async () => {
+        const row = makePushSubscription({
+            user_id: 'user-abc',
+            endpoint: 'https://fcm.example/this-browser',
+        });
         mockList.mockResolvedValue([row]);
+        sw.pushManager.getSubscription.mockResolvedValue({
+            endpoint: 'https://fcm.example/this-browser',
+            unsubscribe: vi.fn(),
+        });
+
         const { result } = renderHook(() => usePushSubscription());
         await waitFor(() => expect(result.current.subscription).toEqual(row));
+    });
+
+    it('stays null when the DB has a row but the browser is not subscribed', async () => {
+        const row = makePushSubscription({
+            user_id: 'user-abc',
+            endpoint: 'https://fcm.example/other-device',
+        });
+        mockList.mockResolvedValue([row]);
+        sw.pushManager.getSubscription.mockResolvedValue(null);
+
+        const { result } = renderHook(() => usePushSubscription());
+        await waitFor(() => expect(mockList).toHaveBeenCalled());
+        expect(result.current.subscription).toBeNull();
     });
 
     it('subscribe: permission granted → registers SW + pushManager.subscribe + planterClient.create', async () => {
@@ -127,7 +148,13 @@ describe('usePushSubscription (Wave 30)', () => {
             endpoint: 'https://fcm.example/sub-existing',
         });
         mockList.mockResolvedValue([row]);
-        const fakeExisting = { unsubscribe: vi.fn().mockResolvedValue(true) };
+        // The hook hydrates by matching the browser endpoint to a DB row. Both
+        // the hydration call and the unsubscribe call hit `getSubscription`, so
+        // the stub must include the endpoint AND the unsubscribe method.
+        const fakeExisting = {
+            endpoint: 'https://fcm.example/sub-existing',
+            unsubscribe: vi.fn().mockResolvedValue(true),
+        };
         sw.pushManager.getSubscription.mockResolvedValue(fakeExisting);
 
         const { result } = renderHook(() => usePushSubscription());

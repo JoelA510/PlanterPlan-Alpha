@@ -15,6 +15,25 @@ export interface NotificationPrefsLite {
     timezone: string
 }
 
+// `Intl.DateTimeFormat` is expensive to instantiate. Memoize one formatter per
+// timezone so a batch dispatch to 1000 users sharing UTC pays the cost once,
+// not 1000×. The map persists across calls within a single Deno function
+// invocation; Gemini's PR review flagged the per-call construction.
+const formatterByTz = new Map<string, Intl.DateTimeFormat>()
+function formatterFor(timezone: string): Intl.DateTimeFormat {
+    let fmt = formatterByTz.get(timezone)
+    if (!fmt) {
+        fmt = new Intl.DateTimeFormat('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: timezone,
+        })
+        formatterByTz.set(timezone, fmt)
+    }
+    return fmt
+}
+
 /**
  * Returns `true` when `now` — when rendered in the user's tz — falls inside the
  * closed [start, end] window on the 24-hour clock. Handles wrap-across-midnight
@@ -30,13 +49,7 @@ export function inQuietHours(
     end: string | null,
 ): boolean {
     if (!start || !end) return false
-    const fmt = new Intl.DateTimeFormat('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: timezone,
-    })
-    const parts = fmt.formatToParts(now)
+    const parts = formatterFor(timezone).formatToParts(now)
     const hh = Number(parts.find((p) => p.type === 'hour')?.value ?? '0')
     const mm = Number(parts.find((p) => p.type === 'minute')?.value ?? '0')
     const nowMin = hh * 60 + mm
