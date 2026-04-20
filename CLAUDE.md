@@ -61,7 +61,7 @@ Component → React Query hook → planterClient → Supabase SDK
 
 ## Conventions
 
-- **TypeScript only** — no `.js` or `.jsx` files. Ever.
+- **TypeScript only** — no `.js` or `.jsx` files. Ever. (One documented exception: `public/sw.js`, the Wave 30 push-notification service worker. Slated for TS conversion in Wave 32 via a workbox-built `src/sw.ts`. See `docs/dev-notes.md`.)
 - **No barrel files** — import directly from component/hook paths.
 - **Path alias**: `@/` maps to `src/`. Use `@/features/...`, `@/shared/...`, etc.
 - **Types**: Derived from Supabase generated types in `src/shared/db/database.types.ts`, re-exported as domain types in `src/shared/db/app.types.ts`.
@@ -83,11 +83,20 @@ Component → React Query hook → planterClient → Supabase SDK
 ## Environment
 
 ```
-VITE_SUPABASE_URL       # Supabase project URL
-VITE_SUPABASE_ANON_KEY  # Supabase anon key
+VITE_SUPABASE_URL         # Supabase project URL
+VITE_SUPABASE_ANON_KEY    # Supabase anon key
+
+# Wave 30 — Push notifications (server-only except the public key)
+VITE_VAPID_PUBLIC_KEY     # VAPID public key (committed to bundle)
+VAPID_PRIVATE_KEY         # VAPID private key — Supabase secret only
+VAPID_SUBJECT             # mailto:ops@planterplan.example — Supabase secret/env
 ```
 
 Local Supabase: API on `:54321`, DB on `:54322`, Studio on `:54323`.
+
+### Cron Jobs / Scheduled Tasks
+
+`pg_cron` is intentionally NOT enabled in this codebase. Every cron-driven edge function (currently `nightly-sync`, `supervisor-report`, `dispatch-notifications`, `overdue-digest`) is scheduled externally by the operator. See `docs/operations/edge-function-schedules.md` for the full schedule table and setup options (Supabase Dashboard → Scheduled Triggers preferred, GitHub Actions cron acceptable, external pinger as last resort). All dispatchers are idempotent under any scheduler.
 
 ## Supabase RLS & Database Functions
 
@@ -104,6 +113,9 @@ RLS is enabled on all tables. Authorization is role-based per project.
 - **`admin_users`** — Admin whitelist. `user_id` + `email`.
 - **`task_comments`** — Threaded comments per task. RLS by project membership; soft-delete via `deleted_at`. Wave 26.
 - **`activity_log`** — Append-only audit trail. RLS by project membership; INSERT denied at policy level. Wave 27.
+- **`notification_preferences`** — Per-user singleton (PK = `user_id` → `auth.users`). Bootstrap trigger on `auth.users` seeds a row on signup. Per-event email/push toggles, overdue-digest cadence (`off`/`daily`/`weekly`), quiet hours (start/end + IANA timezone). Wave 30.
+- **`notification_log`** — Append-only notification audit trail. `channel ∈ {'email','push'}`, `event_type` carries the dispatch state-machine phase. RLS denies INSERT/UPDATE/DELETE at policy level — only SECURITY DEFINER dispatch edge functions write. Wave 30.
+- **`push_subscriptions`** — One row per (user, browser endpoint). `UNIQUE (user_id, endpoint)`. Client inserts on subscribe, DELETEs on unsubscribe. `dispatch-push` DELETEs stale rows on HTTP 410. Wave 30.
 
 **Views:**
 - **`tasks_with_primary_resource`** — Tasks LEFT JOINed with their primary `task_resources` row. Used by `planterClient.ts` for reads.

@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.14.0 (Wave 29 — Checkpoint Projects + Phase Lead) 
-> **Last Updated**: 2026-04-19 
+> **Version**: 1.15.0 (Wave 30 — Push + Email Notifications) 
+> **Last Updated**: 2026-04-20 
 > **Status**: Active Development
 
 ---
@@ -116,7 +116,10 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [ ] **Store & Monetization**: Integration with Stripe for store functionality.
 - [ ] **User License Management**: License restrictions for project creation volume, management, and discount codes.
 - [ ] **Advanced Admin Management**: Dedicated Admin UI with global search, advanced user filtering (by last login, task completion), and analytics dashboard.
-- [ ] **Push & Email Notifications**: Automated alerts for weekly priority tasks, overdue tasks, and task comments.
+- [x] **Push & Email Notifications (Wave 30)**: Per-user `notification_preferences` + append-only `notification_log` + `push_subscriptions` tables back a full transport stack.
+  - **Task 1 (data layer + Settings UI)**: Bootstrap trigger on `auth.users` creates a default prefs row for every user. Settings → Notifications tab exposes email/push toggles per event class (mentions / overdue digest / assignment), quiet hours (start/end + IANA tz), and a recent-notifications transparency panel.
+  - **Task 2 (Web Push transport)**: VAPID-based browser push. Service worker (`public/sw.js`, documented JS exception pending Wave 32 workbox migration) renders notifications; `usePushSubscription` handles opt-in/opt-out with per-device row scoping. `dispatch-push` edge function fans out via `web-push@3.6.7` with 410-cleanup and per-sub logging.
+  - **Task 3 (mention + digest dispatchers)**: `resolve_user_handles` RPC maps @-handles → auth.users uuids. `trg_enqueue_comment_mentions` AFTER INSERT on `task_comments` enqueues `mention_pending` rows. Per-minute `dispatch-notifications` edge function drains those rows via a single-runner-wins state machine (`_pending → _processing → _sent | _failed | _skipped`), honoring quiet-hours and per-event prefs. Daily `overdue-digest` edge function emails assigned-overdue-tasks rollups with per-user cadence (daily / weekly-on-user-local-Monday). See `docs/architecture/notifications.md` and `docs/operations/edge-function-schedules.md` (pg_cron intentionally NOT enabled).
 - [ ] **External Integrations**: Zoho CRM and Zoho Analytics sync, AWS unmanaged file uploads, ICS feeds for calendar integration.
 
 ### 3.8 Technical Hardening & Infrastructure

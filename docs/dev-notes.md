@@ -46,6 +46,14 @@ Fix in Wave 30 (prefer): ship a `public.list_task_comments_with_authors(p_task_i
 
 Until that lands, the UI degrades gracefully but any mention-based feature is blocked on a reliable author hydrate.
 
+**Wave 30 status note:** Wave 30 Task 3 shipped `public.resolve_user_handles(text[])` (the handle-to-uuid mapping needed by `resolveMentions` in the write path), but did NOT ship the `list_task_comments_with_authors` read-path RPC suggested above. Mention dispatch works because the trigger reads `task_comments.mentions` (resolved uuids) directly; it doesn't depend on the display-side author hydrate. The PostgREST join issue remains — future work.
+
+### Service worker JS exception (`public/sw.js`)
+
+**Active. Target: Wave 32.** `public/sw.js` (Wave 30 Task 2 push handler) is the only non-TypeScript file in the application tree. The styleguide calls for TS-only across `src/`; the service worker carves out one documented exception because the TS → worker build path hasn't landed yet. Wave 32's PWA / workbox setup will subsume this file with a workbox-built `src/sw.ts` and delete `public/sw.js`.
+
+Until Wave 32 ships: do not grow `sw.js`. The current handler implements `install` / `activate` / `push` / `notificationclick` and is the complete contract. Any additional SW responsibility (offline queue, asset precache) waits for the TS rewrite.
+
 ### `task_comments.author_id ON DELETE RESTRICT` blocks account deletion
 
 **Active. Target: Wave 33 or Wave 35.** `task_comments.author_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT` (Wave 26). This matches `tasks.creator` / `project_members.user_id` — the RESTRICT was chosen deliberately per the Wave 26 plan so a comment can't go authorless while the app's `TaskCommentWithAuthor.author` contract treats non-soft-deleted rows as having an author. Trade-off: deleting an `auth.users` row is blocked if they've ever posted a comment (same blocker exists on the other two FKs).
