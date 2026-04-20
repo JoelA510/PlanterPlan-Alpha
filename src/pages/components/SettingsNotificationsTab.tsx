@@ -16,6 +16,7 @@ import {
     useUpdateNotificationPreferences,
     useNotificationLog,
 } from '@/features/settings/hooks/useNotificationPreferences';
+import { usePushSubscription } from '@/features/settings/hooks/usePushSubscription';
 import type { NotificationPreferencesRow } from '@/shared/db/app.types';
 
 /** Turns `mention_pending` into `Mention Pending` for user-facing display. */
@@ -51,9 +52,11 @@ export default function SettingsNotificationsTab() {
     const logQuery = useNotificationLog({ limit: 20 });
     const timezoneOptions = useTimezoneOptions();
 
-    // Placeholder for Task 2: browser push isn't wired yet, so the three push
-    // toggles below are disabled with a tooltip until the subscription hook lands.
-    const pushSubscribed = false;
+    // Wave 30 Task 2: real browser push subscription state. When the browser
+    // lacks the APIs (Safari without PWA install, server render), `isSupported`
+    // is false and the Enable button is disabled with an explanatory tooltip.
+    const push = usePushSubscription();
+    const pushSubscribed = Boolean(push.subscription);
 
     if (isLoading || !prefs) {
         return (
@@ -132,11 +135,23 @@ export default function SettingsNotificationsTab() {
                     <Button
                         type="button"
                         variant="outline"
-                        disabled
-                        title="Browser push subscription wiring ships in Wave 30 Task 2"
+                        onClick={() => {
+                            if (pushSubscribed) void push.unsubscribe();
+                            else void push.subscribe();
+                        }}
+                        disabled={!push.isSupported || push.isSubscribing}
+                        title={push.isSupported
+                            ? (push.permissionState === 'denied'
+                                ? 'Browser notifications blocked — re-enable in site settings.'
+                                : undefined)
+                            : 'Browser push is not supported here (install the PWA on Safari, or use a desktop browser).'}
                         data-testid="enable-browser-push"
                     >
-                        Enable browser push
+                        {push.isSubscribing
+                            ? 'Working…'
+                            : pushSubscribed
+                                ? 'Disable browser push'
+                                : 'Enable browser push'}
                     </Button>
                 </div>
 

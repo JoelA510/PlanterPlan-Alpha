@@ -1785,6 +1785,21 @@ CREATE TABLE IF NOT EXISTS "public"."notification_log" (
 ALTER TABLE "public"."notification_log" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."push_subscriptions" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "endpoint" "text" NOT NULL,
+    "p256dh" "text" NOT NULL,
+    "auth" "text" NOT NULL,
+    "user_agent" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "last_used_at" timestamp with time zone
+);
+
+
+ALTER TABLE "public"."push_subscriptions" OWNER TO "postgres";
+
+
 -- Wave 30: Bootstrap a notification_preferences row for every auth.users INSERT.
 CREATE OR REPLACE FUNCTION "public"."bootstrap_notification_prefs"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
@@ -2050,11 +2065,30 @@ ALTER TABLE ONLY "public"."notification_log"
 
 
 
+ALTER TABLE ONLY "public"."push_subscriptions"
+    ADD CONSTRAINT "push_subscriptions_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."push_subscriptions"
+    ADD CONSTRAINT "push_subscriptions_user_id_endpoint_key" UNIQUE ("user_id", "endpoint");
+
+
+
+ALTER TABLE ONLY "public"."push_subscriptions"
+    ADD CONSTRAINT "push_subscriptions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
 CREATE INDEX "idx_notification_log_user_id_sent_at" ON "public"."notification_log" USING "btree" ("user_id", "sent_at" DESC);
 
 
 
 CREATE INDEX "idx_notification_log_event_type" ON "public"."notification_log" USING "btree" ("event_type", "sent_at" DESC);
+
+
+
+CREATE INDEX "idx_push_subscriptions_user_id" ON "public"."push_subscriptions" USING "btree" ("user_id");
 
 
 
@@ -2440,6 +2474,18 @@ CREATE POLICY "Notif prefs: update own" ON "public"."notification_preferences" F
 
 
 CREATE POLICY "Notif log: select own or admin" ON "public"."notification_log" FOR SELECT TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+
+
+ALTER TABLE "public"."push_subscriptions" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Push subs: select own" ON "public"."push_subscriptions" FOR SELECT TO "authenticated" USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Push subs: insert own" ON "public"."push_subscriptions" FOR INSERT TO "authenticated" WITH CHECK (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Push subs: delete own" ON "public"."push_subscriptions" FOR DELETE TO "authenticated" USING (("user_id" = "auth"."uid"()));
 
 
 CREATE POLICY "Comments select by project members" ON "public"."task_comments" FOR SELECT TO "authenticated" USING (("public"."is_active_member"("root_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
