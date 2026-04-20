@@ -1,6 +1,6 @@
 # Recurring Wave Execution Prompts
 
-> **Current pointer:** Wave 30, Task 3 — use PROMPT A below.
+> **Current pointer:** Wave 30 finalize — use PROMPT B below.
 >
 > ## Workflow (operator)
 > 1. Read the pointer line above.
