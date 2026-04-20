@@ -6,6 +6,7 @@ import type {
   TaskCommentWithAuthor,
   NotificationPreferencesRow,
   NotificationLogRow,
+  PushSubscriptionRow,
 } from '@/shared/db/app.types';
 
 /**
@@ -211,5 +212,20 @@ export function makeNotificationLogRow(overrides: Partial<NotificationLogRow> = 
     sent_at: overrides.sent_at ?? new Date().toISOString(),
     provider_id: overrides.provider_id ?? null,
     error: overrides.error ?? null,
+  };
+}
+
+/** Wave 30: PushSubscriptionRow stub. Endpoint uses a realistic FCM-style URL. */
+export function makePushSubscription(overrides: Partial<PushSubscriptionRow> = {}): PushSubscriptionRow {
+  const id = overrides.id ?? faker.string.uuid();
+  return {
+    id,
+    user_id: overrides.user_id ?? faker.string.uuid(),
+    endpoint: overrides.endpoint ?? `https://fcm.googleapis.com/fcm/send/${id}`,
+    p256dh: overrides.p256dh ?? faker.string.alphanumeric(88),
+    auth: overrides.auth ?? faker.string.alphanumeric(24),
+    user_agent: overrides.user_agent ?? 'vitest',
+    created_at: overrides.created_at ?? new Date().toISOString(),
+    last_used_at: overrides.last_used_at ?? null,
   };
 }

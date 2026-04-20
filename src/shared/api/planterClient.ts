@@ -18,7 +18,9 @@ import type {
     ActivityLogWithActor,
     NotificationPreferencesRow,
     NotificationPreferencesUpdate,
-    NotificationLogRow
+    NotificationLogRow,
+    PushSubscriptionRow,
+    PushSubscriptionInsert
 } from '@/shared/db/app.types';
 import type { User as AuthUser } from '@supabase/supabase-js';
 
@@ -62,6 +64,7 @@ export interface PlanterClient {
         Person: EntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>;
         TaskComment: TaskCommentEntityClient;
         ActivityLog: ActivityLogEntityClient;
+        PushSubscription: PushSubscriptionEntityClient;
     };
     rpc: <T = unknown, P extends object = object>(functionName: string, params: P) => Promise<{ data: T | null, error: Error | null }>;
     functions: {
@@ -202,6 +205,16 @@ interface ActivityLogEntityClient {
         entityId: string,
         opts?: { limit?: number },
     ) => Promise<ActivityLogWithActor[]>;
+}
+
+/** Wave 30 push subscriptions — one row per (user, browser-endpoint). */
+interface PushSubscriptionEntityClient {
+    /** Inserts a subscription row; RLS enforces `user_id = auth.uid()`. */
+    create: (payload: Omit<PushSubscriptionInsert, 'user_id'> & { user_id: string }) => Promise<PushSubscriptionRow>;
+    /** Lists the caller's subscriptions newest-first. */
+    list: () => Promise<PushSubscriptionRow[]>;
+    /** DELETEs the caller's subscription with the given endpoint. RLS-scoped. */
+    deleteByEndpoint: (endpoint: string) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -1004,6 +1017,42 @@ export const planter: PlanterClient = {
                 });
             },
         } satisfies ActivityLogEntityClient,
+
+        // -----------------------------------------------------------------
+        // PushSubscription (Wave 30)
+        // -----------------------------------------------------------------
+        PushSubscription: {
+            create: async (payload) => {
+                return retry(async () => {
+                    const { data, error } = await supabase
+                        .from('push_subscriptions')
+                        .insert(payload)
+                        .select('*')
+                        .single();
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return data as PushSubscriptionRow;
+                });
+            },
+            list: async () => {
+                return retry(async () => {
+                    const { data, error } = await supabase
+                        .from('push_subscriptions')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return (data as PushSubscriptionRow[]) || [];
+                });
+            },
+            deleteByEndpoint: async (endpoint) => {
+                return retry(async () => {
+                    const { error } = await supabase
+                        .from('push_subscriptions')
+                        .delete()
+                        .eq('endpoint', endpoint);
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                });
+            },
+        } satisfies PushSubscriptionEntityClient,
     },
 
     // ---------------------------------------------------------------------------

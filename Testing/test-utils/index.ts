@@ -9,5 +9,6 @@ export {
   makePresenceState,
   makeNotificationPref,
   makeNotificationLogRow,
+  makePushSubscription,
 } from './factories';
 export type { PresenceState } from './factories';

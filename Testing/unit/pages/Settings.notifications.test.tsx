@@ -14,6 +14,19 @@ vi.mock('@/features/settings/hooks/useNotificationPreferences', () => ({
     useNotificationLog: () => ({ data: [], isLoading: false }),
 }));
 
+// Wave 30 Task 2: SettingsNotificationsTab now imports usePushSubscription.
+// Stub the whole hook so the Supabase client import chain doesn't execute.
+vi.mock('@/features/settings/hooks/usePushSubscription', () => ({
+    usePushSubscription: () => ({
+        subscription: null,
+        isSubscribing: false,
+        subscribe: vi.fn(),
+        unsubscribe: vi.fn(),
+        isSupported: false,
+        permissionState: 'default' as NotificationPermission,
+    }),
+}));
+
 // The existing Settings page reads `useSettings`; stub it so we're not testing
 // the Profile/Security tabs here.
 vi.mock('@/features/settings/hooks/useSettings', () => ({
@@ -90,11 +103,11 @@ describe('Settings — Notifications tab (Wave 30)', () => {
         expect(emailSwitch).not.toBeDisabled();
     });
 
-    it('renders the disabled Enable browser push button with a Wave 30 Task 2 tooltip', async () => {
+    it('disables the Enable browser push button when the browser lacks support', async () => {
         renderSettings();
         fireEvent.click(screen.getByRole('button', { name: /notifications/i }));
         const btn = await screen.findByTestId('enable-browser-push');
         expect(btn).toBeDisabled();
-        expect(btn).toHaveAttribute('title', expect.stringMatching(/wave 30 task 2/i));
+        expect(btn).toHaveAttribute('title', expect.stringMatching(/not supported/i));
     });
 });
