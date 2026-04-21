@@ -12,7 +12,24 @@ Spec is at **1.18.0**. Outstanding roadmap: §3.7 White Labeling (this wave), §
 
 Wave 34 ships **White Labeling** (§3.7). This is multi-tenant infrastructure — partner organizations can use custom URLs, logos, colors, and have a delegated admin scope over their tenant's projects. The architectural impact is significant: every project gains an `organization_id`, RLS adds an organization-scoping layer, and the React app branches its branding at runtime based on the requesting hostname.
 
-**Gate baseline going into Wave 34:** confirm the current `main` baseline. Run `npm run lint`, `npm run build`, `npx vitest run`. Note that this wave introduces a real **breaking change** at the data layer — every existing project will be backfilled into a default "PlanterPlan" organization. The migration is reversible but needs explicit user approval per the standard ground-rule (which is granted up-front in this wave plan).
+**Test baseline going into Wave 34:** Wave 33 shipped at ≥705 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
+
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 34 specific: any component that's updated to consume `useTenant()` directly must add `vi.mock('@/shared/contexts/TenantContext', () => ({ useTenant: () => mockUseTenant() }))` to its existing tests, otherwise the test throws on missing context. Extend `Testing/test-utils/render-with-providers.tsx` (created in Wave 31) with a `tenant?: Partial<OrganizationRow>` option. E2E: existing tests run against the default `planterplan` org and pass unchanged.
+
+**Breaking-change pre-approval (logged here for the migration header to reference):** Wave 34's `tasks.organization_id` backfill is a one-shot data migration that touches every existing row. The user has pre-approved this in the planning session — log the approval source as "Wave 34 plan in `.claude/wave-34-prompt.md` — pre-approved by user during planning" in the migration's revert-path block.
+
+## Pre-flight verification (run before any task)
+
+1. `git log --oneline` includes the 3 Wave 33 commits + docs sweep.
+2. These files exist:
+   - `src/app/App.tsx` (provider tree — Wave 34 wraps `<TenantProvider>` between `<I18nextProvider>` (Wave 31) and `<AuthProvider>`)
+   - `src/index.css` (Tailwind v4 inline `@theme` block — Wave 34 swaps brand tokens to CSS variables for runtime override)
+   - `src/layouts/DashboardLayout.tsx` (logo + app name source)
+   - `src/pages/components/LoginForm.tsx` (branded login)
+   - `src/shared/contexts/AuthContext.tsx` (precedent for context shape; TenantContext mirrors)
+   - `src/pages/admin/AdminLayout.tsx` (Wave 33 — Wave 34 adds Organizations link to the sidebar)
+3. **Storage bucket creation policy** — Supabase storage buckets are NOT created via SQL migrations in this codebase. Use the Supabase CLI (`supabase storage create branding-assets --public`) OR the Supabase Studio (Storage → New bucket) instead. Document the bucket prerequisite in the Task 3 PR description and `docs/operations/`.
+4. Brand color tokens currently live in `src/index.css` as fixed HSL values inside `@theme` (`--brand-50` through `--brand-900` per the Wave 23 codebase map). Wave 34 swaps `--brand-500`/`-600`/`-700` to runtime-overridable CSS variables (the rest stay fixed for v1).
 
 ## Branch
 
@@ -35,7 +52,7 @@ Three tasks. Task 1 lays the data model + RLS scoping. Task 2 wires custom-domai
 
 The schema impact ripples through the whole app. Take the migration carefully — backfill is one-shot.
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_organizations.sql`, NEW)
+1. **Migration** (`docs/db/migrations/2026_04_18_organizations.sql`, NEW)
    - `CREATE TABLE public.organizations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), slug text NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$'), name text NOT NULL, primary_domain text UNIQUE, branding jsonb NOT NULL DEFAULT '{}'::jsonb, billing_email text, created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`.
    - `branding` JSONB shape (documented inline): `{ logo_url, primary_color, accent_color, dark_logo_url?, favicon_url?, app_name? }`.
    - `CREATE TABLE public.organization_members (organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE, user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, role text NOT NULL CHECK (role IN ('org_admin', 'member')), created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (organization_id, user_id))`.
@@ -113,9 +130,11 @@ The schema impact ripples through the whole app. Take the migration carefully �
 **Commit:** `feat(wave-34): branding (logo, colors, app name) + /admin/organizations CRUD`
 
 1. **Tailwind theme via CSS variables** (`src/index.css`)
-   - Replace the hardcoded `--brand-500` and `--brand-600` color tokens with CSS custom properties: `--color-brand-500: 14, 165, 233; --color-brand-600: ...;` (RGB triplets so Tailwind opacity modifiers work via `bg-brand-500/50`).
-   - In `tailwind.config.ts` (or wherever colors are configured), reference the CSS variables: `'brand-500': 'rgb(var(--color-brand-500) / <alpha-value>)'`.
-   - **Tenant override**: `<TenantProvider>` injects `<style>` block at mount that sets `--color-brand-500` etc. from `currentOrg.branding.primary_color` (parsed via a small RGB parser; default colors when `null`).
+   - There is **no `tailwind.config.ts`** in this repo (Tailwind v4 inline `@theme` block in `src/index.css`). Make the swap inside the `@theme` directive.
+   - Convert ONLY `--brand-500`, `--brand-600`, `--brand-700` to runtime-overridable CSS variables. Other brand steps (50/100/.../800/900) stay fixed for v1 — keeps the override surface narrow.
+   - Use **HSL triplets** to match the existing convention in `src/index.css` (every other color in the file is HSL): `--brand-500: 14 95% 55%; --brand-600: 24 95% 53%; --brand-700: 28 92% 47%;` (these are placeholder defaults — confirm against the current `src/index.css` values; do not change visual defaults). Then: `--color-brand-500: hsl(var(--brand-500));` style references in the `@theme` block.
+   - **Tenant override**: `<TenantProvider>` injects a `<style id="tenant-brand">` block at mount setting `--brand-500`/`-600`/`-700` from `currentOrg.branding.primary_color` (the org stores ONE primary color; we derive the 500/600/700 ramp via a small lightness-shift helper). Default to the existing values when `branding.primary_color === null`.
+   - **Avoid FOUC**: inject the `<style>` block in a synchronous `useLayoutEffect` (NOT `useEffect`) so the first paint already has the right colors. Resolve the org from cached localStorage first; refetch on mount.
 
 2. **Logo override** (`src/layouts/DashboardLayout.tsx`, `LoginForm.tsx`)
    - Replace hardcoded `<img src="/logo.svg">` with `<img src={tenant.branding.logo_url ?? '/logo.svg'}>`.
@@ -130,7 +149,7 @@ The schema impact ripples through the whole app. Take the migration carefully �
      - Member list + role management (add `org_admin` / remove member).
    - "Create organization" button on the list page.
 
-4. **Org-admin role gating** (`docs/db/migrations/2026_XX_XX_organizations.sql` extension)
+4. **Org-admin role gating** (`docs/db/migrations/2026_04_18_organizations.sql` extension)
    - Already covered in Task 1's RLS — `org_admin` can UPDATE its own organization row + invite/remove members. Verify in the smoke test below.
    - **Org-admin is distinct from global `is_admin`** — they have full UPDATE on their org but no cross-org access. Document this clearly in `organizations.md`.
 
@@ -142,7 +161,14 @@ The schema impact ripples through the whole app. Take the migration carefully �
    - `Testing/unit/pages/admin/AdminOrganizationDetail.test.tsx` (NEW) — branding form save; member add/remove.
    - `Testing/unit/shared/contexts/TenantContext.branding.test.tsx` (NEW) — branding overrides apply CSS variables; defaults when `null`.
 
-**DB migration?** Optional — only if you decide to add a `branding-assets` storage bucket via SQL. Otherwise the bucket is created via the Supabase Studio or CLI manually; document in the Task 3 commit's PR description.
+**DB migration?** No new SQL migration in Task 3. The `branding-assets` storage bucket is created via **Supabase CLI** (preferred) or Supabase Studio:
+
+```bash
+# Run once, in the Supabase project. Does NOT live in a SQL migration file.
+supabase storage create branding-assets --public
+```
+
+Document this prerequisite in the Task 3 PR description AND in `docs/operations/deployment.md` (Wave 38) so a fresh deployment knows to create the bucket. If `docs/operations/deployment.md` doesn't exist yet, add the bucket-creation note to `docs/operations/custom-domain-setup.md` (Task 2) instead.
 
 **Out of scope:** Per-org email-sender configuration (Wave 35 territory — touches Resend per-org). Per-org login methods (deferred — single OAuth/email setup for now). Custom domain SSL/DNS automation. Org-level RLS overrides for tasks (deferred — the additive wrap from Task 1 is the contract for v1).
 
@@ -171,7 +197,8 @@ Land docs as `docs(wave-34): documentation currency sweep`.
 6. **Bootstrap trigger** — sign up a brand-new user → confirm they're added as `member` to the default org via the existing trigger logic (or a new trigger if added in Task 1).
 7. **No FSD drift** — `TenantContext` lives in `shared/contexts/` (cross-cutting, no domain-specific business logic).
 8. **Type drift** — `database.types.ts` hand-edited cleanly with new tables + column.
-9. **Lint + build + tests** — green.
+9. **Test-impact reconciled** — every component updated to consume `useTenant()` has its existing test extended with `vi.mock('@/shared/contexts/TenantContext', ...)`; `renderWithProviders` (Wave 31) extended with optional `tenant?` parameter; `Testing/test-utils/mocks/tenant.ts` (NEW) provides `mockUseTenant()`; no `it.skip`. Test count ≥ baseline + new tests.
+10. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure). The one-shot backfill is a §8.1 protocol concern — if it fails to apply, HALT.
 
 ## Commit & Push to Main (mandatory — gates Wave 35)
 
@@ -183,10 +210,12 @@ After all three Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Wave 34's `tasks.organization_id` backfill is a one-shot data migration (§8.1) — if the migration fails to apply cleanly, HALT and surface; do NOT manually run partial steps.**
+
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npx vitest run    # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 
@@ -218,14 +247,14 @@ Manual smoke per Wave Review section.
 - `src/main.tsx` (or providers.tsx) — wrap in `<TenantProvider>` between Auth and other providers
 - `src/layouts/DashboardLayout.tsx` (logo, app name, favicon from tenant)
 - `src/pages/components/LoginForm.tsx` (branded login)
-- `src/app/router.tsx` — add `/admin/organizations/*` routes
+- `src/app/App.tsx` — add `/admin/organizations/*` routes
 - `vite.config.ts` (document `?org=` localhost override)
 - `spec.md` (flip §3.7 White Labeling to `[x]`, bump to 1.19.0)
 - `repo-context.yaml` (Wave 34 highlights + data_models update)
 - `CLAUDE.md` (Tables + Multi-tenancy subsection)
 
 **Will create:**
-- `docs/db/migrations/2026_XX_XX_organizations.sql`
+- `docs/db/migrations/2026_04_18_organizations.sql`
 - `docs/db/seed_organizations.sql`
 - `docs/db/tests/organization_rls.sql`
 - `docs/architecture/organizations.md`

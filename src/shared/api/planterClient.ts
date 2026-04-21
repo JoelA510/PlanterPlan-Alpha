@@ -12,7 +12,15 @@ import type {
     TaskRelationshipRow,
     PersonRow,
     TeamMemberRow,
-    UserMetadata
+    UserMetadata,
+    TaskCommentRow,
+    TaskCommentWithAuthor,
+    ActivityLogWithActor,
+    NotificationPreferencesRow,
+    NotificationPreferencesUpdate,
+    NotificationLogRow,
+    PushSubscriptionRow,
+    PushSubscriptionInsert
 } from '@/shared/db/app.types';
 import type { User as AuthUser } from '@supabase/supabase-js';
 
@@ -54,6 +62,9 @@ export interface PlanterClient {
         TaskResource: TaskResourceEntityClient;
         TeamMember: EntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>;
         Person: EntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>;
+        TaskComment: TaskCommentEntityClient;
+        ActivityLog: ActivityLogEntityClient;
+        PushSubscription: PushSubscriptionEntityClient;
     };
     rpc: <T = unknown, P extends object = object>(functionName: string, params: P) => Promise<{ data: T | null, error: Error | null }>;
     functions: {
@@ -68,6 +79,15 @@ export interface PlanterClient {
          *   `Error` (never an upstream body).
          */
         invoke: <T = unknown>(functionName: string, opts?: { body?: Record<string, unknown> }) => Promise<{ data: T | null, error: Error | null }>;
+    };
+    /** Wave 30 — per-user notification preferences + audit log. */
+    notifications: {
+        /** Returns the authenticated user's preferences row (RLS auto-filters to own). */
+        getPreferences: () => Promise<NotificationPreferencesRow>;
+        /** Partial update of the caller's preferences row; returns the updated row. */
+        updatePreferences: (patch: NotificationPreferencesUpdate) => Promise<NotificationPreferencesRow>;
+        /** Returns recent notification-log rows for the caller (newest first). */
+        listLog: (opts?: { limit?: number; before?: string; eventType?: string }) => Promise<NotificationLogRow[]>;
     };
 }
 
@@ -103,6 +123,98 @@ interface TaskEntityClient extends EntityClient<Task, TaskInsert, TaskUpdate> {
     clone: (templateId: string, newParentId: string | null, newOrigin: string, userId: string, overrides?: Partial<Pick<TaskInsert, 'title' | 'description' | 'start_date' | 'due_date'>>) => Promise<{ data: Task | null, error: Error | null }>;
     addMember?: (taskId: string, userId: string, role: string) => Promise<{ data: TeamMemberRow | undefined, error: Error | null }>;
     listSiblings: (taskId: string) => Promise<Task[]>;
+}
+
+interface TaskCommentEntityClient {
+    /**
+     * Fetches every comment for the task — including soft-deleted rows — so
+     * the UI can render tombstones for deleted ancestors and keep reply
+     * threads intact. `softDelete` blanks `body`, so pulling deleted rows
+     * never leaks content. RLS handles project-membership filtering.
+     *
+     * @param taskId The target task's id.
+     * @returns Chronologically-ordered comments with the author join.
+     */
+    listByTask: (taskId: string) => Promise<TaskCommentWithAuthor[]>;
+    /**
+     * Inserts a new comment. `author_id` is also enforced by RLS
+     * `WITH CHECK (author_id = auth.uid())`; the caller passes it so
+     * client-side optimistic rendering doesn't need a round-trip.
+     *
+     * @param payload Insert fields. `parent_comment_id` defaults to null
+     *   (top-level) and `mentions` defaults to [].
+     * @returns The inserted row hydrated with its author.
+     */
+    create: (payload: {
+        task_id: string;
+        author_id: string;
+        parent_comment_id?: string | null;
+        body: string;
+        mentions?: string[];
+    }) => Promise<TaskCommentWithAuthor>;
+    /**
+     * Edits `body` + optional `mentions`. Stamps `edited_at = nowUtcIso()`;
+     * `updated_at` is set by the `trg_task_comments_handle_updated_at` DB
+     * trigger. RLS UPDATE policy restricts to author on undeleted rows.
+     *
+     * @param commentId The comment row id.
+     * @param payload New body and (optional) resolved mentions.
+     * @returns The updated row.
+     */
+    updateBody: (commentId: string, payload: { body: string; mentions?: string[] }) => Promise<TaskCommentRow>;
+    /**
+     * Soft-deletes a comment: writes `deleted_at = nowUtcIso()` and clears
+     * `body` so cached query payloads don't leak content. The row survives
+     * so replies keep their lineage; `CommentItem` renders a tombstone.
+     *
+     * @param commentId The comment row id.
+     * @returns The soft-deleted row.
+     */
+    softDelete: (commentId: string) => Promise<TaskCommentRow>;
+}
+
+type ActivityEntityType = 'task' | 'comment' | 'member' | 'project';
+
+interface ActivityLogEntityClient {
+    /**
+     * Project-scoped activity feed, joined with actor profile. Default limit
+     * 50. Pass `before` (created_at ISO string) to paginate backwards.
+     * Pass `entityTypes` to filter server-side; omit to return all types.
+     *
+     * @param projectId The project's root task id.
+     * @param opts Pagination + entity-type filter.
+     * @returns Activity rows newest-first with the actor join.
+     */
+    listByProject: (projectId: string, opts?: {
+        limit?: number;
+        before?: string;
+        entityTypes?: ReadonlyArray<ActivityEntityType>;
+    }) => Promise<ActivityLogWithActor[]>;
+
+    /**
+     * Per-entity feed for the collapsed activity rail in `TaskDetailsView`
+     * and future consumers. Default limit 20.
+     *
+     * @param entityType One of `'task' | 'comment' | 'member' | 'project'`.
+     * @param entityId The row id in the target table.
+     * @param opts Pagination.
+     * @returns Activity rows newest-first with the actor join.
+     */
+    listByEntity: (
+        entityType: ActivityEntityType,
+        entityId: string,
+        opts?: { limit?: number },
+    ) => Promise<ActivityLogWithActor[]>;
+}
+
+/** Wave 30 push subscriptions — one row per (user, browser-endpoint). */
+interface PushSubscriptionEntityClient {
+    /** Inserts a subscription row; RLS enforces `user_id = auth.uid()`. */
+    create: (payload: Omit<PushSubscriptionInsert, 'user_id'> & { user_id: string }) => Promise<PushSubscriptionRow>;
+    /** Lists the caller's subscriptions newest-first. */
+    list: () => Promise<PushSubscriptionRow[]>;
+    /** DELETEs the caller's subscription with the given endpoint. RLS-scoped. */
+    deleteByEndpoint: (endpoint: string) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -778,6 +890,169 @@ export const planter: PlanterClient = {
         },
         TeamMember: createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
         Person: createEntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>('people'),
+
+        // -----------------------------------------------------------------
+        // TaskComment (Wave 26)
+        // -----------------------------------------------------------------
+        TaskComment: {
+            // The author join points at auth.users across a schema boundary. PostgREST
+            // handles it at runtime but the generated types don't model the cross-schema
+            // FK, so the cast to unknown sidesteps the typed-client's SelectQueryError.
+            //
+            // Returns soft-deleted rows too — the UI renders tombstones so reply chains
+            // stay intact when an ancestor is soft-deleted. `softDelete` blanks body, so
+            // no content leaks via this query.
+            listByTask: async (taskId: string): Promise<TaskCommentWithAuthor[]> => {
+                return retry(async () => {
+                    const { data, error } = await supabase
+                        .from('task_comments')
+                        .select('*, author:users(id, email, user_metadata)')
+                        .eq('task_id', taskId)
+                        .order('created_at', { ascending: true });
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return ((data as unknown) as TaskCommentWithAuthor[]) || [];
+                });
+            },
+            create: async (payload): Promise<TaskCommentWithAuthor> => {
+                return retry(async () => {
+                    const insert: Database['public']['Tables']['task_comments']['Insert'] = {
+                        task_id: payload.task_id,
+                        author_id: payload.author_id,
+                        parent_comment_id: payload.parent_comment_id ?? null,
+                        body: payload.body,
+                        mentions: payload.mentions ?? [],
+                    };
+                    const { data, error } = await supabase
+                        .from('task_comments')
+                        .insert(insert)
+                        .select('*, author:users(id, email, user_metadata)')
+                        .single();
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return (data as unknown) as TaskCommentWithAuthor;
+                });
+            },
+            updateBody: async (commentId: string, payload: { body: string; mentions?: string[] }): Promise<TaskCommentRow> => {
+                return retry(async () => {
+                    const patch: Database['public']['Tables']['task_comments']['Update'] = {
+                        body: payload.body,
+                        edited_at: nowUtcIso(),
+                    };
+                    if (payload.mentions !== undefined) patch.mentions = payload.mentions;
+                    const { data, error } = await supabase
+                        .from('task_comments')
+                        .update(patch)
+                        .eq('id', commentId)
+                        .select('*')
+                        .single();
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return data as TaskCommentRow;
+                });
+            },
+            softDelete: async (commentId: string): Promise<TaskCommentRow> => {
+                return retry(async () => {
+                    const patch: Database['public']['Tables']['task_comments']['Update'] = {
+                        deleted_at: nowUtcIso(),
+                        body: '',
+                    };
+                    const { data, error } = await supabase
+                        .from('task_comments')
+                        .update(patch)
+                        .eq('id', commentId)
+                        .select('*')
+                        .single();
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return data as TaskCommentRow;
+                });
+            },
+        } satisfies TaskCommentEntityClient,
+
+        // -----------------------------------------------------------------
+        // ActivityLog (Wave 27)
+        // -----------------------------------------------------------------
+        // Cross-schema author join via `actor:users(...)` mirrors the Wave 26
+        // TaskComment pattern and inherits the same typed-client limitation;
+        // the cast to `unknown` sidesteps `SelectQueryError`. See
+        // `docs/dev-notes.md` for the Wave 30 RPC replacement plan.
+        ActivityLog: {
+            listByProject: async (projectId: string, opts?: {
+                limit?: number;
+                before?: string;
+                entityTypes?: ReadonlyArray<ActivityEntityType>;
+            }): Promise<ActivityLogWithActor[]> => {
+                return retry(async () => {
+                    let query = supabase
+                        .from('activity_log')
+                        .select('*, actor:users(id, email, user_metadata)')
+                        .eq('project_id', projectId)
+                        .order('created_at', { ascending: false })
+                        .limit(opts?.limit ?? 50);
+                    if (opts?.before) query = query.lt('created_at', opts.before);
+                    if (opts?.entityTypes && opts.entityTypes.length > 0) {
+                        // Supabase's typed `.in()` expects its literal enum union.
+                        // Route through unknown to keep the runtime call happy.
+                        query = (query as unknown as {
+                            in: (c: string, v: readonly string[]) => typeof query;
+                        }).in('entity_type', opts.entityTypes);
+                    }
+                    const { data, error } = await query;
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return ((data as unknown) as ActivityLogWithActor[]) || [];
+                });
+            },
+            listByEntity: async (
+                entityType: ActivityEntityType,
+                entityId: string,
+                opts?: { limit?: number },
+            ): Promise<ActivityLogWithActor[]> => {
+                return retry(async () => {
+                    const { data, error } = await supabase
+                        .from('activity_log')
+                        .select('*, actor:users(id, email, user_metadata)')
+                        .eq('entity_type', entityType)
+                        .eq('entity_id', entityId)
+                        .order('created_at', { ascending: false })
+                        .limit(opts?.limit ?? 20);
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return ((data as unknown) as ActivityLogWithActor[]) || [];
+                });
+            },
+        } satisfies ActivityLogEntityClient,
+
+        // -----------------------------------------------------------------
+        // PushSubscription (Wave 30)
+        // -----------------------------------------------------------------
+        PushSubscription: {
+            create: async (payload) => {
+                return retry(async () => {
+                    const { data, error } = await supabase
+                        .from('push_subscriptions')
+                        .insert(payload)
+                        .select('*')
+                        .single();
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return data as PushSubscriptionRow;
+                });
+            },
+            list: async () => {
+                return retry(async () => {
+                    const { data, error } = await supabase
+                        .from('push_subscriptions')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    return (data as PushSubscriptionRow[]) || [];
+                });
+            },
+            deleteByEndpoint: async (endpoint) => {
+                return retry(async () => {
+                    const { error } = await supabase
+                        .from('push_subscriptions')
+                        .delete()
+                        .eq('endpoint', endpoint);
+                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                });
+            },
+        } satisfies PushSubscriptionEntityClient,
     },
 
     // ---------------------------------------------------------------------------
@@ -825,6 +1100,55 @@ export const planter: PlanterClient = {
             } catch (error: unknown) {
                 return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
             }
+        },
+    },
+
+    // ---------------------------------------------------------------------------
+    // Notifications (Wave 30)
+    // ---------------------------------------------------------------------------
+    // RLS auto-filters SELECTs + UPDATEs to `user_id = auth.uid()`, so these
+    // helpers never need to thread the caller id explicitly. See
+    // docs/architecture/auth-rbac.md → "Notification Preferences (Wave 30)".
+
+    notifications: {
+        getPreferences: async (): Promise<NotificationPreferencesRow> => {
+            return retry(async () => {
+                const { data, error } = await supabase
+                    .from('notification_preferences')
+                    .select('*')
+                    .limit(1)
+                    .maybeSingle();
+                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (!data) {
+                    throw new PlanterError('notification_preferences row missing for caller', 404);
+                }
+                return data as NotificationPreferencesRow;
+            });
+        },
+        updatePreferences: async (patch: NotificationPreferencesUpdate): Promise<NotificationPreferencesRow> => {
+            return retry(async () => {
+                const { data, error } = await supabase
+                    .from('notification_preferences')
+                    .update(patch)
+                    .select('*')
+                    .single();
+                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                return data as NotificationPreferencesRow;
+            });
+        },
+        listLog: async (opts?: { limit?: number; before?: string; eventType?: string }): Promise<NotificationLogRow[]> => {
+            return retry(async () => {
+                let query = supabase
+                    .from('notification_log')
+                    .select('*')
+                    .order('sent_at', { ascending: false })
+                    .limit(opts?.limit ?? 50);
+                if (opts?.before) query = query.lt('sent_at', opts.before);
+                if (opts?.eventType) query = query.eq('event_type', opts.eventType);
+                const { data, error } = await query;
+                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                return (data as NotificationLogRow[]) || [];
+            });
         },
     },
 };

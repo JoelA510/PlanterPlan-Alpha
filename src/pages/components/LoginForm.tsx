@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -6,18 +6,24 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-
-const loginSchema = z.object({
- email: z.string().email('Please enter a valid email address'),
- password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+import { useTranslation } from 'react-i18next';
 
 const LoginForm = () => {
+ const { t } = useTranslation();
  const [isSignUp, setIsSignUp] = useState(false);
  const [loading, setLoading] = useState(false);
 
  const { signIn, signUp } = useAuth();
  const navigate = useNavigate();
+
+ const loginSchema = useMemo(
+  () =>
+   z.object({
+    email: z.string().email(t('auth.invalid_email')),
+    password: z.string().min(6, t('auth.password_too_short')),
+   }),
+  [t],
+ );
 
  const {
  register,
@@ -48,8 +54,8 @@ const LoginForm = () => {
  navigate('/dashboard');
  }
  } catch (err: unknown) {
- toast.error(isSignUp ? 'Sign up failed' : 'Login failed', {
- description: err instanceof Error ? err.message : 'An unexpected error occurred',
+ toast.error(isSignUp ? t('errors.signup_failed') : t('errors.login_failed'), {
+ description: err instanceof Error ? err.message : t('auth.unexpected_error'),
  });
  } finally {
  setLoading(false);
@@ -60,9 +66,9 @@ const LoginForm = () => {
  <div className="min-h-screen flex items-center justify-center bg-slate-50">
  <div className="max-w-md w-full space-y-8">
  <div>
- <h2 className="mt-6 text-center text-3xl font-extrabold text-brand-600">PlanterPlan</h2>
+ <h2 className="mt-6 text-center text-3xl font-extrabold text-brand-600">{t('auth.app_name')}</h2>
  <p className="mt-2 text-center text-sm text-slate-600">
- {isSignUp ? 'Create your account' : 'Sign in to your account'}
+ {isSignUp ? t('auth.create_account') : t('auth.sign_in_prompt')}
  </p>
  </div>
 
@@ -70,13 +76,13 @@ const LoginForm = () => {
  <div className="space-y-6">
  <div>
  <label htmlFor="email" className="block text-sm font-medium text-slate-700">
- Email address
+ {t('auth.email_label')}
  </label>
  <input
  id="email"
  type="email"
  className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-slate-300'} placeholder-slate-400 rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500`}
- placeholder="Enter your email"
+ placeholder={t('auth.email_placeholder')}
  {...register('email')}
  />
  {errors.email && (
@@ -86,13 +92,13 @@ const LoginForm = () => {
 
  <div>
  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
- Password
+ {t('auth.password_label')}
  </label>
  <input
  id="password"
  type="password"
  className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-slate-300'} placeholder-slate-400 rounded focus:outline-none focus:ring-brand-500 focus:border-brand-500`}
- placeholder="Enter your password"
+ placeholder={t('auth.password_placeholder')}
  {...register('password')}
  />
  {errors.password && (
@@ -106,7 +112,7 @@ const LoginForm = () => {
  disabled={loading}
  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500/20 disabled:opacity-50 transition-colors shadow-sm"
  >
- {loading ? <Loader2 className="w-5 h-5 animate-spin" data-testid="loading-spinner" aria-label="Loading" /> : (isSignUp ? 'Sign Up' : 'Sign In')}
+ {loading ? <Loader2 className="w-5 h-5 animate-spin" data-testid="loading-spinner" aria-label={t('auth.loading_label')} /> : (isSignUp ? t('auth.sign_up') : t('auth.sign_in'))}
  </button>
  </div>
 
@@ -121,7 +127,7 @@ const LoginForm = () => {
  signIn(email, password);
  }}
  >
- (Auto-Login as Test User)
+ {t('auth.auto_login')}
  </button>
  )}
 
@@ -131,7 +137,7 @@ const LoginForm = () => {
  className="text-sm text-brand-600 hover:text-brand-500 font-medium"
  onClick={() => setIsSignUp(!isSignUp)}
  >
- {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
+ {isSignUp ? t('auth.have_account') : t('auth.need_account')}
  </button>
  </div>
 

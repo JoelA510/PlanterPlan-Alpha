@@ -14,6 +14,64 @@ export type Database = {
  }
  public: {
  Tables: {
+ activity_log: {
+ Row: {
+ id: string
+ project_id: string
+ actor_id: string | null
+ entity_type: 'task' | 'comment' | 'member' | 'project'
+ entity_id: string
+ action:
+ | 'created' | 'updated' | 'deleted' | 'status_changed'
+ | 'member_added' | 'member_removed' | 'member_role_changed'
+ | 'comment_posted' | 'comment_edited' | 'comment_deleted'
+ payload: Json
+ created_at: string
+ }
+ Insert: {
+ id?: string
+ project_id: string
+ actor_id?: string | null
+ entity_type: 'task' | 'comment' | 'member' | 'project'
+ entity_id: string
+ action: string
+ payload?: Json
+ created_at?: string
+ }
+ Update: {
+ id?: string
+ project_id?: string
+ actor_id?: string | null
+ entity_type?: 'task' | 'comment' | 'member' | 'project'
+ entity_id?: string
+ action?: string
+ payload?: Json
+ created_at?: string
+ }
+ Relationships: [
+ {
+ foreignKeyName: "activity_log_project_id_fkey"
+ columns: ["project_id"]
+ isOneToOne: false
+ referencedRelation: "tasks"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "activity_log_project_id_fkey"
+ columns: ["project_id"]
+ isOneToOne: false
+ referencedRelation: "tasks_with_primary_resource"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "activity_log_project_id_fkey"
+ columns: ["project_id"]
+ isOneToOne: false
+ referencedRelation: "view_master_library"
+ referencedColumns: ["id"]
+ },
+ ]
+ }
  admin_users: {
  Row: {
  email: string
@@ -32,6 +90,114 @@ export type Database = {
  granted_at?: string | null
  granted_by?: string | null
  user_id?: string
+ }
+ Relationships: []
+ }
+ notification_preferences: {
+ Row: {
+ user_id: string
+ email_mentions: boolean
+ email_overdue_digest: 'off' | 'daily' | 'weekly'
+ email_assignment: boolean
+ push_mentions: boolean
+ push_overdue: boolean
+ push_assignment: boolean
+ quiet_hours_start: string | null
+ quiet_hours_end: string | null
+ timezone: string
+ updated_at: string
+ }
+ Insert: {
+ user_id: string
+ email_mentions?: boolean
+ email_overdue_digest?: 'off' | 'daily' | 'weekly'
+ email_assignment?: boolean
+ push_mentions?: boolean
+ push_overdue?: boolean
+ push_assignment?: boolean
+ quiet_hours_start?: string | null
+ quiet_hours_end?: string | null
+ timezone?: string
+ updated_at?: string
+ }
+ Update: {
+ user_id?: string
+ email_mentions?: boolean
+ email_overdue_digest?: 'off' | 'daily' | 'weekly'
+ email_assignment?: boolean
+ push_mentions?: boolean
+ push_overdue?: boolean
+ push_assignment?: boolean
+ quiet_hours_start?: string | null
+ quiet_hours_end?: string | null
+ timezone?: string
+ updated_at?: string
+ }
+ Relationships: []
+ }
+ notification_log: {
+ Row: {
+ id: string
+ user_id: string
+ channel: 'email' | 'push'
+ event_type: string
+ payload: Json
+ sent_at: string
+ provider_id: string | null
+ error: string | null
+ }
+ Insert: {
+ id?: string
+ user_id: string
+ channel: 'email' | 'push'
+ event_type: string
+ payload?: Json
+ sent_at?: string
+ provider_id?: string | null
+ error?: string | null
+ }
+ Update: {
+ id?: string
+ user_id?: string
+ channel?: 'email' | 'push'
+ event_type?: string
+ payload?: Json
+ sent_at?: string
+ provider_id?: string | null
+ error?: string | null
+ }
+ Relationships: []
+ }
+ push_subscriptions: {
+ Row: {
+ id: string
+ user_id: string
+ endpoint: string
+ p256dh: string
+ auth: string
+ user_agent: string | null
+ created_at: string
+ last_used_at: string | null
+ }
+ Insert: {
+ id?: string
+ user_id: string
+ endpoint: string
+ p256dh: string
+ auth: string
+ user_agent?: string | null
+ created_at?: string
+ last_used_at?: string | null
+ }
+ Update: {
+ id?: string
+ user_id?: string
+ endpoint?: string
+ p256dh?: string
+ auth?: string
+ user_agent?: string | null
+ created_at?: string
+ last_used_at?: string | null
  }
  Relationships: []
  }
@@ -261,6 +427,98 @@ export type Database = {
  columns: ["task_id"]
  isOneToOne: false
  referencedRelation: "view_master_library"
+ referencedColumns: ["id"]
+ },
+ ]
+ }
+ task_comments: {
+ Row: {
+ id: string
+ task_id: string
+ root_id: string
+ parent_comment_id: string | null
+ author_id: string
+ body: string
+ mentions: string[]
+ created_at: string
+ updated_at: string
+ edited_at: string | null
+ deleted_at: string | null
+ }
+ Insert: {
+ id?: string
+ task_id: string
+ root_id?: string
+ parent_comment_id?: string | null
+ author_id: string
+ body: string
+ mentions?: string[]
+ created_at?: string
+ updated_at?: string
+ edited_at?: string | null
+ deleted_at?: string | null
+ }
+ Update: {
+ id?: string
+ task_id?: string
+ root_id?: string
+ parent_comment_id?: string | null
+ author_id?: string
+ body?: string
+ mentions?: string[]
+ created_at?: string
+ updated_at?: string
+ edited_at?: string | null
+ deleted_at?: string | null
+ }
+ Relationships: [
+ {
+ foreignKeyName: "task_comments_task_id_fkey"
+ columns: ["task_id"]
+ isOneToOne: false
+ referencedRelation: "tasks"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_task_id_fkey"
+ columns: ["task_id"]
+ isOneToOne: false
+ referencedRelation: "tasks_with_primary_resource"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_task_id_fkey"
+ columns: ["task_id"]
+ isOneToOne: false
+ referencedRelation: "view_master_library"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_root_id_fkey"
+ columns: ["root_id"]
+ isOneToOne: false
+ referencedRelation: "tasks"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_root_id_fkey"
+ columns: ["root_id"]
+ isOneToOne: false
+ referencedRelation: "tasks_with_primary_resource"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_root_id_fkey"
+ columns: ["root_id"]
+ isOneToOne: false
+ referencedRelation: "view_master_library"
+ referencedColumns: ["id"]
+ },
+ {
+ foreignKeyName: "task_comments_parent_comment_id_fkey"
+ columns: ["parent_comment_id"]
+ isOneToOne: false
+ referencedRelation: "task_comments"
  referencedColumns: ["id"]
  },
  ]

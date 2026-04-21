@@ -13,7 +13,23 @@ Spec is at **1.20.0**. Outstanding roadmap: §3.7 External Integrations (this wa
 
 Wave 36 ships **External Integrations** (§3.7 last bullet): Zoho CRM/Analytics sync, AWS S3 unmanaged file uploads, ICS calendar feeds, and a generic webhook subscriber. Each is a separate task; the wave is intentionally large but all four integrations follow the same patterns (per-user OAuth/token storage + per-event webhook fanout) so they share a lot of plumbing.
 
-**Gate baseline going into Wave 36:** confirm the current `main` baseline. Run `npm run lint`, `npm run build`, `npx vitest run`. Note: the Zoho integration requires a Zoho developer-app registration; AWS uploads require an S3 bucket + CORS config; webhooks require the Wave 27 `activity_log` to be populated (it is). Document each external prerequisite in the per-task PR descriptions.
+**Test baseline going into Wave 36:** Wave 35 shipped at ≥740 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
+
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 36 specific: zero existing-test impact (all four integrations are new + isolated). For `webhook-dispatch.test.ts`, jsdom should provide `crypto.subtle` for HMAC; verify by `console.log(typeof crypto.subtle)` in a one-off test if anything fails. AWS SDK mocks live per-test via `vi.mock('@aws-sdk/s3-request-presigner', ...)` since these are Deno-only deps that don't bundle into frontend tests.
+
+## Pre-flight verification (run before any task)
+
+1. `git log --oneline` includes the 3 Wave 35 commits + docs sweep.
+2. External prerequisites — log in PR descriptions:
+   - **Task 1 (Zoho)**: Zoho developer app registered with `ZohoCRM.modules.ALL` + `ZohoAnalytics.data.READ` scopes; `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REDIRECT_URI` set in Supabase secrets.
+   - **Task 2 (S3)**: AWS S3 bucket exists; CORS configured per `docs/operations/s3-cors-setup.md`; `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `S3_BUCKET` set; `S3_MAX_UPLOAD_BYTES` defaults to `104857600` (100 MB) if unset.
+   - **Task 3 (ICS)**: no external prerequisite.
+   - **Task 4 (Webhooks)**: requires the Wave 27 `activity_log` to be populated. Verify by `psql -c "SELECT count(*) FROM public.activity_log"` returns >0.
+3. Pinned dep versions for the edge functions (Deno ESM URLs):
+   - AWS S3: `https://esm.sh/@aws-sdk/client-s3@3.700.0` + `https://esm.sh/@aws-sdk/s3-request-presigner@3.700.0`
+   - Web Push (already in Wave 30): no addition.
+   - Zoho HTTP: native Deno fetch — no SDK.
+4. **Cron scheduling** — Wave 36's `zoho-sync` and `webhook-dispatch` are cron-driven. `pg_cron` is intentionally NOT enabled (per `supabase/functions/nightly-sync/README.md` and Wave 30's documentation). Use Supabase Dashboard's Scheduled Triggers or external scheduler. Add entries to `docs/operations/edge-function-schedules.md` (Wave 30) for both new functions.
 
 ## Branch
 
@@ -35,7 +51,7 @@ Four tasks. Each is a self-contained integration that doesn't depend on the othe
 
 **Commit:** `feat(wave-36): zoho oauth + per-user token storage + project/contact sync`
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_zoho_integration.sql`, NEW)
+1. **Migration** (`docs/db/migrations/2026_04_18_zoho_integration.sql`, NEW)
    - `CREATE TABLE public.zoho_connections (user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE, access_token text NOT NULL, refresh_token text NOT NULL, expires_at timestamptz NOT NULL, scope text, account_url text NOT NULL, connected_at timestamptz NOT NULL DEFAULT now(), last_synced_at timestamptz)`.
    - `CREATE TABLE public.zoho_sync_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, direction text NOT NULL CHECK (direction IN ('zoho_to_planter','planter_to_zoho')), entity_type text NOT NULL, planter_id uuid, zoho_id text, action text NOT NULL CHECK (action IN ('created','updated','skipped','failed')), error text, synced_at timestamptz NOT NULL DEFAULT now())`.
    - RLS: `zoho_connections` SELECT/UPDATE/DELETE `user_id = auth.uid()`. INSERT via the OAuth-callback edge function only. `zoho_sync_log` SELECT `user_id = auth.uid() OR is_admin(auth.uid())`. INSERT via sync function only.
@@ -78,7 +94,7 @@ Four tasks. Each is a self-contained integration that doesn't depend on the othe
 
 **Commit:** `feat(wave-36): s3 presigned-url upload pipeline for task resources`
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_s3_uploads.sql`, NEW)
+1. **Migration** (`docs/db/migrations/2026_04_18_s3_uploads.sql`, NEW)
    - Extend `task_resources` table with two new columns: `external_storage_provider text CHECK (external_storage_provider IS NULL OR external_storage_provider IN ('s3'))`, `external_storage_url text`. Existing `storage_bucket` + `storage_path` are for Supabase Storage; the new columns are for S3.
    - Mirror into `docs/db/schema.sql`.
 
@@ -119,7 +135,7 @@ Four tasks. Each is a self-contained integration that doesn't depend on the othe
 
 **Commit:** `feat(wave-36): per-user signed ICS feed of upcoming tasks`
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_ics_tokens.sql`, NEW)
+1. **Migration** (`docs/db/migrations/2026_04_18_ics_tokens.sql`, NEW)
    - `CREATE TABLE public.ics_feed_tokens (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, token text NOT NULL UNIQUE, label text, project_filter uuid[], created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz, last_accessed_at timestamptz)`.
    - Index on `(token)` for the public lookup.
    - RLS: SELECT/INSERT/UPDATE/DELETE `user_id = auth.uid()`.
@@ -156,7 +172,7 @@ Four tasks. Each is a self-contained integration that doesn't depend on the othe
 
 **Commit:** `feat(wave-36): per-user webhook subscriptions for activity-log events`
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_webhook_subscriptions.sql`, NEW)
+1. **Migration** (`docs/db/migrations/2026_04_18_webhook_subscriptions.sql`, NEW)
    - `CREATE TABLE public.webhook_subscriptions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, target_url text NOT NULL CHECK (target_url ~* '^https://'), secret text NOT NULL, event_types text[] NOT NULL DEFAULT ARRAY['task.created','task.status_changed','comment.posted'], project_filter uuid[], active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(), last_delivered_at timestamptz, last_failure text)`.
    - `CREATE TABLE public.webhook_deliveries (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), subscription_id uuid NOT NULL REFERENCES public.webhook_subscriptions(id) ON DELETE CASCADE, event_type text NOT NULL, payload jsonb NOT NULL, response_status int, response_body text, attempts int NOT NULL DEFAULT 0, delivered_at timestamptz, created_at timestamptz NOT NULL DEFAULT now())`.
    - Index on `webhook_deliveries.subscription_id, created_at DESC`.
@@ -212,7 +228,8 @@ Land docs as `docs(wave-36): documentation currency sweep`.
 5. **Failure handling** — register a webhook to an invalid URL → confirm 3 retries + `last_failure` stamped + after 10 failures the subscription auto-deactivates.
 6. **No FSD drift** — every integration's UI lives in `features/settings/`; data layer in `planterClient.integrations.*`; no shared imports back from features.
 7. **Type drift** — multiple new tables hand-edited; verify all are in sync.
-8. **Lint + build + tests** — green.
+8. **Test-impact reconciled** — zero existing-test impact (all four integrations are new + isolated); webhook HMAC test verifies signature; ICS test parses generated `.ics` for structural correctness; cron schedules added to `docs/operations/edge-function-schedules.md`; no `it.skip`. Test count ≥ baseline + new tests.
+9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 + §8.6 (cron schedules go to operations doc, NOT pg_cron — HALT if any plan reference says otherwise).
 
 ## Commit & Push to Main (mandatory — gates Wave 37)
 
@@ -224,10 +241,12 @@ After all four Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Cron schedules go to `docs/operations/edge-function-schedules.md` (Wave 30) — `pg_cron` is NOT enabled (§8.6 of the protocol).**
+
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npx vitest run    # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 
@@ -262,10 +281,10 @@ Manual smoke per Wave Review.
 - `.env.example` (8 new env vars across Zoho + AWS)
 
 **Will create:**
-- `docs/db/migrations/2026_XX_XX_zoho_integration.sql`
-- `docs/db/migrations/2026_XX_XX_s3_uploads.sql`
-- `docs/db/migrations/2026_XX_XX_ics_tokens.sql`
-- `docs/db/migrations/2026_XX_XX_webhook_subscriptions.sql`
+- `docs/db/migrations/2026_04_18_zoho_integration.sql`
+- `docs/db/migrations/2026_04_18_s3_uploads.sql`
+- `docs/db/migrations/2026_04_18_ics_tokens.sql`
+- `docs/db/migrations/2026_04_18_webhook_subscriptions.sql`
 - `docs/architecture/integrations.md`
 - `docs/operations/s3-cors-setup.md`
 - `supabase/functions/zoho-oauth-init/{index.ts,README.md}`

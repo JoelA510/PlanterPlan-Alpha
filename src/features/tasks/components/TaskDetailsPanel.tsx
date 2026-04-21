@@ -4,6 +4,7 @@ import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 
 import TaskForm from '@/features/tasks/components/TaskForm';
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
+import { useTaskFocusBroadcast } from '@/features/tasks/hooks/useTaskFocusBroadcast';
 import { X } from 'lucide-react';
 
 type TaskFormState = { mode?: 'create' | 'edit'; origin?: 'instance' | 'template'; isPhase?: boolean } | null;
@@ -71,6 +72,12 @@ export default function TaskDetailsPanel({
 
  const isTaskFormOpen = Boolean(taskFormState);
 
+ // Wave 27: broadcast focus on the open task to the per-project presence
+ // channel. When the panel unmounts or selection clears, the effect's
+ // cleanup + next-tick re-run with `focusedTaskId = null` reverts it.
+ const projectId = selectedTask?.root_id ?? selectedTask?.id ?? null;
+ useTaskFocusBroadcast(projectId, selectedTask?.id ?? null);
+
  return (
  <aside data-testid="task-details-panel" className="w-full sm:w-1/3 sm:min-w-80 sm:max-w-md bg-white border-l border-slate-200 flex flex-col shadow-2xl z-30 h-full overflow-hidden transition-all duration-300">
  <div className="pt-8 px-6 pb-6 border-b border-slate-100 flex justify-between items-start bg-white sticky top-0 z-20">
@@ -96,6 +103,7 @@ export default function TaskDetailsPanel({
  onSubmit={handleTaskSubmit || (async () => {})}
  onCancel={() => setTaskFormState(null)}
  membershipRole={membershipRole}
+ projectId={projectId}
  />
  ) : selectedTask ? (
  <TaskDetailsView

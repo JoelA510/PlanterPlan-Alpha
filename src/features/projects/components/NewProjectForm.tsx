@@ -1,30 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { Trans, useTranslation } from 'react-i18next';
 import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
-
-const projectSchema = z.object({
-    title: z.string().min(1, 'Project title is required'),
-    description: z.string().optional(),
-    purpose: z.string().optional(),
-    actions: z.string().optional(),
-    notes: z.string().optional(),
-    start_date: z.string().min(1, 'Start date is required'),
-    templateId: z.string().nullable().optional(),
-});
-
-type ProjectFormData = z.infer<typeof projectSchema>;
-
-const defaultValues: ProjectFormData = {
-    title: '',
-    description: '',
-    purpose: '',
-    actions: '',
-    notes: '',
-    start_date: '',
-    templateId: null,
-};
 
 interface LibraryTask {
     id: string;
@@ -41,8 +20,43 @@ interface NewProjectFormProps {
     onCancel: () => void;
 }
 
+type ProjectFormData = {
+    title: string;
+    description?: string;
+    purpose?: string;
+    actions?: string;
+    notes?: string;
+    start_date: string;
+    templateId?: string | null;
+};
+
+const defaultValues: ProjectFormData = {
+    title: '',
+    description: '',
+    purpose: '',
+    actions: '',
+    notes: '',
+    start_date: '',
+    templateId: null,
+};
+
 const NewProjectForm = ({ onSubmit, onCancel }: NewProjectFormProps) => {
+    const { t } = useTranslation();
     const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
+
+    const projectSchema = useMemo(
+        () =>
+            z.object({
+                title: z.string().min(1, t('projects.form.title_required')),
+                description: z.string().optional(),
+                purpose: z.string().optional(),
+                actions: z.string().optional(),
+                notes: z.string().optional(),
+                start_date: z.string().min(1, t('projects.form.start_date_required')),
+                templateId: z.string().nullable().optional(),
+            }),
+        [t],
+    );
 
     const {
         register,
@@ -82,14 +96,18 @@ const NewProjectForm = ({ onSubmit, onCancel }: NewProjectFormProps) => {
                 <MasterLibrarySearch
                     mode="copy"
                     onSelect={(t) => handleApplyFromLibrary(t as LibraryTask)}
-                    label="Search master library"
-                    placeholder="Search tasks to prefill this project"
+                    label={t('projects.form.search_library_label')}
+                    placeholder={t('projects.form.search_library_placeholder')}
                 />
             </div>
 
             {lastAppliedTaskTitle && (
                 <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                    Copied details from <span className="font-semibold">{lastAppliedTaskTitle}</span>.
+                    <Trans
+                        i18nKey="projects.form.copied_from"
+                        values={{ title: lastAppliedTaskTitle }}
+                        components={{ strong: <span className="font-semibold" /> }}
+                    />
                 </div>
             )}
 
@@ -97,14 +115,14 @@ const NewProjectForm = ({ onSubmit, onCancel }: NewProjectFormProps) => {
 
             <div className="form-group">
                 <label htmlFor="title" className="form-label">
-                    Project Title <span className="required">*</span>
+                    {t('projects.form.title_label')} <span className="required">{t('projects.form.required_marker')}</span>
                 </label>
                 <input
                     type="text"
                     id="title"
                     autoFocus
                     className={`form-input ${errors.title ? 'error' : ''}`}
-                    placeholder="Enter project title"
+                    placeholder={t('projects.form.title_placeholder')}
                     {...register('title')}
                 />
                 {errors.title && <span className="form-error">{errors.title.message}</span>}
@@ -112,12 +130,12 @@ const NewProjectForm = ({ onSubmit, onCancel }: NewProjectFormProps) => {
 
             <div className="form-group">
                 <label htmlFor="description" className="form-label">
-                    Description
+                    {t('projects.form.description_label')}
                 </label>
                 <textarea
                     id="description"
                     className="form-textarea"
-                    placeholder="Describe this project..."
+                    placeholder={t('projects.form.description_placeholder')}
                     rows={4}
                     {...register('description')}
                 />
@@ -125,12 +143,12 @@ const NewProjectForm = ({ onSubmit, onCancel }: NewProjectFormProps) => {
 
             <div className="form-group">
                 <label htmlFor="purpose" className="form-label">
-                    Purpose
+                    {t('projects.form.purpose_label')}
                 </label>
                 <textarea
                     id="purpose"
                     className="form-textarea"
-                    placeholder="Why is this project being created?"
+                    placeholder={t('projects.form.purpose_placeholder')}
                     rows={3}
                     {...register('purpose')}
                 />
@@ -138,7 +156,7 @@ const NewProjectForm = ({ onSubmit, onCancel }: NewProjectFormProps) => {
 
             <div className="form-group">
                 <label htmlFor="start_date" className="form-label">
-                    Start Date <span className="required">*</span>
+                    {t('projects.form.start_date_label')} <span className="required">{t('projects.form.required_marker')}</span>
                 </label>
                 <input
                     type="date"
@@ -151,10 +169,10 @@ const NewProjectForm = ({ onSubmit, onCancel }: NewProjectFormProps) => {
 
             <div className="form-actions mt-6 flex justify-end space-x-3 border-t border-slate-100 pt-4">
                 <button type="button" onClick={onCancel} className="btn-secondary" disabled={isSubmitting}>
-                    Cancel
+                    {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn-primary" disabled={isSubmitting}>
-                    {isSubmitting ? 'Creating...' : 'Create Project'}
+                    {isSubmitting ? t('projects.form.creating') : t('projects.form.create')}
                 </button>
             </div>
         </form>

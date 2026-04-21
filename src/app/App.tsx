@@ -1,6 +1,9 @@
+import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { I18nextProvider } from 'react-i18next';
+import { i18n } from '@/shared/i18n';
 import { AuthProvider, useAuth } from '@/shared/contexts/AuthContext';
 import DashboardLayout from '../layouts/DashboardLayout';
 import Dashboard from '../pages/Dashboard';
@@ -10,6 +13,8 @@ import Settings from '../pages/Settings';
 import TasksPage from '../pages/TasksPage';
 import DailyTasks from '../pages/DailyTasks';
 import LoginForm from '@/pages/components/LoginForm';
+
+const Gantt = lazy(() => import('@/pages/Gantt'));
 
 const queryClient = new QueryClient();
 
@@ -22,6 +27,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
  return (
  <QueryClientProvider client={queryClient}>
+ <I18nextProvider i18n={i18n}>
  <AuthProvider>
  <Router>
  <Routes>
@@ -35,11 +41,16 @@ export default function App() {
  <Route path="tasks" element={<TasksPage />} />
  <Route path="daily" element={<DailyTasks />} />
  <Route path="settings" element={<Settings />} />
+ <Route
+ path="gantt"
+ element={<Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading gantt…</div>}><Gantt /></Suspense>}
+ />
  </Route>
  </Routes>
  </Router>
  <Toaster richColors position="top-right" />
  </AuthProvider>
+ </I18nextProvider>
  </QueryClientProvider >
  );
 }

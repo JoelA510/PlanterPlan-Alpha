@@ -11,6 +11,22 @@ vi.mock('@/features/tasks/hooks/useTaskSiblings', () => ({
   useTaskSiblings: (...args: unknown[]) => mockUseTaskSiblings(...args),
 }));
 
+vi.mock('@/features/tasks/hooks/useTaskComments', () => ({
+  useTaskComments: () => ({ data: [], isLoading: false }),
+  useCreateComment: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateComment: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteComment: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
+vi.mock('@/features/tasks/hooks/useTaskCommentsRealtime', () => ({
+  useTaskCommentsRealtime: () => undefined,
+}));
+
+vi.mock('@/features/projects/hooks/useProjectActivity', () => ({
+  useProjectActivity: () => ({ data: [], isLoading: false }),
+  useTaskActivity: () => ({ data: [], isLoading: false }),
+}));
+
 vi.mock('@/shared/db/client', () => ({
   supabase: {
     auth: {

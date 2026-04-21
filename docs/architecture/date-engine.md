@@ -21,11 +21,14 @@ Calculated dynamically based on system time vs. Task End Dates:
 * **Global Date Shifts:** Editing the Project-level due date automatically shifts the due dates of *all* nested Phases, Milestones, and Tasks to preserve relative spacing.
 * **Dependency Auto-Adjustment:** Modifying a task date or moving an item via drag-and-drop (`dateInheritance.ts`) strictly conforms to parent bounds and auto-adjusts dependent child items.
 * **Template Exclusion:** The Date Engine is entirely disabled for Library Templates. Template tasks use `duration` and `days from start until due`.
+* **Checkpoint projects (Wave 29):** `recalculateProjectDates` and `deriveUrgencyForProject` short-circuit when the project root carries `settings.project_kind === 'checkpoint'`; nightly-sync skips urgency transitions for those roots; due dates render as informational only. `isCheckpointProject` is lock-step with `supabase/functions/_shared/date.ts`.
+* **Wave 31:** display-time date formatting uses `formatDateLocalized` from `src/shared/i18n/formatters.ts` (Intl `DateTimeFormat` / `RelativeTimeFormat` with per-locale caches). Internal math stays UTC-anchored ISO strings here in `date-engine/index.ts` — `compareDateAsc`, `isBeforeDate`, `formatDisplayDate`, cascade/rollup calculations, etc. Don't conflate the two: calling `formatDateLocalized` in a comparator silently breaks sort stability across locales; calling `formatDisplayDate` in JSX silently renders the wrong language.
 
 ## Integration Points
 * **Tasks & Subtasks:** The drag-and-drop system relies heavily on the Date Engine to recalculate bounds when items are moved.
 * **Dashboard:** Feeds 'Due Soon' and 'Overdue' metrics to `StatsOverview`.
 * **Nightly CRON (Wave 20):** `supabase/functions/nightly-sync/` owns the *write* path for urgency-status transitions (`not_started` → `in_progress` → `due_soon` → `overdue`) using per-project `settings.due_soon_threshold`. The app-layer Date Engine computes urgency for display (`deriveUrgency`) but no longer writes status to the DB itself. See `supabase/functions/nightly-sync/README.md`.
+* **Gantt drag-shift (Wave 28):** `src/features/gantt/hooks/useGanttDragShift.ts` validates bounds via `isBeforeDate`/`compareDateAsc`, then routes through `useUpdateTask`. Cascade-up logic in `updateParentDates` unchanged.
 
 ## Known Gaps / Technical Debt
 * Algorithms for auto-adjusting dates currently lack logic for skipping weekends and regional holidays.

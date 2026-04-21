@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { planter } from '@/shared/api/planterClient';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Progress } from '@/shared/ui/progress';
@@ -31,6 +32,7 @@ import type { TaskRow } from '@/shared/db/app.types';
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export default function Reports() {
+    const { t } = useTranslation();
     const urlParams = new URLSearchParams(window.location.search);
     const projectId = urlParams.get('project');
     const navigate = useNavigate();
@@ -54,9 +56,7 @@ export default function Reports() {
         enabled: !!projectId,
     });
 
-    // Phases are direct children of the project
     const phases = allTasks.filter((t) => t.parent_task_id === projectId);
-    // Tasks are everything else
     const tasks = allTasks.filter((t) => t.parent_task_id !== projectId);
 
     const defaultMonthKey = () => {
@@ -100,7 +100,7 @@ export default function Reports() {
                             </Link>
                             <div>
                                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-                                    Reports & Analytics
+                                    {t('projects.reports.title')}
                                 </h1>
                                 {project && <p className="text-slate-600 mt-1">{project.title}</p>}
                             </div>
@@ -114,9 +114,9 @@ export default function Reports() {
                             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
                                 <BarChart className="w-8 h-8 text-slate-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-2">Select a Project</h3>
+                            <h3 className="text-xl font-bold text-slate-900 mb-2">{t('projects.reports.select_project')}</h3>
                             <p className="text-slate-500 max-w-sm text-center mb-6">
-                                Choose a project below to view its detailed reports and analytics.
+                                {t('projects.reports.select_project_description')}
                             </p>
 
                             <div className="w-full max-w-sm">
@@ -126,7 +126,7 @@ export default function Reports() {
                                     }}
                                 >
                                     <SelectTrigger className="w-full bg-white">
-                                        <SelectValue placeholder="Select a project..." />
+                                        <SelectValue placeholder={t('projects.reports.select_placeholder')} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {allProjects.map((p: TaskRow) => (
@@ -136,7 +136,7 @@ export default function Reports() {
                                         ))}
                                         {allProjects.length === 0 && (
                                             <SelectItem value="none" disabled>
-                                                No projects available
+                                                {t('projects.reports.no_projects_available')}
                                             </SelectItem>
                                         )}
                                     </SelectContent>
@@ -178,9 +178,9 @@ export default function Reports() {
                                 <Card className="p-8 mb-10 border border-slate-200 bg-slate-50/50 shadow-md hover:shadow-xl transition-all duration-300">
                                     <div className="flex items-center justify-between mb-6">
                                         <div>
-                                            <h3 className="text-xl font-bold text-foreground">Overall Progress</h3>
+                                            <h3 className="text-xl font-bold text-foreground">{t('projects.reports.overall_progress')}</h3>
                                             <p className="text-sm text-muted-foreground mt-1">
-                                                {completedTasks} of {totalTasks} tasks completed
+                                                {t('projects.reports.tasks_completed_label', { completed: completedTasks, total: totalTasks })}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-3 px-4 py-2 bg-green-50 rounded-xl border border-green-200">
@@ -194,7 +194,7 @@ export default function Reports() {
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-                                    <h2 className="text-lg font-semibold text-foreground mb-4">Task Status Distribution</h2>
+                                    <h2 className="text-lg font-semibold text-foreground mb-4">{t('projects.reports.task_distribution_heading')}</h2>
                                     <div className="h-64">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>
@@ -222,40 +222,43 @@ export default function Reports() {
 
                                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-lg font-semibold text-foreground">Monthly Breakdown</h2>
+                                        <h2 className="text-lg font-semibold text-foreground">{t('projects.reports.monthly_breakdown')}</h2>
                                         <label className="flex items-center gap-2 text-sm">
-                                            <span className="text-muted-foreground">Month</span>
+                                            <span className="text-muted-foreground">{t('projects.reports.month_label')}</span>
                                             <input
                                                 type="month"
                                                 value={selectedMonth}
                                                 onChange={(e) => setSelectedMonth(e.target.value || defaultMonthKey())}
                                                 className="px-2 py-1 rounded-md border border-border bg-card text-sm"
-                                                aria-label="Reporting month"
+                                                aria-label={t('projects.reports.month_aria')}
                                             />
                                         </label>
                                     </div>
                                     <div className="space-y-5 max-h-80 overflow-y-auto pr-1">
                                         <MilestoneList
-                                            heading="Completed This Month"
+                                            heading={t('projects.reports.completed_this_month')}
                                             icon={CheckCircle2}
                                             accent="text-green-600"
-                                            emptyText="No milestones completed this month yet."
+                                            emptyText={t('projects.reports.none_completed')}
+                                            noDueDateLabel={t('projects.reports.no_due_date')}
                                             items={completedThisMonth}
                                             onItemClick={() => navigate(`/Project?id=${projectId}`)}
                                         />
                                         <MilestoneList
-                                            heading="Overdue"
+                                            heading={t('projects.reports.overdue_heading')}
                                             icon={AlertTriangle}
                                             accent="text-red-600"
-                                            emptyText="Nothing overdue. Nice work."
+                                            emptyText={t('projects.reports.none_overdue')}
+                                            noDueDateLabel={t('projects.reports.no_due_date')}
                                             items={overdueMilestones}
                                             onItemClick={() => navigate(`/Project?id=${projectId}`)}
                                         />
                                         <MilestoneList
-                                            heading="Upcoming This Month"
+                                            heading={t('projects.reports.upcoming_this_month')}
                                             icon={Clock}
                                             accent="text-orange-600"
-                                            emptyText="No upcoming milestones in this month."
+                                            emptyText={t('projects.reports.none_upcoming')}
+                                            noDueDateLabel={t('projects.reports.no_due_date')}
                                             items={upcomingThisMonth}
                                             onItemClick={() => navigate(`/Project?id=${projectId}`)}
                                         />
@@ -270,7 +273,7 @@ export default function Reports() {
                                 className="mt-8"
                             >
                                 <Card className="p-8 border border-border bg-card shadow-lg">
-                                    <h3 className="text-xl font-bold text-foreground mb-8">Phase Details</h3>
+                                    <h3 className="text-xl font-bold text-foreground mb-8">{t('projects.reports.phase_details_heading')}</h3>
                                     <div className="space-y-6">
                                         {phaseData.map((phase) => (
                                             <div
@@ -291,7 +294,7 @@ export default function Reports() {
                                                     </div>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground ml-28">
-                                                    {phase.completed} of {phase.total} milestones completed
+                                                    {t('projects.reports.milestones_completed_label', { completed: phase.completed, total: phase.total })}
                                                 </p>
                                             </div>
                                         ))}
@@ -318,11 +321,12 @@ interface MilestoneListProps {
     icon: React.ComponentType<{ className?: string }>;
     accent: string;
     emptyText: string;
+    noDueDateLabel: string;
     items: MilestoneListItem[];
     onItemClick: () => void;
 }
 
-function MilestoneList({ heading, icon: Icon, accent, emptyText, items, onItemClick }: MilestoneListProps) {
+function MilestoneList({ heading, icon: Icon, accent, emptyText, noDueDateLabel, items, onItemClick }: MilestoneListProps) {
     return (
         <section>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2">
@@ -342,7 +346,7 @@ function MilestoneList({ heading, icon: Icon, accent, emptyText, items, onItemCl
                         >
                             <div className="min-w-0 flex-1">
                                 <h4 className="font-medium text-foreground truncate text-sm">{m.title}</h4>
-                                <p className="text-xs text-muted-foreground mt-1">{m.due_date || 'No due date'}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{m.due_date || noDueDateLabel}</p>
                             </div>
                             <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-700 ml-4 flex-shrink-0">
                                 {m.progress}%

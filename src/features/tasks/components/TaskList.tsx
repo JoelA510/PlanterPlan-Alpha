@@ -8,6 +8,7 @@ import { Project, TaskRow, TaskFormData, TaskInsert, Json } from '@/shared/db/ap
 import { formDataToRecurrenceRule } from '@/features/tasks/lib/recurrence-form';
 import { applyCoachingFlag, formDataToCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { applyStrategyTemplateFlag, formDataToStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
+import { applyPhaseLeads } from '@/features/projects/lib/phase-lead';
 import React from 'react';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
@@ -243,10 +244,15 @@ const TaskList = () => {
     } else {
       // Instance: apply the coaching + strategy flags in sequence, preserving any other keys.
       const afterCoaching = applyCoachingFlag(existingObj, formDataToCoachingFlag(data));
-      settingsPatch = applyStrategyTemplateFlag(
+      const afterStrategy = applyStrategyTemplateFlag(
         afterCoaching ?? existingObj,
         formDataToStrategyTemplateFlag(data),
       );
+      // Wave 29: merge the Phase Leads array only when the form actually emitted it
+      // (TaskFormFields gates the field to owners on phase/milestone rows).
+      settingsPatch = Array.isArray(data.phase_lead_user_ids)
+        ? applyPhaseLeads(afterStrategy ?? existingObj, data.phase_lead_user_ids)
+        : afterStrategy;
     }
 
     if (state?.mode === 'edit' && state?.taskId) {

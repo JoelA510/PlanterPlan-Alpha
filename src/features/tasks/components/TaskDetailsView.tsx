@@ -4,6 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import TaskResources from '@/features/tasks/components/TaskResources';
 import TaskDependencies from '@/features/tasks/components/TaskDependencies';
+import TaskComments from '@/features/tasks/components/TaskComments/TaskComments';
+import { useTaskActivity } from '@/features/projects/hooks/useProjectActivity';
+import { ActivityRow } from '@/features/projects/components/ActivityRow';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useTaskSiblings } from '@/features/tasks/hooks/useTaskSiblings';
@@ -23,6 +26,8 @@ import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 import type { TaskRow } from '@/shared/db/app.types';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
+import { extractPhaseLeads } from '@/features/projects/lib/phase-lead';
+import { useTeam } from '@/features/people/hooks/useTeam';
 import StrategyFollowUpDialog from '@/features/tasks/components/StrategyFollowUpDialog';
 import { collectSpawnedTemplateIds } from '@/shared/lib/tree-helpers';
 
@@ -73,6 +78,20 @@ const TaskDetailsView = ({
     // with the already-completed row in cache.
     const prevStatusRef = useRef<string | null | undefined>(task?.status);
     const isStrategyTask = extractStrategyTemplateFlag(task as TaskRow | undefined);
+    const phaseLeadIds = useMemo(
+        () => extractPhaseLeads(task as TaskRow | undefined),
+        [task],
+    );
+    const phaseLeadProjectId = task?.root_id ?? task?.id ?? null;
+    const { teamMembers: phaseLeadMembers } = useTeam(phaseLeadIds.length > 0 ? phaseLeadProjectId : null);
+    const phaseLeadLabels = useMemo(
+        () => phaseLeadIds.map((id) => {
+            const member = phaseLeadMembers.find((m) => m.user_id === id);
+            const email = member ? (member as unknown as { email?: string }).email : undefined;
+            return email ?? `User ${id.slice(0, 8)}`;
+        }),
+        [phaseLeadIds, phaseLeadMembers],
+    );
     useEffect(() => {
         const prev = prevStatusRef.current;
         const curr = task?.status;
@@ -294,6 +313,20 @@ const TaskDetailsView = ({
                             </span>
                         </div>
                     )}
+
+                    {phaseLeadIds.length > 0 && (
+                        <div className="flex flex-col gap-1" data-testid="phase-lead-badge-group">
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                Phase Leads
+                            </span>
+                            <span
+                                data-testid="phase-lead-badge"
+                                className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border bg-purple-50 text-purple-700 border-purple-100"
+                            >
+                                {phaseLeadLabels.join(', ')}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -327,6 +360,12 @@ const TaskDetailsView = ({
                     )}
                 </div>
             )}
+
+            {/* Comments (Wave 26) */}
+            <TaskComments taskId={task.id} />
+
+            {/* Activity (Wave 27) */}
+            <TaskActivityRail taskId={task.id} />
 
             {/* Subtasks */}
             {task.children && task.children.length > 0 && (
@@ -483,5 +522,36 @@ const TaskDetailsView = ({
         </div >
     );
 };
+
+/** Collapsed per-task activity rail. Always mounts the query so the
+ *  count surfaces in the summary; body renders only when `<details>` is open. */
+function TaskActivityRail({ taskId }: { taskId: string }) {
+    const { data: rows = [], isLoading } = useTaskActivity(taskId, { limit: 20 });
+    return (
+        <details className="detail-section mb-6 group" data-testid="task-activity-rail">
+            <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wide">
+                <span>Activity</span>
+                <span className="text-xs text-slate-500 normal-case font-medium">
+                    ({rows.length})
+                </span>
+            </summary>
+            <div className="mt-3 bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+                {isLoading ? (
+                    <p className="text-sm text-slate-500">Loading activity…</p>
+                ) : rows.length === 0 ? (
+                    <p className="text-sm text-slate-500" data-testid="task-activity-empty">
+                        No activity yet.
+                    </p>
+                ) : (
+                    <div className="divide-y divide-slate-100">
+                        {rows.map((r) => (
+                            <ActivityRow key={r.id} row={r} hideEntityLink />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </details>
+    );
+}
 
 export default TaskDetailsView;

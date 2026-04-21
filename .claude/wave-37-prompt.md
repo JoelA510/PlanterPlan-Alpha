@@ -21,7 +21,18 @@ The known-gaps list this wave attacks (sourced from `docs/architecture/*.md` + `
 4. **`projects-phases.md`**: Template Immutability — Logic to prevent users from deleting specific items that originated from a Master Template (allowing deletion only for custom post-instantiation additions) is not yet fully enforced.
 5. **`repo-context.yaml` health metrics**: Virtualization needed for 1000+ tasks (medium tech-debt).
 
-**Gate baseline going into Wave 37:** confirm the current `main` baseline. Run `npm run lint`, `npm run build`, `npx vitest run`. This wave should add no new functional surfaces — just hardening — so the test count delta should be modest (~30-50 new tests covering the new behaviors).
+**Test baseline going into Wave 37:** Wave 36 shipped at ≥770 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress. This wave adds no new functional surfaces — just hardening — so the test count delta is modest (~30-50 new tests).
+
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 37 specific: Task 3 + 4 modify the `clone_project_template` RPC server-side. The existing `Testing/unit/shared/api/planterClient.clone.stamp.test.ts` test (Wave 22) asserts that `Task.clone` follows up with a `Task.update` writing `settings.spawnedFromTemplate`. Read this file first — if Task 3's stamp of `cloned_from_template_version` is added on the server side (in the RPC body) rather than the client-side follow-up, the existing test stays unchanged. Task 4's `cloned_from_task_id` populates server-side too, so client-side test is also unchanged. Add NEW assertions for both stamps in `Testing/unit/shared/api/planterClient.template.versioning.test.ts`. Mock `react-virtuoso` for Task 5's virtualization test: `vi.mock('react-virtuoso', () => ({ Virtuoso: vi.fn(({ data, itemContent }) => data.map((d, i) => itemContent(i, d))) }))` (renders all items synchronously — virtualization correctness is the lib's responsibility, not ours).
+
+## Pre-flight verification (run before any task)
+
+1. `git log --oneline` includes the 4 Wave 36 commits + docs sweep.
+2. **CRITICAL**: `public.project_invites` already exists in the schema with columns `id, project_id, email, role, token, created_at, expires_at` (per Wave 23 schema map). Wave 37 Task 2 **extends** this table — does NOT create a new `pending_invites` table. Verify via `\d public.project_invites` in psql before starting Task 2.
+3. Wave 34 added `public.organizations` and `tasks.organization_id` — Wave 37 Task 1 (holiday calendars) FK-references `organizations`.
+4. The existing tasks-table columns: `is_locked`, `prerequisite_phase_id`, `task_type` (Wave 25), `template_version` (NOT YET — Task 3 adds), `cloned_from_task_id` (NOT YET — Task 4 adds).
+5. The existing `clone_project_template` RPC exists and has the signature `(p_template_id uuid, p_new_parent_id uuid, p_new_origin text, p_user_id uuid, p_title text DEFAULT NULL, p_description text DEFAULT NULL, p_start_date date DEFAULT NULL, p_due_date date DEFAULT NULL)` per Wave 23 schema map. Tasks 3 + 4 modify this RPC carefully (preserve signatures).
+6. `react-virtuoso` is NOT yet a dependency. Task 5 adds it.
 
 ## Branch
 
@@ -44,7 +55,7 @@ Five tasks, each closing one documented known-gap. The wave is broad but each ta
 
 **Commit:** `feat(wave-37): date-engine skips weekends + per-org holiday calendars`
 
-1. **Per-org holiday calendar** (`docs/db/migrations/2026_XX_XX_holiday_calendars.sql`, NEW)
+1. **Per-org holiday calendar** (`docs/db/migrations/2026_04_18_holiday_calendars.sql`, NEW)
    - `CREATE TABLE public.holiday_calendars (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE, label text NOT NULL, country_code text, start_date date NOT NULL, end_date date NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`.
    - `UNIQUE (organization_id, start_date, end_date, label)`.
    - Index on `(organization_id, start_date)`.
@@ -55,7 +66,7 @@ Five tasks, each closing one documented known-gap. The wave is broad but each ta
 2. **Date engine carve-out** (`src/shared/lib/date-engine/index.ts`)
    - New helper `addBusinessDays(startIso: string, days: number, holidays: HolidaySet): string` — adds N days, skipping weekends and any date in the holiday set.
    - New helper `nextBusinessDay(iso: string, holidays: HolidaySet): string` — advances to the next non-weekend, non-holiday day if currently on one.
-   - **`recalculateProjectDates` opt-in**: a new `{ skipWeekendsAndHolidays?: boolean }` parameter (default false to preserve current behavior). When true, date shifts use `addBusinessDays` instead of raw `addDays`. Caller (`EditProjectModal`) reads a per-project setting `settings.skip_weekends_and_holidays` (boolean, default false).
+   - **`recalculateProjectDates` opt-in**: a new `{ skipWeekendsAndHolidays?: boolean }` parameter (default false to preserve current behavior). When true, date shifts use the new `addBusinessDays` instead of `addDaysToDate` (the existing date-engine export — `addDays` does not exist). Caller (`EditProjectModal`) reads a per-project setting `settings.skip_weekends_and_holidays` (boolean, default false).
 
 3. **Settings UI** (`src/features/projects/components/EditProjectModal.tsx`)
    - New checkbox "Skip weekends + holidays when shifting dates" gated to project owner. Default OFF for backward compat.
@@ -83,37 +94,144 @@ Five tasks, each closing one documented known-gap. The wave is broad but each ta
 
 **Commit:** `feat(wave-37): pending invite escrow + auto-claim on user signup`
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_pending_invites.sql`, NEW)
-   - `CREATE TABLE public.pending_invites (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL, project_id uuid NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE, role text NOT NULL CHECK (role IN ('owner','editor','coach','viewer','limited')), invited_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE SET NULL, invited_at timestamptz NOT NULL DEFAULT now(), claimed_at timestamptz, claimed_by uuid REFERENCES auth.users(id), expires_at timestamptz NOT NULL DEFAULT (now() + interval '90 days'))`.
-   - `UNIQUE (email, project_id)`.
-   - Index on `lower(email)` for case-insensitive matching at signup.
-   - RLS: SELECT for the project owner OR admin OR the invitee (via `lower(email) = lower(auth.email())`). INSERT for project owner OR admin. DELETE for project owner OR admin OR the invitee (rejecting a pending invite).
-   - Mirror into `docs/db/schema.sql`.
+**CRITICAL CONTEXT**: the `public.project_invites` table **already exists** (per Wave 23 schema map: `id, project_id, email, role, token, created_at, expires_at` with `expires_at = now() + 7 days`). It's used by the existing `invoke_user_to_project()` RPC + the Wave 30-era `invite-by-email` edge function. **Do NOT create a new `pending_invites` table** — extend `project_invites` instead.
+
+1. **Migration** (`docs/db/migrations/2026_04_18_invite_escrow.sql`, NEW). Use this exact DDL:
+
+```sql
+-- Migration: Wave 37 — extend project_invites for escrow + auto-claim
+-- Date: 2026-04-18
+-- Description:
+--   Adds claim tracking to the existing `project_invites` table so invites sent
+--   to emails not yet in `auth.users` survive past their original 7-day expiry,
+--   and an AFTER INSERT trigger on `auth.users` auto-claims pending invites
+--   matching the new user's email.
+--
+--   The existing 7-day expiry default is bumped to 90 days for new escrowed
+--   rows (existing rows untouched). Email-existence at invite time is checked
+--   by the invite-by-email edge function (not the DB) — this migration is
+--   purely structural.
+--
+-- Revert path:
+--   DROP TRIGGER IF EXISTS trg_claim_pending_invites_on_signup ON auth.users;
+--   DROP FUNCTION IF EXISTS public.claim_pending_invites_on_signup();
+--   ALTER TABLE public.project_invites DROP COLUMN IF EXISTS claimed_at;
+--   ALTER TABLE public.project_invites DROP COLUMN IF EXISTS claimed_by;
+--   -- expires_at default change is forward-only; old rows already have 7-day defaults applied at insert time
+
+ALTER TABLE public.project_invites
+  ADD COLUMN claimed_at timestamptz,
+  ADD COLUMN claimed_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+-- Bump the default expiry on NEW rows from 7 days to 90 days
+ALTER TABLE public.project_invites
+  ALTER COLUMN expires_at SET DEFAULT (now() + interval '90 days');
+
+-- Case-insensitive lookup index
+CREATE INDEX IF NOT EXISTS idx_project_invites_email_lower
+  ON public.project_invites (lower(email))
+  WHERE claimed_at IS NULL;
+
+-- AFTER INSERT trigger on auth.users — auto-claim
+CREATE OR REPLACE FUNCTION public.claim_pending_invites_on_signup()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $$
+DECLARE
+  v_invite RECORD;
+BEGIN
+  FOR v_invite IN
+    SELECT id, project_id, role
+    FROM public.project_invites
+    WHERE lower(email) = lower(NEW.email)
+      AND claimed_at IS NULL
+      AND expires_at > now()
+  LOOP
+    -- Add to project_members (idempotent on (project_id, user_id))
+    INSERT INTO public.project_members (project_id, user_id, role)
+    VALUES (v_invite.project_id, NEW.id, v_invite.role)
+    ON CONFLICT (project_id, user_id) DO NOTHING;
+
+    -- Mark the invite claimed
+    UPDATE public.project_invites
+    SET claimed_at = now(), claimed_by = NEW.id
+    WHERE id = v_invite.id;
+
+    -- Enqueue a "you were added" notification (cheap; deduped by user_id+payload)
+    INSERT INTO public.notification_log (user_id, channel, event_type, payload)
+    VALUES (NEW.id, 'email', 'invite_claimed', jsonb_build_object('project_id', v_invite.project_id, 'role', v_invite.role));
+  END LOOP;
+  RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_pending_invites_on_signup() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.claim_pending_invites_on_signup() TO authenticated;
+
+CREATE TRIGGER trg_claim_pending_invites_on_signup
+AFTER INSERT ON auth.users
+FOR EACH ROW
+EXECUTE FUNCTION public.claim_pending_invites_on_signup();
+
+-- RLS additions for invitee SELECT (existing policies stay intact)
+CREATE POLICY "Invites: invitee can see own pending"
+ON public.project_invites
+FOR SELECT
+TO authenticated
+USING (
+  claimed_at IS NULL
+  AND lower(email) = lower((SELECT email FROM auth.users WHERE id = auth.uid()))
+);
+
+CREATE POLICY "Invites: invitee can delete own pending"
+ON public.project_invites
+FOR DELETE
+TO authenticated
+USING (
+  claimed_at IS NULL
+  AND lower(email) = lower((SELECT email FROM auth.users WHERE id = auth.uid()))
+);
+```
+
+Mirror everything (column adds, default change, index, function, trigger, two new policies) into `docs/db/schema.sql`. The existing `project_invites` policies (`"Create invites for project members"`, `"Delete invites for project members"`, `"View invites for project members"` — owner/editor scope) stay untouched.
+
+**Generated types** — extend the existing `project_invites` block in `src/shared/db/database.types.ts`:
+
+```ts
+project_invites: {
+  Row: {
+    // ... existing columns ...
+    claimed_at: string | null
+    claimed_by: string | null
+  }
+  Insert: { /* same with claimed_at?, claimed_by? */ }
+  Update: { /* same */ }
+  // ... Relationships unchanged ...
+}
+```
 
 2. **Updated invite flow** (`supabase/functions/invite-by-email/index.ts` — already exists)
-   - When the invitee email is NOT in `auth.users`, instead of failing, INSERT into `pending_invites` and dispatch the email with a "Sign up to claim your invite to ___" message + signup link.
-   - When the invitee IS in `auth.users`, behavior unchanged (insert into `project_members` directly).
+   - When the invitee email is NOT in `auth.users`, instead of failing, INSERT into `project_invites` (the existing table) and dispatch the email with a "Sign up to claim your invite to ___" message + signup link. The 90-day expiry default kicks in automatically.
+   - When the invitee IS in `auth.users`, behavior unchanged (insert into `project_members` directly via existing path).
 
-3. **Auto-claim trigger on signup** (`docs/db/migrations/2026_XX_XX_pending_invites.sql` — same migration)
-   - `CREATE FUNCTION public.claim_pending_invites_on_signup() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$ ... $$`. AFTER INSERT on `auth.users`. For each row in `pending_invites WHERE lower(email) = lower(NEW.email) AND claimed_at IS NULL AND expires_at > now()`:
-     - INSERT into `project_members` (`project_id`, `user_id = NEW.id`, `role`).
-     - UPDATE the `pending_invites` row with `claimed_at = now()`, `claimed_by = NEW.id`.
-     - INSERT a `notification_log` entry so the new user gets a "You've been added to N projects" welcome notification on first login.
+3. **Auto-claim trigger on signup** — already in the migration above.
 
-4. **Settings → Pending Invites tab** (`src/pages/Settings.tsx`)
-   - When the user has any unclaimed `pending_invites` matching their email, show a small banner / new tab listing them with "Accept" / "Reject" buttons. (Auto-claim already happened on signup; this UI is for invites sent AFTER signup but to a stale email.)
-   - More commonly used by project owners: an "Outgoing pending invites" view in the Project's Team page showing invites sent to non-existent emails. Allows resend / revoke.
+4. **Settings → Pending Invites surfacing** (`src/pages/Settings.tsx`)
+   - When the user has any unclaimed `project_invites` matching their email (RLS auto-filters via the new SELECT policy), show a small banner / new section in Profile tab listing them with "Accept" (auto-claim already fires on signup; this is for invites sent AFTER signup) / "Reject" (DELETE via the new policy) buttons.
+   - Owner-side: extend the existing Team management UI in `src/pages/Team.tsx` (or wherever invite management lives — verify by grepping for `project_invites`) to filter pending vs. claimed.
 
 5. **Architecture doc** (`docs/architecture/team-management.md`)
-   - Flip the "Escrowing permissions/invites for emails that do not yet have an active Supabase App User account requires extensive flow testing" known-gap to **Resolved (Wave 37)**. Document the auto-claim trigger + the 90-day expiry default.
+   - Flip the "Escrowing permissions/invites for emails that do not yet have an active Supabase App User account requires extensive flow testing" known-gap to **Resolved (Wave 37)**. Document the column additions, the auto-claim trigger, the 90-day expiry, and the invitee-side SELECT/DELETE RLS policies.
 
 6. **Tests**
-   - `Testing/unit/supabase/functions/invite-by-email.escrow.test.ts` (NEW) — non-existent-email path inserts into `pending_invites`; existing-email path unchanged.
-   - Manual `psql` smoke at `docs/db/tests/pending_invites_claim.sql` — pending invite for `alice@x.com` exists; sign up `alice@x.com` → `project_members` row materializes; `pending_invites.claimed_at` populates.
+   - `Testing/unit/supabase/functions/invite-by-email.escrow.test.ts` (NEW) — non-existent-email path inserts into `project_invites`; existing-email path unchanged.
+   - Manual `psql` smoke at `docs/db/tests/invite_escrow_claim.sql` — pending invite for `alice@x.com` exists with `claimed_at IS NULL`; sign up `alice@x.com` → `project_members` row materializes; `project_invites.claimed_at` populates; `notification_log` row appears.
 
-**DB migration?** Yes — one table + one trigger.
+**DB migration?** Yes — column adds + default change + index + trigger function + trigger + 2 new RLS policies. All additive (existing columns + policies untouched).
 
-**Out of scope:** Pending invites for non-`primary_domain` orgs (deferred — global pending-invites for v1; org-scoped is a Wave 38 polish if needed). Resending pending-invite emails on a schedule (one-shot at invite time only; user re-sends manually if desired).
+**Out of scope:** Pending invites scoped to `organization_id` (Wave 34 added orgs but Wave 37 invite-escrow stays per-project; org-scoped invites are a Wave 38+ polish). Resending pending-invite emails on a cron schedule (manual resend only).
 
 ---
 
@@ -121,7 +239,7 @@ Five tasks, each closing one documented known-gap. The wave is broad but each ta
 
 **Commit:** `feat(wave-37): stamp template version on cloned instances + admin version log`
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_template_versioning.sql`, NEW)
+1. **Migration** (`docs/db/migrations/2026_04_18_template_versioning.sql`, NEW)
    - Add column `template_version int NOT NULL DEFAULT 1` to `public.tasks` (only meaningful on `origin = 'template'` rows).
    - On every UPDATE to a template task (text/structure changes), increment `template_version`. Trigger: `BEFORE UPDATE ON public.tasks WHEN OLD.origin = 'template' AND NEW.origin = 'template'` and any of `(title, description, days_from_start, duration, settings)` changed → `NEW.template_version = OLD.template_version + 1`.
    - Stamp the cloned root with the source template's version: in the `clone_project_template` RPC (existing), when cloning, copy `source.template_version` into the cloned root's `settings.cloned_from_template_version`.
@@ -149,7 +267,7 @@ Five tasks, each closing one documented known-gap. The wave is broad but each ta
 
 **Commit:** `feat(wave-37): track template-origin on cloned tasks + UI guard against deletion`
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_task_template_origin.sql`, NEW)
+1. **Migration** (`docs/db/migrations/2026_04_18_task_template_origin.sql`, NEW)
    - Add column `cloned_from_task_id uuid REFERENCES public.tasks(id) ON DELETE SET NULL` to `public.tasks`. Stamped during `clone_project_template`. NULL means "post-instantiation custom addition".
    - Index on `cloned_from_task_id`.
    - Modify `clone_project_template` RPC: every cloned task carries the source task's id in `cloned_from_task_id`.
@@ -213,20 +331,21 @@ Five tasks, each closing one documented known-gap. The wave is broad but each ta
 6. **`docs/architecture/projects-phases.md`** — template-immutability gap → Resolved.
 7. **`docs/dev-notes.md`** — confirm currency. Add: "**Resolved (Wave 37):** every architecture-doc known-gap closed. Active list is now empty for the first time since Wave 16."
 8. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 37 (Hardening + Gap Closures)`, update `last_completed`, `spec_version`, add `wave_37_highlights:` block. Update `health_metrics` to remove the virtualization tech-debt entry.
-9. **`CLAUDE.md`** — add `holiday_calendars`, `pending_invites` to Tables. New "Performance" subsection: virtualization threshold (>500 tasks). Note the new `template_version` and `cloned_from_task_id` columns on `tasks`.
+9. **`CLAUDE.md`** — add `holiday_calendars` to Tables. **DO NOT** add a `pending_invites` row — `project_invites` (existing) gained the `claimed_at`/`claimed_by` columns; update its description in CLAUDE.md to reflect that. New "Performance" subsection: virtualization threshold (>500 tasks). Note the new `template_version` and `cloned_from_task_id` columns on `tasks`.
 
 Land docs as `docs(wave-37): documentation currency sweep`.
 
 ## Wave Review (mandatory — before commit + push to main)
 
 1. **Date engine BC** — open an existing project (no holiday opt-in) → make a date shift → behavior identical to pre-Wave-37 (no skipping). Toggle the opt-in → repeat → dates skip weekends + configured holidays.
-2. **Invite escrow** — invite `alice@x.com` (not in auth.users) → `pending_invites` row. Sign up as `alice@x.com` → `project_members` row materializes; pending invite marked claimed.
+2. **Invite escrow** — invite `alice@x.com` (not in auth.users) → `project_invites` row with `claimed_at IS NULL` + 90-day `expires_at`. Sign up as `alice@x.com` → `project_members` row materializes; `project_invites.claimed_at` populates.
 3. **Template versioning** — edit a template → `template_version` increments. Clone → `settings.cloned_from_template_version` matches the new version. Edit again → existing instance's stamp does NOT update (intentional).
 4. **Template immutability** — clone a project → every task has `cloned_from_task_id`. As editor (not owner), attempt to delete a template-origin task → modal blocks. As owner → proceeds.
 5. **Virtualization** — seed 1500 tasks; open the project → renders smoothly; scroll to bottom → DOM has only ~30 rendered rows. Drag-drop still works.
 6. **No FSD drift** — every new file lives in the right slice. Helpers in `lib/`, hooks in `hooks/`, components in `components/`. No barrel files. No `shared/` → `features/` imports.
 7. **Type drift** — `database.types.ts` hand-edited cleanly across the four migrations.
-8. **Lint + build + tests** — green.
+8. **Test-impact reconciled** — Wave 22 `planterClient.clone.stamp.test.ts` stays green (Tasks 3+4 stamps happen server-side in the RPC); `react-virtuoso` mocked for Task 5 virtualization tests; existing `date-engine` tests unchanged (Task 1 ADDS `addBusinessDays` as a NEW export); `project_invites` (NOT `pending_invites`) extended with `claimed_at`/`claimed_by`; no `it.skip`. Test count ≥ baseline + new tests.
+9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
 ## Commit & Push to Main (mandatory — gates Wave 38)
 
@@ -238,10 +357,12 @@ After all five Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Wave 37 Task 2 EXTENDS `project_invites` (does NOT create a new `pending_invites` table — pre-flight verification §29 catches this).**
+
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npx vitest run    # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 
@@ -284,11 +405,11 @@ Manual smoke per Wave Review.
 - `CLAUDE.md` (Tables + Performance subsection)
 
 **Will create:**
-- `docs/db/migrations/2026_XX_XX_holiday_calendars.sql`
-- `docs/db/migrations/2026_XX_XX_pending_invites.sql`
-- `docs/db/migrations/2026_XX_XX_template_versioning.sql`
-- `docs/db/migrations/2026_XX_XX_task_template_origin.sql`
-- `docs/db/tests/pending_invites_claim.sql`
+- `docs/db/migrations/2026_04_18_holiday_calendars.sql`
+- `docs/db/migrations/2026_04_18_invite_escrow.sql`
+- `docs/db/migrations/2026_04_18_template_versioning.sql`
+- `docs/db/migrations/2026_04_18_task_template_origin.sql`
+- `docs/db/tests/invite_escrow_claim.sql`
 - `docs/db/tests/template_versioning.sql`
 - `docs/db/tests/task_template_origin.sql`
 - `src/features/tasks/components/TaskList.virtualized.tsx`

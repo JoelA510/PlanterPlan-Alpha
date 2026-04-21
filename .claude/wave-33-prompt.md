@@ -12,7 +12,21 @@ Spec is at **1.17.0**. Outstanding roadmap: §3.7 Advanced Admin Management (thi
 
 Wave 33 ships **Advanced Admin Management** (§3.7). The existing `admin_users` whitelist already controls "is admin" gating; this wave lays a dedicated `/admin` route shell with global search, advanced user filtering, an analytics dashboard, and admin notifications on new project creation (closing the `dashboard-analytics.md` "Admin Notifications" gap that was actually deferred from Wave 30 — cleaning it up here).
 
-**Gate baseline going into Wave 33:** confirm the current `main` baseline. Run `npm run lint`, `npm run build`, `npx vitest run`. Confirm an admin user exists in your local Supabase (`admin_users` table) so you can test the new route.
+**Test baseline going into Wave 33:** Wave 32 shipped at ≥685 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
+
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 33 specific: zero existing-test impact. New admin RPC mocks follow the existing planterClient pattern (`vi.mock('@/shared/api/planterClient', () => ({ planter: { admin: { searchUsers: vi.fn().mockResolvedValue([...]) }}}))`). E2E persona addition: extend `scripts/seed-e2e.js` to insert an `admin@example.com` user into `auth.users` AND `public.admin_users`; create `Testing/e2e/.auth/admin.json` via the global setup login flow.
+
+## Pre-flight verification (run before any task)
+
+1. `git log --oneline` includes the 3 Wave 32 commits + docs sweep.
+2. These files exist:
+   - `src/app/App.tsx` (routes register here — NOT `router.tsx`; Wave 33 adds `/admin/*` routes)
+   - `src/shared/contexts/AuthContext.tsx` (verify it exposes an `isAdmin` accessor, OR add one wrapping the existing `is_admin(auth.uid())` RPC. The Wave 23 schema map confirms `is_admin` is the SECURITY DEFINER function on the DB side — the React-side cache lives in `AuthContext`. If absent, add a `useIsAdmin()` hook reading from `useAuth()` + the RPC.)
+   - `src/shared/api/planterClient.ts` (extend with `admin.*` namespace; `rpc<T>(name, params)` is the existing helper to call from this namespace)
+   - `src/shared/db/schema.sql` (must contain `is_admin(uuid)` and `is_active_member(uuid, uuid)` per Wave 23 schema map)
+   - `recharts` is already a dep (Wave 19, 20, 28).
+3. Confirm an admin user exists in your local Supabase: `SELECT * FROM public.admin_users WHERE user_id = auth.uid();` should return one row when logged in as the admin.
+4. **Wave 27 `activity_log` RLS** — verify it covers admin SELECT. The Wave 27 policy reads `is_active_member(project_id, auth.uid()) OR public.is_admin(auth.uid())`. If admin path absent (regression risk), Task 1's `admin_recent_activity` RPC bypasses via SECURITY DEFINER anyway — but document the redundancy in the RPC comment.
 
 ## Branch
 
@@ -44,14 +58,36 @@ Three tasks. Task 1 stands up the route shell + global search. Task 2 ships the 
      - **Users** — `auth.users` via a new SECURITY DEFINER RPC `public.admin_search_users(query text, limit int)` returning `{ id, email, display_name, last_sign_in_at, project_count }`.
      - **Projects** — `tasks WHERE parent_task_id IS NULL AND title ILIKE '%query%'`.
      - **Templates** — `tasks WHERE origin = 'template' AND title ILIKE '%query%'`.
-   - Results grouped by type with icons. Click → navigates to the appropriate detail surface (user → `/admin/users/:id`; project → `/project/:id`; template → existing template editor surface).
+   - Results grouped by type with icons. Click → navigates to the appropriate detail surface (user → `/admin/users/:id`; project → `/Project/:projectId` — note capital P, matches the existing route in `src/app/App.tsx`; template → existing template editor surface, find via grep).
    - Debounce 200ms; minimum 2 chars to fire.
 
-3. **Admin RPCs** (`docs/db/migrations/2026_XX_XX_admin_rpcs.sql`, NEW)
-   - `public.admin_search_users(query text, max_results int DEFAULT 20) RETURNS TABLE(...)` — SECURITY DEFINER, gated by `is_admin(auth.uid())` at the function start (RAISE EXCEPTION 'unauthorized' if false). Joins `auth.users` with a count subquery on `project_members`.
-   - `public.admin_user_detail(uid uuid) RETURNS jsonb` — SECURITY DEFINER, gated. Returns: profile + project list + task counts (assigned / completed / overdue) + last login.
-   - `public.admin_recent_activity(limit int DEFAULT 50) RETURNS TABLE(...)` — SECURITY DEFINER, gated. Returns the latest N rows from `activity_log` cross-project, joined with actor email.
-   - Mirror everything into `docs/db/schema.sql`.
+3. **Admin RPCs** (`docs/db/migrations/2026_04_18_admin_rpcs.sql`, NEW). Every admin RPC follows this exact pattern (Sonnet-friendly template — copy verbatim, swap body):
+
+```sql
+CREATE OR REPLACE FUNCTION public.<name>(<params>)
+RETURNS <return_type>
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO ''
+AS $$
+BEGIN
+  IF NOT public.is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'unauthorized: admin role required';
+  END IF;
+  RETURN QUERY <body>;  -- or RETURN <body> for jsonb returns
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.<name>(<params>) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.<name>(<params>) TO authenticated;
+```
+
+The three RPCs:
+   - `public.admin_search_users(p_query text, p_max_results int DEFAULT 20) RETURNS TABLE(id uuid, email text, display_name text, last_sign_in_at timestamptz, project_count bigint)` — joins `auth.users` with `LATERAL (SELECT count(*) FROM public.project_members WHERE user_id = u.id) AS pm`.
+   - `public.admin_user_detail(p_uid uuid) RETURNS jsonb` — returns `{ profile: {...}, projects: [...], task_counts: { assigned, completed, overdue }, last_login: ... }`.
+   - `public.admin_recent_activity(p_limit int DEFAULT 50) RETURNS TABLE(id uuid, project_id uuid, actor_id uuid, actor_email text, entity_type text, entity_id uuid, action text, payload jsonb, created_at timestamptz)` — joins `activity_log` with `auth.users` on actor.
+   - Mirror all three into `docs/db/schema.sql`.
 
 4. **Cross-project activity** (Wave 27 extension)
    - The Wave 27 RLS on `activity_log` restricts SELECT to project members. Admins inherit via `is_admin(auth.uid())` in that policy. Verify the policy already covers admins; if not, **don't** rewrite the policy — instead route the admin recent-activity feed through the new `admin_recent_activity` RPC (SECURITY DEFINER) which bypasses RLS.
@@ -89,7 +125,7 @@ Three tasks. Task 1 stands up the route shell + global search. Task 2 ships the 
    - `useAdminUsers(filters)` — `useQuery({ queryKey: ['adminUsers', filters] })`. Backed by a new RPC `admin_list_users(filter jsonb)` that pushes the filter to the server (vs. fetching all + client-side filter — important when user count grows).
    - `useAdminUserDetail(uid)` — `useQuery({ queryKey: ['adminUserDetail', uid], enabled: !!uid })`.
 
-3. **Migration** (`docs/db/migrations/2026_XX_XX_admin_list_users_rpc.sql`, NEW)
+3. **Migration** (`docs/db/migrations/2026_04_18_admin_list_users_rpc.sql`, NEW)
    - `public.admin_list_users(filter jsonb, limit int, offset int) RETURNS TABLE(...)` — SECURITY DEFINER, gated by `is_admin(auth.uid())`.
    - Filter shape: `{ role?: string, lastLogin?: 'last_7' | 'last_30' | 'inactive', hasOverdue?: boolean, search?: string }`.
    - Joins `auth.users` with a CTE for task counts and a flag column for overdue presence.
@@ -118,9 +154,9 @@ Three tasks. Task 1 stands up the route shell + global search. Task 2 ships the 
 
 2. **Hook + RPC** (`src/features/admin/hooks/useAdminAnalytics.ts`, NEW)
    - `useAdminAnalytics()` — `useQuery({ queryKey: ['adminAnalytics'], staleTime: 5 * 60 * 1000 })`. Backed by a single `public.admin_analytics_snapshot()` RPC that returns a JSONB blob containing every chart's payload (avoids 5 round-trips).
-   - Migration `docs/db/migrations/2026_XX_XX_admin_analytics_rpc.sql` (NEW).
+   - Migration `docs/db/migrations/2026_04_18_admin_analytics_rpc.sql` (NEW).
 
-3. **Admin notification on new project** (`docs/db/migrations/2026_XX_XX_new_project_admin_notify.sql`, NEW)
+3. **Admin notification on new project** (`docs/db/migrations/2026_04_18_new_project_admin_notify.sql`, NEW)
    - `CREATE FUNCTION public.notify_admin_on_new_project() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$ ... $$`. AFTER INSERT on `tasks` WHERE `parent_task_id IS NULL AND origin = 'instance'`.
    - For each row in `admin_users`, INSERT a `notification_log` row with `event_type = 'admin_new_project_pending'`. The Wave 30 `dispatch-notifications` cron picks it up and emails / pushes per the admin's preferences.
    - Honors `notification_preferences` exactly like every other notification path — admins can opt out via Settings.
@@ -164,7 +200,8 @@ Land docs as `docs(wave-33): documentation currency sweep`.
 5. **Admin notifications** — create a project as a non-admin; admin (with default prefs) gets the notification within one cron tick.
 6. **No FSD drift** — admin pages live in `src/pages/admin/`; admin features in `src/features/admin/`; no shared imports back from features.
 7. **Type drift** — `database.types.ts` may need RPC return shape additions; hand-edit cleanly.
-8. **Lint + build + tests** — green.
+8. **Test-impact reconciled** — admin RPC tests include the "non-admin caller raises 'unauthorized'" branch; `seed-e2e.js` extended for the admin persona + `e2e/.auth/admin.json` generated by global-setup; no `it.skip`. Test count ≥ baseline + new tests.
+9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
 ## Commit & Push to Main (mandatory — gates Wave 34)
 
@@ -176,10 +213,12 @@ After all three Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Admin RPC tests must include the unauthorized-persona case (per §8.2 RLS halt protocol).**
+
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npx vitest run    # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build; verify /admin/* lazy-loaded). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 
@@ -198,7 +237,7 @@ Manual smoke (see Wave Review).
 ## Critical Files
 
 **Will edit:**
-- `src/app/router.tsx` (or equivalent) — add `/admin/*` routes
+- `src/app/App.tsx` — add `/admin/*` routes (lazy-loaded; mirrors Wave 28's `/gantt` pattern)
 - `src/shared/api/planterClient.ts` (`admin.*`)
 - `src/shared/db/database.types.ts` (RPC return shapes)
 - `docs/architecture/dashboard-analytics.md` (Analytics section + Notification gap → Resolved)
@@ -211,10 +250,10 @@ Manual smoke (see Wave Review).
 - `CLAUDE.md` (Routes + Admin RPCs)
 
 **Will create:**
-- `docs/db/migrations/2026_XX_XX_admin_rpcs.sql`
-- `docs/db/migrations/2026_XX_XX_admin_list_users_rpc.sql`
-- `docs/db/migrations/2026_XX_XX_admin_analytics_rpc.sql`
-- `docs/db/migrations/2026_XX_XX_new_project_admin_notify.sql`
+- `docs/db/migrations/2026_04_18_admin_rpcs.sql`
+- `docs/db/migrations/2026_04_18_admin_list_users_rpc.sql`
+- `docs/db/migrations/2026_04_18_admin_analytics_rpc.sql`
+- `docs/db/migrations/2026_04_18_new_project_admin_notify.sql`
 - `docs/db/tests/admin_rpcs.sql`
 - `docs/db/tests/new_project_admin_notify.sql`
 - `src/pages/admin/AdminLayout.tsx`

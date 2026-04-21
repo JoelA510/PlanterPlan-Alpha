@@ -49,23 +49,26 @@ Component → React Query hook → planterClient → Supabase SDK
 
 ## Tech Stack
 
-- **React 19** + **TypeScript** (strict mode, ES2022 target)
+- **React 18.3.1** + **TypeScript** (strict mode, ES2022 target). Pinned exact; the Wave 31 scope expansion rolled back from React 19 to unblock Vercel preview deploys. No React 19-only APIs (`use()`, `useActionState`, `useFormStatus`, server actions, `ref`-as-prop, built-in document metadata) are in the tree.
 - **Vite** (build + dev server)
 - **Supabase** (Postgres, Auth, Realtime, Edge Functions)
 - **TanStack React Query v5** (server state)
+- **i18next** + **react-i18next** + **i18next-browser-languagedetector** (Wave 31 localization — en baseline + es machine-translated; switcher in Settings → Profile)
 - **Tailwind CSS v4** + **Radix UI** + **Shadcn** components
 - **dnd-kit** (drag and drop)
 - **Lucide React** (icons)
 - **Sonner** (toast notifications)
+- **gantt-task-react** `0.3.9` (pinned exact; Wave 28 Gantt Chart — lazy-loaded)
 
 ## Conventions
 
-- **TypeScript only** — no `.js` or `.jsx` files. Ever.
+- **TypeScript only** — no `.js` or `.jsx` files. Ever. (One documented exception: `public/sw.js`, the Wave 30 push-notification service worker. Slated for TS conversion in Wave 32 via a workbox-built `src/sw.ts`. See `docs/dev-notes.md`.)
 - **No barrel files** — import directly from component/hook paths.
 - **Path alias**: `@/` maps to `src/`. Use `@/features/...`, `@/shared/...`, etc.
 - **Types**: Derived from Supabase generated types in `src/shared/db/database.types.ts`, re-exported as domain types in `src/shared/db/app.types.ts`.
 - **No direct Supabase calls in components** — go through `planterClient` or mutation hooks.
 - **Styling**: Tailwind utility classes only. No custom CSS files. Use `class-variance-authority` for variants.
+- **Localization (Wave 31)**: every user-visible string in JSX, attribute values (`aria-label`, `placeholder`, `title`), and toast calls must resolve via `t('namespace.key')` from `react-i18next`. Source strings live in `src/shared/i18n/locales/en.json`; translations in sibling files (currently `es.json`). Namespaces: `common, nav, onboarding, auth, tasks, projects, library, dashboard, settings, notifications, errors`. Display-time date/number/currency formatting routes through `src/shared/i18n/formatters.ts` (Intl-based); internal date math stays on `src/shared/lib/date-engine`. Locale persisted to `localStorage.planterplan.locale` via the `LocaleSwitcher` in Settings → Profile. **`es.json` is machine-translated — see `docs/dev-notes.md`; do not market "Spanish support" until a human-review pass lands.** A few surfaces remain un-extracted (TaskDetailsView family, Home marketing, deep library views) — follow-up wave tracked in dev-notes.
 
 ## Routes
 
@@ -76,16 +79,26 @@ Component → React Query hook → planterClient → Supabase SDK
 /project/:id    → Project detail
 /tasks          → TasksPage (My Tasks view)
 /settings       → Settings
+/gantt          → Gantt (lazy-loaded; reads ?projectId=:id)
 ```
 
 ## Environment
 
 ```
-VITE_SUPABASE_URL       # Supabase project URL
-VITE_SUPABASE_ANON_KEY  # Supabase anon key
+VITE_SUPABASE_URL         # Supabase project URL
+VITE_SUPABASE_ANON_KEY    # Supabase anon key
+
+# Wave 30 — Push notifications (server-only except the public key)
+VITE_VAPID_PUBLIC_KEY     # VAPID public key (committed to bundle)
+VAPID_PRIVATE_KEY         # VAPID private key — Supabase secret only
+VAPID_SUBJECT             # mailto:ops@planterplan.example — Supabase secret/env
 ```
 
 Local Supabase: API on `:54321`, DB on `:54322`, Studio on `:54323`.
+
+### Cron Jobs / Scheduled Tasks
+
+`pg_cron` is intentionally NOT enabled in this codebase. Every cron-driven edge function (currently `nightly-sync`, `supervisor-report`, `dispatch-notifications`, `overdue-digest`) is scheduled externally by the operator. See `docs/operations/edge-function-schedules.md` for the full schedule table and setup options (Supabase Dashboard → Scheduled Triggers preferred, GitHub Actions cron acceptable, external pinger as last resort). All dispatchers are idempotent under any scheduler.
 
 ## Supabase RLS & Database Functions
 
@@ -100,6 +113,11 @@ RLS is enabled on all tables. Authorization is role-based per project.
 - **`task_resources`** — Attachments on tasks. `resource_type` enum, optional `storage_bucket`/`storage_path` for files.
 - **`task_relationships`** — Links between tasks (`from_task_id` → `to_task_id`, `type` defaults to `'relates_to'`).
 - **`admin_users`** — Admin whitelist. `user_id` + `email`.
+- **`task_comments`** — Threaded comments per task. RLS by project membership; soft-delete via `deleted_at`. Wave 26.
+- **`activity_log`** — Append-only audit trail. RLS by project membership; INSERT denied at policy level. Wave 27.
+- **`notification_preferences`** — Per-user singleton (PK = `user_id` → `auth.users`). Bootstrap trigger on `auth.users` seeds a row on signup. Per-event email/push toggles, overdue-digest cadence (`off`/`daily`/`weekly`), quiet hours (start/end + IANA timezone). Wave 30.
+- **`notification_log`** — Append-only notification audit trail. `channel ∈ {'email','push'}`, `event_type` carries the dispatch state-machine phase. RLS denies INSERT/UPDATE/DELETE at policy level — only SECURITY DEFINER dispatch edge functions write. Wave 30.
+- **`push_subscriptions`** — One row per (user, browser endpoint). `UNIQUE (user_id, endpoint)`. Client inserts on subscribe, DELETEs on unsubscribe. `dispatch-push` DELETEs stale rows on HTTP 410. Wave 30.
 
 **Views:**
 - **`tasks_with_primary_resource`** — Tasks LEFT JOINed with their primary `task_resources` row. Used by `planterClient.ts` for reads.
@@ -111,7 +129,7 @@ RLS is enabled on all tables. Authorization is role-based per project.
 - `is_complete` — Boolean completion flag (used by `check_phase_unlock` trigger).
 - `is_locked` / `prerequisite_phase_id` — Phase locking system.
 - `position` — Sort order among siblings.
-- `settings` — JSONB (stores phase color/icon).
+- `settings` — JSONB. Canonical keys: `published`, `recurrence`, `spawnedFromTemplate`/`spawnedOn`, `due_soon_threshold`, `is_coaching_task`, `is_strategy_template`, `project_kind` (`'date' | 'checkpoint'` on roots only, Wave 29), `phase_lead_user_ids` (string[] on phase/milestone rows, Wave 29). **Wave 29:** `settings.project_kind` gates the date-engine + nightly-sync urgency passes; `settings.phase_lead_user_ids` widens UPDATE access via the `"Enable update for phase leads"` RLS policy (CTE walks from parent — leads may edit tasks UNDER a phase, not the phase row itself).
 - `days_from_start` — Relative scheduling offset.
 - `assignee_id` — FK to auth user.
 
@@ -132,6 +150,7 @@ Most tables follow the same pattern:
 - **SELECT**: project members (any role) OR admin
 - **INSERT/UPDATE/DELETE**: owner + editor OR admin
 - **`tasks` table**: also allows `creator` to read/update/delete their own tasks, and templates (`origin = 'template'`) are publicly readable by authenticated users
+- **`task_comments`**: INSERT allowed for any project member (not just owner/editor) — comments are a collaboration surface, not a structural mutation.
 
 ### Trigger Functions (on `tasks` table)
 

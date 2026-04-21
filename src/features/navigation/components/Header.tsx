@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import {
     DropdownMenu,
@@ -21,6 +22,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle, showMenuButton = false }: HeaderProps) {
+    const { t } = useTranslation();
     const { data: userData } = useUser();
     const user = userData as { full_name?: string; email?: string } | null;
     const location = useLocation();
@@ -30,7 +32,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }: HeaderP
     const pathSegments = location.pathname.split('/').filter(Boolean);
     const currentSection = pathSegments[0]
         ? pathSegments[0].charAt(0).toUpperCase() + pathSegments[0].slice(1)
-        : 'Home';
+        : t('nav.home');
 
     const navigate = useNavigate();
 
@@ -52,16 +54,16 @@ export default function Header({ onMenuToggle, showMenuButton = false }: HeaderP
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-3">
                         {showMenuButton && (
-                            <Button variant="ghost" size="icon" onClick={onMenuToggle} className="lg:hidden" aria-label="Menu">
+                            <Button variant="ghost" size="icon" onClick={onMenuToggle} className="lg:hidden" aria-label={t('nav.menu_aria')}>
                                 <Menu className="w-5 h-5" />
                             </Button>
                         )}
 
-                        <Link to="/Dashboard" className="flex items-center gap-2" aria-label="PlanterPlan Home">
+                        <Link to="/Dashboard" className="flex items-center gap-2" aria-label={t('nav.planterplan_home_aria')}>
                             <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm">
                                 <CheckCircle2 className="w-5 h-5 text-white" />
                             </div>
-                            <span className="font-bold text-orange-600 text-lg hidden sm:block">PlanterPlan</span>
+                            <span className="font-bold text-orange-600 text-lg hidden sm:block">{t('auth.app_name')}</span>
                         </Link>
 
                         {/* Breadcrumb Separator for Context */}
@@ -93,25 +95,25 @@ export default function Header({ onMenuToggle, showMenuButton = false }: HeaderP
                                 <DropdownMenuContent className="w-56" align="end">
                                     <div className="flex items-center justify-start gap-2 p-2">
                                         <div className="flex flex-col space-y-1">
-                                            <p className="text-sm font-medium leading-none">{user.full_name || 'User'}</p>
+                                            <p className="text-sm font-medium leading-none">{user.full_name || t('nav.user_fallback')}</p>
                                             <p className="text-xs leading-none text-slate-500 ">{user.email}</p>
                                         </div>
                                     </div>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem>
                                         <User className="mr-2 h-4 w-4" />
-                                        <span>Profile</span>
+                                        <span>{t('nav.profile')}</span>
                                     </DropdownMenuItem>
                                     <Link to="/Settings">
                                         <DropdownMenuItem>
                                             <Settings className="mr-2 h-4 w-4" />
-                                            <span>Settings</span>
+                                            <span>{t('nav.settings')}</span>
                                         </DropdownMenuItem>
                                     </Link>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={handleLogout} className="text-red-600 ">
                                         <LogOut className="mr-2 h-4 w-4" />
-                                        <span>Log out</span>
+                                        <span>{t('nav.logout')}</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -122,4 +124,3 @@ export default function Header({ onMenuToggle, showMenuButton = false }: HeaderP
         </nav>
     );
 }
-

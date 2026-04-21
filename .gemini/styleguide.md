@@ -69,7 +69,7 @@ We follow a modified FSD structure to isolate domains.
 
 ### Component Blueprints
 - **Cards**: `bg-white`, `border border-slate-200`, `rounded-xl`, `shadow-sm`.
-- **Buttons (Primary)**: `bg-brand-500 hover:bg-brand-600 text-white`.
+- **Buttons (Primary)**: `bg-brand-600 hover:bg-brand-700 text-white`.
 - **Buttons (Secondary)**: `bg-white border border-slate-300 text-slate-700`.
 - **Typography**: Use `text-slate-900` for titles, `text-slate-600` for body.
 

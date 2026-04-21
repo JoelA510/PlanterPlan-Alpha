@@ -1,5 +1,13 @@
 import { faker } from '@faker-js/faker';
-import type { TaskRow, TeamMemberRow } from '@/shared/db/app.types';
+import type {
+  TaskRow,
+  TeamMemberRow,
+  TaskCommentRow,
+  TaskCommentWithAuthor,
+  NotificationPreferencesRow,
+  NotificationLogRow,
+  PushSubscriptionRow,
+} from '@/shared/db/app.types';
 
 /**
  * Creates a minimal TaskRow stub with sensible defaults.
@@ -112,4 +120,112 @@ export function makeTeamMember(overrides: Partial<TeamMemberRow> = {}): TeamMemb
     created_at: new Date().toISOString(),
     ...overrides,
   } as TeamMemberRow;
+}
+
+/**
+ * Creates a TaskCommentRow stub (Wave 26). `root_id` defaults to `task_id`
+ * since the trigger resolves them to the same project root in practice.
+ */
+export function makeComment(overrides: Partial<TaskCommentRow> = {}): TaskCommentRow {
+  const taskId = overrides.task_id ?? faker.string.uuid();
+  const now = new Date().toISOString();
+  return {
+    id: overrides.id ?? faker.string.uuid(),
+    task_id: taskId,
+    root_id: overrides.root_id ?? taskId,
+    parent_comment_id: null,
+    author_id: faker.string.uuid(),
+    body: faker.lorem.sentence(),
+    mentions: [],
+    created_at: now,
+    updated_at: now,
+    edited_at: null,
+    deleted_at: null,
+    ...overrides,
+  };
+}
+
+/**
+ * Creates a TaskCommentWithAuthor stub. Author defaults to a fake user;
+ * override `author` for anonymous / deleted-author edge cases.
+ */
+export function makeCommentWithAuthor(
+  overrides: Partial<TaskCommentWithAuthor> = {},
+): TaskCommentWithAuthor {
+  const base = makeComment(overrides as Partial<TaskCommentRow>);
+  const defaultAuthor = {
+    id: base.author_id,
+    email: faker.internet.email(),
+    user_metadata: { full_name: faker.person.fullName() },
+  };
+  return {
+    ...base,
+    author: overrides.author === undefined ? defaultAuthor : overrides.author,
+  };
+}
+
+/**
+ * Creates a PresenceState stub (Wave 27). `joinedAt` defaults to `Date.now()`
+ * so tests can override for deterministic ordering. `focusedTaskId` is null.
+ */
+export interface PresenceState {
+  user_id: string;
+  email: string;
+  joinedAt: number;
+  focusedTaskId: string | null;
+}
+
+export function makePresenceState(overrides: Partial<PresenceState> = {}): PresenceState {
+  return {
+    user_id: overrides.user_id ?? faker.string.uuid(),
+    email: overrides.email ?? faker.internet.email(),
+    joinedAt: overrides.joinedAt ?? Date.now(),
+    focusedTaskId: overrides.focusedTaskId ?? null,
+  };
+}
+
+/** Wave 30: NotificationPreferencesRow stub with documented canonical defaults. */
+export function makeNotificationPref(overrides: Partial<NotificationPreferencesRow> = {}): NotificationPreferencesRow {
+  return {
+    user_id: overrides.user_id ?? faker.string.uuid(),
+    email_mentions: overrides.email_mentions ?? true,
+    email_overdue_digest: overrides.email_overdue_digest ?? 'daily',
+    email_assignment: overrides.email_assignment ?? true,
+    push_mentions: overrides.push_mentions ?? true,
+    push_overdue: overrides.push_overdue ?? true,
+    push_assignment: overrides.push_assignment ?? false,
+    quiet_hours_start: overrides.quiet_hours_start ?? null,
+    quiet_hours_end: overrides.quiet_hours_end ?? null,
+    timezone: overrides.timezone ?? 'UTC',
+    updated_at: overrides.updated_at ?? new Date().toISOString(),
+  };
+}
+
+/** Wave 30: NotificationLogRow stub. Defaults to an email mention send. */
+export function makeNotificationLogRow(overrides: Partial<NotificationLogRow> = {}): NotificationLogRow {
+  return {
+    id: overrides.id ?? faker.string.uuid(),
+    user_id: overrides.user_id ?? faker.string.uuid(),
+    channel: overrides.channel ?? 'email',
+    event_type: overrides.event_type ?? 'mention_pending',
+    payload: overrides.payload ?? {},
+    sent_at: overrides.sent_at ?? new Date().toISOString(),
+    provider_id: overrides.provider_id ?? null,
+    error: overrides.error ?? null,
+  };
+}
+
+/** Wave 30: PushSubscriptionRow stub. Endpoint uses a realistic FCM-style URL. */
+export function makePushSubscription(overrides: Partial<PushSubscriptionRow> = {}): PushSubscriptionRow {
+  const id = overrides.id ?? faker.string.uuid();
+  return {
+    id,
+    user_id: overrides.user_id ?? faker.string.uuid(),
+    endpoint: overrides.endpoint ?? `https://fcm.googleapis.com/fcm/send/${id}`,
+    p256dh: overrides.p256dh ?? faker.string.alphanumeric(88),
+    auth: overrides.auth ?? faker.string.alphanumeric(24),
+    user_agent: overrides.user_agent ?? 'vitest',
+    created_at: overrides.created_at ?? new Date().toISOString(),
+    last_used_at: overrides.last_used_at ?? null,
+  };
 }

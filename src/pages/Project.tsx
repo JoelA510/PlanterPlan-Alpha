@@ -31,6 +31,9 @@ import InviteMemberModal from '@/features/projects/components/InviteMemberModal'
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
 import ResourceLibrary from '@/features/projects/components/ResourceLibrary';
+import ProjectActivityTab from '@/features/projects/components/ProjectActivityTab';
+import { useProjectPresence } from '@/features/projects/hooks/useProjectPresence';
+import { PresenceBar } from '@/features/projects/components/PresenceBar';
 
 export default function Project() {
     const { projectId: paramId } = useParams<{ projectId: string }>();
@@ -46,6 +49,10 @@ export default function Project() {
         tasks,
         teamMembers,
     } = useProjectData(projectId);
+
+    // Wave 27: open the per-project presence channel. No-op outside /Project/:id
+    // because `projectId` is undefined on other routes, so the hook short-circuits.
+    const { presentUsers } = useProjectPresence(projectId ?? null);
 
     // Template ids already cloned into this project — excluded from the
     // Master Library combobox so the same template can't be added twice.
@@ -146,6 +153,7 @@ export default function Project() {
     useEffect(() => {
         if (!projectId) return;
 
+        // Comments use a per-task channel mounted by TaskComments — see useTaskCommentsRealtime. Don't merge here.
         const channel = supabase
             .channel(`project-tasks:${projectId}`)
             .on(
@@ -259,6 +267,7 @@ export default function Project() {
                     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         <div className="flex items-center justify-between mb-6">
                             <ProjectTabs activeTab={state.activeTab} onTabChange={actions.setActiveTab} />
+                            <PresenceBar presentUsers={presentUsers} currentUserId={user?.id ?? null} />
 
                             {canEdit && state.activeTab === 'board' && (
                                 <Button
@@ -343,6 +352,8 @@ export default function Project() {
                                                         canEdit={canEdit}
                                                         isAddingInline={state.inlineAddingParentId === milestone.id}
                                                         dropIndicator={dropIndicator}
+                                                        presentUsers={presentUsers}
+                                                        currentUserId={user?.id ?? null}
                                                     />
                                                 ))
                                             )}
@@ -372,6 +383,10 @@ export default function Project() {
 
                         {state.activeTab === 'resources' && (
                             <ResourceLibrary projectId={projectId!} />
+                        )}
+
+                        {state.activeTab === 'activity' && (
+                            <ProjectActivityTab projectId={projectId ?? null} />
                         )}
                     </div>
                 </div>

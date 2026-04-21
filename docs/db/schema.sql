@@ -223,6 +223,37 @@ $$;
 ALTER FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") OWNER TO "postgres";
 
 
+-- Wave 29: Phase Lead. Recursive ancestor walk returning TRUE when any
+-- ancestor (EXCLUDING the target row itself) carries
+-- `settings -> 'phase_lead_user_ids'` containing uid. Excluding self is
+-- load-bearing: a Phase Lead on milestone M may UPDATE tasks under M but
+-- NOT the row M itself (owner-level gate on lead assignment).
+CREATE OR REPLACE FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  WITH RECURSIVE ancestors AS (
+    SELECT parent_task_id
+    FROM public.tasks
+    WHERE id = target_task_id
+    UNION ALL
+    SELECT t.parent_task_id
+    FROM public.tasks t
+    JOIN ancestors a ON t.id = a.parent_task_id
+  )
+  SELECT EXISTS (
+    SELECT 1
+    FROM ancestors a
+    JOIN public.tasks t ON t.id = a.parent_task_id
+    WHERE t.settings ? 'phase_lead_user_ids'
+      AND (t.settings -> 'phase_lead_user_ids') ? uid::text
+  );
+$$;
+
+
+ALTER FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."clone_project_template"("p_template_id" "uuid", "p_new_parent_id" "uuid", "p_new_origin" "text", "p_user_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -1377,6 +1408,149 @@ $$;
 
 ALTER FUNCTION "public"."trigger_set_updated_at"() OWNER TO "postgres";
 
+
+CREATE OR REPLACE FUNCTION "public"."set_task_comments_root_id"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_root uuid;
+BEGIN
+  SELECT COALESCE(t.root_id, t.id) INTO v_root
+  FROM public.tasks t
+  WHERE t.id = NEW.task_id;
+  IF v_root IS NULL THEN
+    RAISE EXCEPTION 'task_comments: parent task % not found', NEW.task_id;
+  END IF;
+  NEW.root_id := v_root;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_task_comments_root_id"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."log_task_change"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_project_id uuid;
+  v_action     text;
+  v_payload    jsonb := '{}'::jsonb;
+  v_changed    text[];
+BEGIN
+  v_project_id := COALESCE(NEW.root_id, OLD.root_id, NEW.id, OLD.id);
+
+  IF TG_OP = 'INSERT' THEN
+    v_action  := 'created';
+    v_payload := jsonb_build_object(
+      'title', NEW.title,
+      'parent_task_id', NEW.parent_task_id,
+      'status', NEW.status
+    );
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF NEW.status IS DISTINCT FROM OLD.status THEN
+      v_action  := 'status_changed';
+      v_payload := jsonb_build_object('from', OLD.status, 'to', NEW.status);
+    ELSE
+      v_action := 'updated';
+      v_changed := ARRAY[]::text[];
+      IF NEW.title       IS DISTINCT FROM OLD.title       THEN v_changed := array_append(v_changed, 'title'); END IF;
+      IF NEW.description IS DISTINCT FROM OLD.description THEN v_changed := array_append(v_changed, 'description'); END IF;
+      IF NEW.start_date  IS DISTINCT FROM OLD.start_date  THEN v_changed := array_append(v_changed, 'start_date'); END IF;
+      IF NEW.due_date    IS DISTINCT FROM OLD.due_date    THEN v_changed := array_append(v_changed, 'due_date'); END IF;
+      IF NEW.assignee_id IS DISTINCT FROM OLD.assignee_id THEN v_changed := array_append(v_changed, 'assignee_id'); END IF;
+      IF array_length(v_changed, 1) IS NULL THEN
+        RETURN COALESCE(NEW, OLD);
+      END IF;
+      v_payload := jsonb_build_object('changed_keys', v_changed);
+    END IF;
+  ELSIF TG_OP = 'DELETE' THEN
+    v_action  := 'deleted';
+    v_payload := jsonb_build_object('title', OLD.title);
+  END IF;
+
+  INSERT INTO public.activity_log (project_id, actor_id, entity_type, entity_id, action, payload)
+  VALUES (v_project_id, auth.uid(), 'task', COALESCE(NEW.id, OLD.id), v_action, v_payload);
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."log_task_change"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."log_comment_change"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_action  text;
+  v_payload jsonb;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    v_action  := 'comment_posted';
+    v_payload := jsonb_build_object('task_id', NEW.task_id, 'body_preview', substring(NEW.body, 1, 140));
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
+      v_action  := 'comment_deleted';
+      v_payload := jsonb_build_object('task_id', NEW.task_id);
+    ELSIF NEW.body IS DISTINCT FROM OLD.body THEN
+      v_action  := 'comment_edited';
+      v_payload := jsonb_build_object('task_id', NEW.task_id, 'body_preview', substring(NEW.body, 1, 140));
+    ELSE
+      RETURN NEW;
+    END IF;
+  ELSIF TG_OP = 'DELETE' THEN
+    v_action  := 'comment_deleted';
+    v_payload := jsonb_build_object('task_id', OLD.task_id);
+  END IF;
+
+  INSERT INTO public.activity_log (project_id, actor_id, entity_type, entity_id, action, payload)
+  VALUES (COALESCE(NEW.root_id, OLD.root_id), auth.uid(), 'comment', COALESCE(NEW.id, OLD.id), v_action, v_payload);
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."log_comment_change"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."log_member_change"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_action  text;
+  v_payload jsonb;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    v_action  := 'member_added';
+    v_payload := jsonb_build_object('user_id', NEW.user_id, 'role', NEW.role);
+  ELSIF TG_OP = 'UPDATE' AND OLD.role IS DISTINCT FROM NEW.role THEN
+    v_action  := 'member_role_changed';
+    v_payload := jsonb_build_object('user_id', NEW.user_id, 'from', OLD.role, 'to', NEW.role);
+  ELSIF TG_OP = 'DELETE' THEN
+    v_action  := 'member_removed';
+    v_payload := jsonb_build_object('user_id', OLD.user_id, 'role', OLD.role);
+  ELSE
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+
+  INSERT INTO public.activity_log (project_id, actor_id, entity_type, entity_id, action, payload)
+  VALUES (COALESCE(NEW.project_id, OLD.project_id), auth.uid(), 'member', COALESCE(NEW.id, OLD.id), v_action, v_payload);
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."log_member_change"() OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
@@ -1519,6 +1693,7 @@ CREATE TABLE IF NOT EXISTS "public"."tasks" (
     "settings" "jsonb" DEFAULT '{}'::"jsonb",
     "supervisor_email" "text",
     "task_type" "text",
+    CONSTRAINT "tasks_project_kind_check" CHECK ((("parent_task_id" IS NOT NULL) OR (("settings" ->> 'project_kind'::"text") IS NULL) OR (("settings" ->> 'project_kind'::"text") = ANY (ARRAY['date'::"text", 'checkpoint'::"text"])))),
     CONSTRAINT "tasks_project_type_check" CHECK (("project_type" = ANY (ARRAY['primary'::"text", 'secondary'::"text"]))),
     CONSTRAINT "tasks_root_id_required_for_children" CHECK ((("parent_task_id" IS NULL) OR ("root_id" IS NOT NULL))),
     CONSTRAINT "tasks_task_type_check" CHECK ((("task_type" IS NULL) OR ("task_type" = ANY (ARRAY['project'::"text", 'phase'::"text", 'milestone'::"text", 'task'::"text", 'subtask'::"text"]))))
@@ -1538,6 +1713,170 @@ COMMENT ON COLUMN "public"."tasks"."settings" IS 'Project-level settings (e.g., 
 
 COMMENT ON COLUMN "public"."tasks"."supervisor_email" IS 'Optional supervisor recipient for monthly Project Status Reports. Only meaningful on project roots (parent_task_id IS NULL). UI gates the field to roots; no DB-level check constraint.';
 
+
+CREATE TABLE IF NOT EXISTS "public"."task_comments" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "task_id" "uuid" NOT NULL,
+    "root_id" "uuid" NOT NULL,
+    "parent_comment_id" "uuid",
+    "author_id" "uuid" NOT NULL,
+    "body" "text" NOT NULL,
+    "mentions" "text"[] DEFAULT ARRAY[]::"text"[] NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "edited_at" timestamp with time zone,
+    "deleted_at" timestamp with time zone,
+    CONSTRAINT "task_comments_body_check" CHECK (("length"("trim"("body")) BETWEEN 1 AND 10000))
+);
+
+
+ALTER TABLE "public"."task_comments" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."activity_log" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "project_id" "uuid" NOT NULL,
+    "actor_id" "uuid",
+    "entity_type" "text" NOT NULL,
+    "entity_id" "uuid" NOT NULL,
+    "action" "text" NOT NULL,
+    "payload" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "activity_log_entity_type_check" CHECK (("entity_type" = ANY (ARRAY['task'::"text", 'comment'::"text", 'member'::"text", 'project'::"text"]))),
+    CONSTRAINT "activity_log_action_check" CHECK (("action" = ANY (ARRAY['created'::"text", 'updated'::"text", 'deleted'::"text", 'status_changed'::"text", 'member_added'::"text", 'member_removed'::"text", 'member_role_changed'::"text", 'comment_posted'::"text", 'comment_edited'::"text", 'comment_deleted'::"text"])))
+);
+
+
+ALTER TABLE "public"."activity_log" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."notification_preferences" (
+    "user_id" "uuid" NOT NULL,
+    "email_mentions" boolean DEFAULT true NOT NULL,
+    "email_overdue_digest" "text" DEFAULT 'daily'::"text" NOT NULL,
+    "email_assignment" boolean DEFAULT true NOT NULL,
+    "push_mentions" boolean DEFAULT true NOT NULL,
+    "push_overdue" boolean DEFAULT true NOT NULL,
+    "push_assignment" boolean DEFAULT false NOT NULL,
+    "quiet_hours_start" time without time zone,
+    "quiet_hours_end" time without time zone,
+    "timezone" "text" DEFAULT 'UTC'::"text" NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "notification_preferences_email_overdue_digest_check" CHECK (("email_overdue_digest" = ANY (ARRAY['off'::"text", 'daily'::"text", 'weekly'::"text"])))
+);
+
+
+ALTER TABLE "public"."notification_preferences" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."notification_log" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "channel" "text" NOT NULL,
+    "event_type" "text" NOT NULL,
+    "payload" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "sent_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "provider_id" "text",
+    "error" "text",
+    CONSTRAINT "notification_log_channel_check" CHECK (("channel" = ANY (ARRAY['email'::"text", 'push'::"text"])))
+);
+
+
+ALTER TABLE "public"."notification_log" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."push_subscriptions" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "endpoint" "text" NOT NULL,
+    "p256dh" "text" NOT NULL,
+    "auth" "text" NOT NULL,
+    "user_agent" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "last_used_at" timestamp with time zone
+);
+
+
+ALTER TABLE "public"."push_subscriptions" OWNER TO "postgres";
+
+
+-- Wave 30: Bootstrap a notification_preferences row for every auth.users INSERT.
+CREATE OR REPLACE FUNCTION "public"."bootstrap_notification_prefs"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  INSERT INTO public.notification_preferences (user_id) VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."bootstrap_notification_prefs"() OWNER TO "postgres";
+
+
+-- Wave 30 Task 3: resolve @-handles to auth.users ids. Called client-side from
+-- CommentComposer before persisting task_comments.mentions as uuids.
+CREATE OR REPLACE FUNCTION "public"."resolve_user_handles"("p_handles" "text"[])
+    RETURNS TABLE("handle" "text", "user_id" "uuid")
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT h, u.id
+  FROM unnest(p_handles) AS h
+  LEFT JOIN auth.users u
+    ON lower(u.email) LIKE lower(h) || '@%'
+    OR lower(u.raw_user_meta_data ->> 'username') = lower(h);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."resolve_user_handles"("p_handles" "text"[]) OWNER TO "postgres";
+
+
+-- Wave 30 Task 3: AFTER INSERT on task_comments → enqueue a mention_pending
+-- notification_log row per resolved uuid in NEW.mentions (skips author).
+CREATE OR REPLACE FUNCTION "public"."enqueue_comment_mentions"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_user_id uuid;
+BEGIN
+  IF NEW.mentions IS NULL OR array_length(NEW.mentions, 1) IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  FOR v_user_id IN
+    SELECT DISTINCT t::uuid
+    FROM unnest(NEW.mentions) AS t
+    WHERE t IS NOT NULL
+      AND t ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+      AND t::uuid <> NEW.author_id
+  LOOP
+    INSERT INTO public.notification_log (user_id, channel, event_type, payload)
+    VALUES (
+      v_user_id,
+      'email',
+      'mention_pending',
+      jsonb_build_object(
+        'comment_id', NEW.id,
+        'task_id', NEW.task_id,
+        'author_id', NEW.author_id,
+        'body_preview', substring(NEW.body, 1, 140)
+      )
+    );
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."enqueue_comment_mentions"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource" AS
@@ -1749,6 +2088,81 @@ CREATE INDEX "task_resources_type_idx" ON "public"."task_resources" USING "btree
 
 
 
+CREATE INDEX "idx_task_comments_task_id" ON "public"."task_comments" USING "btree" ("task_id", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_task_comments_root_id" ON "public"."task_comments" USING "btree" ("root_id", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_task_comments_parent_comment_id" ON "public"."task_comments" USING "btree" ("parent_comment_id") WHERE ("parent_comment_id" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_activity_log_project_id" ON "public"."activity_log" USING "btree" ("project_id", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_activity_log_entity" ON "public"."activity_log" USING "btree" ("entity_type", "entity_id", "created_at" DESC);
+
+
+
+ALTER TABLE ONLY "public"."notification_preferences"
+    ADD CONSTRAINT "notification_preferences_pkey" PRIMARY KEY ("user_id");
+
+
+
+ALTER TABLE ONLY "public"."notification_log"
+    ADD CONSTRAINT "notification_log_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."notification_preferences"
+    ADD CONSTRAINT "notification_preferences_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."notification_log"
+    ADD CONSTRAINT "notification_log_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."push_subscriptions"
+    ADD CONSTRAINT "push_subscriptions_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."push_subscriptions"
+    ADD CONSTRAINT "push_subscriptions_user_id_endpoint_key" UNIQUE ("user_id", "endpoint");
+
+
+
+ALTER TABLE ONLY "public"."push_subscriptions"
+    ADD CONSTRAINT "push_subscriptions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+CREATE INDEX "idx_notification_log_user_id_sent_at" ON "public"."notification_log" USING "btree" ("user_id", "sent_at" DESC);
+
+
+
+CREATE INDEX "idx_notification_log_event_type" ON "public"."notification_log" USING "btree" ("event_type", "sent_at" DESC);
+
+
+
+CREATE INDEX "idx_push_subscriptions_user_id" ON "public"."push_subscriptions" USING "btree" ("user_id");
+
+
+
+CREATE OR REPLACE TRIGGER "trg_notification_preferences_handle_updated_at" BEFORE UPDATE ON "public"."notification_preferences" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_bootstrap_notification_prefs" AFTER INSERT ON "auth"."users" FOR EACH ROW EXECUTE FUNCTION "public"."bootstrap_notification_prefs"();
+
+
+
 CREATE OR REPLACE TRIGGER "trg_people_updated_at" BEFORE UPDATE ON "public"."people" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
 
 
@@ -1790,6 +2204,30 @@ CREATE OR REPLACE TRIGGER "trigger_phase_unlock" AFTER UPDATE OF "is_complete" O
 
 
 CREATE OR REPLACE TRIGGER "trigger_tasks_set_updated_at" BEFORE UPDATE ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."trigger_set_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_task_comments_set_root_id" BEFORE INSERT ON "public"."task_comments" FOR EACH ROW EXECUTE FUNCTION "public"."set_task_comments_root_id"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_task_comments_handle_updated_at" BEFORE UPDATE ON "public"."task_comments" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_log_task_change" AFTER INSERT OR UPDATE OR DELETE ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."log_task_change"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_log_comment_change" AFTER INSERT OR UPDATE OR DELETE ON "public"."task_comments" FOR EACH ROW EXECUTE FUNCTION "public"."log_comment_change"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_enqueue_comment_mentions" AFTER INSERT ON "public"."task_comments" FOR EACH ROW EXECUTE FUNCTION "public"."enqueue_comment_mentions"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_log_member_change" AFTER INSERT OR UPDATE OR DELETE ON "public"."project_members" FOR EACH ROW EXECUTE FUNCTION "public"."log_member_change"();
 
 
 
@@ -1845,6 +2283,36 @@ ALTER TABLE ONLY "public"."task_relationships"
 
 ALTER TABLE ONLY "public"."task_resources"
     ADD CONSTRAINT "task_resources_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."task_comments"
+    ADD CONSTRAINT "task_comments_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."task_comments"
+    ADD CONSTRAINT "task_comments_root_id_fkey" FOREIGN KEY ("root_id") REFERENCES "public"."tasks"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."task_comments"
+    ADD CONSTRAINT "task_comments_parent_comment_id_fkey" FOREIGN KEY ("parent_comment_id") REFERENCES "public"."task_comments"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."task_comments"
+    ADD CONSTRAINT "task_comments_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;
+
+
+
+ALTER TABLE ONLY "public"."activity_log"
+    ADD CONSTRAINT "activity_log_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "public"."tasks"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."activity_log"
+    ADD CONSTRAINT "activity_log_actor_id_fkey" FOREIGN KEY ("actor_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
 
 
 
@@ -1920,6 +2388,10 @@ CREATE POLICY "Enable update for users" ON "public"."tasks" FOR UPDATE USING (((
 
 
 CREATE POLICY "Enable update for coaches on coaching tasks" ON "public"."tasks" FOR UPDATE USING (("public"."has_project_role"(COALESCE("root_id", "id"), (SELECT (auth.jwt() ->> 'sub')::uuid), ARRAY['coach'::"text"]) AND ((("settings" ->> 'is_coaching_task'))::boolean IS TRUE) AND ("origin" IS DISTINCT FROM 'template'::"text")));
+
+
+
+CREATE POLICY "Enable update for phase leads" ON "public"."tasks" FOR UPDATE TO "authenticated" USING ((("origin" = 'instance'::"text") AND "public"."user_is_phase_lead"("id", (SELECT (auth.jwt() ->> 'sub')::uuid)))) WITH CHECK ((("origin" = 'instance'::"text") AND "public"."user_is_phase_lead"("id", (SELECT (auth.jwt() ->> 'sub')::uuid))));
 
 
 
@@ -2044,9 +2516,63 @@ ALTER TABLE "public"."task_resources" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."tasks" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."task_comments" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."activity_log" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Activity log select by project members" ON "public"."activity_log" FOR SELECT TO "authenticated" USING (("public"."is_active_member"("project_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+
+
+ALTER TABLE "public"."notification_preferences" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."notification_log" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Notif prefs: select own" ON "public"."notification_preferences" FOR SELECT TO "authenticated" USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Notif prefs: insert own" ON "public"."notification_preferences" FOR INSERT TO "authenticated" WITH CHECK (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Notif prefs: update own" ON "public"."notification_preferences" FOR UPDATE TO "authenticated" USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Notif log: select own or admin" ON "public"."notification_log" FOR SELECT TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+
+
+ALTER TABLE "public"."push_subscriptions" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Push subs: select own" ON "public"."push_subscriptions" FOR SELECT TO "authenticated" USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Push subs: insert own" ON "public"."push_subscriptions" FOR INSERT TO "authenticated" WITH CHECK (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Push subs: delete own" ON "public"."push_subscriptions" FOR DELETE TO "authenticated" USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "Comments select by project members" ON "public"."task_comments" FOR SELECT TO "authenticated" USING (("public"."is_active_member"("root_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+
+
+CREATE POLICY "Comments insert by project members" ON "public"."task_comments" FOR INSERT TO "authenticated" WITH CHECK ((("author_id" = "auth"."uid"()) AND ("public"."is_active_member"("root_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"()))));
+
+
+CREATE POLICY "Comments update by author" ON "public"."task_comments" FOR UPDATE TO "authenticated" USING (((("author_id" = "auth"."uid"()) AND ("deleted_at" IS NULL)) OR "public"."is_admin"("auth"."uid"()))) WITH CHECK ((("task_id" = (SELECT "task_comments_1"."task_id" FROM "public"."task_comments" "task_comments_1" WHERE ("task_comments_1"."id" = "task_comments"."id"))) AND ("root_id" = (SELECT "task_comments_1"."root_id" FROM "public"."task_comments" "task_comments_1" WHERE ("task_comments_1"."id" = "task_comments"."id"))) AND ("parent_comment_id" IS NOT DISTINCT FROM (SELECT "task_comments_1"."parent_comment_id" FROM "public"."task_comments" "task_comments_1" WHERE ("task_comments_1"."id" = "task_comments"."id"))) AND ("author_id" = (SELECT "task_comments_1"."author_id" FROM "public"."task_comments" "task_comments_1" WHERE ("task_comments_1"."id" = "task_comments"."id")))));
+
+
+CREATE POLICY "Comments delete by author or owner" ON "public"."task_comments" FOR DELETE TO "authenticated" USING ((("author_id" = "auth"."uid"()) OR "public"."check_project_ownership_by_role"("root_id", "auth"."uid"()) OR "public"."is_admin"("auth"."uid"())));
+
+
 
 
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE "public"."task_comments";
 
 
 
@@ -2225,6 +2751,10 @@ REVOKE ALL ON FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid",
 GRANT ALL ON FUNCTION "public"."check_project_ownership_by_role"("p_id" "uuid", "u_id" "uuid") TO "authenticated";
 REVOKE ALL ON FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."derive_task_type"("p_parent_task_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."user_is_phase_lead"("target_task_id" "uuid", "uid" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."bootstrap_notification_prefs"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."bootstrap_notification_prefs"() TO "authenticated";
 
 
 
@@ -2267,6 +2797,16 @@ GRANT ALL ON FUNCTION "public"."is_active_member"("p_project_id" "uuid", "p_user
 REVOKE ALL ON FUNCTION "public"."is_admin"("p_user_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_admin"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."is_admin"("p_user_id" "uuid") TO "service_role";
+
+REVOKE ALL ON FUNCTION "public"."set_task_comments_root_id"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."set_task_comments_root_id"() TO "authenticated";
+
+REVOKE ALL ON FUNCTION "public"."log_task_change"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."log_task_change"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."log_comment_change"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."log_comment_change"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."log_member_change"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."log_member_change"() TO "authenticated";
 
 
 

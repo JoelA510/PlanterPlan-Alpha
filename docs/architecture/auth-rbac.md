@@ -32,6 +32,8 @@ The Auth & RBAC system manages application-level authentication, user account li
 | **Invite / Manage Users** | Yes | No | No | No |
 | **Edit project settings** | Yes | No | No | No |
 
+> **Footnote (Wave 29):** Viewer/Limited users may also edit tasks **under** any phase or milestone they are designated as Phase Lead for (not the phase/milestone row itself — assignment stays owner-only). See "Phase Lead" section below.
+
 ### Creatorship vs. Ownership (resolved Wave 24)
 
 Historically `public.check_project_ownership(pid, uid)` was used as the
@@ -74,3 +76,32 @@ Migration: `docs/db/migrations/2026_04_18_rewrite_project_members_policies.sql`.
 ## Resolved
 
 * **Coach Role Tagging (Wave 22, 2026-04-17):** Resolved. Tasks intended for coach editing are now flagged via `settings -> 'is_coaching_task' = true`. A project owner or editor tags the task through the "Coaching task" checkbox in TaskForm; TaskDetailsView surfaces a "Coaching" badge. An additive RLS UPDATE policy — `"Enable update for coaches on coaching tasks"` (see `docs/db/migrations/2026_04_17_coaching_task_rls.sql`) — allows any user with the project `coach` role to update rows where the flag is true, scoped to non-template origins. The pre-existing owner/editor/admin UPDATE policy is unchanged, so coaches retain zero access to non-coaching rows.
+
+* **Comments (Wave 26):** SELECT inherits project membership; INSERT requires `author_id = auth.uid()`; UPDATE restricted to authors on undeleted rows; DELETE allowed for authors, project owners (`check_project_ownership_by_role`), or admins. Full policy text in `docs/architecture/tasks-subtasks.md`.
+
+* **Activity Log (Wave 27):** SELECT inherits project membership; INSERT/UPDATE/DELETE denied at policy level — only SECURITY DEFINER trigger functions write rows.
+
+### Phase Lead (Wave 29)
+
+A project Owner may designate any `viewer` or `limited`-role member as the **Lead** of a specific phase or milestone via `settings.phase_lead_user_ids` (a JSONB array on the phase/milestone row). The list allows multiple leads per phase; a single user can lead multiple phases.
+
+**RLS** (migration `docs/db/migrations/2026_04_18_phase_lead_rls.sql`):
+* Helper: `user_is_phase_lead(target_task_id uuid, uid uuid)` walks up the `parent_task_id` chain **starting at the parent** (the row itself is never matched) and returns true if any ancestor's `settings.phase_lead_user_ids` contains `uid`. Self-exclusion is load-bearing: a Phase Lead can edit tasks UNDER a phase but cannot edit the phase row itself.
+* Policy: `"Enable update for phase leads"` on `public.tasks` — `USING (origin = 'instance' AND user_is_phase_lead(id, auth.uid()))` with a matching `WITH CHECK`.
+* **Additive only** — owner/editor/coach UPDATE policies are unchanged. SELECT for viewers is unchanged (already project-wide).
+
+**UI** (`src/features/tasks/components/TaskFormFields.tsx`): the `<PhaseLeadPicker>` sub-component (multi-select popover) renders only for `membershipRole === 'owner'` on phase/milestone rows. Options come from `useTeam(projectId).teamMembers.filter(m => m.role === 'viewer' || m.role === 'limited')` — owners/editors/coaches/admins are NOT in the picker because they already have UPDATE via existing policies. Badge in `TaskDetailsView.tsx` lists current leads.
+
+**Permission matrix update**: limited viewers may now edit tasks under any phase/milestone they are designated as Phase Lead for. See the matrix footnote above.
+
+### Notification Preferences (Wave 30)
+
+Per-user `public.notification_preferences` row, bootstrapped by `trg_bootstrap_notification_prefs` AFTER INSERT on `auth.users`. Append-only `public.notification_log` audit trail captures every dispatch attempt (sent or skipped) for debugging, idempotency, and the user-visible "Recent notifications" section in Settings.
+
+**RLS**:
+* `notification_preferences`: SELECT/INSERT/UPDATE for `user_id = auth.uid()`. DELETE not exposed — UPDATE is the off-switch.
+* `notification_log`: SELECT for `user_id = auth.uid() OR is_admin(auth.uid())`. INSERT/UPDATE/DELETE denied at policy level — only SECURITY DEFINER dispatch functions (Task 2 + Task 3) write rows.
+
+**Quiet hours**: stored as `TIME` in the user-supplied `timezone` column. Tasks 2 + 3 dispatch functions are responsible for skipping + logging when local-now is within the quiet window.
+
+Migration: `docs/db/migrations/2026_04_18_notification_preferences.sql`.

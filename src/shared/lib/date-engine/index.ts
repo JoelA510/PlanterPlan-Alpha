@@ -6,7 +6,8 @@ import {
  isPast,
  isToday,
  endOfDay,
- isBefore
+ isBefore,
+ differenceInCalendarDays
 } from 'date-fns';
 
 /**
@@ -84,8 +85,17 @@ export const isPastDate = (date: DateInput | null | undefined): boolean => {
  return isPast(d) && !isToday(d);
 };
 
-/** Returns `true` if the date is today. */
+/** Returns `true` if the date is today.
+ *
+ * Date-only strings (`YYYY-MM-DD`) are compared as UTC calendar days to
+ * match the codebase convention used by `toIsoDate` / `formatDisplayDate`
+ * and to remain stable regardless of the runner's TZ offset.
+ */
 export const isTodayDate = (date: DateInput | null | undefined): boolean => {
+ if (date == null) return false;
+ if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+ return date === new Date().toISOString().split('T')[0];
+ }
  const d = resolve(date);
  if (!d) return false;
  return isToday(d);
@@ -101,6 +111,20 @@ export const addDaysToDate = (date: DateInput | null | undefined, amount: number
 /** Validates a date input. */
 export const isDateValid = (date: DateInput | null | undefined): boolean => {
  return resolve(date) !== null;
+};
+
+/**
+ * Calendar-day difference `later - earlier` (DST-aware via date-fns).
+ * Returns `null` if either input is invalid.
+ */
+export const diffInCalendarDays = (
+ later: DateInput | null | undefined,
+ earlier: DateInput | null | undefined,
+): number | null => {
+ const a = resolve(later);
+ const b = resolve(earlier);
+ if (!a || !b) return null;
+ return differenceInCalendarDays(a, b);
 };
 
 /** Returns the end of the day for a given date. */
@@ -317,6 +341,10 @@ export const recalculateProjectDates = (
 ): DateUpdateRecord[] => {
  if (!projectTasks || !newStartDateStr || !oldStartDateStr) return [];
 
+ // Wave 29: checkpoint projects don't bulk-shift on start-date changes.
+ const root = projectTasks.find((t) => !t.parent_task_id);
+ if (isCheckpointProject(root)) return [];
+
  const oldIso = toIsoDate(oldStartDateStr);
  const newIso = toIsoDate(newStartDateStr);
  if (!oldIso || !newIso) return [];
@@ -425,4 +453,63 @@ export const deriveUrgency = (
  }
 
  return 'current';
+};
+
+// ---------------------------------------------------------------------------
+// Wave 29 — Checkpoint project kind (project-type discriminator)
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal shape used by `isCheckpointProject`. Accepts any task-like object
+ * with an optional settings JSONB; the only keys read are `parent_task_id`
+ * and `settings.project_kind`.
+ */
+export interface CheckpointRootLike {
+ parent_task_id?: string | null;
+ settings?: Record<string, unknown> | null;
+}
+
+/**
+ * True when a task's settings indicate a checkpoint-kind project. Safe on
+ * non-root tasks (always false because only the root carries the kind) and
+ * on null / undefined. Defaults to date-driven when the settings key is absent,
+ * so every pre-Wave-29 project is unaffected.
+ *
+ * MUST stay byte-equivalent with the Deno mirror at
+ * `supabase/functions/_shared/date.ts`. Lock-step convention per Wave 21
+ * recurrence helpers.
+ *
+ * @param rootTask - A task-like object (or null) to inspect. Only `parent_task_id` and `settings.project_kind` are read.
+ * @returns `true` iff the input is a root task with `settings.project_kind === 'checkpoint'`.
+ */
+export function isCheckpointProject(rootTask: CheckpointRootLike | null | undefined): boolean {
+ if (!rootTask) return false;
+ if (rootTask.parent_task_id) return false;
+ const settings = rootTask.settings;
+ if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return false;
+ return (settings as Record<string, unknown>).project_kind === 'checkpoint';
+}
+
+/**
+ * Wrapper around `deriveUrgency` that accepts the task's project root and
+ * short-circuits to `'not_yet_due'` for any non-completed task in a
+ * checkpoint project. Date-kind projects (the default) fall through to the
+ * existing branch logic unchanged — so this wrapper is signature-compatible
+ * with `deriveUrgency` plus one extra optional positional argument.
+ *
+ * @param task - Task whose urgency is being derived (same shape as `deriveUrgency`).
+ * @param rootTask - The project root (or null). When checkpoint, urgency is suppressed.
+ * @param dueSoonThresholdDays - Threshold for the `due_soon` branch.
+ * @param now - Injected `now` for testability.
+ * @returns Urgency label, or `null` when suppressed by completion / missing dates.
+ */
+export const deriveUrgencyForProject = (
+ task: Pick<DateEngineTask, 'start_date' | 'due_date' | 'is_complete' | 'status'>,
+ rootTask: CheckpointRootLike | null | undefined,
+ dueSoonThresholdDays: number,
+ now: Date = new Date(),
+): TaskUrgency | null => {
+ if (task.is_complete || task.status === 'completed') return null;
+ if (isCheckpointProject(rootTask)) return 'not_yet_due';
+ return deriveUrgency(task, dueSoonThresholdDays, now);
 };

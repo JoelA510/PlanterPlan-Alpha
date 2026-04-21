@@ -12,7 +12,24 @@ Spec is at **1.19.0**. Outstanding roadmap: §3.7 Store + Monetization (this wav
 
 Wave 35 ships **Stripe-backed monetization + license enforcement** (§3.7). Two related items combined into one wave because they share the same Stripe webhook surface and pricing-tier model. Closes the `auth-rbac.md` "Licensing Enforcement" known-gap.
 
-**Gate baseline going into Wave 35:** confirm the current `main` baseline. Run `npm run lint`, `npm run build`, `npx vitest run`. **Stripe test-mode keys** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) must be available in your local Supabase environment for end-to-end smoke testing — without them the wave's edge functions degrade to log-only (mirrors the Wave 22 Resend pattern).
+**Test baseline going into Wave 35:** Wave 34 shipped at ≥720 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
+
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 35 has a CRITICAL E2E gotcha: the new license-enforcement trigger blocks any user from creating more than 1 project on the free plan. Every existing E2E scenario that creates more than one project per user (the `owner`, `editor`, `test@example.com` personas all do) will start failing UNLESS you upgrade those personas to the `pro` plan before the E2E run. **Required step in Task 2 (license enforcement)**: extend `scripts/seed-e2e.js` (or add a Wave 35 step in `Testing/e2e/global-setup.ts`) to run `UPDATE public.subscriptions SET plan = 'pro' WHERE user_id IN (SELECT id FROM auth.users WHERE email IN ('planterplan.test@gmail.com', 'tim.planterplan@gmail.com', 'test@example.com', 'planterplan.role_tester@mail.com', 'limited@example.com', 'coach@example.com'))` after the bootstrap trigger has created their `subscriptions` rows. Document this seed extension in the Task 2 PR description as a hard prerequisite for E2E. Without it, the entire E2E suite breaks.
+
+**Stripe test-mode keys**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, plus the three price IDs (`STRIPE_PRICE_FREE`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_NETWORK`) must be available in your local Supabase environment for end-to-end smoke testing. Without them the edge functions degrade to log-only (mirrors the Wave 22 Resend pattern). The webhook endpoint is publicly POST'd to by Stripe — it is NOT cron-driven; `pg_cron` is not relevant here.
+
+## Pre-flight verification (run before any task)
+
+1. `git log --oneline` includes the 3 Wave 34 commits + docs sweep.
+2. These files exist:
+   - `supabase/functions/_shared/email.ts` (Wave 22; renderer pattern precedent)
+   - `supabase/functions/supervisor-report/{index.ts,README.md}` (precedent for env-gated dispatch)
+   - `src/pages/Settings.tsx` (Wave 30 added Notifications tab; Wave 35 adds Billing tab)
+   - `src/features/projects/components/NewProjectForm.tsx` (license gate point)
+   - `src/features/projects/components/InviteMemberModal.tsx` (license gate point)
+   - `src/shared/contexts/AuthContext.tsx`
+3. Wave 34 added per-task `organization_id`. Wave 35's per-user subscriptions are NOT per-org for v1 — a user's subscription gates THEIR project creation count regardless of org. Org-level billing (multi-seat, partner-org subscriptions) is explicitly deferred. Document this in `docs/architecture/billing.md`.
+4. `tasks.creator` is the column that determines project creator (per Wave 23 schema map, `check_project_creatorship` queries it). License-enforcement triggers query `creator`, not `assignee_id`.
 
 ## Branch
 
@@ -35,7 +52,7 @@ Three tasks. Task 1 wires Stripe Checkout + customer portal + webhook. Task 2 en
 
 1. **Stripe primitives configured externally** — three subscription plans defined in the Stripe dashboard: `Free` ($0/mo, 1 project, 5 members), `Pro` ($19/mo, 10 projects, 25 members), `Network` ($99/mo, unlimited). Document the price IDs in `.env.example` as `STRIPE_PRICE_FREE`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_NETWORK`. **Real price IDs go in env, not committed.**
 
-2. **Migration** (`docs/db/migrations/2026_XX_XX_subscriptions.sql`, NEW)
+2. **Migration** (`docs/db/migrations/2026_04_18_subscriptions.sql`, NEW)
    - `CREATE TABLE public.subscriptions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE, stripe_customer_id text UNIQUE, stripe_subscription_id text UNIQUE, plan text NOT NULL DEFAULT 'free' CHECK (plan IN ('free','pro','network')), status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','past_due','canceled','incomplete')), current_period_end timestamptz, trial_ends_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`.
    - `CREATE TABLE public.subscription_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL, stripe_event_id text NOT NULL UNIQUE, event_type text NOT NULL, payload jsonb NOT NULL DEFAULT '{}'::jsonb, processed_at timestamptz, error text, received_at timestamptz NOT NULL DEFAULT now())`. Append-only audit of every webhook event for debugging.
    - `idx_subscriptions_user_id` on `(user_id)`; `idx_subscription_events_user_id` on `(user_id, received_at DESC)`.
@@ -97,7 +114,7 @@ Three tasks. Task 1 wires Stripe Checkout + customer portal + webhook. Task 2 en
    - `PLAN_LIMITS = { free: { projects: 1, members: 5 }, pro: { projects: 10, members: 25 }, network: { projects: Infinity, members: Infinity } } as const`.
    - Also export per-plan display names + monthly price for the UI.
 
-2. **DB-side enforcement** (`docs/db/migrations/2026_XX_XX_license_enforcement.sql`, NEW)
+2. **DB-side enforcement** (`docs/db/migrations/2026_04_18_license_enforcement.sql`, NEW)
    - **Pre-INSERT trigger on `tasks`** (when `parent_task_id IS NULL AND origin = 'instance'` — i.e., creating a new project root):
      - Look up the user's `subscriptions.plan`.
      - Count their existing project roots (`SELECT COUNT(*) FROM public.tasks WHERE parent_task_id IS NULL AND origin = 'instance' AND creator = NEW.creator`).
@@ -137,7 +154,7 @@ Three tasks. Task 1 wires Stripe Checkout + customer portal + webhook. Task 2 en
 
 **Commit:** `feat(wave-35): admin-managed discount codes for Stripe checkout`
 
-1. **Migration** (`docs/db/migrations/2026_XX_XX_discount_codes.sql`, NEW)
+1. **Migration** (`docs/db/migrations/2026_04_18_discount_codes.sql`, NEW)
    - `CREATE TABLE public.discount_codes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, stripe_promotion_id text UNIQUE, label text, max_redemptions int, redemptions int NOT NULL DEFAULT 0, expires_at timestamptz, created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL, created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz)`.
    - `CHECK (max_redemptions IS NULL OR redemptions <= max_redemptions)`.
    - RLS: SELECT for any authenticated user (so the checkout form can validate). INSERT/UPDATE/DELETE for `is_admin` only.
@@ -191,7 +208,8 @@ Land docs as `docs(wave-35): documentation currency sweep`.
 6. **Webhook signature** — POST a forged event with bad signature → 401.
 7. **No FSD drift** — `useSubscription` lives in `features/settings/hooks/`; constants in `shared/constants/`; admin pages in `pages/admin/`.
 8. **Type drift** — three new tables hand-edited cleanly.
-9. **Lint + build + tests** — green.
+9. **Test-impact reconciled** — Stripe webhook test signs payloads via `Testing/test-utils/mocks/stripe.ts` `signStripePayload`; idempotency test exercises duplicate-event-id; `seed-e2e.js` extended to upgrade ALL 6 personas to `pro` plan via direct `subscriptions` UPDATE BEFORE E2E run (without this, every multi-project E2E scenario fails); no `it.skip`. Test count ≥ baseline + new tests.
+10. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure). Stripe signature verification + idempotency are §8.2 RLS/security concerns — HALT if any test fails.
 
 ## Commit & Push to Main (mandatory — gates Wave 36)
 
@@ -203,10 +221,12 @@ After all three Tasks merge:
 
 ## Verification Gate (per task, before push)
 
+**Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4. Wave 35's E2E persona upgrade is a hard prerequisite — if any persona is still on the `free` plan when E2E runs, multi-project scenarios will fail. HALT and re-seed.**
+
 ```bash
-npm run lint      # 0 errors (warnings baseline ≤7, do not regress)
-npm run build     # clean (tsc -b && vite build)
-npx vitest run    # baseline + new tests
+npm run lint      # 0 errors required (≤7 pre-existing warnings tolerated). FAIL → HALT.
+npm run build     # clean (tsc -b && vite build). FAIL → HALT.
+npm test          # 100% pass rate; count ≥ baseline + new tests. FAIL → HALT.
 git status        # clean
 ```
 
@@ -234,16 +254,16 @@ Manual smoke per Wave Review.
 - `src/pages/Settings.tsx` (Billing tab)
 - `src/features/projects/components/NewProjectForm.tsx` (license gate)
 - `src/features/projects/components/InviteMemberModal.tsx` (license gate)
-- `src/app/router.tsx` — add `/admin/discount-codes`
+- `src/app/App.tsx` — add `/admin/discount-codes`
 - `spec.md` (flip §3.7 Store + License Management to `[x]`, bump to 1.20.0)
 - `repo-context.yaml` (Wave 35 highlights)
 - `CLAUDE.md` (Tables + Billing subsection)
 - `.env.example` (5 new Stripe env vars)
 
 **Will create:**
-- `docs/db/migrations/2026_XX_XX_subscriptions.sql`
-- `docs/db/migrations/2026_XX_XX_license_enforcement.sql`
-- `docs/db/migrations/2026_XX_XX_discount_codes.sql`
+- `docs/db/migrations/2026_04_18_subscriptions.sql`
+- `docs/db/migrations/2026_04_18_license_enforcement.sql`
+- `docs/db/migrations/2026_04_18_discount_codes.sql`
 - `docs/db/tests/license_enforcement.sql`
 - `docs/db/tests/discount_codes_redemption.sql`
 - `docs/architecture/billing.md`
@@ -276,6 +296,6 @@ Manual smoke per Wave Review.
 - Per-org discount codes
 - Stripe Connect / partner revenue sharing
 
-## Ground Rules (non-negotiable — from `CLAUDE.md` + `.gemini/styleguide.md`)
+## Ground Rules
 
-TypeScript-only; no `.js` / `.jsx`; no barrel files (import directly from concrete paths); path alias `@/` → `src/`; no raw date math (`current_period_end` comparison goes through `date-engine`); no direct `supabase.from()` in components (`planterClient.billing.*`); Tailwind utility classes only (no arbitrary values, no pure black — use `slate-900` / `zinc-900`); optimistic mutations must force-refetch on error; max subtask depth = 1; template vs instance clarified on any cross-cutting work; one new dep allowed: `stripe` (Deno ESM for the edge functions); atomic revertable commits; build + lint + tests all clean before every push; DB migrations are additive-only — license-enforcement triggers are additive (they raise on violation, never modify existing data); Stripe webhook MUST verify signatures and MUST be idempotent on `stripe_event_id` UNIQUE — failure mode is silent duplicate-drop, not exception.
+TypeScript-only; no `.js`/`.jsx`; no barrel files; `@/` → `src/`, `@test/` → `Testing/test-utils`; no raw date math (`current_period_end` comparison goes through `date-engine` `compareDateAsc` / `isBeforeDate`); no direct `supabase.from()` in components (`planter.billing.*`); Tailwind utilities only (no arbitrary values, no pure black — slate-900/zinc-900); brand button uses `bg-brand-600 hover:bg-brand-700`; optimistic mutations must force-refetch in `onError`; max subtask depth = 1; template vs instance clarified; **one new dep allowed: `stripe` (Deno ESM at `https://esm.sh/stripe@17.4.0` — pin this version in the import URL)**; atomic revertable commits; build + lint + tests clean before every push; DB migrations are additive-only — license-enforcement triggers are additive (they raise on violation, never modify existing data); **Stripe webhook MUST verify signatures and MUST be idempotent on `stripe_event_id` UNIQUE** — failure mode is silent duplicate-drop, not exception.

@@ -57,6 +57,45 @@ export type ResourceWithTask = TaskResourceRow & {
     task: { id: string; title: string | null; root_id: string | null } | null;
 };
 
+// ----------------------------------------------------------------------------
+// Comments (Wave 26)
+// ----------------------------------------------------------------------------
+export type TaskCommentRow    = Database['public']['Tables']['task_comments']['Row'];
+export type TaskCommentInsert = Database['public']['Tables']['task_comments']['Insert'];
+export type TaskCommentUpdate = Database['public']['Tables']['task_comments']['Update'];
+
+/** Task comment row joined with author profile for UI rendering. */
+export type TaskCommentWithAuthor = TaskCommentRow & {
+    author: {
+        id: string;
+        email: string;
+        user_metadata?: UserMetadata;
+    } | null;
+};
+
+// ----------------------------------------------------------------------------
+// Notifications (Wave 30)
+// ----------------------------------------------------------------------------
+export type NotificationPreferencesRow    = Database['public']['Tables']['notification_preferences']['Row'];
+export type NotificationPreferencesUpdate = Database['public']['Tables']['notification_preferences']['Update'];
+export type NotificationLogRow            = Database['public']['Tables']['notification_log']['Row'];
+export type PushSubscriptionRow           = Database['public']['Tables']['push_subscriptions']['Row'];
+export type PushSubscriptionInsert        = Database['public']['Tables']['push_subscriptions']['Insert'];
+
+// ----------------------------------------------------------------------------
+// Activity Log (Wave 27)
+// ----------------------------------------------------------------------------
+export type ActivityLogRow = Database['public']['Tables']['activity_log']['Row'];
+
+/** Activity log row joined with the actor's auth profile for UI rendering. */
+export type ActivityLogWithActor = ActivityLogRow & {
+    actor: {
+        id: string;
+        email: string;
+        user_metadata?: UserMetadata;
+    } | null;
+};
+
 /** Standardized Person type for UI components */
 export interface Person extends PersonRow {
     notes: string | null;
@@ -117,6 +156,8 @@ export interface TaskFormData {
     is_coaching_task?: boolean;
     /** Wave 24: flag the task as a strategy template so completing it opens the Master Library follow-up dialog. */
     is_strategy_template?: boolean;
+    /** Wave 29: user ids designated as Phase Leads on a phase/milestone row (owner-only picker in TaskFormFields). */
+    phase_lead_user_ids?: string[];
 }
 
 /**
@@ -138,6 +179,10 @@ export interface TaskSettings {
     is_coaching_task?: boolean;
     /** Wave 24: when true, completing this instance task opens a dialog offering Master Library follow-ups (cloned as siblings). */
     is_strategy_template?: boolean;
+    /** Wave 29: on root tasks only — selects the project type ('date' = date-driven scheduling, default; 'checkpoint' = sequential phase-unlock). */
+    project_kind?: 'date' | 'checkpoint';
+    /** Wave 29: on phase/milestone rows — user ids designated as Phase Leads; consumed by the `user_is_phase_lead` RLS helper. */
+    phase_lead_user_ids?: string[];
 }
 
 // ----------------------------------------------------------------------------
