@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
@@ -29,6 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTeam } from '@/features/people/hooks/useTeam';
 
 export default function Team() {
+    const { t } = useTranslation();
     const urlParams = new URLSearchParams(window.location.search);
     const projectId = urlParams.get('project');
 
@@ -61,9 +63,9 @@ export default function Team() {
                                     </Link>
                                 )}
                                 <div>
-                                    <h1 className="text-3xl font-bold text-foreground">{projectId ? 'Project Team' : 'All Team Members'}</h1>
+                                    <h1 className="text-3xl font-bold text-foreground">{projectId ? t('projects.people.project_team_title') : t('projects.people.all_team_members_title')}</h1>
                                     {project && <p className="text-muted-foreground mt-1">{project.title}</p>}
-                                    {!projectId && <p className="text-muted-foreground mt-1">People collaborating across your projects</p>}
+                                    {!projectId && <p className="text-muted-foreground mt-1">{t('projects.people.collaborating_subtitle')}</p>}
                                 </div>
                             </div>
                             {projectId && (
@@ -72,7 +74,7 @@ export default function Team() {
                                     className="bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/20"
                                 >
                                     <UserPlus className="w-5 h-5 mr-2" />
-                                    Add Member
+                                    {t('projects.people.add_member_button')}
                                 </Button>
                             )}
                         </div>
@@ -106,19 +108,19 @@ export default function Team() {
                                                         className="text-rose-600 focus:text-rose-700 focus:bg-rose-50 "
                                                         onClick={() => mutations.deleteMember.mutate(member.id)}
                                                     >
-                                                        Remove from team
+                                                        {t('projects.people.remove_from_team')}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>
-                                        <h3 className="text-lg font-bold text-foreground mb-1">{(member as { name?: string }).name || 'Unknown Name'}</h3>
+                                        <h3 className="text-lg font-bold text-foreground mb-1">{(member as { name?: string }).name || t('common.unknown_name')}</h3>
                                         <div className="flex flex-wrap gap-2 mb-4">
                                             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white border border-brand-200 text-brand-700 ">
-                                                {member.role || 'Member'}
+                                                {member.role || t('common.member')}
                                             </span>
                                             {(member as { is_lead?: boolean }).is_lead && (
                                                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white border border-blue-200 text-blue-700 ">
-                                                    Lead
+                                                    {t('common.lead')}
                                                 </span>
                                             )}
                                         </div>
@@ -147,11 +149,11 @@ export default function Team() {
                                 <div className="w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <Users className="w-10 h-10 text-muted-foreground/50" />
                                 </div>
-                                <h3 className="text-xl font-bold text-foreground mb-2">Build your team</h3>
+                                <h3 className="text-xl font-bold text-foreground mb-2">{t('projects.people.build_team_title')}</h3>
                                 <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
                                     {projectId
-                                        ? "Add members to collaborate on this project."
-                                        : "No team members found across your projects."}
+                                        ? t('projects.people.add_members_description')
+                                        : t('projects.people.no_members_description')}
                                 </p>
                                 {projectId && (
                                     <Button
@@ -159,7 +161,7 @@ export default function Team() {
                                         className="bg-brand-600 hover:bg-brand-700 text-white"
                                     >
                                         <UserPlus className="w-5 h-5 mr-2" />
-                                        Add First Member
+                                        {t('projects.people.add_first_member_button')}
                                     </Button>
                                 )}
                             </div>
@@ -170,9 +172,9 @@ export default function Team() {
                 <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
                     <DialogContent className="bg-card text-card-foreground border-border">
                         <DialogHeader>
-                            <DialogTitle>Add Team Member</DialogTitle>
+                            <DialogTitle>{t('projects.people.modal_title')}</DialogTitle>
                             <DialogDescription>
-                                Fill in the details below to add a new member.
+                                {t('projects.people.modal_description')}
                             </DialogDescription>
                         </DialogHeader>
                         <form
@@ -190,27 +192,27 @@ export default function Team() {
                             className="space-y-4 pt-4"
                         >
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Full Name</label>
-                                <Input name="name" placeholder="Enter name" required className="bg-background border-input" />
+                                <label className="text-sm font-medium text-foreground">{t('common.full_name')}</label>
+                                <Input name="name" placeholder={t('common.enter_name')} required className="bg-background border-input" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Email Address</label>
-                                <Input name="email" type="email" placeholder="Enter email" className="bg-background border-input" />
+                                <label className="text-sm font-medium text-foreground">{t('common.email_address')}</label>
+                                <Input name="email" type="email" placeholder={t('common.enter_email')} className="bg-background border-input" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Role</label>
-                                <Input name="role" placeholder="e.g. Lead, Coordinator, Volunteer" className="bg-background border-input" />
+                                <label className="text-sm font-medium text-foreground">{t('common.role')}</label>
+                                <Input name="role" placeholder={t('projects.people.role_placeholder')} className="bg-background border-input" />
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
                                 <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
-                                    Cancel
+                                    {t('common.cancel')}
                                 </Button>
                                 <Button
                                     type="submit"
                                     className="bg-brand-600 hover:bg-brand-700 text-white"
                                     disabled={mutations.addMember.isPending}
                                 >
-                                    {mutations.addMember.isPending ? 'Adding...' : 'Add Member'}
+                                    {mutations.addMember.isPending ? t('projects.people.adding') : t('projects.people.add_member_button')}
                                 </Button>
                             </div>
                         </form>

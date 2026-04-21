@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import type { TaskRow, Project, TaskInsert, CreateProjectFormData } from '@/shared/db/app.types';
 import type { Database } from '@/shared/db/database.types';
@@ -23,6 +24,7 @@ import OnboardingWizard from '@/pages/components/OnboardingWizard';
 import MobileAgenda from '@/features/mobile/MobileAgenda';
 
 export default function Dashboard() {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -40,8 +42,8 @@ export default function Dashboard() {
                 navigate(`/project/${project.id}`);
             }
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Unknown error occurred';
-            toast.error('Failed to create project', { description: message });
+            const message = error instanceof Error ? error.message : t('errors.unknown');
+            toast.error(t('errors.failed_create_project'), { description: message });
         }
     };
 
@@ -49,8 +51,8 @@ export default function Dashboard() {
         try {
             await updateStatusMutation.mutateAsync({ projectId, status: newStatus });
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Unknown error occurred';
-            toast.error('Failed to move project', { description: message });
+            const message = error instanceof Error ? error.message : t('errors.unknown');
+            toast.error(t('errors.failed_move_project'), { description: message });
             queryClient.invalidateQueries({ queryKey: ['projects'] });
         }
     };
@@ -58,7 +60,7 @@ export default function Dashboard() {
     const handleCreateTemplate = async (data: { title: string; description: string; isPublished: boolean }) => {
         try {
             const userId = state.user?.id;
-            if (!userId) throw new Error('User must be logged in');
+            if (!userId) throw new Error(t('errors.user_must_be_logged_in'));
 
             const template = await planter.entities.Task.create({
                 title: data.title,
@@ -78,13 +80,13 @@ export default function Dashboard() {
                     user_id: userId,
                     role: 'owner',
                 } as Database['public']['Tables']['project_members']['Insert']);
-                toast.success('Template created');
+                toast.success(t('dashboard.template_created_toast'));
                 queryClient.invalidateQueries({ queryKey: ['projects', 'template'] });
                 navigate(`/project/${template.id}`);
             }
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Unknown error occurred';
-            toast.error('Failed to create template', { description: message });
+            const message = error instanceof Error ? error.message : t('errors.unknown');
+            toast.error(t('errors.failed_create_template'), { description: message });
         }
     };
 
@@ -99,10 +101,10 @@ export default function Dashboard() {
     if (state.isError) {
         return (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <p className="text-destructive font-medium">Failed to load projects</p>
+                <p className="text-destructive font-medium">{t('errors.failed_load_projects')}</p>
                 <p className="text-muted-foreground text-sm">{state.error?.message}</p>
                 <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ['projects'] })}>
-                    Retry
+                    {t('common.retry')}
                 </Button>
             </div>
         );
@@ -117,8 +119,8 @@ export default function Dashboard() {
                 className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 flex-shrink-0"
             >
                 <div>
-                    <h1 className="text-3xl font-bold text-card-foreground">Project Dashboard</h1>
-                    <p className="text-muted-foreground mt-1">Manage your church planting projects</p>
+                    <h1 className="text-3xl font-bold text-card-foreground">{t('dashboard.title')}</h1>
+                    <p className="text-muted-foreground mt-1">{t('dashboard.subtitle')}</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -127,7 +129,7 @@ export default function Dashboard() {
                         className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20 "
                     >
                         <Plus className="w-5 h-5 mr-2" />
-                        New Project
+                        {t('dashboard.new_project')}
                     </Button>
                 </div>
             </motion.div>
@@ -149,13 +151,13 @@ export default function Dashboard() {
                         <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-6">
                             <FolderKanban className="w-8 h-8 text-muted-foreground" />
                         </div>
-                        <h3 className="text-xl font-semibold text-card-foreground mb-2">No projects yet</h3>
+                        <h3 className="text-xl font-semibold text-card-foreground mb-2">{t('dashboard.no_projects_title')}</h3>
                         <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                            Start your church planting journey by creating your first project
+                            {t('dashboard.no_projects_description')}
                         </p>
                         <Button onClick={() => actions.setShowCreateModal(true)} className="bg-orange-500 hover:bg-orange-600">
                             <Plus className="w-5 h-5 mr-2" />
-                            Create Your First Project
+                            {t('dashboard.create_first_project')}
                         </Button>
                     </motion.div>
                 ) : (

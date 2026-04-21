@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Label } from '@/shared/ui/label';
 import { Switch } from '@/shared/ui/switch';
 import { Input } from '@/shared/ui/input';
@@ -47,6 +48,7 @@ function useTimezoneOptions(): string[] {
 }
 
 export default function SettingsNotificationsTab() {
+    const { t } = useTranslation();
     const { data: prefs, isLoading, isError } = useNotificationPreferences();
     const updateMutation = useUpdateNotificationPreferences();
     const logQuery = useNotificationLog({ limit: 20 });
@@ -61,14 +63,14 @@ export default function SettingsNotificationsTab() {
     if (isLoading || !prefs) {
         return (
             <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground shadow-sm" data-testid="notif-loading">
-                Loading preferences…
+                {t('notifications.loading_preferences')}
             </div>
         );
     }
     if (isError) {
         return (
             <div className="rounded-xl border border-border bg-card p-6 text-sm text-red-600 shadow-sm">
-                Could not load notification preferences.
+                {t('notifications.could_not_load_preferences')}
             </div>
         );
     }
@@ -78,13 +80,13 @@ export default function SettingsNotificationsTab() {
     return (
         <div className="space-y-6" data-testid="settings-notifications">
             <div className="bg-card rounded-xl border border-border shadow-sm p-6">
-                <h2 className="text-xl font-bold text-slate-900">Email</h2>
-                <p className="text-sm text-slate-600 mt-1">Control which events produce an email.</p>
+                <h2 className="text-xl font-bold text-slate-900">{t('notifications.email.title')}</h2>
+                <p className="text-sm text-slate-600 mt-1">{t('notifications.email.description')}</p>
 
                 <div className="mt-6 flex items-center justify-between gap-4">
                     <div>
-                        <Label htmlFor="email-mentions" className="text-sm font-medium">Mentions</Label>
-                        <p className="text-xs text-slate-600">Email me when someone `@`-mentions me in a task comment.</p>
+                        <Label htmlFor="email-mentions" className="text-sm font-medium">{t('notifications.email.mentions_label')}</Label>
+                        <p className="text-xs text-slate-600">{t('notifications.email.mentions_description')}</p>
                     </div>
                     <Switch
                         id="email-mentions"
@@ -95,8 +97,8 @@ export default function SettingsNotificationsTab() {
 
                 <div className="mt-4 flex items-center justify-between gap-4">
                     <div>
-                        <Label htmlFor="email-overdue-digest" className="text-sm font-medium">Overdue digest</Label>
-                        <p className="text-xs text-slate-600">Scheduled summary of tasks past due.</p>
+                        <Label htmlFor="email-overdue-digest" className="text-sm font-medium">{t('notifications.email.overdue_digest_label')}</Label>
+                        <p className="text-xs text-slate-600">{t('notifications.email.overdue_digest_description')}</p>
                     </div>
                     <Select
                         value={prefs.email_overdue_digest}
@@ -106,17 +108,17 @@ export default function SettingsNotificationsTab() {
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="off">Off</SelectItem>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="off">{t('common.off')}</SelectItem>
+                            <SelectItem value="daily">{t('common.daily')}</SelectItem>
+                            <SelectItem value="weekly">{t('common.weekly')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
 
                 <div className="mt-4 flex items-center justify-between gap-4">
                     <div>
-                        <Label htmlFor="email-assignment" className="text-sm font-medium">Task assignment</Label>
-                        <p className="text-xs text-slate-600">Email me when a task is assigned to me.</p>
+                        <Label htmlFor="email-assignment" className="text-sm font-medium">{t('notifications.email.assignment_label')}</Label>
+                        <p className="text-xs text-slate-600">{t('notifications.email.assignment_description')}</p>
                     </div>
                     <Switch
                         id="email-assignment"
@@ -129,8 +131,8 @@ export default function SettingsNotificationsTab() {
             <div className="bg-card rounded-xl border border-border shadow-sm p-6">
                 <div className="flex items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900">Push</h2>
-                        <p className="text-sm text-slate-600 mt-1">Browser push notifications via the service worker.</p>
+                        <h2 className="text-xl font-bold text-slate-900">{t('notifications.push.title')}</h2>
+                        <p className="text-sm text-slate-600 mt-1">{t('notifications.push.description')}</p>
                     </div>
                     <Button
                         type="button"
@@ -142,57 +144,57 @@ export default function SettingsNotificationsTab() {
                         disabled={!push.isSupported || push.isSubscribing}
                         title={push.isSupported
                             ? (push.permissionState === 'denied'
-                                ? 'Browser notifications blocked — re-enable in site settings.'
+                                ? t('notifications.push.blocked')
                                 : undefined)
-                            : 'Browser push is not supported here (install the PWA on Safari, or use a desktop browser).'}
+                            : t('notifications.push.not_supported')}
                         data-testid="enable-browser-push"
                     >
                         {push.isSubscribing
-                            ? 'Working…'
+                            ? t('common.working')
                             : pushSubscribed
-                                ? 'Disable browser push'
-                                : 'Enable browser push'}
+                                ? t('notifications.push.disable')
+                                : t('notifications.push.enable')}
                     </Button>
                 </div>
 
                 <div className="mt-6 space-y-4">
                     <ToggleRow
                         id="push-mentions"
-                        label="Mentions"
-                        description="Push me when someone `@`-mentions me."
+                        label={t('notifications.push.mentions_label')}
+                        description={t('notifications.push.mentions_description')}
                         checked={prefs.push_mentions}
                         disabled={!pushSubscribed}
-                        disabledTooltip="Enable browser push first."
+                        disabledTooltip={t('notifications.push.requires_enable_tooltip')}
                         onChange={(v) => patch({ push_mentions: v })}
                     />
                     <ToggleRow
                         id="push-overdue"
-                        label="Overdue digest"
-                        description="Push me the daily overdue summary."
+                        label={t('notifications.push.overdue_label')}
+                        description={t('notifications.push.overdue_description')}
                         checked={prefs.push_overdue}
                         disabled={!pushSubscribed}
-                        disabledTooltip="Enable browser push first."
+                        disabledTooltip={t('notifications.push.requires_enable_tooltip')}
                         onChange={(v) => patch({ push_overdue: v })}
                     />
                     <ToggleRow
                         id="push-assignment"
-                        label="Task assignment"
-                        description="Push me when a task is assigned to me."
+                        label={t('notifications.push.assignment_label')}
+                        description={t('notifications.push.assignment_description')}
                         checked={prefs.push_assignment}
                         disabled={!pushSubscribed}
-                        disabledTooltip="Enable browser push first."
+                        disabledTooltip={t('notifications.push.requires_enable_tooltip')}
                         onChange={(v) => patch({ push_assignment: v })}
                     />
                 </div>
             </div>
 
             <div className="bg-card rounded-xl border border-border shadow-sm p-6">
-                <h2 className="text-xl font-bold text-slate-900">Quiet hours</h2>
-                <p className="text-sm text-slate-600 mt-1">Dispatchers skip sends when local-now is within this window.</p>
+                <h2 className="text-xl font-bold text-slate-900">{t('notifications.quiet_hours.title')}</h2>
+                <p className="text-sm text-slate-600 mt-1">{t('notifications.quiet_hours.description')}</p>
 
                 <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
-                        <Label htmlFor="quiet-start" className="text-sm font-medium">Start</Label>
+                        <Label htmlFor="quiet-start" className="text-sm font-medium">{t('notifications.quiet_hours.start_label')}</Label>
                         <Input
                             id="quiet-start"
                             type="time"
@@ -201,7 +203,7 @@ export default function SettingsNotificationsTab() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="quiet-end" className="text-sm font-medium">End</Label>
+                        <Label htmlFor="quiet-end" className="text-sm font-medium">{t('notifications.quiet_hours.end_label')}</Label>
                         <Input
                             id="quiet-end"
                             type="time"
@@ -210,7 +212,7 @@ export default function SettingsNotificationsTab() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="timezone" className="text-sm font-medium">Timezone</Label>
+                        <Label htmlFor="timezone" className="text-sm font-medium">{t('notifications.quiet_hours.timezone_label')}</Label>
                         <Select
                             value={prefs.timezone}
                             onValueChange={(v) => patch({ timezone: v })}
@@ -230,13 +232,13 @@ export default function SettingsNotificationsTab() {
 
             <details className="bg-card rounded-xl border border-border shadow-sm p-6">
                 <summary className="cursor-pointer text-sm font-medium text-slate-700">
-                    Recent notifications ({logQuery.data?.length ?? 0})
+                    {t('notifications.recent.title_with_count', { count: logQuery.data?.length ?? 0 })}
                 </summary>
                 <div className="mt-4 space-y-2" data-testid="notif-log">
                     {logQuery.isLoading ? (
-                        <p className="text-xs text-slate-600">Loading recent sends…</p>
+                        <p className="text-xs text-slate-600">{t('notifications.recent.loading')}</p>
                     ) : (logQuery.data?.length ?? 0) === 0 ? (
-                        <p className="text-xs text-slate-600">No notifications have been sent yet.</p>
+                        <p className="text-xs text-slate-600">{t('notifications.recent.none')}</p>
                     ) : (
                         (logQuery.data ?? []).map((row) => (
                             <div key={row.id} className="flex items-start justify-between gap-3 border-b border-slate-100 py-2 text-xs last:border-0">
@@ -245,9 +247,9 @@ export default function SettingsNotificationsTab() {
                                     <p className="text-slate-600">{row.channel} · {formatDate(row.sent_at, 'PPp')}</p>
                                 </div>
                                 {row.error ? (
-                                    <span className="text-red-600">error</span>
+                                    <span className="text-red-600">{t('notifications.recent.status_error')}</span>
                                 ) : (
-                                    <span className="text-emerald-700">sent</span>
+                                    <span className="text-emerald-700">{t('notifications.recent.status_sent')}</span>
                                 )}
                             </div>
                         ))
