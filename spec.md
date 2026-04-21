@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.15.0 (Wave 30 — Push + Email Notifications) 
-> **Last Updated**: 2026-04-20 
+> **Version**: 1.16.0 (Wave 31 — Localization) 
+> **Last Updated**: 2026-04-21 
 > **Status**: Active Development
 
 ---
@@ -42,7 +42,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] Account Creation / Sign up
 - [x] Basic Error Handling (Wrong password/email)
 - [x] **Account Management**: Password change and profile data update (name, avatar URL, role, organization, email preferences). Security tab added to Settings page. Registration CORS/case-sensitivity hardening deferred.
-- [ ] **Localization**: Complete Foreign Language UI mapping.
+- [x] **Localization**: Framework + en baseline + es proof of pipeline (Wave 31). See `docs/architecture/i18n.md`.
 
 ### 3.2 Projects Domain
 - [x] **Creation & Deletion**: Create project from Master Template (deep clone RPC), delete project.

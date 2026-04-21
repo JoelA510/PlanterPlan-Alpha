@@ -49,10 +49,11 @@ Component → React Query hook → planterClient → Supabase SDK
 
 ## Tech Stack
 
-- **React 19** + **TypeScript** (strict mode, ES2022 target)
+- **React 18.3.1** + **TypeScript** (strict mode, ES2022 target). Pinned exact; the Wave 31 scope expansion rolled back from React 19 to unblock Vercel preview deploys. No React 19-only APIs (`use()`, `useActionState`, `useFormStatus`, server actions, `ref`-as-prop, built-in document metadata) are in the tree.
 - **Vite** (build + dev server)
 - **Supabase** (Postgres, Auth, Realtime, Edge Functions)
 - **TanStack React Query v5** (server state)
+- **i18next** + **react-i18next** + **i18next-browser-languagedetector** (Wave 31 localization — en baseline + es machine-translated; switcher in Settings → Profile)
 - **Tailwind CSS v4** + **Radix UI** + **Shadcn** components
 - **dnd-kit** (drag and drop)
 - **Lucide React** (icons)
@@ -67,6 +68,7 @@ Component → React Query hook → planterClient → Supabase SDK
 - **Types**: Derived from Supabase generated types in `src/shared/db/database.types.ts`, re-exported as domain types in `src/shared/db/app.types.ts`.
 - **No direct Supabase calls in components** — go through `planterClient` or mutation hooks.
 - **Styling**: Tailwind utility classes only. No custom CSS files. Use `class-variance-authority` for variants.
+- **Localization (Wave 31)**: every user-visible string in JSX, attribute values (`aria-label`, `placeholder`, `title`), and toast calls must resolve via `t('namespace.key')` from `react-i18next`. Source strings live in `src/shared/i18n/locales/en.json`; translations in sibling files (currently `es.json`). Namespaces: `common, nav, onboarding, auth, tasks, projects, library, dashboard, settings, notifications, errors`. Display-time date/number/currency formatting routes through `src/shared/i18n/formatters.ts` (Intl-based); internal date math stays on `src/shared/lib/date-engine`. Locale persisted to `localStorage.planterplan.locale` via the `LocaleSwitcher` in Settings → Profile. **`es.json` is machine-translated — see `docs/dev-notes.md`; do not market "Spanish support" until a human-review pass lands.** A few surfaces remain un-extracted (TaskDetailsView family, Home marketing, deep library views) — follow-up wave tracked in dev-notes.
 
 ## Routes
 

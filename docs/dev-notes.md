@@ -2,6 +2,29 @@
 
 Technical debt and architectural notes for the team.
 
+## Localization
+
+### Spanish translation is machine-translated
+
+**Active (Wave 31).** `src/shared/i18n/locales/es.json` was produced by a machine-translation pass from `en.json` at commit `63c77d8`. The file's `_meta.review_required_before_marketing: true` flag is enforced by `Testing/unit/shared/i18n/es-json.test.ts`. Quality is "good enough for an internal beta" but has not been reviewed by a native Spanish speaker. **Do not market "Spanish support" on the marketing site or app store listing until a human-review pass lands.** The pipeline itself (i18next + module augmentation + locale switcher + Intl formatters) is production-ready — future locales become a translator-only workflow per `docs/architecture/i18n.md` §"Adding a new locale."
+
+### Deferred string-extraction surfaces
+
+**Active (Wave 31).** Task 2's per-domain extraction landed 17 files (auth, nav, dashboard, project-create/edit, settings, notifications, reports, tasks page, Gantt page, onboarding wizard, login). The following surfaces retain hard-coded English and will be completed in a follow-up wave:
+
+- `src/features/tasks/components/TaskDetailsView.tsx` family (dependencies section, related-tasks panel, resource rail, coaching/strategy badges)
+- `src/features/people/components/AddPersonModal.tsx` — only the `Cancel` button was extracted in the Wave 31 finalize; labels, placeholders, roles enum, statuses enum, and the dynamic title still need work
+- `src/pages/Home.tsx` marketing copy (if it exists / lands)
+- Deep library views (`src/features/library/components/*` beyond the search input)
+- Activity log event-type humanizers in `<ActivityRow>`
+- Per-PR follow-up: see Wave 31 Task 2 PR description for the triage list
+
+The `eslint-plugin-i18next no-literal-string` rule is intentionally NOT enabled yet — Wave 38 may revisit once the surfaces above are extracted.
+
+### React 18.3.1 pin (Wave 31 scope expansion)
+
+**Active (Wave 31).** `package.json` pins `react`, `react-dom`, and `react-is` to exact `18.3.1`, with `@types/react`/`@types/react-dom` on `^18.3.x`. Originally intended to ship on React 19, but Vercel preview deploys were blocked by peer-dep and runtime incompatibilities under `--legacy-peer-deps`. Audit confirmed no React-19-only API usage (`use()`, `useActionState`, `useFormStatus`, server actions / `form action={fn}`, `ref` as a prop on function components, built-in `<title>`/`<meta>` in render trees). All UI primitives route refs via `React.forwardRef`; `main.tsx` uses `createRoot` from `react-dom/client`. `.npmrc` keeps `legacy-peer-deps=true` for `gantt-task-react@0.3.9` (peer: `react@^18`). Revisiting React 19 is not on the near-term roadmap — the rollback has no behavioral regressions in the test suite (791/791 passing).
+
 ## Database
 
 ### No type discriminator on `tasks`

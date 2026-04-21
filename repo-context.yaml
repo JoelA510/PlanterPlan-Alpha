@@ -1,7 +1,7 @@
 # repo-context.yaml
 # PlanterPlan Task Management System
 # Generated from codebase analysis
-# Last Updated: 2026-04-17 (Wave 23 — Coach Auto-Assign, Creatorship Audit, Completion-Flag Trigger)
+# Last Updated: 2026-04-21 (Wave 31 — Localization + React 18.3.1 rollback)
 # Specification: spec.md
 # Definitive Architecture: docs/architecture/*.md (SINGLE SOURCE OF TRUTH)
 
@@ -280,9 +280,21 @@ health_metrics:
       - "date-engine consolidation (no raw Date math)"
 
   wave_status:
-    current: "Wave 30 (Push + Email Notifications)"
-    last_completed: "Wave 30"
-    spec_version: "1.15.0"
+    current: "Wave 31 (Localization)"
+    last_completed: "Wave 31"
+    spec_version: "1.16.0"
+    wave_31_highlights:
+      - "i18next@^23.16.8 + react-i18next@^15.7.4 + i18next-browser-languagedetector@^8.2.1 framework. Provider tree wires <I18nextProvider> between QueryClientProvider and AuthProvider in src/app/App.tsx. Locale detector order: localStorage (key 'planterplan.locale') → navigator.language → 'en' fallback"
+      - "LocaleSwitcher (src/features/settings/components/LocaleSwitcher.tsx) mounted in Settings → Profile as a new row. SUPPORTED_LOCALES = [{ code: 'en', label: 'English' }, { code: 'es', label: 'Español' }]"
+      - "Intl-based formatters in src/shared/i18n/formatters.ts (formatDateLocalized / formatNumberLocalized / formatCurrencyLocalized) with per-locale DateTimeFormat cache. Internal date math stays UTC-anchored ISO in src/shared/lib/date-engine (no conflation)"
+      - "TypeScript module augmentation (src/shared/i18n/i18n.d.ts) types t('key.path') against en.json at build time — catches typos before render"
+      - "en.json: 230 keys across 11 namespaces (common, nav, onboarding, auth, tasks, projects, library, dashboard, settings, notifications, errors). Namespace keys are snake_case. Pluralization via i18next _one/_other suffix"
+      - "es.json: machine-translated against commit 63c77d8, _meta.review_required_before_marketing = true enforced by es-json.test.ts. NOT marketing-ready — human review pending (see docs/dev-notes.md)"
+      - "String extraction landed 17 files in Task 2 (auth, nav, dashboard modals + pages, project-create/edit modals, NewProjectForm, Settings tabs, Reports, DailyTasks, TasksPage, Gantt, OnboardingWizard, LoginForm, SettingsNotificationsTab). AddPersonModal.tsx Cancel button caught during finalize gate. Explicitly deferred surfaces documented in dev-notes.md: TaskDetailsView family, AddPersonModal labels, deep library views, activity-log humanizers, marketing Home"
+      - "React 18.3.1 rollback (scope expansion): react, react-dom, react-is pinned exact to 18.3.1; @types/react on ^18.3.12; @types/react-dom on ^18.3.1. Unblocks Vercel preview deploys that were erroring under React 19 + --legacy-peer-deps. No React-19-only APIs in use (audited: no use(), useActionState, useFormStatus, server actions, ref-as-prop, built-in document metadata). .npmrc legacy-peer-deps=true retained for gantt-task-react@0.3.9 peer (^18)"
+      - "Tests: +26 (82 files / 791 total). formatters.test.ts (Intl-based date/number/currency for en + es, null handling, relative-time formatting, invalid ISO). LocaleSwitcher.test.tsx (switch persists to localStorage, downstream consumer re-renders). en-json.test.ts (4 structural checks: namespace presence, no-empty, plural parity, interpolation). es-json.test.ts (5 structural checks: en parity with leaf-value type equality, _meta shape, no-empty, plural parity, interpolation + HTML tag preservation)"
+      - "renderWithProviders test helper (Testing/test-utils/render-with-providers.tsx) wraps <QueryClientProvider> + <I18nextProvider> with eagerly-imported en.json. Every existing renderWithQueryClient call bulk-migrated BEFORE string extraction; no blind snapshot -u; zero it.skip. Existing test count from Wave 30 baseline (771) held before extension; Wave 31 net delta +20 = 791"
+      - "Architecture SSoT: docs/architecture/i18n.md (Task 1) covers stack, file layout, namespace structure, date/number split, switching, adding-a-locale translator workflow. docs/architecture/date-engine.md appended with Wave 31 display-vs-math split"
     wave_30_highlights:
       - "Three new tables: notification_preferences (per-user singleton keyed on auth.users(id), bootstrap trigger trg_bootstrap_notification_prefs seeds a row on signup + backfill), notification_log (append-only audit; RLS denies INSERT/UPDATE/DELETE so only SECURITY DEFINER dispatchers write), push_subscriptions (one row per (user, browser endpoint) with UNIQUE constraint)"
       - "Four edge functions under supabase/functions/: existing supervisor-report (Wave 22) plus NEW dispatch-push (Task 2, VAPID via web-push@3.6.7), dispatch-notifications (Task 3, per-minute cron, drains mention_pending rows), overdue-digest (Task 3, daily cron with tz-aware Monday filter for weekly cadence). Pure dispatch loops factored into dispatch.ts files so vitest drives them without Deno.serve or esm.sh"

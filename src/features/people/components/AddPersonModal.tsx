@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
  Dialog,
  DialogContent,
@@ -34,6 +35,7 @@ const ROLES = ['Volunteer', 'Core Team', 'Donor', 'Staff', 'Planter'] as const;
 const STATUSES = ['New', 'Contacted', 'Meeting Scheduled', 'Joined', 'Not Interested'] as const;
 
 export default function AddPersonModal({ open, onClose, onSave, initialData = null }: AddPersonModalProps) {
+ const { t } = useTranslation();
  const [loading, setLoading] = useState(false);
  const [formData, setFormData] = useState<PersonFormData>(initialData || {
  first_name: '',
@@ -140,7 +142,7 @@ export default function AddPersonModal({ open, onClose, onSave, initialData = nu
  </div>
 
  <DialogFooter>
- <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+ <Button type="button" variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
  <Button type="submit" disabled={loading} className="bg-brand-600 hover:bg-brand-700 text-white">
  {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
  {initialData ? 'Save Changes' : 'Add Person'}
