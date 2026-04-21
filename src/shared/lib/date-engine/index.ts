@@ -6,7 +6,8 @@ import {
  isPast,
  isToday,
  endOfDay,
- isBefore
+ isBefore,
+ differenceInCalendarDays
 } from 'date-fns';
 
 /**
@@ -110,6 +111,20 @@ export const addDaysToDate = (date: DateInput | null | undefined, amount: number
 /** Validates a date input. */
 export const isDateValid = (date: DateInput | null | undefined): boolean => {
  return resolve(date) !== null;
+};
+
+/**
+ * Calendar-day difference `later - earlier` (DST-aware via date-fns).
+ * Returns `null` if either input is invalid.
+ */
+export const diffInCalendarDays = (
+ later: DateInput | null | undefined,
+ earlier: DateInput | null | undefined,
+): number | null => {
+ const a = resolve(later);
+ const b = resolve(earlier);
+ if (!a || !b) return null;
+ return differenceInCalendarDays(a, b);
 };
 
 /** Returns the end of the day for a given date. */
