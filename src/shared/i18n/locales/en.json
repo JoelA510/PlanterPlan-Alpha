@@ -222,6 +222,8 @@
       "section_configuration": "Configuration",
       "due_soon_threshold_label": "\"Due Soon\" Threshold (Days)",
       "due_soon_threshold_description": "Tasks due within this many days will be flagged.",
+      "due_soon_threshold_min": "Threshold must be at least 1 day.",
+      "due_soon_threshold_max": "Threshold cannot exceed 30 days.",
       "supervisor_email_label": "Supervisor Email",
       "supervisor_email_placeholder": "supervisor@example.com",
       "supervisor_email_invalid": "Enter a valid email",

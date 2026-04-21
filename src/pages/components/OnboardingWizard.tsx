@@ -175,7 +175,7 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
  {t('common.next')} <ArrowRight className="w-4 h-4 ml-2" />
  </Button>
  ) : (
- <Button type="button" onClick={handleSubmit} disabled={loading} className="bg-orange-500 hover:bg-orange-600 text-white">
+ <Button type="button" onClick={handleSubmit} disabled={loading} className="bg-brand-600 hover:bg-brand-700 text-white">
  {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
  {t('onboarding.create_project')}
  </Button>
