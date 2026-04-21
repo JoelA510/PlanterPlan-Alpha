@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "status": "machine-translated; pending human review",
+    "translator": "pending",
+    "review_required_before_marketing": true,
+    "translated_against_en_version": "pending"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar"
+  },
+  "auth": {},
+  "tasks": {},
+  "projects": {},
+  "library": {},
+  "dashboard": {},
+  "settings": {
+    "profile": {
+      "locale_label": "Idioma"
+    }
+  },
+  "notifications": {},
+  "errors": {}
+}

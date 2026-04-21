@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom';
 import { vi, beforeEach } from 'vitest';
+// Eager i18n init so components calling `useTranslation` resolve against
+// en.json during unit tests. See Testing/test-utils/render-with-providers.tsx.
+import { i18n } from '@/shared/i18n';
 
 // Mocks for JSDOM
 // Wave 30: Radix Select / Popover uses ResizeObserver; jsdom doesn't ship it.
@@ -56,4 +59,7 @@ Object.defineProperty(window, 'sessionStorage', {
 beforeEach(() => {
  window.localStorage.clear();
  window.sessionStorage.clear();
+ if (i18n.language !== 'en') {
+  void i18n.changeLanguage('en');
+ }
 });

@@ -1,0 +1,18 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "auth": {},
+  "tasks": {},
+  "projects": {},
+  "library": {},
+  "dashboard": {},
+  "settings": {
+    "profile": {
+      "locale_label": "Language"
+    }
+  },
+  "notifications": {},
+  "errors": {}
+}

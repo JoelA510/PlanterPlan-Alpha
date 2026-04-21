@@ -12,6 +12,7 @@ import {
 import { motion } from 'framer-motion';
 import { useSettings } from '@/features/settings/hooks/useSettings';
 import SettingsNotificationsTab from '@/pages/components/SettingsNotificationsTab';
+import { LocaleSwitcher } from '@/features/settings/components/LocaleSwitcher';
 
 type SettingsTab = 'profile' | 'security' | 'notifications';
 
@@ -139,6 +140,11 @@ export default function Settings() {
  className="border-slate-200 focus:ring-orange-500/20 focus:border-orange-500"
  />
  </div>
+ </div>
+
+ <div className="pt-6 border-t border-border">
+ <h3 className="text-sm font-medium text-foreground mb-4">Language</h3>
+ <LocaleSwitcher />
  </div>
 
  <div className="pt-6 border-t border-border">
