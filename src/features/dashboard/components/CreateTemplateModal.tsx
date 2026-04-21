@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Dialog,
     DialogContent,
@@ -20,6 +21,7 @@ interface CreateTemplateModalProps {
 }
 
 export default function CreateTemplateModal({ open, onClose, onSubmit }: CreateTemplateModalProps) {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -47,21 +49,21 @@ export default function CreateTemplateModal({ open, onClose, onSubmit }: CreateT
                 <DialogHeader className="p-8 bg-brand-600 text-white">
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                         <BookTemplate className="w-6 h-6" />
-                        New Template
+                        {t('dashboard.create_template_modal.title')}
                     </DialogTitle>
                     <DialogDescription className="text-brand-100 text-base">
-                        Create a reusable template for your projects.
+                        {t('dashboard.create_template_modal.subtitle')}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="p-8 space-y-6">
                     <div className="space-y-2">
                         <Label htmlFor="template-title" className="text-slate-700 font-semibold">
-                            Template Name
+                            {t('dashboard.create_template_modal.name_label')}
                         </Label>
                         <Input
                             id="template-title"
-                            placeholder="e.g. Church Plant Roadmap"
+                            placeholder={t('dashboard.create_template_modal.name_placeholder')}
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             className="h-12 border-slate-200 focus:ring-brand-500/20 focus:border-brand-500 rounded-xl"
@@ -69,11 +71,11 @@ export default function CreateTemplateModal({ open, onClose, onSubmit }: CreateT
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="template-description" className="text-slate-700 font-semibold">
-                            Description
+                            {t('dashboard.create_template_modal.description_label')}
                         </Label>
                         <Textarea
                             id="template-description"
-                            placeholder="What is this template for?"
+                            placeholder={t('dashboard.create_template_modal.description_placeholder')}
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             className="min-h-[120px] border-slate-200 focus:ring-brand-500/20 focus:border-brand-500 rounded-xl resize-none"
@@ -81,8 +83,8 @@ export default function CreateTemplateModal({ open, onClose, onSubmit }: CreateT
                     </div>
                     <div className="flex items-center justify-between py-2">
                         <div>
-                            <Label htmlFor="template-published" className="font-medium">Published</Label>
-                            <p className="text-xs text-slate-500 mt-0.5">Published templates are visible to all users in the library.</p>
+                            <Label htmlFor="template-published" className="font-medium">{t('dashboard.create_template_modal.published_label')}</Label>
+                            <p className="text-xs text-slate-500 mt-0.5">{t('dashboard.create_template_modal.published_description')}</p>
                         </div>
                         <Switch
                             id="template-published"
@@ -98,7 +100,7 @@ export default function CreateTemplateModal({ open, onClose, onSubmit }: CreateT
                         {loading ? (
                             <Loader2 className="w-6 h-6 animate-spin" />
                         ) : (
-                            'Create Template'
+                            t('dashboard.create_template_modal.create')
                         )}
                     </Button>
                 </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
  Dialog,
  DialogContent,
@@ -24,6 +25,7 @@ interface OnboardingWizardProps {
 }
 
 export default function OnboardingWizard({ open, onCreateProject, onDismiss }: OnboardingWizardProps) {
+ const { t } = useTranslation();
  const [step, setStep] = useState(1);
  const [loading, setLoading] = useState(false);
  const [formData, setFormData] = useState({
@@ -43,10 +45,9 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
  await onCreateProject({
  title: formData.name,
  due_date: formData.launchDate ? formatDate(formData.launchDate, 'yyyy-MM-dd') : null,
- template: formData.template, // Correctly passing the ID
+ template: formData.template,
  status: 'planning'
  });
- // Dialog will be closed by parent usually, but we can ensure state reset
  } catch (error) {
  console.error(error);
  } finally {
@@ -57,29 +58,28 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
  return (
  <Dialog open={open} onOpenChange={(val) => !val && onDismiss && onDismiss()}>
  <DialogContent data-testid="onboarding-wizard" className="sm:max-w-lg">
- {/* Close Button manually added if standard one is hidden or to ensure visibility */}
  <button
  onClick={onDismiss}
- aria-label="Close"
+ aria-label={t('onboarding.close')}
  className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
  >
  <X className="h-4 w-4" />
- <span className="sr-only">Close</span>
+ <span className="sr-only">{t('onboarding.close')}</span>
  </button>
 
  <DialogHeader>
  <div className="flex items-center justify-between mb-4">
  <DialogTitle className="text-xl">
- {step === 1 && "Welcome to PlanterPlan"}
- {step === 2 && "When is the big day?"}
- {step === 3 && "Choose your path"}
+ {step === 1 && t('onboarding.step1_title')}
+ {step === 2 && t('onboarding.step2_title')}
+ {step === 3 && t('onboarding.step3_title')}
  </DialogTitle>
- <span className="text-sm text-slate-400 font-medium">Step {step} of 3</span>
+ <span className="text-sm text-slate-400 font-medium">{t('onboarding.step_label', { step, total: 3 })}</span>
  </div>
  <DialogDescription>
- {step === 1 && "Let's get your first church planting project set up in seconds."}
- {step === 2 && "We'll build your timeline backwards from your launch date."}
- {step === 3 && "Select a template based on your church model."}
+ {step === 1 && t('onboarding.step1_description')}
+ {step === 2 && t('onboarding.step2_description')}
+ {step === 3 && t('onboarding.step3_description')}
  </DialogDescription>
  </DialogHeader>
 
@@ -87,9 +87,9 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
  {step === 1 && (
  <div className="space-y-4">
  <div className="space-y-2">
- <Label>What is the name of your new church?</Label>
+ <Label>{t('onboarding.church_name_label')}</Label>
  <Input
- placeholder="e.g., Grace Community Church"
+ placeholder={t('onboarding.church_name_placeholder')}
  value={formData.name}
  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
  autoFocus
@@ -102,7 +102,7 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
  {step === 2 && (
  <div className="space-y-4">
  <div className="space-y-2">
- <Label>Projected Launch Date</Label>
+ <Label>{t('onboarding.launch_date_label')}</Label>
  <Popover>
  <PopoverTrigger asChild>
  <Button
@@ -114,7 +114,7 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
  )}
  >
  <CalendarIcon className="mr-2 h-4 w-4" />
- {formData.launchDate ? formatDate(formData.launchDate, "PPP") : "Pick a date"}
+ {formData.launchDate ? formatDate(formData.launchDate, "PPP") : t('onboarding.launch_date_picker')}
  </Button>
  </PopoverTrigger>
  <PopoverContent className="w-auto p-0" align="start">
@@ -126,7 +126,7 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
  />
  </PopoverContent>
  </Popover>
- <p className="text-xs text-slate-500">Don&apos;t worry, you can change this later.</p>
+ <p className="text-xs text-slate-500">{t('onboarding.launch_date_reassurance')}</p>
  </div>
  </div>
  )}
@@ -142,8 +142,8 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
  )}>
  <RadioGroupItem value="launch_large" id="t1" className="mt-1" />
  <div className="flex-1">
- <Label htmlFor="t1" className="font-semibold cursor-pointer text-slate-900 ">Launch Large</Label>
- <p className="text-sm text-slate-600 mt-1">Standard ARC/CMN model. 6 phases, ~200 tasks focusing on a strong day-one launch.</p>
+ <Label htmlFor="t1" className="font-semibold cursor-pointer text-slate-900 ">{t('onboarding.template_launch_large_title')}</Label>
+ <p className="text-sm text-slate-600 mt-1">{t('onboarding.template_launch_large_description')}</p>
  </div>
  </div>
  <div className={cn(
@@ -154,8 +154,8 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
  )}>
  <RadioGroupItem value="multiplication" id="t2" className="mt-1" />
  <div className="flex-1">
- <Label htmlFor="t2" className="font-semibold cursor-pointer text-slate-900 ">Simple / House Church</Label>
- <p className="text-sm text-slate-600 mt-1">Simplified flow for smaller, gathering-based plants.</p>
+ <Label htmlFor="t2" className="font-semibold cursor-pointer text-slate-900 ">{t('onboarding.template_simple_title')}</Label>
+ <p className="text-sm text-slate-600 mt-1">{t('onboarding.template_simple_description')}</p>
  </div>
  </div>
  </RadioGroup>
@@ -165,19 +165,19 @@ export default function OnboardingWizard({ open, onCreateProject, onDismiss }: O
 
  <DialogFooter className="flex justify-between sm:justify-between items-center w-full">
  {step > 1 ? (
- <Button type="button" variant="ghost" onClick={() => setStep(step - 1)}>Back</Button>
+ <Button type="button" variant="ghost" onClick={() => setStep(step - 1)}>{t('common.back')}</Button>
  ) : (
- <Button type="button" variant="ghost" onClick={onDismiss} className="text-muted-foreground hover:text-foreground">Skip</Button>
+ <Button type="button" variant="ghost" onClick={onDismiss} className="text-muted-foreground hover:text-foreground">{t('common.skip')}</Button>
  )}
 
  {step < 3 ? (
  <Button type="button" onClick={handleNext} disabled={!formData.name && step === 1}>
- Next <ArrowRight className="w-4 h-4 ml-2" />
+ {t('common.next')} <ArrowRight className="w-4 h-4 ml-2" />
  </Button>
  ) : (
- <Button type="button" onClick={handleSubmit} disabled={loading} className="bg-orange-500 hover:bg-orange-600 text-white">
+ <Button type="button" onClick={handleSubmit} disabled={loading} className="bg-brand-600 hover:bg-brand-700 text-white">
  {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
- Create Project
+ {t('onboarding.create_project')}
  </Button>
  )}
  </DialogFooter>
