@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Dialog,
     DialogContent,
@@ -37,6 +38,7 @@ interface CreateProjectModalProps {
 }
 
 export default function CreateProjectModal({ open, onClose, onSubmit }: CreateProjectModalProps) {
+    const { t } = useTranslation();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -103,10 +105,10 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                 <DialogHeader className="p-8 bg-brand-600 text-white">
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                         <Plus className="w-6 h-6" />
-                        Start New Project
+                        {t('dashboard.create_project_modal.title')}
                     </DialogTitle>
                     <DialogDescription className="text-brand-100 text-base">
-                        Choose a template or start from scratch.
+                        {t('dashboard.create_project_modal.subtitle')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -152,7 +154,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                     <div className="relative">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <Input
-                                            placeholder="Search templates..."
+                                            placeholder={t('dashboard.create_project_modal.search_templates_placeholder')}
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="pl-10 h-10 rounded-xl border-slate-200"
@@ -183,8 +185,8 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                                 <Target className="w-6 h-6" />
                                             </div>
                                             <div className="flex-1">
-                                                <h4 className="font-bold text-slate-900">New Church Plant</h4>
-                                                <p className="text-sm text-slate-500">Comprehensive 24-month structured roadmap</p>
+                                                <h4 className="font-bold text-slate-900">{t('dashboard.create_project_modal.new_church_plant')}</h4>
+                                                <p className="text-sm text-slate-500">{t('dashboard.create_project_modal.scaffold_description')}</p>
                                             </div>
                                             {formData.templateId === DEFAULT_SCAFFOLD_ID && (
                                                 <div className="w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center">
@@ -198,7 +200,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                     {templatesLoading ? (
                                         <div className="flex items-center justify-center py-6 text-slate-400">
                                             <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                            Loading templates...
+                                            {t('dashboard.create_project_modal.loading_templates')}
                                         </div>
                                     ) : (
                                         filteredTemplates.map((template) => (
@@ -238,7 +240,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                     )}
 
                                     {!templatesLoading && searchQuery && filteredTemplates.length === 0 && (
-                                        <p className="text-sm text-slate-500 text-center py-4">No templates match your search.</p>
+                                        <p className="text-sm text-slate-500 text-center py-4">{t('dashboard.create_project_modal.no_templates_match')}</p>
                                     )}
                                 </div>
 
@@ -246,7 +248,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                     onClick={handleNext}
                                     className="w-full bg-brand-600 hover:bg-brand-700 text-white h-12 text-lg font-semibold rounded-xl"
                                 >
-                                    Continue to Details
+                                    {t('dashboard.create_project_modal.continue_to_details')}
                                     <ChevronRight className="ml-2 w-5 h-5" />
                                 </Button>
                             </motion.div>
@@ -258,14 +260,14 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                 exit={{ opacity: 0, x: -20 }}
                                 className="space-y-6"
                             >
-                                <h3 className="text-lg font-bold text-slate-900">Project Details</h3>
+                                <h3 className="text-lg font-bold text-slate-900">{t('dashboard.create_project_modal.project_details')}</h3>
                                 <div className="space-y-2">
                                     <Label htmlFor="title" className="text-slate-700 font-semibold">
-                                        Project Name
+                                        {t('dashboard.create_project_modal.project_name')}
                                     </Label>
                                     <Input
                                         id="title"
-                                        placeholder="e.g. Hope City Launch"
+                                        placeholder={t('dashboard.create_project_modal.project_name_placeholder')}
                                         value={formData.title}
                                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                         className="h-12 border-slate-200 focus:ring-brand-500/20 focus:border-brand-500 rounded-xl"
@@ -273,11 +275,11 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="description" className="text-slate-700 font-semibold">
-                                        Description
+                                        {t('dashboard.create_project_modal.description')}
                                     </Label>
                                     <Textarea
                                         id="description"
-                                        placeholder="What's the vision for this project?"
+                                        placeholder={t('dashboard.create_project_modal.description_placeholder')}
                                         value={formData.description}
                                         onChange={(e) =>
                                             setFormData({ ...formData, description: e.target.value })
@@ -292,7 +294,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                         className="flex-1 border-slate-200 text-slate-600 h-12 rounded-xl"
                                     >
                                         <ArrowLeft className="mr-2 w-5 h-5" />
-                                        Back
+                                        {t('common.back')}
                                     </Button>
                                     <Button
                                         onClick={handleSubmit}
@@ -302,7 +304,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                         {loading ? (
                                             <Loader2 className="w-6 h-6 animate-spin" />
                                         ) : (
-                                            'Create Project'
+                                            t('dashboard.create_project_modal.create_project')
                                         )}
                                     </Button>
                                 </div>

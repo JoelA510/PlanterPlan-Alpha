@@ -191,7 +191,11 @@
     },
     "gantt": {
       "title": "Gantt Chart",
+      "pick_project_subtitle": "Pick a project to render its timeline.",
+      "no_active_projects": "No active projects yet.",
+      "project_picker_label": "Project",
       "select_project": "Select a project…",
+      "untitled_project": "(untitled project)",
       "pdf_coming_soon": "PDF export coming soon"
     },
     "form": {
@@ -265,9 +269,21 @@
       "description": "Description",
       "description_placeholder": "What's the vision for this project?",
       "create_project": "Create Project",
+      "loading_templates": "Loading templates…",
       "no_templates_match": "No templates match your search."
     },
-    "template_created_toast": "Template created"
+    "template_created_toast": "Template created",
+    "create_template_modal": {
+      "title": "New Template",
+      "subtitle": "Create a reusable template for your projects.",
+      "name_label": "Template Name",
+      "name_placeholder": "e.g. Church Plant Roadmap",
+      "description_label": "Description",
+      "description_placeholder": "What is this template for?",
+      "published_label": "Published",
+      "published_description": "Published templates are visible to all users in the library.",
+      "create": "Create Template"
+    }
   },
   "settings": {
     "page_title": "Settings",
