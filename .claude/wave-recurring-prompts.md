@@ -90,11 +90,12 @@ All task PRs are reviewed and merged to main.
 ## Steps (per execution-protocol §5–7)
 1. `git checkout main && git pull && npm install`
 2. **Documentation Currency Pass** (protocol §5): apply every doc edit in the wave plan's section verbatim — `spec.md`, `docs/AGENT_CONTEXT.md`, `docs/architecture/*.md`, `docs/dev-notes.md`, `repo-context.yaml`, `CLAUDE.md`, `.env.example` if listed. HALT if any doc edit is unclear — surface to user; don't guess.
-3. **Wave Review** (protocol §6): walk every checklist item. The "Test-impact reconciled" item is non-trivial — verify each existing-test mock from the testing-strategy doc IS in place and IS passing. Fix any "no" before pushing.
-4. **Final verification gate** (protocol §7): `npm run lint`, `npm run build`, `npm test`, `git status`. Each FAIL → HALT. Test count must be ≥ wave's documented target.
-5. Commit as `docs(wave-32): documentation currency sweep`.
-6. `git push origin main`. If CI is configured, WAIT for green. CI failure = HALT, do not declare wave complete.
-7. **Verify the next wave's Session Context recap matches reality** (commit SHAs, shipped-items table). Adjust the next wave plan ONLY if there's drift; otherwise leave alone.
+3. **Update `.claude/wave-log.md`**: move the just-finalized wave's row from "Remaining Roadmap" to "Shipped" (populate `Spec` = new spec version, `Tests` = post-wave `npm test` count, one-line `Core Components Delivered` under ~240 chars). Refresh the `Current Status` header and `Last Finalized` line. Append any new deferrals to Part III. Follow the Edit Contract at the top of the file — do not retouch Part I. Fold this into the same commit as step 2.
+4. **Wave Review** (protocol §6): walk every checklist item. The "Test-impact reconciled" item is non-trivial — verify each existing-test mock from the testing-strategy doc IS in place and IS passing. Fix any "no" before pushing.
+5. **Final verification gate** (protocol §7): `npm run lint`, `npm run build`, `npm test`, `git status`. Each FAIL → HALT. Test count must be ≥ wave's documented target.
+6. Commit as `docs(wave-32): documentation currency sweep`. This single commit covers both step 2 and step 3.
+7. `git push origin main`. If CI is configured, WAIT for green. CI failure = HALT, do not declare wave complete.
+8. **Verify the next wave's Session Context recap matches reality** (commit SHAs, shipped-items table). Adjust the next wave plan ONLY if there's drift; otherwise leave alone.
 
 ## FINAL STEP (mandatory — do this AFTER push to main + CI green)
 
