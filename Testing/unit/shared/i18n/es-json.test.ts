@@ -16,8 +16,8 @@ describe('es.json', () => {
         expect(b, fullPath).toHaveProperty(k);
         const av = a[k];
         const bv = b[k];
+        expect(typeof bv, `${fullPath} type mismatch`).toBe(typeof av);
         if (av && typeof av === 'object' && !Array.isArray(av)) {
-          expect(bv, `${fullPath} (expected object)`).toBeTypeOf('object');
           walk(av as JsonObject, bv as JsonObject, [...path, k]);
         }
       }
