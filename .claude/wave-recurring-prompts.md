@@ -1,6 +1,6 @@
 # Recurring Wave Execution Prompts
 
-> **Current pointer:** Wave 30 finalize — use PROMPT B below.
+> **Current pointer:** Wave 31, Task 1 — use PROMPT A below.
 >
 > ## Workflow (operator)
 > 1. Read the pointer line above.
@@ -17,14 +17,14 @@
 Copy everything inside the fence below into a fresh Code session.
 
 ````
-Execute Wave 30, Task 3 of the PlanterPlan delivery loop.
+Execute Wave 31, Task 1 of the PlanterPlan delivery loop.
 
 Repo: D:\PlanterPlan\PlanterPlan-Alpha (origin: github.com/JoelA510/PlanterPlan-Alpha)
 
 ## Required reading — in this exact order, BEFORE writing any code
 1. `.claude/wave-execution-protocol.md` — halt conditions + per-task execution playbook. Every "FAIL → HALT" is binding.
-2. `.claude/wave-testing-strategy.md` — find the Wave 30 section. Lists existing tests at risk + new test infrastructure to build first.
-3. `.claude/wave-30-prompt.md` — authoritative wave spec. Your task is the `### Task 3 — ...` section.
+2. `.claude/wave-testing-strategy.md` — find the Wave 31 section. Lists existing tests at risk + new test infrastructure to build first.
+3. `.claude/wave-31-prompt.md` — authoritative wave spec. Your task is the `### Task 1 — ...` section.
 4. `CLAUDE.md` and `.gemini/styleguide.md` — conventions.
 
 ## Steps (per execution-protocol §1)
@@ -46,13 +46,13 @@ Do NOT touch the wave-level Documentation Currency Pass, Wave Review, or push-to
 
 Advance the pointer in `.claude/wave-recurring-prompts.md`:
 
-1. Determine the total task count for this wave: `grep -c '^### Task' .claude/wave-30-prompt.md` — call the result `TOTAL`.
-2. If just-completed task number (3) is **less than** `TOTAL`:
-   - In `.claude/wave-recurring-prompts.md`, replace the line `> **Current pointer:** Wave 30, Task 3 — use PROMPT A below.` with `> **Current pointer:** Wave 30, Task 4 — use PROMPT A below.`
-   - Inside the PROMPT A fenced block, replace every `Wave 30, Task 3` → `Wave 30, Task 4`. Also replace `### Task 3 — ...` → `### Task 4 — ...`. Also update the "If just-completed task number (3) is less than" line to `(4)`.
-3. If just-completed task number (3) **equals** `TOTAL` (this was the last task in the wave):
-   - Replace the pointer line with `> **Current pointer:** Wave 30 finalize — use PROMPT B below.`
-   - Leave PROMPT A's `Wave 30, Task 1` numbers alone (the next wave will reset them via PROMPT B's final step).
+1. Determine the total task count for this wave: `grep -c '^### Task' .claude/wave-31-prompt.md` — call the result `TOTAL`.
+2. If just-completed task number (1) is **less than** `TOTAL`:
+   - In `.claude/wave-recurring-prompts.md`, replace the line `> **Current pointer:** Wave 31, Task 1 — use PROMPT A below.` with `> **Current pointer:** Wave 31, Task 2 — use PROMPT A below.`
+   - Inside the PROMPT A fenced block, replace every `Wave 31, Task 1` → `Wave 31, Task 2`. Also replace `### Task 1 — ...` → `### Task 2 — ...`. Also update the "If just-completed task number (1) is less than" line to `(2)`.
+3. If just-completed task number (1) **equals** `TOTAL` (this was the last task in the wave):
+   - Replace the pointer line with `> **Current pointer:** Wave 31 finalize — use PROMPT B below.`
+   - Leave PROMPT A's `Wave 31, Task 1` numbers alone (the next wave will reset them via PROMPT B's final step).
 4. `git add .claude/wave-recurring-prompts.md && git commit -m "chore(planning): advance recurring prompt pointer" && git push origin main`
 5. STOP. Final reply: `[PR URL]` + `Pointer advanced to: <new pointer line>`.
 
@@ -76,7 +76,7 @@ TypeScript only; no `.js`/`.jsx`; no barrel files; `@/` → `src/`, `@test/` →
 Copy everything inside the fence below into a fresh Code session.
 
 ````
-Finalize Wave 30 of the PlanterPlan delivery loop.
+Finalize Wave 31 of the PlanterPlan delivery loop.
 
 Repo: D:\PlanterPlan\PlanterPlan-Alpha (origin: github.com/JoelA510/PlanterPlan-Alpha)
 
@@ -84,15 +84,15 @@ All task PRs are reviewed and merged to main.
 
 ## Required reading
 1. `.claude/wave-execution-protocol.md` §5 (Docs Currency), §6 (Wave Review), §7 (final cutover gate).
-2. `.claude/wave-testing-strategy.md` — Wave 30 section. The Wave Review's "Test-impact reconciled" item checks against this.
-3. `.claude/wave-30-prompt.md` — Documentation Currency Pass + Wave Review + Commit & Push sections.
+2. `.claude/wave-testing-strategy.md` — Wave 31 section. The Wave Review's "Test-impact reconciled" item checks against this.
+3. `.claude/wave-31-prompt.md` — Documentation Currency Pass + Wave Review + Commit & Push sections.
 
 ## Steps (per execution-protocol §5–7)
 1. `git checkout main && git pull && npm install`
 2. **Documentation Currency Pass** (protocol §5): apply every doc edit in the wave plan's section verbatim — `spec.md`, `docs/AGENT_CONTEXT.md`, `docs/architecture/*.md`, `docs/dev-notes.md`, `repo-context.yaml`, `CLAUDE.md`, `.env.example` if listed. HALT if any doc edit is unclear — surface to user; don't guess.
 3. **Wave Review** (protocol §6): walk every checklist item. The "Test-impact reconciled" item is non-trivial — verify each existing-test mock from the testing-strategy doc IS in place and IS passing. Fix any "no" before pushing.
 4. **Final verification gate** (protocol §7): `npm run lint`, `npm run build`, `npm test`, `git status`. Each FAIL → HALT. Test count must be ≥ wave's documented target.
-5. Commit as `docs(wave-30): documentation currency sweep`.
+5. Commit as `docs(wave-31): documentation currency sweep`.
 6. `git push origin main`. If CI is configured, WAIT for green. CI failure = HALT, do not declare wave complete.
 7. **Verify the next wave's Session Context recap matches reality** (commit SHAs, shipped-items table). Adjust the next wave plan ONLY if there's drift; otherwise leave alone.
 
@@ -112,10 +112,10 @@ Advance the pointer in `.claude/wave-recurring-prompts.md`:
 2. Else (current wave is 26-37):
    - Compute next wave: `NEXT = current + 1` (e.g., 27 → 28).
    - Replace the pointer line: `> **Current pointer:** Wave NEXT, Task 1 — use PROMPT A below.`
-   - Inside the PROMPT A fenced block: replace every `Wave 30` → `Wave NEXT`. Also replace `Wave 30, Task <any>` → `Wave NEXT, Task 1`. Also replace `wave-30-prompt.md` → `wave-NEXT-prompt.md`. Also replace `### Task <any>` → `### Task 1`.
-   - Inside the PROMPT B fenced block: replace every `Wave 30` → `Wave NEXT`. Also replace `wave-30-prompt.md` → `wave-NEXT-prompt.md`. Also replace `docs(wave-30):` → `docs(wave-NEXT):`.
+   - Inside the PROMPT A fenced block: replace every `Wave 31` → `Wave NEXT`. Also replace `Wave 31, Task <any>` → `Wave NEXT, Task 1`. Also replace `wave-31-prompt.md` → `wave-NEXT-prompt.md`. Also replace `### Task <any>` → `### Task 1`.
+   - Inside the PROMPT B fenced block: replace every `Wave 31` → `Wave NEXT`. Also replace `wave-31-prompt.md` → `wave-NEXT-prompt.md`. Also replace `docs(wave-31):` → `docs(wave-NEXT):`.
 3. `git add .claude/wave-recurring-prompts.md && git commit -m "chore(planning): advance recurring prompt to Wave NEXT" && git push origin main`
-4. STOP. Final reply: `Wave 30 shipped + pushed to main` + summary (test-count delta, lint-warning delta, bundle-size delta, deferrals, halt conditions hit) + `Pointer advanced to: <new pointer line>`.
+4. STOP. Final reply: `Wave 31 shipped + pushed to main` + summary (test-count delta, lint-warning delta, bundle-size delta, deferrals, halt conditions hit) + `Pointer advanced to: <new pointer line>`.
 
 Do NOT begin Wave NEXT. Wait for explicit kickoff.
 
