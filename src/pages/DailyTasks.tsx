@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { planter } from '@/shared/api/planterClient';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Card } from '@/shared/ui/card';
@@ -9,6 +10,7 @@ import { nowUtcIso, endOfDayDate, isBeforeDate, formatDate } from '@/shared/lib/
 import type { TaskRow } from '@/shared/db/app.types';
 
 export default function DailyTasks() {
+    const { t } = useTranslation();
     const { user } = useAuth();
 
     const { data: allTasks = [], isLoading } = useQuery<TaskRow[]>({
@@ -44,10 +46,10 @@ export default function DailyTasks() {
                         </div>
                         <div>
                             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-                                Daily Tasks
+                                {t('tasks.daily.title')}
                             </h1>
                             <p className="text-slate-600 mt-1">
-                                {dailyTasks.length} {dailyTasks.length === 1 ? 'task' : 'tasks'} due today or overdue
+                                {t('tasks.daily.due_count', { count: dailyTasks.length })}
                             </p>
                         </div>
                     </div>
@@ -60,9 +62,9 @@ export default function DailyTasks() {
                         <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
                             <CheckCircle2 className="w-8 h-8 text-green-500" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">All caught up!</h3>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">{t('tasks.daily.all_caught_up')}</h3>
                         <p className="text-slate-500 max-w-sm text-center">
-                            You have no tasks due today or overdue. Great job!
+                            {t('tasks.daily.no_overdue')}
                         </p>
                     </div>
                 ) : (
@@ -90,8 +92,8 @@ export default function DailyTasks() {
                                                     ? 'bg-red-100 text-red-700'
                                                     : 'bg-slate-100 text-slate-700'
                                             }`}>
-                                                {task.status === TASK_STATUS.IN_PROGRESS ? 'In Progress' :
-                                                 task.status === TASK_STATUS.BLOCKED ? 'Blocked' : 'To Do'}
+                                                {task.status === TASK_STATUS.IN_PROGRESS ? t('tasks.status.in_progress') :
+                                                 task.status === TASK_STATUS.BLOCKED ? t('tasks.status.blocked') : t('tasks.status.todo')}
                                             </span>
                                             {task.due_date && (
                                                 <span className={`text-sm font-medium ${

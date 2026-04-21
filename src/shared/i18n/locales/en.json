@@ -95,10 +95,36 @@
     "view_label": "View",
     "view_list": "List View",
     "view_board": "Board View",
+    "view_aria": "Task view",
     "sort_label": "Sort",
+    "sort_aria": "Sort order",
     "sort_chronological": "Chronological",
     "sort_alphabetical": "Alphabetical",
     "no_tasks": "No tasks yet",
+    "filters": {
+      "labels": {
+        "my_tasks": "My Tasks",
+        "priority": "Priority",
+        "overdue": "Overdue",
+        "due_soon": "Due Soon",
+        "current": "Current",
+        "not_yet_due": "Not Yet Due",
+        "completed": "Completed",
+        "all_tasks": "All Tasks",
+        "milestones": "Milestones"
+      },
+      "empty": {
+        "my_tasks": "No tasks found across your projects.",
+        "priority": "No high-priority tasks right now.",
+        "overdue": "Nothing is overdue. Nice work.",
+        "due_soon": "No tasks are due in the next few days.",
+        "current": "No tasks are currently active.",
+        "not_yet_due": "No upcoming tasks scheduled.",
+        "completed": "No completed tasks yet.",
+        "all_tasks": "No tasks in any of your projects.",
+        "milestones": "No milestones found."
+      }
+    },
     "daily": {
       "title": "Daily Tasks",
       "all_caught_up": "All caught up!",
@@ -146,7 +172,22 @@
       "select_project": "Select a Project",
       "select_project_description": "Choose a project below to view its detailed reports and analytics.",
       "select_placeholder": "Select a project…",
-      "no_projects_available": "No projects available"
+      "no_projects_available": "No projects available",
+      "overall_progress": "Overall Progress",
+      "tasks_completed_label": "{{completed}} of {{total}} tasks completed",
+      "task_distribution_heading": "Task Status Distribution",
+      "monthly_breakdown": "Monthly Breakdown",
+      "month_label": "Month",
+      "month_aria": "Reporting month",
+      "completed_this_month": "Completed This Month",
+      "none_completed": "No milestones completed this month yet.",
+      "overdue_heading": "Overdue",
+      "none_overdue": "Nothing overdue. Nice work.",
+      "upcoming_this_month": "Upcoming This Month",
+      "none_upcoming": "No upcoming milestones in this month.",
+      "phase_details_heading": "Phase Details",
+      "milestones_completed_label": "{{completed}} of {{total}} milestones completed",
+      "no_due_date": "No due date"
     },
     "gantt": {
       "title": "Gantt Chart",

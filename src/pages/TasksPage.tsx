@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DndContext, closestCorners, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -10,8 +11,6 @@ import { Loader2, List, LayoutGrid } from 'lucide-react';
 import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView';
 import {
        useTaskFilters,
-       FILTER_LABELS,
-       EMPTY_STATE_COPY,
        type TaskFilterKey,
        type TaskSortKey,
 } from '@/features/tasks/hooks/useTaskFilters';
@@ -23,7 +22,12 @@ import {
        SelectValue,
 } from '@/shared/ui/select';
 
+const FILTER_KEYS: TaskFilterKey[] = [
+       'my_tasks', 'priority', 'overdue', 'due_soon', 'current', 'not_yet_due', 'completed', 'all_tasks', 'milestones',
+];
+
 export default function TasksPage() {
+       const { t } = useTranslation();
        const queryClient = useQueryClient();
        const { data: tasks = [], isLoading: loading } = useQuery({
               queryKey: ['tasks'],
@@ -33,8 +37,7 @@ export default function TasksPage() {
        const findTask = useCallback((id: string) => tasks.find((t: TaskRow) => t.id === id), [tasks]);
        const invalidateTasks = useCallback(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }), [queryClient]);
 
-       // State for View Mode
-       const [viewMode, setViewMode] = useState('list'); // 'list' | 'board'
+       const [viewMode, setViewMode] = useState('list');
        const [filter, setFilter] = useState<TaskFilterKey>('my_tasks');
        const [sort, setSort] = useState<TaskSortKey>('chronological');
 
@@ -87,7 +90,6 @@ export default function TasksPage() {
               })
        );
 
-       // Drag End Handler for Board View
        const handleDragEnd = (event: DragEndEvent) => {
               const { active, over } = event;
 
@@ -96,8 +98,6 @@ export default function TasksPage() {
               const activeId = active.id;
               const overData = over.data.current;
 
-              // We can drop on a Column (container) OR a Task. 
-              // Both should have the 'status' property in their data.
               if (overData && overData.status) {
                      const newStatus = overData.status;
                      const task = findTask(activeId as string);
@@ -129,34 +129,34 @@ export default function TasksPage() {
                                    <div className="flex-none max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
                                           <div className="flex flex-col gap-6 mb-8 md:flex-row md:items-end md:justify-between">
                                                  <div>
-                                                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{FILTER_LABELS[filter]}</h1>
-                                                        <p className="text-muted-foreground mt-1">Review and manage your assignments across all projects</p>
+                                                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t(`tasks.filters.labels.${filter}`)}</h1>
+                                                        <p className="text-muted-foreground mt-1">{t('tasks.page_subtitle')}</p>
                                                  </div>
 
                                                  <div className="flex flex-wrap items-center gap-3">
                                                         <div className="flex flex-col gap-1">
-                                                               <label htmlFor="task-filter" className="text-xs font-medium text-muted-foreground">View</label>
+                                                               <label htmlFor="task-filter" className="text-xs font-medium text-muted-foreground">{t('tasks.view_label')}</label>
                                                                <Select value={filter} onValueChange={(v) => setFilter(v as TaskFilterKey)}>
-                                                                      <SelectTrigger id="task-filter" className="w-[180px] bg-card" aria-label="Task view">
+                                                                      <SelectTrigger id="task-filter" className="w-[180px] bg-card" aria-label={t('tasks.view_aria')}>
                                                                              <SelectValue />
                                                                       </SelectTrigger>
                                                                       <SelectContent>
-                                                                             {(Object.keys(FILTER_LABELS) as TaskFilterKey[]).map((key) => (
-                                                                                    <SelectItem key={key} value={key}>{FILTER_LABELS[key]}</SelectItem>
+                                                                             {FILTER_KEYS.map((key) => (
+                                                                                    <SelectItem key={key} value={key}>{t(`tasks.filters.labels.${key}`)}</SelectItem>
                                                                              ))}
                                                                       </SelectContent>
                                                                </Select>
                                                         </div>
 
                                                         <div className="flex flex-col gap-1">
-                                                               <label htmlFor="task-sort" className="text-xs font-medium text-muted-foreground">Sort</label>
+                                                               <label htmlFor="task-sort" className="text-xs font-medium text-muted-foreground">{t('tasks.sort_label')}</label>
                                                                <Select value={sort} onValueChange={(v) => setSort(v as TaskSortKey)}>
-                                                                      <SelectTrigger id="task-sort" className="w-[180px] bg-card" aria-label="Sort order">
+                                                                      <SelectTrigger id="task-sort" className="w-[180px] bg-card" aria-label={t('tasks.sort_aria')}>
                                                                              <SelectValue />
                                                                       </SelectTrigger>
                                                                       <SelectContent>
-                                                                             <SelectItem value="chronological">Chronological</SelectItem>
-                                                                             <SelectItem value="alphabetical">Alphabetical</SelectItem>
+                                                                             <SelectItem value="chronological">{t('tasks.sort_chronological')}</SelectItem>
+                                                                             <SelectItem value="alphabetical">{t('tasks.sort_alphabetical')}</SelectItem>
                                                                       </SelectContent>
                                                                </Select>
                                                         </div>
@@ -168,7 +168,7 @@ export default function TasksPage() {
                                                                              ? 'bg-card shadow text-card-foreground'
                                                                              : 'text-muted-foreground hover:text-card-foreground'
                                                                              }`}
-                                                                      aria-label="List View"
+                                                                      aria-label={t('tasks.view_list')}
                                                                >
                                                                       <List className="w-4 h-4" />
                                                                </button>
@@ -178,7 +178,7 @@ export default function TasksPage() {
                                                                              ? 'bg-card shadow text-card-foreground'
                                                                              : 'text-muted-foreground hover:text-card-foreground'
                                                                              }`}
-                                                                      aria-label="Board View"
+                                                                      aria-label={t('tasks.view_board')}
                                                                >
                                                                       <LayoutGrid className="w-4 h-4" />
                                                                </button>
@@ -191,7 +191,7 @@ export default function TasksPage() {
                                           <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
                                                  {visibleTasks.length === 0 ? (
                                                         <div className="bg-card rounded-xl border border-border shadow-sm p-12 text-center">
-                                                               <p className="text-muted-foreground">{EMPTY_STATE_COPY[filter]}</p>
+                                                               <p className="text-muted-foreground">{t(`tasks.filters.empty.${filter}`)}</p>
                                                         </div>
                                                  ) : (
                                                         viewMode === 'list' ? (
@@ -205,7 +205,6 @@ export default function TasksPage() {
                                                                                            onStatusChange={handleStatusChange}
                                                                                            hideExpansion={true}
                                                                                            disableDrag={true}
-                                                                                           // No-ops for unsupported actions in this view for now
                                                                                            onTaskClick={handleNoop}
                                                                                            onAddChildTask={handleNoop}
                                                                                            onInviteMember={handleNoop}
@@ -216,9 +215,9 @@ export default function TasksPage() {
                                                         ) : (
                                                                <div className="h-full">
                                                                       <ProjectBoardView
-                                                                             project={{ id: 'my-tasks-root' } as Project} // Dummy project ID for columns
+                                                                             project={{ id: 'my-tasks-root' } as Project}
                                                                              childrenTasks={visibleTasks}
-                                                                             handleTaskClick={() => { }} // No detail view support yet in My Tasks
+                                                                             handleTaskClick={() => { }}
                                                                       />
                                                                </div>
                                                         )
