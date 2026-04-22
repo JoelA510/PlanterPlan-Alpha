@@ -183,3 +183,9 @@ Triggers (preferred), GitHub Actions, or external pingers.
   see growing `push_subscriptions` row counts per user, the browser may
   not be returning 410 (dev environment quirk) — manual cleanup is
   `DELETE FROM push_subscriptions WHERE last_used_at < now() - interval '90 days'`.
+
+## Admin new-project trigger (Wave 34)
+
+Wave 34 Task 3 adds `trg_notify_admin_on_new_project` — AFTER INSERT on `public.tasks` WHEN `parent_task_id IS NULL AND origin = 'instance'`. The trigger function INSERTs one `notification_log` row per admin in `public.admin_users` (excluding the creator, if the creator is themselves an admin) with `event_type = 'admin_new_project_pending'` and `channel = 'email'`. Everything downstream — quiet-hours, per-admin opt-out, delivery retry — reuses the same `dispatch-notifications` cron pipeline this doc already covers.
+
+Closes the "Admin Notifications" known-gap deferred from Wave 30. Migration: `docs/db/migrations/2026_04_18_new_project_admin_notify.sql`.
