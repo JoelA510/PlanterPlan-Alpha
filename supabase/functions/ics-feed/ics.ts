@@ -1,8 +1,11 @@
 // Wave 35 Task 1 — ICS (RFC 5545) document rendering.
 //
-// Pure functions — no Deno / Supabase imports — so the unit test runner can
-// drive them directly. The Deno edge function imports `renderIcsDocument`
-// from here.
+// Pure functions so the unit test runner can drive them directly. The Deno
+// edge function imports `renderIcsDocument` from here. Date math routes
+// through `supabase/functions/_shared/date.ts` (the Deno mirror of
+// `src/shared/lib/date-engine`) per the styleguide's no-raw-date-math rule.
+
+import { addDaysToIsoDate } from '../_shared/date.ts';
 
 export interface IcsTaskRow {
     id: string;
@@ -94,10 +97,12 @@ export function renderIcsDocument(tasks: IcsTaskRow[], opts: RenderIcsOptions = 
         if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) continue;
 
         const startFmt = formatIcsDate(startDate);
-        // DTEND is exclusive in iCal; add one day so single-day events render.
-        const dueAsDate = new Date(`${dueDate}T00:00:00Z`);
-        dueAsDate.setUTCDate(dueAsDate.getUTCDate() + 1);
-        const endFmt = formatIcsUtcStamp(dueAsDate).slice(0, 8);
+        // DTEND is exclusive in iCal; advance one calendar day so single-day
+        // events render. Routed through the date-engine Deno mirror — no
+        // mutating raw Date math.
+        const dueNextIso = addDaysToIsoDate(dueDate, 1);
+        if (!dueNextIso) continue;
+        const endFmt = formatIcsDate(dueNextIso);
 
         push('BEGIN:VEVENT');
         push(`UID:task-${task.id}@planterplan`);

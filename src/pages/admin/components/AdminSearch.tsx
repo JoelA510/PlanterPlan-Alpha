@@ -41,25 +41,34 @@ export default function AdminSearch() {
         enabled: queryEnabled,
     });
 
-    const projectHits = useQuery<ProjectHit[]>({
-        queryKey: ['adminSearch', 'projects', debouncedQuery],
-        queryFn: async () => {
-            const all = await planter.entities.Task.list();
-            const q = debouncedQuery.toLowerCase();
-            return all
-                .filter((t) => t.parent_task_id === null && typeof t.title === 'string' && t.title.toLowerCase().includes(q))
-                .slice(0, 10)
-                .map((t) => ({
-                    kind: t.origin === 'template' ? 'template' : 'project',
-                    id: t.id,
-                    title: t.title ?? '',
-                }) satisfies ProjectHit);
-        },
+    // Fetch the full task list ONCE (keyed without the debounced query) and
+    // filter in-memory per keystroke. Re-fetching Task.list() on every
+    // debounced tick was quadratic for large tenants.
+    const allTasks = useQuery({
+        queryKey: ['adminSearch', 'allTasks'],
+        queryFn: () => planter.entities.Task.list(),
+        staleTime: 60_000,
         enabled: queryEnabled,
     });
 
-    const projects = useMemo(() => (projectHits.data ?? []).filter((h) => h.kind === 'project'), [projectHits.data]);
-    const templates = useMemo(() => (projectHits.data ?? []).filter((h) => h.kind === 'template'), [projectHits.data]);
+    const { projects, templates } = useMemo(() => {
+        const out: { projects: ProjectHit[]; templates: ProjectHit[] } = { projects: [], templates: [] };
+        if (!allTasks.data || !queryEnabled) return out;
+        const q = debouncedQuery.toLowerCase();
+        for (const t of allTasks.data) {
+            if (t.parent_task_id !== null || typeof t.title !== 'string') continue;
+            if (!t.title.toLowerCase().includes(q)) continue;
+            const hit: ProjectHit = {
+                kind: t.origin === 'template' ? 'template' : 'project',
+                id: t.id,
+                title: t.title,
+            };
+            if (hit.kind === 'project' && out.projects.length < 10) out.projects.push(hit);
+            else if (hit.kind === 'template' && out.templates.length < 10) out.templates.push(hit);
+            if (out.projects.length >= 10 && out.templates.length >= 10) break;
+        }
+        return out;
+    }, [allTasks.data, debouncedQuery, queryEnabled]);
 
     const handleNavigateUser = (uid: string) => navigate(`/admin/users/${uid}`);
     const handleNavigateProject = (id: string) => navigate(`/Project/${id}`);
@@ -101,8 +110,8 @@ export default function AdminSearch() {
                     <ResultGroup
                         heading="Projects"
                         icon={FolderKanban}
-                        loading={projectHits.isLoading}
-                        error={projectHits.error instanceof Error ? projectHits.error.message : null}
+                        loading={allTasks.isLoading}
+                        error={allTasks.error instanceof Error ? allTasks.error.message : null}
                         items={projects.map((p) => ({
                             key: p.id,
                             primary: p.title || '(untitled)',
@@ -114,7 +123,7 @@ export default function AdminSearch() {
                     <ResultGroup
                         heading="Templates"
                         icon={FileStack}
-                        loading={projectHits.isLoading}
+                        loading={allTasks.isLoading}
                         error={null}
                         items={templates.map((t) => ({
                             key: t.id,

@@ -300,7 +300,7 @@ const TaskItem = ({
  <Tooltip>
  <TooltipTrigger asChild>
  <span
- className="px-1.5 py-0.5 text-[10px] uppercase font-semibold rounded bg-indigo-50 text-indigo-700 border border-indigo-100 whitespace-nowrap flex-shrink-0"
+ className="px-1.5 py-0.5 text-xs uppercase font-semibold rounded bg-indigo-50 text-indigo-700 border border-indigo-100 whitespace-nowrap flex-shrink-0"
  data-testid={`task-row-template-badge-${task.id}`}
  >
  T

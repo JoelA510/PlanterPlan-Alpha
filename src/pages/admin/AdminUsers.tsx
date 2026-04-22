@@ -58,7 +58,7 @@ export default function AdminUsers() {
                         }
                     >
                         <SelectTrigger
-                            className="w-[140px] bg-card"
+                            className="w-36 bg-card"
                             aria-label="Filter by role"
                             data-testid="admin-users-filter-role"
                         >
@@ -80,7 +80,7 @@ export default function AdminUsers() {
                         }
                     >
                         <SelectTrigger
-                            className="w-[180px] bg-card"
+                            className="w-48 bg-card"
                             aria-label="Filter by last sign-in"
                             data-testid="admin-users-filter-lastLogin"
                         >
