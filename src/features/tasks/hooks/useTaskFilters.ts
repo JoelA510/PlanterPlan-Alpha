@@ -42,27 +42,6 @@ const buildThresholdMap = (tasks: TaskRow[]): Map<string, number> => {
  return map;
 };
 
-/**
- * Milestone convention: a task whose parent is itself a direct child of a root
- * task (i.e. grand-children of a project root, where the parent is a "phase").
- * We compute this structurally, not via a flag.
- */
-const buildMilestoneIdSet = (tasks: TaskRow[]): Set<string> => {
- const roots = new Set<string>();
- for (const t of tasks) {
-  if (t.parent_task_id === null) roots.add(t.id);
- }
- const phases = new Set<string>();
- for (const t of tasks) {
-  if (t.parent_task_id && roots.has(t.parent_task_id)) phases.add(t.id);
- }
- const milestones = new Set<string>();
- for (const t of tasks) {
-  if (t.parent_task_id && phases.has(t.parent_task_id)) milestones.add(t.id);
- }
- return milestones;
-};
-
 export interface UseTaskFiltersArgs {
  tasks: TaskRow[];
  filter: TaskFilterKey;
@@ -77,7 +56,6 @@ export const filterAndSortTasks = ({
  now = new Date(),
 }: UseTaskFiltersArgs): TaskRow[] => {
  const thresholds = buildThresholdMap(tasks);
- const milestoneIds = filter === 'milestones' ? buildMilestoneIdSet(tasks) : null;
 
  const instanceChildren = tasks.filter(
   (t) => t.parent_task_id !== null && t.origin === 'instance',
@@ -115,7 +93,7 @@ export const filterAndSortTasks = ({
    filtered = instanceChildren;
    break;
   case 'milestones':
-   filtered = instanceChildren.filter((t) => milestoneIds!.has(t.id));
+   filtered = instanceChildren.filter((t) => t.task_type === 'milestone');
    break;
   default:
    filtered = instanceChildren;
