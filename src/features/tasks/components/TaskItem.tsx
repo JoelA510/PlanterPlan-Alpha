@@ -17,6 +17,7 @@ import {
  dueBadgeToneClass,
  formatTaskDueBadge,
 } from '@/shared/lib/date-engine/formatTaskDueBadge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 import type { PresenceState } from '@/features/projects/hooks/useProjectPresence';
 
 export type { TaskItemData } from '@/shared/types/tasks';
@@ -48,6 +49,12 @@ interface TaskItemProps {
  presentUsers?: PresenceState[];
  /** Wave 27: viewer's id — used to hide self from the focus chip group. */
  currentUserId?: string | null;
+ /**
+  * Wave 33: parent project title. When present, the task title is wrapped in a
+  * hover tooltip revealing this text. Used by the unified Tasks page to
+  * disambiguate tasks from different projects.
+  */
+ parentProjectTitle?: string | null;
 }
 
 const MAX_FOCUS_CHIPS = 3;
@@ -77,6 +84,7 @@ const TaskItem = ({
  dropIndicator,
  presentUsers = [],
  currentUserId = null,
+ parentProjectTitle = null,
 }: TaskItemProps) => {
  const { t } = useTranslation();
  const indentWidth = level * 20;
@@ -256,12 +264,27 @@ const TaskItem = ({
  )}
 
  <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+ {parentProjectTitle ? (
+ <Tooltip>
+ <TooltipTrigger asChild>
  <span
- className="font-semibold text-slate-900 text-sm truncate"
- title={task.title}
+ className="font-semibold text-slate-900 text-sm truncate cursor-default"
+ data-testid={`task-row-title-${task.id}`}
  >
  {task.title}
  </span>
+ </TooltipTrigger>
+ <TooltipContent>{parentProjectTitle}</TooltipContent>
+ </Tooltip>
+ ) : (
+ <span
+ className="font-semibold text-slate-900 text-sm truncate"
+ title={task.title}
+ data-testid={`task-row-title-${task.id}`}
+ >
+ {task.title}
+ </span>
+ )}
  {task.duration && (
  <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 whitespace-nowrap flex-shrink-0">
  {task.duration}

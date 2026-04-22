@@ -7,6 +7,7 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import type { TaskRow, TaskUpdate, Project } from '@/shared/db/app.types';
 import { planter } from '@/shared/api/planterClient';
 import TaskItem from '@/features/tasks/components/TaskItem';
+import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import { Loader2, List, LayoutGrid, X } from 'lucide-react';
 import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView';
 import {
@@ -41,6 +42,7 @@ export default function TasksPage() {
        const [viewMode, setViewMode] = useState('list');
        const [filter, setFilter] = useState<TaskFilterKey>('my_tasks');
        const [sort, setSort] = useState<TaskSortKey>('chronological');
+       const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
        const [dueStart, setDueStart] = useState<string>('');
        const [dueEnd, setDueEnd] = useState<string>('');
        const dueDateRange = useMemo<DueDateRange>(
@@ -88,8 +90,27 @@ export default function TasksPage() {
               updateTask(id, { status });
        }, [updateTask]);
        const handleNoop = useCallback(() => { }, []);
+       const handleTaskClick = useCallback((task: TaskRow) => {
+              setSelectedTask(task);
+       }, []);
+       const closeDetailsPanel = useCallback(() => {
+              setSelectedTask(null);
+       }, []);
 
        const visibleTasks = useTaskFilters({ tasks, filter, sort, dueDateRange });
+
+       // Wave 33: map of root-task-id → project title, used to reveal each task's
+       // parent-project name in a hover tooltip on the row. Projects live in the
+       // same `tasks` list (roots have `parent_task_id === null`).
+       const projectTitleByRootId = useMemo(() => {
+              const map = new Map<string, string>();
+              for (const t of tasks) {
+                     if (t.parent_task_id === null && typeof t.title === 'string') {
+                            map.set(t.id, t.title);
+                     }
+              }
+              return map;
+       }, [tasks]);
 
        const sensors = useSensors(
               useSensor(PointerSensor, {
@@ -245,19 +266,26 @@ export default function TasksPage() {
                                                         viewMode === 'list' ? (
                                                                <div className="space-y-6 overflow-y-auto h-full pb-20">
                                                                       <div className="flex flex-col gap-2">
-                                                                             {visibleTasks.map(task => (
-                                                                                    <TaskItem
-                                                                                           key={task.id}
-                                                                                           task={task}
-                                                                                           level={0}
-                                                                                           onStatusChange={handleStatusChange}
-                                                                                           hideExpansion={true}
-                                                                                           disableDrag={true}
-                                                                                           onTaskClick={handleNoop}
-                                                                                           onAddChildTask={handleNoop}
-                                                                                           onInviteMember={handleNoop}
-                                                                                    />
-                                                                             ))}
+                                                                             {visibleTasks.map(task => {
+                                                                                    const projectTitle = task.root_id && task.root_id !== task.id
+                                                                                           ? projectTitleByRootId.get(task.root_id) ?? null
+                                                                                           : null;
+                                                                                    return (
+                                                                                           <TaskItem
+                                                                                                  key={task.id}
+                                                                                                  task={task}
+                                                                                                  level={0}
+                                                                                                  onStatusChange={handleStatusChange}
+                                                                                                  hideExpansion={true}
+                                                                                                  disableDrag={true}
+                                                                                                  onTaskClick={handleTaskClick}
+                                                                                                  onAddChildTask={handleNoop}
+                                                                                                  onInviteMember={handleNoop}
+                                                                                                  selectedTaskId={selectedTask?.id ?? null}
+                                                                                                  parentProjectTitle={projectTitle}
+                                                                                           />
+                                                                                    );
+                                                                             })}
                                                                       </div>
                                                                </div>
                                                         ) : (
@@ -265,7 +293,7 @@ export default function TasksPage() {
                                                                       <ProjectBoardView
                                                                              project={{ id: 'my-tasks-root' } as Project}
                                                                              childrenTasks={visibleTasks}
-                                                                             handleTaskClick={() => { }}
+                                                                             handleTaskClick={handleTaskClick}
                                                                       />
                                                                </div>
                                                         )
@@ -274,6 +302,14 @@ export default function TasksPage() {
                                    </div>
                             </div>
                      </DndContext>
+
+                     {selectedTask && (
+                            <TaskDetailsPanel
+                                   showForm={false}
+                                   selectedTask={selectedTask}
+                                   onClose={closeDetailsPanel}
+                            />
+                     )}
               </>
        );
 }
