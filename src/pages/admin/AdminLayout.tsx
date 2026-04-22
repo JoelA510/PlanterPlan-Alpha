@@ -4,14 +4,16 @@ import { toast } from 'sonner';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useIsAdmin } from '@/features/admin/hooks/useIsAdmin';
 import { cn } from '@/shared/lib/utils';
-import { LayoutDashboard, Users, BarChart3, FileStack, FolderKanban } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart3, FileStack } from 'lucide-react';
 
+// Wave 34 scope ships Home / Users / Analytics / Templates under /admin.
+// A dedicated `/admin/projects` surface wasn't scoped; admins browse
+// cross-tenant projects today via `/admin` search + per-project routes.
 const NAV_ITEMS: Array<{ to: string; label: string; icon: React.ComponentType<{ className?: string }>; end?: boolean }> = [
     { to: '/admin', label: 'Home', icon: LayoutDashboard, end: true },
     { to: '/admin/users', label: 'Users', icon: Users },
     { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
     { to: '/admin/templates', label: 'Templates', icon: FileStack },
-    { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
 ];
 
 /**

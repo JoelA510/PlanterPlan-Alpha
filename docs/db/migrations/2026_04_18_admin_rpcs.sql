@@ -32,6 +32,8 @@ STABLE
 SECURITY DEFINER
 SET search_path TO ''
 AS $$
+DECLARE
+    v_pattern text;
 BEGIN
     IF NOT public.is_admin(auth.uid()) THEN
         RAISE EXCEPTION 'unauthorized: admin role required';
@@ -40,6 +42,18 @@ BEGIN
     IF p_query IS NULL OR char_length(trim(p_query)) < 2 THEN
         RETURN;
     END IF;
+
+    -- Escape LIKE wildcards (%, _, \) so a user typing literal characters
+    -- doesn't match cross-row. A trailing backslash is impossible after
+    -- the replace chain because we escape it first.
+    v_pattern := '%' ||
+        replace(
+            replace(
+                replace(trim(p_query), '\', '\\'),
+                '%', '\%'
+            ),
+            '_', '\_'
+        ) || '%';
 
     RETURN QUERY
     SELECT
@@ -54,8 +68,8 @@ BEGIN
         ) AS project_count
     FROM auth.users u
     WHERE
-        u.email ILIKE '%' || p_query || '%'
-        OR (u.raw_user_meta_data ->> 'full_name') ILIKE '%' || p_query || '%'
+        u.email ILIKE v_pattern ESCAPE '\'
+        OR (u.raw_user_meta_data ->> 'full_name') ILIKE v_pattern ESCAPE '\'
     ORDER BY u.last_sign_in_at DESC NULLS LAST
     LIMIT GREATEST(1, LEAST(p_max_results, 100));
 END;
@@ -113,13 +127,17 @@ BEGIN
                 FROM public.tasks t
                 WHERE t.assignee_id = u.id AND t.origin = 'instance'
             ), 0),
+            -- Counted via activity_log (Wave 27) rather than tasks.updated_at
+            -- so unrelated edits on already-completed rows don't inflate the
+            -- 30-day number. `task_completed` is the only status-transition
+            -- action the log emits with `actor_id = completer` guaranteed.
             'completed', COALESCE((
-                SELECT count(*)
-                FROM public.tasks t
-                WHERE t.assignee_id = u.id
-                  AND t.origin = 'instance'
-                  AND t.status = 'completed'
-                  AND t.updated_at >= now() - interval '30 days'
+                SELECT count(DISTINCT al.entity_id)
+                FROM public.activity_log al
+                WHERE al.actor_id = u.id
+                  AND al.entity_type = 'task'
+                  AND al.action = 'task_completed'
+                  AND al.created_at >= now() - interval '30 days'
             ), 0),
             'overdue', COALESCE((
                 SELECT count(*)

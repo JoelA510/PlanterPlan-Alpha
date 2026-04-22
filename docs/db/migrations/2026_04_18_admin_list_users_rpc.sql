@@ -31,11 +31,26 @@ DECLARE
     v_last_login text := filter ->> 'lastLogin';
     v_has_overdue boolean := (filter ->> 'hasOverdue')::boolean;
     v_search text := NULLIF(trim(COALESCE(filter ->> 'search', '')), '');
+    v_search_pattern text;
     v_clamped_limit int := GREATEST(1, LEAST(COALESCE(p_limit, 50), 200));
     v_clamped_offset int := GREATEST(0, COALESCE(p_offset, 0));
 BEGIN
     IF NOT public.is_admin(auth.uid()) THEN
         RAISE EXCEPTION 'unauthorized: admin role required';
+    END IF;
+
+    -- Escape LIKE wildcards so a user typing '%' or '_' doesn't match every
+    -- row. Backslash is escaped first so the subsequent replaces don't
+    -- insert literal backslashes that collide with the ESCAPE character.
+    IF v_search IS NOT NULL THEN
+        v_search_pattern := '%' ||
+            replace(
+                replace(
+                    replace(v_search, '\', '\\'),
+                    '%', '\%'
+                ),
+                '_', '\_'
+            ) || '%';
     END IF;
 
     RETURN QUERY
@@ -51,13 +66,16 @@ BEGIN
                 FROM public.project_members pm
                 WHERE pm.user_id = u.id
             ) AS active_project_count,
+            -- Counted via activity_log (Wave 27) so unrelated edits on already-
+            -- completed rows don't inflate the 30-day number. See the sibling
+            -- admin_user_detail RPC for the same pattern.
             (
-                SELECT count(*)
-                FROM public.tasks t
-                WHERE t.assignee_id = u.id
-                  AND t.origin = 'instance'
-                  AND t.status = 'completed'
-                  AND t.updated_at >= now() - interval '30 days'
+                SELECT count(DISTINCT al.entity_id)
+                FROM public.activity_log al
+                WHERE al.actor_id = u.id
+                  AND al.entity_type = 'task'
+                  AND al.action = 'task_completed'
+                  AND al.created_at >= now() - interval '30 days'
             ) AS completed_tasks_30d,
             (
                 SELECT count(*)
@@ -91,7 +109,9 @@ BEGIN
             (v_last_login = 'inactive' AND (b.last_sign_in_at IS NULL OR b.last_sign_in_at < now() - interval '30 days'))
         )
         AND (v_has_overdue IS NULL OR v_has_overdue = false OR b.overdue_task_count > 0)
-        AND (v_search IS NULL OR b.email ILIKE '%' || v_search || '%' OR b.display_name ILIKE '%' || v_search || '%')
+        AND (v_search_pattern IS NULL
+            OR b.email ILIKE v_search_pattern ESCAPE '\'
+            OR b.display_name ILIKE v_search_pattern ESCAPE '\')
     ORDER BY b.last_sign_in_at DESC NULLS LAST, b.email ASC
     LIMIT v_clamped_limit OFFSET v_clamped_offset;
 END;

@@ -28,19 +28,33 @@ export interface FormatTaskDueBadgeArgs {
 }
 
 /**
- * Relative wording rules (Wave 33):
+ * Wave 33 — derive the due-date badge label + tone + i18n discriminator for
+ * a single task. All date arithmetic routes through `@/shared/lib/date-engine`
+ * (this file *lives* in `date-engine/`, so `new Date()` as a default here is
+ * the centralized clock, not a styleguide violation).
+ *
+ * Label rules:
  *   - today → "Today"
  *   - tomorrow → "Tomorrow"
- *   - within ±7 calendar days (exclusive of the above) → weekday + short date, e.g. "Mon Apr 27"
+ *   - within ±7 calendar days (exclusive of the above) → weekday + short date
+ *     (e.g. "Mon Apr 27")
  *   - else → "MMM d, yyyy"
  *
  * Tone rules:
  *   - overdue (due_date strictly before today) → 'overdue'
- *   - within `dueSoonThresholdDays` calendar days from today (inclusive, non-overdue) → 'due_soon'
+ *   - within `dueSoonThresholdDays` calendar days from today (inclusive,
+ *     non-overdue) → 'due_soon'
  *   - everything else → 'neutral'
  *
- * All date arithmetic routes through `@/shared/lib/date-engine` — no raw
- * `Date` math here.
+ * @param args.dueDate ISO date string, Date, or null/undefined (returns null).
+ * @param args.now Injected clock; defaults to `new Date()`. Pass an explicit
+ *   Date in tests for deterministic output.
+ * @param args.dueSoonThresholdDays Calendar-day window for the `due_soon`
+ *   tone. Typically pulled from the root project's
+ *   `settings.due_soon_threshold` (see `useTaskFilters`); falls back to 3.
+ * @returns `{ label, kind, tone }` triple, or `null` when the input can't
+ *   be rendered (null / invalid date). The `kind` discriminator drives i18n
+ *   — see `TaskItem.tsx` for the translation mapping.
  */
 export function formatTaskDueBadge({
     dueDate,
@@ -90,10 +104,12 @@ const TONE_CLASS_MAP: Record<DueBadgeTone, string> = {
     neutral: 'text-slate-600',
 };
 
+/**
+ * Wave 33 — resolve a `DueBadgeTone` to its Tailwind text-color utility.
+ *
+ * @param tone One of `'overdue' | 'due_soon' | 'neutral'`.
+ * @returns The matching `text-*` utility class — stable reference.
+ */
 export function dueBadgeToneClass(tone: DueBadgeTone): string {
     return TONE_CLASS_MAP[tone];
 }
-
-// Exported for unit-level testing so the map can be asserted without reaching
-// into the module state of the React renderer. Not for consumer import.
-export { TONE_CLASS_MAP as __TONE_CLASS_MAP };

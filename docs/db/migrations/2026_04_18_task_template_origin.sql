@@ -1,7 +1,9 @@
 -- Wave 36 Task 2 — Template origin tracking on cloned tasks
 --
--- Adds `cloned_from_task_id uuid` on `public.tasks`, populated by the
--- existing `clone_project_template` RPC during a deep-clone. NULL means
+-- Adds `cloned_from_task_id uuid` on `public.tasks`. The column is
+-- populated by the patched `clone_project_template` RPC shipped in the
+-- adjacent `2026_04_18_clone_rpc_wave36_patch.sql` migration (required for
+-- the app-side delete guard to ever fire). NULL means
 -- "post-instantiation custom addition" — owners can freely delete those.
 -- NOT-NULL rows are template-origin; the Wave 36 UI guard blocks deletes
 -- for non-owners.

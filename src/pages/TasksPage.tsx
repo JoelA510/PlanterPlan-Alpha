@@ -10,6 +10,9 @@ import TaskItem from '@/features/tasks/components/TaskItem';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import { Loader2, List, LayoutGrid, X } from 'lucide-react';
 import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { useTeam } from '@/features/people/hooks/useTeam';
+import { ROLES } from '@/shared/constants';
 import {
        useTaskFilters,
        type DueDateRange,
@@ -96,6 +99,25 @@ export default function TasksPage() {
        const closeDetailsPanel = useCallback(() => {
               setSelectedTask(null);
        }, []);
+
+       // Wave 33 + 36: resolve the caller's membership role for the selected
+       // task's parent project. Threads into TaskDetailsPanel so the Wave 36
+       // template-origin delete guard can distinguish owners from everyone
+       // else. Mirror the logic in Project.tsx: creator → OWNER override if
+       // no membership row exists.
+       const { user } = useAuth();
+       const selectedRootId = selectedTask?.root_id ?? null;
+       const { teamMembers: selectedTeamMembers } = useTeam(selectedRootId);
+       const selectedProjectRoot = tasks.find((t: TaskRow) => t.id === selectedRootId);
+       const selectedMembershipRole = useMemo(() => {
+              if (!selectedTask) return undefined;
+              const row = selectedTeamMembers.find((m) => m.user_id === user?.id);
+              if (row?.role) return row.role;
+              if (selectedProjectRoot?.creator && user?.id && selectedProjectRoot.creator === user.id) {
+                     return ROLES.OWNER;
+              }
+              return undefined;
+       }, [selectedTask, selectedTeamMembers, selectedProjectRoot, user?.id]);
 
        const visibleTasks = useTaskFilters({ tasks, filter, sort, dueDateRange });
 
@@ -307,6 +329,7 @@ export default function TasksPage() {
                             <TaskDetailsPanel
                                    showForm={false}
                                    selectedTask={selectedTask}
+                                   membershipRole={selectedMembershipRole}
                                    onClose={closeDetailsPanel}
                             />
                      )}

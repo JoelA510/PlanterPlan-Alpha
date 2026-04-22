@@ -12,6 +12,22 @@ vi.mock('@/shared/db/client', () => ({
     },
 }));
 
+// Wave 33 + 36: TasksPage now calls useAuth() + useTeam() to resolve the
+// caller's membership role for the delete guard. Stub both — neither is
+// exercised by the tests below but their absence would throw at mount.
+vi.mock('@/shared/contexts/AuthContext', () => ({
+    useAuth: () => ({
+        user: { id: 'u1', email: 'me@example.com', role: 'owner' },
+        savedEmailAddresses: [],
+        rememberEmailAddress: vi.fn(),
+    }),
+    AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('@/features/people/hooks/useTeam', () => ({
+    useTeam: () => ({ teamMembers: [], isLoading: false }),
+}));
+
 // planterClient is the only data source TasksPage uses — return a fixed list.
 vi.mock('@/shared/api/planterClient', () => {
     const taskList = [

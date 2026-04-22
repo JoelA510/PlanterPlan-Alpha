@@ -20,18 +20,22 @@ import {
  * backs every chart. recharts is already in the bundle (Waves 19, 20, 28).
  */
 
+// Chart fills route through the Tailwind CSS-variable palette (same
+// convention as the Wave 29 PhaseCard donut). No raw hex.
 const KIND_COLORS: Record<string, string> = {
     date: 'var(--color-brand-600)',
     checkpoint: 'var(--color-slate-400)',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    todo: '#94a3b8',
-    not_started: '#cbd5e1',
-    in_progress: '#f97316',
-    completed: '#22c55e',
-    blocked: '#ef4444',
+    todo: 'var(--color-slate-400)',
+    not_started: 'var(--color-slate-300)',
+    in_progress: 'var(--color-orange-500)',
+    completed: 'var(--color-green-500)',
+    blocked: 'var(--color-red-500)',
 };
+
+const CHART_GRID_STROKE = 'var(--color-slate-200)';
 
 export default function AdminAnalytics() {
     const { data, isLoading, error } = useAdminAnalytics();
@@ -83,7 +87,7 @@ export default function AdminAnalytics() {
                 <div className="h-64 w-full rounded-lg border border-border bg-card p-4 shadow-sm">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data.new_projects_per_week}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} />
                             <XAxis dataKey="week_start" />
                             <YAxis allowDecimals={false} />
                             <RechartsTooltip />
@@ -113,7 +117,7 @@ export default function AdminAnalytics() {
                                     {data.project_kind_breakdown.map((entry) => (
                                         <Cell
                                             key={entry.kind}
-                                            fill={KIND_COLORS[entry.kind] ?? '#64748b'}
+                                            fill={KIND_COLORS[entry.kind] ?? 'var(--color-slate-500)'}
                                         />
                                     ))}
                                 </Pie>
@@ -131,13 +135,13 @@ export default function AdminAnalytics() {
                     <div className="h-56 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={data.task_status_breakdown}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} />
                                 <XAxis dataKey="status" />
                                 <YAxis allowDecimals={false} />
                                 <RechartsTooltip />
                                 <Bar dataKey="count">
                                     {data.task_status_breakdown.map((entry) => (
-                                        <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? '#64748b'} />
+                                        <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? 'var(--color-slate-500)'} />
                                     ))}
                                 </Bar>
                             </BarChart>

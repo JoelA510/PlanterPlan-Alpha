@@ -56,18 +56,13 @@ BEGIN
             ) s
         ), '[]'::jsonb),
         'project_kind_breakdown', COALESCE((
-            SELECT jsonb_agg(
-                jsonb_build_object(
-                    'kind', COALESCE(settings ->> 'project_kind', 'date'),
-                    'count', count
-                )
-            )
+            SELECT jsonb_agg(jsonb_build_object('kind', kind_val, 'count', count_val))
             FROM (
-                SELECT COALESCE(settings ->> 'project_kind', 'date') AS kind_val, count(*) AS count
+                SELECT COALESCE(settings ->> 'project_kind', 'date') AS kind_val, count(*) AS count_val
                 FROM public.tasks
                 WHERE parent_task_id IS NULL AND origin = 'instance'
                 GROUP BY 1
-            ) k(settings, count)
+            ) k
         ), '[]'::jsonb),
         'task_status_breakdown', COALESCE((
             SELECT jsonb_agg(

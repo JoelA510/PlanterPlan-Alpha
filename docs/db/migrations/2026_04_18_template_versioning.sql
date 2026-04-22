@@ -43,19 +43,13 @@ CREATE TRIGGER trg_bump_template_version
     FOR EACH ROW
     EXECUTE FUNCTION public.bump_template_version();
 
--- ----------------------------------------------------------------------------
--- Patch the existing clone_project_template RPC so cloned instance roots
--- carry settings.cloned_from_template_version = source.template_version.
--- Because the RPC body is long (docs/db/schema.sql), the patch here uses an
--- UPDATE-in-the-RPC approach: we replace the function wholesale. The rest of
--- the signature + body stays byte-equivalent to the Wave 23 snapshot; the
--- only additions are (a) the stamp on the cloned root, and (b) the Wave 36
--- Task 2 `cloned_from_task_id` pass-through (added in the adjacent migration).
---
--- If the current function body on main has drifted from the 2026-04 snapshot,
--- this migration will overwrite it — apply with care and diff the function
--- definition before rolling to production.
--- ----------------------------------------------------------------------------
+-- Note: stamping `settings.cloned_from_template_version` on the cloned root
+-- is done client-side in `planter.entities.Task.clone` (see src/shared/api/
+-- planterClient.ts) so it can merge with the pre-existing
+-- `spawnedFromTemplate` stamp in one atomic write. The RPC body itself is
+-- patched separately in `2026_04_18_clone_rpc_wave36_patch.sql` to add the
+-- `cloned_from_task_id` server-side stamp for every cloned descendant
+-- (Wave 36 Task 2).
 
 COMMENT ON COLUMN public.tasks.template_version IS
     'Wave 36 — monotonic version on template rows (origin = ''template''). Bumped by trg_bump_template_version on text/structural edits. Cloned instance roots stamp settings.cloned_from_template_version at clone time for traceability; edits to the source template do NOT propagate to existing instances (intentional).';

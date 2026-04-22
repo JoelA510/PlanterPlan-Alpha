@@ -3,6 +3,13 @@ import { useParams } from 'react-router-dom';
 import { useAdminUsers, useAdminUserDetail } from '@/features/admin/hooks/useAdminUsers';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
 import type { AdminListUsersFilter } from '@/shared/db/app.types';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/shared/ui/select';
 
 /**
  * Wave 34 Task 2 — admin user-management table. Server-side filter via the
@@ -42,33 +49,51 @@ export default function AdminUsers() {
             </header>
 
             <div className="mb-4 flex flex-wrap items-end gap-3" data-testid="admin-users-filters">
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    Role
-                    <select
-                        className="h-9 rounded-md border border-input bg-card px-2 text-sm"
+                <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Role</span>
+                    <Select
                         value={filter.role ?? 'all'}
-                        onChange={(e) => setFilter((f) => ({ ...f, role: e.target.value as AdminListUsersFilter['role'] }))}
-                        data-testid="admin-users-filter-role"
+                        onValueChange={(v) =>
+                            setFilter((f) => ({ ...f, role: v as AdminListUsersFilter['role'] }))
+                        }
                     >
-                        <option value="all">All</option>
-                        <option value="admin">Admin</option>
-                        <option value="standard">Standard</option>
-                    </select>
-                </label>
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    Last sign-in
-                    <select
-                        className="h-9 rounded-md border border-input bg-card px-2 text-sm"
+                        <SelectTrigger
+                            className="w-[140px] bg-card"
+                            aria-label="Filter by role"
+                            data-testid="admin-users-filter-role"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="standard">Standard</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Last sign-in</span>
+                    <Select
                         value={filter.lastLogin ?? 'all'}
-                        onChange={(e) => setFilter((f) => ({ ...f, lastLogin: e.target.value as AdminListUsersFilter['lastLogin'] }))}
-                        data-testid="admin-users-filter-lastLogin"
+                        onValueChange={(v) =>
+                            setFilter((f) => ({ ...f, lastLogin: v as AdminListUsersFilter['lastLogin'] }))
+                        }
                     >
-                        <option value="all">All</option>
-                        <option value="last_7">Last 7 days</option>
-                        <option value="last_30">Last 30 days</option>
-                        <option value="inactive">30+ days inactive</option>
-                    </select>
-                </label>
+                        <SelectTrigger
+                            className="w-[180px] bg-card"
+                            aria-label="Filter by last sign-in"
+                            data-testid="admin-users-filter-lastLogin"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="last_7">Last 7 days</SelectItem>
+                            <SelectItem value="last_30">Last 30 days</SelectItem>
+                            <SelectItem value="inactive">30+ days inactive</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
                 <label className="flex items-center gap-2 text-sm">
                     <input
                         type="checkbox"

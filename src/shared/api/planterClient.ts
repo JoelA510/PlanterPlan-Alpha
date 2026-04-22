@@ -1200,6 +1200,15 @@ export const planter: PlanterClient = {
         },
     },
     admin: {
+        /**
+         * Wave 34 — fuzzy search across `auth.users` (email / full_name).
+         * Gated server-side by `public.is_admin(auth.uid())`; non-admin callers
+         * raise `unauthorized`. Debounce at the call site (min 2 chars / 200ms).
+         *
+         * @param query  Free-text fragment; `%` and `_` are escaped server-side.
+         * @param limit  Max rows to return (clamped to 1..100 by the RPC).
+         * @returns Up to `limit` `AdminUserSearchRow` rows, newest-signed-in first.
+         */
         searchUsers: async (query: string, limit?: number): Promise<AdminUserSearchRow[]> => {
             const { data, error } = await planter.rpc<AdminUserSearchRow[]>('admin_search_users', {
                 p_query: query,
@@ -1208,6 +1217,14 @@ export const planter: PlanterClient = {
             if (error) throw error;
             return data ?? [];
         },
+        /**
+         * Wave 34 — single-user drill-down. Profile + project memberships +
+         * task counts (assigned / completed-30d / overdue). Gated by
+         * `public.is_admin(auth.uid())`.
+         *
+         * @param uid `auth.users.id` of the user to inspect.
+         * @returns `AdminUserDetail` or `null` if the uid doesn't exist.
+         */
         userDetail: async (uid: string): Promise<AdminUserDetail | null> => {
             const { data, error } = await planter.rpc<AdminUserDetail | null>('admin_user_detail', {
                 p_uid: uid,
@@ -1215,6 +1232,14 @@ export const planter: PlanterClient = {
             if (error) throw error;
             return data ?? null;
         },
+        /**
+         * Wave 34 — cross-project activity feed joined with `auth.users` on
+         * actor_id for email hydration. Backs the `/admin` home surface.
+         * Gated by `public.is_admin(auth.uid())`.
+         *
+         * @param limit Max rows (clamped to 1..200).
+         * @returns Newest `AdminActivityRow[]` first.
+         */
         recentActivity: async (limit?: number): Promise<AdminActivityRow[]> => {
             const { data, error } = await planter.rpc<AdminActivityRow[]>('admin_recent_activity', {
                 p_limit: limit ?? 50,
@@ -1222,6 +1247,16 @@ export const planter: PlanterClient = {
             if (error) throw error;
             return data ?? [];
         },
+        /**
+         * Wave 34 — paginated user list with server-side filtering.
+         * Gated by `public.is_admin(auth.uid())`.
+         *
+         * @param filter `{ role?, lastLogin?, hasOverdue?, search? }`. `search`
+         *   is LIKE-escaped server-side; unknown keys are ignored.
+         * @param limit  Rows per page (clamped to 1..200; default 50).
+         * @param offset Rows to skip (default 0).
+         * @returns `AdminListUserRow[]` ordered by last_sign_in_at DESC.
+         */
         listUsers: async (
             filter: AdminListUsersFilter,
             limit?: number,
@@ -1235,6 +1270,14 @@ export const planter: PlanterClient = {
             if (error) throw error;
             return data ?? [];
         },
+        /**
+         * Wave 34 — single-RPC dashboard payload (totals + time series +
+         * breakdowns + top-10 lists). Cached at the hook layer with a
+         * 5-minute staleTime. Gated by `public.is_admin(auth.uid())`.
+         *
+         * @returns `AdminAnalyticsSnapshot` with every chart's data, or
+         *   `null` if the server returns an empty snapshot.
+         */
         analyticsSnapshot: async (): Promise<AdminAnalyticsSnapshot | null> => {
             const { data, error } = await planter.rpc<AdminAnalyticsSnapshot | null>(
                 'admin_analytics_snapshot',
@@ -1245,6 +1288,12 @@ export const planter: PlanterClient = {
         },
     },
     integrations: {
+        /**
+         * Wave 35 — list the caller's ICS calendar feed tokens (active +
+         * revoked), newest first. RLS auto-filters to `user_id = auth.uid()`.
+         *
+         * @returns Array of `IcsFeedTokenRow`, possibly empty.
+         */
         listIcsFeedTokens: async (): Promise<IcsFeedTokenRow[]> => {
             return retry(async () => {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -1259,17 +1308,38 @@ export const planter: PlanterClient = {
                 return (data as IcsFeedTokenRow[]) ?? [];
             });
         },
+        /**
+         * Wave 35 — create a new ICS feed token for the caller. Generates
+         * 256 bits of randomness via the Web Crypto API (`crypto.getRandomValues`).
+         * No non-cryptographic fallback — we throw if secure random is
+         * unavailable rather than ship a predictable credential.
+         *
+         * @param input `{ label?, project_filter? }`. `project_filter` narrows
+         *   the feed to tasks whose `root_id IN (...)`; null for all projects.
+         * @returns The inserted row, including the plaintext token (the only
+         *   time the token is returned to the client; subsequent reads see
+         *   it masked by convention — clients should persist/display only once).
+         */
         createIcsFeedToken: async (input: CreateIcsFeedTokenInput): Promise<IcsFeedTokenRow> => {
             return retry(async () => {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError) throw new PlanterError(authError.message, 401);
                 if (!user) throw new PlanterError('Not authenticated', 401);
 
-                // Generate the opaque token client-side. The server never sees a
-                // low-entropy value because this is crypto.randomUUID() (128 bits).
-                const token = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-                    ? (crypto.randomUUID as () => string)().replace(/-/g, '') + (crypto.randomUUID as () => string)().replace(/-/g, '')
-                    : Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+                // Generate the opaque token client-side using the Web Crypto API —
+                // 256 bits (32 bytes → 64 hex chars). The token IS the credential
+                // for the public /functions/v1/ics-feed endpoint, so there is NO
+                // non-cryptographic fallback: if the runtime cannot produce secure
+                // random bytes, we throw rather than ship a predictable token.
+                if (typeof crypto === 'undefined' || typeof crypto.getRandomValues !== 'function') {
+                    throw new PlanterError(
+                        'Secure random source unavailable; cannot generate ICS feed token.',
+                        500,
+                    );
+                }
+                const tokenBytes = new Uint8Array(32);
+                crypto.getRandomValues(tokenBytes);
+                const token = Array.from(tokenBytes, (b) => b.toString(16).padStart(2, '0')).join('');
 
                 const payload = {
                     user_id: user.id,
@@ -1287,11 +1357,19 @@ export const planter: PlanterClient = {
                 return data as IcsFeedTokenRow;
             });
         },
+        /**
+         * Wave 35 — soft-revoke an ICS feed token by stamping `revoked_at`.
+         * The row stays visible for audit trail (last_accessed_at remains
+         * queryable). Subsequent fetches against the token's URL return 404.
+         *
+         * @param id Primary key of the token row to revoke.
+         * @returns The updated row (with `revoked_at` set).
+         */
         revokeIcsFeedToken: async (id: string): Promise<IcsFeedTokenRow> => {
             return retry(async () => {
                 const { data, error } = await supabase
                     .from('ics_feed_tokens')
-                    .update({ revoked_at: new Date().toISOString() })
+                    .update({ revoked_at: nowUtcIso() })
                     .eq('id', id)
                     .select('*')
                     .single();
