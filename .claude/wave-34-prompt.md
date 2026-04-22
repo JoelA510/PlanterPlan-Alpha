@@ -187,7 +187,7 @@ The three RPCs:
 4. **`docs/architecture/auth-rbac.md`** — append "Admin RPCs (Wave 34)" sub-section: lists the four new RPCs and the SECURITY DEFINER + `is_admin` gate pattern.
 5. **`docs/architecture/notifications.md`** — append a one-line entry: "Wave 34 admin-new-project trigger uses the same `notification_log` pipeline; admin opt-out via Settings."
 6. **`docs/dev-notes.md`** — no entry expected. Confirm currency.
-7. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 34 (Admin Management)`, update `last_completed`, `spec_version`, add `wave_33_highlights:` block.
+7. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 34 (Admin Management)`, update `last_completed`, `spec_version`, add `wave_34_highlights:` block.
 8. **`CLAUDE.md`** — add `/admin/*` routes to Routes table. New "Admin SECURITY DEFINER RPCs" subsection naming the four RPCs. Note that `admin_users` whitelist gates everything via `is_admin(auth.uid())`.
 
 Land docs as `docs(wave-34): documentation currency sweep`.
