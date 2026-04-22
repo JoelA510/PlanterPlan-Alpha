@@ -81,6 +81,10 @@ Component → React Query hook → planterClient → Supabase SDK
 /daily          → redirects to /tasks (bookmark compatibility after the Wave 33 merge)
 /settings       → Settings
 /gantt          → Gantt (lazy-loaded; reads ?projectId=:id)
+/admin          → AdminHome (Wave 34; lazy-loaded, useIsAdmin-gated — non-admins are toasted + redirected to /dashboard)
+/admin/users    → AdminUsers (server-side-filtered table of auth.users with drill-down aside)
+/admin/users/:uid → AdminUsers pre-selecting that user (deep-link from AdminSearch)
+/admin/analytics → AdminAnalytics (recharts-backed snapshot dashboard)
 ```
 
 ## Environment
@@ -137,6 +141,18 @@ RLS is enabled on all tables. Authorization is role-based per project.
 ### Role Hierarchy
 
 `owner > editor > coach > viewer > limited` — defined in `project_members.role` (Refer to `docs/architecture/auth-rbac.md` for specific permissions).
+
+### Admin SECURITY DEFINER RPCs (Wave 34)
+
+Every `/admin/*` read goes through a SECURITY DEFINER RPC gated at the top of the function body by `IF NOT public.is_admin(auth.uid()) THEN RAISE EXCEPTION 'unauthorized: admin role required' END IF`.
+
+- **`admin_search_users(query, limit)`** — fuzzy email / full_name search across `auth.users`.
+- **`admin_user_detail(uid)`** — profile + project memberships + task counts as `jsonb`.
+- **`admin_recent_activity(limit)`** — cross-project activity feed joined with actor email.
+- **`admin_list_users(filter jsonb, limit, offset)`** — paginated user list with server-side role / last-login / has-overdue / search filters.
+- **`admin_analytics_snapshot()`** — one-jsonb dashboard payload (totals + time series + breakdowns + top-10s).
+
+The `admin_users` whitelist is the sole admin gate — `is_admin(auth.uid())` returns true iff a row exists for the calling user. Client wrappers live under `planter.admin.*`.
 
 ### Core RLS Helper Functions (SECURITY DEFINER)
 

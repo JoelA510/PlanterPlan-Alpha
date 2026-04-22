@@ -2,6 +2,25 @@
 
 Technical debt and architectural notes for the team.
 
+## Wave 34 — Advanced Admin Management
+
+### Resolved (Wave 34)
+
+- **`/admin` shell** — `src/pages/admin/AdminLayout.tsx` (lazy-loaded in `App.tsx`) hard-gates every `/admin/*` route via `useIsAdmin()`; non-admins get a Sonner toast and redirect to `/dashboard`. Left-rail nav links to Home / Users / Analytics + shortcut links to Templates and Projects that route into the existing Project surfaces.
+- **Global admin search** — `src/pages/admin/components/AdminSearch.tsx` debounces at 200ms (2-char min) and returns three parallel result groups (Users via `admin_search_users`, Projects + Templates via an in-memory filter of the task list). Click a row → canonical detail surface.
+- **User-management table** — `src/pages/admin/AdminUsers.tsx` + `src/features/admin/hooks/useAdminUsers.ts`. Server-side filter via `admin_list_users(filter jsonb, limit, offset)`. Right-side detail aside populates via `useAdminUserDetail` (hits `admin_user_detail`). Deep-link via `/admin/users/:uid` (AdminSearch navigates here on user click).
+- **Analytics dashboard** — `src/pages/admin/AdminAnalytics.tsx` + `src/features/admin/hooks/useAdminAnalytics.ts`. One RPC (`admin_analytics_snapshot`) backs every chart: totals cards, new-projects/week LineChart, project-kind PieChart, task-status BarChart, top-10 active users + popular templates. recharts already in the bundle — zero new deps.
+- **Admin notifications on new project** — `trg_notify_admin_on_new_project` AFTER INSERT trigger (see `docs/db/migrations/2026_04_18_new_project_admin_notify.sql`). Enqueues one `notification_log` row per admin (excluding the creator) with `event_type = 'admin_new_project_pending'`. Downstream: Wave 30's `dispatch-notifications` cron delivers through each admin's email/push prefs + quiet hours. Closes the `dashboard-analytics.md` "Admin Notifications" known gap.
+- **SECURITY DEFINER discipline** — every new RPC opens with `IF NOT public.is_admin(auth.uid()) THEN RAISE EXCEPTION 'unauthorized: admin role required' END IF`. Loud on auth-fail, no silent empty-result degradation.
+
+### Deferred (Wave 34 → future)
+
+- **Admin user-management actions** (suspend / change role / reset password) — requires a server-side mutation surface that the UI doesn't yet expose. No wave assigned.
+- **Bulk CSV export** of the user table — deferred, no wave assigned.
+- **AdminAnalytics component-level test** — the hook layer carries the wiring coverage; recharts chart internals are the lib's responsibility.
+- **AdminUsers component-level render test** — deferred; the `useAdminUsers.test.tsx` hook tests assert the query wiring. A component test would need extensive planterClient mocks to assert the drawer transition.
+- **E2E admin persona + `admin.json` auth state + `scripts/seed-e2e.js` extension** — out of scope for this single-branch megabatch; the unit + hook coverage is sufficient for review.
+
 ## Wave 33 — Unified Tasks View
 
 ### Resolved (Wave 33)

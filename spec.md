@@ -1,10 +1,10 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.17.0 (Wave 33 — Unified Tasks View) 
+> **Version**: 1.18.0 (Wave 34 — Advanced Admin Management) 
 > **Last Updated**: 2026-04-22 
 > **Status**: Active Development
 
-> **Wave 33 closure note**: `/tasks` and `/daily` are merged into a single filterable view. Due-date badges with "Today"/"Tomorrow"/weekday relative wording + tone (overdue/due-soon/neutral) render on every task row via the new `formatTaskDueBadge` helper. A due-date range filter AND-combines with existing status filters. Task-row click opens the same `TaskDetailsPanel` the Project view uses, and a Radix-backed Tooltip on the task title reveals the parent project's name. `/daily` now redirects to `/tasks`.
+> **Wave 34 closure note**: a dedicated `/admin` shell lands with a left-rail nav (Home / Users / Analytics / Templates / Projects). Hard-gated via `useIsAdmin()` — non-admins are redirected with a toast. Features: global search across users + projects + templates (cmd+K-ready, 200ms debounce); a filterable user-management table with server-side role / last-login / has-overdue / search filters; an analytics dashboard with recharts-backed totals, projects-per-week timeline, project-kind pie, task-status bar, and top-10 active users + popular templates; and an `admin_new_project_pending` notification trigger that closes the Wave 30 deferral (admins get pipeline-compatible notifications through the Wave 30 `dispatch-notifications` path, honoring each admin's prefs). Five new SECURITY DEFINER RPCs gate every admin read behind `public.is_admin(auth.uid())`.
 
 ---
 
@@ -116,7 +116,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Gantt Chart**: Standalone `/gantt?projectId=:id` route built on `gantt-task-react@0.3.9`. Lazy-loaded; drag-to-shift dates routed through `useUpdateTask` with parent-bounds enforcement. (Wave 28)
 
 ### 3.7 Platform Admin, Monetization & Ecosystem
-- [ ] **Advanced Admin Management**: Dedicated Admin UI with global search, advanced user filtering (by last login, task completion), and analytics dashboard.
+- [x] **Advanced Admin Management (Wave 34)**: Dedicated `/admin` shell (lazy-loaded) with left-rail nav and `useIsAdmin()` auth gate. Global search across users + projects + templates (200ms debounce, 2-char minimum, Radix Command-style result grouping). User-management table at `/admin/users` with server-side role / last-login / has-overdue / free-text filters. Analytics dashboard at `/admin/analytics` (recharts-backed single-RPC snapshot). Admin notifications on new project creation via `trg_notify_admin_on_new_project` AFTER INSERT trigger — routes through the Wave 30 `dispatch-notifications` pipeline so admins' email/push prefs + quiet hours are respected. Five SECURITY DEFINER RPCs gate every admin read (`admin_search_users`, `admin_user_detail`, `admin_recent_activity`, `admin_list_users`, `admin_analytics_snapshot`) via `public.is_admin(auth.uid())`.
 - [x] **Push & Email Notifications (Wave 30)**: Per-user `notification_preferences` + append-only `notification_log` + `push_subscriptions` tables back a full transport stack.
   - **Task 1 (data layer + Settings UI)**: Bootstrap trigger on `auth.users` creates a default prefs row for every user. Settings → Notifications tab exposes email/push toggles per event class (mentions / overdue digest / assignment), quiet hours (start/end + IANA tz), and a recent-notifications transparency panel.
   - **Task 2 (Web Push transport)**: VAPID-based browser push. Service worker (`public/sw.js`, documented JS exception — TS conversion not currently scheduled) renders notifications; `usePushSubscription` handles opt-in/opt-out with per-device row scoping. `dispatch-push` edge function fans out via `web-push@3.6.7` with 410-cleanup and per-sub logging.
