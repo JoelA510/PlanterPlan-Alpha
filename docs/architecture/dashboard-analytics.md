@@ -72,7 +72,7 @@ Standalone route `/gantt?projectId=:id` (registered in `src/app/App.tsx`, lazy-l
 * Bounds check before mutation: child cannot exceed parent's bounds; error toast + no mutation if violated.
 * On error: force-refetch `['projectHierarchy', projectId]` per styleguide §5.
 
-**Out of scope (this wave)**: Print/PDF (button rendered disabled with tooltip — for Wave 33 admin tooling); critical-path lines; resource swimlanes; mobile-optimized rendering; weekend/holiday awareness (Wave 37).
+**Out of scope (this wave)**: Print/PDF (button rendered disabled with tooltip — targeted for the Wave 34 admin tooling); critical-path lines; resource swimlanes; mobile-optimized rendering; weekend/holiday awareness (descoped during the post-Wave-31 roadmap renumber — no wave currently assigned).
 
 ## Integration Points
 * **Date Engine:** Sources calculations for 'Due Soon' and 'Overdue' task arrays.

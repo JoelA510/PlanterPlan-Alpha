@@ -62,7 +62,7 @@ Component → React Query hook → planterClient → Supabase SDK
 
 ## Conventions
 
-- **TypeScript only** — no `.js` or `.jsx` files. Ever. (One documented exception: `public/sw.js`, the Wave 30 push-notification service worker. Slated for TS conversion in Wave 32 via a workbox-built `src/sw.ts`. See `docs/dev-notes.md`.)
+- **TypeScript only** — no `.js` or `.jsx` files. Ever. (One documented exception: `public/sw.js`, the Wave 30 push-notification service worker. TS conversion is not currently scheduled — the PWA/workbox track that would have subsumed this file was descoped during the post-Wave-31 roadmap renumber. See `docs/dev-notes.md`.)
 - **No barrel files** — import directly from component/hook paths.
 - **Path alias**: `@/` maps to `src/`. Use `@/features/...`, `@/shared/...`, etc.
 - **Types**: Derived from Supabase generated types in `src/shared/db/database.types.ts`, re-exported as domain types in `src/shared/db/app.types.ts`.

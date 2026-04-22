@@ -8,7 +8,7 @@
 > 3. Paste into a fresh Code session.
 > 4. The agent executes the work AND updates this file's pointer as its final mandatory step.
 > 5. Next iteration: re-open this file, the pointer is already advanced.
-> 6. Repeat until Wave 38 ships and the pointer reads "All waves complete."
+> 6. Repeat until the final remaining wave ships and the pointer reads "All waves complete." The active roadmap is Waves 32 → 33 → 34 → 35 → 36. (The original plan's Waves 32, 34, 35, and 38 were descoped and wave numbers were reassigned sequentially after Wave 31.)
 
 ---
 
@@ -101,17 +101,17 @@ All task PRs are reviewed and merged to main.
 
 Advance the pointer in `.claude/wave-recurring-prompts.md`:
 
-1. If just-finalized wave was **38**:
+1. If just-finalized wave was the **last active wave** (the trailing entry in the active roadmap — currently Wave 36):
    - Replace the entire body of `.claude/wave-recurring-prompts.md` (everything below the H1 line) with:
      ```
      # Wave Execution Complete
-     
-     v1.0.0 tagged on YYYY-MM-DD (substitute today's date). All 13 waves (26-38) shipped.
-     
-     This file is obsolete. Post-1.0 work is tracked outside the wave-prompt system.
+
+     All scoped waves shipped on YYYY-MM-DD (substitute today's date).
+
+     This file is obsolete. Post-release work is tracked outside the wave-prompt system.
      ```
-2. Else (current wave is 26-37):
-   - Compute next wave: `NEXT = current + 1` (e.g., 27 → 28).
+2. Else:
+   - Compute `NEXT` = the next wave in the active roadmap (Wave 32 → 33 → 34 → 35 → 36; Wave 36 is the last).
    - Replace the pointer line: `> **Current pointer:** Wave NEXT, Task 1 — use PROMPT A below.`
    - Inside the PROMPT A fenced block: replace every `Wave 32` → `Wave NEXT`. Also replace `Wave 32, Task <any>` → `Wave NEXT, Task 1`. Also replace `wave-32-prompt.md` → `wave-NEXT-prompt.md`. Also replace `### Task <any>` → `### Task 1`.
    - Inside the PROMPT B fenced block: replace every `Wave 32` → `Wave NEXT`. Also replace `wave-32-prompt.md` → `wave-NEXT-prompt.md`. Also replace `docs(wave-32):` → `docs(wave-NEXT):`.
@@ -124,7 +124,6 @@ Do NOT begin Wave NEXT. Wait for explicit kickoff.
 - Verification gate failure = HALT, do not push.
 - Migration apply failure on `main` after merge = HALT, hotfix branch (§8.1).
 - Type drift on `main` = HALT (§8.3).
-- Workbox/SW drift if Wave is 32+ = HALT (§8.5).
 - Doc edit ambiguity = HALT and surface (§5).
 - **If the finalize work halts BEFORE the push to main is confirmed (CI green if applicable), do NOT advance the pointer.** Pointer-advance only happens on successful wave completion.
 ````
@@ -137,6 +136,6 @@ Do NOT begin Wave NEXT. Wait for explicit kickoff.
 
 **Why edit this file rather than a separate state file**: keeps the operator's UX to a single file open. The pointer + the prompt are co-located.
 
-**Parallelism (operator-side, optional)**: open one Code instance per task using `git worktree add ../planterplan-wave-26-task-1 -b claude/wave-26-comments-schema main` per task, paste PROMPT A in each terminal narrowed to its task number. The pointer-advance final step still works (each agent advances after its PR opens; conflicts on the file edit resolve to the highest task number, which is correct semantics). Run PROMPT B in the main worktree after all PRs merge.
+**Parallelism (operator-side, optional)**: open one Code instance per task using `git worktree add ../planterplan-wave-32-task-1 -b claude/wave-32-project-duedate-persist main` per task (branch name from the task's section in the wave plan), paste PROMPT A in each terminal narrowed to its task number. The pointer-advance final step still works (each agent advances after its PR opens; conflicts on the file edit resolve to the highest task number, which is correct semantics). Run PROMPT B in the main worktree after all PRs merge.
 
 **If the prompt and the wave plan ever disagree**: the wave plan wins. The recurring prompt is operational scaffolding; the wave plan is the spec.

@@ -19,7 +19,7 @@ Technical debt and architectural notes for the team.
 - Activity log event-type humanizers in `<ActivityRow>`
 - Per-PR follow-up: see Wave 31 Task 2 PR description for the triage list
 
-The `eslint-plugin-i18next no-literal-string` rule is intentionally NOT enabled yet — Wave 38 may revisit once the surfaces above are extracted.
+The `eslint-plugin-i18next no-literal-string` rule is intentionally NOT enabled yet — revisit once the surfaces above are extracted.
 
 ### React 18.3.1 pin (Wave 31 scope expansion)
 
@@ -73,18 +73,18 @@ Until that lands, the UI degrades gracefully but any mention-based feature is bl
 
 ### Service worker JS exception (`public/sw.js`)
 
-**Active. Target: Wave 32.** `public/sw.js` (Wave 30 Task 2 push handler) is the only non-TypeScript file in the application tree. The styleguide calls for TS-only across `src/`; the service worker carves out one documented exception because the TS → worker build path hasn't landed yet. Wave 32's PWA / workbox setup will subsume this file with a workbox-built `src/sw.ts` and delete `public/sw.js`.
+**Active. No wave assigned.** `public/sw.js` (Wave 30 Task 2 push handler) is the only non-TypeScript file in the application tree. The styleguide calls for TS-only across `src/`; the service worker carves out one documented exception because the TS → worker build path hasn't landed yet. The PWA / workbox track that would have subsumed this file was descoped during the post-Wave-31 roadmap renumber, so there is no active plan to subsume it — the exception stays documented until a future workbox (or equivalent) rewrite is scheduled.
 
-Until Wave 32 ships: do not grow `sw.js`. The current handler implements `install` / `activate` / `push` / `notificationclick` and is the complete contract. Any additional SW responsibility (offline queue, asset precache) waits for the TS rewrite.
+Do not grow `sw.js`. The current handler implements `install` / `activate` / `push` / `notificationclick` and is the complete contract. Any additional SW responsibility (offline queue, asset precache) waits for the TS rewrite.
 
 ### `task_comments.author_id ON DELETE RESTRICT` blocks account deletion
 
-**Active. Target: Wave 33 or Wave 35.** `task_comments.author_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT` (Wave 26). This matches `tasks.creator` / `project_members.user_id` — the RESTRICT was chosen deliberately per the Wave 26 plan so a comment can't go authorless while the app's `TaskCommentWithAuthor.author` contract treats non-soft-deleted rows as having an author. Trade-off: deleting an `auth.users` row is blocked if they've ever posted a comment (same blocker exists on the other two FKs).
+**Active. Target: Wave 34 (Admin Management).** `task_comments.author_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT` (Wave 26). This matches `tasks.creator` / `project_members.user_id` — the RESTRICT was chosen deliberately per the Wave 26 plan so a comment can't go authorless while the app's `TaskCommentWithAuthor.author` contract treats non-soft-deleted rows as having an author. Trade-off: deleting an `auth.users` row is blocked if they've ever posted a comment (same blocker exists on the other two FKs).
 
-The right fix is cross-cutting, not local: when the admin / account-deletion flow ships (Wave 33 Admin Management or Wave 35 Licensing), it needs to decide how to anonymise or reassign user-owned rows across all three tables (`tasks.creator`, `project_members.user_id`, `task_comments.author_id`, plus whatever Wave 27 adds on `activity_log` / presence). Options: (a) nullable FKs with `ON DELETE SET NULL` + tombstone display everywhere, (b) a `public.deleted_users` row-retention table that every FK can reassign to during account-deletion, (c) hard-delete cascade gated by an admin-only "purge" action. (b) is cleanest for GDPR audit trails.
+The right fix is cross-cutting, not local: when the admin / account-deletion flow ships (Wave 34 Admin Management — the original Licensing/Monetization track that would have owned account deletion was descoped during the post-Wave-31 renumber), it needs to decide how to anonymise or reassign user-owned rows across all three tables (`tasks.creator`, `project_members.user_id`, `task_comments.author_id`, plus whatever Wave 27 adds on `activity_log` / presence). Options: (a) nullable FKs with `ON DELETE SET NULL` + tombstone display everywhere, (b) a `public.deleted_users` row-retention table that every FK can reassign to during account-deletion, (c) hard-delete cascade gated by an admin-only "purge" action. (b) is cleanest for GDPR audit trails.
 
 Flagging at the Wave 26 level so the admin-flow plan doesn't miss `task_comments` when it audits the FK surface.
 
 ### Gantt PDF export deferred
 
-**Active. Target: Wave 33 (Admin Management).** The gantt toolbar in `src/features/gantt/components/ProjectGantt.tsx` renders a disabled "Export PDF" button with a `title="PDF export coming soon"` tooltip. Deferred because Wave 28 intentionally ships the core timeline render + drag-shift only; print/PDF export pairs better with the Wave 33 admin reporting surface (same user flow as report scheduling). No technical blocker — wire to `window.print()` with a gantt-only print stylesheet when Wave 33 lands, or use a headless-browser export from a Deno edge function if output fidelity matters.
+**Active. Target: Wave 34 (Admin Management).** The gantt toolbar in `src/features/gantt/components/ProjectGantt.tsx` renders a disabled "Export PDF" button with a `title="PDF export coming soon"` tooltip. Deferred because Wave 28 intentionally ships the core timeline render + drag-shift only; print/PDF export pairs better with the Wave 34 admin reporting surface (same user flow as report scheduling). No technical blocker — wire to `window.print()` with a gantt-only print stylesheet when Wave 34 lands, or use a headless-browser export from a Deno edge function if output fidelity matters.

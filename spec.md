@@ -1,7 +1,7 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.16.0 (Wave 31 — Localization) 
-> **Last Updated**: 2026-04-21 
+> **Version**: 1.16.1 (Wave 31 — Localization; Wave 32 + 33 UX work queued) 
+> **Last Updated**: 2026-04-22 
 > **Status**: Active Development
 
 ---
@@ -51,6 +51,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] Remove a member.
   - [x] Change member role permissions.
 - [x] **Project Settings**: Edit due date and due soon thresholds. *(Note: The `Location` field is officially deprecated and has been stripped from the UI.)*
+- [ ] **Create Template affordance on Dashboard (Wave 32)**: Surface a "New Template" button alongside "New Project" in the Dashboard header; matches existing auth gating. Closes the usability gap where template creation was reachable only via URL hack or in-project sidebar.
 - [x] **Advanced Access (Phase Lead)**: A project Owner may designate any `viewer` or `limited`-role member as the Lead of a specific phase or milestone via `settings.phase_lead_user_ids`. Additive RLS `"Enable update for phase leads"` on `public.tasks` plus the `user_is_phase_lead(target_task_id, uid)` helper walk the `parent_task_id` chain excluding the row itself — leads may edit tasks UNDER the phase/milestone but not the row itself (assignment stays owner-only). UI picker in `TaskFormFields`, purple badge in `TaskDetailsView`. (Wave 29)
 - [x] **Checkpoint-Based Architecture**: Alternate project type that drops date scheduling in favor of sequential phase-unlock. `settings.project_kind: 'date' | 'checkpoint'` on root tasks (gated by `tasks_project_kind_check` CHECK; defaults to `'date'`). Date-engine (`isCheckpointProject`, `deriveUrgencyForProject`) and nightly-sync urgency passes short-circuit checkpoint projects; `PhaseCard` swaps its progress bar for a `<PieChart>` donut; `EditProjectModal` hosts the `<RadioGroup>` picker with confirmation on revert. Existing `check_phase_unlock` trigger + `is_locked`/`prerequisite_phase_id` columns do the DB-level unlock (untouched by this wave). (Wave 29)
 - [x] **Secondary Projects**: Active menu and project switcher filter out archived (`status = 'archived'`) and completed (`is_complete = true`) projects; archive/unarchive is a toggle on the project's Edit modal. The `ProjectSwitcher` dropdown in the header lists active projects by default. **Wave 25:** two independent toggles — "Show archived" (Wave 21.5) and "Show completed" — reveal each inactive subset inline so users can navigate back to any project without typing the URL.
@@ -108,24 +109,21 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Progress Visualization**: Project progress donut chart visible across task list views.
 - [x] **Project Status Report**: Report interface featuring reporting month selection, donut charts, and lists of completed, overdue, and upcoming milestones. Shipped via `src/pages/Reports.tsx` + `src/features/projects/hooks/useProjectReports.ts`.
 - [x] **Task List Views & Filters**: Dedicated UI tables/pages to view tasks isolated by Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All Tasks, Milestones, and My Tasks. Include chronological/alphabetical sorting. Shipped via `src/pages/TasksPage.tsx` + `src/features/tasks/hooks/useTaskFilters.ts`.
+- [ ] **Unified Task List View (Wave 33)**: Merge `/tasks` (filter-rich) and `/daily` (date-badge display) into a single screen. Port the daily view's due-date badge styling + relative wording ("Today" / "Tomorrow" / weekday / full date) to the unified Tasks page. Add a due-date range filter that AND-combines with existing status filters. Task-row click opens the same `<TaskDetailsPanel>` the Project view uses. Hover tooltip on the task title reveals the parent project's name. Delete the `/daily` route (redirect to `/tasks` for bookmark safety).
 - [x] **Supervisor Reports**: Project settings accept a `supervisor_email` (stored on the root task). The `supabase/functions/supervisor-report/` edge function renders a monthly Project Status Report for every project that has one set and dispatches via Resend when `EMAIL_PROVIDER_API_KEY` and `RESEND_FROM_ADDRESS` are set (degrades cleanly to log-only otherwise). The Edit Project modal exposes a "Send test report" button that invokes the function with `{ project_id, dry_run: false }`; response includes a `dispatch_failures` counter for partial delivery alerting.
 - [x] **Gantt Chart**: Standalone `/gantt?projectId=:id` route built on `gantt-task-react@0.3.9`. Lazy-loaded; drag-to-shift dates routed through `useUpdateTask` with parent-bounds enforcement. (Wave 28)
 
 ### 3.7 Platform Admin, Monetization & Ecosystem
-- [ ] **White Labeling**: Support for partner organizations to use custom URLs, logos, and branding, including white-label administrator controls.
-- [ ] **Store & Monetization**: Integration with Stripe for store functionality.
-- [ ] **User License Management**: License restrictions for project creation volume, management, and discount codes.
 - [ ] **Advanced Admin Management**: Dedicated Admin UI with global search, advanced user filtering (by last login, task completion), and analytics dashboard.
 - [x] **Push & Email Notifications (Wave 30)**: Per-user `notification_preferences` + append-only `notification_log` + `push_subscriptions` tables back a full transport stack.
   - **Task 1 (data layer + Settings UI)**: Bootstrap trigger on `auth.users` creates a default prefs row for every user. Settings → Notifications tab exposes email/push toggles per event class (mentions / overdue digest / assignment), quiet hours (start/end + IANA tz), and a recent-notifications transparency panel.
-  - **Task 2 (Web Push transport)**: VAPID-based browser push. Service worker (`public/sw.js`, documented JS exception pending Wave 32 workbox migration) renders notifications; `usePushSubscription` handles opt-in/opt-out with per-device row scoping. `dispatch-push` edge function fans out via `web-push@3.6.7` with 410-cleanup and per-sub logging.
+  - **Task 2 (Web Push transport)**: VAPID-based browser push. Service worker (`public/sw.js`, documented JS exception — TS conversion not currently scheduled) renders notifications; `usePushSubscription` handles opt-in/opt-out with per-device row scoping. `dispatch-push` edge function fans out via `web-push@3.6.7` with 410-cleanup and per-sub logging.
   - **Task 3 (mention + digest dispatchers)**: `resolve_user_handles` RPC maps @-handles → auth.users uuids. `trg_enqueue_comment_mentions` AFTER INSERT on `task_comments` enqueues `mention_pending` rows. Per-minute `dispatch-notifications` edge function drains those rows via a single-runner-wins state machine (`_pending → _processing → _sent | _failed | _skipped`), honoring quiet-hours and per-event prefs. Daily `overdue-digest` edge function emails assigned-overdue-tasks rollups with per-user cadence (daily / weekly-on-user-local-Monday). See `docs/architecture/notifications.md` and `docs/operations/edge-function-schedules.md` (pg_cron intentionally NOT enabled).
-- [ ] **External Integrations**: Zoho CRM and Zoho Analytics sync, AWS unmanaged file uploads, ICS feeds for calendar integration.
+- [ ] **External Integrations (ICS)**: ICS feeds for calendar integration.
 
 ### 3.8 Technical Hardening & Infrastructure
 - [x] **Build Stabilization (Wave 16)**: Eliminated all 131 ESLint errors (`no-explicit-any`, `no-unused-vars`, Playwright false positives, etc.) and resolved TypeScript build errors across 42 files. `npm run build`, `npm run lint`, and all 385 unit tests pass cleanly. Vercel deployment blocker resolved.
 - [x] **TS 5.9 / @types/node fix (Wave 18)**: Removed deprecated `baseUrl` from `tsconfig.app.json` (TypeScript bundler mode resolves `paths` without it); installed `@types/node` required by `tsconfig.node.json`. Build: 0 errors, 385/385 tests pass.
-- [ ] **Mobile Infrastructure**: PWA Support (Installable on iOS/Android) and Local-first offline mode (RxDB/WatermelonDB sync).
 
 ---
 
