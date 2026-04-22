@@ -12,7 +12,6 @@ import Reports from '../pages/Reports';
 import Project from '../pages/Project';
 import Settings from '../pages/Settings';
 import TasksPage from '../pages/TasksPage';
-import DailyTasks from '../pages/DailyTasks';
 import LoginForm from '@/pages/components/LoginForm';
 
 const Gantt = lazy(() => import('@/pages/Gantt'));
@@ -41,7 +40,7 @@ export default function App() {
  <Route path="Project/:projectId" element={<Project />} />
  <Route path="Project" element={<Project />} />
  <Route path="tasks" element={<TasksPage />} />
- <Route path="daily" element={<DailyTasks />} />
+ <Route path="daily" element={<Navigate to="/tasks" replace />} />
  <Route path="settings" element={<Settings />} />
  <Route
  path="gantt"

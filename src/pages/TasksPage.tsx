@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DndContext, closestCorners, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -7,10 +7,11 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import type { TaskRow, TaskUpdate, Project } from '@/shared/db/app.types';
 import { planter } from '@/shared/api/planterClient';
 import TaskItem from '@/features/tasks/components/TaskItem';
-import { Loader2, List, LayoutGrid } from 'lucide-react';
+import { Loader2, List, LayoutGrid, X } from 'lucide-react';
 import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView';
 import {
        useTaskFilters,
+       type DueDateRange,
        type TaskFilterKey,
        type TaskSortKey,
 } from '@/features/tasks/hooks/useTaskFilters';
@@ -40,6 +41,17 @@ export default function TasksPage() {
        const [viewMode, setViewMode] = useState('list');
        const [filter, setFilter] = useState<TaskFilterKey>('my_tasks');
        const [sort, setSort] = useState<TaskSortKey>('chronological');
+       const [dueStart, setDueStart] = useState<string>('');
+       const [dueEnd, setDueEnd] = useState<string>('');
+       const dueDateRange = useMemo<DueDateRange>(
+              () => ({ start: dueStart || null, end: dueEnd || null }),
+              [dueStart, dueEnd],
+       );
+       const hasDueRange = dueDateRange.start !== null || dueDateRange.end !== null;
+       const clearDueRange = useCallback(() => {
+              setDueStart('');
+              setDueEnd('');
+       }, []);
 
        const updateTask = useCallback(
               async (taskId: string, updates: Record<string, unknown>) => {
@@ -77,7 +89,7 @@ export default function TasksPage() {
        }, [updateTask]);
        const handleNoop = useCallback(() => { }, []);
 
-       const visibleTasks = useTaskFilters({ tasks, filter, sort });
+       const visibleTasks = useTaskFilters({ tasks, filter, sort, dueDateRange });
 
        const sensors = useSensors(
               useSensor(PointerSensor, {
@@ -159,6 +171,42 @@ export default function TasksPage() {
                                                                              <SelectItem value="alphabetical">{t('tasks.sort_alphabetical')}</SelectItem>
                                                                       </SelectContent>
                                                                </Select>
+                                                        </div>
+
+                                                        <div className="flex flex-col gap-1">
+                                                               <span className="text-xs font-medium text-muted-foreground">
+                                                                      {t('tasks.filters.dateRange.label')}
+                                                               </span>
+                                                               <div className="flex items-center gap-2">
+                                                                      <input
+                                                                             type="date"
+                                                                             value={dueStart}
+                                                                             onChange={(e) => setDueStart(e.target.value)}
+                                                                             aria-label={t('tasks.filters.dateRange.start_aria')}
+                                                                             className="h-10 rounded-md border border-input bg-card px-2 text-sm"
+                                                                             data-testid="tasks-due-range-start"
+                                                                      />
+                                                                      <span className="text-muted-foreground text-sm">–</span>
+                                                                      <input
+                                                                             type="date"
+                                                                             value={dueEnd}
+                                                                             onChange={(e) => setDueEnd(e.target.value)}
+                                                                             aria-label={t('tasks.filters.dateRange.end_aria')}
+                                                                             className="h-10 rounded-md border border-input bg-card px-2 text-sm"
+                                                                             data-testid="tasks-due-range-end"
+                                                                      />
+                                                                      {hasDueRange && (
+                                                                             <button
+                                                                                    type="button"
+                                                                                    onClick={clearDueRange}
+                                                                                    className="h-10 w-10 flex items-center justify-center rounded-md border border-input bg-card text-muted-foreground hover:text-card-foreground"
+                                                                                    aria-label={t('tasks.filters.dateRange.clear')}
+                                                                                    data-testid="tasks-due-range-clear"
+                                                                             >
+                                                                                    <X className="w-4 h-4" />
+                                                                             </button>
+                                                                      )}
+                                                               </div>
                                                         </div>
 
                                                         <div className="bg-muted p-1 rounded-lg flex items-center space-x-1 self-end">

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
@@ -12,6 +13,10 @@ import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
 import InlineTaskInput from './InlineTaskInput';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import {
+ dueBadgeToneClass,
+ formatTaskDueBadge,
+} from '@/shared/lib/date-engine/formatTaskDueBadge';
 import type { PresenceState } from '@/features/projects/hooks/useProjectPresence';
 
 export type { TaskItemData } from '@/shared/types/tasks';
@@ -73,9 +78,26 @@ const TaskItem = ({
  presentUsers = [],
  currentUserId = null,
 }: TaskItemProps) => {
+ const { t } = useTranslation();
  const indentWidth = level * 20;
  const isSelected = selectedTaskId === task.id;
  const canHaveChildren = level < 4;
+
+ // Wave 33: right-aligned due-date badge. The threshold defaults to 3 because
+ // TaskItem doesn't receive the root-task settings; the tone is a visual hint,
+ // not a correctness signal (status filters elsewhere consume the per-project
+ // threshold directly).
+ const dueBadge = useMemo(
+ () => formatTaskDueBadge({ dueDate: task.due_date }),
+ [task.due_date],
+ );
+ const dueBadgeText = dueBadge
+ ? dueBadge.kind === 'today'
+ ? t('tasks.dueBadge.today')
+ : dueBadge.kind === 'tomorrow'
+ ? t('tasks.dueBadge.tomorrow')
+ : dueBadge.label
+ : null;
 
  const isExpanded = !!task.isExpanded;
  const hasChildren = task.children && task.children.length > 0;
@@ -256,6 +278,19 @@ const TaskItem = ({
 
  <div className="flex items-center gap-3 flex-shrink-0">
  {task.membership_role && <RoleIndicator role={task.membership_role} />}
+
+ {dueBadge && dueBadgeText && (
+ <span
+ className={cn(
+ 'text-sm font-medium whitespace-nowrap',
+ dueBadgeToneClass(dueBadge.tone),
+ )}
+ data-testid={`task-row-due-badge-${task.id}`}
+ data-tone={dueBadge.tone}
+ >
+ {dueBadgeText}
+ </span>
+ )}
 
  <TaskStatusSelect
  status={task.status}
