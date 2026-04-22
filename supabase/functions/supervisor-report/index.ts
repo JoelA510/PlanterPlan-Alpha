@@ -11,7 +11,7 @@ import {
     type MilestoneSummary,
     type ProjectReportPayload,
 } from '../_shared/email.ts'
-import { corsHeaders } from '../_shared/auth.ts'
+import { corsHeaders, isServiceRoleRequest } from '../_shared/auth.ts'
 
 type TaskRow = {
     id: string
@@ -163,8 +163,9 @@ Deno.serve(async (req) => {
         //   an authenticated user from fanning out supervisor emails across
         //   unrelated projects.
         const authHeader = req.headers.get('Authorization') ?? ''
-        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        const isServiceRole = authHeader === `Bearer ${serviceKey}` && serviceKey.length > 0
+        // Constant-time bearer match via the shared helper (avoids the
+        // short-circuit-on-first-mismatch timing signal of raw `===`).
+        const isServiceRole = isServiceRoleRequest(req)
 
         const supabase = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',

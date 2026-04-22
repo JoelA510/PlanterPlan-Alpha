@@ -247,14 +247,15 @@ export const calculateScheduleFromOffset = (
  };
 };
 
+// ---------------------------------------------------------------------------
+// Wave-follow-up helpers — consumed by useProjectReports + Reports.tsx so
+// both go through the centralized date-engine rather than hand-rolling
+// UTC-midnight / month-key math. Kept here alongside the other toIso /
+// format helpers because they share the same parsing semantics.
+// ---------------------------------------------------------------------------
+
 /**
- * Converts a date input to a `YYYY-MM-DD` string, ensuring UTC handling.
- */
-/**
- * Wave-follow-up helpers — consumed by useProjectReports + Reports.tsx so
- * both go through the centralized date-engine rather than hand-rolling
- * UTC-midnight / month-key math. Kept here alongside the other toIso /
- * format helpers because they share the same parsing semantics.
+ * Returns the `YYYY-MM` prefix of a Date, built from its UTC year + month.
  *
  * @param d Source Date. Must be a real Date object (undefined/null input
  *   returns null from the sibling `dateStringToMonthKey`).
@@ -300,6 +301,9 @@ export const dateStringToUtcMidnight = (raw: string | null | undefined): number 
  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 };
 
+/**
+ * Converts a date input to a `YYYY-MM-DD` string, ensuring UTC handling.
+ */
 export const toIsoDate = (value: DateInput | null | undefined): string | null => {
  if (!value) return null;
 

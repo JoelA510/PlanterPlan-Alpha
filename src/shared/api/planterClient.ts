@@ -485,7 +485,7 @@ export const planter: PlanterClient = {
                         .eq('id', projectId)
                         .maybeSingle();
 
-                    if (pErr) throw new PlanterError(pErr.message, parseInt(pErr.code ?? '500'));
+                    if (pErr) throw new PlanterError(pErr.message, pErr.code ?? '500');
                     const project = pData as Project;
                     if (!project) throw new Error('Project not found');
 
@@ -494,7 +494,7 @@ export const planter: PlanterClient = {
                         .select('id,root_id,is_complete')
                         .eq('root_id', projectId);
 
-                    if (cErr) throw new PlanterError(cErr.message, parseInt(cErr.code ?? '500'));
+                    if (cErr) throw new PlanterError(cErr.message, cErr.code ?? '500');
                     const children = (cData as Task[]) || [];
 
                     const totalTasks = children.length;
@@ -956,6 +956,19 @@ export const planter: PlanterClient = {
                 update: async (id: string, payload: Database['public']['Tables']['task_resources']['Update'], options?: { signal?: AbortSignal }) => {
                     assertSafeUrl((payload as { resource_url?: unknown }).resource_url, throwUnsafe);
                     return base.update(id, payload, options);
+                },
+                /**
+                 * Validates `resource_url` scheme on every row then delegates to
+                 * `base.upsert`. Closes the write path that would otherwise bypass
+                 * the scheme allowlist via the inherited `createEntityClient` method.
+                 * Authorization: RLS-scoped (project owner / editor).
+                 */
+                upsert: async (payload: Database['public']['Tables']['task_resources']['Insert'] | Database['public']['Tables']['task_resources']['Insert'][], options?: { onConflict?: string; ignoreDuplicates?: boolean; signal?: AbortSignal }) => {
+                    const rows = Array.isArray(payload) ? payload : [payload];
+                    for (const row of rows) {
+                        assertSafeUrl((row as { resource_url?: unknown }).resource_url, throwUnsafe);
+                    }
+                    return base.upsert(payload, options);
                 },
                 setPrimary: async (taskId: string, resourceId: string | null) => {
                     await planter.entities.Task.update(taskId, { primary_resource_id: resourceId } as TaskUpdate);
