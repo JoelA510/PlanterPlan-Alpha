@@ -15,6 +15,10 @@ import TasksPage from '../pages/TasksPage';
 import LoginForm from '@/pages/components/LoginForm';
 
 const Gantt = lazy(() => import('@/pages/Gantt'));
+const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
+const AdminHome = lazy(() => import('@/pages/admin/AdminHome'));
+const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
+const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'));
 
 const queryClient = new QueryClient();
 
@@ -46,6 +50,15 @@ export default function App() {
  path="gantt"
  element={<Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading gantt…</div>}><Gantt /></Suspense>}
  />
+ <Route
+ path="admin"
+ element={<Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading admin…</div>}><AdminLayout /></Suspense>}
+ >
+ <Route index element={<Suspense fallback={null}><AdminHome /></Suspense>} />
+ <Route path="users" element={<Suspense fallback={null}><AdminUsers /></Suspense>} />
+ <Route path="users/:uid" element={<Suspense fallback={null}><AdminUsers /></Suspense>} />
+ <Route path="analytics" element={<Suspense fallback={null}><AdminAnalytics /></Suspense>} />
+ </Route>
  </Route>
  </Routes>
  </Router>

@@ -20,7 +20,13 @@ import type {
     NotificationPreferencesUpdate,
     NotificationLogRow,
     PushSubscriptionRow,
-    PushSubscriptionInsert
+    PushSubscriptionInsert,
+    AdminUserSearchRow,
+    AdminUserDetail,
+    AdminActivityRow,
+    AdminListUserRow,
+    AdminListUsersFilter,
+    AdminAnalyticsSnapshot,
 } from '@/shared/db/app.types';
 import type { User as AuthUser } from '@supabase/supabase-js';
 
@@ -88,6 +94,19 @@ export interface PlanterClient {
         updatePreferences: (patch: NotificationPreferencesUpdate) => Promise<NotificationPreferencesRow>;
         /** Returns recent notification-log rows for the caller (newest first). */
         listLog: (opts?: { limit?: number; before?: string; eventType?: string }) => Promise<NotificationLogRow[]>;
+    };
+    /** Wave 34 — admin-only cross-tenant RPCs. Each RPC is SECURITY DEFINER + is_admin(auth.uid())-gated. */
+    admin: {
+        /** Fuzzy search across auth.users by email / full_name. Returns up to `limit` matches (default 20, max 100). Debounce at the caller. */
+        searchUsers: (query: string, limit?: number) => Promise<AdminUserSearchRow[]>;
+        /** Full user-detail payload: profile, project memberships, task counts. */
+        userDetail: (uid: string) => Promise<AdminUserDetail | null>;
+        /** Cross-project activity feed (hydrated with actor email). */
+        recentActivity: (limit?: number) => Promise<AdminActivityRow[]>;
+        /** Paginated user list with server-side filters (Wave 34 Task 2). */
+        listUsers: (filter: AdminListUsersFilter, limit?: number, offset?: number) => Promise<AdminListUserRow[]>;
+        /** Aggregated analytics snapshot for the /admin/analytics dashboard (Wave 34 Task 3). */
+        analyticsSnapshot: () => Promise<AdminAnalyticsSnapshot | null>;
     };
 }
 
@@ -1149,6 +1168,51 @@ export const planter: PlanterClient = {
                 if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
                 return (data as NotificationLogRow[]) || [];
             });
+        },
+    },
+    admin: {
+        searchUsers: async (query: string, limit?: number): Promise<AdminUserSearchRow[]> => {
+            const { data, error } = await planter.rpc<AdminUserSearchRow[]>('admin_search_users', {
+                p_query: query,
+                p_max_results: limit ?? 20,
+            });
+            if (error) throw error;
+            return data ?? [];
+        },
+        userDetail: async (uid: string): Promise<AdminUserDetail | null> => {
+            const { data, error } = await planter.rpc<AdminUserDetail | null>('admin_user_detail', {
+                p_uid: uid,
+            });
+            if (error) throw error;
+            return data ?? null;
+        },
+        recentActivity: async (limit?: number): Promise<AdminActivityRow[]> => {
+            const { data, error } = await planter.rpc<AdminActivityRow[]>('admin_recent_activity', {
+                p_limit: limit ?? 50,
+            });
+            if (error) throw error;
+            return data ?? [];
+        },
+        listUsers: async (
+            filter: AdminListUsersFilter,
+            limit?: number,
+            offset?: number,
+        ): Promise<AdminListUserRow[]> => {
+            const { data, error } = await planter.rpc<AdminListUserRow[]>('admin_list_users', {
+                filter,
+                p_limit: limit ?? 50,
+                p_offset: offset ?? 0,
+            });
+            if (error) throw error;
+            return data ?? [];
+        },
+        analyticsSnapshot: async (): Promise<AdminAnalyticsSnapshot | null> => {
+            const { data, error } = await planter.rpc<AdminAnalyticsSnapshot | null>(
+                'admin_analytics_snapshot',
+                {},
+            );
+            if (error) throw error;
+            return data ?? null;
         },
     },
 };
