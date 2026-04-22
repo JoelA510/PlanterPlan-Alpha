@@ -2,6 +2,17 @@
 
 Technical debt and architectural notes for the team.
 
+## Wave 32 — UX Bug Fixes
+
+### Resolved (Wave 32)
+
+- **Tasks-page status filters** — the `milestones` predicate in `src/features/tasks/hooks/useTaskFilters.ts` now filters by `task_type === 'milestone'` (Wave 25 discriminator column) rather than the structural grandchild-of-root heuristic. Inert status filters fixed where the compared literal drifted from the Wave 23 canonical `'todo' | 'not_started' | 'in_progress' | 'completed'` set.
+- **New Template button on Dashboard** — `src/pages/Dashboard.tsx` header surfaces a `variant="secondary"` button next to the existing New Project button that fires `actions.setShowTemplateModal(true)`. The modal was already mounted; only the trigger was missing.
+
+### Audit note — dropped Task
+
+The Wave 32 plan originally scoped a third task: "project due date does not persist after save" (cache invalidation on `useProjectMutations`). Pre-flight discovered the fix already lived on `main` from Wave 15 (commit `c88b3e7`), with its regression test in `Testing/unit/features/projects/hooks/useProjectMutations.test.ts` (commit `30616d8`). Task dropped; wave shipped as two tasks rather than three.
+
 ## Localization
 
 ### Spanish translation is machine-translated

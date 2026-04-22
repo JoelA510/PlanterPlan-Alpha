@@ -1,8 +1,8 @@
 # PlanterPlan Engineering Log & Roadmap
 
-**Current Status:** Spec v1.16.1 | 791 tests passing | 0 lint errors | Vercel preview green 
-**Last Finalized:** Wave 31 on 2026-04-21 (main → `ad5a217`) 
-**Target:** v1.0.0 release after the remaining scoped waves (32, 33, 34, 35, 36)
+**Current Status:** Spec v1.16.2 | 797 tests passing | 0 lint errors | Vercel preview green 
+**Last Finalized:** Wave 32 on 2026-04-22 
+**Target:** v1.0.0 release after the remaining scoped waves (33, 34, 35, 36)
 
 ---
 
@@ -78,16 +78,11 @@ Delivery scaffolding established for Waves 26–38:
 | **29** | Project Kind + Phase Leads | 1.14.0 | 718 | `settings.project_kind: 'date' \| 'checkpoint'` discriminator on root tasks (additive CHECK); `recalculateProjectDates` + `deriveUrgencyForProject` short-circuit on checkpoint; `PhaseCard` donut swap. `settings.phase_lead_user_ids[]` on phase/milestone rows + `user_is_phase_lead` SECURITY DEFINER (parent-of-target CTE) + additive RLS UPDATE policy. |
 | **30** | Push + Email Notifications | 1.15.0 | 771 | Three tables (`notification_preferences`, `notification_log`, `push_subscriptions`); four edge functions (`dispatch-push`, `dispatch-notifications`, `overdue-digest`, pre-existing `supervisor-report`); single-runner-wins mention state machine (`_pending → _processing → _sent \| _failed \| _skipped`); VAPID web push; quiet hours; tz-aware Monday weekly digest; external scheduling (`pg_cron` intentionally disabled); `.npmrc legacy-peer-deps=true` unblocked Vercel previews. SSoT: `docs/architecture/notifications.md`. |
 | **31** | Localization *(+ scope expansion: React 18 rollback)* | 1.16.0 | 791 | `i18next@^23.16.8` + `react-i18next@^15.7.4` + `i18next-browser-languagedetector@^8.2.1`; `en.json` (230 keys / 11 namespaces, hand-authored) + `es.json` (machine-translated, `_meta.review_required_before_marketing: true`); Intl formatters (`formatDateLocalized`/`formatNumberLocalized`/`formatCurrencyLocalized`) with per-locale cache; TypeScript module augmentation types `t('key.path')`; `LocaleSwitcher` in Settings → Profile; `renderWithProviders` test helper. **Scope expansion**: React `19.2.5` → exact `18.3.1` (no React-19-only APIs in tree); audit + rollback unblocked Vercel preview deploys. SSoT: `docs/architecture/i18n.md`. |
+| **32** | UX Bug Fixes | 1.16.2 | 797 | `useTaskFilters` milestone predicate rewired to the Wave 25 `task_type === 'milestone'` discriminator (dead `buildMilestoneIdSet` removed); status predicates reconciled to the Wave 23 canonical set. Dashboard header grew a `variant="secondary"` New Template button alongside New Project, wired to the already-mounted `CreateTemplateModal` via `actions.setShowTemplateModal(true)`. New `dashboard.new_template` i18n key in `en.json` + `es.json`. Pre-flight dropped the originally-scoped project due-date cache-invalidation task (already shipped in Wave 15 at `c88b3e7`). |
 
 ### 🟡 Remaining Roadmap
 
-*5 waves / 12 tasks remaining until v1.0.0. The original plan's Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped, and the remaining scope was renumbered sequentially after Wave 31. User-reported UX bugs (project due-date cache invalidation, Tasks-page status-filter regressions, missing "New Template" button, unified Tasks view) became the new Waves 32 and 33.*
-
-#### Wave 32 — UX Bug Fixes
-
-* [ ] Task 1 — Project due-date cache invalidation on edit (invalidate both `['projects']` list and `['project', projectId]` detail)
-* [ ] Task 2 — Tasks-page status-filter regressions (milestones filter pulling To Do items; inert filters)
-* [ ] Task 3 — "New Template" button on Dashboard (match the existing "New Project" affordance)
+*4 waves / 9 tasks remaining until v1.0.0. The original plan's Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped, and the remaining scope was renumbered sequentially after Wave 31.*
 
 #### Wave 33 — Unified Tasks View (§3.6)
 

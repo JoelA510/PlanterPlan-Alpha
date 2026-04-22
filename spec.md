@@ -1,8 +1,10 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.16.1 (Wave 31 — Localization; Wave 32 + 33 UX work queued) 
+> **Version**: 1.16.2 (Wave 32 — UX bug fixes: Tasks-page filters + New Template button) 
 > **Last Updated**: 2026-04-22 
 > **Status**: Active Development
+
+> **Wave 32 closure note**: two UX bug fixes shipped — Tasks-page status-filter regressions (milestone + inert filters) and a New Template button on the Dashboard. A third originally-scoped bug (project due-date cache invalidation on edit) was discovered during pre-flight to already be shipped in Wave 15 (`c88b3e7`) with its regression test at `30616d8`, and was dropped. See `docs/dev-notes.md`.
 
 ---
 
@@ -51,7 +53,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - [x] Remove a member.
   - [x] Change member role permissions.
 - [x] **Project Settings**: Edit due date and due soon thresholds. *(Note: The `Location` field is officially deprecated and has been stripped from the UI.)*
-- [ ] **Create Template affordance on Dashboard (Wave 32)**: Surface a "New Template" button alongside "New Project" in the Dashboard header; matches existing auth gating. Closes the usability gap where template creation was reachable only via URL hack or in-project sidebar.
+- [x] **Create Template affordance on Dashboard (Wave 32)**: "New Template" button shipped alongside "New Project" in the Dashboard header, wired to the already-mounted `CreateTemplateModal` via `actions.setShowTemplateModal(true)`. Matches existing auth gating. Closes the usability gap where template creation was reachable only via URL hack or in-project sidebar.
 - [x] **Advanced Access (Phase Lead)**: A project Owner may designate any `viewer` or `limited`-role member as the Lead of a specific phase or milestone via `settings.phase_lead_user_ids`. Additive RLS `"Enable update for phase leads"` on `public.tasks` plus the `user_is_phase_lead(target_task_id, uid)` helper walk the `parent_task_id` chain excluding the row itself — leads may edit tasks UNDER the phase/milestone but not the row itself (assignment stays owner-only). UI picker in `TaskFormFields`, purple badge in `TaskDetailsView`. (Wave 29)
 - [x] **Checkpoint-Based Architecture**: Alternate project type that drops date scheduling in favor of sequential phase-unlock. `settings.project_kind: 'date' | 'checkpoint'` on root tasks (gated by `tasks_project_kind_check` CHECK; defaults to `'date'`). Date-engine (`isCheckpointProject`, `deriveUrgencyForProject`) and nightly-sync urgency passes short-circuit checkpoint projects; `PhaseCard` swaps its progress bar for a `<PieChart>` donut; `EditProjectModal` hosts the `<RadioGroup>` picker with confirmation on revert. Existing `check_phase_unlock` trigger + `is_locked`/`prerequisite_phase_id` columns do the DB-level unlock (untouched by this wave). (Wave 29)
 - [x] **Secondary Projects**: Active menu and project switcher filter out archived (`status = 'archived'`) and completed (`is_complete = true`) projects; archive/unarchive is a toggle on the project's Edit modal. The `ProjectSwitcher` dropdown in the header lists active projects by default. **Wave 25:** two independent toggles — "Show archived" (Wave 21.5) and "Show completed" — reveal each inactive subset inline so users can navigate back to any project without typing the URL.

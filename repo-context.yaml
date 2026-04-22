@@ -280,9 +280,17 @@ health_metrics:
       - "date-engine consolidation (no raw Date math)"
 
   wave_status:
-    current: "Wave 31 (Localization)"
-    last_completed: "Wave 31"
-    spec_version: "1.16.0"
+    current: "Wave 32 (UX Bug Fixes)"
+    last_completed: "Wave 32"
+    spec_version: "1.16.2"
+    wave_32_highlights:
+      - "useTaskFilters milestone predicate rewritten: now filters by task_type === 'milestone' (Wave 25 discriminator) rather than the structural grandchild-of-root heuristic. Closes the bug where phase-level or task-level rows at the 'grandchild' depth leaked into the Milestones filter regardless of completion state. Dead helper buildMilestoneIdSet removed"
+      - "Status filter audit: every predicate reconciled to the Wave 23 canonical status set ('todo' | 'not_started' | 'in_progress' | 'completed'). Inert filters that were comparing against drifted literals (e.g., 'not-started' with a dash) now behave correctly"
+      - "Dashboard header — New Template button: src/pages/Dashboard.tsx grew a Button variant=\"secondary\" with the BookTemplate lucide icon next to the existing orange New Project button. Wires directly to actions.setShowTemplateModal(true). CreateTemplateModal was already imported + mounted; only the trigger was missing. Un-gated to match the sibling ProjectSidebar 'New Template' affordance"
+      - "i18n: new dashboard.new_template key added to en.json ('New Template') + es.json ('Nueva plantilla', machine-translated)"
+      - "Dropped task (pre-flight audit): the originally-scoped third Wave 32 task — project due-date cache invalidation on useProjectMutations — was discovered to already be on main from Wave 15 (commit c88b3e7) with regression test at commit 30616d8. Task dropped; wave shipped as two tasks. See docs/dev-notes.md"
+      - "Tests: +6 (83 files / 797 total). useTaskFilters fixture-driven per-filter tests (1 project / 2 phases / 3 milestones / 5 mixed-status tasks, every filter asserted for exact subset). Dashboard.test.tsx with 3 cases (both header buttons render; New Template click fires only setShowTemplateModal; New Project click fires only setShowCreateModal). No new factories — makeTask extended to accept task_type override"
+      - "Gemini review: two low-priority inline suggestions applied post-PR — selector consistency (getByRole for template button, matching the project button assertion) and QueryClient lifted out of Wrapper so a single client persists across the test's render. Deliberate skip: Gemini's suggestion to repaint the existing orange New Project button to bg-brand-600 — the PR description explicitly scoped that out as pre-existing styleguide drift"
     wave_31_highlights:
       - "i18next@^23.16.8 + react-i18next@^15.7.4 + i18next-browser-languagedetector@^8.2.1 framework. Provider tree wires <I18nextProvider> between QueryClientProvider and AuthProvider in src/app/App.tsx. Locale detector order: localStorage (key 'planterplan.locale') → navigator.language → 'en' fallback"
       - "LocaleSwitcher (src/features/settings/components/LocaleSwitcher.tsx) mounted in Settings → Profile as a new row. SUPPORTED_LOCALES = [{ code: 'en', label: 'English' }, { code: 'es', label: 'Español' }]"
