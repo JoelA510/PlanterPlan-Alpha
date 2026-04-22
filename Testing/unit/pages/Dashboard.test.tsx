@@ -82,8 +82,8 @@ vi.mock('@/features/dashboard/hooks/useDashboard', () => ({
 import Dashboard from '@/pages/Dashboard';
 
 function renderDashboard() {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     function Wrapper({ children }: { children: ReactNode }) {
-        const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
         return (
             <QueryClientProvider client={qc}>
                 <MemoryRouter initialEntries={['/dashboard']}>{children}</MemoryRouter>
@@ -107,7 +107,7 @@ describe('Dashboard header (Wave 32)', () => {
 
     it('opens the template modal when the "New Template" button is clicked', () => {
         renderDashboard();
-        fireEvent.click(screen.getByTestId('dashboard-new-template-btn'));
+        fireEvent.click(screen.getByRole('button', { name: /new template/i }));
         expect(setShowTemplateModal).toHaveBeenCalledTimes(1);
         expect(setShowTemplateModal).toHaveBeenCalledWith(true);
         // The project modal must NOT be opened by the template button.
