@@ -1,8 +1,8 @@
 # PlanterPlan Engineering Log & Roadmap
 
-**Current Status:** Spec v1.16.2 | 797 tests passing | 0 lint errors | Vercel preview green 
-**Last Finalized:** Wave 32 on 2026-04-22 
-**Target:** v1.0.0 release after the remaining scoped waves (33, 34, 35, 36)
+**Current Status:** Spec v1.17.0 | 827 tests passing | 0 lint errors | Vercel preview green 
+**Last Finalized:** Wave 33 on 2026-04-22 
+**Target:** v1.0.0 release after the remaining scoped waves (34, 35, 36)
 
 ---
 
@@ -79,18 +79,11 @@ Delivery scaffolding established for Waves 26–38:
 | **30** | Push + Email Notifications | 1.15.0 | 771 | Three tables (`notification_preferences`, `notification_log`, `push_subscriptions`); four edge functions (`dispatch-push`, `dispatch-notifications`, `overdue-digest`, pre-existing `supervisor-report`); single-runner-wins mention state machine (`_pending → _processing → _sent \| _failed \| _skipped`); VAPID web push; quiet hours; tz-aware Monday weekly digest; external scheduling (`pg_cron` intentionally disabled); `.npmrc legacy-peer-deps=true` unblocked Vercel previews. SSoT: `docs/architecture/notifications.md`. |
 | **31** | Localization *(+ scope expansion: React 18 rollback)* | 1.16.0 | 791 | `i18next@^23.16.8` + `react-i18next@^15.7.4` + `i18next-browser-languagedetector@^8.2.1`; `en.json` (230 keys / 11 namespaces, hand-authored) + `es.json` (machine-translated, `_meta.review_required_before_marketing: true`); Intl formatters (`formatDateLocalized`/`formatNumberLocalized`/`formatCurrencyLocalized`) with per-locale cache; TypeScript module augmentation types `t('key.path')`; `LocaleSwitcher` in Settings → Profile; `renderWithProviders` test helper. **Scope expansion**: React `19.2.5` → exact `18.3.1` (no React-19-only APIs in tree); audit + rollback unblocked Vercel preview deploys. SSoT: `docs/architecture/i18n.md`. |
 | **32** | UX Bug Fixes | 1.16.2 | 797 | `useTaskFilters` milestone predicate rewired to the Wave 25 `task_type === 'milestone'` discriminator (dead `buildMilestoneIdSet` removed); status predicates reconciled to the Wave 23 canonical set. Dashboard header grew a `variant="secondary"` New Template button alongside New Project, wired to the already-mounted `CreateTemplateModal` via `actions.setShowTemplateModal(true)`. New `dashboard.new_template` i18n key in `en.json` + `es.json`. Pre-flight dropped the originally-scoped project due-date cache-invalidation task (already shipped in Wave 15 at `c88b3e7`). |
+| **33** | Unified Tasks View | 1.17.0 | 827 | Shadcn `<Tooltip>` wrapper around `@radix-ui/react-tooltip@^1.2.8`, app-shell `<TooltipProvider delayDuration={300}>`. `formatTaskDueBadge` helper (`src/shared/lib/date-engine/`) produces `{label, kind, tone}` with today/tomorrow/weekday/full-date + overdue/due_soon/neutral tones — no raw date math. `TaskItem` renders the badge right-aligned and wraps the title in a Tooltip revealing the parent project name when threaded. `useTaskFilters` grew a `DueDateRange` predicate (AND with status filters). `TasksPage` surfaces two inline `<input type="date">` + clear button, mounts `<TaskDetailsPanel>` on row click, builds rootId→title map for the tooltip prop. `/daily` deleted (`<Navigate to="/tasks" replace />` redirect); daily E2E page object + feature + step file purged. New i18n keys under `tasks.filters.dateRange` + `tasks.dueBadge`. Dev dep `@testing-library/user-event@^14.6.1`. |
 
 ### 🟡 Remaining Roadmap
 
-*4 waves / 9 tasks remaining until v1.0.0. The original plan's Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped, and the remaining scope was renumbered sequentially after Wave 31.*
-
-#### Wave 33 — Unified Tasks View (§3.6)
-
-Merge `/tasks` and `/daily` into one screen. Port daily's due-date badges + relative wording; add due-date range filter; click a task row to open the same `<TaskDetailsPanel>` the Project view uses; hover the task title to reveal the parent project name.
-
-* [ ] Task 1 — Shadcn `<Tooltip>` primitive + `<TooltipProvider>` app-shell wrap
-* [ ] Task 2 — Merge `/daily` into `/tasks` with date badges + due-date range filter (delete DailyTasks.tsx, redirect the route)
-* [ ] Task 3 — Task-row click → `<TaskDetailsPanel>` + project-name hover tooltip
+*3 waves / 6 tasks remaining until v1.0.0. The original plan's Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped, and the remaining scope was renumbered sequentially after Wave 31.*
 
 #### Wave 34 — Advanced Admin Management (§3.7)
 

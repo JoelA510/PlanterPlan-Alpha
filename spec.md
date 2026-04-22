@@ -1,10 +1,10 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.16.2 (Wave 32 — UX bug fixes: Tasks-page filters + New Template button) 
+> **Version**: 1.17.0 (Wave 33 — Unified Tasks View) 
 > **Last Updated**: 2026-04-22 
 > **Status**: Active Development
 
-> **Wave 32 closure note**: two UX bug fixes shipped — Tasks-page status-filter regressions (milestone + inert filters) and a New Template button on the Dashboard. A third originally-scoped bug (project due-date cache invalidation on edit) was discovered during pre-flight to already be shipped in Wave 15 (`c88b3e7`) with its regression test at `30616d8`, and was dropped. See `docs/dev-notes.md`.
+> **Wave 33 closure note**: `/tasks` and `/daily` are merged into a single filterable view. Due-date badges with "Today"/"Tomorrow"/weekday relative wording + tone (overdue/due-soon/neutral) render on every task row via the new `formatTaskDueBadge` helper. A due-date range filter AND-combines with existing status filters. Task-row click opens the same `TaskDetailsPanel` the Project view uses, and a Radix-backed Tooltip on the task title reveals the parent project's name. `/daily` now redirects to `/tasks`.
 
 ---
 
@@ -111,7 +111,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Progress Visualization**: Project progress donut chart visible across task list views.
 - [x] **Project Status Report**: Report interface featuring reporting month selection, donut charts, and lists of completed, overdue, and upcoming milestones. Shipped via `src/pages/Reports.tsx` + `src/features/projects/hooks/useProjectReports.ts`.
 - [x] **Task List Views & Filters**: Dedicated UI tables/pages to view tasks isolated by Priority, Overdue, Due Soon, Current, Not Yet Due, Completed, All Tasks, Milestones, and My Tasks. Include chronological/alphabetical sorting. Shipped via `src/pages/TasksPage.tsx` + `src/features/tasks/hooks/useTaskFilters.ts`.
-- [ ] **Unified Task List View (Wave 33)**: Merge `/tasks` (filter-rich) and `/daily` (date-badge display) into a single screen. Port the daily view's due-date badge styling + relative wording ("Today" / "Tomorrow" / weekday / full date) to the unified Tasks page. Add a due-date range filter that AND-combines with existing status filters. Task-row click opens the same `<TaskDetailsPanel>` the Project view uses. Hover tooltip on the task title reveals the parent project's name. Delete the `/daily` route (redirect to `/tasks` for bookmark safety).
+- [x] **Unified Task List View (Wave 33)**: Shipped. `/tasks` grew due-date badges with "Today"/"Tomorrow"/weekday/full-date relative wording + red/orange/neutral tone (`src/shared/lib/date-engine/formatTaskDueBadge.ts`). Due-date range filter AND-combines with existing status filters. Task-row click opens the same `<TaskDetailsPanel>` the Project view uses; hovering the task title reveals the parent project's name via a new Radix Tooltip primitive (`src/shared/ui/tooltip.tsx`, app-shell-wrapped). `/daily` deleted; `<Route path="daily" element={<Navigate to="/tasks" replace />} />` keeps bookmarks valid.
 - [x] **Supervisor Reports**: Project settings accept a `supervisor_email` (stored on the root task). The `supabase/functions/supervisor-report/` edge function renders a monthly Project Status Report for every project that has one set and dispatches via Resend when `EMAIL_PROVIDER_API_KEY` and `RESEND_FROM_ADDRESS` are set (degrades cleanly to log-only otherwise). The Edit Project modal exposes a "Send test report" button that invokes the function with `{ project_id, dry_run: false }`; response includes a `dispatch_failures` counter for partial delivery alerting.
 - [x] **Gantt Chart**: Standalone `/gantt?projectId=:id` route built on `gantt-task-react@0.3.9`. Lazy-loaded; drag-to-shift dates routed through `useUpdateTask` with parent-bounds enforcement. (Wave 28)
 

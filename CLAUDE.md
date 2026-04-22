@@ -77,7 +77,8 @@ Component → React Query hook → planterClient → Supabase SDK
 /dashboard      → Dashboard (default after login)
 /reports        → Reports
 /project/:id    → Project detail
-/tasks          → TasksPage (My Tasks view)
+/tasks          → TasksPage (unified Task view — Wave 33 merged /daily into this surface; due-date badges + range filter; row click opens TaskDetailsPanel; title hover reveals parent project)
+/daily          → redirects to /tasks (bookmark compatibility after the Wave 33 merge)
 /settings       → Settings
 /gantt          → Gantt (lazy-loaded; reads ?projectId=:id)
 ```

@@ -2,6 +2,17 @@
 
 Technical debt and architectural notes for the team.
 
+## Wave 33 — Unified Tasks View
+
+### Resolved (Wave 33)
+
+- **`/daily` merged into `/tasks`** — `src/pages/DailyTasks.tsx` deleted; `<Route path="daily">` now serves `<Navigate to="/tasks" replace />` so bookmarks redirect instead of 404. ProjectSidebar + CommandPalette point at `/tasks`. Orphaned `tasks.daily.*` i18n keys removed from en/es.
+- **Due-date badges on task rows** — new `src/shared/lib/date-engine/formatTaskDueBadge.ts` helper returns `{label, kind, tone}` tuples (kind discriminator gives the renderer a hook to translate "Today"/"Tomorrow" via `tasks.dueBadge.*` keys; weekday + full-date forms stay date-fns-formatted for now — a future locale pass can swap to Intl). Render site is `TaskItem.tsx` with red/orange/neutral tones.
+- **Due-date range filter** — `useTaskFilters.ts` grew a `dueDateRange` predicate that AND-combines with every status filter (inclusive bounds, open-ended on either side; tasks with null due_date drop when any bound is set). UI: two inline `<input type="date">` controls + a clear button on `TasksPage.tsx`.
+- **Task-row click → `TaskDetailsPanel`** — `TasksPage` now mounts the same panel as `Project.tsx` when a row is clicked. The panel's full editor / presence / activity tree works on the Tasks page for free.
+- **Project-name tooltip on task title** — new `src/shared/ui/tooltip.tsx` wraps `@radix-ui/react-tooltip`. App-shell mounts `<TooltipProvider delayDuration={300}>`. When `parentProjectTitle` is threaded into `TaskItem`, the title is wrapped in a tooltip trigger. Standalone template-root rows (no distinct parent project) fall back to the native `title` attribute and skip the portal.
+- New dev dep `@testing-library/user-event@^14.6.1` for the hover-driven tooltip test.
+
 ## Wave 32 — UX Bug Fixes
 
 ### Resolved (Wave 32)
