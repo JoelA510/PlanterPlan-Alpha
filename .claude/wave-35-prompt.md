@@ -16,6 +16,9 @@ Wave 35 specific: zero existing-test impact (ICS feed is new + isolated). Run `n
 1. `git log --oneline` includes the Wave 34 commits + docs sweep.
 2. **No external prerequisites for ICS.**
 3. **Cron scheduling** — Wave 35 adds no cron-driven function (ICS feed is pull-only, served on HTTP GET). `pg_cron` remains intentionally NOT enabled.
+4. **Settings page tabs** — as of 2026-04-22 pre-flight, `src/pages/Settings.tsx` exposes three tabs typed at the top of the file: `'profile' | 'notifications' | 'security'`. Task 1 adds a fourth — `'integrations'` — matching the existing tab-render pattern; don't refactor the tab state shape beyond widening the union type.
+5. **planterClient namespace** — confirm `planter.*` does NOT already include `integrations`. At 2026-04-22 the client exposes `auth`, `entities`, `rpc`, `functions`, `notifications`; Task 1 adds `integrations`.
+6. **Spec anchor** — `spec.md` §3.7 currently contains `[ ] **External Integrations (ICS)**: ICS feeds for calendar integration.` Task 1's docs pass flips it.
 
 ## Branch
 
