@@ -238,6 +238,56 @@ export const calculateScheduleFromOffset = (
 /**
  * Converts a date input to a `YYYY-MM-DD` string, ensuring UTC handling.
  */
+/**
+ * Wave-follow-up helpers — consumed by useProjectReports + Reports.tsx so
+ * both go through the centralized date-engine rather than hand-rolling
+ * UTC-midnight / month-key math. Kept here alongside the other toIso /
+ * format helpers because they share the same parsing semantics.
+ *
+ * @param d Source Date. Must be a real Date object (undefined/null input
+ *   returns null from the sibling `dateStringToMonthKey`).
+ * @returns `YYYY-MM` string built from the UTC year + month.
+ */
+export const toMonthKey = (d: Date): string => {
+ const year = d.getUTCFullYear();
+ const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+ return `${year}-${month}`;
+};
+
+/**
+ * Accept `YYYY-MM-DD` or a full ISO timestamp; return the `YYYY-MM` prefix.
+ * Null / undefined / invalid inputs return `null`.
+ *
+ * @param raw ISO date string (optional).
+ * @returns `YYYY-MM` string or `null`.
+ */
+export const dateStringToMonthKey = (raw: string | null | undefined): string | null => {
+ if (!raw) return null;
+ if (/^\d{4}-\d{2}/.test(raw)) return raw.slice(0, 7);
+ const d = new Date(raw);
+ if (Number.isNaN(d.getTime())) return null;
+ return toMonthKey(d);
+};
+
+/**
+ * Parse an ISO date string and return the UTC-midnight epoch milliseconds
+ * of that calendar day. `YYYY-MM-DD` inputs are treated as UTC-midnight
+ * of that day; full timestamps are truncated to UTC-midnight of their
+ * calendar day. Null / invalid inputs return `null`.
+ *
+ * Uses `Date.UTC` for the explicit UTC epoch (no mutating setters).
+ *
+ * @param raw ISO date string.
+ * @returns Epoch milliseconds at UTC-midnight, or `null`.
+ */
+export const dateStringToUtcMidnight = (raw: string | null | undefined): number | null => {
+ if (!raw) return null;
+ const iso = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00.000Z` : raw;
+ const d = new Date(iso);
+ if (Number.isNaN(d.getTime())) return null;
+ return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+};
+
 export const toIsoDate = (value: DateInput | null | undefined): string | null => {
  if (!value) return null;
 

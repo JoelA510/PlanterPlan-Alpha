@@ -1,6 +1,6 @@
 import { supabase } from '../db/client';
 import { toIsoDate, nowUtcIso, calculateMinMaxDates } from '@/shared/lib/date-engine';
-import { retry } from '../lib/retry.js';
+import { retry } from '../lib/retry';
 import type { Database } from '@/shared/db/database.types';
 import type {
     Project,
@@ -43,7 +43,14 @@ export interface CreateProjectPayload {
 }
 
 export class PlanterError extends Error {
-    constructor(message: string, public status?: number, public metadata?: unknown) {
+    // `status` is either a numeric HTTP-ish status (e.g. 401, 500 for
+    // client-synthesized errors) OR a string PostgREST / Postgres error
+    // code (e.g. "23505" for unique_violation, "PGRST302" for permission
+    // denied). Previously we ran parseInt on `error.code` before passing
+    // it in — but PostgREST codes are non-numeric strings, so parseInt
+    // returned NaN at 36 sites, making this field useless for branching.
+    // The current call sites pass `error.code ?? '500'` directly.
+    constructor(message: string, public status?: number | string, public metadata?: unknown) {
         super(message);
         this.name = 'PlanterError';
     }
@@ -267,7 +274,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
             const query = fromTable(tableName).select(select);
             applySignal(query, opts?.signal);
             const { data, error } = await query;
-            if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+            if (error) throw new PlanterError(error.message, error.code ?? '500');
             return (data as T[]) || [];
         });
     },
@@ -276,7 +283,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
             const query = fromTable(tableName).select(select).eq('id', id).maybeSingle();
             applySignal(query, opts?.signal);
             const { data, error } = await query;
-            if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+            if (error) throw new PlanterError(error.message, error.code ?? '500');
             return (data as T) || null;
         });
     },
@@ -285,7 +292,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
             const query = fromTable(tableName).insert(payload as Record<string, unknown>).select(select);
             applySignal(query, opts?.signal);
             const { data, error } = await query;
-            if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+            if (error) throw new PlanterError(error.message, error.code ?? '500');
             return (data as T[])?.[0] || (data as T);
         });
     },
@@ -294,7 +301,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
             const query = fromTable(tableName).update(payload as Record<string, unknown>).eq('id', id).select(select);
             applySignal(query, opts?.signal);
             const { data, error } = await query;
-            if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+            if (error) throw new PlanterError(error.message, error.code ?? '500');
             return (data as T[])?.[0] || (data as T);
         });
     },
@@ -303,7 +310,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
             const query = fromTable(tableName).delete().eq('id', id);
             applySignal(query, opts?.signal);
             const { error } = await query;
-            if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+            if (error) throw new PlanterError(error.message, error.code ?? '500');
             return true;
         });
     },
@@ -321,7 +328,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
             });
 
             const { data, error } = await query;
-            if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+            if (error) throw new PlanterError(error.message, error.code ?? '500');
             return (data as T[]) || [];
         });
     },
@@ -330,7 +337,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
             const query = fromTable(tableName).select(select).eq('creator', userId);
             applySignal(query, opts?.signal);
             const { data, error } = await query;
-            if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+            if (error) throw new PlanterError(error.message, error.code ?? '500');
             return (data as T[]) || [];
         });
     },
@@ -343,7 +350,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'
             }).select(select);
             if (options.signal) query = query.abortSignal(options.signal);
             const { data, error } = await query;
-            if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+            if (error) throw new PlanterError(error.message, error.code ?? '500');
             return { data: data as T | T[], error: null };
         });
     }
@@ -399,7 +406,7 @@ export const planter: PlanterClient = {
                         .eq('origin', 'instance')
                         .order('created_at', { ascending: false });
 
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return (data as Project[]) || [];
                 });
             },
@@ -445,7 +452,7 @@ export const planter: PlanterClient = {
                         .insert(taskPayload)
                         .select('*');
 
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     const project = Array.isArray(data) ? (data[0] as Project) : (data as unknown as Project);
 
                     if (!project?.id) {
@@ -522,7 +529,7 @@ export const planter: PlanterClient = {
 
                     if (options?.signal) query = query.abortSignal(options.signal);
                     const { data, error } = await query;
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return (data as Project[]) || [];
                 });
             },
@@ -537,7 +544,7 @@ export const planter: PlanterClient = {
                             .eq('project_members.user_id', userId)
                             .neq('creator', userId);
 
-                        if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                        if (error) throw new PlanterError(error.message, error.code ?? '500');
                         return (data as Project[]) || [];
                     } catch {
                         return [];
@@ -558,7 +565,7 @@ export const planter: PlanterClient = {
                     });
 
                     const { data, error } = await query;
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return (data as Project[]) || [];
                 });
             },
@@ -568,7 +575,7 @@ export const planter: PlanterClient = {
                     .insert({ project_id: projectId, user_id: userId, role })
                     .select('*');
 
-                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (error) throw new PlanterError(error.message, error.code ?? '500');
                 return { data: (data as TeamMemberRow[])?.[0], error: null };
             },
             addMemberByEmail: async (projectId: string, email: string, role: string): Promise<{ data: TeamMemberRow | undefined, error: Error | null }> => {
@@ -579,7 +586,7 @@ export const planter: PlanterClient = {
                         p_email: email,
                         p_role: role,
                     });
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return { data: data as TeamMemberRow | undefined, error: null };
                 });
             },
@@ -825,7 +832,7 @@ export const planter: PlanterClient = {
                         .neq('id', taskId)
                         .order('position', { ascending: true });
 
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return (data as Task[]) || [];
                 });
             }
@@ -864,7 +871,7 @@ export const planter: PlanterClient = {
                     if (signal) query = query.abortSignal(signal);
 
                     const { data, error } = await query;
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return { data: (data as Task[]) || [], error: null };
                 });
             },
@@ -894,7 +901,7 @@ export const planter: PlanterClient = {
                     if (signal) q = q.abortSignal(signal);
 
                     const { data, error } = await q;
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return { data: (data as Task[]) || [], error: null };
                 });
             },
@@ -912,30 +919,64 @@ export const planter: PlanterClient = {
                     query = query.order('created_at', { ascending: false });
 
                     const { data, error } = await query;
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return (data as Task[]) || [];
                 });
             }
         },
-        TaskResource: {
-            ...createEntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']>('task_resources'),
-            setPrimary: async (taskId: string, resourceId: string | null) => {
-                await planter.entities.Task.update(taskId, { primary_resource_id: resourceId } as TaskUpdate);
-            },
-            listByProject: async (projectId: string, opts?: { signal?: AbortSignal }): Promise<ResourceWithTask[]> => {
-                return retry(async () => {
-                    let query = supabase
-                        .from('task_resources')
-                        .select('*, task:tasks!inner(id, title, root_id)')
-                        .eq('tasks.root_id', projectId)
-                        .order('created_at', { ascending: false });
-                    if (opts?.signal) query = query.abortSignal(opts.signal);
-                    const { data, error } = await query;
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
-                    return (data as ResourceWithTask[]) || [];
-                });
-            },
-        },
+        TaskResource: (() => {
+            const base = createEntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']>('task_resources');
+            // Server-side companion to the client-side `safeUrl` render guard:
+            // reject `javascript:` / `data:` / `vbscript:` / etc. schemes at the
+            // create/update boundary so a stored XSS payload can't reach the
+            // database. Accepts http / https / mailto / tel only.
+            const ALLOWED_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+            const assertSafeUrl = (urlCandidate: unknown): void => {
+                if (typeof urlCandidate !== 'string' || urlCandidate.trim() === '') return;
+                try {
+                    const parsed = new URL(urlCandidate);
+                    if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
+                        throw new PlanterError(
+                            `Unsafe resource_url scheme: ${parsed.protocol}`,
+                            400,
+                        );
+                    }
+                } catch (err) {
+                    if (err instanceof PlanterError) throw err;
+                    throw new PlanterError('Invalid resource_url format', 400);
+                }
+            };
+            return {
+                ...base,
+                create: async (payload: Database['public']['Tables']['task_resources']['Insert'] | Database['public']['Tables']['task_resources']['Insert'][], options?: { signal?: AbortSignal }) => {
+                    const rows = Array.isArray(payload) ? payload : [payload];
+                    for (const row of rows) {
+                        assertSafeUrl((row as { resource_url?: unknown }).resource_url);
+                    }
+                    return base.create(payload, options);
+                },
+                update: async (id: string, payload: Database['public']['Tables']['task_resources']['Update'], options?: { signal?: AbortSignal }) => {
+                    assertSafeUrl((payload as { resource_url?: unknown }).resource_url);
+                    return base.update(id, payload, options);
+                },
+                setPrimary: async (taskId: string, resourceId: string | null) => {
+                    await planter.entities.Task.update(taskId, { primary_resource_id: resourceId } as TaskUpdate);
+                },
+                listByProject: async (projectId: string, opts?: { signal?: AbortSignal }): Promise<ResourceWithTask[]> => {
+                    return retry(async () => {
+                        let query = supabase
+                            .from('task_resources')
+                            .select('*, task:tasks!inner(id, title, root_id)')
+                            .eq('tasks.root_id', projectId)
+                            .order('created_at', { ascending: false });
+                        if (opts?.signal) query = query.abortSignal(opts.signal);
+                        const { data, error } = await query;
+                        if (error) throw new PlanterError(error.message, error.code ?? '500');
+                        return (data as ResourceWithTask[]) || [];
+                    });
+                },
+            };
+        })(),
         TeamMember: createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
         Person: createEntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>('people'),
 
@@ -957,7 +998,7 @@ export const planter: PlanterClient = {
                         .select('*, author:users(id, email, user_metadata)')
                         .eq('task_id', taskId)
                         .order('created_at', { ascending: true });
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return ((data as unknown) as TaskCommentWithAuthor[]) || [];
                 });
             },
@@ -975,7 +1016,7 @@ export const planter: PlanterClient = {
                         .insert(insert)
                         .select('*, author:users(id, email, user_metadata)')
                         .single();
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return (data as unknown) as TaskCommentWithAuthor;
                 });
             },
@@ -992,7 +1033,7 @@ export const planter: PlanterClient = {
                         .eq('id', commentId)
                         .select('*')
                         .single();
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return data as TaskCommentRow;
                 });
             },
@@ -1008,7 +1049,7 @@ export const planter: PlanterClient = {
                         .eq('id', commentId)
                         .select('*')
                         .single();
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return data as TaskCommentRow;
                 });
             },
@@ -1043,7 +1084,7 @@ export const planter: PlanterClient = {
                         }).in('entity_type', opts.entityTypes);
                     }
                     const { data, error } = await query;
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return ((data as unknown) as ActivityLogWithActor[]) || [];
                 });
             },
@@ -1060,7 +1101,7 @@ export const planter: PlanterClient = {
                         .eq('entity_id', entityId)
                         .order('created_at', { ascending: false })
                         .limit(opts?.limit ?? 20);
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return ((data as unknown) as ActivityLogWithActor[]) || [];
                 });
             },
@@ -1077,7 +1118,7 @@ export const planter: PlanterClient = {
                         .insert(payload)
                         .select('*')
                         .single();
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return data as PushSubscriptionRow;
                 });
             },
@@ -1087,7 +1128,7 @@ export const planter: PlanterClient = {
                         .from('push_subscriptions')
                         .select('*')
                         .order('created_at', { ascending: false });
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                     return (data as PushSubscriptionRow[]) || [];
                 });
             },
@@ -1097,7 +1138,7 @@ export const planter: PlanterClient = {
                         .from('push_subscriptions')
                         .delete()
                         .eq('endpoint', endpoint);
-                    if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
                 });
             },
         } satisfies PushSubscriptionEntityClient,
@@ -1112,7 +1153,7 @@ export const planter: PlanterClient = {
             try {
                 // @ts-expect-error Supabase rpc typing is tightly coupled to Database generics — params are validated at runtime
                 const { data, error } = await supabase.rpc(functionName, params);
-                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (error) throw new PlanterError(error.message, error.code ?? '500');
                 return { data: data as T, error: null };
             } catch (error: unknown) {
                 if (error instanceof PlanterError) throw error;
@@ -1166,7 +1207,7 @@ export const planter: PlanterClient = {
                     .select('*')
                     .limit(1)
                     .maybeSingle();
-                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (error) throw new PlanterError(error.message, error.code ?? '500');
                 if (!data) {
                     throw new PlanterError('notification_preferences row missing for caller', 404);
                 }
@@ -1180,7 +1221,7 @@ export const planter: PlanterClient = {
                     .update(patch)
                     .select('*')
                     .single();
-                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (error) throw new PlanterError(error.message, error.code ?? '500');
                 return data as NotificationPreferencesRow;
             });
         },
@@ -1194,7 +1235,7 @@ export const planter: PlanterClient = {
                 if (opts?.before) query = query.lt('sent_at', opts.before);
                 if (opts?.eventType) query = query.eq('event_type', opts.eventType);
                 const { data, error } = await query;
-                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (error) throw new PlanterError(error.message, error.code ?? '500');
                 return (data as NotificationLogRow[]) || [];
             });
         },
@@ -1304,7 +1345,7 @@ export const planter: PlanterClient = {
                     .select('*')
                     .eq('user_id', user.id)
                     .order('created_at', { ascending: false });
-                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (error) throw new PlanterError(error.message, error.code ?? '500');
                 return (data as IcsFeedTokenRow[]) ?? [];
             });
         },
@@ -1353,7 +1394,7 @@ export const planter: PlanterClient = {
                     .insert(payload)
                     .select('*')
                     .single();
-                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (error) throw new PlanterError(error.message, error.code ?? '500');
                 return data as IcsFeedTokenRow;
             });
         },
@@ -1373,7 +1414,7 @@ export const planter: PlanterClient = {
                     .eq('id', id)
                     .select('*')
                     .single();
-                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                if (error) throw new PlanterError(error.message, error.code ?? '500');
                 return data as IcsFeedTokenRow;
             });
         },
