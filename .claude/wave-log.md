@@ -2,7 +2,7 @@
 
 **Current Status:** Spec v1.16.0 | 791 tests passing | 0 lint errors | Vercel preview green 
 **Last Finalized:** Wave 31 on 2026-04-21 (main → `ad5a217`) 
-**Target:** v1.0.0 release after Wave 38
+**Target:** v1.0.0 release after the remaining scoped waves (33, 36, 37)
 
 ---
 
@@ -79,17 +79,9 @@ Delivery scaffolding established for Waves 26–38:
 | **30** | Push + Email Notifications | 1.15.0 | 771 | Three tables (`notification_preferences`, `notification_log`, `push_subscriptions`); four edge functions (`dispatch-push`, `dispatch-notifications`, `overdue-digest`, pre-existing `supervisor-report`); single-runner-wins mention state machine (`_pending → _processing → _sent \| _failed \| _skipped`); VAPID web push; quiet hours; tz-aware Monday weekly digest; external scheduling (`pg_cron` intentionally disabled); `.npmrc legacy-peer-deps=true` unblocked Vercel previews. SSoT: `docs/architecture/notifications.md`. |
 | **31** | Localization *(+ scope expansion: React 18 rollback)* | 1.16.0 | 791 | `i18next@^23.16.8` + `react-i18next@^15.7.4` + `i18next-browser-languagedetector@^8.2.1`; `en.json` (230 keys / 11 namespaces, hand-authored) + `es.json` (machine-translated, `_meta.review_required_before_marketing: true`); Intl formatters (`formatDateLocalized`/`formatNumberLocalized`/`formatCurrencyLocalized`) with per-locale cache; TypeScript module augmentation types `t('key.path')`; `LocaleSwitcher` in Settings → Profile; `renderWithProviders` test helper. **Scope expansion**: React `19.2.5` → exact `18.3.1` (no React-19-only APIs in tree); audit + rollback unblocked Vercel preview deploys. SSoT: `docs/architecture/i18n.md`. |
 
-### 🟡 Remaining Roadmap (Waves 32–38)
+### 🟡 Remaining Roadmap
 
-*7 waves / 23 tasks remaining until v1.0.0.*
-
-#### Wave 32 — PWA + Offline (§3.8)
-
-Installable PWA on iOS / Android / desktop, local-first cache, offline write queue. **Subsumes** Wave 30's `public/sw.js` into a workbox-built `src/sw.ts` (JS exception retired).
-
-* [ ] Task 1 — PWA installability + workbox service worker
-* [ ] Task 2 — Offline read cache
-* [ ] Task 3 — Offline write queue
+*3 waves / 6 tasks remaining until v1.0.0. Original Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped; Waves 36 and 37 were trimmed to the items listed below. Wave numbers are preserved as historical identifiers.*
 
 #### Wave 33 — Advanced Admin Management (§3.7)
 
@@ -97,50 +89,16 @@ Dedicated `/admin` shell, global search, advanced user filtering, analytics dash
 
 * [ ] Task 1 — Admin shell + global search
 * [ ] Task 2 — User-management table
-* [ ] Task 3 — Analytics dashboard + admin notifications
-
-#### Wave 34 — White Labeling (§3.7)
-
-Multi-tenant infrastructure. Partner orgs with custom URLs / logos / colors; every project gains `organization_id`; RLS adds an org-scoping layer; React app branches branding at runtime by hostname.
-
-* [ ] Task 1 — Organizations table + project-scoping migration
-* [ ] Task 2 — Tenant routing (custom domain → organization)
-* [ ] Task 3 — Branding overrides + org admin UI
-
-#### Wave 35 — Stripe Monetization + Licensing (§3.7)
-
-Closes the `auth-rbac.md` "Licensing Enforcement" gap.
-
-* [ ] Task 1 — Stripe Checkout + customer portal + webhook
-* [ ] Task 2 — License enforcement (project-creation gate)
-* [ ] Task 3 — Discount codes
+* [ ] Task 3 — Analytics dashboard + admin notifications (send "new project" notification email to admin with project details; dashboard metrics are at implementer discretion — pick basic metrics that are easy to surface)
 
 #### Wave 36 — External Integrations (§3.7)
 
-Four integrations sharing per-user token storage + per-event webhook fanout plumbing.
-
-* [ ] Task 1 — Zoho CRM / Analytics sync
-* [ ] Task 2 — AWS S3 unmanaged file uploads
 * [ ] Task 3 — ICS calendar feeds
-* [ ] Task 4 — Generic webhook subscriber
 
-#### Wave 37 — Doc-gap Closures & Scale Work
+#### Wave 37 — Doc-gap Closures
 
-* [ ] Task 1 — Weekends + holidays in the date engine
-* [ ] Task 2 — Invite escrow for non-signed-up emails
 * [ ] Task 3 — Template versioning
 * [ ] Task 4 — Template immutability (origin tracking on cloned tasks)
-* [ ] Task 5 — Task-tree virtualization for 1000+ tasks
-
-#### Wave 38 — Release Cutover (v1.0.0)
-
-Final wave — also catches deferred E2E from earlier waves.
-
-* [ ] Task 1 — E2E coverage matrix
-* [ ] Task 2 — Accessibility audit (WCAG 2.1 AA)
-* [ ] Task 3 — Security review
-* [ ] Task 4 — Performance budgets
-* [ ] Task 5 — Release cutover → **v1.0.0** tagged
 
 ---
 
@@ -151,10 +109,10 @@ Items explicitly kicked out of a shipped wave. Close out by striking through + m
 | Logged In | Item | Target / Status |
 | :--- | :--- | :--- |
 | Wave 30 | Admin notifications on new project creation | Wave 33 Task 3 |
-| Wave 30 | `public/sw.js` JS exception (push-only worker) | Wave 32 Task 1 (workbox subsume) |
+| Wave 30 | `public/sw.js` JS exception (push-only worker) | Open — no wave assigned (Wave 32 PWA/workbox work descoped) |
 | Wave 31 | Human-review pass on `es.json` before any "Spanish support" marketing claim | Open — no wave assigned |
-| Wave 31 | Remaining string-extraction surfaces: `TaskDetailsView` family, full `AddPersonModal`, deep library views, activity-log humanizers, `<Home>` marketing copy | Follow-up wave — target Wave 38 at latest |
-| Wave 31 | `eslint-plugin-i18next no-literal-string` rule enablement | Wave 38 candidate |
+| Wave 31 | Remaining string-extraction surfaces: `TaskDetailsView` family, full `AddPersonModal`, deep library views, activity-log humanizers, `<Home>` marketing copy | Open — no wave assigned |
+| Wave 31 | `eslint-plugin-i18next no-literal-string` rule enablement | Open — no wave assigned |
 | Wave 31 | React 19 re-adoption | Not on near-term roadmap (18.3.1 stable; no behavioral regressions) |
 | Wave 30 | Four `react-hooks/set-state-in-effect` suppressions in `useTreeState`, `PeopleList`, `useSettings` | Open — future cleanup wave |
 

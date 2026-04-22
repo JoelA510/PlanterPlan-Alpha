@@ -1,24 +1,23 @@
 ## Session Context
 
-PlanterPlan is a church planting project management app (React 19 + TypeScript + Supabase + Vite). Read `CLAUDE.md` for conventions and architecture. Strict typing, Feature-Sliced Design (FSD) boundaries, no direct Supabase calls in components, no raw date math — all enforced. See `.gemini/styleguide.md` for the full bar.
+PlanterPlan is a church planting project management app (React 18 + TypeScript + Supabase + Vite). Read `CLAUDE.md` for conventions and architecture. Strict typing, Feature-Sliced Design (FSD) boundaries, no direct Supabase calls in components, no raw date math — all enforced. See `.gemini/styleguide.md` for the full bar.
 
-Wave 32 shipped to `main`:
-- PWA installability (manifest + icons + workbox-built `src/sw.ts` subsuming Wave 30's hand-written worker)
-- Offline read cache (workbox runtime caching + react-query-persist)
-- Offline write queue (most-recent-wins for whitelisted mutations: task body, status, comment create)
-- `ConnectivityIndicator` + `PendingChangesBadge` in the dashboard header
+Wave 31 shipped to `main`:
+- i18next localization framework (en baseline + es machine-translated)
+- LocaleSwitcher in Settings → Profile
+- React rollback 19 → 18.3.1 (scope expansion — unblocked Vercel previews)
 
-Spec is at **1.17.0**. Outstanding roadmap: §3.7 Advanced Admin Management (this wave), §3.7 White Labeling (Wave 34), §3.7 Store + License Management (Wave 35), §3.7 External Integrations (Wave 36), Wave 37 architecture-doc gap closures, Wave 38 release readiness.
+**Roadmap note**: Wave 32 (PWA + Offline), Wave 34 (White Labeling), Wave 35 (Stripe Monetization + Licensing), and Wave 38 (Release Cutover) were descoped. Wave 36 is trimmed to Task 3 (ICS feeds); Wave 37 is trimmed to Tasks 3 + 4 (template versioning + immutability). The active roadmap after Wave 33 is: Wave 36 (ICS) → Wave 37 (template hardening).
 
 Wave 33 ships **Advanced Admin Management** (§3.7). The existing `admin_users` whitelist already controls "is admin" gating; this wave lays a dedicated `/admin` route shell with global search, advanced user filtering, an analytics dashboard, and admin notifications on new project creation (closing the `dashboard-analytics.md` "Admin Notifications" gap that was actually deferred from Wave 30 — cleaning it up here).
 
-**Test baseline going into Wave 33:** Wave 32 shipped at ≥685 tests. Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
+**Test baseline going into Wave 33:** Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress.
 
 **Read `.claude/wave-testing-strategy.md` before starting.** Wave 33 specific: zero existing-test impact. New admin RPC mocks follow the existing planterClient pattern (`vi.mock('@/shared/api/planterClient', () => ({ planter: { admin: { searchUsers: vi.fn().mockResolvedValue([...]) }}}))`). E2E persona addition: extend `scripts/seed-e2e.js` to insert an `admin@example.com` user into `auth.users` AND `public.admin_users`; create `Testing/e2e/.auth/admin.json` via the global setup login flow.
 
 ## Pre-flight verification (run before any task)
 
-1. `git log --oneline` includes the 3 Wave 32 commits + docs sweep.
+1. `git log --oneline` includes the Wave 31 commits + docs sweep.
 2. These files exist:
    - `src/app/App.tsx` (routes register here — NOT `router.tsx`; Wave 33 adds `/admin/*` routes)
    - `src/shared/contexts/AuthContext.tsx` (verify it exposes an `isAdmin` accessor, OR add one wrapping the existing `is_admin(auth.uid())` RPC. The Wave 23 schema map confirms `is_admin` is the SECURITY DEFINER function on the DB side — the React-side cache lives in `AuthContext`. If absent, add a `useIsAdmin()` hook reading from `useAuth()` + the RPC.)
@@ -137,7 +136,7 @@ The three RPCs:
 
 **DB migration?** Yes — one RPC.
 
-**Out of scope:** Admin user-management actions (suspend, change role for a non-admin, reset password) — deferred. Bulk export to CSV — defer to Wave 38 release readiness.
+**Out of scope:** Admin user-management actions (suspend, change role for a non-admin, reset password) — deferred. Bulk export to CSV — deferred (no wave assigned).
 
 ---
 
@@ -174,7 +173,7 @@ The three RPCs:
 
 **DB migration?** Yes — two RPCs + one trigger.
 
-**Out of scope:** Drilldown from analytics charts (defer — recharts native click handlers are fine if needed). User-segment analytics (cohort retention, etc.) — defer. Per-organization analytics (Wave 34 white-label territory).
+**Out of scope:** Drilldown from analytics charts (defer — recharts native click handlers are fine if needed). User-segment analytics (cohort retention, etc.) — defer. Per-organization analytics (White Labeling was descoped — no wave assigned).
 
 ---
 
@@ -203,13 +202,13 @@ Land docs as `docs(wave-33): documentation currency sweep`.
 8. **Test-impact reconciled** — admin RPC tests include the "non-admin caller raises 'unauthorized'" branch; `seed-e2e.js` extended for the admin persona + `e2e/.auth/admin.json` generated by global-setup; no `it.skip`. Test count ≥ baseline + new tests.
 9. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
-## Commit & Push to Main (mandatory — gates Wave 34)
+## Commit & Push to Main (mandatory — gates Wave 36)
 
 After all three Tasks merge:
 1. `git checkout main && git pull && npm install && npm run lint && npm run build && npx vitest run`.
-2. The history should show: 3 task commits + 1 docs sweep commit on top of Wave 32.
+2. The history should show: 3 task commits + 1 docs sweep commit on top of Wave 31.
 3. Push to `origin/main`. CI green.
-4. **Do not start Wave 34** until the above is true.
+4. **Do not start Wave 36** until the above is true.
 
 ## Verification Gate (per task, before push)
 
@@ -272,10 +271,10 @@ Manual smoke (see Wave Review).
 
 **Explicitly out of scope this wave:**
 - Admin user-management actions (suspend, change role)
-- Bulk CSV export (Wave 38)
+- Bulk CSV export (no wave assigned)
 - Drilldown from analytics charts
 - Cohort / retention analytics
-- Per-organization analytics (Wave 34)
+- Per-organization analytics (White Labeling was descoped)
 - Admin push subscription UI (admins use the existing per-user prefs from Wave 30)
 
 ## Ground Rules (non-negotiable — from `CLAUDE.md` + `.gemini/styleguide.md`)

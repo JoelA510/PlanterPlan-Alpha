@@ -83,8 +83,9 @@ and the dispatcher logs accordingly (degrades gracefully; doesn't throw).
 Transport-only. Loaded by other functions (mention dispatcher, digest).
 Requires `VAPID_PRIVATE_KEY` + `VITE_VAPID_PUBLIC_KEY` + `VAPID_SUBJECT`.
 Service worker (`public/sw.js`) handles the browser side —
-**documented JS exception** to the TS-only rule; slated for Wave 32's
-workbox conversion (`src/sw.ts`). See `docs/dev-notes.md`.
+**documented JS exception** to the TS-only rule; TS conversion is not
+currently scheduled (the former Wave 32 PWA/workbox track was descoped).
+See `docs/dev-notes.md`.
 
 `dispatch-push` contract: `{ user_ids, title, body, url?, tag?, event_type }`.
 For each user/sub pair: send via web-push, DELETE on 410, log outcome.

@@ -112,20 +112,16 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Gantt Chart**: Standalone `/gantt?projectId=:id` route built on `gantt-task-react@0.3.9`. Lazy-loaded; drag-to-shift dates routed through `useUpdateTask` with parent-bounds enforcement. (Wave 28)
 
 ### 3.7 Platform Admin, Monetization & Ecosystem
-- [ ] **White Labeling**: Support for partner organizations to use custom URLs, logos, and branding, including white-label administrator controls.
-- [ ] **Store & Monetization**: Integration with Stripe for store functionality.
-- [ ] **User License Management**: License restrictions for project creation volume, management, and discount codes.
 - [ ] **Advanced Admin Management**: Dedicated Admin UI with global search, advanced user filtering (by last login, task completion), and analytics dashboard.
 - [x] **Push & Email Notifications (Wave 30)**: Per-user `notification_preferences` + append-only `notification_log` + `push_subscriptions` tables back a full transport stack.
   - **Task 1 (data layer + Settings UI)**: Bootstrap trigger on `auth.users` creates a default prefs row for every user. Settings → Notifications tab exposes email/push toggles per event class (mentions / overdue digest / assignment), quiet hours (start/end + IANA tz), and a recent-notifications transparency panel.
-  - **Task 2 (Web Push transport)**: VAPID-based browser push. Service worker (`public/sw.js`, documented JS exception pending Wave 32 workbox migration) renders notifications; `usePushSubscription` handles opt-in/opt-out with per-device row scoping. `dispatch-push` edge function fans out via `web-push@3.6.7` with 410-cleanup and per-sub logging.
+  - **Task 2 (Web Push transport)**: VAPID-based browser push. Service worker (`public/sw.js`, documented JS exception — TS conversion not currently scheduled) renders notifications; `usePushSubscription` handles opt-in/opt-out with per-device row scoping. `dispatch-push` edge function fans out via `web-push@3.6.7` with 410-cleanup and per-sub logging.
   - **Task 3 (mention + digest dispatchers)**: `resolve_user_handles` RPC maps @-handles → auth.users uuids. `trg_enqueue_comment_mentions` AFTER INSERT on `task_comments` enqueues `mention_pending` rows. Per-minute `dispatch-notifications` edge function drains those rows via a single-runner-wins state machine (`_pending → _processing → _sent | _failed | _skipped`), honoring quiet-hours and per-event prefs. Daily `overdue-digest` edge function emails assigned-overdue-tasks rollups with per-user cadence (daily / weekly-on-user-local-Monday). See `docs/architecture/notifications.md` and `docs/operations/edge-function-schedules.md` (pg_cron intentionally NOT enabled).
-- [ ] **External Integrations**: Zoho CRM and Zoho Analytics sync, AWS unmanaged file uploads, ICS feeds for calendar integration.
+- [ ] **External Integrations (ICS)**: ICS feeds for calendar integration.
 
 ### 3.8 Technical Hardening & Infrastructure
 - [x] **Build Stabilization (Wave 16)**: Eliminated all 131 ESLint errors (`no-explicit-any`, `no-unused-vars`, Playwright false positives, etc.) and resolved TypeScript build errors across 42 files. `npm run build`, `npm run lint`, and all 385 unit tests pass cleanly. Vercel deployment blocker resolved.
 - [x] **TS 5.9 / @types/node fix (Wave 18)**: Removed deprecated `baseUrl` from `tsconfig.app.json` (TypeScript bundler mode resolves `paths` without it); installed `@types/node` required by `tsconfig.node.json`. Build: 0 errors, 385/385 tests pass.
-- [ ] **Mobile Infrastructure**: PWA Support (Installable on iOS/Android) and Local-first offline mode (RxDB/WatermelonDB sync).
 
 ---
 
