@@ -735,6 +735,8 @@ export type Database = {
  status: string | null
  supervisor_email: string | null
  task_type: string | null
+ template_version: number | null
+ cloned_from_task_id: string | null
  title: string
  updated_at: string | null
  }
@@ -767,6 +769,8 @@ export type Database = {
  status?: string | null
  supervisor_email?: string | null
  task_type?: string | null
+ template_version?: number | null
+ cloned_from_task_id?: string | null
  title: string
  updated_at?: string | null
  }
@@ -799,6 +803,8 @@ export type Database = {
  status?: string | null
  supervisor_email?: string | null
  task_type?: string | null
+ template_version?: number | null
+ cloned_from_task_id?: string | null
  title?: string
  updated_at?: string | null
  }
@@ -934,6 +940,8 @@ export type Database = {
  storage_path: string | null
  supervisor_email: string | null
  task_type: string | null
+ template_version: number | null
+ cloned_from_task_id: string | null
  title: string | null
  updated_at: string | null
  }

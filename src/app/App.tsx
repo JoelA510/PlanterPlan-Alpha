@@ -19,6 +19,7 @@ const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
 const AdminHome = lazy(() => import('@/pages/admin/AdminHome'));
 const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'));
+const AdminTemplates = lazy(() => import('@/pages/admin/AdminTemplates'));
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ export default function App() {
  <Route path="users" element={<Suspense fallback={null}><AdminUsers /></Suspense>} />
  <Route path="users/:uid" element={<Suspense fallback={null}><AdminUsers /></Suspense>} />
  <Route path="analytics" element={<Suspense fallback={null}><AdminAnalytics /></Suspense>} />
+ <Route path="templates" element={<Suspense fallback={null}><AdminTemplates /></Suspense>} />
  </Route>
  </Route>
  </Routes>

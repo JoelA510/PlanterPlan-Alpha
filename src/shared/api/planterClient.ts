@@ -770,10 +770,28 @@ export const planter: PlanterClient = {
                             // any settings the RPC populated.
                             if (existing) {
                                 const prevSettings = (existing.settings ?? {}) as Record<string, unknown>;
-                                const mergedSettings = {
+                                // Wave 36 Task 1: stamp the source template's current
+                                // template_version onto the instance root so admins can
+                                // spot clones stuck on older template iterations. Look
+                                // up the source template's version; gracefully skip if
+                                // the template row no longer exists.
+                                let templateVersionStamp: number | undefined;
+                                try {
+                                    const sourceTemplate = await planter.entities.Task.get(templateId);
+                                    if (sourceTemplate && typeof (sourceTemplate as Task & { template_version?: number }).template_version === 'number') {
+                                        templateVersionStamp = (sourceTemplate as Task & { template_version: number }).template_version;
+                                    }
+                                } catch (srcLookupErr) {
+                                    console.warn('[PlanterClient.clone] template_version lookup failed', srcLookupErr);
+                                }
+
+                                const mergedSettings: Record<string, unknown> = {
                                     ...prevSettings,
                                     spawnedFromTemplate: templateId,
                                 };
+                                if (templateVersionStamp !== undefined) {
+                                    mergedSettings.cloned_from_template_version = templateVersionStamp;
+                                }
                                 const updated = await planter.entities.Task.update(newRootId, {
                                     settings: mergedSettings as unknown as TaskUpdate['settings'],
                                 });
