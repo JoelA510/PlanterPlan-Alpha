@@ -92,7 +92,7 @@ Every wave plan's Session Context declares a starting test baseline (`Wave N-1 s
 ### 3.4 Test types this protocol covers
 
 - **Unit tests** (`Testing/unit/**`) — every wave's primary gate. `npm test`.
-- **E2E scenarios** (`Testing/e2e/**`) — required only for waves that touch the personas, the seed script, or the global setup (Wave 33 admin persona). For other waves, E2E is informational.
+- **E2E scenarios** (`Testing/e2e/**`) — required only for waves that touch the personas, the seed script, or the global setup (Wave 34 admin persona; Wave 33 `/daily` → `/tasks` redirect smoke). For other waves, E2E is informational.
 - **Manual smoke tests** documented in each wave plan — these are not optional. Walk them. If a smoke fails, HALT.
 
 ### 3.5 What test-failure HALT looks like in practice

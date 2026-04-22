@@ -81,9 +81,23 @@ Delivery scaffolding established for Waves 26–38:
 
 ### 🟡 Remaining Roadmap
 
-*3 waves / 6 tasks remaining until v1.0.0. Original Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped; Waves 36 and 37 were trimmed to the items listed below. Wave numbers are preserved as historical identifiers.*
+*5 waves / 12 tasks remaining until v1.0.0. The original plan's Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped, and the remaining scope was renumbered sequentially after Wave 31. User-reported UX bugs (project due-date cache invalidation, Tasks-page status-filter regressions, missing "New Template" button, unified Tasks view) became the new Waves 32 and 33.*
 
-#### Wave 33 — Advanced Admin Management (§3.7)
+#### Wave 32 — UX Bug Fixes
+
+* [ ] Task 1 — Project due-date cache invalidation on edit (invalidate both `['projects']` list and `['project', projectId]` detail)
+* [ ] Task 2 — Tasks-page status-filter regressions (milestones filter pulling To Do items; inert filters)
+* [ ] Task 3 — "New Template" button on Dashboard (match the existing "New Project" affordance)
+
+#### Wave 33 — Unified Tasks View (§3.6)
+
+Merge `/tasks` and `/daily` into one screen. Port daily's due-date badges + relative wording; add due-date range filter; click a task row to open the same `<TaskDetailsPanel>` the Project view uses; hover the task title to reveal the parent project name.
+
+* [ ] Task 1 — Shadcn `<Tooltip>` primitive + `<TooltipProvider>` app-shell wrap
+* [ ] Task 2 — Merge `/daily` into `/tasks` with date badges + due-date range filter (delete DailyTasks.tsx, redirect the route)
+* [ ] Task 3 — Task-row click → `<TaskDetailsPanel>` + project-name hover tooltip
+
+#### Wave 34 — Advanced Admin Management (§3.7)
 
 Dedicated `/admin` shell, global search, advanced user filtering, analytics dashboard, admin notifications on new project (closes a deferral from Wave 30).
 
@@ -91,14 +105,14 @@ Dedicated `/admin` shell, global search, advanced user filtering, analytics dash
 * [ ] Task 2 — User-management table
 * [ ] Task 3 — Analytics dashboard + admin notifications (send "new project" notification email to admin with project details; dashboard metrics are at implementer discretion — pick basic metrics that are easy to surface)
 
-#### Wave 36 — External Integrations (§3.7)
+#### Wave 35 — External Integrations (ICS) (§3.7)
 
-* [ ] Task 3 — ICS calendar feeds
+* [ ] Task 1 — Per-user signed ICS calendar feeds (single-task wave)
 
-#### Wave 37 — Doc-gap Closures
+#### Wave 36 — Template Hardening
 
-* [ ] Task 3 — Template versioning
-* [ ] Task 4 — Template immutability (origin tracking on cloned tasks)
+* [ ] Task 1 — Template versioning (stamp `template_version` on cloned instances + admin version log)
+* [ ] Task 2 — Template immutability (origin tracking on cloned tasks + UI guard against deletion)
 
 ---
 
@@ -108,8 +122,8 @@ Items explicitly kicked out of a shipped wave. Close out by striking through + m
 
 | Logged In | Item | Target / Status |
 | :--- | :--- | :--- |
-| Wave 30 | Admin notifications on new project creation | Wave 33 Task 3 |
-| Wave 30 | `public/sw.js` JS exception (push-only worker) | Open — no wave assigned (Wave 32 PWA/workbox work descoped) |
+| Wave 30 | Admin notifications on new project creation | Wave 34 Task 3 |
+| Wave 30 | `public/sw.js` JS exception (push-only worker) | Open — no wave assigned (original Wave 32 PWA/workbox work descoped during the post-31 renumber) |
 | Wave 31 | Human-review pass on `es.json` before any "Spanish support" marketing claim | Open — no wave assigned |
 | Wave 31 | Remaining string-extraction surfaces: `TaskDetailsView` family, full `AddPersonModal`, deep library views, activity-log humanizers, `<Home>` marketing copy | Open — no wave assigned |
 | Wave 31 | `eslint-plugin-i18next no-literal-string` rule enablement | Open — no wave assigned |

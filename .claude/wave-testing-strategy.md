@@ -1,6 +1,6 @@
 # Waves 26–37 Testing Strategy
 
-> **Roadmap note**: Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped. Wave 36 is trimmed to Task 3 (ICS feeds); Wave 37 is trimmed to Task 3 (template versioning) + Task 4 (template immutability). Historical references to the removed waves have been stripped from this doc.
+> **Roadmap note**: the pre-renumber plan's Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped, and wave numbers were reassigned sequentially after Wave 31. The active roadmap is: Wave 32 (UX bug fixes) → Wave 33 (unified Tasks view) → Wave 34 (Advanced Admin Management) → Wave 35 (ICS feeds) → Wave 36 (template hardening). Historical references to the removed waves have been stripped from this doc.
 
 
 **Audience**: any agent (Sonnet 4.6, Opus 4.7, future) executing the wave plans.
@@ -294,14 +294,65 @@ For each wave: (a) **existing tests at risk** (will break or need extension), (b
 
 ---
 
-### Wave 33 — Advanced Admin Management
+### Wave 32 — UX Bug Fixes
 
 **Existing tests at risk:**
 
 | Test file | Risk | Mitigation |
 | --- | --- | --- |
-| `Testing/unit/shared/contexts/AuthContext.test.tsx` | Wave 33 doesn't change AuthContext; just consumes `isAdmin`. | No change. |
-| `Testing/unit/shared/api/auth.test.ts` | Wave 33 doesn't change `authApi`. | No change. |
+| `Testing/unit/features/projects/hooks/useProjectMutations.test.ts` | Task 1 changes `useUpdateProject`'s cache-invalidation set. Existing asserts about `invalidateQueries` may assert on the single `['projects']` key. | Extend the existing test: assert BOTH `['projects']` and `['project', projectId]` are invalidated. If it asserts on a specific call count, bump it to 2. |
+| `Testing/unit/features/tasks/hooks/useTaskFilters.test.ts` (if exists) | Task 2 rewrites the `milestones` predicate and fixes any inert status filters. Any test that exercises the old (wrong) milestone behavior will need to be rewritten. | Read the file first; keep the structure, rewrite the milestone assertions to match `task_type === 'milestone'` rather than the structural-position heuristic. |
+| `Testing/unit/pages/Dashboard.test.tsx` (if exists) | Task 3 adds a "New Template" button. Existing assertions that count header buttons will go from N to N+1. | Extend: add a new test specifically for the template-button wiring; fix the count assertion if there is one. |
+
+**New tests:**
+- [ ] `Testing/unit/features/projects/hooks/useProjectMutations.test.ts` — extend with the dual-cache-invalidation assertion.
+- [ ] `Testing/unit/features/tasks/hooks/useTaskFilters.test.ts` — NEW or extend. Fixture: 1 project, 2 phases, 3 milestones, 5 mixed-status tasks. Assert each of the 9 filters returns the correct subset. Milestone filter returns ONLY `task_type === 'milestone'` rows.
+- [ ] `Testing/unit/pages/Dashboard.test.tsx` — extend or NEW. Assert: "New Template" button renders; clicking it opens the modal in template mode.
+
+**New infrastructure:**
+- [ ] No new factories. Existing `makeTask`, `makeProject` cover the scenarios via overrides (add `task_type: 'milestone'` override if the factory doesn't accept it today; tiny extension).
+
+**E2E impact:**
+- Zero new E2E scenarios. Unit coverage is sufficient for these fixes.
+
+---
+
+### Wave 33 — Unified Tasks View
+
+**Existing tests at risk:**
+
+| Test file | Risk | Mitigation |
+| --- | --- | --- |
+| `Testing/unit/pages/DailyTasks.test.tsx` (if exists) | Task 2 DELETES the `/daily` page. This test must be deleted, not skipped. Any useful assertions (the date-badge rendering logic) are folded into the new `TaskItem.dueBadge.test.tsx`. | Delete the file. Port any unique fixture data / assertions into the new tests. |
+| `Testing/unit/pages/TasksPage.test.tsx` (if exists) | Tasks 2 + 3 both add surfaces to TasksPage: due-date range filter UI, details-panel mount, task-title tooltip. | Extend in place. Don't create parallel suites. |
+| `Testing/unit/features/tasks/components/TaskItem.test.tsx` (if exists) | Task 2 adds a due-date badge; Task 3 wraps the title in `<Tooltip>`. Existing assertions about row structure may need small selector updates (tooltip wrapper adds a DOM node). | Extend. Prefer semantic queries (`getByRole('button')`, `getByText`) over brittle structural selectors. |
+| `Testing/unit/features/tasks/hooks/useTaskFilters.test.ts` | Task 2 adds `dueDateRange` to the filter state. The Wave 32 tests shouldn't break, but the test for the full filter-state shape (if any) needs the new field. | Extend: add `dueDateRange` cases (inclusive bounds, open-ended, AND-combination with status filters). |
+| Any test rendering `<App>` at the root | Task 1 adds `<TooltipProvider>` to the app shell. If a test renders `<App>` directly (not via `renderWithProviders`), tooltips won't work — but they also weren't there before, so this only matters for Task 3's tooltip assertions. | Route new tests through the existing `renderWithProviders` helper; add TooltipProvider to that helper if it doesn't already wrap it. |
+
+**New tests:**
+- [ ] `Testing/unit/shared/ui/tooltip.test.tsx` — smoke: `userEvent.hover` on trigger reveals content.
+- [ ] `Testing/unit/shared/lib/date-engine/formatTaskDueBadge.test.ts` — relative-wording rules ("Today", "Tomorrow", weekday + short date, full date), injected clock.
+- [ ] `Testing/unit/features/tasks/components/TaskItem.dueBadge.test.tsx` — colors + wording per distance-from-today.
+- [ ] `Testing/unit/pages/TasksPage.test.tsx` (extend or NEW) — click → panel opens; filter change preserves panel; hover title reveals project name.
+
+**New infrastructure:**
+- [ ] Extend `Testing/test-utils/render-with-providers.tsx` (if it exists; else add) to wrap in `<TooltipProvider delayDuration={0}>` so Task 3's hover tests are deterministic.
+- [ ] No new factories. Use existing `makeTask` with `due_date` + `root_id` overrides.
+
+**E2E impact:**
+- Navigation smoke: typing `/daily` lands on `/tasks` (redirect). Add one Playwright scenario.
+- Tooltip hover + panel-click scenarios are better covered in unit tests (Playwright hover is flaky across browsers).
+
+---
+
+### Wave 34 — Advanced Admin Management
+
+**Existing tests at risk:**
+
+| Test file | Risk | Mitigation |
+| --- | --- | --- |
+| `Testing/unit/shared/contexts/AuthContext.test.tsx` | Wave 34 doesn't change AuthContext; just consumes `isAdmin`. | No change. |
+| `Testing/unit/shared/api/auth.test.ts` | Wave 34 doesn't change `authApi`. | No change. |
 | All other tests | No impact. | No change. |
 
 **New tests:**
@@ -318,18 +369,18 @@ For each wave: (a) **existing tests at risk** (will break or need extension), (b
 
 **E2E impact:**
 - New persona: `e2e/.auth/admin.json` — sign in as an admin user (`admin@example.com` or similar; pre-create in `scripts/seed-e2e.js` and add to `admin_users` table).
-- Wave 33 needs to extend `seed-e2e.js` to insert the admin user into `admin_users`. Document in the wave plan.
+- Wave 34 needs to extend `seed-e2e.js` to insert the admin user into `admin_users`. Document in the wave plan.
 - New E2E feature files: `Testing/e2e/features/admin/admin-shell.feature` and `admin-users.feature`.
 
 ---
 
-### Wave 36 — External Integrations (ICS only)
+### Wave 35 — External Integrations (ICS only)
 
 **Existing tests at risk:**
 
 | Test file | Risk | Mitigation |
 | --- | --- | --- |
-| All existing tests | Wave 36 adds a new ICS endpoint + token table; no existing API or behavior changes. | No change. |
+| All existing tests | Wave 35 adds a new ICS endpoint + token table; no existing API or behavior changes. | No change. |
 
 **New tests:**
 - [ ] `Testing/unit/shared/api/planterClient.integrations.ics.test.ts`
@@ -343,14 +394,14 @@ For each wave: (a) **existing tests at risk** (will break or need extension), (b
 
 ---
 
-### Wave 37 — Hardening (Tasks 3 + 4 only)
+### Wave 36 — Template Hardening
 
 **Existing tests at risk:**
 
 | Test file | Risk | Mitigation |
 | --- | --- | --- |
-| `Testing/unit/shared/api/planterClient.clone.stamp.test.ts` (Wave 22) | Tasks 3 + 4 modify `clone_project_template` RPC behavior: now also stamps `cloned_from_template_version` (Task 3) and `cloned_from_task_id` on every cloned descendant (Task 4). The existing test asserts that `Task.clone` follows up with a `Task.update` writing `settings.spawnedFromTemplate`. **Task 3 + 4 work happens server-side in the RPC** — the client-side `Task.clone` payload doesn't change. | Likely no change. **But verify**: if the client-side `Task.clone` is updated to wait for the new fields in the response, the assertion needs extending. Read the file. |
-| `Testing/unit/features/tasks/hooks/useTaskMutations.test.ts` | Task 4's UI delete-guard adds a confirmation dialog before delete. If `useDeleteTask` test triggers a delete on a cloned task, the new dialog interaction would block. **The dialog is in the COMPONENT (`TaskDetailsView`), not the hook.** So `useDeleteTask` is unchanged. | No change to hook tests. New tests cover the component-level guard. |
+| `Testing/unit/shared/api/planterClient.clone.stamp.test.ts` (Wave 22) | Tasks 1 + 2 modify `clone_project_template` RPC behavior: now also stamps `cloned_from_template_version` (Task 1) and `cloned_from_task_id` on every cloned descendant (Task 2). The existing test asserts that `Task.clone` follows up with a `Task.update` writing `settings.spawnedFromTemplate`. **Task 1 + 2 work happens server-side in the RPC** — the client-side `Task.clone` payload doesn't change. | Likely no change. **But verify**: if the client-side `Task.clone` is updated to wait for the new fields in the response, the assertion needs extending. Read the file. |
+| `Testing/unit/features/tasks/hooks/useTaskMutations.test.ts` | Task 2's UI delete-guard adds a confirmation dialog before delete. If `useDeleteTask` test triggers a delete on a cloned task, the new dialog interaction would block. **The dialog is in the COMPONENT (`TaskDetailsView`), not the hook.** So `useDeleteTask` is unchanged. | No change to hook tests. New tests cover the component-level guard. |
 
 **New tests:**
 - [ ] `Testing/unit/shared/api/planterClient.template.versioning.test.ts`
@@ -376,9 +427,11 @@ For each wave: (a) **existing tests at risk** (will break or need extension), (b
 | 30 | Service worker permission grant: `context.grantPermissions(['notifications'])` per-test for push scenarios |
 | 31 | Locale-switch helper in `common.steps.ts`: `Given the user's locale is "es"` step that calls `localStorage.setItem('planterplan.locale', 'es')` before navigation |
 | 32 | Offline helper in `common.steps.ts`: `Given the user is offline` / `Given the user is back online` steps that call `context.setOffline(true|false)` |
-| 33 | New `admin@example.com` persona; `e2e/.auth/admin.json`; extend `seed-e2e.js` to insert the user into `admin_users` |
-| 36 | ICS feed endpoint smoke: fetch the feed URL with a token and parse the .ics output |
-| 37 | None new — existing personas test all Tasks 3 + 4 (template versioning + immutability) scenarios |
+| 32 | None new — Wave 32 is a bug-fix wave with unit-test coverage only |
+| 33 | `/daily` → `/tasks` redirect smoke; no new persona |
+| 34 | New `admin@example.com` persona; `e2e/.auth/admin.json`; extend `seed-e2e.js` to insert the user into `admin_users` |
+| 35 | ICS feed endpoint smoke: fetch the feed URL with a token and parse the .ics output |
+| 36 | None new — existing personas test all template-versioning + immutability scenarios |
 
 ---
 
@@ -393,9 +446,9 @@ npm test          # unit + integration; baseline + new wave's tests
 git status        # clean
 ```
 
-For Waves 28, 30, 33 with route additions: also confirm the new chunk is lazy-loaded via `npm run build` chunk inventory.
+For Waves 28, 30, 34 with route additions: also confirm the new chunk is lazy-loaded via `npm run build` chunk inventory.
 
-For Wave 31: also run `npm run test:e2e` after the unit suite (the locale switcher needs E2E coverage).
+For Waves 31 + 33: also run `npm run test:e2e` after the unit suite (locale switcher + `/daily` redirect need E2E coverage).
 
 ---
 
@@ -405,19 +458,24 @@ When a wave plan modifies a source file, use this table to find the existing tes
 
 | Source file (modified by wave) | Existing test files that mock or render it |
 | --- | --- |
-| `src/features/tasks/components/TaskDetailsView.tsx` | `TaskDetailsView.coachingBadge.test.tsx`, `TaskDetailsView.email.test.tsx`, `TaskDetailsView.related.test.tsx`. (Wave 26 + 27 + 29 + 37 modify this; Wave 37 adds `TaskDetailsView.deleteGuard.test.tsx`.) |
+| `src/features/tasks/components/TaskDetailsView.tsx` | `TaskDetailsView.coachingBadge.test.tsx`, `TaskDetailsView.email.test.tsx`, `TaskDetailsView.related.test.tsx`. (Wave 26 + 27 + 29 + 36 modify this; Wave 36 adds `TaskDetailsView.deleteGuard.test.tsx`.) |
 | `src/features/tasks/components/TaskList.tsx` | (Verify with grep — likely none directly; tests render via integration through `Project.tsx` which has its own e2e) |
+| `src/features/tasks/components/TaskItem.tsx` | `TaskItem.test.tsx` (if exists). **Wave 33** adds `TaskItem.dueBadge.test.tsx` and extends existing selectors to account for the `<Tooltip>` wrapper around the title. |
 | `src/features/tasks/components/TaskFormFields.tsx` | `TaskForm.coaching.test.tsx` (Wave 22 precedent). Wave 29 adds new field-level tests. |
 | `src/features/tasks/hooks/useTaskMutations.ts` | `useTaskMutations.test.ts`, `useTaskMutations.coachingRefetch.test.ts`. |
 | `src/features/tasks/hooks/useTaskComments.ts` (Wave 26) | `useTaskComments.test.tsx` (NEW Wave 26). |
+| `src/features/tasks/hooks/useTaskFilters.ts` | **Wave 32** fixes the `milestones` + inert-status predicates; **Wave 33** adds `dueDateRange`. Tests: `useTaskFilters.test.ts` (NEW in Wave 32, extended in Wave 33). |
 | `src/features/projects/components/EditProjectModal.tsx` | `EditProjectModal.test.tsx`, `EditProjectModal.testSend.test.tsx`. Wave 29 adds `EditProjectModal.kind.test.tsx`. |
 | `src/features/projects/components/ProjectSwitcher.tsx` | `ProjectSwitcher.test.tsx`. (Not modified post-Wave-25.) |
 | `src/features/projects/components/PhaseCard.tsx` | (No existing test inventory entry; Wave 29 adds `PhaseCard.donut.test.tsx`.) |
-| `src/features/projects/hooks/useProjectMutations.ts` | `useProjectMutations.test.ts`. |
+| `src/features/projects/hooks/useProjectMutations.ts` | `useProjectMutations.test.ts`. **Wave 32** extends with dual-cache-invalidation assertion (`['projects']` + `['project', projectId]`). |
 | `src/features/projects/hooks/useProjectRealtime.ts` | `useProjectRealtime.test.ts`. (Not modified by Wave 27 — `useProjectPresence` is a separate hook.) |
+| `src/pages/TasksPage.tsx` | `TasksPage.test.tsx` (if exists). **Wave 33** adds due-date range filter, click-to-panel, title tooltip wiring — extends this file in place. |
+| `src/pages/Dashboard.tsx` | `Dashboard.test.tsx` (if exists). **Wave 32** adds "New Template" button assertion. |
 | `src/shared/api/planterClient.ts` | `planterClient.test.ts`, `planterClient.clone.stamp.test.ts`, `planterClient.listSiblings.test.ts`, `planterClient.updateStatus.syncflags.test.ts`. **Every wave that adds a new entity namespace also adds a new test file** (`planterClient.taskComments.test.ts`, `.activityLog.test.ts`, `.notifications.test.ts`, `.integrations.ics.test.ts`, `.template.versioning.test.ts`). |
-| `src/shared/lib/date-engine/index.ts` | `date-engine/index.test.ts`, `date-engine/payloadHelpers.test.ts`, `date-engine.urgency.test.ts`. (Wave 29 adds `checkpoint.test.ts`.) |
+| `src/shared/lib/date-engine/index.ts` | `date-engine/index.test.ts`, `date-engine/payloadHelpers.test.ts`, `date-engine.urgency.test.ts`. (Wave 29 adds `checkpoint.test.ts`; Wave 33 adds `formatTaskDueBadge.test.ts`.) |
 | `src/shared/contexts/AuthContext.tsx` | `AuthContext.test.tsx`, `AuthContext.savedEmailAddresses.test.tsx`. (Wave 30 doesn't change AuthContext.) |
+| `src/shared/ui/tooltip.tsx` (NEW in Wave 33) | `tooltip.test.tsx` (NEW in Wave 33). |
 | `src/shared/db/database.types.ts` | (No direct test; type drift caught at compile time via `npm run build`.) |
 | `src/pages/Settings.tsx` | (No existing test inventory entry. Wave 30 adds `Settings.notifications.test.tsx`.) |
 

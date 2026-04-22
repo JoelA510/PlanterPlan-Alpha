@@ -2,99 +2,128 @@
 
 PlanterPlan is a church planting project management app (React 18 + TypeScript + Supabase + Vite). Read `CLAUDE.md` for conventions and architecture. Strict typing, Feature-Sliced Design (FSD) boundaries, no direct Supabase calls in components, no raw date math — all enforced. See `.gemini/styleguide.md` for the full bar.
 
-Wave 33 shipped to `main`:
-- `/admin` shell + global search
-- User-management table
-- Analytics dashboard + admin notifications on new project creation (closes the Wave 30 deferral)
+Wave 35 shipped to `main`:
+- Per-user signed ICS calendar feeds
 
-**Roadmap note**: the original Wave 36 scope bundled Zoho CRM sync, AWS S3 uploads, ICS calendar feeds, and a generic webhook subscriber. Tasks 1, 2, and 4 were descoped; only **Task 3 — ICS calendar feeds** remains. The wave is a single-task wave now.
+**Roadmap note**: the pre-renumber Wave 37 scope included five hardening items. Date-engine weekends/holidays, invite escrow, and task-tree virtualization were descoped. Only **template versioning** and **template immutability** remain, and the surviving scope is tracked here as Wave 36. The original Wave 38 release-cutover wave was also descoped, so Wave 36 is the trailing wave in the active roadmap.
 
-Wave 36 specific: zero existing-test impact (ICS feed is new + isolated). Run `npm test` and record the baseline.
+The known-gaps list this wave attacks (sourced from `docs/architecture/*.md` + `docs/dev-notes.md` + `repo-context.yaml`):
 
-## Pre-flight verification
+1. **`library-templates.md`**: Versioning of templates — currently, if an Admin updates a Template, existing Projects created from it are not updated (intended), but tracking the original template version on the Project instance is missing.
+2. **`projects-phases.md`**: Template Immutability — Logic to prevent users from deleting specific items that originated from a Master Template (allowing deletion only for custom post-instantiation additions) is not yet fully enforced.
 
-1. `git log --oneline` includes the Wave 33 commits + docs sweep.
-2. **No external prerequisites for ICS.**
-3. **Cron scheduling** — Wave 36 adds no cron-driven function (ICS feed is pull-only, served on HTTP GET). `pg_cron` remains intentionally NOT enabled.
+**Test baseline going into Wave 36:** Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress. This wave adds no new functional surfaces — just hardening — so the test count delta is modest.
+
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 36 specific: Tasks 3 + 4 modify the `clone_project_template` RPC server-side. The existing `Testing/unit/shared/api/planterClient.clone.stamp.test.ts` test (Wave 22) asserts that `Task.clone` follows up with a `Task.update` writing `settings.spawnedFromTemplate`. Read this file first — if Task 3's stamp of `cloned_from_template_version` is added on the server side (in the RPC body) rather than the client-side follow-up, the existing test stays unchanged. Task 4's `cloned_from_task_id` populates server-side too, so client-side test is also unchanged. Add NEW assertions for both stamps in `Testing/unit/shared/api/planterClient.template.versioning.test.ts`.
+
+## Pre-flight verification (run before any task)
+
+1. `git log --oneline` includes the Wave 36 commit + docs sweep.
+2. The existing tasks-table columns: `is_locked`, `prerequisite_phase_id`, `task_type` (Wave 25), `template_version` (NOT YET — Task 3 adds), `cloned_from_task_id` (NOT YET — Task 4 adds).
+3. The existing `clone_project_template` RPC exists and has the signature `(p_template_id uuid, p_new_parent_id uuid, p_new_origin text, p_user_id uuid, p_title text DEFAULT NULL, p_description text DEFAULT NULL, p_start_date date DEFAULT NULL, p_due_date date DEFAULT NULL)` per Wave 23 schema map. Tasks 3 + 4 modify this RPC carefully (preserve signatures).
 
 ## Branch
 
-- Task 3 → `claude/wave-36-ics-feeds`
+One branch per task, cut from `main`:
+- Task 3 → `claude/wave-36-template-versioning`
+- Task 4 → `claude/wave-36-template-immutability`
 
-Open a PR to `main` after the task's verification gate passes. Do **not** push directly to `main`.
+Open a PR to `main` after each task's verification gate passes. Do **not** push directly to `main`.
 
 ## Wave 36 scope
 
+Two tasks, each closing one documented known-gap. Each task is intentionally tight — no task should produce a PR over ~500 LOC.
+
 ---
 
-### Task 3 — ICS calendar feeds
+### Task 3 — Template versioning
 
-**Commit:** `feat(wave-36): per-user signed ICS feed of upcoming tasks`
+**Commit:** `feat(wave-36): stamp template version on cloned instances + admin version log`
 
-1. **Migration** (`docs/db/migrations/2026_04_18_ics_tokens.sql`, NEW)
-   - `CREATE TABLE public.ics_feed_tokens (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, token text NOT NULL UNIQUE, label text, project_filter uuid[], created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz, last_accessed_at timestamptz)`.
-   - Index on `(token)` for the public lookup.
-   - RLS: SELECT/INSERT/UPDATE/DELETE `user_id = auth.uid()`.
+1. **Migration** (`docs/db/migrations/2026_04_18_template_versioning.sql`, NEW)
+   - Add column `template_version int NOT NULL DEFAULT 1` to `public.tasks` (only meaningful on `origin = 'template'` rows).
+   - On every UPDATE to a template task (text/structure changes), increment `template_version`. Trigger: `BEFORE UPDATE ON public.tasks WHEN OLD.origin = 'template' AND NEW.origin = 'template'` and any of `(title, description, days_from_start, duration, settings)` changed → `NEW.template_version = OLD.template_version + 1`.
+   - Stamp the cloned root with the source template's version: in the `clone_project_template` RPC (existing), when cloning, copy `source.template_version` into the cloned root's `settings.cloned_from_template_version`.
+   - **Don't** propagate updates to existing instances (intended behavior per the architecture doc) — this wave just makes the version trackable.
    - Mirror into `docs/db/schema.sql`.
 
-2. **ICS feed edge function** (`supabase/functions/ics-feed/`, NEW: `index.ts` + `README.md`)
-   - GET `/ics-feed?token=:token`. **Public** (unauthenticated — token is the credential).
-   - Looks up token; if missing or `revoked_at IS NOT NULL`, returns 404.
-   - Updates `last_accessed_at`.
-   - Queries `tasks` for the token's `user_id` filtered by `assignee_id = user_id`, `due_date IS NOT NULL`, `due_date >= now() - 30 days`. Optional `project_filter` narrows by `root_id IN (...)`.
-   - Renders an iCalendar (`.ics`) document — one VEVENT per task, with VALARM 1 day before. Use `text/calendar` content-type.
+2. **Admin Templates UI** (`src/pages/admin/AdminTemplates.tsx` — extend existing or NEW if absent)
+   - Show `template_version` in the template list.
+   - Per-instance view (drilldown): "Projects cloned from this template" list with each instance's `cloned_from_template_version` so admins can spot stale clones.
 
-3. **Settings UI** (`src/pages/Settings.tsx`)
-   - New "Integrations" tab with a "Calendar feeds" section.
-   - "Generate new feed" button: prompts for label + project filter (multi-select of user's projects), generates a random 32-char token via `crypto.randomUUID()`-style helper, returns the iCal URL.
-   - Lists existing feeds with copy-URL + revoke buttons.
+3. **Architecture doc** (`docs/architecture/library-templates.md`)
+   - Flip "Versioning of templates" known-gap to **Resolved (Wave 36)**. Document the trigger + the stamp on clone + the deliberate non-propagation.
 
-4. **planterClient methods** (`src/shared/api/planterClient.ts`)
-   - `integrations.listIcsFeedTokens()`, `integrations.createIcsFeedToken({ label, project_filter })`, `integrations.revokeIcsFeedToken(id)`.
+4. **Tests**
+   - `Testing/unit/shared/api/planterClient.template.versioning.test.ts` (NEW) — `Task.update` on a template increments version; `Task.clone` stamps `settings.cloned_from_template_version`.
+   - Manual `psql` smoke at `docs/db/tests/template_versioning.sql` — increment behavior + clone stamp.
 
-5. **Architecture doc** (`docs/architecture/integrations.md`, NEW)
-   - Sections: ICS Feeds (this task). Documents data flow, auth model, storage location, failure handling. (Future integrations can extend this doc.)
+**DB migration?** Yes — one column + one trigger + one RPC modification.
 
-6. **Tests**
-   - `Testing/unit/supabase/functions/ics-feed.test.ts` (NEW) — token lookup, 404 on revoked, ICS rendering correctness, project filter.
-   - `Testing/unit/shared/api/planterClient.integrations.ics.test.ts` (NEW)
+**Out of scope:** UI to "update this project to the latest template version" (deferred — would require a complex three-way merge; intentional non-propagation per architecture doc). Per-task versioning (only template-roots get version stamps — sub-task versioning is too granular for v1).
 
-**DB migration?** Yes — one table.
+---
 
-**Out of scope:** Two-way calendar sync (Google Calendar / Outlook write-back) — that's a much larger integration, deferred. Per-task subscription / single-task .ics download (deferred — feed-only for this wave).
+### Task 4 — Template immutability (origin tracking on cloned tasks)
+
+**Commit:** `feat(wave-36): track template-origin on cloned tasks + UI guard against deletion`
+
+1. **Migration** (`docs/db/migrations/2026_04_18_task_template_origin.sql`, NEW)
+   - Add column `cloned_from_task_id uuid REFERENCES public.tasks(id) ON DELETE SET NULL` to `public.tasks`. Stamped during `clone_project_template`. NULL means "post-instantiation custom addition".
+   - Index on `cloned_from_task_id`.
+   - Modify `clone_project_template` RPC: every cloned task carries the source task's id in `cloned_from_task_id`.
+   - Backfill: NULL for all existing rows (we don't have provenance for them; document this in the migration header).
+   - Mirror into `docs/db/schema.sql`.
+
+2. **App-side delete guard** (`src/features/tasks/components/TaskDetailsView.tsx`, `src/features/tasks/hooks/useTaskMutations.ts`)
+   - When the user attempts to delete a task with `cloned_from_task_id IS NOT NULL` AND they are NOT the project owner: surface a modal: "This task originated from the project template. Only the project owner can delete template-origin tasks." Cancel / "Delete anyway" (owner-only).
+   - When the user IS the owner: proceed without the modal (owners can delete anything).
+
+3. **Visual indicator** (`src/features/tasks/components/TaskItem.tsx`)
+   - Subtle "T" badge on rows with `cloned_from_task_id IS NOT NULL` — tooltip: "From template".
+
+4. **Architecture doc** (`docs/architecture/projects-phases.md`)
+   - Flip the "Template Immutability" known-gap to **Resolved (Wave 36)**. Document the new column + the UI gate + the owner-bypass.
+
+5. **Tests**
+   - `Testing/unit/features/tasks/components/TaskDetailsView.deleteGuard.test.tsx` (NEW) — modal appears for non-owners on template-origin tasks; bypassed for owners; not shown on custom additions.
+   - Manual `psql` smoke at `docs/db/tests/task_template_origin.sql` — clone a project; every task has `cloned_from_task_id` populated. Add a custom task; `cloned_from_task_id IS NULL`.
+
+**DB migration?** Yes — one column + RPC modification.
+
+**Out of scope:** Server-side enforcement of the delete restriction (the UI gate is enough for v1; a server-side guard would require a per-row policy that's brittle — the owner-bypass behavior is more naturally expressed in app code). Tracking edits to template-origin tasks (deferred — only deletion is gated for v1).
 
 ---
 
 ## Documentation Currency Pass (mandatory — before review)
 
-1. **`spec.md`** — flip §3.7 "External Integrations (ICS)" from `[ ]` to `[x]`. Bump version. Update `Last Updated`.
-2. **`docs/AGENT_CONTEXT.md`** — add "Integrations / ICS feed (Wave 36)" golden-path bullet.
-3. **`docs/architecture/integrations.md`** is in.
-4. **`docs/dev-notes.md`** — note: "**Active:** ICS feeds are read-only; two-way calendar sync deferred."
-5. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 36 (ICS Feeds)`, update `last_completed`, `spec_version`, add `wave_36_highlights:` block.
-6. **`CLAUDE.md`** — add `ics_feed_tokens` to Tables.
+1. **`spec.md`** — append a short note in §3.8 "Technical Hardening & Infrastructure": "Wave 36 closed two architecture-doc known-gaps (template versioning, template immutability)." Bump version. Update `Last Updated`.
+2. **`docs/AGENT_CONTEXT.md`** — add "Hardening Pass (Wave 36)" golden-path bullet listing the two subsurfaces.
+3. **`docs/architecture/library-templates.md`** — template-versioning gap → Resolved.
+4. **`docs/architecture/projects-phases.md`** — template-immutability gap → Resolved.
+5. **`docs/dev-notes.md`** — confirm currency. Note the two remaining architecture-doc known-gaps that stay open (date-engine weekends/holidays, invite escrow) now that the wrapping wave was descoped.
+6. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 36 (Template Hardening)`, update `last_completed`, `spec_version`, add `wave_37_highlights:` block.
+7. **`CLAUDE.md`** — note the new `template_version` and `cloned_from_task_id` columns on `tasks`.
 
 Land docs as `docs(wave-36): documentation currency sweep`.
 
 ## Wave Review (mandatory — before commit + push to main)
 
-1. **ICS feed** — generate a feed → copy URL → import into Google Calendar → tasks appear with correct due dates + reminders.
-2. **Revocation** — revoke a feed token → subsequent fetches return 404.
-3. **Project filter** — generate a feed with a single-project filter → confirm only that project's tasks appear.
-4. **No FSD drift** — UI lives in `features/settings/`; data layer in `planterClient.integrations.*`; no shared imports back from features.
-5. **Type drift** — new table hand-edited in `database.types.ts`; verify it matches the migration.
-6. **Test-impact reconciled** — zero existing-test impact; ICS test parses generated `.ics` for structural correctness; no `it.skip`. Test count ≥ baseline + new tests.
-7. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4.
+1. **Template versioning** — edit a template → `template_version` increments. Clone → `settings.cloned_from_template_version` matches the new version. Edit again → existing instance's stamp does NOT update (intentional).
+2. **Template immutability** — clone a project → every task has `cloned_from_task_id`. As editor (not owner), attempt to delete a template-origin task → modal blocks. As owner → proceeds.
+3. **No FSD drift** — every new file lives in the right slice. Helpers in `lib/`, hooks in `hooks/`, components in `components/`. No barrel files. No `shared/` → `features/` imports.
+4. **Type drift** — `database.types.ts` hand-edited cleanly across the two migrations.
+5. **Test-impact reconciled** — Wave 22 `planterClient.clone.stamp.test.ts` stays green (Tasks 3+4 stamps happen server-side in the RPC); no `it.skip`. Test count ≥ baseline + new tests.
+6. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
-## Commit & Push to Main (mandatory — gates Wave 37)
+## Commit & Push to Main (mandatory)
 
-After the task merges:
+After both Tasks merge:
 1. `git checkout main && git pull && npm install && npm run lint && npm run build && npx vitest run`.
-2. The history should show: 1 task commit + 1 docs sweep commit on top of Wave 33.
+2. The history should show: 2 task commits + 1 docs sweep commit on top of Wave 36.
 3. Push to `origin/main`. CI green.
-4. **Do not start Wave 37** until the above is true.
 
-## Verification Gate (before push)
+## Verification Gate (per task, before push)
 
 **Every command below is a HALT condition per `.claude/wave-execution-protocol.md` §4.**
 
@@ -111,35 +140,42 @@ Manual smoke per Wave Review.
 
 - `CLAUDE.md` — conventions, commands, architecture overview
 - `.gemini/styleguide.md` — strict typing, FSD boundaries, Tailwind constraints, no arbitrary values
-- iCalendar (RFC 5545) reference — read before implementing
+- `docs/architecture/library-templates.md` — Task 3 host
+- `docs/architecture/projects-phases.md` — Task 4 host
+- `src/shared/api/planterClient.ts` (`Task.clone`) — Tasks 3 + 4 hooks
 
 ## Critical Files
 
 **Will edit:**
-- `docs/db/schema.sql` (mirror the new migration)
+- `docs/db/schema.sql` (mirror two new migrations)
+- `docs/architecture/library-templates.md` / `projects-phases.md` (2 known-gaps → Resolved)
 - `docs/AGENT_CONTEXT.md` (Wave 36 golden path)
-- `docs/dev-notes.md` (ICS deferral note)
-- `src/shared/db/database.types.ts` (new table)
-- `src/shared/db/app.types.ts` (corresponding row type)
-- `src/shared/api/planterClient.ts` (`integrations.*` namespace)
-- `src/pages/Settings.tsx` (Integrations tab)
-- `spec.md` (flip §3.7 External Integrations (ICS) to `[x]`)
+- `docs/dev-notes.md` (remaining open gaps noted)
+- `src/shared/db/database.types.ts` (new columns on `tasks`)
+- `src/shared/db/app.types.ts` (corresponding row types)
+- `src/shared/api/planterClient.ts` (template clone version stamping)
+- `src/features/tasks/components/TaskDetailsView.tsx` (delete guard)
+- `src/features/tasks/hooks/useTaskMutations.ts` (delete guard wiring)
+- `src/features/tasks/components/TaskItem.tsx` (template badge)
+- `src/pages/admin/AdminTemplates.tsx` (extend or create — version column + cloned-from drilldown)
+- `spec.md` (§3.8 hardening note)
 - `repo-context.yaml` (Wave 36 highlights)
-- `CLAUDE.md` (Tables — `ics_feed_tokens`)
+- `CLAUDE.md` (Tables — note new `tasks` columns)
 
 **Will create:**
-- `docs/db/migrations/2026_04_18_ics_tokens.sql`
-- `docs/architecture/integrations.md`
-- `supabase/functions/ics-feed/{index.ts,README.md}`
-- Tests under `Testing/unit/...` mirroring the source paths (2 new test files)
+- `docs/db/migrations/2026_04_18_template_versioning.sql`
+- `docs/db/migrations/2026_04_18_task_template_origin.sql`
+- `docs/db/tests/template_versioning.sql`
+- `docs/db/tests/task_template_origin.sql`
+- Tests under `Testing/unit/...` (2 new test files)
 
 **Explicitly out of scope this wave:**
-- Zoho CRM sync (descoped)
-- AWS S3 uploads (descoped)
-- Generic webhook subscriber (descoped)
-- Two-way calendar sync (Google / Outlook)
-- Per-task single-task .ics download
+- Date-engine weekends + holidays (descoped — open gap stays open)
+- Invite escrow for non-signed-up emails (descoped — open gap stays open)
+- Task-tree virtualization for 1000+ tasks (descoped — stays in tech-debt)
+- Template "update this project to latest version" UI
+- Server-side enforcement of template-origin delete (UI gate only for v1)
 
 ## Ground Rules (non-negotiable — from `CLAUDE.md` + `.gemini/styleguide.md`)
 
-TypeScript-only; no `.js` / `.jsx`; no barrel files (import directly from concrete paths); path alias `@/` → `src/`; no raw date math (ICS rendering uses `date-engine` for the DTSTART/DTEND ISO strings); no direct `supabase.from()` in components (`planterClient.integrations.*`); Tailwind utility classes only (no arbitrary values, no pure black — use `slate-900` / `zinc-900`); optimistic mutations must force-refetch on error; max subtask depth = 1; atomic revertable commits; build + lint + tests all clean before every push; DB migrations are additive-only.
+TypeScript-only; no `.js` / `.jsx`; no barrel files (import directly from concrete paths); path alias `@/` → `src/`; no raw date math; no direct `supabase.from()` in components; Tailwind utility classes only (no arbitrary values, no pure black — use `slate-900` / `zinc-900`); optimistic mutations must force-refetch on error; max subtask depth = 1; template vs instance clarified on any cross-cutting work — Tasks 3 + 4 are this wave's most cross-cutting work and depend on the `origin` field everywhere; atomic revertable commits; build + lint + tests all clean before every push; DB migrations are additive-only.
