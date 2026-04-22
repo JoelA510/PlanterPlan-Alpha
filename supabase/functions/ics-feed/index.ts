@@ -64,14 +64,18 @@ Deno.serve(async (req: Request) => {
         return new Response('Not found', { status: 404, headers: corsHeaders });
     }
 
-    // Bump last_accessed_at, fire-and-forget (don't block the response).
-    admin
-        .from('ics_feed_tokens')
-        .update({ last_accessed_at: new Date().toISOString() })
-        .eq('id', tokenRow.id)
-        .then(({ error }) => {
-            if (error) console.warn('[ics-feed] failed to bump last_accessed_at', error);
-        });
+    // Bump last_accessed_at. Awaited because Deno's edge runtime cancels
+    // unawaited promises the moment the Response is returned — the old
+    // fire-and-forget approach left last_accessed_at permanently stale on
+    // most environments. The extra ~20ms of latency is imperceptible for
+    // calendar-subscriber polling.
+    {
+        const { error: stampError } = await admin
+            .from('ics_feed_tokens')
+            .update({ last_accessed_at: new Date().toISOString() })
+            .eq('id', tokenRow.id);
+        if (stampError) console.warn('[ics-feed] failed to bump last_accessed_at', stampError);
+    }
 
     const windowStart = new Date();
     windowStart.setUTCDate(windowStart.getUTCDate() - 30);
