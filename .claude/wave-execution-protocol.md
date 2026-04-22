@@ -213,7 +213,7 @@ If `Testing/e2e/global-setup.ts` fails to log in a persona:
 - HALT (per the global-setup graceful-failure pattern, the persona's `.auth.json` will be empty).
 - Surface the failure. Don't proceed with E2E using a broken persona — every test using that persona will spuriously fail.
 
-### 8.5 Cron schedule confusion (Wave 30, 36)
+### 8.5 Cron schedule confusion (Wave 30)
 
 Multiple waves add cron-driven edge functions. **`pg_cron` is intentionally NOT enabled.** If a wave plan's smoke test instructs you to "schedule via pg_cron," that's a planning error — `docs/operations/edge-function-schedules.md` is the source of truth. Use Supabase Scheduled Triggers OR an external scheduler. Surface any pg_cron mention to the user.
 

@@ -14,19 +14,19 @@ The known-gaps list this wave attacks (sourced from `docs/architecture/*.md` + `
 
 **Test baseline going into Wave 36:** Run `npm test` and record. Lint baseline: 0 errors, ≤7 warnings — do not regress. This wave adds no new functional surfaces — just hardening — so the test count delta is modest.
 
-**Read `.claude/wave-testing-strategy.md` before starting.** Wave 36 specific: Tasks 3 + 4 modify the `clone_project_template` RPC server-side. The existing `Testing/unit/shared/api/planterClient.clone.stamp.test.ts` test (Wave 22) asserts that `Task.clone` follows up with a `Task.update` writing `settings.spawnedFromTemplate`. Read this file first — if Task 3's stamp of `cloned_from_template_version` is added on the server side (in the RPC body) rather than the client-side follow-up, the existing test stays unchanged. Task 4's `cloned_from_task_id` populates server-side too, so client-side test is also unchanged. Add NEW assertions for both stamps in `Testing/unit/shared/api/planterClient.template.versioning.test.ts`.
+**Read `.claude/wave-testing-strategy.md` before starting.** Wave 36 specific: Tasks 1 + 2 modify the `clone_project_template` RPC server-side. The existing `Testing/unit/shared/api/planterClient.clone.stamp.test.ts` test (Wave 22) asserts that `Task.clone` follows up with a `Task.update` writing `settings.spawnedFromTemplate`. Read this file first — if Task 1's stamp of `cloned_from_template_version` is added on the server side (in the RPC body) rather than the client-side follow-up, the existing test stays unchanged. Task 2's `cloned_from_task_id` populates server-side too, so client-side test is also unchanged. Add NEW assertions for both stamps in `Testing/unit/shared/api/planterClient.template.versioning.test.ts`.
 
 ## Pre-flight verification (run before any task)
 
 1. `git log --oneline` includes the Wave 36 commit + docs sweep.
-2. The existing tasks-table columns: `is_locked`, `prerequisite_phase_id`, `task_type` (Wave 25), `template_version` (NOT YET — Task 3 adds), `cloned_from_task_id` (NOT YET — Task 4 adds).
-3. The existing `clone_project_template` RPC exists and has the signature `(p_template_id uuid, p_new_parent_id uuid, p_new_origin text, p_user_id uuid, p_title text DEFAULT NULL, p_description text DEFAULT NULL, p_start_date date DEFAULT NULL, p_due_date date DEFAULT NULL)` per Wave 23 schema map. Tasks 3 + 4 modify this RPC carefully (preserve signatures).
+2. The existing tasks-table columns: `is_locked`, `prerequisite_phase_id`, `task_type` (Wave 25), `template_version` (NOT YET — Task 1 adds), `cloned_from_task_id` (NOT YET — Task 2 adds).
+3. The existing `clone_project_template` RPC exists and has the signature `(p_template_id uuid, p_new_parent_id uuid, p_new_origin text, p_user_id uuid, p_title text DEFAULT NULL, p_description text DEFAULT NULL, p_start_date date DEFAULT NULL, p_due_date date DEFAULT NULL)` per Wave 23 schema map. Tasks 1 + 2 modify this RPC carefully (preserve signatures).
 
 ## Branch
 
 One branch per task, cut from `main`:
-- Task 3 → `claude/wave-36-template-versioning`
-- Task 4 → `claude/wave-36-template-immutability`
+- Task 1 → `claude/wave-36-template-versioning`
+- Task 2 → `claude/wave-36-template-immutability`
 
 Open a PR to `main` after each task's verification gate passes. Do **not** push directly to `main`.
 
@@ -36,7 +36,7 @@ Two tasks, each closing one documented known-gap. Each task is intentionally tig
 
 ---
 
-### Task 3 — Template versioning
+### Task 1 — Template versioning
 
 **Commit:** `feat(wave-36): stamp template version on cloned instances + admin version log`
 
@@ -64,7 +64,7 @@ Two tasks, each closing one documented known-gap. Each task is intentionally tig
 
 ---
 
-### Task 4 — Template immutability (origin tracking on cloned tasks)
+### Task 2 — Template immutability (origin tracking on cloned tasks)
 
 **Commit:** `feat(wave-36): track template-origin on cloned tasks + UI guard against deletion`
 
@@ -102,7 +102,7 @@ Two tasks, each closing one documented known-gap. Each task is intentionally tig
 3. **`docs/architecture/library-templates.md`** — template-versioning gap → Resolved.
 4. **`docs/architecture/projects-phases.md`** — template-immutability gap → Resolved.
 5. **`docs/dev-notes.md`** — confirm currency. Note the two remaining architecture-doc known-gaps that stay open (date-engine weekends/holidays, invite escrow) now that the wrapping wave was descoped.
-6. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 36 (Template Hardening)`, update `last_completed`, `spec_version`, add `wave_37_highlights:` block.
+6. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 36 (Template Hardening)`, update `last_completed`, `spec_version`, add `wave_36_highlights:` block.
 7. **`CLAUDE.md`** — note the new `template_version` and `cloned_from_task_id` columns on `tasks`.
 
 Land docs as `docs(wave-36): documentation currency sweep`.
@@ -113,14 +113,14 @@ Land docs as `docs(wave-36): documentation currency sweep`.
 2. **Template immutability** — clone a project → every task has `cloned_from_task_id`. As editor (not owner), attempt to delete a template-origin task → modal blocks. As owner → proceeds.
 3. **No FSD drift** — every new file lives in the right slice. Helpers in `lib/`, hooks in `hooks/`, components in `components/`. No barrel files. No `shared/` → `features/` imports.
 4. **Type drift** — `database.types.ts` hand-edited cleanly across the two migrations.
-5. **Test-impact reconciled** — Wave 22 `planterClient.clone.stamp.test.ts` stays green (Tasks 3+4 stamps happen server-side in the RPC); no `it.skip`. Test count ≥ baseline + new tests.
+5. **Test-impact reconciled** — Wave 22 `planterClient.clone.stamp.test.ts` stays green (Tasks 1+2 stamps happen server-side in the RPC); no `it.skip`. Test count ≥ baseline + new tests.
 6. **Lint + build + tests** — green per `.claude/wave-execution-protocol.md` §4 (HALT on any failure).
 
 ## Commit & Push to Main (mandatory)
 
 After both Tasks merge:
 1. `git checkout main && git pull && npm install && npm run lint && npm run build && npx vitest run`.
-2. The history should show: 2 task commits + 1 docs sweep commit on top of Wave 36.
+2. The history should show: 2 task commits + 1 docs sweep commit on top of Wave 35.
 3. Push to `origin/main`. CI green.
 
 ## Verification Gate (per task, before push)
@@ -140,9 +140,9 @@ Manual smoke per Wave Review.
 
 - `CLAUDE.md` — conventions, commands, architecture overview
 - `.gemini/styleguide.md` — strict typing, FSD boundaries, Tailwind constraints, no arbitrary values
-- `docs/architecture/library-templates.md` — Task 3 host
-- `docs/architecture/projects-phases.md` — Task 4 host
-- `src/shared/api/planterClient.ts` (`Task.clone`) — Tasks 3 + 4 hooks
+- `docs/architecture/library-templates.md` — Task 1 host
+- `docs/architecture/projects-phases.md` — Task 2 host
+- `src/shared/api/planterClient.ts` (`Task.clone`) — Tasks 1 + 2 hooks
 
 ## Critical Files
 
@@ -178,4 +178,4 @@ Manual smoke per Wave Review.
 
 ## Ground Rules (non-negotiable — from `CLAUDE.md` + `.gemini/styleguide.md`)
 
-TypeScript-only; no `.js` / `.jsx`; no barrel files (import directly from concrete paths); path alias `@/` → `src/`; no raw date math; no direct `supabase.from()` in components; Tailwind utility classes only (no arbitrary values, no pure black — use `slate-900` / `zinc-900`); optimistic mutations must force-refetch on error; max subtask depth = 1; template vs instance clarified on any cross-cutting work — Tasks 3 + 4 are this wave's most cross-cutting work and depend on the `origin` field everywhere; atomic revertable commits; build + lint + tests all clean before every push; DB migrations are additive-only.
+TypeScript-only; no `.js` / `.jsx`; no barrel files (import directly from concrete paths); path alias `@/` → `src/`; no raw date math; no direct `supabase.from()` in components; Tailwind utility classes only (no arbitrary values, no pure black — use `slate-900` / `zinc-900`); optimistic mutations must force-refetch on error; max subtask depth = 1; template vs instance clarified on any cross-cutting work — Tasks 1 + 2 are this wave's most cross-cutting work and depend on the `origin` field everywhere; atomic revertable commits; build + lint + tests all clean before every push; DB migrations are additive-only.

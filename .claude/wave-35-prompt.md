@@ -19,7 +19,7 @@ Wave 35 specific: zero existing-test impact (ICS feed is new + isolated). Run `n
 
 ## Branch
 
-- Task 3 → `claude/wave-35-ics-feeds`
+- Task 1 → `claude/wave-35-ics-feeds`
 
 Open a PR to `main` after the task's verification gate passes. Do **not** push directly to `main`.
 
@@ -27,7 +27,7 @@ Open a PR to `main` after the task's verification gate passes. Do **not** push d
 
 ---
 
-### Task 3 — ICS calendar feeds
+### Task 1 — ICS calendar feeds
 
 **Commit:** `feat(wave-35): per-user signed ICS feed of upcoming tasks`
 
@@ -71,7 +71,7 @@ Open a PR to `main` after the task's verification gate passes. Do **not** push d
 2. **`docs/AGENT_CONTEXT.md`** — add "Integrations / ICS feed (Wave 35)" golden-path bullet.
 3. **`docs/architecture/integrations.md`** is in.
 4. **`docs/dev-notes.md`** — note: "**Active:** ICS feeds are read-only; two-way calendar sync deferred."
-5. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 35 (ICS Feeds)`, update `last_completed`, `spec_version`, add `wave_36_highlights:` block.
+5. **`repo-context.yaml`** — bump `wave_status.current` to `Wave 35 (ICS Feeds)`, update `last_completed`, `spec_version`, add `wave_35_highlights:` block.
 6. **`CLAUDE.md`** — add `ics_feed_tokens` to Tables.
 
 Land docs as `docs(wave-35): documentation currency sweep`.

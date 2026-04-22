@@ -1,8 +1,8 @@
 # PlanterPlan Engineering Log & Roadmap
 
-**Current Status:** Spec v1.16.0 | 791 tests passing | 0 lint errors | Vercel preview green 
+**Current Status:** Spec v1.16.1 | 791 tests passing | 0 lint errors | Vercel preview green 
 **Last Finalized:** Wave 31 on 2026-04-21 (main → `ad5a217`) 
-**Target:** v1.0.0 release after the remaining scoped waves (33, 36, 37)
+**Target:** v1.0.0 release after the remaining scoped waves (32, 33, 34, 35, 36)
 
 ---
 

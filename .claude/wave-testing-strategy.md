@@ -65,8 +65,8 @@ Mirror the existing `makeTask` / `makeProject` style: faker defaults + `override
 | 30 | `makeNotificationPref(overrides?)` | `NotificationPreferencesRow` with all booleans true and `email_overdue_digest: 'daily'` |
 | 30 | `makeNotificationLogRow(overrides?)` | `NotificationLogRow` with default `event_type: 'mention_pending'` |
 | 30 | `makePushSubscription(overrides?)` | `{ endpoint, p256dh, auth, user_agent }` + DB row variant |
-| 33 | `makeAdminUser(overrides?)` | Mirror `makeTeamMember` for admin tests |
-| 36 | `makeIcsFeedToken(overrides?)` | Wave 36 ICS token row |
+| 34 | `makeAdminUser(overrides?)` | Mirror `makeTeamMember` for admin tests |
+| 35 | `makeIcsFeedToken(overrides?)` | Wave 35 ICS token row |
 
 Re-export each from `Testing/test-utils/index.ts` so callers `import { makeComment } from '@test/factories'`.
 
