@@ -1,10 +1,10 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.19.0 (Wave 35 — ICS calendar feeds) 
+> **Version**: 1.20.0 (Wave 36 — Template Hardening) 
 > **Last Updated**: 2026-04-22 
-> **Status**: Active Development
+> **Status**: Active Development — all scoped waves (32 → 36) shipped; v1.0.0 release pending ultrareview.
 
-> **Wave 35 closure note**: per-user signed ICS calendar feeds. New `public.ics_feed_tokens` table + `supabase/functions/ics-feed/` public edge function (`GET /functions/v1/ics-feed?token=<opaque>` → `text/calendar`, RFC 5545 VCALENDAR with all-day VEVENTs + 24h VALARM reminders). Client generates 256-bit tokens via `crypto.randomUUID()`. New Settings → Integrations tab surfaces "Generate feed" + Copy-URL + Revoke controls. Revocation is soft so `last_accessed_at` stays auditable. SSoT: `docs/architecture/integrations.md`.
+> **Wave 36 closure note**: closes two architecture-doc known gaps. **Template versioning** — `public.tasks.template_version` + BEFORE UPDATE trigger `trg_bump_template_version` increments on text/structural edits to template rows; `Task.clone` stamps `settings.cloned_from_template_version` on clone roots. Deliberately non-propagating. Admin Templates surface at `/admin/templates` shows version drift. **Template immutability** — `public.tasks.cloned_from_task_id` stamped server-side by `clone_project_template`; app-side `TaskDetailsView` delete guard blocks non-owners from deleting template-origin tasks (owner-bypass). `TaskItem` renders a "T" badge with a "From template" tooltip on every cloned row.
 
 ---
 
@@ -126,6 +126,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 ### 3.8 Technical Hardening & Infrastructure
 - [x] **Build Stabilization (Wave 16)**: Eliminated all 131 ESLint errors (`no-explicit-any`, `no-unused-vars`, Playwright false positives, etc.) and resolved TypeScript build errors across 42 files. `npm run build`, `npm run lint`, and all 385 unit tests pass cleanly. Vercel deployment blocker resolved.
 - [x] **TS 5.9 / @types/node fix (Wave 18)**: Removed deprecated `baseUrl` from `tsconfig.app.json` (TypeScript bundler mode resolves `paths` without it); installed `@types/node` required by `tsconfig.node.json`. Build: 0 errors, 385/385 tests pass.
+- [x] **Template hardening (Wave 36)**: Two architecture-doc known-gaps closed. `public.tasks.template_version int NOT NULL DEFAULT 1` + `trg_bump_template_version` BEFORE UPDATE trigger; `Task.clone` stamps `settings.cloned_from_template_version` on cloned roots. Non-propagating by design — admins spot drift via `/admin/templates`. `public.tasks.cloned_from_task_id uuid` tracks template-origin per cloned descendant; `TaskDetailsView` delete guard blocks non-owners from deleting template-origin tasks (owner-bypass); `TaskItem` renders a "T" badge.
 
 ---
 

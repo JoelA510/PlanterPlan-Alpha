@@ -135,7 +135,9 @@ RLS is enabled on all tables. Authorization is role-based per project.
 - `is_complete` — Boolean completion flag (used by `check_phase_unlock` trigger).
 - `is_locked` / `prerequisite_phase_id` — Phase locking system.
 - `position` — Sort order among siblings.
-- `settings` — JSONB. Canonical keys: `published`, `recurrence`, `spawnedFromTemplate`/`spawnedOn`, `due_soon_threshold`, `is_coaching_task`, `is_strategy_template`, `project_kind` (`'date' | 'checkpoint'` on roots only, Wave 29), `phase_lead_user_ids` (string[] on phase/milestone rows, Wave 29). **Wave 29:** `settings.project_kind` gates the date-engine + nightly-sync urgency passes; `settings.phase_lead_user_ids` widens UPDATE access via the `"Enable update for phase leads"` RLS policy (CTE walks from parent — leads may edit tasks UNDER a phase, not the phase row itself).
+- `settings` — JSONB. Canonical keys: `published`, `recurrence`, `spawnedFromTemplate`/`spawnedOn`, `due_soon_threshold`, `is_coaching_task`, `is_strategy_template`, `project_kind` (`'date' | 'checkpoint'` on roots only, Wave 29), `phase_lead_user_ids` (string[] on phase/milestone rows, Wave 29), `cloned_from_template_version` (int on cloned roots, Wave 36 — stamps the source template's `template_version` at clone time). **Wave 29:** `settings.project_kind` gates the date-engine + nightly-sync urgency passes; `settings.phase_lead_user_ids` widens UPDATE access via the `"Enable update for phase leads"` RLS policy (CTE walks from parent — leads may edit tasks UNDER a phase, not the phase row itself).
+- `template_version` — Wave 36. Monotonic int on template rows, bumped by `trg_bump_template_version` BEFORE UPDATE trigger whenever a template's title / description / days_from_start / duration / settings change.
+- `cloned_from_task_id` — Wave 36. FK to `public.tasks(id) ON DELETE SET NULL`. NULL on custom additions; points to the source template task on every cloned descendant. Backs the app-side delete guard in `TaskDetailsView`.
 - `days_from_start` — Relative scheduling offset.
 - `assignee_id` — FK to auth user.
 

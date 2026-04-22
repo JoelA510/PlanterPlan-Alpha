@@ -2,6 +2,20 @@
 
 Technical debt and architectural notes for the team.
 
+## Wave 36 — Template Hardening
+
+### Resolved (Wave 36)
+
+- **Template versioning** — `public.tasks.template_version int NOT NULL DEFAULT 1` (migration `docs/db/migrations/2026_04_18_template_versioning.sql`). BEFORE UPDATE trigger `trg_bump_template_version` increments on template-row text/structural edits. `Task.clone` looks up the source template's version after the RPC lands and stamps `settings.cloned_from_template_version` on the cloned root. Deliberate non-propagation (edits to the template do NOT update existing instances) — admins spot drift in `/admin/templates` via a "stale" badge when an instance's stamp is behind the current template version.
+- **Template immutability** — `public.tasks.cloned_from_task_id uuid REFERENCES public.tasks(id) ON DELETE SET NULL` (migration `docs/db/migrations/2026_04_18_task_template_origin.sql`). Stamped server-side by `clone_project_template` per cloned descendant. `TaskDetailsView` delete guard: non-owners see a modal ("Only the project owner can delete template-origin tasks"); owners bypass and delete directly. `TaskItem` renders an indigo "T" badge with a "From template" Radix tooltip (reusing the Wave 33 primitive).
+- **Admin Templates surface at `/admin/templates`** — cross-tenant template list with Version column + right-side "cloned instances" drilldown showing each instance's stamped version vs the template's current version. New lazy-loaded route registered under the Wave 34 AdminLayout.
+
+### Active (Wave 36 → future)
+
+- **Server-side delete enforcement** — v1 ships an app-side guard only; a per-row RLS policy would be brittle and owner-bypass is clearer in app code. Revisit if abuse reports materialize.
+- **UI to "update this project to the latest template version"** — deferred (would require a three-way merge).
+- **Tracking edits to template-origin tasks** — deferred; only deletion is gated for v1.
+
 ## Wave 35 — External Integrations (ICS)
 
 ### Active (Wave 35)

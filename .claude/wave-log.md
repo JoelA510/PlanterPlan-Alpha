@@ -1,8 +1,8 @@
 # PlanterPlan Engineering Log & Roadmap
 
-**Current Status:** Spec v1.19.0 | 859 tests passing | 0 lint errors | Vercel preview green 
-**Last Finalized:** Wave 35 on 2026-04-22 
-**Target:** v1.0.0 release after the remaining scoped wave (36)
+**Current Status:** Spec v1.20.0 | 864 tests passing | 0 lint errors | Vercel preview green | **All scoped waves shipped — v1.0.0 pending ultrareview.** 
+**Last Finalized:** Wave 36 on 2026-04-22 
+**Target:** v1.0.0 release after the single-branch megabatch is merged to main.
 
 ---
 
@@ -82,15 +82,11 @@ Delivery scaffolding established for Waves 26–38:
 | **33** | Unified Tasks View | 1.17.0 | 827 | Shadcn `<Tooltip>` wrapper around `@radix-ui/react-tooltip@^1.2.8`, app-shell `<TooltipProvider delayDuration={300}>`. `formatTaskDueBadge` helper (`src/shared/lib/date-engine/`) produces `{label, kind, tone}` with today/tomorrow/weekday/full-date + overdue/due_soon/neutral tones — no raw date math. `TaskItem` renders the badge right-aligned and wraps the title in a Tooltip revealing the parent project name when threaded. `useTaskFilters` grew a `DueDateRange` predicate (AND with status filters). `TasksPage` surfaces two inline `<input type="date">` + clear button, mounts `<TaskDetailsPanel>` on row click, builds rootId→title map for the tooltip prop. `/daily` deleted (`<Navigate to="/tasks" replace />` redirect); daily E2E page object + feature + step file purged. New i18n keys under `tasks.filters.dateRange` + `tasks.dueBadge`. Dev dep `@testing-library/user-event@^14.6.1`. |
 | **34** | Advanced Admin Management | 1.18.0 | 842 | Lazy-loaded `/admin` shell (`<AdminLayout>` hard-gated via `useIsAdmin()`; non-admins toasted + Navigate to `/dashboard`). Nested routes: `/admin` (Home + cross-project activity), `/admin/users/:uid?` (filtered table + detail aside), `/admin/analytics` (recharts snapshot dashboard). Five SECURITY DEFINER RPCs (`admin_search_users`, `admin_user_detail`, `admin_recent_activity`, `admin_list_users`, `admin_analytics_snapshot`) gate every read through `public.is_admin(auth.uid())` — non-admin callers raise `unauthorized`. `trg_notify_admin_on_new_project` AFTER INSERT trigger enqueues `admin_new_project_pending` rows into the Wave 30 notification pipeline (closes Wave 30 deferral). `useIsAdmin` / `useAdminUsers` / `useAdminUserDetail` / `useAdminAnalytics` hooks under `src/features/admin/`. planterClient grew `admin.*` namespace. Zero new deps (recharts + cmdk were already in the bundle). |
 | **35** | ICS Calendar Feeds | 1.19.0 | 859 | `public.ics_feed_tokens` (migration `docs/db/migrations/2026_04_18_ics_tokens.sql`) with opaque-token auth + soft revocation. `supabase/functions/ics-feed/` public edge function returns `text/calendar` (RFC 5545 VCALENDAR with all-day VEVENTs + 24h VALARM, escape + fold helpers in `ics.ts`). Client generates 256-bit tokens via `crypto.randomUUID()` × 2. `planter.integrations.{list,create,revoke}IcsFeedToken`. Settings → Integrations tab (`IcsFeedsCard`) surfaces create / copy-URL / revoke. SSoT: `docs/architecture/integrations.md`. |
+| **36** | Template Hardening | 1.20.0 | 864 | Two architecture-doc known-gaps closed. `template_version int NOT NULL DEFAULT 1` on `public.tasks` + BEFORE UPDATE trigger `trg_bump_template_version` (migration `docs/db/migrations/2026_04_18_template_versioning.sql`). `Task.clone` looks up + stamps `settings.cloned_from_template_version` on clone roots. `cloned_from_task_id uuid ON DELETE SET NULL` column (migration `docs/db/migrations/2026_04_18_task_template_origin.sql`) — server-side stamp during `clone_project_template`; `TaskDetailsView` delete guard blocks non-owners from deleting template-origin tasks (owner-bypass). `TaskItem` renders a "T" badge with a "From template" tooltip. New `/admin/templates` surface shows version drift with a "stale" badge. |
 
 ### 🟡 Remaining Roadmap
 
-*1 wave / 2 tasks remaining until v1.0.0. The original plan's Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped, and the remaining scope was renumbered sequentially after Wave 31.*
-
-#### Wave 36 — Template Hardening
-
-* [ ] Task 1 — Template versioning (stamp `template_version` on cloned instances + admin version log)
-* [ ] Task 2 — Template immutability (origin tracking on cloned tasks + UI guard against deletion)
+*No waves remaining. All scoped Waves 32 → 36 shipped on the single-branch megabatch. The original plan's Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) remain descoped.*
 
 ---
 
