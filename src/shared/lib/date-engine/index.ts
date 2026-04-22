@@ -78,11 +78,23 @@ export const formatDate = (date: DateInput | null | undefined, formatStr: string
  return format(d, formatStr);
 };
 
-/** Returns `true` if the date is strictly in the past (not today). */
+/** Returns `true` if the date is strictly in the past (not today).
+ *
+ * Date-only strings (`YYYY-MM-DD`) are compared as UTC calendar days to match
+ * the same-day convention used by {@link isTodayDate} / {@link toIsoDate} and
+ * to avoid local-TZ drift near midnight boundaries. Datetime / `Date` inputs
+ * still use `date-fns` `isPast` + {@link isTodayDate} (which itself promotes
+ * date-only strings to the UTC branch) so the "today" carve-out remains
+ * UTC-stable on every input shape.
+ */
 export const isPastDate = (date: DateInput | null | undefined): boolean => {
+ if (date == null) return false;
+ if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  return date < new Date().toISOString().split('T')[0];
+ }
  const d = resolve(date);
  if (!d) return false;
- return isPast(d) && !isToday(d);
+ return isPast(d) && !isTodayDate(d);
 };
 
 /** Returns `true` if the date is today.

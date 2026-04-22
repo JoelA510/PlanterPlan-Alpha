@@ -1,6 +1,7 @@
 import { supabase } from '../db/client';
 import { toIsoDate, nowUtcIso, calculateMinMaxDates } from '@/shared/lib/date-engine';
 import { retry } from '../lib/retry';
+import { assertSafeUrl } from '@/shared/lib/safe-url';
 import type { Database } from '@/shared/db/database.types';
 import type {
     Project,
@@ -926,37 +927,34 @@ export const planter: PlanterClient = {
         },
         TaskResource: (() => {
             const base = createEntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']>('task_resources');
-            // Server-side companion to the client-side `safeUrl` render guard:
+            // Server-boundary companion to the render-time `safeUrl` guard:
             // reject `javascript:` / `data:` / `vbscript:` / etc. schemes at the
             // create/update boundary so a stored XSS payload can't reach the
-            // database. Accepts http / https / mailto / tel only.
-            const ALLOWED_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:']);
-            const assertSafeUrl = (urlCandidate: unknown): void => {
-                if (typeof urlCandidate !== 'string' || urlCandidate.trim() === '') return;
-                try {
-                    const parsed = new URL(urlCandidate);
-                    if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
-                        throw new PlanterError(
-                            `Unsafe resource_url scheme: ${parsed.protocol}`,
-                            400,
-                        );
-                    }
-                } catch (err) {
-                    if (err instanceof PlanterError) throw err;
-                    throw new PlanterError('Invalid resource_url format', 400);
-                }
-            };
+            // database. Authorization itself (who may INSERT / UPDATE which
+            // row) is enforced by RLS on `task_resources` — this wrapper is
+            // scheme validation only. Accepts http / https / mailto / tel
+            // plus relative paths resolved against the shared placeholder
+            // base in `safe-url.ts` (mirrors render-time resolution).
+            const throwUnsafe = (reason: string) => new PlanterError(reason, 400);
             return {
                 ...base,
+                /**
+                 * Validates `resource_url` scheme then delegates to `base.create`.
+                 * Authorization: RLS-scoped (project owner / editor).
+                 */
                 create: async (payload: Database['public']['Tables']['task_resources']['Insert'] | Database['public']['Tables']['task_resources']['Insert'][], options?: { signal?: AbortSignal }) => {
                     const rows = Array.isArray(payload) ? payload : [payload];
                     for (const row of rows) {
-                        assertSafeUrl((row as { resource_url?: unknown }).resource_url);
+                        assertSafeUrl((row as { resource_url?: unknown }).resource_url, throwUnsafe);
                     }
                     return base.create(payload, options);
                 },
+                /**
+                 * Validates `resource_url` scheme then delegates to `base.update`.
+                 * Authorization: RLS-scoped (project owner / editor).
+                 */
                 update: async (id: string, payload: Database['public']['Tables']['task_resources']['Update'], options?: { signal?: AbortSignal }) => {
-                    assertSafeUrl((payload as { resource_url?: unknown }).resource_url);
+                    assertSafeUrl((payload as { resource_url?: unknown }).resource_url, throwUnsafe);
                     return base.update(id, payload, options);
                 },
                 setPrimary: async (taskId: string, resourceId: string | null) => {

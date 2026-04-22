@@ -44,15 +44,19 @@ DROP FUNCTION IF EXISTS public.debug_create_project(text, uuid);
 
 DROP POLICY IF EXISTS "Allow project creation" ON public.tasks;
 
+-- `(SELECT auth.uid())` is the idiomatic Supabase form: `auth.uid()` is
+-- equivalent to `(auth.jwt() ->> 'sub')::uuid` but more readable, and the
+-- wrapping SELECT is the documented InitPlan cache so the value is computed
+-- once per query instead of per row.
 CREATE POLICY "Allow project creation" ON public.tasks
     FOR INSERT TO authenticated
     WITH CHECK (
         (root_id IS NULL OR root_id = id)
         AND parent_task_id IS NULL
-        AND creator = (SELECT (auth.jwt() ->> 'sub')::uuid)
+        AND creator = (SELECT auth.uid())
         AND (
             origin IS DISTINCT FROM 'template'
-            OR public.is_admin((SELECT (auth.jwt() ->> 'sub')::uuid))
+            OR public.is_admin((SELECT auth.uid()))
         )
     );
 
