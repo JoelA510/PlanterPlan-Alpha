@@ -19,15 +19,16 @@ Wave 34 ships **Advanced Admin Management** (§3.7). The existing `admin_users` 
 
 ## Pre-flight verification (run before any task)
 
-1. `git log --oneline` includes the Wave 31 commits + docs sweep.
+1. `git log --oneline` includes the Wave 33 commits + docs sweep (not Wave 31 — Waves 32 and 33 land between 31 and this wave).
 2. These files exist:
-   - `src/app/App.tsx` (routes register here — NOT `router.tsx`; Wave 34 adds `/admin/*` routes)
-   - `src/shared/contexts/AuthContext.tsx` (verify it exposes an `isAdmin` accessor, OR add one wrapping the existing `is_admin(auth.uid())` RPC. The Wave 23 schema map confirms `is_admin` is the SECURITY DEFINER function on the DB side — the React-side cache lives in `AuthContext`. If absent, add a `useIsAdmin()` hook reading from `useAuth()` + the RPC.)
-   - `src/shared/api/planterClient.ts` (extend with `admin.*` namespace; `rpc<T>(name, params)` is the existing helper to call from this namespace)
-   - `src/shared/db/schema.sql` (must contain `is_admin(uuid)` and `is_active_member(uuid, uuid)` per Wave 23 schema map)
-   - `recharts` is already a dep (Wave 19, 20, 28).
+   - `src/app/App.tsx` (routes register here — NOT `router.tsx`; Wave 34 adds `/admin/*` routes). Routing pattern to mirror: the lazy-loaded `/gantt` route already in the file.
+   - `src/shared/contexts/AuthContext.tsx` — as of 2026-04-22 pre-flight, this context hydrates `user.role` via `authApi.checkIsAdmin()` but does **not** export a dedicated `isAdmin` accessor. Task 1 must add either a `useIsAdmin()` hook or an `isAdmin` field on the `useAuth()` return, reading from the existing hydration path (no new RPC call per render).
+   - `src/shared/api/planterClient.ts` (extend with `admin.*` namespace; `planter.rpc<T>(name, params)` is the existing helper to call from this namespace — no new RPC plumbing needed)
+   - `src/shared/ui/command.tsx` exists (Shadcn `CommandDialog` wrapper around `cmdk` — already a dep). Task 1's global search uses it.
+   - `docs/db/schema.sql` (must contain `is_admin(p_user_id uuid)` (Wave 23) and `is_active_member(uuid, uuid)` per Wave 23 schema map)
+   - `recharts` is already a dep (Wave 19, 20, 28). `cmdk` is already a dep.
 3. Confirm an admin user exists in your local Supabase: `SELECT * FROM public.admin_users WHERE user_id = auth.uid();` should return one row when logged in as the admin.
-4. **Wave 27 `activity_log` RLS** — verify it covers admin SELECT. The Wave 27 policy reads `is_active_member(project_id, auth.uid()) OR public.is_admin(auth.uid())`. If admin path absent (regression risk), Task 1's `admin_recent_activity` RPC bypasses via SECURITY DEFINER anyway — but document the redundancy in the RPC comment.
+4. **Wave 27 `activity_log` RLS** — verified 2026-04-22 that the policy `"Activity log select by project members"` already reads `is_active_member(project_id, auth.uid()) OR public.is_admin(auth.uid())`, so admins can SELECT cross-project activity directly. Task 1's `admin_recent_activity` RPC still runs SECURITY DEFINER for consistency with the other admin RPCs; the `is_admin` OR in the policy is redundant but harmless — document as such in the RPC comment.
 
 ## Branch
 

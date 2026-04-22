@@ -18,9 +18,14 @@ The known-gaps list this wave attacks (sourced from `docs/architecture/*.md` + `
 
 ## Pre-flight verification (run before any task)
 
-1. `git log --oneline` includes the Wave 36 commit + docs sweep.
-2. The existing tasks-table columns: `is_locked`, `prerequisite_phase_id`, `task_type` (Wave 25), `template_version` (NOT YET — Task 1 adds), `cloned_from_task_id` (NOT YET — Task 2 adds).
-3. The existing `clone_project_template` RPC exists and has the signature `(p_template_id uuid, p_new_parent_id uuid, p_new_origin text, p_user_id uuid, p_title text DEFAULT NULL, p_description text DEFAULT NULL, p_start_date date DEFAULT NULL, p_due_date date DEFAULT NULL)` per Wave 23 schema map. Tasks 1 + 2 modify this RPC carefully (preserve signatures).
+1. `git log --oneline` includes the Wave 35 commit + docs sweep (not Wave 36 — this **is** Wave 36).
+2. The existing tasks-table columns: `is_locked`, `prerequisite_phase_id`, `task_type` (Wave 25 — migration `docs/db/migrations/2026_04_18_task_type_discriminator.sql`), `template_version` (NOT YET — Task 1 adds), `cloned_from_task_id` (NOT YET — Task 2 adds). Verify the absence via `grep -E 'template_version|cloned_from_task_id' docs/db/schema.sql` — both should return nothing.
+3. The existing `clone_project_template` RPC exists in `docs/db/schema.sql` (lines ~257-472 as of Wave 23) with the signature `(p_template_id uuid, p_new_parent_id uuid, p_new_origin text, p_user_id uuid, p_title text DEFAULT NULL, p_description text DEFAULT NULL, p_start_date date DEFAULT NULL, p_due_date date DEFAULT NULL)`. Tasks 1 + 2 modify this RPC carefully (preserve the signature).
+4. **Task 1 admin UI dependency** — Task 1's Admin Templates UI (`src/pages/admin/AdminTemplates.tsx`) extends the `/admin` shell that Wave 34 created. Wave 34 **must** be merged before starting Wave 36 Task 1's UI changes; if `src/pages/admin/` does not exist, HALT and surface — this wave depends on that shell.
+5. **Architecture doc gaps** — verify both known-gap anchors are still present before flipping them:
+   - `docs/architecture/library-templates.md` has a "Versioning of templates" open gap.
+   - `docs/architecture/projects-phases.md` has a "Template Immutability" open gap.
+   If either is already marked Resolved, the wave plan has drifted — HALT.
 
 ## Branch
 

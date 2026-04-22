@@ -3,9 +3,10 @@
 PlanterPlan is a church planting project management app (React 18 + TypeScript + Supabase + Vite). Read `CLAUDE.md` for conventions and architecture. Strict typing, Feature-Sliced Design (FSD) boundaries, no direct Supabase calls in components, no raw date math — all enforced. See `.gemini/styleguide.md` for the full bar.
 
 Wave 32 shipped to `main`:
-- Project due-date cache invalidation on edit
 - Tasks page status-filter regressions (milestone + inert filters)
 - "New Template" button on Dashboard
+
+> The originally-scoped third Wave 32 task (project due-date cache invalidation on edit) was discovered during pre-flight to already be in the tree from Wave 15 (commit `c88b3e7`) with its regression test from commit `30616d8`; it was dropped rather than re-shipped. See `docs/dev-notes.md`.
 
 **Roadmap note**: original Waves 32 (PWA + Offline), 34 (White Labeling), 35 (Stripe Monetization + Licensing), and 38 (Release Cutover) were descoped from the earlier plan, and wave numbers were reassigned to the current remaining scope. After Wave 33 (this wave) the active roadmap is: Wave 34 (Advanced Admin Management) → Wave 35 (ICS feeds) → Wave 36 (template hardening).
 
@@ -17,15 +18,16 @@ Wave 33 **unifies the task list experience**. Today there are two parallel views
 
 ## Pre-flight verification (run before any task)
 
-1. `git log --oneline` includes the 3 Wave 32 commits + docs sweep.
+1. `git log --oneline` includes the 2 Wave 32 commits + docs sweep.
 2. These files exist at the line numbers cited during scoping:
    - `src/pages/DailyTasks.tsx` (short date badge at ~lines 98-106)
-   - `src/pages/TasksPage.tsx` (currently passes `onTaskClick={handleNoop}` at ~line 208)
-   - `src/pages/Project.tsx` (`<TaskDetailsPanel>` mount at ~lines 398-428; `handleTaskClick` wiring at ~lines 346-349)
-   - `src/features/tasks/components/TaskItem.tsx` (task row component — does it render due dates already?)
+   - `src/pages/TasksPage.tsx` (currently passes `onTaskClick={handleNoop}` at ~line 208; filters are inlined in the page as `<Select>` dropdowns around lines 136-162 — there is NO dedicated `TaskFilterBar.tsx` component today)
+   - `src/pages/Project.tsx` (`<TaskDetailsPanel>` mount at ~lines 397-428; `handleTaskClick` wiring at ~line 347)
+   - `src/features/tasks/components/TaskItem.tsx` (task row component — does it render due dates already? Confirmed absent pre-wave; only a status badge renders today.)
    - `src/shared/ui/popover.tsx` (exists; Radix Popover wrapper — can reuse as tooltip fallback if Task 1 is skipped)
 3. Confirm `@radix-ui/react-tooltip` is NOT yet in `package.json`. Task 1 adds it.
-4. Find the navigation link to `/daily` (grep the codebase for `'/daily'`). The link is removed in Task 2; note every call site.
+4. Find the navigation links to `/daily` (grep the codebase for `'/daily'`). Known call sites at time of scoping: `src/app/App.tsx` (route registration), `ProjectSidebar.tsx`, `CommandPalette.tsx`. Task 2 must update all of them. Re-grep during execution — don't trust the scoping list alone.
+5. Confirm `Testing/unit/pages/DailyTasks.test.tsx` does **not** exist today. If it does, it must be deleted (not skipped) during Task 2. As of 2026-04-22 pre-flight it is absent, so Task 2 only needs to handle the source file deletion.
 
 ## Branch
 
@@ -74,9 +76,10 @@ Three tasks. Task 1 is infra (~50 LOC). Task 2 is the bulk of the merge (~400 LO
    - Relative wording rule: if due today → "Today"; if tomorrow → "Tomorrow"; if within ±7 days → weekday + short date ("Mon Apr 27"); otherwise "MMM d, yyyy". Centralize in a new `src/shared/lib/date-engine/formatTaskDueBadge.ts` (no raw date math — route through existing `date-engine` primitives).
    - This replaces the no-date-display behavior in TaskItem today. Verify the Project view's usage of TaskItem still reads fine — the Project view gets the same badges for free (desirable).
 
-2. **Add the due-date range filter** (`src/features/tasks/hooks/useTaskFilters.ts` + `src/features/tasks/components/TaskFilterBar.tsx` — adjust file names to match what actually exists):
+2. **Add the due-date range filter** (`src/features/tasks/hooks/useTaskFilters.ts` + wherever the filter UI actually lives):
    - Extend the filter state with `dueDateRange: { start: string | null, end: string | null }`.
-   - Add a two-input date picker to the filter bar. Use the existing date-input component (grep for `<input type="date"` in the codebase to find the convention — don't introduce a new calendar lib).
+   - As of 2026-04-22, filters are rendered inline in [TasksPage.tsx:136-162](src/pages/TasksPage.tsx:136) via `<Select>` dropdowns — there is no dedicated `TaskFilterBar` component. Choose the cheaper path: extend inline in `TasksPage.tsx`, OR extract the whole filter cluster into a new `src/features/tasks/components/TaskFilterBar.tsx` as part of this task. Prefer the extraction if it keeps the added date-range inputs readable; otherwise inline is fine.
+   - Add a two-input date picker. Use the existing date-input component (grep for `<input type="date"` or existing Shadcn `Calendar`/`DateRangePicker` usage — don't introduce a new calendar lib).
    - Predicate: task is included when `task.due_date` (ISO) falls within `[start, end]` inclusive; open-ended on either side if one bound is null.
    - Combines with existing status filters via AND (user wants "overdue AND due this week", for instance).
    - Add to the filter state URL query-string if the existing filters serialize there — match the pattern, don't invent a new one.
@@ -92,9 +95,9 @@ Three tasks. Task 1 is infra (~50 LOC). Task 2 is the bulk of the merge (~400 LO
 
 5. **Tests**:
    - `Testing/unit/features/tasks/components/TaskItem.dueBadge.test.tsx` (NEW): render a TaskItem with due dates at today, tomorrow, +3 days, -2 days, +60 days → assert correct wording + color class per case.
-   - `Testing/unit/features/tasks/hooks/useTaskFilters.test.ts` (extended or NEW from Wave 32): add `dueDateRange` cases — inclusive bounds, open-ended bounds, AND-combination with `status === 'completed'`.
+   - `Testing/unit/features/tasks/hooks/useTaskFilters.test.ts` (Wave 32 landed this file; extend here): add `dueDateRange` cases — inclusive bounds, open-ended bounds, AND-combination with `status === 'completed'`.
    - `Testing/unit/shared/lib/date-engine/formatTaskDueBadge.test.ts` (NEW): unit-level coverage for the relative-wording rules. Lock `new Date('2026-04-22')` via vi-injected clock.
-   - Delete `Testing/unit/pages/DailyTasks.test.tsx` if it exists.
+   - `Testing/unit/pages/DailyTasks.test.tsx` was absent at scoping time — no deletion needed. If it reappears before you execute, delete it (not skip).
 
 6. **Architecture doc**: `docs/AGENT_CONTEXT.md` — update the Routes section (remove `/daily`, add redirect note).
 

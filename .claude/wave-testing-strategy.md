@@ -296,18 +296,18 @@ For each wave: (a) **existing tests at risk** (will break or need extension), (b
 
 ### Wave 32 — UX Bug Fixes
 
+> **Audit note (2026-04-22)**: Wave 32 was originally scoped with three tasks. The first (project due-date cache invalidation on edit) was discovered during pre-flight to already be shipped in Wave 15 (commit `c88b3e7`) with its regression test at commit `30616d8`. That task was dropped and Wave 32 now ships two tasks — the two listed below. See `.claude/wave-32-prompt.md` for the renumbered task list.
+
 **Existing tests at risk:**
 
 | Test file | Risk | Mitigation |
 | --- | --- | --- |
-| `Testing/unit/features/projects/hooks/useProjectMutations.test.ts` | Task 1 changes `useUpdateProject`'s cache-invalidation set. Existing asserts about `invalidateQueries` may assert on the single `['projects']` key. | Extend the existing test: assert BOTH `['projects']` and `['project', projectId]` are invalidated. If it asserts on a specific call count, bump it to 2. |
-| `Testing/unit/features/tasks/hooks/useTaskFilters.test.ts` (if exists) | Task 2 rewrites the `milestones` predicate and fixes any inert status filters. Any test that exercises the old (wrong) milestone behavior will need to be rewritten. | Read the file first; keep the structure, rewrite the milestone assertions to match `task_type === 'milestone'` rather than the structural-position heuristic. |
-| `Testing/unit/pages/Dashboard.test.tsx` (if exists) | Task 3 adds a "New Template" button. Existing assertions that count header buttons will go from N to N+1. | Extend: add a new test specifically for the template-button wiring; fix the count assertion if there is one. |
+| `Testing/unit/features/tasks/hooks/useTaskFilters.test.ts` (exists) | Task 1 rewrites the `milestones` predicate and fixes any inert status filters. Any test that exercises the old (wrong) milestone behavior will need to be rewritten. | Read the file first; keep the structure, rewrite the milestone assertions to match `task_type === 'milestone'` rather than the structural-position heuristic. |
+| `Testing/unit/pages/Dashboard.test.tsx` (if exists) | Task 2 adds a "New Template" button in the Dashboard header. `CreateTemplateModal` is already imported + mounted; Task 2 only adds the button that fires `actions.setShowTemplateModal(true)`. Existing assertions that count header buttons will go from N to N+1. | Extend: add a new test for the button wiring (spy on `useDashboard`'s `actions.setShowTemplateModal`); fix any header-button-count assertion. |
 
 **New tests:**
-- [ ] `Testing/unit/features/projects/hooks/useProjectMutations.test.ts` — extend with the dual-cache-invalidation assertion.
-- [ ] `Testing/unit/features/tasks/hooks/useTaskFilters.test.ts` — NEW or extend. Fixture: 1 project, 2 phases, 3 milestones, 5 mixed-status tasks. Assert each of the 9 filters returns the correct subset. Milestone filter returns ONLY `task_type === 'milestone'` rows.
-- [ ] `Testing/unit/pages/Dashboard.test.tsx` — extend or NEW. Assert: "New Template" button renders; clicking it opens the modal in template mode.
+- [ ] `Testing/unit/features/tasks/hooks/useTaskFilters.test.ts` — extend. Fixture: 1 project, 2 phases, 3 milestones (`task_type: 'milestone'`), 5 mixed-status tasks. Assert each of the 9 filters returns the correct subset. Milestone filter returns ONLY `task_type === 'milestone'` rows.
+- [ ] `Testing/unit/pages/Dashboard.test.tsx` — extend or NEW. Assert: "New Template" button renders; clicking it calls `actions.setShowTemplateModal(true)`.
 
 **New infrastructure:**
 - [ ] No new factories. Existing `makeTask`, `makeProject` cover the scenarios via overrides (add `task_type: 'milestone'` override if the factory doesn't accept it today; tiny extension).
@@ -464,11 +464,11 @@ When a wave plan modifies a source file, use this table to find the existing tes
 | `src/features/tasks/components/TaskFormFields.tsx` | `TaskForm.coaching.test.tsx` (Wave 22 precedent). Wave 29 adds new field-level tests. |
 | `src/features/tasks/hooks/useTaskMutations.ts` | `useTaskMutations.test.ts`, `useTaskMutations.coachingRefetch.test.ts`. |
 | `src/features/tasks/hooks/useTaskComments.ts` (Wave 26) | `useTaskComments.test.tsx` (NEW Wave 26). |
-| `src/features/tasks/hooks/useTaskFilters.ts` | **Wave 32** fixes the `milestones` + inert-status predicates; **Wave 33** adds `dueDateRange`. Tests: `useTaskFilters.test.ts` (NEW in Wave 32, extended in Wave 33). |
+| `src/features/tasks/hooks/useTaskFilters.ts` | **Wave 32** fixes the `milestones` + inert-status predicates; **Wave 33** adds `dueDateRange`. Tests: `useTaskFilters.test.ts` (already exists pre-Wave-32; Wave 32 extends with per-filter fixture coverage, Wave 33 extends again with `dueDateRange`). |
 | `src/features/projects/components/EditProjectModal.tsx` | `EditProjectModal.test.tsx`, `EditProjectModal.testSend.test.tsx`. Wave 29 adds `EditProjectModal.kind.test.tsx`. |
 | `src/features/projects/components/ProjectSwitcher.tsx` | `ProjectSwitcher.test.tsx`. (Not modified post-Wave-25.) |
 | `src/features/projects/components/PhaseCard.tsx` | (No existing test inventory entry; Wave 29 adds `PhaseCard.donut.test.tsx`.) |
-| `src/features/projects/hooks/useProjectMutations.ts` | `useProjectMutations.test.ts`. **Wave 32** extends with dual-cache-invalidation assertion (`['projects']` + `['project', projectId]`). |
+| `src/features/projects/hooks/useProjectMutations.ts` | `useProjectMutations.test.ts`. The dual-cache-invalidation assertion (`['projects']` + `['project', projectId]`) was originally scoped into Wave 32 but discovered during pre-flight to have landed in Wave 15 (commit `c88b3e7`); test coverage landed at commit `30616d8`. Wave 32 dropped this task. |
 | `src/features/projects/hooks/useProjectRealtime.ts` | `useProjectRealtime.test.ts`. (Not modified by Wave 27 — `useProjectPresence` is a separate hook.) |
 | `src/pages/TasksPage.tsx` | `TasksPage.test.tsx` (if exists). **Wave 33** adds due-date range filter, click-to-panel, title tooltip wiring — extends this file in place. |
 | `src/pages/Dashboard.tsx` | `Dashboard.test.tsx` (if exists). **Wave 32** adds "New Template" button assertion. |
