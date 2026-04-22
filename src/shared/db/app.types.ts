@@ -278,3 +278,25 @@ export interface AdminAnalyticsSnapshot {
     most_active_users: Array<{ user_id: string; email: string; display_name: string; tasks_created_30d: number }>;
     most_popular_templates: Array<{ template_id: string; title: string; clone_count: number }>;
 }
+
+// ----------------------------------------------------------------------------
+// Integrations (Wave 35) — ICS feed tokens
+// ----------------------------------------------------------------------------
+
+/** Row in `public.ics_feed_tokens`. */
+export interface IcsFeedTokenRow {
+    id: string;
+    user_id: string;
+    token: string;
+    label: string | null;
+    project_filter: string[] | null;
+    created_at: string;
+    revoked_at: string | null;
+    last_accessed_at: string | null;
+}
+
+/** Payload for creating a new ICS token. The client generates the token value via crypto.randomUUID(). */
+export interface CreateIcsFeedTokenInput {
+    label?: string | null;
+    project_filter?: string[] | null;
+}

@@ -201,6 +201,39 @@ export type Database = {
  }
  Relationships: []
  }
+ ics_feed_tokens: {
+ Row: {
+ id: string
+ user_id: string
+ token: string
+ label: string | null
+ project_filter: string[] | null
+ created_at: string
+ revoked_at: string | null
+ last_accessed_at: string | null
+ }
+ Insert: {
+ id?: string
+ user_id: string
+ token: string
+ label?: string | null
+ project_filter?: string[] | null
+ created_at?: string
+ revoked_at?: string | null
+ last_accessed_at?: string | null
+ }
+ Update: {
+ id?: string
+ user_id?: string
+ token?: string
+ label?: string | null
+ project_filter?: string[] | null
+ created_at?: string
+ revoked_at?: string | null
+ last_accessed_at?: string | null
+ }
+ Relationships: []
+ }
  people: {
  Row: {
  created_at: string | null

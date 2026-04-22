@@ -123,6 +123,7 @@ RLS is enabled on all tables. Authorization is role-based per project.
 - **`notification_preferences`** — Per-user singleton (PK = `user_id` → `auth.users`). Bootstrap trigger on `auth.users` seeds a row on signup. Per-event email/push toggles, overdue-digest cadence (`off`/`daily`/`weekly`), quiet hours (start/end + IANA timezone). Wave 30.
 - **`notification_log`** — Append-only notification audit trail. `channel ∈ {'email','push'}`, `event_type` carries the dispatch state-machine phase. RLS denies INSERT/UPDATE/DELETE at policy level — only SECURITY DEFINER dispatch edge functions write. Wave 30.
 - **`push_subscriptions`** — One row per (user, browser endpoint). `UNIQUE (user_id, endpoint)`. Client inserts on subscribe, DELETEs on unsubscribe. `dispatch-push` DELETEs stale rows on HTTP 410. Wave 30.
+- **`ics_feed_tokens`** — One row per user-generated ICS calendar feed token. `UNIQUE (token)`. Client generates 256-bit tokens via `crypto.randomUUID()` × 2. Revocation is soft (`revoked_at IS NOT NULL`). Public edge function `supabase/functions/ics-feed/` accepts the token and returns `text/calendar`. Wave 35.
 
 **Views:**
 - **`tasks_with_primary_resource`** — Tasks LEFT JOINed with their primary `task_resources` row. Used by `planterClient.ts` for reads.

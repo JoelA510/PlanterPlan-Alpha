@@ -1,10 +1,10 @@
 # PlanterPlan — Project Specification
 
-> **Version**: 1.18.0 (Wave 34 — Advanced Admin Management) 
+> **Version**: 1.19.0 (Wave 35 — ICS calendar feeds) 
 > **Last Updated**: 2026-04-22 
 > **Status**: Active Development
 
-> **Wave 34 closure note**: a dedicated `/admin` shell lands with a left-rail nav (Home / Users / Analytics / Templates / Projects). Hard-gated via `useIsAdmin()` — non-admins are redirected with a toast. Features: global search across users + projects + templates (cmd+K-ready, 200ms debounce); a filterable user-management table with server-side role / last-login / has-overdue / search filters; an analytics dashboard with recharts-backed totals, projects-per-week timeline, project-kind pie, task-status bar, and top-10 active users + popular templates; and an `admin_new_project_pending` notification trigger that closes the Wave 30 deferral (admins get pipeline-compatible notifications through the Wave 30 `dispatch-notifications` path, honoring each admin's prefs). Five new SECURITY DEFINER RPCs gate every admin read behind `public.is_admin(auth.uid())`.
+> **Wave 35 closure note**: per-user signed ICS calendar feeds. New `public.ics_feed_tokens` table + `supabase/functions/ics-feed/` public edge function (`GET /functions/v1/ics-feed?token=<opaque>` → `text/calendar`, RFC 5545 VCALENDAR with all-day VEVENTs + 24h VALARM reminders). Client generates 256-bit tokens via `crypto.randomUUID()`. New Settings → Integrations tab surfaces "Generate feed" + Copy-URL + Revoke controls. Revocation is soft so `last_accessed_at` stays auditable. SSoT: `docs/architecture/integrations.md`.
 
 ---
 
@@ -121,7 +121,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
   - **Task 1 (data layer + Settings UI)**: Bootstrap trigger on `auth.users` creates a default prefs row for every user. Settings → Notifications tab exposes email/push toggles per event class (mentions / overdue digest / assignment), quiet hours (start/end + IANA tz), and a recent-notifications transparency panel.
   - **Task 2 (Web Push transport)**: VAPID-based browser push. Service worker (`public/sw.js`, documented JS exception — TS conversion not currently scheduled) renders notifications; `usePushSubscription` handles opt-in/opt-out with per-device row scoping. `dispatch-push` edge function fans out via `web-push@3.6.7` with 410-cleanup and per-sub logging.
   - **Task 3 (mention + digest dispatchers)**: `resolve_user_handles` RPC maps @-handles → auth.users uuids. `trg_enqueue_comment_mentions` AFTER INSERT on `task_comments` enqueues `mention_pending` rows. Per-minute `dispatch-notifications` edge function drains those rows via a single-runner-wins state machine (`_pending → _processing → _sent | _failed | _skipped`), honoring quiet-hours and per-event prefs. Daily `overdue-digest` edge function emails assigned-overdue-tasks rollups with per-user cadence (daily / weekly-on-user-local-Monday). See `docs/architecture/notifications.md` and `docs/operations/edge-function-schedules.md` (pg_cron intentionally NOT enabled).
-- [ ] **External Integrations (ICS)**: ICS feeds for calendar integration.
+- [x] **External Integrations (ICS) (Wave 35)**: Per-user opaque-token ICS calendar feeds. `public.ics_feed_tokens` + public `supabase/functions/ics-feed/` edge function. Tokens are 256-bit (`crypto.randomUUID()` × 2), the full credential — 404 on revoked/unknown tokens (indistinguishable). Optional `project_filter` narrows to a subset of projects. VCALENDAR payload is RFC 5545 with all-day VEVENTs + 24-hour VALARM reminders. Client UI lives in Settings → Integrations. `docs/architecture/integrations.md` documents the model.
 
 ### 3.8 Technical Hardening & Infrastructure
 - [x] **Build Stabilization (Wave 16)**: Eliminated all 131 ESLint errors (`no-explicit-any`, `no-unused-vars`, Playwright false positives, etc.) and resolved TypeScript build errors across 42 files. `npm run build`, `npm run lint`, and all 385 unit tests pass cleanly. Vercel deployment blocker resolved.

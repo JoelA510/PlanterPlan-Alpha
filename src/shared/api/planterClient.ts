@@ -27,6 +27,8 @@ import type {
     AdminListUserRow,
     AdminListUsersFilter,
     AdminAnalyticsSnapshot,
+    IcsFeedTokenRow,
+    CreateIcsFeedTokenInput,
 } from '@/shared/db/app.types';
 import type { User as AuthUser } from '@supabase/supabase-js';
 
@@ -107,6 +109,15 @@ export interface PlanterClient {
         listUsers: (filter: AdminListUsersFilter, limit?: number, offset?: number) => Promise<AdminListUserRow[]>;
         /** Aggregated analytics snapshot for the /admin/analytics dashboard (Wave 34 Task 3). */
         analyticsSnapshot: () => Promise<AdminAnalyticsSnapshot | null>;
+    };
+    /** Wave 35 — third-party integrations (starts with ICS calendar feeds). */
+    integrations: {
+        /** List the current user's ICS tokens (active + revoked). */
+        listIcsFeedTokens: () => Promise<IcsFeedTokenRow[]>;
+        /** Create a new ICS token. Client generates the random token value via crypto.randomUUID(). */
+        createIcsFeedToken: (input: CreateIcsFeedTokenInput) => Promise<IcsFeedTokenRow>;
+        /** Soft-revoke a token (sets revoked_at = now). */
+        revokeIcsFeedToken: (id: string) => Promise<IcsFeedTokenRow>;
     };
 }
 
@@ -1213,6 +1224,62 @@ export const planter: PlanterClient = {
             );
             if (error) throw error;
             return data ?? null;
+        },
+    },
+    integrations: {
+        listIcsFeedTokens: async (): Promise<IcsFeedTokenRow[]> => {
+            return retry(async () => {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError) throw new PlanterError(authError.message, 401);
+                if (!user) throw new PlanterError('Not authenticated', 401);
+                const { data, error } = await supabase
+                    .from('ics_feed_tokens')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                return (data as IcsFeedTokenRow[]) ?? [];
+            });
+        },
+        createIcsFeedToken: async (input: CreateIcsFeedTokenInput): Promise<IcsFeedTokenRow> => {
+            return retry(async () => {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError) throw new PlanterError(authError.message, 401);
+                if (!user) throw new PlanterError('Not authenticated', 401);
+
+                // Generate the opaque token client-side. The server never sees a
+                // low-entropy value because this is crypto.randomUUID() (128 bits).
+                const token = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                    ? (crypto.randomUUID as () => string)().replace(/-/g, '') + (crypto.randomUUID as () => string)().replace(/-/g, '')
+                    : Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+
+                const payload = {
+                    user_id: user.id,
+                    token,
+                    label: input.label ?? null,
+                    project_filter: input.project_filter ?? null,
+                };
+
+                const { data, error } = await supabase
+                    .from('ics_feed_tokens')
+                    .insert(payload)
+                    .select('*')
+                    .single();
+                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                return data as IcsFeedTokenRow;
+            });
+        },
+        revokeIcsFeedToken: async (id: string): Promise<IcsFeedTokenRow> => {
+            return retry(async () => {
+                const { data, error } = await supabase
+                    .from('ics_feed_tokens')
+                    .update({ revoked_at: new Date().toISOString() })
+                    .eq('id', id)
+                    .select('*')
+                    .single();
+                if (error) throw new PlanterError(error.message, parseInt(error.code ?? '500'));
+                return data as IcsFeedTokenRow;
+            });
         },
     },
 };
