@@ -13,7 +13,7 @@
 - **`src/pages/`**: Top-level Route Views (Page Composition).
   - _Note_: Pages should primarily compose features, not contain deep logic.
 - **`src/shared/`**: Universal utilities and UI (No Business Logic).
-  - `ui/`: ShadCN/Radix primitives (Buttons, Inputs, Dialogs).
+  - `ui/`: ShadCN/Radix primitives (Buttons, Inputs, Dialogs, `Popover`, and as of Wave 33 a `Tooltip` wrapper around `@radix-ui/react-tooltip` — app-shell `TooltipProvider` mounted in `src/app/App.tsx`).
   - `lib/`: Pure functions (`date-engine`, `tree-helpers`).
   - `api/`: API adapters (`planterClient`).
 - **`docs/`**: Source of Truth.

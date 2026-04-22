@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import { I18nextProvider } from 'react-i18next';
 import { i18n } from '@/shared/i18n';
 import { AuthProvider, useAuth } from '@/shared/contexts/AuthContext';
+import { TooltipProvider } from '@/shared/ui/tooltip';
 import DashboardLayout from '../layouts/DashboardLayout';
 import Dashboard from '../pages/Dashboard';
 import Reports from '../pages/Reports';
@@ -29,6 +30,7 @@ export default function App() {
  <QueryClientProvider client={queryClient}>
  <I18nextProvider i18n={i18n}>
  <AuthProvider>
+ <TooltipProvider delayDuration={300}>
  <Router>
  <Routes>
  <Route path="/login" element={<LoginForm />} />
@@ -49,6 +51,7 @@ export default function App() {
  </Routes>
  </Router>
  <Toaster richColors position="top-right" />
+ </TooltipProvider>
  </AuthProvider>
  </I18nextProvider>
  </QueryClientProvider >
