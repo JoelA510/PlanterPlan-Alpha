@@ -113,7 +113,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
  // outside RHF via useState, so they need separate comparisons against
  // the values loaded from the project at mount. `pendingKindRevert` is
  // an internal UI flag (not user data), not tracked.
- const initialPublished = currentSettings.published === true;
+ const initialPublished = useMemo(() => currentSettings.published === true, [currentSettings.published]);
  const initialKind = useMemo(() => extractProjectKind(project), [project]);
  const isDirty =
   formIsDirty ||
