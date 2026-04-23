@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useAdminAnalytics } from '@/features/admin/hooks/useAdminAnalytics';
 import {
     BarChart,
@@ -38,12 +39,13 @@ const STATUS_COLORS: Record<string, string> = {
 const CHART_GRID_STROKE = 'var(--color-slate-200)';
 
 export default function AdminAnalytics() {
+    const { t } = useTranslation();
     const { data, isLoading, error } = useAdminAnalytics();
 
     if (isLoading) {
         return (
             <div className="p-8 text-sm text-muted-foreground" data-testid="admin-analytics-loading">
-                Loading analytics…
+                {t('admin.analytics_loading')}
             </div>
         );
     }
@@ -59,7 +61,7 @@ export default function AdminAnalytics() {
     if (!data) {
         return (
             <div className="p-8 text-sm text-muted-foreground" data-testid="admin-analytics-empty">
-                No analytics data yet.
+                {t('admin.no_activity')}
             </div>
         );
     }
@@ -67,7 +69,7 @@ export default function AdminAnalytics() {
     return (
         <div className="p-8" data-testid="admin-analytics">
             <header className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Analytics</h1>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('admin.analytics_title')}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                     Cross-tenant snapshot. Refreshed every 5 minutes.
                 </p>

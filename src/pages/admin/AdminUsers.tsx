@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAdminUsers, useAdminUserDetail } from '@/features/admin/hooks/useAdminUsers';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
 import type { AdminListUsersFilter } from '@/shared/db/app.types';
@@ -26,6 +27,7 @@ import {
 const PAGE_SIZE = 50;
 
 export default function AdminUsers() {
+    const { t } = useTranslation();
     const { uid: uidParam } = useParams<{ uid: string }>();
     const [filter, setFilter] = useState<AdminListUsersFilter>({
         role: 'all',
@@ -52,15 +54,13 @@ export default function AdminUsers() {
     return (
         <div className="p-8" data-testid="admin-users">
             <header className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Users</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Server-side filtered by role, last login, overdue status, or free-text search.
-                </p>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('admin.users_title')}</h1>
+                <p className="mt-1 text-sm text-muted-foreground">{t('admin.users_subtitle')}</p>
             </header>
 
             <div className="mb-4 flex flex-wrap items-end gap-3" data-testid="admin-users-filters">
                 <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Role</span>
+                    <span className="text-xs text-muted-foreground">{t('admin.users_filter_role')}</span>
                     <Select
                         value={filter.role ?? 'all'}
                         onValueChange={(v) =>
@@ -69,20 +69,20 @@ export default function AdminUsers() {
                     >
                         <SelectTrigger
                             className="w-36 bg-card"
-                            aria-label="Filter by role"
+                            aria-label={t('admin.users_filter_role_aria')}
                             data-testid="admin-users-filter-role"
                         >
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="standard">Standard</SelectItem>
+                            <SelectItem value="all">{t('admin.users_filter_all')}</SelectItem>
+                            <SelectItem value="admin">{t('admin.users_filter_admin')}</SelectItem>
+                            <SelectItem value="standard">{t('admin.users_filter_standard')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Last sign-in</span>
+                    <span className="text-xs text-muted-foreground">{t('admin.users_filter_last_signin')}</span>
                     <Select
                         value={filter.lastLogin ?? 'all'}
                         onValueChange={(v) =>
@@ -91,16 +91,16 @@ export default function AdminUsers() {
                     >
                         <SelectTrigger
                             className="w-48 bg-card"
-                            aria-label="Filter by last sign-in"
+                            aria-label={t('admin.users_filter_last_signin_aria')}
                             data-testid="admin-users-filter-lastLogin"
                         >
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All</SelectItem>
-                            <SelectItem value="last_7">Last 7 days</SelectItem>
-                            <SelectItem value="last_30">Last 30 days</SelectItem>
-                            <SelectItem value="inactive">30+ days inactive</SelectItem>
+                            <SelectItem value="all">{t('admin.users_filter_all')}</SelectItem>
+                            <SelectItem value="last_7">{t('admin.users_filter_last_7')}</SelectItem>
+                            <SelectItem value="last_30">{t('admin.users_filter_last_30')}</SelectItem>
+                            <SelectItem value="inactive">{t('admin.users_filter_inactive')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -111,15 +111,15 @@ export default function AdminUsers() {
                         onChange={(e) => setFilterAndResetPage((f) => ({ ...f, hasOverdue: e.target.checked }))}
                         data-testid="admin-users-filter-hasOverdue"
                     />
-                    <span>Has overdue tasks</span>
+                    <span>{t('admin.users_filter_overdue')}</span>
                 </label>
                 <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    Search
+                    {t('admin.users_filter_search')}
                     <input
                         type="search"
                         value={filter.search ?? ''}
                         onChange={(e) => setFilterAndResetPage((f) => ({ ...f, search: e.target.value }))}
-                        placeholder="email or name"
+                        placeholder={t('admin.users_filter_search_placeholder')}
                         className="h-9 rounded-md border border-input bg-card px-2 text-sm"
                         data-testid="admin-users-filter-search"
                     />
@@ -132,19 +132,19 @@ export default function AdminUsers() {
                     <table className="w-full text-sm" data-testid="admin-users-table">
                         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-muted-foreground">
                             <tr>
-                                <th className="px-4 py-2 text-left font-semibold">Email</th>
-                                <th className="px-4 py-2 text-left font-semibold">Name</th>
-                                <th className="px-4 py-2 text-left font-semibold">Role</th>
-                                <th className="px-4 py-2 text-left font-semibold">Last Sign-in</th>
-                                <th className="px-4 py-2 text-right font-semibold">Projects</th>
-                                <th className="px-4 py-2 text-right font-semibold">Completed (30d)</th>
-                                <th className="px-4 py-2 text-right font-semibold">Overdue</th>
+                                <th scope="col" className="px-4 py-2 text-left font-semibold">{t('admin.users_col_email')}</th>
+                                <th scope="col" className="px-4 py-2 text-left font-semibold">{t('admin.users_col_name')}</th>
+                                <th scope="col" className="px-4 py-2 text-left font-semibold">{t('admin.users_col_role')}</th>
+                                <th scope="col" className="px-4 py-2 text-left font-semibold">{t('admin.users_col_last_signin')}</th>
+                                <th scope="col" className="px-4 py-2 text-right font-semibold">{t('admin.users_col_projects')}</th>
+                                <th scope="col" className="px-4 py-2 text-right font-semibold">{t('admin.users_col_completed_30d')}</th>
+                                <th scope="col" className="px-4 py-2 text-right font-semibold">{t('admin.users_col_overdue')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {list.isLoading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">Loading…</td>
+                                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">{t('admin.loading')}</td>
                                 </tr>
                             ) : list.error ? (
                                 <tr>
@@ -152,7 +152,7 @@ export default function AdminUsers() {
                                 </tr>
                             ) : (list.data ?? []).length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">No users match.</td>
+                                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">{t('admin.users_no_match')}</td>
                                 </tr>
                             ) : (
                                 (list.data ?? []).map((u) => (
@@ -175,7 +175,7 @@ export default function AdminUsers() {
                                                         : 'inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700'
                                                 }
                                             >
-                                                {u.is_admin ? 'admin' : 'standard'}
+                                                {u.is_admin ? t('admin.users_role_admin') : t('admin.users_role_standard')}
                                             </span>
                                         </td>
                                         <td className="px-4 py-2">
@@ -201,8 +201,8 @@ export default function AdminUsers() {
                     <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2 text-sm">
                         <span className="text-muted-foreground" data-testid="admin-users-page-info">
                             {list.data && list.data.length > 0
-                                ? `Showing ${page * PAGE_SIZE + 1}-${page * PAGE_SIZE + list.data.length}`
-                                : 'No results'}
+                                ? t('admin.users_showing_range', { start: page * PAGE_SIZE + 1, end: page * PAGE_SIZE + list.data.length })
+                                : t('admin.users_no_results')}
                         </span>
                         <div className="flex items-center gap-2">
                             <button
@@ -210,21 +210,21 @@ export default function AdminUsers() {
                                 className="rounded border border-border bg-card px-3 py-1 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                                 disabled={page === 0 || list.isLoading}
-                                aria-label="Previous page"
+                                aria-label={t('admin.users_prev_page')}
                                 data-testid="admin-users-prev-page"
                             >
-                                ← Prev
+                                ← {t('common.back')}
                             </button>
-                            <span className="tabular-nums text-muted-foreground">Page {page + 1}</span>
+                            <span className="tabular-nums text-muted-foreground">{t('admin.users_page_label', { page: page + 1 })}</span>
                             <button
                                 type="button"
                                 className="rounded border border-border bg-card px-3 py-1 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => setPage((p) => p + 1)}
                                 disabled={list.isLoading || !list.data || list.data.length < PAGE_SIZE}
-                                aria-label="Next page"
+                                aria-label={t('admin.users_next_page')}
                                 data-testid="admin-users-next-page"
                             >
-                                Next →
+                                {t('common.next')} →
                             </button>
                         </div>
                     </div>
@@ -236,11 +236,11 @@ export default function AdminUsers() {
                         data-testid="admin-users-detail"
                     >
                         {detail.isLoading ? (
-                            <p className="text-sm text-muted-foreground">Loading detail…</p>
+                            <p className="text-sm text-muted-foreground">{t('admin.users_detail_loading')}</p>
                         ) : detail.error ? (
                             <p className="text-sm text-red-600">{detail.error.message}</p>
                         ) : !detail.data ? (
-                            <p className="text-sm text-muted-foreground">User not found.</p>
+                            <p className="text-sm text-muted-foreground">{t('admin.users_detail_not_found')}</p>
                         ) : (
                             <>
                                 <h2 className="text-lg font-semibold text-slate-900">{detail.data.profile.display_name}</h2>
