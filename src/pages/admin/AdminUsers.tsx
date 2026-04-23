@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { ArrowUpDown, ArrowUp, ArrowDown, Loader2, Shield, ShieldOff } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Loader2, Shield, ShieldOff, Ban, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useAdminUsers, useAdminUserDetail } from '@/features/admin/hooks/useAdminUsers';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
@@ -62,6 +62,20 @@ export default function AdminUsers() {
     const [selectedUid, setSelectedUid] = useState<string | null>(uidParam ?? null);
     const list = useAdminUsers(filter, { limit: PAGE_SIZE, offset: page * PAGE_SIZE });
     const detail = useAdminUserDetail(selectedUid);
+
+    // Snapshot the current time at mount so subsequent renders don't
+    // trigger react-hooks/impure-function flags by calling Date.now()
+    // during render. Moderation is a short-lived view — if the admin
+    // leaves the user on the detail aside for long enough that the
+    // snapshot goes stale, they'll refetch by re-selecting anyway.
+    // `useState` with a lazy initializer ensures Date.now() runs once
+    // at mount, not during re-renders.
+    const [nowSnapshot] = useState(() => Date.now());
+    const currentlySuspended = useMemo(() => {
+        const bannedUntil = detail.data?.profile.banned_until;
+        if (!bannedUntil) return false;
+        return Date.parse(bannedUntil) > nowSnapshot;
+    }, [detail.data?.profile.banned_until, nowSnapshot]);
 
     // Reset to page 0 on any filter change.
     const setFilterAndResetPage: typeof setFilter = (next) => {
@@ -140,6 +154,81 @@ export default function AdminUsers() {
         });
         if (!ok) return;
         toggleAdminMutation.mutate({ uid, makeAdmin });
+    };
+
+    // Suspend / unsuspend — routes through the `admin-user-moderation` edge
+    // function which handles the auth API call. Indefinite-duration by
+    // default; the UI doesn't surface a duration picker in this pass.
+    const suspensionMutation = useMutation({
+        mutationFn: ({ uid, action }: { uid: string; action: 'suspend' | 'unsuspend' }) =>
+            action === 'suspend'
+                ? planter.admin.suspendUser(uid)
+                : planter.admin.unsuspendUser(uid),
+        onSuccess: (_data, vars) => {
+            toast.success(
+                vars.action === 'suspend'
+                    ? t('admin.users_suspend_success_toast')
+                    : t('admin.users_unsuspend_success_toast'),
+            );
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+            queryClient.invalidateQueries({ queryKey: ['adminUserDetail', vars.uid] });
+        },
+        onError: (err: Error) => {
+            toast.error(t('admin.users_suspend_failed_toast'), { description: err.message });
+        },
+    });
+
+    const handleToggleSuspension = async (uid: string, currentlySuspended: boolean) => {
+        const action = currentlySuspended ? 'unsuspend' : 'suspend';
+        const ok = await confirm({
+            title: action === 'suspend'
+                ? t('admin.users_suspend_confirm_title')
+                : t('admin.users_unsuspend_confirm_title'),
+            description: action === 'suspend'
+                ? t('admin.users_suspend_confirm_description')
+                : t('admin.users_unsuspend_confirm_description'),
+            confirmText: action === 'suspend'
+                ? t('admin.users_suspend_confirm_button')
+                : t('admin.users_unsuspend_confirm_button'),
+            destructive: action === 'suspend',
+        });
+        if (!ok) return;
+        suspensionMutation.mutate({ uid, action });
+    };
+
+    // Password reset — generate a recovery link and copy it to clipboard.
+    // The admin shares it out-of-band; Supabase does NOT auto-send an
+    // email from this flow, which is intentional (admin-driven reset
+    // vs. user-initiated forgot-password).
+    const resetPasswordMutation = useMutation({
+        mutationFn: (uid: string) => planter.admin.generatePasswordResetLink(uid),
+        onSuccess: async (link) => {
+            try {
+                await navigator.clipboard.writeText(link);
+                toast.success(t('admin.users_reset_password_copied_toast'));
+            } catch {
+                // Clipboard may be blocked (http://, iframe). Fall back
+                // to showing the link in the toast so the admin can
+                // copy it manually.
+                toast.success(t('admin.users_reset_password_manual_toast'), {
+                    description: link,
+                    duration: 30_000,
+                });
+            }
+        },
+        onError: (err: Error) => {
+            toast.error(t('admin.users_reset_password_failed_toast'), { description: err.message });
+        },
+    });
+
+    const handleResetPassword = async (uid: string, displayName: string) => {
+        const ok = await confirm({
+            title: t('admin.users_reset_password_confirm_title'),
+            description: t('admin.users_reset_password_confirm_description', { name: displayName }),
+            confirmText: t('admin.users_reset_password_confirm_button'),
+        });
+        if (!ok) return;
+        resetPasswordMutation.mutate(uid);
     };
 
     // Keep the selection in sync with the URL param (deep-linking from
@@ -340,6 +429,16 @@ export default function AdminUsers() {
                             <>
                                 <h2 className="text-lg font-semibold text-slate-900">{detail.data.profile.display_name}</h2>
                                 <p className="mt-1 text-xs text-muted-foreground">{detail.data.profile.email}</p>
+                                {currentlySuspended && (
+                                    <p
+                                        className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700"
+                                        data-testid="admin-users-suspended-badge"
+                                        role="status"
+                                    >
+                                        <Ban aria-hidden="true" className="h-3 w-3" />
+                                        {t('admin.users_suspended_badge')}
+                                    </p>
+                                )}
                                 <dl className="mt-4 space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">{t('admin.users_col_role')}</dt>
@@ -388,45 +487,99 @@ export default function AdminUsers() {
                                   * well as blocked server-side (belt + braces):
                                   * the server raises `self_demotion_forbidden`
                                   * even if the button is clicked via devtools. */}
-                                <section className="mt-5 border-t border-border pt-4">
+                                <section className="mt-5 border-t border-border pt-4 space-y-2">
                                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                         {t('admin.users_moderation_heading')}
                                     </h3>
                                     {(() => {
-                                        const targetUid = detail.data.profile.id;
+                                        // Capture the non-null profile locally so TS preserves
+                                        // the narrowing across the IIFE closure — the outer
+                                        // ternary already proved detail.data is non-null.
+                                        const profile = detail.data.profile;
+                                        const targetUid = profile.id;
+                                        const displayName = profile.display_name;
                                         const isSelf = currentUser?.id === targetUid;
-                                        const currentlyAdmin = detail.data.profile.is_admin;
+                                        const currentlyAdmin = profile.is_admin;
+                                        // `currentlySuspended` is memoized at the component top —
+                                        // shadows the inline `Date.now()` that tripped the
+                                        // react-hooks impurity lint. Same effective value.
                                         return (
-                                            <Button
-                                                type="button"
-                                                variant={currentlyAdmin ? 'destructive' : 'default'}
-                                                size="sm"
-                                                className="w-full"
-                                                disabled={isSelf || toggleAdminMutation.isPending}
-                                                onClick={() => void handleToggleAdmin(targetUid, currentlyAdmin)}
-                                                aria-label={
-                                                    currentlyAdmin
-                                                        ? t('admin.users_revoke_admin_aria', { name: detail.data.profile.display_name })
-                                                        : t('admin.users_grant_admin_aria', { name: detail.data.profile.display_name })
-                                                }
-                                                data-testid="admin-users-toggle-admin"
-                                            >
-                                                {toggleAdminMutation.isPending ? (
-                                                    <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
-                                                ) : currentlyAdmin ? (
-                                                    <ShieldOff aria-hidden="true" className="mr-2 h-4 w-4" />
-                                                ) : (
-                                                    <Shield aria-hidden="true" className="mr-2 h-4 w-4" />
-                                                )}
-                                                {currentlyAdmin
-                                                    ? t('admin.users_revoke_admin_button')
-                                                    : t('admin.users_grant_admin_button')}
-                                            </Button>
+                                            <>
+                                                <Button
+                                                    type="button"
+                                                    variant={currentlyAdmin ? 'destructive' : 'default'}
+                                                    size="sm"
+                                                    className="w-full"
+                                                    disabled={isSelf || toggleAdminMutation.isPending}
+                                                    onClick={() => void handleToggleAdmin(targetUid, currentlyAdmin)}
+                                                    aria-label={
+                                                        currentlyAdmin
+                                                            ? t('admin.users_revoke_admin_aria', { name: displayName })
+                                                            : t('admin.users_grant_admin_aria', { name: displayName })
+                                                    }
+                                                    data-testid="admin-users-toggle-admin"
+                                                >
+                                                    {toggleAdminMutation.isPending ? (
+                                                        <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
+                                                    ) : currentlyAdmin ? (
+                                                        <ShieldOff aria-hidden="true" className="mr-2 h-4 w-4" />
+                                                    ) : (
+                                                        <Shield aria-hidden="true" className="mr-2 h-4 w-4" />
+                                                    )}
+                                                    {currentlyAdmin
+                                                        ? t('admin.users_revoke_admin_button')
+                                                        : t('admin.users_grant_admin_button')}
+                                                </Button>
+
+                                                <Button
+                                                    type="button"
+                                                    variant={currentlySuspended ? 'default' : 'destructive'}
+                                                    size="sm"
+                                                    className="w-full"
+                                                    disabled={isSelf || suspensionMutation.isPending}
+                                                    onClick={() => void handleToggleSuspension(targetUid, currentlySuspended)}
+                                                    aria-label={
+                                                        currentlySuspended
+                                                            ? t('admin.users_unsuspend_aria', { name: displayName })
+                                                            : t('admin.users_suspend_aria', { name: displayName })
+                                                    }
+                                                    data-testid="admin-users-toggle-suspension"
+                                                >
+                                                    {suspensionMutation.isPending ? (
+                                                        <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
+                                                    ) : currentlySuspended ? (
+                                                        <CheckCircle2 aria-hidden="true" className="mr-2 h-4 w-4" />
+                                                    ) : (
+                                                        <Ban aria-hidden="true" className="mr-2 h-4 w-4" />
+                                                    )}
+                                                    {currentlySuspended
+                                                        ? t('admin.users_unsuspend_button')
+                                                        : t('admin.users_suspend_button')}
+                                                </Button>
+
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-full"
+                                                    disabled={resetPasswordMutation.isPending}
+                                                    onClick={() => void handleResetPassword(targetUid, displayName)}
+                                                    aria-label={t('admin.users_reset_password_aria', { name: displayName })}
+                                                    data-testid="admin-users-reset-password"
+                                                >
+                                                    {resetPasswordMutation.isPending ? (
+                                                        <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <KeyRound aria-hidden="true" className="mr-2 h-4 w-4" />
+                                                    )}
+                                                    {t('admin.users_reset_password_button')}
+                                                </Button>
+                                            </>
                                         );
                                     })()}
                                     {currentUser?.id === detail.data.profile.id && (
                                         <p className="mt-2 text-xs text-muted-foreground">
-                                            {t('admin.users_self_demotion_note')}
+                                            {t('admin.users_self_moderation_note')}
                                         </p>
                                     )}
                                 </section>

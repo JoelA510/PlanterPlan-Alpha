@@ -119,6 +119,12 @@ export interface PlanterClient {
         analyticsSnapshot: () => Promise<AdminAnalyticsSnapshot | null>;
         /** Grant or revoke platform-admin status for a user. Self-demotion forbidden server-side. */
         setAdminRole: (targetUid: string, makeAdmin: boolean) => Promise<void>;
+        /** Suspend a user via `auth.admin.updateUserById({ ban_duration })`. Self-suspension forbidden. */
+        suspendUser: (targetUid: string, durationHours?: number) => Promise<void>;
+        /** Clear a user's ban. */
+        unsuspendUser: (targetUid: string) => Promise<void>;
+        /** Generate a password-recovery link the admin can share out-of-band. Returns the URL. */
+        generatePasswordResetLink: (targetUid: string) => Promise<string>;
     };
     /** Wave 35 — third-party integrations (starts with ICS calendar feeds). */
     integrations: {
@@ -1269,7 +1275,32 @@ export const planter: PlanterClient = {
             });
         },
     },
-    admin: {
+    admin: (() => {
+        // Shared helper for the three admin-user-moderation actions. Hoists
+        // the edge-function call + error normalization so each wrapper below
+        // is 2-4 lines. Throws `PlanterError` with the server-supplied error
+        // message (or a sensible fallback) on non-2xx responses.
+        type ModerationAction = 'suspend' | 'unsuspend' | 'reset_password';
+        const invokeModeration = async (
+            action: ModerationAction,
+            targetUid: string,
+            extras?: Record<string, unknown>,
+        ): Promise<unknown> => {
+            const { data, error } = await supabase.functions.invoke<{
+                success?: boolean;
+                error?: string;
+                reset_link?: string;
+            }>('admin-user-moderation', {
+                body: { action, target_uid: targetUid, ...(extras ?? {}) },
+            });
+            if (error) throw new PlanterError(error.message || 'Moderation failed', 500);
+            if (!data?.success) {
+                throw new PlanterError(data?.error || 'Moderation failed', 400);
+            }
+            return data;
+        };
+
+        return {
         /**
          * Wave 34 — fuzzy search across `auth.users` (email / full_name).
          * Gated server-side by `public.is_admin(auth.uid())`; non-admin callers
@@ -1373,7 +1404,35 @@ export const planter: PlanterClient = {
             });
             if (error) throw error;
         },
-    },
+        /**
+         * Suspend a user via the `admin-user-moderation` edge function.
+         * The edge function does the authorize-then-escalate dance with
+         * `auth.admin.updateUserById({ ban_duration })`. Omit `durationHours`
+         * for effectively-indefinite (100 years); pass a positive number
+         * for a time-bounded suspension.
+         */
+        suspendUser: async (targetUid: string, durationHours?: number): Promise<void> => {
+            await invokeModeration('suspend', targetUid, { duration_hours: durationHours });
+        },
+        unsuspendUser: async (targetUid: string): Promise<void> => {
+            await invokeModeration('unsuspend', targetUid);
+        },
+        /**
+         * Generate a Supabase password-recovery link for a user. Returns the
+         * URL so the admin can copy + share it out-of-band (Slack, email,
+         * etc.) — we don't auto-send. The link expires per the Supabase
+         * project's email-OTP TTL (default 24h at the time of writing).
+         */
+        generatePasswordResetLink: async (targetUid: string): Promise<string> => {
+            const body = await invokeModeration('reset_password', targetUid);
+            const link = (body as { reset_link?: string })?.reset_link;
+            if (typeof link !== 'string' || !link) {
+                throw new PlanterError('Reset link missing from moderation response', 500);
+            }
+            return link;
+        },
+        };
+    })(),
     integrations: {
         /**
          * Wave 35 — list the caller's ICS calendar feed tokens (active +
