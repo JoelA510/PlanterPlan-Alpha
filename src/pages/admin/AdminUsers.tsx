@@ -1,9 +1,16 @@
 import { useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { ArrowUpDown, ArrowUp, ArrowDown, Loader2, Shield, ShieldOff } from 'lucide-react';
 import { useAdminUsers, useAdminUserDetail } from '@/features/admin/hooks/useAdminUsers';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
-import type { AdminListUsersFilter } from '@/shared/db/app.types';
+import { planter } from '@/shared/api/planterClient';
+import { Button } from '@/shared/ui/button';
+import { useConfirm } from '@/shared/ui/confirm-dialog';
+import type { AdminListUserRow, AdminListUsersFilter } from '@/shared/db/app.types';
 import {
     Select,
     SelectContent,
@@ -26,6 +33,16 @@ import {
  */
 const PAGE_SIZE = 50;
 
+type SortKey =
+    | 'email'
+    | 'display_name'
+    | 'is_admin'
+    | 'last_sign_in_at'
+    | 'active_project_count'
+    | 'completed_tasks_30d'
+    | 'overdue_task_count';
+type SortDir = 'asc' | 'desc';
+
 export default function AdminUsers() {
     const { t } = useTranslation();
     const { uid: uidParam } = useParams<{ uid: string }>();
@@ -37,6 +54,11 @@ export default function AdminUsers() {
     });
     // Paginate via the RPC's existing limit/offset params — previously unused.
     const [page, setPage] = useState(0);
+    // Client-side column sort. The `admin_list_users` RPC doesn't take a
+    // sort param yet, so this sorts the current page's ≤50 rows. Server-
+    // side sort would need an RPC signature change; tracked for a future
+    // wave if user feedback demands it.
+    const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(null);
     const [selectedUid, setSelectedUid] = useState<string | null>(uidParam ?? null);
     const list = useAdminUsers(filter, { limit: PAGE_SIZE, offset: page * PAGE_SIZE });
     const detail = useAdminUserDetail(selectedUid);
@@ -45,6 +67,79 @@ export default function AdminUsers() {
     const setFilterAndResetPage: typeof setFilter = (next) => {
         setPage(0);
         setFilter(next);
+    };
+
+    const toggleSort = (key: SortKey) => {
+        setSort((prev) => {
+            if (!prev || prev.key !== key) return { key, dir: 'asc' };
+            if (prev.dir === 'asc') return { key, dir: 'desc' };
+            return null; // third click clears the sort
+        });
+    };
+
+    const sortedRows = useMemo<AdminListUserRow[]>(() => {
+        const rows = list.data ?? [];
+        if (!sort) return rows;
+        const { key, dir } = sort;
+        const mul = dir === 'asc' ? 1 : -1;
+        return [...rows].sort((a, b) => {
+            const av = a[key];
+            const bv = b[key];
+            // Push nulls to the end regardless of direction — matches the
+            // "—" placeholder the UI shows for missing values.
+            if (av == null && bv == null) return 0;
+            if (av == null) return 1;
+            if (bv == null) return -1;
+            if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * mul;
+            return String(av).localeCompare(String(bv)) * mul;
+        });
+    }, [list.data, sort]);
+
+    const ariaSortFor = (key: SortKey): 'ascending' | 'descending' | 'none' => {
+        if (!sort || sort.key !== key) return 'none';
+        return sort.dir === 'asc' ? 'ascending' : 'descending';
+    };
+
+    // Toggle a user's platform-admin flag. Gated server-side by
+    // `is_admin(auth.uid())`; self-demotion raises a specific error the
+    // UI surfaces as a toast. Invalidates both the list and the detail
+    // queries on success so the UI reflects the change immediately.
+    const { user: currentUser } = useAuth();
+    const confirm = useConfirm();
+    const queryClient = useQueryClient();
+    const toggleAdminMutation = useMutation({
+        mutationFn: ({ uid, makeAdmin }: { uid: string; makeAdmin: boolean }) =>
+            planter.admin.setAdminRole(uid, makeAdmin),
+        onSuccess: (_data, vars) => {
+            toast.success(
+                vars.makeAdmin
+                    ? t('admin.users_grant_admin_success_toast')
+                    : t('admin.users_revoke_admin_success_toast'),
+            );
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+            queryClient.invalidateQueries({ queryKey: ['adminUserDetail', vars.uid] });
+        },
+        onError: (err: Error) => {
+            toast.error(t('admin.users_role_change_failed_toast'), { description: err.message });
+        },
+    });
+
+    const handleToggleAdmin = async (uid: string, currentIsAdmin: boolean) => {
+        const makeAdmin = !currentIsAdmin;
+        const ok = await confirm({
+            title: makeAdmin
+                ? t('admin.users_grant_admin_confirm_title')
+                : t('admin.users_revoke_admin_confirm_title'),
+            description: makeAdmin
+                ? t('admin.users_grant_admin_confirm_description')
+                : t('admin.users_revoke_admin_confirm_description'),
+            confirmText: makeAdmin
+                ? t('admin.users_grant_admin_confirm_button')
+                : t('admin.users_revoke_admin_confirm_button'),
+            destructive: !makeAdmin,
+        });
+        if (!ok) return;
+        toggleAdminMutation.mutate({ uid, makeAdmin });
     };
 
     // Keep the selection in sync with the URL param (deep-linking from
@@ -132,13 +227,13 @@ export default function AdminUsers() {
                     <table className="w-full text-sm" data-testid="admin-users-table">
                         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-muted-foreground">
                             <tr>
-                                <th scope="col" className="px-4 py-2 text-left font-semibold">{t('admin.users_col_email')}</th>
-                                <th scope="col" className="px-4 py-2 text-left font-semibold">{t('admin.users_col_name')}</th>
-                                <th scope="col" className="px-4 py-2 text-left font-semibold">{t('admin.users_col_role')}</th>
-                                <th scope="col" className="px-4 py-2 text-left font-semibold">{t('admin.users_col_last_signin')}</th>
-                                <th scope="col" className="px-4 py-2 text-right font-semibold">{t('admin.users_col_projects')}</th>
-                                <th scope="col" className="px-4 py-2 text-right font-semibold">{t('admin.users_col_completed_30d')}</th>
-                                <th scope="col" className="px-4 py-2 text-right font-semibold">{t('admin.users_col_overdue')}</th>
+                                <SortableTh label={t('admin.users_col_email')} sortKey="email" align="left" sort={sort} onToggle={toggleSort} ariaSort={ariaSortFor('email')} />
+                                <SortableTh label={t('admin.users_col_name')} sortKey="display_name" align="left" sort={sort} onToggle={toggleSort} ariaSort={ariaSortFor('display_name')} />
+                                <SortableTh label={t('admin.users_col_role')} sortKey="is_admin" align="left" sort={sort} onToggle={toggleSort} ariaSort={ariaSortFor('is_admin')} />
+                                <SortableTh label={t('admin.users_col_last_signin')} sortKey="last_sign_in_at" align="left" sort={sort} onToggle={toggleSort} ariaSort={ariaSortFor('last_sign_in_at')} />
+                                <SortableTh label={t('admin.users_col_projects')} sortKey="active_project_count" align="right" sort={sort} onToggle={toggleSort} ariaSort={ariaSortFor('active_project_count')} />
+                                <SortableTh label={t('admin.users_col_completed_30d')} sortKey="completed_tasks_30d" align="right" sort={sort} onToggle={toggleSort} ariaSort={ariaSortFor('completed_tasks_30d')} />
+                                <SortableTh label={t('admin.users_col_overdue')} sortKey="overdue_task_count" align="right" sort={sort} onToggle={toggleSort} ariaSort={ariaSortFor('overdue_task_count')} />
                             </tr>
                         </thead>
                         <tbody>
@@ -150,12 +245,12 @@ export default function AdminUsers() {
                                 <tr>
                                     <td colSpan={7} className="px-4 py-6 text-center text-red-600">{list.error.message}</td>
                                 </tr>
-                            ) : (list.data ?? []).length === 0 ? (
+                            ) : sortedRows.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">{t('admin.users_no_match')}</td>
                                 </tr>
                             ) : (
-                                (list.data ?? []).map((u) => (
+                                sortedRows.map((u) => (
                                     <tr
                                         key={u.id}
                                         className={
@@ -247,30 +342,30 @@ export default function AdminUsers() {
                                 <p className="mt-1 text-xs text-muted-foreground">{detail.data.profile.email}</p>
                                 <dl className="mt-4 space-y-2 text-sm">
                                     <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">Role</dt>
-                                        <dd>{detail.data.profile.is_admin ? 'admin' : 'standard'}</dd>
+                                        <dt className="text-muted-foreground">{t('admin.users_col_role')}</dt>
+                                        <dd>{detail.data.profile.is_admin ? t('admin.users_role_admin') : t('admin.users_role_standard')}</dd>
                                     </div>
                                     <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">Projects</dt>
+                                        <dt className="text-muted-foreground">{t('admin.users_col_projects')}</dt>
                                         <dd className="tabular-nums">{detail.data.projects.length}</dd>
                                     </div>
                                     <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">Assigned tasks</dt>
+                                        <dt className="text-muted-foreground">{t('admin.users_detail_assigned')}</dt>
                                         <dd className="tabular-nums">{detail.data.task_counts.assigned}</dd>
                                     </div>
                                     <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">Completed (30d)</dt>
+                                        <dt className="text-muted-foreground">{t('admin.users_col_completed_30d')}</dt>
                                         <dd className="tabular-nums">{detail.data.task_counts.completed}</dd>
                                     </div>
                                     <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">Overdue</dt>
+                                        <dt className="text-muted-foreground">{t('admin.users_col_overdue')}</dt>
                                         <dd className="tabular-nums">{detail.data.task_counts.overdue}</dd>
                                     </div>
                                 </dl>
                                 {detail.data.projects.length > 0 && (
                                     <section className="mt-5">
                                         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                            Project memberships
+                                            {t('admin.users_memberships_heading')}
                                         </h3>
                                         <ul className="space-y-1 text-sm">
                                             {detail.data.projects.map((p) => (
@@ -282,11 +377,101 @@ export default function AdminUsers() {
                                         </ul>
                                     </section>
                                 )}
+
+                                {/* Moderation actions. "Toggle admin" is the
+                                  * only action shipped in this phase — reset
+                                  * password and suspend need edge-function
+                                  * work (admin.generateLink / updateUserById)
+                                  * and are tracked as a follow-up wave.
+                                  *
+                                  * Self-demotion is disabled client-side as
+                                  * well as blocked server-side (belt + braces):
+                                  * the server raises `self_demotion_forbidden`
+                                  * even if the button is clicked via devtools. */}
+                                <section className="mt-5 border-t border-border pt-4">
+                                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        {t('admin.users_moderation_heading')}
+                                    </h3>
+                                    {(() => {
+                                        const targetUid = detail.data.profile.id;
+                                        const isSelf = currentUser?.id === targetUid;
+                                        const currentlyAdmin = detail.data.profile.is_admin;
+                                        return (
+                                            <Button
+                                                type="button"
+                                                variant={currentlyAdmin ? 'destructive' : 'default'}
+                                                size="sm"
+                                                className="w-full"
+                                                disabled={isSelf || toggleAdminMutation.isPending}
+                                                onClick={() => void handleToggleAdmin(targetUid, currentlyAdmin)}
+                                                aria-label={
+                                                    currentlyAdmin
+                                                        ? t('admin.users_revoke_admin_aria', { name: detail.data.profile.display_name })
+                                                        : t('admin.users_grant_admin_aria', { name: detail.data.profile.display_name })
+                                                }
+                                                data-testid="admin-users-toggle-admin"
+                                            >
+                                                {toggleAdminMutation.isPending ? (
+                                                    <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
+                                                ) : currentlyAdmin ? (
+                                                    <ShieldOff aria-hidden="true" className="mr-2 h-4 w-4" />
+                                                ) : (
+                                                    <Shield aria-hidden="true" className="mr-2 h-4 w-4" />
+                                                )}
+                                                {currentlyAdmin
+                                                    ? t('admin.users_revoke_admin_button')
+                                                    : t('admin.users_grant_admin_button')}
+                                            </Button>
+                                        );
+                                    })()}
+                                    {currentUser?.id === detail.data.profile.id && (
+                                        <p className="mt-2 text-xs text-muted-foreground">
+                                            {t('admin.users_self_demotion_note')}
+                                        </p>
+                                    )}
+                                </section>
                             </>
                         )}
                     </aside>
                 )}
             </div>
         </div>
+    );
+}
+
+/**
+ * Sortable column header. Renders a `<th>` with `aria-sort` + a visual
+ * direction indicator (↑ / ↓ / ↕). Third click clears the sort back to
+ * the server-returned order. Click handler toggles via the parent's
+ * `onToggle` — the parent owns sort state so all columns share one.
+ */
+interface SortableThProps {
+    label: string;
+    sortKey: SortKey;
+    align: 'left' | 'right';
+    sort: { key: SortKey; dir: SortDir } | null;
+    onToggle: (key: SortKey) => void;
+    ariaSort: 'ascending' | 'descending' | 'none';
+}
+
+function SortableTh({ label, sortKey, align, sort, onToggle, ariaSort }: SortableThProps) {
+    const active = sort?.key === sortKey;
+    const Icon = !active ? ArrowUpDown : sort?.dir === 'asc' ? ArrowUp : ArrowDown;
+    return (
+        <th
+            scope="col"
+            aria-sort={ariaSort}
+            className={`px-4 py-2 font-semibold ${align === 'right' ? 'text-right' : 'text-left'}`}
+        >
+            <button
+                type="button"
+                onClick={() => onToggle(sortKey)}
+                className={`inline-flex items-center gap-1 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm ${align === 'right' ? 'flex-row-reverse' : ''} ${active ? 'text-slate-900' : ''}`}
+                data-testid={`admin-users-sort-${sortKey}`}
+            >
+                {label}
+                <Icon aria-hidden="true" className="h-3 w-3" />
+            </button>
+        </th>
     );
 }

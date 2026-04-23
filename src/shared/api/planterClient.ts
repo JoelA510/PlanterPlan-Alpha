@@ -117,6 +117,8 @@ export interface PlanterClient {
         listUsers: (filter: AdminListUsersFilter, limit?: number, offset?: number) => Promise<AdminListUserRow[]>;
         /** Aggregated analytics snapshot for the /admin/analytics dashboard (Wave 34 Task 3). */
         analyticsSnapshot: () => Promise<AdminAnalyticsSnapshot | null>;
+        /** Grant or revoke platform-admin status for a user. Self-demotion forbidden server-side. */
+        setAdminRole: (targetUid: string, makeAdmin: boolean) => Promise<void>;
     };
     /** Wave 35 — third-party integrations (starts with ICS calendar feeds). */
     integrations: {
@@ -1353,6 +1355,23 @@ export const planter: PlanterClient = {
             );
             if (error) throw error;
             return data ?? null;
+        },
+        /**
+         * Toggle a user's platform-admin flag. Gated server-side by
+         * `public.is_admin(auth.uid())`. Self-demotion raises
+         * `self_demotion_forbidden` (callers should UI-disable the action
+         * when `targetUid === currentUser.id`). Writes an activity_log
+         * entry on success (surfaces in `admin_recent_activity`).
+         *
+         * @param targetUid `auth.users.id` of the user to modify.
+         * @param makeAdmin `true` = grant admin, `false` = revoke.
+         */
+        setAdminRole: async (targetUid: string, makeAdmin: boolean): Promise<void> => {
+            const { error } = await planter.rpc('admin_set_user_admin_role', {
+                p_target_uid: targetUid,
+                p_make_admin: makeAdmin,
+            });
+            if (error) throw error;
         },
     },
     integrations: {

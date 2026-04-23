@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
+import { useDirtyCloseGuard } from '@/shared/lib/use-dirty-close-guard';
 
 import type { CreateProjectFormData } from '@/shared/db/app.types';
 
@@ -66,6 +67,16 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
         );
     }, [rootTemplates, searchQuery]);
 
+    // Dirty = user typed a title/description or changed the template away
+    // from the default scaffold. Step changes alone don't count — the user
+    // can wander the wizard without committing. Start date defaults to
+    // today; shifting it should prompt because it's explicit intent.
+    const isDirty =
+        (formData.title?.trim().length ?? 0) > 0 ||
+        (formData.description?.trim().length ?? 0) > 0 ||
+        formData.templateId !== DEFAULT_SCAFFOLD_ID;
+    const guardedClose = useDirtyCloseGuard(isDirty, onClose);
+
     const handleNext = () => setStep(2);
     const handleBack = () => setStep(1);
 
@@ -99,7 +110,7 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
     };
 
     return (
-        <Dialog open={open} onOpenChange={onClose}>
+        <Dialog open={open} onOpenChange={(o) => { if (!o) void guardedClose(); }}>
             <DialogContent data-testid="create-project-modal" className="sm:max-w-[600px] p-0 overflow-hidden bg-white border-slate-200">
                 <DialogHeader className="p-8 bg-brand-600 text-white">
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">

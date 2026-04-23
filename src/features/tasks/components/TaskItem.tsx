@@ -170,10 +170,21 @@ const TaskItem = ({
  const visibleFocusPeers = focusPeers.slice(0, MAX_FOCUS_CHIPS);
  const focusOverflow = focusPeers.length - visibleFocusPeers.length;
 
+ // Tree semantics: `aria-level` is 1-indexed per WAI-ARIA spec (our
+ // `level` prop is 0-indexed — a root task is level 0 / aria-level 1).
+ // `aria-expanded` announces the chevron state to screen readers; only
+ // meaningful when the row CAN have children, so we omit it otherwise
+ // (undefined is emitted as nothing). `aria-selected` mirrors the
+ // selection UI state. The enclosing `role="tree"` lives on the
+ // container in `MilestoneSection` / `TaskList`.
  return (
  <>
  <div
  ref={canHaveChildren ? setDroppableNodeRef : undefined}
+ role="treeitem"
+ aria-level={level + 1}
+ aria-expanded={canHaveChildren ? isExpanded : undefined}
+ aria-selected={isSelected}
  className={cn(
  'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
  'bg-card text-card-foreground',
@@ -360,7 +371,10 @@ const TaskItem = ({
  </div>
 
  {canHaveChildren && isExpanded && (
- <div className="pl-0 min-h-[40px]">
+ // `role="group"` groups the subtree's direct children for assistive
+ // tech walking the tree (WAI-ARIA tree pattern). Consuming AT reports
+ // "N children, level N+1" and treats the group as a sub-tree.
+ <div role="group" className="pl-0 min-h-[40px]">
  <SortableContext
  items={task.children ? task.children.map((c) => c.id) : []}
  id={`sortable-context-${task.id}`}
