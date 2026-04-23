@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -46,6 +47,7 @@ interface PeopleListProps {
 }
 
 export default function PeopleList({ projectId, canEdit = false }: PeopleListProps) {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
     const confirm = useConfirm();
 
@@ -83,10 +85,10 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
         },
         onSuccess: (_data, vars) => {
             queryClient.invalidateQueries({ queryKey: ['people', projectId] });
-            toast.success(vars.editingId ? 'Person updated' : 'Person added');
+            toast.success(vars.editingId ? t('projects.people.updated_toast') : t('projects.people.added_toast'));
         },
         onError: (err: Error) => {
-            toast.error('Failed to save person', { description: err.message });
+            toast.error(t('projects.people.failed_save_toast'), { description: err.message });
         },
     });
 
@@ -94,10 +96,10 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
         mutationFn: async (id: string) => planter.entities.Person.delete(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['people', projectId] });
-            toast.success('Person deleted');
+            toast.success(t('projects.people.deleted_toast'));
         },
         onError: (err: Error) => {
-            toast.error('Failed to delete person', { description: err.message });
+            toast.error(t('projects.people.failed_delete_toast'), { description: err.message });
         },
     });
 
@@ -110,11 +112,11 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
     };
 
     const handleDelete = async (person: Person) => {
-        const label = [person.first_name, person.last_name].filter(Boolean).join(' ') || 'this person';
+        const label = [person.first_name, person.last_name].filter(Boolean).join(' ') || t('common.untitled_task');
         const ok = await confirm({
-            title: `Remove ${label}?`,
-            description: 'This removes them from the project. This action cannot be undone.',
-            confirmText: 'Delete',
+            title: t('projects.people.remove_confirm_title', { name: label }),
+            description: t('projects.people.remove_confirm_description'),
+            confirmText: t('common.delete'),
             destructive: true,
         });
         if (!ok) return;
@@ -137,13 +139,15 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
 
     if (isError) return (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
-            <p className="text-destructive font-medium">Failed to load people</p>
+            <p className="text-destructive font-medium">{t('projects.people.failed_to_load')}</p>
             <p className="text-muted-foreground text-sm max-w-md">
-                {(error as Error)?.message ?? 'Unknown error'}
+                {(error as Error)?.message ?? t('errors.unknown')}
             </p>
-            <Button variant="outline" onClick={() => refetch()}>Retry</Button>
+            <Button variant="outline" onClick={() => refetch()}>{t('common.retry')}</Button>
         </div>
     );
+
+    const nameOf = (p: Person) => [p.first_name, p.last_name].filter(Boolean).join(' ').trim();
 
     return (
         <div className="space-y-4">
@@ -151,17 +155,17 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
                 <div className="relative w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden="true" />
                     <Input
-                        placeholder="Search people..."
+                        placeholder={t('projects.people.search_placeholder')}
                         className="pl-9"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        aria-label="Search people"
+                        aria-label={t('projects.people.search_placeholder')}
                     />
                 </div>
                 {canEdit && (
                     <Button onClick={() => { setEditingPerson(null); setIsAddModalOpen(true); }}>
                         <Plus className="w-4 h-4 mr-2" aria-hidden="true" />
-                        Add Person
+                        {t('projects.people.add_person_button')}
                     </Button>
                 )}
             </div>
@@ -171,11 +175,11 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
                     <table className="w-full text-sm text-left">
                         <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                             <tr>
-                                <th scope="col" className="px-4 py-3">Name</th>
-                                <th scope="col" className="px-4 py-3">Role</th>
-                                <th scope="col" className="px-4 py-3">Status</th>
-                                <th scope="col" className="px-4 py-3">Contact</th>
-                                <th scope="col" className="px-4 py-3 text-right">Actions</th>
+                                <th scope="col" className="px-4 py-3">{t('projects.people.col_name')}</th>
+                                <th scope="col" className="px-4 py-3">{t('projects.people.col_role')}</th>
+                                <th scope="col" className="px-4 py-3">{t('projects.people.col_status')}</th>
+                                <th scope="col" className="px-4 py-3">{t('projects.people.col_contact')}</th>
+                                <th scope="col" className="px-4 py-3 text-right">{t('projects.people.col_actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -183,25 +187,29 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
                                 <tr>
                                     <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                                         {people.length === 0
-                                            ? 'No people found. Add someone to get started!'
-                                            : 'No people match your search.'}
+                                            ? t('projects.people.empty_title_no_results')
+                                            : t('projects.people.empty_title_no_match')}
                                     </td>
                                 </tr>
                             ) : (
-                                filteredPeople.map(person => (
+                                filteredPeople.map(person => {
+                                    const displayName = nameOf(person);
+                                    return (
                                     <tr key={person.id} className="hover:bg-slate-50 transition-colors group">
                                         <td className="px-4 py-3 font-medium text-slate-900">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
                                                     {person.first_name?.[0]}{person.last_name ? person.last_name[0] : ''}
                                                 </div>
-                                                {person.first_name} {person.last_name}
+                                                {displayName}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-slate-600">{person.role}</td>
+                                        <td className="px-4 py-3 text-slate-600">
+                                            {person.role ? t(`projects.people.roles.${person.role}` as never, { defaultValue: person.role }) : ''}
+                                        </td>
                                         <td className="px-4 py-3">
                                             <Badge className={`hover:bg-opacity-80 border-0 ${STATUS_OPTS[person.status || 'default'] || STATUS_OPTS.default}`}>
-                                                {person.status}
+                                                {person.status ? t(`projects.people.statuses.${person.status}` as never, { defaultValue: person.status }) : ''}
                                             </Badge>
                                         </td>
                                         <td className="px-4 py-3">
@@ -210,7 +218,7 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
                                                     <a
                                                         href={safeUrl(`mailto:${person.email}`)}
                                                         className="hover:text-slate-600"
-                                                        aria-label={`Email ${person.first_name ?? ''} ${person.last_name ?? ''}`.trim()}
+                                                        aria-label={t('projects.people.email_aria', { name: displayName })}
                                                     >
                                                         <Mail className="w-4 h-4" aria-hidden="true" />
                                                     </a>
@@ -219,7 +227,7 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
                                                     <a
                                                         href={safeUrl(`tel:${person.phone}`)}
                                                         className="hover:text-slate-600"
-                                                        aria-label={`Call ${person.first_name ?? ''} ${person.last_name ?? ''}`.trim()}
+                                                        aria-label={t('projects.people.call_aria', { name: displayName })}
                                                     >
                                                         <Phone className="w-4 h-4" aria-hidden="true" />
                                                     </a>
@@ -229,22 +237,23 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
                                         <td className="px-4 py-3 text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100" aria-label="Open actions menu">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100" aria-label={t('projects.people.open_actions_menu')}>
                                                         <MoreHorizontal className="w-4 h-4" aria-hidden="true" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem onClick={() => { setEditingPerson(person); setIsAddModalOpen(true); }}>
-                                                        Edit Details
+                                                        {t('projects.people.edit_details')}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem className="text-rose-600 focus:text-rose-700" onClick={() => handleDelete(person)}>
-                                                        Delete
+                                                        {t('projects.people.delete')}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </td>
                                     </tr>
-                                ))
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

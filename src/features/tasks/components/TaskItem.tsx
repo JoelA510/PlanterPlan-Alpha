@@ -269,9 +269,18 @@ const TaskItem = ({
  <div className="flex items-center gap-3 min-w-0 overflow-hidden">
  {parentProjectTitle ? (
  <Tooltip>
+ {/* The tooltip reveals the parent-project title — used when a task
+   * row appears outside its project context (cross-project task list).
+   * `tabIndex={0}` makes the trigger keyboard-focusable so Radix's
+   * `data-[state=open]` fires on focus, not just hover, satisfying
+   * WCAG 1.4.13 (Content on Hover or Focus). `aria-label` gives screen
+   * readers the full context (title + parent) without waiting for the
+   * tooltip content to open. */}
  <TooltipTrigger asChild>
  <span
- className="font-semibold text-slate-900 text-sm truncate cursor-default"
+ tabIndex={0}
+ aria-label={`${task.title} — ${parentProjectTitle}`}
+ className="font-semibold text-slate-900 text-sm truncate cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:rounded-sm"
  data-testid={`task-row-title-${task.id}`}
  >
  {task.title}
