@@ -73,8 +73,14 @@ describe('useCreateTask', () => {
     );
   });
 
-  it('invalidates tasks/root when no root_id', async () => {
-    mockCreate.mockResolvedValueOnce(makeTask());
+  it('falls back to the returned row\'s root_id when the input lacks one', async () => {
+    // Root-task creation: input has no root_id (the DB trigger sets it to
+    // the new row's id). The hook should resolve rootId from the returned
+    // row and invalidate `['projectHierarchy', <id>]`. The Phase 5 hook
+    // change dropped the `['tasks', 'root']` fallback key — no consumer
+    // reads that key, so writing to it was dead code (arch audit H5).
+    const created = makeTask({ id: 'created-root', root_id: 'created-root' });
+    mockCreate.mockResolvedValueOnce(created);
     const { Wrapper, queryClient } = createWrapper();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -85,7 +91,7 @@ describe('useCreateTask', () => {
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['tasks', 'root'] }),
+      expect.objectContaining({ queryKey: ['projectHierarchy', 'created-root'] }),
     );
   });
 });
