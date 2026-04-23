@@ -87,9 +87,13 @@ serve(async (req) => {
         //    through RLS on admin_users which requires service_role for
         //    SELECT, so we use the SECURITY DEFINER `is_admin` RPC.
         const adminClient = createClient(supabaseUrl, serviceRoleKey);
+        // Param name matches the existing RPC signature
+        // `is_admin(p_user_id uuid)` — every other caller in the tree
+        // passes `p_user_id`. PostgREST matches named parameters, so the
+        // key has to be exact; `uid` would silently fail the call.
         // @ts-expect-error rpc typing is loose for dynamic function names
         const { data: isAdminResult, error: isAdminErr } = await adminClient.rpc('is_admin', {
-            uid: caller.id,
+            p_user_id: caller.id,
         });
         if (isAdminErr) {
             console.error('[admin-user-moderation] is_admin check failed', isAdminErr);

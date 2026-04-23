@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { ArrowUpDown, ArrowUp, ArrowDown, Loader2, Shield, ShieldOff, Ban, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useAdminUsers, useAdminUserDetail } from '@/features/admin/hooks/useAdminUsers';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { formatDisplayDate } from '@/shared/lib/date-engine';
+import { formatDisplayDate, getNow, isBeforeDate } from '@/shared/lib/date-engine';
 import { planter } from '@/shared/api/planterClient';
 import { Button } from '@/shared/ui/button';
 import { useConfirm } from '@/shared/ui/confirm-dialog';
@@ -63,18 +63,19 @@ export default function AdminUsers() {
     const list = useAdminUsers(filter, { limit: PAGE_SIZE, offset: page * PAGE_SIZE });
     const detail = useAdminUserDetail(selectedUid);
 
-    // Snapshot the current time at mount so subsequent renders don't
-    // trigger react-hooks/impure-function flags by calling Date.now()
-    // during render. Moderation is a short-lived view — if the admin
-    // leaves the user on the detail aside for long enough that the
-    // snapshot goes stale, they'll refetch by re-selecting anyway.
-    // `useState` with a lazy initializer ensures Date.now() runs once
-    // at mount, not during re-renders.
-    const [nowSnapshot] = useState(() => Date.now());
+    // Snapshot "now" at mount via `getNow()` (date-engine wrapper around
+    // `new Date()`). Lazy-initialized `useState` ensures the call runs
+    // once on mount, not during every render — avoids the
+    // react-hooks/impure-function lint. Moderation is a short-lived
+    // view; if the admin lingers long enough that the snapshot goes
+    // stale, selecting a different user refetches + refreshes.
+    const [nowSnapshot] = useState(() => getNow());
+    // `isBeforeDate(a, b)` returns true when `a` is strictly before `b`.
+    // Currently suspended = nowSnapshot is before banned_until.
     const currentlySuspended = useMemo(() => {
         const bannedUntil = detail.data?.profile.banned_until;
         if (!bannedUntil) return false;
-        return Date.parse(bannedUntil) > nowSnapshot;
+        return isBeforeDate(nowSnapshot, bannedUntil);
     }, [detail.data?.profile.banned_until, nowSnapshot]);
 
     // Reset to page 0 on any filter change.
