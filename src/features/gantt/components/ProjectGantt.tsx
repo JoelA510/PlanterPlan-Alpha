@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react';
 import { Gantt as GanttLib, type Task as GanttTaskApiType, ViewMode } from 'gantt-task-react';
 import 'gantt-task-react/dist/index.css';
 import { Calendar, FileDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { Switch } from '@/shared/ui/switch';
 import { Label } from '@/shared/ui/label';
@@ -41,6 +42,7 @@ export function ProjectGantt({
     onIncludeLeafTasksChange,
     onShiftDates,
 }: ProjectGanttProps) {
+    const { t } = useTranslation();
     const containerRef = useRef<HTMLDivElement>(null);
 
     const handleDateChange = useCallback(
@@ -102,22 +104,22 @@ export function ProjectGantt({
         <div data-testid="project-gantt" className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2">
-                    <Label htmlFor="gantt-zoom" className="text-sm text-slate-600">Zoom</Label>
+                    <Label htmlFor="gantt-zoom" className="text-sm text-slate-600">{t('gantt.zoom_label')}</Label>
                     <Select value={zoom} onValueChange={(v) => onZoomChange(v as GanttZoom)}>
                         <SelectTrigger id="gantt-zoom" className="w-28">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value={ViewMode.Day}>Day</SelectItem>
-                            <SelectItem value={ViewMode.Week}>Week</SelectItem>
-                            <SelectItem value={ViewMode.Month}>Month</SelectItem>
+                            <SelectItem value={ViewMode.Day}>{t('gantt.zoom_day')}</SelectItem>
+                            <SelectItem value={ViewMode.Week}>{t('gantt.zoom_week')}</SelectItem>
+                            <SelectItem value={ViewMode.Month}>{t('gantt.zoom_month')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
 
                 <Button variant="outline" size="sm" onClick={handleTodayClick}>
                     <Calendar aria-hidden="true" />
-                    Today
+                    {t('gantt.today')}
                 </Button>
 
                 <div className="flex items-center gap-2">
@@ -127,7 +129,7 @@ export function ProjectGantt({
                         onCheckedChange={onIncludeLeafTasksChange}
                     />
                     <Label htmlFor="gantt-include-leaves" className="text-sm text-slate-600">
-                        Include leaf tasks
+                        {t('gantt.include_leaf_tasks')}
                     </Label>
                 </div>
 
@@ -136,23 +138,23 @@ export function ProjectGantt({
                         variant="outline"
                         size="sm"
                         onClick={() => window.print()}
-                        aria-label="Export gantt via browser print dialog (choose 'Save as PDF' as the destination)"
+                        aria-label={t('gantt.export_pdf_aria')}
                     >
                         <FileDown aria-hidden="true" />
-                        Export PDF
+                        {t('gantt.export_pdf')}
                     </Button>
                 </div>
             </div>
 
             {skippedCount > 0 ? (
                 <p className="text-sm text-slate-600" role="status">
-                    {skippedCount} task{skippedCount === 1 ? '' : 's'} excluded (missing dates).
+                    {t('gantt.tasks_excluded', { count: skippedCount })}
                 </p>
             ) : null}
 
             {rows.length === 0 ? (
                 <p className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600 shadow-sm">
-                    This project has no tasks with scheduled dates yet.
+                    {t('gantt.no_scheduled_tasks')}
                 </p>
             ) : (
                 <div

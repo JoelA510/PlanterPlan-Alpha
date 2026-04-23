@@ -471,6 +471,19 @@
     "project_not_found_or_no_access": "This project doesn't exist, or you no longer have access to it.",
     "back_to_dashboard": "Back to dashboard"
   },
+  "gantt": {
+    "zoom_label": "Zoom",
+    "zoom_day": "Day",
+    "zoom_week": "Week",
+    "zoom_month": "Month",
+    "today": "Today",
+    "include_leaf_tasks": "Include leaf tasks",
+    "export_pdf": "Export PDF",
+    "export_pdf_aria": "Export gantt via browser print dialog (choose 'Save as PDF' as the destination)",
+    "tasks_excluded_one": "{{count}} task excluded (missing dates).",
+    "tasks_excluded_other": "{{count}} tasks excluded (missing dates).",
+    "no_scheduled_tasks": "This project has no tasks with scheduled dates yet."
+  },
   "admin": {
     "shell_title": "Admin",
     "shell_loading": "Loading admin shell…",

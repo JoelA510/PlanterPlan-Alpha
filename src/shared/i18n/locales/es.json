@@ -477,6 +477,19 @@
     "back_to_dashboard": "Volver al panel",
     "user_must_be_logged_in": "El usuario debe haber iniciado sesión"
   },
+  "gantt": {
+    "zoom_label": "Zoom",
+    "zoom_day": "Día",
+    "zoom_week": "Semana",
+    "zoom_month": "Mes",
+    "today": "Hoy",
+    "include_leaf_tasks": "Incluir tareas hoja",
+    "export_pdf": "Exportar PDF",
+    "export_pdf_aria": "Exportar gantt a través del diálogo de impresión del navegador (elige 'Guardar como PDF' como destino)",
+    "tasks_excluded_one": "{{count}} tarea excluida (sin fechas).",
+    "tasks_excluded_other": "{{count}} tareas excluidas (sin fechas).",
+    "no_scheduled_tasks": "Este proyecto aún no tiene tareas con fechas programadas."
+  },
   "admin": {
     "shell_title": "Administración",
     "shell_loading": "Cargando panel de administración…",
