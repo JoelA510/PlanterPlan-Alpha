@@ -8,7 +8,6 @@ import { Card } from '@/shared/ui/card';
 import { Progress } from '@/shared/ui/progress';
 import { ArrowLeft, Loader2, BarChart, TrendingUp, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { STALE_TIMES } from '@/shared/lib/react-query-config';
-import { motion } from 'framer-motion';
 import { toMonthKey } from '@/shared/lib/date-engine';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import {
@@ -164,13 +163,8 @@ export default function Reports() {
                     ) : (
                         <>
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                                {statsConfig.map((stat, index) => (
-                                    <motion.div
-                                        key={stat.label}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: index * 0.1 }}
-                                    >
+                                {statsConfig.map((stat) => (
+                                    <div key={stat.label} className="animate-slide-up">
                                         <Card className={`p-6 border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 group hover:${stat.borderClass}`}>
                                             <div className="flex items-center justify-between">
                                                 <div>
@@ -184,15 +178,11 @@ export default function Reports() {
                                                 </div>
                                             </div>
                                         </Card>
-                                    </motion.div>
+                                    </div>
                                 ))}
                             </div>
 
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.4 }}
-                            >
+                            <div className="animate-slide-up">
                                 <Card className="p-8 mb-10 border border-slate-200 bg-slate-50/50 shadow-md hover:shadow-xl transition-all duration-300">
                                     <div className="flex items-center justify-between mb-6">
                                         <div>
@@ -208,7 +198,7 @@ export default function Reports() {
                                     </div>
                                     <Progress value={overallProgress} className="h-3 bg-border" />
                                 </Card>
-                            </motion.div>
+                            </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
@@ -284,12 +274,7 @@ export default function Reports() {
                                 </div>
                             </div>
 
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.7 }}
-                                className="mt-8"
-                            >
+                            <div className="animate-slide-up mt-8">
                                 <Card className="p-8 border border-border bg-card shadow-lg">
                                     <h3 className="text-xl font-bold text-foreground mb-8">{t('projects.reports.phase_details_heading')}</h3>
                                     <div className="space-y-6">
@@ -318,7 +303,7 @@ export default function Reports() {
                                         ))}
                                     </div>
                                 </Card>
-                            </motion.div>
+                            </div>
                         </>
                     )}
                 </div>

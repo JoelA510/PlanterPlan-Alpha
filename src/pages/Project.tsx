@@ -16,7 +16,6 @@ import { planter } from '@/shared/api/planterClient';
 import { ProjectDndShell } from '@/pages/components/ProjectDndShell';
 
 import { Loader2, Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
@@ -328,11 +327,7 @@ export default function Project() {
                                 </div>
 
                                 {activePhase && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                    >
+                                    <div className="animate-slide-up">
                                         <div className="flex items-center justify-between mb-6">
                                             <div>
                                                 <h2 className="text-xl font-semibold text-slate-900">
@@ -400,7 +395,7 @@ export default function Project() {
                                                 </Button>
                                             )}
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 )}
                             </>
                         )}
