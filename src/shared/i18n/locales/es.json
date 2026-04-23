@@ -265,6 +265,8 @@
     "add_milestone_button": "Añadir hito",
     "phases_heading": "Fases",
     "phase_heading_title": "Fase {{position}}: {{title}}",
+    "phase_template_task_count_one": "{{count}} tarea",
+    "phase_template_task_count_other": "{{count}} tareas",
     "no_milestones_in_phase": "Aún no hay hitos en esta fase",
     "milestone_tasks_aria": "Tareas bajo {{title}}",
     "task_created_toast": "Tarea creada",

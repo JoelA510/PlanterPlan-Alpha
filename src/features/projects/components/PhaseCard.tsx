@@ -2,6 +2,7 @@ import { Card } from '@/shared/ui/card';
 import { Progress } from '@/shared/ui/progress';
 import { ProgressRing } from '@/shared/ui/progress-ring';
 
+import { useTranslation } from 'react-i18next';
 import { ChevronRight, CheckCircle2, Lock } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { TASK_STATUS } from '@/shared/constants';
@@ -37,6 +38,7 @@ interface PhaseCardProps {
 }
 
 export default function PhaseCard({ phase, tasks = [], milestones = [], isActive, onClick, rootTask }: PhaseCardProps) {
+ const { t } = useTranslation();
  const order = phase.position || 1;
  const isLocked = phase.is_locked;
 
@@ -111,7 +113,7 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
 
  <div className="space-y-2">
  {phase.origin === 'template' ? (
- <p className="text-xs text-muted-foreground">{totalTasks} task{totalTasks !== 1 ? 's' : ''}</p>
+ <p className="text-xs text-muted-foreground">{t('projects.phase_template_task_count', { count: totalTasks })}</p>
  ) : isCheckpoint ? (
  <div className="flex items-center justify-between gap-3" data-testid="phase-donut">
  <div className="relative h-16 w-16">

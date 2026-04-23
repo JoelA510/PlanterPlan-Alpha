@@ -48,14 +48,16 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
    z.object({
     title: z.string().min(1, t('projects.form.title_required_short')),
     description: z.string().optional(),
-    start_date: z.string().min(1, t('projects.form.start_date_required')),
+    start_date: isTemplate
+     ? z.string().optional()
+     : z.string().min(1, t('projects.form.start_date_required')),
     due_date: z.string().optional(),
     due_soon_threshold: z.coerce.number()
      .min(1, t('projects.edit_modal.due_soon_threshold_min'))
      .max(30, t('projects.edit_modal.due_soon_threshold_max')),
     supervisor_email: z.string().email(t('projects.edit_modal.supervisor_email_invalid')).optional().or(z.literal('')),
    }),
-  [t],
+  [t, isTemplate],
  );
 
  type EditProjectFormData = z.infer<typeof editProjectSchema>;
