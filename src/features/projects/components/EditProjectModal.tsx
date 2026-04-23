@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { useUpdateProject, useDeleteProject, useUpdateProjectStatus } from '@/features/projects/hooks/useProjectMutations';
 import { applyProjectKind, extractProjectKind, type ProjectKind } from '@/features/projects/lib/project-kind';
 import { toIsoDate } from '@/shared/lib/date-engine';
+import { useDirtyCloseGuard } from '@/shared/lib/use-dirty-close-guard';
 import { PROJECT_STATUS } from '@/shared/constants/domain';
 import type { TaskRow } from '@/shared/db/app.types';
 import { toast } from 'sonner';
@@ -85,7 +86,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
   register,
   handleSubmit,
   control,
-  formState: { errors, isSubmitting },
+  formState: { errors, isSubmitting, isDirty: formIsDirty },
  } = useForm<EditProjectFormData>({
   // @ts-expect-error Zod schema mismatches slightly with final form data type
   resolver: zodResolver(editProjectSchema),
@@ -106,6 +107,19 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
  const trimmedSupervisorEmail = watchedSupervisorEmail.trim();
  const isSupervisorEmailValid = emailSchema.safeParse(trimmedSupervisorEmail).success;
  const canSendTestReport = Boolean(project.id) && isSupervisorEmailValid && !isSendingTest;
+
+ // Dirty detection: RHF's `formState.isDirty` tracks the 6 form fields.
+ // `isPublished` (template) and `projectKind` (instance root) are managed
+ // outside RHF via useState, so they need separate comparisons against
+ // the values loaded from the project at mount. `pendingKindRevert` is
+ // an internal UI flag (not user data), not tracked.
+ const initialPublished = currentSettings.published === true;
+ const initialKind = useMemo(() => extractProjectKind(project), [project]);
+ const isDirty =
+  formIsDirty ||
+  (isTemplate && isPublished !== initialPublished) ||
+  (isRoot && isInstance && projectKind !== initialKind);
+ const guardedClose = useDirtyCloseGuard(isDirty, onClose);
 
  const handleSendTestReport = async () => {
   if (!canSendTestReport) return;
@@ -167,7 +181,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
 
  return (
   <>
-  <Dialog open={isOpen} onOpenChange={onClose}>
+  <Dialog open={isOpen} onOpenChange={(o) => { if (!o) void guardedClose(); }}>
    <DialogContent data-testid="edit-project-modal" className="sm:max-w-[500px]">
     <DialogHeader>
      <DialogTitle>{t('projects.edit_modal.title')}</DialogTitle>
@@ -312,7 +326,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
      </div>
 
      <div className="flex justify-end gap-3 pt-2">
-      <Button variant="outline" onClick={onClose} type="button">
+      <Button variant="outline" onClick={() => void guardedClose()} type="button">
        {t('common.cancel')}
       </Button>
       <Button onClick={handleSubmit(onSubmit as (data: unknown) => void)} disabled={isSubmitting}>
