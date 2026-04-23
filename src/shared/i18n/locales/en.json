@@ -124,6 +124,7 @@
     "reorder_task": "Reorder task",
     "open_task_details_aria": "Open details for {{title}}",
     "status_for_aria": "Status for {{title}}",
+    "title_with_project_aria": "{{title}} — {{project}}",
     "view_label": "View",
     "view_list": "List View",
     "view_board": "Board View",

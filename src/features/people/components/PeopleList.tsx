@@ -112,7 +112,7 @@ export default function PeopleList({ projectId, canEdit = false }: PeopleListPro
     };
 
     const handleDelete = async (person: Person) => {
-        const label = [person.first_name, person.last_name].filter(Boolean).join(' ') || t('common.untitled_task');
+        const label = [person.first_name, person.last_name].filter(Boolean).join(' ') || t('common.unknown_name');
         const ok = await confirm({
             title: t('projects.people.remove_confirm_title', { name: label }),
             description: t('projects.people.remove_confirm_description'),

@@ -279,7 +279,7 @@ const TaskItem = ({
  <TooltipTrigger asChild>
  <span
  tabIndex={0}
- aria-label={`${task.title} — ${parentProjectTitle}`}
+ aria-label={t('tasks.title_with_project_aria', { title: task.title ?? '', project: parentProjectTitle })}
  className="font-semibold text-slate-900 text-sm truncate cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:rounded-sm"
  data-testid={`task-row-title-${task.id}`}
  >
