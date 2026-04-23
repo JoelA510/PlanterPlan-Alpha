@@ -118,12 +118,14 @@ export default function MilestoneSection({
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="hidden sm:flex items-center gap-3">
-                        <div className="w-32">
-                            <Progress value={progress} className="h-2 bg-slate-100" />
+                    {milestone.origin !== 'template' && (
+                        <div className="hidden sm:flex items-center gap-3">
+                            <div className="w-32">
+                                <Progress value={progress} className="h-2 bg-slate-100" />
+                            </div>
+                            <span className="text-sm font-medium text-slate-600 w-12 text-right">{progress}%</span>
                         </div>
-                        <span className="text-sm font-medium text-slate-600 w-12 text-right">{progress}%</span>
-                    </div>
+                    )}
                     {milestone.is_locked && (
                         <Badge
                             variant="outline"

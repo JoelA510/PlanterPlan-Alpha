@@ -347,3 +347,29 @@ describe('EditProjectModal — shiftedCount toast feedback', () => {
     expect(message).toContain('2 tasks rescheduled');
   });
 });
+
+describe('EditProjectModal — start/end date visibility (Wave 37)', () => {
+  it('hides the date section for template projects', () => {
+    const template = makeTask({
+      id: 'tmpl-1',
+      title: 'A Template',
+      origin: 'template',
+      start_date: '2026-01-01',
+      settings: null,
+    });
+    renderModal(template);
+    expect(screen.queryByLabelText(/launch date/i)).toBeNull();
+    expect(screen.queryByLabelText(/due date/i)).toBeNull();
+  });
+
+  it('shows the date section for instance projects', () => {
+    const instance = makeTask({
+      id: 'proj-1',
+      title: 'A Project',
+      origin: 'instance',
+      start_date: '2026-01-01',
+    });
+    renderModal(instance);
+    expect(screen.getByLabelText(/launch date/i)).toBeInTheDocument();
+  });
+});

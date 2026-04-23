@@ -49,14 +49,16 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
    z.object({
     title: z.string().min(1, t('projects.form.title_required_short')),
     description: z.string().optional(),
-    start_date: z.string().min(1, t('projects.form.start_date_required')),
+    start_date: isTemplate
+     ? z.string().optional()
+     : z.string().min(1, t('projects.form.start_date_required')),
     due_date: z.string().optional(),
     due_soon_threshold: z.coerce.number()
      .min(1, t('projects.edit_modal.due_soon_threshold_min'))
      .max(30, t('projects.edit_modal.due_soon_threshold_max')),
     supervisor_email: z.string().email(t('projects.edit_modal.supervisor_email_invalid')).optional().or(z.literal('')),
    }),
-  [t],
+  [t, isTemplate],
  );
 
  type EditProjectFormData = z.infer<typeof editProjectSchema>;
@@ -300,6 +302,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
       )}
      </div>
 
+     {!isTemplate && (
      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 space-y-4">
       <div>
        <Label htmlFor="start_date" className="block mb-1 font-semibold text-amber-800">
@@ -324,6 +327,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
        <Input type="date" id="due_date" {...register('due_date')} />
       </div>
      </div>
+     )}
 
      <div className="flex justify-end gap-3 pt-2">
       <Button variant="outline" onClick={() => void guardedClose()} type="button">
