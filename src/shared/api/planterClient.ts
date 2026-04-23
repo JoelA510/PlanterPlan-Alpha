@@ -1278,22 +1278,42 @@ export const planter: PlanterClient = {
     admin: (() => {
         // Shared helper for the three admin-user-moderation actions. Hoists
         // the edge-function call + error normalization so each wrapper below
-        // is 2-4 lines. Throws `PlanterError` with the server-supplied error
-        // message (or a sensible fallback) on non-2xx responses.
+        // is 2-4 lines.
+        //
+        // Contract with the edge function:
+        //   - HTTP 200 `{ success: true, reset_link? }`  → normal return
+        //   - HTTP 200 `{ success: false, error }`        → product error;
+        //       surfaced to the UI verbatim (e.g. `self_moderation_forbidden`,
+        //       `target_not_found`). Using 200 here on purpose — supabase-js
+        //       wraps non-2xx in `FunctionsHttpError` with a generic message,
+        //       which loses the specific server string.
+        //   - HTTP 401 `{ success: false, error }`        → auth failure; the
+        //       edge function returns 401 for a missing / invalid caller JWT.
+        //       supabase-js surfaces this via `error`, and we fall back to
+        //       its generic message.
+        //   - HTTP 500                                    → infra failure
+        //       (missing env, unhandled exception); same fallback as 401.
         type ModerationAction = 'suspend' | 'unsuspend' | 'reset_password';
         const invokeModeration = async (
             action: ModerationAction,
             targetUid: string,
             extras?: Record<string, unknown>,
         ): Promise<unknown> => {
+            // Spread `extras` BEFORE the authoritative args so a caller can't
+            // accidentally override `action` or `target_uid` by passing a
+            // conflicting key. Defensive — no current caller does this.
             const { data, error } = await supabase.functions.invoke<{
                 success?: boolean;
                 error?: string;
                 reset_link?: string;
             }>('admin-user-moderation', {
-                body: { action, target_uid: targetUid, ...(extras ?? {}) },
+                body: { ...(extras ?? {}), action, target_uid: targetUid },
             });
+            // Non-2xx path (401 / 500): the server's error body is inside
+            // `error.context` and requires async parsing; fall back to the
+            // generic message rather than paying the async cost here.
             if (error) throw new PlanterError(error.message || 'Moderation failed', 500);
+            // 200-with-success=false — surface the specific server error.
             if (!data?.success) {
                 throw new PlanterError(data?.error || 'Moderation failed', 400);
             }

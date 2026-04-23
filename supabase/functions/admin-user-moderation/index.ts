@@ -23,9 +23,17 @@ import { corsHeaders } from '../_shared/auth.ts';
  *      `admin_recent_activity`.
  *   6. Return `{ success: true, ...details }`.
  *
- * Error shape: `{ success: false, error: <message> }` with 400 for product
- * errors (missing target, self-suspend, etc.) and 401/403/500 for auth /
- * config errors.
+ * Response shape:
+ *   - **HTTP 200** `{ success: true, reset_link? }` on success.
+ *   - **HTTP 200** `{ success: false, error: <message> }` for product-level
+ *     failures (invalid action, target not found, self-moderation, auth
+ *     API errors). 200-with-success=false is used so `supabase.functions
+ *     .invoke` doesn't wrap the response in a `FunctionsHttpError` —
+ *     which would lose the specific `error` string and surface a generic
+ *     "non-2xx status code" to the user. The client checks `data.success`.
+ *   - **HTTP 401** for missing / invalid caller JWT.
+ *   - **HTTP 500** only for truly catastrophic failures (missing env vars,
+ *     unhandled exceptions). Those genuinely are server errors.
  */
 
 type ModerationAction = 'suspend' | 'unsuspend' | 'reset_password';
@@ -64,15 +72,16 @@ serve(async (req) => {
         const { action, target_uid, duration_hours } = body;
 
         if (!action || !['suspend', 'unsuspend', 'reset_password'].includes(action)) {
-            return json({ success: false, error: 'Invalid action' }, 400);
+            return json({ success: false, error: 'Invalid action' }, 200);
         }
         if (!target_uid || typeof target_uid !== 'string') {
-            return json({ success: false, error: 'target_uid required' }, 400);
+            return json({ success: false, error: 'target_uid required' }, 200);
         }
 
         // 1. Extract caller from user JWT.
         const authHeader = req.headers.get('Authorization');
         if (!authHeader) {
+            // Genuine HTTP auth failure — 401 is the right status.
             return json({ success: false, error: 'Authorization required' }, 401);
         }
         const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -80,6 +89,7 @@ serve(async (req) => {
         });
         const { data: { user: caller }, error: userErr } = await userClient.auth.getUser();
         if (userErr || !caller) {
+            // Bad bearer — HTTP auth failure, 401.
             return json({ success: false, error: 'Invalid session' }, 401);
         }
 
@@ -97,24 +107,27 @@ serve(async (req) => {
         });
         if (isAdminErr) {
             console.error('[admin-user-moderation] is_admin check failed', isAdminErr);
+            // Infra problem (RPC unreachable / misconfigured) — genuine 500.
             return json({ success: false, error: 'Authorization check failed' }, 500);
         }
         if (!isAdminResult) {
-            return json({ success: false, error: 'unauthorized: admin role required' }, 403);
+            // Product-level: caller is authenticated but not an admin. 200 so
+            // the client's error branch can surface the specific message.
+            return json({ success: false, error: 'unauthorized: admin role required' }, 200);
         }
 
         // 3. Self-protection: disallow self-suspend (indistinguishable
         //    from self-demotion — admin can accidentally lock themselves
         //    out). Reset-password on self is harmless and allowed.
         if ((action === 'suspend' || action === 'unsuspend') && target_uid === caller.id) {
-            return json({ success: false, error: 'self_moderation_forbidden' }, 400);
+            return json({ success: false, error: 'self_moderation_forbidden' }, 200);
         }
 
         // 4. Load the target for activity-log context + email (reset-password
         //    needs the email for generateLink).
         const { data: targetData, error: targetErr } = await adminClient.auth.admin.getUserById(target_uid);
         if (targetErr || !targetData?.user) {
-            return json({ success: false, error: 'target_not_found' }, 404);
+            return json({ success: false, error: 'target_not_found' }, 200);
         }
         const targetEmail = targetData.user.email;
 
@@ -134,7 +147,10 @@ serve(async (req) => {
             });
             if (error) {
                 console.error('[admin-user-moderation] suspend failed', error);
-                return json({ success: false, error: error.message || 'Suspend failed' }, 500);
+                // Admin API errors are product-level from the caller's POV —
+                // return 200 so the specific message (e.g. bad ban_duration)
+                // surfaces through supabase-js invoke without a generic wrap.
+                return json({ success: false, error: error.message || 'Suspend failed' }, 200);
             }
             activityAction = 'user_suspended';
             activityPayload.duration = banDuration;
@@ -145,13 +161,13 @@ serve(async (req) => {
             });
             if (error) {
                 console.error('[admin-user-moderation] unsuspend failed', error);
-                return json({ success: false, error: error.message || 'Unsuspend failed' }, 500);
+                return json({ success: false, error: error.message || 'Unsuspend failed' }, 200);
             }
             activityAction = 'user_unsuspended';
         } else {
             // reset_password
             if (!targetEmail) {
-                return json({ success: false, error: 'target_has_no_email' }, 400);
+                return json({ success: false, error: 'target_has_no_email' }, 200);
             }
             const { data: linkData, error } = await adminClient.auth.admin.generateLink({
                 type: 'recovery',
@@ -159,7 +175,7 @@ serve(async (req) => {
             });
             if (error) {
                 console.error('[admin-user-moderation] generateLink failed', error);
-                return json({ success: false, error: error.message || 'Reset link generation failed' }, 500);
+                return json({ success: false, error: error.message || 'Reset link generation failed' }, 200);
             }
             resetLink = linkData?.properties?.action_link;
             activityAction = 'password_reset_requested';
@@ -169,7 +185,14 @@ serve(async (req) => {
 
         // 6. Activity log — service_role bypasses the policy-level INSERT
         //    block on activity_log (Wave 27 denies at policy level).
-        await adminClient.from('activity_log').insert({
+        //    The insert's outcome is intentionally non-blocking: the
+        //    moderation action already succeeded above, so failing the
+        //    whole request to report a missing audit entry would leave
+        //    the admin in a "did it actually suspend?" limbo. Log the
+        //    failure server-side instead. Operators can reconcile from
+        //    the auth.users.banned_until column if the audit trail is
+        //    ever found incomplete.
+        const { error: auditErr } = await adminClient.from('activity_log').insert({
             project_id: null,
             actor_id: caller.id,
             entity_type: 'member',
@@ -177,6 +200,9 @@ serve(async (req) => {
             action: activityAction,
             payload: activityPayload,
         });
+        if (auditErr) {
+            console.error('[admin-user-moderation] activity_log insert failed (action still applied)', auditErr);
+        }
 
         return json({ success: true, reset_link: resetLink });
     } catch (err) {
