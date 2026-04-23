@@ -72,7 +72,7 @@ export default function Settings() {
  <div className="relative">
  <div className="w-24 h-24 bg-secondary rounded-2xl flex items-center justify-center border-2 border-background shadow-md overflow-hidden">
  {profile.avatar_url ? (
- <img src={profile.avatar_url} alt={t('settings.profile.avatar_alt')} className="w-full h-full object-cover" />
+ <img src={profile.avatar_url} alt={t('settings.profile.avatar_alt')} width={96} height={96} loading="lazy" className="w-full h-full object-cover" />
  ) : (
  <User className="w-10 h-10 text-muted-foreground" />
  )}

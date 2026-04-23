@@ -37,7 +37,7 @@ export default function TaskControlButtons({
  {onEdit && (
  <button
  type="button"
- className="action-btn"
+ className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-500 hover:text-brand-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors"
  onClick={(e) => { e.stopPropagation(); if (onEdit) onEdit(task); }}
  aria-label={t('tasks.edit_task_aria', { title: taskTitle })}
  title={t('tasks.edit_task')}
@@ -49,7 +49,7 @@ export default function TaskControlButtons({
  {canHaveChildren && onAddChild && (
  <button
  type="button"
- className="action-btn"
+ className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-500 hover:text-brand-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors"
  onClick={(e) => { e.stopPropagation(); if (onAddChild) onAddChild(task); }}
  aria-label={t('tasks.add_subtask_aria', { title: taskTitle })}
  title={t('tasks.add_subtask')}
@@ -61,7 +61,7 @@ export default function TaskControlButtons({
  {onInvite && (
  <button
  type="button"
- className="action-btn"
+ className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-500 hover:text-brand-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors"
  onClick={(e) => { e.stopPropagation(); if (onInvite) onInvite(task); }}
  aria-label={t('tasks.invite_member_aria', { title: taskTitle })}
  title={t('tasks.invite_member')}
@@ -73,7 +73,7 @@ export default function TaskControlButtons({
  {onDelete && (
  <button
  type="button"
- className="action-btn delete"
+ className="inline-flex h-6 w-6 items-center justify-center rounded text-rose-500 hover:text-rose-600 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 transition-colors"
  onClick={(e) => { e.stopPropagation(); if (onDelete) onDelete(task.id); }}
  aria-label={t('tasks.delete_task_aria', { title: taskTitle })}
  title={t('tasks.delete_task')}

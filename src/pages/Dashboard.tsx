@@ -20,7 +20,7 @@ import CreateTemplateModal from '@/features/dashboard/components/CreateTemplateM
 import StatsOverview from '@/features/dashboard/components/StatsOverview';
 import ProjectPipelineBoard from '@/features/dashboard/components/ProjectPipelineBoard';
 import OnboardingWizard from '@/pages/components/OnboardingWizard';
-import MobileAgenda from '@/features/mobile/MobileAgenda';
+import MobileAgenda from '@/features/mobile/components/MobileAgenda';
 
 export default function Dashboard() {
     const { t } = useTranslation();

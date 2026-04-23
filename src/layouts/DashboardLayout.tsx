@@ -5,7 +5,7 @@ import Header from '@/features/navigation/components/Header';
 import ProjectSidebarContainer from '@/features/navigation/components/ProjectSidebarContainer';
 import { CommandPalette } from '@/shared/ui/CommandPalette';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import MobileFAB from '@/features/mobile/MobileFAB';
+import MobileFAB from '@/features/mobile/components/MobileFAB';
 
 export default function DashboardLayout({ sidebar, children }: { sidebar?: React.ReactNode, children?: React.ReactNode }) {
  const [sidebarOpen, setSidebarOpen] = useState(false);

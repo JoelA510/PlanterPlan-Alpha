@@ -140,7 +140,7 @@ export default function ProjectHeader({
                             return (
                                 <div key={member.id} className="relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground z-10" title={displayName || 'Unknown'}>
                                     {(member as { avatar_url?: string }).avatar_url ? (
-                                        <img src={(member as { avatar_url?: string }).avatar_url} alt={displayName || 'Unknown'} className="w-full h-full rounded-full object-cover" />
+                                        <img src={(member as { avatar_url?: string }).avatar_url} alt={displayName || 'Unknown'} width={32} height={32} loading="lazy" className="w-full h-full rounded-full object-cover" />
                                     ) : (
                                         <span>{initials}</span>
                                     )}
