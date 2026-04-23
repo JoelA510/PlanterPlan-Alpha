@@ -1,9 +1,10 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { Gantt as GanttLib, type Task as GanttTaskApiType, ViewMode } from 'gantt-task-react';
 import 'gantt-task-react/dist/index.css';
 import { Calendar, FileDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
+import { diffInCalendarDays, getNow, isBeforeDate } from '@/shared/lib/date-engine';
 import { Switch } from '@/shared/ui/switch';
 import { Label } from '@/shared/ui/label';
 import {
@@ -53,23 +54,34 @@ export function ProjectGantt({
         [onShiftDates],
     );
 
+    // Compute once per `rows` change — avoids re-filtering + re-reducing the
+    // whole row set on every render. Uses `Date` comparison directly (rows
+    // carry native `Date` objects from the library) so no raw millisecond
+    // math leaks in.
+    const earliestStart = useMemo<Date | null>(
+        () =>
+            rows
+                .map((r) => r.start)
+                .filter((d): d is Date => d instanceof Date && !Number.isNaN(d.getTime()))
+                .reduce<Date | null>((min, d) => (min === null || d < min ? d : min), null),
+        [rows],
+    );
+
     const handleTodayClick = useCallback(() => {
         // gantt-task-react doesn't expose a "jump to today" API and renders
         // starting at `min(rows.start)`. Compute the horizontal offset to
         // today's column based on zoom-mode column width and the number of
         // days between the earliest task start and today — then scroll
         // directly to that offset. Falls back to leftmost scroll if the
-        // container isn't mounted or we can't compute a valid offset.
+        // container isn't mounted or we can't compute a valid offset. All
+        // date logic routes through date-engine (no raw `new Date()` or
+        // millisecond math at call site).
         const container = containerRef.current;
         if (!container) return;
 
-        const today = new Date();
-        const earliestStart = rows
-            .map((r) => r.start)
-            .filter((d): d is Date => d instanceof Date && !Number.isNaN(d.getTime()))
-            .reduce<Date | null>((min, d) => (min === null || d < min ? d : min), null);
+        const today = getNow();
 
-        if (!earliestStart || today < earliestStart) {
+        if (!earliestStart || isBeforeDate(today, earliestStart)) {
             container.scrollTo({ left: 0, behavior: 'smooth' });
             return;
         }
@@ -87,18 +99,14 @@ export function ProjectGantt({
             [ViewMode.Week]: 7,
             [ViewMode.Month]: 30,
         };
-        const dayMs = 86_400_000;
-        const deltaDays = Math.max(
-            0,
-            Math.floor((today.getTime() - earliestStart.getTime()) / dayMs),
-        );
+        const deltaDays = Math.max(0, diffInCalendarDays(today, earliestStart) ?? 0);
         const columns = deltaDays / (daysPerColumn[zoom] || 1);
         const targetLeft = Math.max(
             0,
             columns * (columnWidthByZoom[zoom] || 65) - container.clientWidth / 2,
         );
         container.scrollTo({ left: targetLeft, behavior: 'smooth' });
-    }, [rows, zoom]);
+    }, [earliestStart, zoom]);
 
     return (
         <div data-testid="project-gantt" className="flex flex-col gap-4">

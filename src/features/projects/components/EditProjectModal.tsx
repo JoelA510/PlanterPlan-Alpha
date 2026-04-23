@@ -399,7 +399,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
   </Dialog>
 
   <Dialog open={pendingKindRevert} onOpenChange={setPendingKindRevert}>
-   <DialogContent role="alertdialog" data-testid="project-kind-revert-dialog" className="sm:max-w-[440px]">
+   <DialogContent role="alertdialog" data-testid="project-kind-revert-dialog" className="sm:max-w-md">
     <DialogHeader>
      <DialogTitle>{t('projects.edit_modal.revert_kind_title')}</DialogTitle>
      <DialogDescription>

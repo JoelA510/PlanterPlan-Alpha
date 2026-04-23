@@ -54,7 +54,7 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
  const isCheckpoint = extractProjectKind(rootTask) === 'checkpoint';
 
  return (
- <div className={cn('h-full transition-transform duration-150', !isLocked && 'hover:scale-[1.02] active:scale-[0.98]')}>
+ <div className={cn('h-full transition-transform duration-150', !isLocked && 'hover:scale-105 active:scale-95')}>
  <Card
  onClick={isLocked ? undefined : onClick}
  data-testid={`phase-card-${phase.id}`}

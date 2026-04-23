@@ -61,7 +61,13 @@ const BoardTaskCard = memo(({ task, onClick, dragHandleProps, style, isDragging 
  // board view was keyboard-unusable (can't open task details). Can't use a
  // real `<button>` here because the card contains nested interactive
  // elements (the drag handle), which is invalid HTML inside a button.
+ //
+ // Guard: only handle the key when the card itself has focus. Otherwise a
+ // Space/Enter on the nested drag-handle button (for dnd-kit's keyboard
+ // sensor "pick up item" gesture) would bubble into this handler and
+ // hijack the event — opening the details panel mid-drag.
  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+ if (e.target !== e.currentTarget) return;
  if (e.key === 'Enter' || e.key === ' ') {
  e.preventDefault();
  onClick(task);
