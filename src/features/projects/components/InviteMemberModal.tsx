@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { planter } from '@/shared/api/planterClient';
 import { ROLES } from '@/shared/constants';
 import { Loader2 } from 'lucide-react';
+import { useDirtyCloseGuard } from '@/shared/lib/use-dirty-close-guard';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -42,6 +43,13 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+
+    // Guard the close path — a mis-click on the backdrop after the user typed
+    // an email prompts for Discard. `success === true` short-circuits the
+    // guard because we auto-close 1.5s after a successful invite; prompting
+    // there would be jarring.
+    const isDirty = !success && (userId.trim().length > 0 || role !== ROLES.VIEWER);
+    const guardedClose = useDirtyCloseGuard(isDirty, onClose);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -108,7 +116,7 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
     };
 
     return (
-        <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+        <Dialog open onOpenChange={(open) => { if (!open) void guardedClose(); }}>
             <DialogContent data-testid="invite-member-modal" className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>{t('projects.invite_modal.title')}</DialogTitle>
@@ -166,7 +174,7 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({ project, onClose,
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={onClose}
+                            onClick={() => void guardedClose()}
                             disabled={isSubmitting}
                         >
                             {t('common.cancel')}

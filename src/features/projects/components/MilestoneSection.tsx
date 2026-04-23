@@ -154,7 +154,11 @@ export default function MilestoneSection({
                                     )}
                                 </div>
                             ) : (
-                                <div className="space-y-2 pt-4">
+                                <div
+                                    role="tree"
+                                    aria-label={`Tasks under ${milestone.title}`}
+                                    className="space-y-2 pt-4"
+                                >
                                     <SortableContext items={milestoneTasks.map(t => t.id)}>
                                         {milestoneTasks.map((task) => (
                                             <div key={task.id}>
