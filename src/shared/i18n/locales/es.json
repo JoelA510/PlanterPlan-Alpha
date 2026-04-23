@@ -247,6 +247,7 @@
     },
     "edit_modal": {
       "title": "Configuración del proyecto",
+      "description": "Actualiza la configuración, el estado y los ajustes del proyecto. Las acciones destructivas están en la Zona de peligro.",
       "section_general": "General",
       "section_configuration": "Configuración",
       "due_soon_threshold_label": "Umbral \"Vence pronto\" (días)",

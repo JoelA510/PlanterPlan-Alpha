@@ -241,6 +241,7 @@
     },
     "edit_modal": {
       "title": "Project Settings",
+      "description": "Update project settings, status, and configuration. Destructive actions are in the Danger Zone below.",
       "section_general": "General",
       "section_configuration": "Configuration",
       "due_soon_threshold_label": "\"Due Soon\" Threshold (Days)",

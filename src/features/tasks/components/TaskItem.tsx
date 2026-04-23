@@ -334,6 +334,7 @@ const TaskItem = ({
  <TaskStatusSelect
  status={task.status}
  taskId={task.id}
+ taskTitle={task.title}
  onStatusChange={handleStatusChange}
  />
 

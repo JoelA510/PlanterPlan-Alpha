@@ -4,7 +4,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Button } from '@/shared/ui/button';
 import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';
@@ -171,6 +171,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
    <DialogContent data-testid="edit-project-modal" className="sm:max-w-[500px]">
     <DialogHeader>
      <DialogTitle>{t('projects.edit_modal.title')}</DialogTitle>
+     <DialogDescription>{t('projects.edit_modal.description')}</DialogDescription>
     </DialogHeader>
 
     <div className="space-y-6 py-4">
@@ -398,13 +399,13 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
   </Dialog>
 
   <Dialog open={pendingKindRevert} onOpenChange={setPendingKindRevert}>
-   <DialogContent data-testid="project-kind-revert-dialog" className="sm:max-w-[440px]">
+   <DialogContent role="alertdialog" data-testid="project-kind-revert-dialog" className="sm:max-w-[440px]">
     <DialogHeader>
      <DialogTitle>{t('projects.edit_modal.revert_kind_title')}</DialogTitle>
+     <DialogDescription>
+      {t('projects.edit_modal.revert_kind_description')}
+     </DialogDescription>
     </DialogHeader>
-    <p className="text-sm text-slate-600">
-     {t('projects.edit_modal.revert_kind_description')}
-    </p>
     <DialogFooter className="gap-2 sm:justify-end">
      <Button variant="outline" onClick={() => setPendingKindRevert(false)}>
       {t('common.cancel')}
