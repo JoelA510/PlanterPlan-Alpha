@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Progress } from '@/shared/ui/progress';
 import { ArrowLeft, Loader2, BarChart, TrendingUp, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { STALE_TIMES } from '@/shared/lib/react-query-config';
 import { motion } from 'framer-motion';
 import { toMonthKey } from '@/shared/lib/date-engine';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -43,18 +44,26 @@ export default function Reports() {
         queryKey: ['reportProject', projectId],
         queryFn: () => planter.entities.Project.filter({ id: projectId }).then((res: TaskRow[]) => res[0]),
         enabled: !!projectId,
+        staleTime: STALE_TIMES.medium,
     });
 
     const { data: allProjects = [] } = useQuery({
         queryKey: ['projects', user?.id],
         queryFn: async () => planter.entities.Project.filter({}),
         enabled: !!user,
+        staleTime: STALE_TIMES.medium,
     });
 
-    const { data: allTasks = [], isLoading } = useQuery<TaskRow[]>({
-        queryKey: ['tasks', projectId],
+    // Share the `['projectHierarchy', projectId]` cache key with the rest of
+    // the app so task mutations performed elsewhere (Project.tsx, TaskList)
+    // invalidate this report view too. Prior key `['tasks', projectId]` was
+    // orphaned — reports showed stale data after any task edit until the
+    // user hard-reloaded.
+    const { data: allTasks = [], isLoading, isError, error, refetch } = useQuery<TaskRow[]>({
+        queryKey: ['projectHierarchy', projectId],
         queryFn: () => planter.entities.Task.filter({ root_id: projectId }),
         enabled: !!projectId,
+        staleTime: STALE_TIMES.medium,
     });
 
     const phases = allTasks.filter((t) => t.parent_task_id === projectId);
@@ -76,11 +85,23 @@ export default function Reports() {
 
     if (isLoading) {
         return (
-            <>
-                <div className="flex justify-center py-20">
-                    <Loader2 data-testid="loading-spinner" className="w-8 h-8 animate-spin text-orange-500" />
-                </div>
-            </>
+            <div className="flex justify-center py-20">
+                <Loader2 data-testid="loading-spinner" className="w-8 h-8 animate-spin text-orange-500" />
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-6">
+                <p className="text-destructive font-medium">{t('errors.failed_load_reports')}</p>
+                <p className="text-muted-foreground text-sm max-w-md">
+                    {(error as Error)?.message ?? t('errors.unknown')}
+                </p>
+                <Button variant="outline" onClick={() => refetch()}>
+                    {t('common.retry')}
+                </Button>
+            </div>
         );
     }
 

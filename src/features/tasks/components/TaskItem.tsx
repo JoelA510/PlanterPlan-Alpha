@@ -18,6 +18,7 @@ import {
  formatTaskDueBadge,
 } from '@/shared/lib/date-engine/formatTaskDueBadge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
+import { useConfirm } from '@/shared/ui/confirm-dialog';
 import type { PresenceState } from '@/features/projects/hooks/useProjectPresence';
 
 export type { TaskItemData } from '@/shared/types/tasks';
@@ -87,6 +88,7 @@ const TaskItem = ({
  parentProjectTitle = null,
 }: TaskItemProps) => {
  const { t } = useTranslation();
+ const confirm = useConfirm();
  const indentWidth = level * 20;
  const isSelected = selectedTaskId === task.id;
  const canHaveChildren = level < 4;
@@ -143,13 +145,15 @@ const TaskItem = ({
  }
  };
 
- const handleStatusChange = (id: string, status: string) => {
+ const handleStatusChange = async (id: string, status: string) => {
  if (status === 'completed' && task.children?.length) {
  const incompleteChildren = task.children.filter((c) => c.status !== 'completed');
  if (incompleteChildren.length > 0) {
- const confirmed = window.confirm(
-  `This task has ${incompleteChildren.length} incomplete subtask(s). Mark all as complete?`
- );
+ const confirmed = await confirm({
+ title: t('tasks.complete_with_incomplete_subtasks_title'),
+ description: t('tasks.complete_with_incomplete_subtasks_description', { count: incompleteChildren.length }),
+ confirmText: t('common.confirm'),
+ });
  if (!confirmed) return;
  }
  }

@@ -17,6 +17,8 @@ import { ProjectDndShell } from '@/pages/components/ProjectDndShell';
 
 import { Loader2, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { useCreateTask, useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
 import { toast } from 'sonner';
@@ -42,14 +44,17 @@ export default function Project() {
     // empty state, which is acceptable for a handful of cases.
     const { projectId } = useParams<{ projectId: string }>();
     const { user } = useAuth();
+    const { t } = useTranslation();
 
     const {
         project,
         loadingProject,
+        projectError,
         phases,
         milestones,
         tasks,
         teamMembers,
+        refetchProject,
     } = useProjectData(projectId);
 
     // Wave 27: open the per-project presence channel. No-op outside /Project/:id
@@ -235,13 +240,34 @@ export default function Project() {
         })
         .sort((a: TaskRow, b: TaskRow) => (a.position || 0) - (b.position || 0));
 
-    if (loadingProject || !project) {
+    if (loadingProject) {
         return (
-            <>
-                <div className="flex justify-center py-20">
-                    <Loader2 data-testid="loading-spinner" className="w-8 h-8 animate-spin text-orange-500" />
+            <div className="flex justify-center py-20">
+                <Loader2 data-testid="loading-spinner" className="w-8 h-8 animate-spin text-orange-500" />
+            </div>
+        );
+    }
+
+    // The primary project-metadata query either errored (network / RLS denial
+    // / bad id) or returned null. Render a recoverable error card instead of
+    // an infinite spinner — user can retry or bail to the dashboard. Before
+    // this change, an expired membership or a mistyped UUID froze the route.
+    if (projectError || !project) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-6">
+                <p className="text-destructive font-medium">{t('errors.failed_load_project')}</p>
+                <p className="text-muted-foreground text-sm max-w-md">
+                    {projectError?.message ?? t('errors.project_not_found_or_no_access')}
+                </p>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => refetchProject()}>
+                        {t('common.retry')}
+                    </Button>
+                    <Button asChild variant="ghost">
+                        <Link to="/dashboard">{t('errors.back_to_dashboard')}</Link>
+                    </Button>
                 </div>
-            </>
+            </div>
         );
     }
 

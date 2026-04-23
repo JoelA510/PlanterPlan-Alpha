@@ -6,6 +6,7 @@ import { I18nextProvider } from 'react-i18next';
 import { i18n } from '@/shared/i18n';
 import { AuthProvider, useAuth } from '@/shared/contexts/AuthContext';
 import { TooltipProvider } from '@/shared/ui/tooltip';
+import { ConfirmDialogProvider } from '@/shared/ui/confirm-dialog';
 import DashboardLayout from '../layouts/DashboardLayout';
 import Dashboard from '../pages/Dashboard';
 import Reports from '../pages/Reports';
@@ -35,6 +36,7 @@ export default function App() {
  <I18nextProvider i18n={i18n}>
  <AuthProvider>
  <TooltipProvider delayDuration={300}>
+ <ConfirmDialogProvider>
  <Router>
  <Routes>
  <Route path="/login" element={<LoginForm />} />
@@ -65,6 +67,7 @@ export default function App() {
  </Routes>
  </Router>
  <Toaster richColors position="top-right" />
+ </ConfirmDialogProvider>
  </TooltipProvider>
  </AuthProvider>
  </I18nextProvider>
