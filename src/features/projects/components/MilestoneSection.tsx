@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
 import { Progress } from '@/shared/ui/progress';
@@ -53,6 +54,7 @@ export default function MilestoneSection({
     presentUsers = [],
     currentUserId = null,
 }: MilestoneSectionProps) {
+    const { t } = useTranslation();
     const [isExpanded, setIsExpanded] = useState(true);
 
     const { setNodeRef, isOver } = useDroppable({
@@ -156,7 +158,7 @@ export default function MilestoneSection({
                             ) : (
                                 <div
                                     role="tree"
-                                    aria-label={`Tasks under ${milestone.title}`}
+                                    aria-label={t('projects.milestone_tasks_aria', { title: milestone.title ?? '' })}
                                     className="space-y-2 pt-4"
                                 >
                                     <SortableContext items={milestoneTasks.map(t => t.id)}>

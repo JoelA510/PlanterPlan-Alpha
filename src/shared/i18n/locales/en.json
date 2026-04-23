@@ -260,6 +260,7 @@
     "phases_heading": "Phases",
     "phase_heading_title": "Phase {{position}}: {{title}}",
     "no_milestones_in_phase": "No milestones in this phase yet",
+    "milestone_tasks_aria": "Tasks under {{title}}",
     "task_created_toast": "Task created",
     "task_save_failed_toast": "Failed to save task",
     "invite_modal": {
