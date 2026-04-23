@@ -471,7 +471,12 @@ export default function AdminUsers() {
                                             {detail.data.projects.map((p) => (
                                                 <li key={p.project_id} className="flex justify-between gap-3">
                                                     <span className="truncate">{p.project_title ?? p.project_id}</span>
-                                                    <span className="text-muted-foreground">{p.role}</span>
+                                                    <span className="text-muted-foreground">
+                                                        {/* Localize the role from project_members.role — defaultValue
+                                                          * falls back to the raw DB value if a new role is ever added
+                                                          * without an i18n key (forward-compat). */}
+                                                        {t(`admin.role_${p.role}` as never, { defaultValue: p.role })}
+                                                    </span>
                                                 </li>
                                             ))}
                                         </ul>
