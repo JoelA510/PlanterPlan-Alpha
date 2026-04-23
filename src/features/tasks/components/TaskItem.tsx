@@ -338,7 +338,7 @@ const TaskItem = ({
  <div className="flex items-center gap-3 flex-shrink-0">
  {task.membership_role && <RoleIndicator role={task.membership_role} />}
 
- {dueBadge && dueBadgeText && (
+ {task.origin !== 'template' && dueBadge && dueBadgeText && (
  <span
  className={cn(
  'text-sm font-medium whitespace-nowrap',
@@ -351,12 +351,14 @@ const TaskItem = ({
  </span>
  )}
 
+ {task.origin !== 'template' && (
  <TaskStatusSelect
  status={task.status}
  taskId={task.id}
  taskTitle={task.title}
  onStatusChange={handleStatusChange}
  />
+ )}
 
  <TaskControlButtons
  task={task}

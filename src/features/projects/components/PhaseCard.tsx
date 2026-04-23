@@ -110,7 +110,9 @@ export default function PhaseCard({ phase, tasks = [], milestones = [], isActive
  </div>
 
  <div className="space-y-2">
- {isCheckpoint ? (
+ {phase.origin === 'template' ? (
+ <p className="text-xs text-muted-foreground">{totalTasks} task{totalTasks !== 1 ? 's' : ''}</p>
+ ) : isCheckpoint ? (
  <div className="flex items-center justify-between gap-3" data-testid="phase-donut">
  <div className="relative h-16 w-16">
  <ProgressRing

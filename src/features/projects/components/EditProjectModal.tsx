@@ -286,6 +286,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
       )}
      </div>
 
+     {!isTemplate && (
      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 space-y-4">
       <div>
        <Label htmlFor="start_date" className="block mb-1 font-semibold text-amber-800">
@@ -310,6 +311,7 @@ export default function EditProjectModal({ project, isOpen, onClose }: EditProje
        <Input type="date" id="due_date" {...register('due_date')} />
       </div>
      </div>
+     )}
 
      <div className="flex justify-end gap-3 pt-2">
       <Button variant="outline" onClick={onClose} type="button">
