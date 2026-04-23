@@ -14,11 +14,17 @@ export function useCreateTask() {
  mutationFn: (data) => planterClient.entities.Task.create(data),
  onSettled: async (data, _error, variables) => {
  const firstVar = Array.isArray(variables) ? variables[0] : variables;
- const rootId = typeof firstVar === 'object' && firstVar && 'root_id' in firstVar ? firstVar.root_id : undefined;
+ const inputRootId = typeof firstVar === 'object' && firstVar && 'root_id' in firstVar ? firstVar.root_id : undefined;
+ // Fall back to the returned row's root_id (root-task creation sets
+ // root_id = id via the DB trigger, so the input is usually null there).
+ const rootId = inputRootId ?? data?.root_id ?? data?.id;
  if (rootId) {
  queryClient.invalidateQueries({ queryKey: ['projectHierarchy', rootId] })
- } else {
- queryClient.invalidateQueries({ queryKey: ['tasks', 'root'] })
+ } else if (import.meta.env.DEV) {
+ // Dropped the ['tasks', 'root'] fallback — no consumer reads it.
+ // A task with no resolvable root_id shouldn't happen under the
+ // current data model; warn loudly in dev so we notice.
+ console.warn('[useCreateTask] cannot resolve rootId for invalidation; cache may be stale', { variables, data });
  }
 
  // §3.3 Date Engine: bubble-up dates to parent after task creation

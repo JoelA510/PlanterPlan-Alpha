@@ -23,7 +23,6 @@ import {
     FileText,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
 
 import type { CreateProjectFormData } from '@/shared/db/app.types';
@@ -140,14 +139,14 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                         </div>
                     </div>
 
-                    <AnimatePresence mode="wait">
-                        {step === 1 ? (
-                            <motion.div
+                    {/* Wizard steps — framer-motion slide animation removed with
+                      * the rest of the framer-motion dep (-125 KB gzipped). The
+                      * step separation remains visible via the step indicator
+                      * at the top + the Back/Continue buttons. */}
+                    {step === 1 ? (
+                            <div
                                 key="step1"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 20 }}
-                                className="space-y-4"
+                                className="space-y-4 animate-slide-up"
                             >
                                 {/* Search input */}
                                 {rootTemplates.length > 3 && (
@@ -251,14 +250,11 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                     {t('dashboard.create_project_modal.continue_to_details')}
                                     <ChevronRight className="ml-2 w-5 h-5" />
                                 </Button>
-                            </motion.div>
+                            </div>
                         ) : (
-                            <motion.div
+                            <div
                                 key="step2"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                className="space-y-6"
+                                className="space-y-6 animate-slide-up"
                             >
                                 <h3 className="text-lg font-bold text-slate-900">{t('dashboard.create_project_modal.project_details')}</h3>
                                 <div className="space-y-2">
@@ -308,9 +304,8 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
                                         )}
                                     </Button>
                                 </div>
-                            </motion.div>
+                            </div>
                         )}
-                    </AnimatePresence>
                 </div>
             </DialogContent>
         </Dialog>

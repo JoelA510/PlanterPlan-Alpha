@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { planter } from '@/shared/api/planterClient';
 import type { Task } from '@/shared/db/app.types';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
@@ -11,6 +12,7 @@ import { formatDisplayDate } from '@/shared/lib/date-engine';
  * `settings.cloned_from_template_version`.
  */
 export default function AdminTemplates() {
+    const { t } = useTranslation();
     const tasks = useQuery<Task[]>({
         queryKey: ['adminTemplates'],
         queryFn: () => planter.entities.Task.list(),
@@ -37,15 +39,12 @@ export default function AdminTemplates() {
     return (
         <div className="p-8" data-testid="admin-templates">
             <header className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Templates</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Cross-tenant template roll-up. Click a template to see the instances cloned from it, with each
-                    instance's stamped `cloned_from_template_version` for drift inspection.
-                </p>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('admin.templates_title')}</h1>
+                <p className="mt-1 text-sm text-muted-foreground">{t('admin.templates_subtitle')}</p>
             </header>
 
             {tasks.isLoading ? (
-                <p className="text-sm text-muted-foreground">Loading templates…</p>
+                <p className="text-sm text-muted-foreground">{t('admin.loading')}</p>
             ) : tasks.error instanceof Error ? (
                 <p className="text-sm text-red-600">{tasks.error.message}</p>
             ) : (

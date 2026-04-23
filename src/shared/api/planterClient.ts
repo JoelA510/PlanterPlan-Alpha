@@ -259,9 +259,25 @@ interface PushSubscriptionEntityClient {
 // Sub-phase 3.2a — Generic Entity Client (Supabase SDK)
 // ---------------------------------------------------------------------------
 
-// Supabase SDK requires literal table name types; this generic wrapper bridges the type gap.
+/**
+ * Wraps `supabase.from(name)` with a name-literal constraint. The union
+ * includes both public tables AND views (e.g. `tasks_with_primary_resource`)
+ * so read-only view access type-checks too. Catches typos like
+ * `.from('taks')` at compile time — the previous `(name: string) =>
+ * supabase.from(name as any)` bypassed the whole name-literal union.
+ *
+ * The `createEntityClient` generic crosses boundaries across dozens of
+ * (T, TInsert, TUpdate) shapes — Supabase's generated types can't model
+ * that variance, so we erase the query back to a permissive shape inside
+ * the wrapper once the NAME itself is validated. Individual callers that
+ * use `fromTable` directly (outside createEntityClient) still get the
+ * full row-typed return.
+ */
+type PublicTableName =
+    | keyof Database['public']['Tables']
+    | keyof Database['public']['Views'];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const fromTable = (name: string) => supabase.from(name as any);
+const fromTable = <T extends PublicTableName>(name: T) => supabase.from(name as any);
 
 type WithAbortSignal = { abortSignal(signal: AbortSignal): unknown };
 const applySignal = <Q>(query: Q, signal?: AbortSignal): Q => {
@@ -269,7 +285,7 @@ const applySignal = <Q>(query: Q, signal?: AbortSignal): Q => {
     return query;
 };
 
-const createEntityClient = <T, TInsert, TUpdate>(tableName: string, select = '*'): EntityClient<T, TInsert, TUpdate> => ({
+const createEntityClient = <T, TInsert, TUpdate>(tableName: PublicTableName, select = '*'): EntityClient<T, TInsert, TUpdate> => ({
     list: async (opts) => {
         return retry(async () => {
             const query = fromTable(tableName).select(select);

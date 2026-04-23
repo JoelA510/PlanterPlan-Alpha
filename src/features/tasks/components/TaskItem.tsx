@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
@@ -8,7 +8,6 @@ import { TASK_STATUS_BORDER } from '@/shared/constants/colors';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from '@/shared/ui/ErrorFallback';
 import { Lock, Link as LinkIcon, GripVertical } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import TaskStatusSelect from './TaskStatusSelect';
 import TaskControlButtons from './TaskControlButtons';
 import InlineTaskInput from './InlineTaskInput';
@@ -18,6 +17,7 @@ import {
  formatTaskDueBadge,
 } from '@/shared/lib/date-engine/formatTaskDueBadge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
+import { useConfirm } from '@/shared/ui/confirm-dialog';
 import type { PresenceState } from '@/features/projects/hooks/useProjectPresence';
 
 export type { TaskItemData } from '@/shared/types/tasks';
@@ -87,6 +87,7 @@ const TaskItem = ({
  parentProjectTitle = null,
 }: TaskItemProps) => {
  const { t } = useTranslation();
+ const confirm = useConfirm();
  const indentWidth = level * 20;
  const isSelected = selectedTaskId === task.id;
  const canHaveChildren = level < 4;
@@ -143,13 +144,15 @@ const TaskItem = ({
  }
  };
 
- const handleStatusChange = (id: string, status: string) => {
+ const handleStatusChange = async (id: string, status: string) => {
  if (status === 'completed' && task.children?.length) {
  const incompleteChildren = task.children.filter((c) => c.status !== 'completed');
  if (incompleteChildren.length > 0) {
- const confirmed = window.confirm(
-  `This task has ${incompleteChildren.length} incomplete subtask(s). Mark all as complete?`
- );
+ const confirmed = await confirm({
+ title: t('tasks.complete_with_incomplete_subtasks_title'),
+ description: t('tasks.complete_with_incomplete_subtasks_description', { count: incompleteChildren.length }),
+ confirmText: t('common.confirm'),
+ });
  if (!confirmed) return;
  }
  }
@@ -331,6 +334,7 @@ const TaskItem = ({
  <TaskStatusSelect
  status={task.status}
  taskId={task.id}
+ taskTitle={task.title}
  onStatusChange={handleStatusChange}
  />
 
@@ -352,34 +356,32 @@ const TaskItem = ({
  items={task.children ? task.children.map((c) => c.id) : []}
  id={`sortable-context-${task.id}`}
  >
- <AnimatePresence mode="popLayout">
+ {/*
+   * Dropped the outer <AnimatePresence mode="popLayout"> wrapper and the
+   * per-row `motion.div layout` FLIP animation. dnd-kit drives the drag
+   * reorder via its own CSS transforms; the framer-motion layout pass
+   * was duplicating that work, re-measuring every sibling on every
+   * children[] mutation. At ~100 tasks the duplicate measurements
+   * produced a visible stutter on status change / inline add. Subtle
+   * enter/exit anim is now delegated to the CSS `.animate-slide-up`
+   * class on the inline-add surface; the list rows render without
+   * animation, which matches Linear / Trello.
+   */}
  {isAddingInline && onInlineCommit && (
- <motion.div
- layout
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
- className="ml-6 mb-2"
- >
+ <div className="ml-6 mb-2 animate-slide-up">
  <InlineTaskInput
  onCommit={(title) => onInlineCommit(task.id, title)}
  onCommitFromTemplate={(template) => onInlineCommit(task.id, template.title || '', template)}
  onCancel={onInlineCancel || (() => { })}
  level={level + 1}
  />
- </motion.div>
+ </div>
  )}
 
  {task.children && task.children.length > 0 ? (
  <>
  {task.children.map((child) => (
- <motion.div
- key={child.id}
- layout
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
- >
+ <div key={child.id}>
  {dropIndicator?.beforeTaskId === child.id && dropIndicator?.parentId === task.id && (
  <div className="h-0.5 bg-blue-500 rounded-full mx-4 my-1" style={{ marginLeft: `${(level + 1) * 20}px` }} />
  )}
@@ -399,7 +401,7 @@ const TaskItem = ({
  onInlineCancel={onInlineCancel}
  dropIndicator={dropIndicator}
  />
- </motion.div>
+ </div>
  ))}
  {dropIndicator?.beforeTaskId === null && dropIndicator?.parentId === task.id && (
  <div className="h-0.5 bg-blue-500 rounded-full mx-4 my-1" style={{ marginLeft: `${(level + 1) * 20}px` }} />
@@ -412,7 +414,6 @@ const TaskItem = ({
  </div>
  )
  )}
- </AnimatePresence>
  </SortableContext>
  </div>
  )}
@@ -425,7 +426,14 @@ interface SortableTaskItemProps extends TaskItemProps {
  level: number;
 }
 
-export const SortableTaskItem = function SortableTaskItem({ task, level, ...props }: SortableTaskItemProps) {
+// `React.memo` avoids a cascade of row re-renders on every parent update
+// (realtime tick, selection, drag start/end, status flip). Shallow equality
+// suffices because `onStatusChange` / `onTaskClick` / `onToggleExpand` are
+// stable-by-ref at the parent (MilestoneSection passes identical callbacks
+// across siblings). If inline arrows creep back in, this memo becomes a
+// no-op and the tree starts re-rendering again — guard with renderProbe in
+// dev if that regresses.
+export const SortableTaskItem = memo(function SortableTaskItem({ task, level, ...props }: SortableTaskItemProps) {
  const {
  attributes,
  listeners,
@@ -468,8 +476,10 @@ export const SortableTaskItem = function SortableTaskItem({ task, level, ...prop
  </ErrorBoundary>
  </div>
  );
-};
+});
+SortableTaskItem.displayName = '@/features/tasks/components/SortableTaskItem';
 
-TaskItem.displayName = '@/features/tasks/components/TaskItem';
+const MemoTaskItem = memo(TaskItem);
+MemoTaskItem.displayName = '@/features/tasks/components/TaskItem';
 
-export default TaskItem;
+export default MemoTaskItem;
