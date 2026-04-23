@@ -23,6 +23,8 @@ import {
  * `useAdminUserDetail`. The URL param `:uid` pre-selects a user (used by
  * AdminSearch's "click a user → navigate to this page" flow).
  */
+const PAGE_SIZE = 50;
+
 export default function AdminUsers() {
     const { uid: uidParam } = useParams<{ uid: string }>();
     const [filter, setFilter] = useState<AdminListUsersFilter>({
@@ -31,9 +33,17 @@ export default function AdminUsers() {
         hasOverdue: false,
         search: '',
     });
+    // Paginate via the RPC's existing limit/offset params — previously unused.
+    const [page, setPage] = useState(0);
     const [selectedUid, setSelectedUid] = useState<string | null>(uidParam ?? null);
-    const list = useAdminUsers(filter);
+    const list = useAdminUsers(filter, { limit: PAGE_SIZE, offset: page * PAGE_SIZE });
     const detail = useAdminUserDetail(selectedUid);
+
+    // Reset to page 0 on any filter change.
+    const setFilterAndResetPage: typeof setFilter = (next) => {
+        setPage(0);
+        setFilter(next);
+    };
 
     // Keep the selection in sync with the URL param (deep-linking from
     // AdminSearch → /admin/users/:uid).
@@ -54,7 +64,7 @@ export default function AdminUsers() {
                     <Select
                         value={filter.role ?? 'all'}
                         onValueChange={(v) =>
-                            setFilter((f) => ({ ...f, role: v as AdminListUsersFilter['role'] }))
+                            setFilterAndResetPage((f) => ({ ...f, role: v as AdminListUsersFilter['role'] }))
                         }
                     >
                         <SelectTrigger
@@ -76,7 +86,7 @@ export default function AdminUsers() {
                     <Select
                         value={filter.lastLogin ?? 'all'}
                         onValueChange={(v) =>
-                            setFilter((f) => ({ ...f, lastLogin: v as AdminListUsersFilter['lastLogin'] }))
+                            setFilterAndResetPage((f) => ({ ...f, lastLogin: v as AdminListUsersFilter['lastLogin'] }))
                         }
                     >
                         <SelectTrigger
@@ -98,7 +108,7 @@ export default function AdminUsers() {
                     <input
                         type="checkbox"
                         checked={!!filter.hasOverdue}
-                        onChange={(e) => setFilter((f) => ({ ...f, hasOverdue: e.target.checked }))}
+                        onChange={(e) => setFilterAndResetPage((f) => ({ ...f, hasOverdue: e.target.checked }))}
                         data-testid="admin-users-filter-hasOverdue"
                     />
                     <span>Has overdue tasks</span>
@@ -108,7 +118,7 @@ export default function AdminUsers() {
                     <input
                         type="search"
                         value={filter.search ?? ''}
-                        onChange={(e) => setFilter((f) => ({ ...f, search: e.target.value }))}
+                        onChange={(e) => setFilterAndResetPage((f) => ({ ...f, search: e.target.value }))}
                         placeholder="email or name"
                         className="h-9 rounded-md border border-input bg-card px-2 text-sm"
                         data-testid="admin-users-filter-search"
@@ -118,6 +128,7 @@ export default function AdminUsers() {
 
             <div className="flex gap-6">
                 <div className="flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                    <div className="overflow-x-auto">
                     <table className="w-full text-sm" data-testid="admin-users-table">
                         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-muted-foreground">
                             <tr>
@@ -178,6 +189,45 @@ export default function AdminUsers() {
                             )}
                         </tbody>
                     </table>
+                    </div>
+
+                    {/* Pagination controls. `admin_list_users` doesn't return a
+                      * total count; we infer "has next page" from whether the
+                      * current page is full (len === PAGE_SIZE). Not perfect
+                      * on boundary cases — a page of exactly 50 rows shows an
+                      * enabled Next that fetches an empty page — but cheaper
+                      * than adding a separate count RPC and the user is
+                      * immediately visually informed of the empty page. */}
+                    <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2 text-sm">
+                        <span className="text-muted-foreground" data-testid="admin-users-page-info">
+                            {list.data && list.data.length > 0
+                                ? `Showing ${page * PAGE_SIZE + 1}-${page * PAGE_SIZE + list.data.length}`
+                                : 'No results'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                className="rounded border border-border bg-card px-3 py-1 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                                disabled={page === 0 || list.isLoading}
+                                aria-label="Previous page"
+                                data-testid="admin-users-prev-page"
+                            >
+                                ← Prev
+                            </button>
+                            <span className="tabular-nums text-muted-foreground">Page {page + 1}</span>
+                            <button
+                                type="button"
+                                className="rounded border border-border bg-card px-3 py-1 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={() => setPage((p) => p + 1)}
+                                disabled={list.isLoading || !list.data || list.data.length < PAGE_SIZE}
+                                aria-label="Next page"
+                                data-testid="admin-users-next-page"
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {effectiveSelectedUid && (

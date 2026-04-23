@@ -6,7 +6,8 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
 import type { IcsFeedTokenRow } from '@/shared/db/app.types';
-import { Copy, Trash2, Plus } from 'lucide-react';
+import { Copy, Trash2, Plus, RotateCw } from 'lucide-react';
+import { useConfirm } from '@/shared/ui/confirm-dialog';
 
 /**
  * Wave 35 Task 1 — Settings → Integrations → Calendar feeds.
@@ -21,12 +22,14 @@ import { Copy, Trash2, Plus } from 'lucide-react';
  */
 export default function IcsFeedsCard() {
     const queryClient = useQueryClient();
+    const confirm = useConfirm();
     const tokens = useQuery<IcsFeedTokenRow[]>({
         queryKey: ['icsFeedTokens'],
         queryFn: () => planter.integrations.listIcsFeedTokens(),
     });
 
     const [label, setLabel] = useState('');
+    const [rotatingId, setRotatingId] = useState<string | null>(null);
 
     const createMutation = useMutation({
         mutationFn: (input: { label: string | null }) =>
@@ -47,6 +50,49 @@ export default function IcsFeedsCard() {
         },
         onError: (err: unknown) => toast.error((err as Error).message || 'Failed to revoke.'),
     });
+
+    /**
+     * Atomic rotate: revoke the old token, create a new one with the same
+     * label, copy the new URL to the clipboard. The UX audit flagged the
+     * manual revoke → create → re-label → copy dance as error-prone when
+     * a user fears token exposure. This collapses it into one click.
+     */
+    const handleRotate = async (feed: IcsFeedTokenRow) => {
+        const ok = await confirm({
+            title: 'Rotate feed token?',
+            description:
+                'This revokes the current token and generates a new one with the same label. You will need to re-paste the new URL into any calendar client that subscribes to this feed.',
+            confirmText: 'Rotate',
+        });
+        if (!ok) return;
+        setRotatingId(feed.id);
+        try {
+            // Order matters: revoke old first, then create new. If creation
+            // fails, the user is left with one revoked feed rather than two
+            // active ones (safer default).
+            await planter.integrations.revokeIcsFeedToken(feed.id);
+            const created = await planter.integrations.createIcsFeedToken({
+                label: feed.label ?? null,
+                project_filter: feed.project_filter ?? null,
+            });
+            await queryClient.invalidateQueries({ queryKey: ['icsFeedTokens'] });
+            const url = feedUrlFor(created.token);
+            if (url) {
+                try {
+                    await navigator.clipboard.writeText(url);
+                    toast.success('Token rotated. New feed URL copied to clipboard.');
+                } catch {
+                    toast.success('Token rotated. New feed URL is in the list below.');
+                }
+            } else {
+                toast.success('Token rotated. New feed URL is in the list below.');
+            }
+        } catch (err) {
+            toast.error('Failed to rotate token', { description: (err as Error)?.message });
+        } finally {
+            setRotatingId(null);
+        }
+    };
 
     const supabaseUrl = useMemo(() => import.meta.env.VITE_SUPABASE_URL ?? '', []);
     const feedUrlFor = (token: string) =>
@@ -138,17 +184,31 @@ export default function IcsFeedsCard() {
                                         Copy URL
                                     </Button>
                                     {!isRevoked && (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="destructive"
-                                            onClick={() => revokeMutation.mutate(feed.id)}
-                                            disabled={revokeMutation.isPending}
-                                            data-testid={`ics-feed-revoke-${feed.id}`}
-                                        >
-                                            <Trash2 className="mr-1 h-3 w-3" />
-                                            Revoke
-                                        </Button>
+                                        <>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleRotate(feed)}
+                                                disabled={rotatingId === feed.id}
+                                                data-testid={`ics-feed-rotate-${feed.id}`}
+                                                aria-label={`Rotate ${feed.label ?? 'feed'} token`}
+                                            >
+                                                <RotateCw aria-hidden="true" className={`mr-1 h-3 w-3 ${rotatingId === feed.id ? 'animate-spin' : ''}`} />
+                                                Rotate
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() => revokeMutation.mutate(feed.id)}
+                                                disabled={revokeMutation.isPending}
+                                                data-testid={`ics-feed-revoke-${feed.id}`}
+                                            >
+                                                <Trash2 aria-hidden="true" className="mr-1 h-3 w-3" />
+                                                Revoke
+                                            </Button>
+                                        </>
                                     )}
                                 </div>
                             </li>

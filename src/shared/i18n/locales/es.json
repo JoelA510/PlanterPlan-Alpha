@@ -245,6 +245,23 @@
       "copied_from": "Detalles copiados de <strong>{{title}}</strong>.",
       "required_marker": "*"
     },
+    "invite_modal": {
+      "title": "Invitar miembro",
+      "description": "Invita a un usuario a {{project}}.",
+      "identifier_label": "Correo o UUID del usuario",
+      "identifier_placeholder": "usuario@ejemplo.com o UUID",
+      "identifier_hint": "Ingresa el correo de un usuario existente.",
+      "invalid_identifier": "Ingresa un correo o UUID válido.",
+      "access_denied_owner": "Acceso denegado: debes ser propietario para gestionar miembros.",
+      "invite_failed_unknown": "No se pudo invitar al miembro (error desconocido).",
+      "success": "¡Invitación enviada con éxito!",
+      "send_invite": "Enviar invitación",
+      "inviting": "Invitando…",
+      "role_viewer": "Observador (solo lectura)",
+      "role_coach": "Coach (comentar y revisar)",
+      "role_editor": "Editor (puede editar tareas)",
+      "role_limited": "Limitado (solo tareas asignadas)"
+    },
     "edit_modal": {
       "title": "Configuración del proyecto",
       "description": "Actualiza la configuración, el estado y los ajustes del proyecto. Las acciones destructivas están en la Zona de peligro.",

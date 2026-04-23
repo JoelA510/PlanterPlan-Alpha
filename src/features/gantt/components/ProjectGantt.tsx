@@ -52,13 +52,51 @@ export function ProjectGantt({
     );
 
     const handleTodayClick = useCallback(() => {
-        // gantt-task-react doesn't expose a "jump to today" API — the library always
-        // renders around `min(tasks.start)`. The chart scroll position is owned by
-        // the library's internal state; the best we can do is nudge the user back
-        // to the leftmost column. If the library ever gains a ref-based scroll API,
-        // route it here.
-        containerRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
-    }, []);
+        // gantt-task-react doesn't expose a "jump to today" API and renders
+        // starting at `min(rows.start)`. Compute the horizontal offset to
+        // today's column based on zoom-mode column width and the number of
+        // days between the earliest task start and today — then scroll
+        // directly to that offset. Falls back to leftmost scroll if the
+        // container isn't mounted or we can't compute a valid offset.
+        const container = containerRef.current;
+        if (!container) return;
+
+        const today = new Date();
+        const earliestStart = rows
+            .map((r) => r.start)
+            .filter((d): d is Date => d instanceof Date && !Number.isNaN(d.getTime()))
+            .reduce<Date | null>((min, d) => (min === null || d < min ? d : min), null);
+
+        if (!earliestStart || today < earliestStart) {
+            container.scrollTo({ left: 0, behavior: 'smooth' });
+            return;
+        }
+
+        // gantt-task-react's column widths are set by the library's default
+        // stylesheet (see `gantt-task-react/dist/index.css`). These match
+        // the library's internal defaults at the three zoom levels we use.
+        const columnWidthByZoom: Record<GanttZoom, number> = {
+            [ViewMode.Day]: 65,
+            [ViewMode.Week]: 250,
+            [ViewMode.Month]: 300,
+        };
+        const daysPerColumn: Record<GanttZoom, number> = {
+            [ViewMode.Day]: 1,
+            [ViewMode.Week]: 7,
+            [ViewMode.Month]: 30,
+        };
+        const dayMs = 86_400_000;
+        const deltaDays = Math.max(
+            0,
+            Math.floor((today.getTime() - earliestStart.getTime()) / dayMs),
+        );
+        const columns = deltaDays / (daysPerColumn[zoom] || 1);
+        const targetLeft = Math.max(
+            0,
+            columns * (columnWidthByZoom[zoom] || 65) - container.clientWidth / 2,
+        );
+        container.scrollTo({ left: targetLeft, behavior: 'smooth' });
+    }, [rows, zoom]);
 
     return (
         <div data-testid="project-gantt" className="flex flex-col gap-4">

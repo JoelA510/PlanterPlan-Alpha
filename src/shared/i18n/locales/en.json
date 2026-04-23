@@ -239,6 +239,23 @@
       "copied_from": "Copied details from <strong>{{title}}</strong>.",
       "required_marker": "*"
     },
+    "invite_modal": {
+      "title": "Invite Member",
+      "description": "Invite a user to {{project}}.",
+      "identifier_label": "User Email or UUID",
+      "identifier_placeholder": "user@example.com or UUID",
+      "identifier_hint": "Enter the email of an existing user.",
+      "invalid_identifier": "Please enter a valid email address or UUID.",
+      "access_denied_owner": "Access denied: you must be an owner to manage members.",
+      "invite_failed_unknown": "Failed to invite member (unknown error).",
+      "success": "Invitation sent successfully!",
+      "send_invite": "Send Invite",
+      "inviting": "Inviting…",
+      "role_viewer": "Viewer (Read-only)",
+      "role_coach": "Coach (Comment & Review)",
+      "role_editor": "Editor (Can edit tasks)",
+      "role_limited": "Limited (Assigned tasks only)"
+    },
     "edit_modal": {
       "title": "Project Settings",
       "description": "Update project settings, status, and configuration. Destructive actions are in the Danger Zone below.",
