@@ -72,10 +72,11 @@ describe('AdminSearch (Wave 34)', () => {
         searchUsers.mockResolvedValue([
             { id: 'u1', email: 'alice@church.com', display_name: 'Alice', last_sign_in_at: null, project_count: 2 },
         ]);
-        searchRootTasks.mockResolvedValue([
-            { id: 'p1', title: 'Alice Project', origin: 'instance' },
-            { id: 't1', title: 'Alice Template', origin: 'template' },
-        ]);
+        searchRootTasks.mockImplementation((_query: string, origin: string) => Promise.resolve(
+            origin === 'instance'
+                ? [{ id: 'p1', title: 'Alice Project', origin: 'instance' }]
+                : [{ id: 't1', title: 'Alice Template', origin: 'template' }],
+        ));
 
         const user = userEvent.setup();
         renderSearch();
@@ -84,6 +85,8 @@ describe('AdminSearch (Wave 34)', () => {
         expect(await screen.findByText('Alice')).toBeInTheDocument();
         expect(await screen.findByText('Alice Project')).toBeInTheDocument();
         expect(await screen.findByText('Alice Template')).toBeInTheDocument();
+        expect(searchRootTasks).toHaveBeenCalledWith('alice', 'instance', 10);
+        expect(searchRootTasks).toHaveBeenCalledWith('alice', 'template', 10);
     });
 
     it('navigates to the user detail surface on user click', async () => {

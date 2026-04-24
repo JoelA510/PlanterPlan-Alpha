@@ -12,6 +12,11 @@ interface ProjectHit {
     title: string;
 }
 
+interface RootTaskSearchBuckets {
+    projects: ProjectHit[];
+    templates: ProjectHit[];
+}
+
 const DEBOUNCE_MS = 200;
 const MIN_QUERY_LEN = 2;
 
@@ -43,28 +48,32 @@ export default function AdminSearch() {
         enabled: queryEnabled,
     });
 
-    const rootTasks = useQuery<ProjectHit[]>({
+    const rootTasks = useQuery<RootTaskSearchBuckets>({
         queryKey: ['adminSearch', 'rootTasks', debouncedQuery],
         queryFn: async () => {
-            const rows = await planter.admin.searchRootTasks(debouncedQuery, null, 20);
-            return rows.map((row) => ({
-                kind: row.origin === 'template' ? 'template' : 'project',
-                id: row.id,
-                title: row.title ?? '',
-            }));
+            const [projectRows, templateRows] = await Promise.all([
+                planter.admin.searchRootTasks(debouncedQuery, 'instance', 10),
+                planter.admin.searchRootTasks(debouncedQuery, 'template', 10),
+            ]);
+            return {
+                projects: projectRows.map((row) => ({
+                    kind: 'project',
+                    id: row.id,
+                    title: row.title ?? '',
+                })),
+                templates: templateRows.map((row) => ({
+                    kind: 'template',
+                    id: row.id,
+                    title: row.title ?? '',
+                })),
+            };
         },
         enabled: queryEnabled,
     });
 
     const { projects, templates } = useMemo(() => {
-        const out: { projects: ProjectHit[]; templates: ProjectHit[] } = { projects: [], templates: [] };
-        if (!rootTasks.data || !queryEnabled) return out;
-        for (const hit of rootTasks.data) {
-            if (hit.kind === 'project' && out.projects.length < 10) out.projects.push(hit);
-            else if (hit.kind === 'template' && out.templates.length < 10) out.templates.push(hit);
-            if (out.projects.length >= 10 && out.templates.length >= 10) break;
-        }
-        return out;
+        if (!rootTasks.data || !queryEnabled) return { projects: [], templates: [] };
+        return rootTasks.data;
     }, [rootTasks.data, queryEnabled]);
 
     const handleNavigateUser = (uid: string) => navigate(`/admin/users/${uid}`);

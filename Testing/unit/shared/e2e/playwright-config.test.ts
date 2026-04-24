@@ -17,7 +17,7 @@ describe('Playwright E2E config', () => {
  it('uses feature and step globs relative to the E2E config directory', () => {
   expect(playwrightConfig).toContain("features: 'features/**/*.feature'");
   expect(playwrightConfig).toContain("steps: 'steps/**/*.steps.ts'");
-  expect(playwrightConfig).toContain("missingSteps: 'skip-scenario'");
+  expect(playwrightConfig).not.toContain("missingSteps: 'skip-scenario'");
   expect(playwrightConfig).not.toContain("features: 'Testing/e2e/features/**/*.feature'");
   expect(playwrightConfig).not.toContain("steps: 'Testing/e2e/steps/**/*.steps.ts'");
  });

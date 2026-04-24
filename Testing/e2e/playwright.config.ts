@@ -4,7 +4,6 @@ import { defineBddConfig } from 'playwright-bdd';
 const testDir = defineBddConfig({
   features: 'features/**/*.feature',
   steps: 'steps/**/*.steps.ts',
-  missingSteps: 'skip-scenario',
 });
 
 export default defineConfig({
