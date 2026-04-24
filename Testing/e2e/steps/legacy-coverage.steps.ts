@@ -6,8 +6,12 @@ const { Given, When, Then } = createBdd();
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const textPattern = (value: string) => new RegExp(escapeRegExp(value), 'i');
 const dialog = (page: Page) => page.locator('[role="dialog"]').first();
-const taskItems = (page: Page) => page.locator('[data-testid="task-item"]');
+const taskItems = (page: Page) => page
+  .locator('[data-testid="task-item"]')
+  .or(page.locator('[data-testid^="task-row-"]').filter({ has: page.locator('[data-testid^="task-row-title-"]') }));
 const taskPanel = (page: Page) => page.locator('[data-testid="task-details-panel"]').first();
+let pendingDeletedTaskTitle: string | null = null;
+let pendingDeletedProject: { id: string | null; title: string | null } | null = null;
 
 async function isVisible(locator: Locator) {
   return locator.first().isVisible().catch(() => false);
@@ -72,6 +76,35 @@ async function confirmDeletion(page: Page) {
 
 async function expectTextVisible(page: Page, value: string) {
   await expect(page.getByText(textPattern(value)).first()).toBeVisible({ timeout: 5000 });
+}
+
+async function visibleText(locator: Locator): Promise<string | null> {
+  if (!(await isVisible(locator))) return null;
+  const text = (await locator.first().textContent())?.trim();
+  return text || null;
+}
+
+async function inputValue(locator: Locator): Promise<string | null> {
+  if (!(await isVisible(locator))) return null;
+  const value = (await locator.first().inputValue()).trim();
+  return value || null;
+}
+
+async function capturePendingDeletedTask(page: Page) {
+  pendingDeletedTaskTitle =
+    await visibleText(taskPanel(page).getByRole('heading').first())
+    ?? await visibleText(taskPanel(page).locator('[data-testid^="task-row-title-"]').first())
+    ?? await visibleText(taskItems(page).first().locator('[data-testid^="task-row-title-"]').first())
+    ?? await visibleText(taskItems(page).first());
+}
+
+async function capturePendingDeletedProject(page: Page) {
+  const id = /\/project\/([^/?#]+)/i.exec(page.url())?.[1] ?? null;
+  const title =
+    await inputValue(dialog(page).getByLabel(/title/i))
+    ?? await inputValue(dialog(page).locator('input[name="title"]'))
+    ?? await visibleText(page.getByRole('heading').first());
+  pendingDeletedProject = { id, title };
 }
 
 Given('there are no tasks due today', async () => {
@@ -216,6 +249,8 @@ When('the user selects that phase', async ({ page }) => {
 });
 
 When('the user clicks the delete button', async ({ page }) => {
+  await capturePendingDeletedProject(page);
+  await capturePendingDeletedTask(page);
   await clickFirstVisible(
     dialog(page).getByRole('button', { name: /delete/i }),
     taskPanel(page).getByRole('button', { name: /delete/i }),
@@ -379,6 +414,7 @@ When('the user clicks the close button on the panel', async ({ page }) => {
 });
 
 When('the user clicks the delete button in the panel', async ({ page }) => {
+  await capturePendingDeletedTask(page);
   await clickFirstVisible(taskPanel(page).getByRole('button', { name: /delete/i }));
   await confirmDeletion(page);
 });
@@ -505,7 +541,15 @@ Then('the confirmation prompt is hidden', async ({ page }) => {
 });
 
 Then('the project is no longer in the sidebar', async ({ page }) => {
-  await expect(page.locator('aside').getByRole('link').first()).toBeVisible({ timeout: 5000 }).catch(() => {});
+  const deletedProject = pendingDeletedProject;
+  if (!deletedProject?.id && !deletedProject?.title) {
+    throw new Error('Could not capture the project being deleted before confirmation.');
+  }
+
+  const deletedLinks = deletedProject.id
+    ? page.locator(`aside a[href*="/project/${deletedProject.id}"]`)
+    : page.locator('aside').getByRole('link', { name: textPattern(deletedProject.title as string) });
+  await expect(deletedLinks).toHaveCount(0, { timeout: 10000 });
 });
 
 Then('the edit project modal is visible', async ({ page }) => {
@@ -586,7 +630,10 @@ Then('the task title is updated to {string}', async ({ page }, title: string) =>
 });
 
 Then('the task is removed from the list', async ({ page }) => {
-  await expect(taskItems(page).or(page.getByText(/no tasks/i)).or(page.locator('main')).first()).toBeVisible({ timeout: 5000 });
+  if (!pendingDeletedTaskTitle) {
+    throw new Error('Could not capture the task being deleted before confirmation.');
+  }
+  await expect(taskItems(page).filter({ hasText: textPattern(pendingDeletedTaskTitle) })).toHaveCount(0, { timeout: 10000 });
 });
 
 Then('the task {string} appears in the milestone', async ({ page }, title: string) => {
@@ -622,5 +669,8 @@ Then('the panel title reflects {string} mode', async ({ page }, mode: string) =>
 });
 
 Then('the task is removed', async ({ page }) => {
-  await expect(taskItems(page).or(page.getByText(/no tasks/i)).or(page.locator('main')).first()).toBeVisible({ timeout: 5000 });
+  if (!pendingDeletedTaskTitle) {
+    throw new Error('Could not capture the task being deleted before confirmation.');
+  }
+  await expect(taskItems(page).filter({ hasText: textPattern(pendingDeletedTaskTitle) })).toHaveCount(0, { timeout: 10000 });
 });

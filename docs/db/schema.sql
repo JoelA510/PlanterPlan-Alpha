@@ -1625,17 +1625,23 @@ ALTER FUNCTION "public"."set_coaching_assignee"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."set_root_id_from_parent"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO ''
     AS $$
+DECLARE
+    v_parent_root uuid;
 BEGIN
-  -- If we are inserting/updating a child (has parent) and no root_id is provided (or we want to force it)
-  -- Actually, we should probably FORCE it to match the parent's root_id (or parent's id if parent is root)
-  IF NEW.parent_task_id IS NOT NULL THEN
-    SELECT COALESCE(root_id, id)
-    INTO NEW.root_id
-    FROM public.tasks
-    WHERE id = NEW.parent_task_id;
-  END IF;
-  RETURN NEW;
+    IF NEW.parent_task_id IS NULL THEN
+        NEW.root_id := NEW.id;
+    ELSE
+        SELECT root_id INTO v_parent_root FROM public.tasks WHERE id = NEW.parent_task_id;
+        IF v_parent_root IS NULL THEN
+            -- Parent might itself be a root whose row is being inserted
+            -- in the same statement; fall back to the parent's id.
+            SELECT id INTO v_parent_root FROM public.tasks WHERE id = NEW.parent_task_id;
+        END IF;
+        NEW.root_id := COALESCE(v_parent_root, NEW.parent_task_id);
+    END IF;
+    RETURN NEW;
 END;
 $$;
 
@@ -3290,7 +3296,6 @@ GRANT SELECT ON TABLE "public"."view_master_library" TO "service_role";
 
 
 GRANT SELECT ON TABLE "public"."users_public" TO "service_role";
-
 
 
 

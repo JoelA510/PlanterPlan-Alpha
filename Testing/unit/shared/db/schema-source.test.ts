@@ -50,4 +50,16 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(schema).toContain('ALTER VIEW "public"."tasks_with_primary_resource" SET ("security_invoker"=\'true\');');
   expect(schema).toContain('ALTER VIEW "public"."view_master_library" SET ("security_invoker"=\'true\');');
  });
+
+ it('keeps root task rows stamped with their own root_id', () => {
+  const functionStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."set_root_id_from_parent"()');
+  const functionEnd = schema.indexOf('ALTER FUNCTION "public"."set_root_id_from_parent"() OWNER TO "postgres";');
+  const functionSql = schema.slice(functionStart, functionEnd);
+
+  expect(functionStart).toBeGreaterThanOrEqual(0);
+  expect(functionEnd).toBeGreaterThan(functionStart);
+  expect(functionSql).toContain('IF NEW.parent_task_id IS NULL THEN');
+  expect(functionSql).toContain('NEW.root_id := NEW.id;');
+  expect(functionSql).toContain('NEW.root_id := COALESCE(v_parent_root, NEW.parent_task_id);');
+ });
 });
