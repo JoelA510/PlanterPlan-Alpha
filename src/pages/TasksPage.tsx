@@ -15,6 +15,9 @@ import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useTeam } from '@/features/people/hooks/useTeam';
 import { ROLES } from '@/shared/constants';
+import { useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
+import { useConfirm } from '@/shared/ui/confirm-dialog';
+import { toast } from 'sonner';
 import {
        useTaskFilters,
        type DueDateRange,
@@ -41,6 +44,8 @@ export default function TasksPage() {
               queryFn: () => planter.entities.Task.list(),
               staleTime: STALE_TIMES.medium,
        });
+       const deleteTask = useDeleteTask();
+       const confirm = useConfirm();
 
        const findTask = useCallback((id: string) => tasks.find((t: TaskRow) => t.id === id), [tasks]);
        const invalidateTasks = useCallback(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }), [queryClient]);
@@ -102,6 +107,30 @@ export default function TasksPage() {
        const closeDetailsPanel = useCallback(() => {
               setSelectedTask(null);
        }, []);
+       const handleDeleteTaskById = useCallback(
+              async (taskId: string) => {
+                     const task = findTask(taskId);
+                     if (!task) return;
+                     const confirmed = await confirm({
+                            title: t('tasks.delete_confirm_title', { title: task.title }),
+                            description: t('tasks.delete_confirm_description'),
+                            confirmText: t('common.delete'),
+                            destructive: true,
+                     });
+                     if (!confirmed) return;
+
+                     try {
+                            await deleteTask.mutateAsync({ id: task.id, root_id: task.root_id });
+                            await invalidateTasks();
+                            setSelectedTask((current) => current?.id === task.id ? null : current);
+                            toast.success(t('tasks.delete_success'));
+                     } catch (err) {
+                            console.error('Failed to delete task:', err);
+                            toast.error(t('tasks.delete_failure'));
+                     }
+              },
+              [confirm, deleteTask, findTask, invalidateTasks, t],
+       );
 
        // Wave 33 + 36: resolve the caller's membership role for the selected
        // task's parent project. Threads into TaskDetailsPanel so the Wave 36
@@ -122,7 +151,7 @@ export default function TasksPage() {
               return undefined;
        }, [selectedTask, selectedTeamMembers, selectedProjectRoot, user?.id]);
 
-       const visibleTasks = useTaskFilters({ tasks, filter, sort, dueDateRange });
+       const visibleTasks = useTaskFilters({ tasks, filter, sort, dueDateRange, currentUserId: user?.id ?? null });
 
        // Wave 33: map of root-task-id → project title, used to reveal each task's
        // parent-project name in a hover tooltip on the row. Projects live in the
@@ -349,6 +378,7 @@ export default function TasksPage() {
                                    selectedTask={selectedTask}
                                    membershipRole={selectedMembershipRole}
                                    onClose={closeDetailsPanel}
+                                   onDeleteTaskWrapper={handleDeleteTaskById}
                             />
                      )}
               </>

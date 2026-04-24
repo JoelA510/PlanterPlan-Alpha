@@ -32,6 +32,8 @@ package-lock.json
 # Playwright
 /test-results/
 /playwright-report/
+Testing/e2e/.features-gen/
+/e2e/.auth/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/

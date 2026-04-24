@@ -56,10 +56,6 @@ export default function Project() {
         refetchProject,
     } = useProjectData(projectId);
 
-    // Wave 27: open the per-project presence channel. No-op outside /Project/:id
-    // because `projectId` is undefined on other routes, so the hook short-circuits.
-    const { presentUsers } = useProjectPresence(projectId ?? null);
-
     // Template ids already cloned into this project — excluded from the
     // Master Library combobox so the same template can't be added twice.
     const excludedTemplateIds = useMemo(
@@ -69,6 +65,10 @@ export default function Project() {
 
     const board = useProjectBoard(projectId, (tasks as TaskRow[]) || []);
     const { state, actions, handlers, computed } = board;
+
+    // Wave 27: open the per-project presence channel and publish the focused
+    // task through the same subscribed channel.
+    const { presentUsers } = useProjectPresence(projectId ?? null, state.selectedTask?.id ?? null);
 
     const queryClient = useQueryClient();
     const lastUpdateRef = useRef(0);
