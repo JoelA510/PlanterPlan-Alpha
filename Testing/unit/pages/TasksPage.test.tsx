@@ -69,6 +69,18 @@ vi.mock('@/shared/api/planterClient', () => {
             task_type: 'task',
             due_date: '2026-05-10',
         },
+        {
+            id: 't-1-child',
+            title: 'Choose registrar',
+            parent_task_id: 't-1',
+            root_id: 'p-alpha',
+            origin: 'instance',
+            creator: 'u1',
+            assignee_id: 'u1',
+            status: 'todo',
+            task_type: 'subtask',
+            position: 1,
+        },
     ];
     return {
         planter: {
@@ -90,15 +102,19 @@ vi.mock('@/shared/api/planterClient', () => {
 vi.mock('@/features/tasks/components/TaskDetailsPanel', () => ({
     default: ({
         selectedTask,
+        allProjectTasks,
         onClose,
         onDeleteTaskWrapper,
     }: {
-        selectedTask?: { id: string; title: string };
+        selectedTask?: { id: string; title: string; children?: { id: string }[] };
+        allProjectTasks?: { id: string }[];
         onClose: () => void;
         onDeleteTaskWrapper?: (taskId: string) => Promise<void>;
     }) => (
         <aside data-testid="tasks-page-details-panel">
             <div data-testid="tasks-page-details-panel-title">{selectedTask?.title}</div>
+            <div data-testid="tasks-page-details-panel-child-count">{selectedTask?.children?.length ?? 0}</div>
+            <div data-testid="tasks-page-details-panel-project-task-count">{allProjectTasks?.length ?? 0}</div>
             <button onClick={onClose} data-testid="tasks-page-details-panel-close">Close</button>
             {selectedTask && onDeleteTaskWrapper ? (
                 <button
@@ -150,6 +166,16 @@ describe('TasksPage — click-to-details + tooltip wiring (Wave 33)', () => {
         const panel = await screen.findByTestId('tasks-page-details-panel');
         expect(panel).toBeInTheDocument();
         expect(screen.getByTestId('tasks-page-details-panel-title')).toHaveTextContent('Buy a domain');
+    });
+
+    it('hydrates the clicked task with project context for the details panel', async () => {
+        const user = userEvent.setup();
+        renderTasksPage();
+
+        await user.click(await screen.findByTestId('task-row-t-1'));
+
+        expect(await screen.findByTestId('tasks-page-details-panel-child-count')).toHaveTextContent('1');
+        expect(screen.getByTestId('tasks-page-details-panel-project-task-count')).toHaveTextContent('4');
     });
 
     it('closes the details panel via onClose', async () => {

@@ -3,6 +3,16 @@ import { describe, expect, it } from 'vitest';
 
 const schema = readFileSync('docs/db/schema.sql', 'utf8');
 
+const functionSql = (name: string) => {
+ const functionStart = schema.indexOf(`CREATE OR REPLACE FUNCTION "public"."${name}"()`);
+ const functionEnd = schema.indexOf(`ALTER FUNCTION "public"."${name}"() OWNER TO "postgres";`);
+
+ expect(functionStart).toBeGreaterThanOrEqual(0);
+ expect(functionEnd).toBeGreaterThan(functionStart);
+
+ return schema.slice(functionStart, functionEnd);
+};
+
 describe('docs/db/schema.sql source of truth', () => {
  it('contains the Wave 34, 35, and 36 database objects', () => {
   [
@@ -52,14 +62,38 @@ describe('docs/db/schema.sql source of truth', () => {
  });
 
  it('keeps root task rows stamped with their own root_id', () => {
-  const functionStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."set_root_id_from_parent"()');
-  const functionEnd = schema.indexOf('ALTER FUNCTION "public"."set_root_id_from_parent"() OWNER TO "postgres";');
-  const functionSql = schema.slice(functionStart, functionEnd);
+  const sql = functionSql('set_root_id_from_parent');
+
+  expect(sql).toContain('SET "search_path" TO \'\'');
+  expect(sql).toContain('IF NEW.parent_task_id IS NULL THEN');
+  expect(sql).toContain('NEW.root_id := NEW.id;');
+  expect(sql).toContain('NEW.root_id := COALESCE(v_parent_root, NEW.parent_task_id);');
+ });
+
+ it('keeps security-sweep trigger helper bodies in schema.sql', () => {
+  const updatedAtSql = functionSql('handle_updated_at');
+  const completionSql = functionSql('sync_task_completion_flags');
+
+  expect(updatedAtSql).toContain('SET "search_path" TO \'\'');
+  expect(completionSql).toContain('SET "search_path" TO \'\'');
+  expect(completionSql).toContain("IF NEW.status = 'completed' THEN");
+  expect(completionSql).toContain('NEW.is_complete := true;');
+  expect(completionSql).toContain('NEW.is_complete := false;');
+  expect(completionSql).not.toContain('v_complete_changed');
+  expect(completionSql).not.toContain('NEW.status := CASE');
+ });
+
+ it('keeps has_permission aligned to role ownership instead of creatorship', () => {
+  const functionStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."has_permission"(');
+  const functionEnd = schema.indexOf('ALTER FUNCTION "public"."has_permission"(');
+  const sql = schema.slice(functionStart, functionEnd);
 
   expect(functionStart).toBeGreaterThanOrEqual(0);
   expect(functionEnd).toBeGreaterThan(functionStart);
-  expect(functionSql).toContain('IF NEW.parent_task_id IS NULL THEN');
-  expect(functionSql).toContain('NEW.root_id := NEW.id;');
-  expect(functionSql).toContain('NEW.root_id := COALESCE(v_parent_root, NEW.parent_task_id);');
+  expect(sql).toContain('STABLE SECURITY DEFINER');
+  expect(sql).toContain('IF public.is_admin(p_user_id) THEN');
+  expect(sql).toContain('RETURN public.check_project_ownership_by_role(p_project_id, p_user_id);');
+  expect(sql).not.toContain('v_auth_uid');
+  expect(sql).not.toContain('creator = p_user_id');
  });
 });

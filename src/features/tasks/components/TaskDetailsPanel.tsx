@@ -53,6 +53,7 @@ export interface TaskDetailsPanelProps {
  onDeleteTaskWrapper?: (taskId: string) => Promise<void>;
  fetchTasks?: () => void;
  membershipRole?: string;
+ allProjectTasks?: TaskRow[];
 }
 
 export default function TaskDetailsPanel({
@@ -71,6 +72,7 @@ export default function TaskDetailsPanel({
  onDeleteTaskWrapper,
  fetchTasks,
  membershipRole,
+ allProjectTasks,
 }: TaskDetailsPanelProps) {
  const { t } = useTranslation();
  const panelTitle = useMemo(() => {
@@ -118,6 +120,7 @@ export default function TaskDetailsPanel({
  onDeleteTask={onDeleteTaskWrapper ? ((t) => { void onDeleteTaskWrapper(t.id); }) : undefined}
  onTaskUpdated={fetchTasks || (() => { })}
  membershipRole={membershipRole}
+ allProjectTasks={allProjectTasks}
  />
  ) : null}
  </div>

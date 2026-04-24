@@ -107,6 +107,7 @@ export default function TasksPage() {
        const closeDetailsPanel = useCallback(() => {
               setSelectedTask(null);
        }, []);
+       const selectedTaskId = selectedTask?.id ?? null;
        const handleDeleteTaskById = useCallback(
               async (taskId: string) => {
                      const task = findTask(taskId);
@@ -138,20 +139,54 @@ export default function TasksPage() {
        // else. Mirror the logic in Project.tsx: creator → OWNER override if
        // no membership row exists.
        const { user } = useAuth();
-       const selectedRootId = selectedTask?.root_id ?? null;
+       const currentUserId = user?.id ?? null;
+       const currentSelectedTask = useMemo(
+              () => selectedTaskId ? (tasks.find((t: TaskRow) => t.id === selectedTaskId) ?? selectedTask) : null,
+              [selectedTaskId, selectedTask, tasks],
+       );
+       const selectedRootId = currentSelectedTask?.root_id ?? currentSelectedTask?.id ?? null;
+       const selectedProjectTasks = useMemo(
+              () => selectedRootId
+                     ? tasks.filter((task: TaskRow) => task.root_id === selectedRootId || task.id === selectedRootId)
+                     : [],
+              [selectedRootId, tasks],
+       );
+       const selectedTaskForPanel = useMemo(() => {
+              if (!currentSelectedTask) return null;
+
+              const childrenByParent = new Map<string, TaskRow[]>();
+              for (const task of selectedProjectTasks) {
+                     if (!task.parent_task_id) continue;
+                     const children = childrenByParent.get(task.parent_task_id) ?? [];
+                     children.push(task);
+                     childrenByParent.set(task.parent_task_id, children);
+              }
+
+              const attachChildren = (task: TaskRow, visited: Set<string>): TaskRow & { children: TaskRow[] } => {
+                     if (visited.has(task.id)) return { ...task, children: [] };
+                     visited.add(task.id);
+                     const children = (childrenByParent.get(task.id) ?? [])
+                            .filter((child) => child.id !== task.id)
+                            .sort((a, b) => (a.position || 0) - (b.position || 0))
+                            .map((child) => attachChildren(child, visited));
+                     return { ...task, children };
+              };
+
+              return attachChildren(currentSelectedTask, new Set<string>());
+       }, [currentSelectedTask, selectedProjectTasks]);
        const { teamMembers: selectedTeamMembers } = useTeam(selectedRootId);
        const selectedProjectRoot = tasks.find((t: TaskRow) => t.id === selectedRootId);
        const selectedMembershipRole = useMemo(() => {
-              if (!selectedTask) return undefined;
-              const row = selectedTeamMembers.find((m) => m.user_id === user?.id);
+              if (!currentSelectedTask) return undefined;
+              const row = selectedTeamMembers.find((m) => m.user_id === currentUserId);
               if (row?.role) return row.role;
-              if (selectedProjectRoot?.creator && user?.id && selectedProjectRoot.creator === user.id) {
+              if (selectedProjectRoot?.creator && currentUserId && selectedProjectRoot.creator === currentUserId) {
                      return ROLES.OWNER;
               }
               return undefined;
-       }, [selectedTask, selectedTeamMembers, selectedProjectRoot, user?.id]);
+       }, [currentSelectedTask, selectedTeamMembers, selectedProjectRoot, currentUserId]);
 
-       const visibleTasks = useTaskFilters({ tasks, filter, sort, dueDateRange, currentUserId: user?.id ?? null });
+       const visibleTasks = useTaskFilters({ tasks, filter, sort, dueDateRange, currentUserId });
 
        // Wave 33: map of root-task-id → project title, used to reveal each task's
        // parent-project name in a hover tooltip on the row. Projects live in the
@@ -350,7 +385,7 @@ export default function TasksPage() {
                                                                                                   onTaskClick={handleTaskClick}
                                                                                                   onAddChildTask={handleNoop}
                                                                                                   onInviteMember={handleNoop}
-                                                                                                  selectedTaskId={selectedTask?.id ?? null}
+                                                                                                  selectedTaskId={selectedTaskId}
                                                                                                   parentProjectTitle={projectTitle}
                                                                                            />
                                                                                     );
@@ -372,10 +407,11 @@ export default function TasksPage() {
                             </div>
                      </DndContext>
 
-                     {selectedTask && (
+                     {selectedTaskForPanel && (
                             <TaskDetailsPanel
                                    showForm={false}
-                                   selectedTask={selectedTask}
+                                   selectedTask={selectedTaskForPanel}
+                                   allProjectTasks={selectedProjectTasks}
                                    membershipRole={selectedMembershipRole}
                                    onClose={closeDetailsPanel}
                                    onDeleteTaskWrapper={handleDeleteTaskById}

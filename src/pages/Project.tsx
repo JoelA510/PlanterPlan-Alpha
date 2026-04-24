@@ -52,6 +52,7 @@ export default function Project() {
         phases,
         milestones,
         tasks,
+        projectHierarchy,
         teamMembers,
         refetchProject,
     } = useProjectData(projectId);
@@ -428,6 +429,7 @@ export default function Project() {
                         taskBeingEdited={taskFormState?.mode === 'edit' ? state.selectedTask || undefined : undefined}
                         parentTaskForForm={state.inlineAddingParentId ? (tasks?.find(t => t.id === state.inlineAddingParentId) as TaskRow) : undefined}
                         membershipRole={userRole}
+                        allProjectTasks={(projectHierarchy as TaskRow[]) || []}
                         onClose={() => {
                             actions.setSelectedTask(null);
                             setTaskFormState(null);

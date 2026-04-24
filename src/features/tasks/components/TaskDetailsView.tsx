@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -33,19 +34,20 @@ import StrategyFollowUpDialog from '@/features/tasks/components/StrategyFollowUp
 import { collectSpawnedTemplateIds } from '@/shared/lib/tree-helpers';
 
 const emailDetailsSchema = z.object({
-    recipient: z.string().email('Enter a valid email'),
+    recipient: z.string().email(),
 });
 type EmailDetailsFormData = z.infer<typeof emailDetailsSchema>;
 
-function buildEmailBody(task: TaskItemData): string {
-    const lines: string[] = [`Task: ${task.title}`];
-    if (task.purpose) lines.push('', `Purpose:`, task.purpose);
-    if (task.actions) lines.push('', `Actions:`, task.actions);
-    lines.push('', `Start: ${formatDisplayDate(task.start_date) || '—'}`);
-    lines.push(`Due: ${formatDisplayDate(task.due_date) || '—'}`);
+function buildEmailBody(task: TaskItemData, t: TFunction): string {
+    const emptyDate = t('tasks.detail.email_body_empty_date');
+    const lines: string[] = [t('tasks.detail.email_body_task', { title: task.title })];
+    if (task.purpose) lines.push('', t('tasks.detail.email_body_purpose'), task.purpose);
+    if (task.actions) lines.push('', t('tasks.detail.email_body_actions'), task.actions);
+    lines.push('', t('tasks.detail.email_body_start', { date: formatDisplayDate(task.start_date) || emptyDate }));
+    lines.push(t('tasks.detail.email_body_due', { date: formatDisplayDate(task.due_date) || emptyDate }));
     if (typeof window !== 'undefined') {
         const projectId = task.root_id || task.id;
-        lines.push('', `Link: ${window.location.origin}/project/${projectId}`);
+        lines.push('', t('tasks.detail.email_body_link', { url: `${window.location.origin}/project/${projectId}` }));
     }
     return lines.join('\n');
 }
@@ -104,9 +106,9 @@ const TaskDetailsView = ({
         () => phaseLeadIds.map((id) => {
             const member = phaseLeadMembers.find((m) => m.user_id === id);
             const email = member ? (member as unknown as { email?: string }).email : undefined;
-            return email ?? `User ${id.slice(0, 8)}`;
+            return email ?? t('tasks.detail.phase_lead_fallback', { id: id.slice(0, 8) });
         }),
-        [phaseLeadIds, phaseLeadMembers],
+        [phaseLeadIds, phaseLeadMembers, t],
     );
     useEffect(() => {
         const prev = prevStatusRef.current;
@@ -139,7 +141,7 @@ const TaskDetailsView = ({
         return <div className="p-4 text-center text-muted-foreground">{t('tasks.detail.select_task')}</div>;
     }
 
-    const emailBody = buildEmailBody(task);
+    const emailBody = buildEmailBody(task, t);
 
     const openEmailDialog = () => {
         reset({ recipient: savedEmailAddresses[0] || '' });
@@ -148,7 +150,7 @@ const TaskDetailsView = ({
 
     const onEmailSubmit = async (data: EmailDetailsFormData) => {
         await rememberEmailAddress(data.recipient);
-        const subject = encodeURIComponent(`Task: ${task.title}`);
+        const subject = encodeURIComponent(t('tasks.detail.email_subject', { title: task.title }));
         const body = encodeURIComponent(emailBody);
         window.location.assign(`mailto:${data.recipient}?subject=${subject}&body=${body}`);
         setEmailOpen(false);
@@ -486,7 +488,7 @@ const TaskDetailsView = ({
                             </datalist>
                             {errors.recipient && (
                                 <p className="text-xs text-rose-600" data-testid="email-recipient-error">
-                                    {errors.recipient.message}
+                                    {t('tasks.detail.email_recipient_invalid')}
                                 </p>
                             )}
                         </div>

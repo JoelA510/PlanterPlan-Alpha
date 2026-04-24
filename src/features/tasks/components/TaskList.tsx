@@ -367,6 +367,7 @@ const TaskList = () => {
           handleEditTask={handleEditTask}
           onDeleteTaskWrapper={async (taskId: string) => { const t = findTask(taskId); if (t) await onDeleteTaskWrapper(t as TaskRow); }}
           fetchTasks={refetchProjects}
+          allProjectTasks={projectHierarchy as TaskRow[]}
           renderLibrarySearch={(onSelect) => (
             <MasterLibrarySearch
               mode="copy"

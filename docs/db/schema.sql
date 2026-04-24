@@ -1100,10 +1100,11 @@ ALTER FUNCTION "public"."handle_phase_completion"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."handle_updated_at"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO ''
     AS $$
 BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
+    NEW.updated_at := now();
+    RETURN NEW;
 END;
 $$;
 
@@ -1112,45 +1113,39 @@ ALTER FUNCTION "public"."handle_updated_at"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."has_permission"("p_project_id" "uuid", "p_user_id" "uuid", "p_required_role" "text" DEFAULT 'member') RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 DECLARE
-    v_auth_uid uuid;
+    v_role text;
 BEGIN
-    v_auth_uid := (SELECT auth.uid());
-    
-    -- Ensure the requesting user matches the requested permission ID
-    IF v_auth_uid IS NULL OR v_auth_uid != p_user_id THEN
+    IF p_user_id IS NULL THEN
         RETURN false;
     END IF;
 
-    -- If required_role is 'owner', check for creator or owner role
-    IF p_required_role = 'owner' THEN
-        RETURN EXISTS (
-            SELECT 1 FROM public.project_members
-            WHERE project_id = p_project_id
-            AND user_id = p_user_id
-            AND role = 'owner'
-        ) OR EXISTS (
-            SELECT 1 FROM public.tasks
-            WHERE id = p_project_id
-            AND creator = p_user_id
-            AND parent_task_id IS NULL
-        );
+    IF public.is_admin(p_user_id) THEN
+        RETURN true;
     END IF;
 
-    -- Generic role check (member or admin or owner)
-    RETURN EXISTS (
-        SELECT 1 FROM public.project_members
-        WHERE project_id = p_project_id
-        AND user_id = p_user_id
-    ) OR EXISTS (
-        SELECT 1 FROM public.tasks
-        WHERE id = p_project_id
-        AND creator = p_user_id
-        AND parent_task_id IS NULL
-    );
+    IF p_required_role = 'owner' THEN
+        RETURN public.check_project_ownership_by_role(p_project_id, p_user_id);
+    END IF;
+
+    -- 'member' branch: any role in project_members counts.
+    SELECT role INTO v_role
+    FROM public.project_members
+    WHERE project_id = p_project_id AND user_id = p_user_id;
+
+    IF v_role IS NULL THEN
+        RETURN false;
+    END IF;
+
+    IF p_required_role = 'member' THEN
+        RETURN true;
+    END IF;
+
+    -- 'editor' / 'coach' / 'viewer' etc. — require exact role or higher.
+    RETURN v_role = p_required_role OR v_role = 'owner';
 END;
 $$;
 
@@ -1667,29 +1662,16 @@ ALTER FUNCTION "public"."set_task_type"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."sync_task_completion_flags"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO ''
     AS $$
-DECLARE
-    v_status_changed   boolean;
-    v_complete_changed boolean;
 BEGIN
-    -- Wave 23: keep is_complete and status = 'completed' in lockstep.
-    -- status is the source of truth; inconsistent dual-field writes are
-    -- reconciled, not trusted. See
-    -- docs/db/migrations/2026_04_17_sync_task_completion.sql.
-    IF TG_OP = 'INSERT' THEN
-        NEW.is_complete := (COALESCE(NEW.status, '') = 'completed');
-        RETURN NEW;
+    -- Wave 23 invariant: status is the source of truth.
+    -- is_complete is derived to match.
+    IF NEW.status = 'completed' THEN
+        NEW.is_complete := true;
+    ELSE
+        NEW.is_complete := false;
     END IF;
-
-    v_status_changed   := NEW.status IS DISTINCT FROM OLD.status;
-    v_complete_changed := NEW.is_complete IS DISTINCT FROM OLD.is_complete;
-
-    IF v_status_changed THEN
-        NEW.is_complete := (COALESCE(NEW.status, '') = 'completed');
-    ELSIF v_complete_changed THEN
-        NEW.status := CASE WHEN NEW.is_complete THEN 'completed' ELSE 'todo' END;
-    END IF;
-
     RETURN NEW;
 END;
 $$;
@@ -3296,7 +3278,6 @@ GRANT SELECT ON TABLE "public"."view_master_library" TO "service_role";
 
 
 GRANT SELECT ON TABLE "public"."users_public" TO "service_role";
-
 
 
 
