@@ -35,12 +35,26 @@ describe('docs/db/schema.sql source of truth', () => {
  });
 
  it('keeps only the hardened timestamptz clone_project_template overload', () => {
-  expect(schema).toContain('"p_start_date" timestamp with time zone');
-  expect(schema).toContain('"p_due_date" timestamp with time zone');
+ expect(schema).toContain('"p_start_date" timestamp with time zone');
+ expect(schema).toContain('"p_due_date" timestamp with time zone');
   expect(schema).not.toMatch(/CREATE OR REPLACE FUNCTION "public"\."clone_project_template"\([^)]*"p_start_date" date/is);
   expect(schema).not.toMatch(
    /CREATE OR REPLACE FUNCTION "public"\."clone_project_template"\("p_template_id" "uuid", "p_new_parent_id" "uuid", "p_new_origin" "text", "p_user_id" "uuid"\)/is,
   );
+ });
+
+ it('keeps clone_project_template source and destination authorization separate', () => {
+  const functionStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."clone_project_template"(');
+  const functionEnd = schema.indexOf('ALTER FUNCTION "public"."clone_project_template"(');
+  const sql = schema.slice(functionStart, functionEnd);
+
+  expect(functionStart).toBeGreaterThanOrEqual(0);
+  expect(functionEnd).toBeGreaterThan(functionStart);
+  expect(sql).toContain("p_user_id <> v_actor_id");
+  expect(sql).toContain("v_template_origin = 'template'");
+  expect(sql).toContain('v_template_published OR v_template_creator = v_actor_id');
+  expect(sql).toContain('public.has_project_role(v_new_root_id, v_actor_id, ARRAY[\'owner\', \'editor\'])');
+  expect(sql).not.toContain('has_permission(v_template_root_id, (SELECT auth.uid()), \'member\')');
  });
 
  it('keeps tasks_with_primary_resource joined to task_resources with Wave 36 columns', () => {
@@ -91,9 +105,11 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(functionStart).toBeGreaterThanOrEqual(0);
   expect(functionEnd).toBeGreaterThan(functionStart);
   expect(sql).toContain('STABLE SECURITY DEFINER');
+  expect(sql).toContain('v_auth_uid uuid := auth.uid();');
+  expect(sql).toContain('p_user_id <> v_auth_uid');
   expect(sql).toContain('IF public.is_admin(p_user_id) THEN');
   expect(sql).toContain('RETURN public.check_project_ownership_by_role(p_project_id, p_user_id);');
-  expect(sql).not.toContain('v_auth_uid');
   expect(sql).not.toContain('creator = p_user_id');
+  expect(schema).toContain('REVOKE ALL ON FUNCTION "public"."has_permission"("p_project_id" "uuid", "p_user_id" "uuid", "p_required_role" "text") FROM PUBLIC;');
  });
 });

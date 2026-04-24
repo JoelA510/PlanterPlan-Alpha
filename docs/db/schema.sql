@@ -828,16 +828,56 @@ DECLARE
     v_old_start_date timestamptz;
     v_interval interval;
     v_template_root_id uuid;
+    v_template_origin text;
+    v_template_creator uuid;
+    v_template_published boolean := false;
+    v_actor_id uuid := auth.uid();
 BEGIN
-    -- 0. Security Check: Verify user has access to the template task
-    SELECT COALESCE(root_id, id) INTO v_template_root_id FROM public.tasks WHERE id = p_template_id;
-    
-    IF v_template_root_id IS NULL OR NOT public.has_permission(v_template_root_id, (SELECT auth.uid()), 'member') THEN
+    IF v_actor_id IS NULL OR p_user_id IS NULL OR p_user_id <> v_actor_id THEN
+        RAISE EXCEPTION 'Access denied: authenticated user mismatch.';
+    END IF;
+
+    IF p_new_origin IS NULL OR p_new_origin NOT IN ('instance', 'template') THEN
+        RAISE EXCEPTION 'Invalid clone origin: %', p_new_origin;
+    END IF;
+
+    SELECT
+        COALESCE(t.root_id, t.id),
+        r.origin,
+        r.creator,
+        lower(COALESCE(r.settings ->> 'published', 'false')) = 'true',
+        t.start_date
+    INTO
+        v_template_root_id,
+        v_template_origin,
+        v_template_creator,
+        v_template_published,
+        v_old_start_date
+    FROM public.tasks t
+    LEFT JOIN public.tasks r ON r.id = COALESCE(t.root_id, t.id)
+    WHERE t.id = p_template_id;
+
+    IF v_template_root_id IS NULL THEN
+        RAISE EXCEPTION 'Access denied: template task not found.';
+    END IF;
+
+    IF NOT (
+        public.is_admin(v_actor_id)
+        OR (
+            v_template_origin = 'template'
+            AND (v_template_published OR v_template_creator = v_actor_id)
+        )
+        OR (
+            v_template_origin <> 'template'
+            AND public.has_permission(v_template_root_id, v_actor_id, 'member')
+        )
+    ) THEN
         RAISE EXCEPTION 'Access denied: You do not have permission to access this template.';
     END IF;
 
-    -- 0. Get Template Data for Date Math
-    SELECT start_date INTO v_old_start_date FROM public.tasks WHERE id = p_template_id;
+    IF p_new_origin = 'template' AND NOT public.is_admin(v_actor_id) THEN
+        RAISE EXCEPTION 'Access denied: only admins can create template clones.';
+    END IF;
 
     -- Calculate Interval Offset if both dates exist
     IF p_start_date IS NOT NULL AND v_old_start_date IS NOT NULL THEN
@@ -875,9 +915,15 @@ BEGIN
     IF p_new_parent_id IS NULL THEN
         v_new_root_id := v_top_new_id;
     ELSE
-        SELECT root_id INTO v_new_root_id FROM public.tasks WHERE id = p_new_parent_id;
+        SELECT COALESCE(root_id, id) INTO v_new_root_id FROM public.tasks WHERE id = p_new_parent_id;
         IF v_new_root_id IS NULL THEN
              RAISE EXCEPTION 'Parent task % has no root_id', p_new_parent_id;
+        END IF;
+
+        IF NOT public.is_admin(v_actor_id)
+            AND NOT public.has_project_role(v_new_root_id, v_actor_id, ARRAY['owner', 'editor'])
+        THEN
+            RAISE EXCEPTION 'Access denied: You do not have permission to modify the destination project.';
         END IF;
     END IF;
 
@@ -895,7 +941,7 @@ BEGIN
             ELSE mp.new_id  -- Others get mapped parent
         END,
         v_new_root_id,
-        p_user_id,
+        v_actor_id,
         p_new_origin,
         -- Override Title/Desc for Root if provided
         CASE WHEN t.id = p_template_id AND p_title IS NOT NULL THEN p_title ELSE t.title END,
@@ -1118,8 +1164,9 @@ CREATE OR REPLACE FUNCTION "public"."has_permission"("p_project_id" "uuid", "p_u
     AS $$
 DECLARE
     v_role text;
+    v_auth_uid uuid := auth.uid();
 BEGIN
-    IF p_user_id IS NULL THEN
+    IF p_user_id IS NULL OR v_auth_uid IS NULL OR p_user_id <> v_auth_uid THEN
         RETURN false;
     END IF;
 
@@ -3174,6 +3221,10 @@ GRANT ALL ON FUNCTION "public"."get_user_id_by_email"("email" "text") TO "servic
 
 
 
+REVOKE ALL ON FUNCTION "public"."has_permission"("p_project_id" "uuid", "p_user_id" "uuid", "p_required_role" "text") FROM PUBLIC;
+
+
+
 GRANT ALL ON FUNCTION "public"."initialize_default_project"("p_project_id" "uuid", "p_creator_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."initialize_default_project"("p_project_id" "uuid", "p_creator_id" "uuid") TO "service_role";
 
@@ -3278,11 +3329,6 @@ GRANT SELECT ON TABLE "public"."view_master_library" TO "service_role";
 
 
 GRANT SELECT ON TABLE "public"."users_public" TO "service_role";
-
-
-
-
-
 
 
 

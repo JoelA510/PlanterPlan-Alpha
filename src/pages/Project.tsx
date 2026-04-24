@@ -114,7 +114,7 @@ export default function Project() {
                     root_id: projectId
                 });
                 setTaskFormState(null);
-                toast.success('Task updated successfully');
+                toast.success(t('projects.task_updated_toast'));
             } else {
                 const extendedFormData = formData as TaskFormData & { templateId?: string | null };
                 if (extendedFormData.templateId) {
@@ -441,8 +441,8 @@ export default function Project() {
                             <MasterLibrarySearch
                                 mode="copy"
                                 onSelect={onSelect}
-                                label="Search master library"
-                                placeholder={taskFormState?.isPhase ? 'Search for a template phase to copy' : 'Start typing to copy an existing template task'}
+                                label={t('projects.form.search_library_label')}
+                                placeholder={taskFormState?.isPhase ? t('projects.search_template_phase_placeholder') : t('projects.search_template_task_placeholder')}
                                 phasesOnly={!!taskFormState?.isPhase}
                                 excludeTemplateIds={excludedTemplateIds}
                             />
