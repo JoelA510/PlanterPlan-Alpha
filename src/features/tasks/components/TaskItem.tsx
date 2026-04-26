@@ -137,6 +137,21 @@ const TaskItem = ({
  }
  };
 
+ const handleCardKeyDown = (e: React.KeyboardEvent) => {
+ const target = e.target as HTMLElement;
+ if (
+ target.closest('.expand-button') ||
+ target.closest('select') ||
+ target.closest('button') ||
+ target.closest('input')
+ ) {
+ return;
+ }
+ if (e.key !== 'Enter' && e.key !== ' ') return;
+ e.preventDefault();
+ onTaskClick?.(task);
+ };
+
  const handleToggleExpandClick = (e: React.MouseEvent) => {
  e.stopPropagation();
  if (onToggleExpand) {
@@ -185,6 +200,8 @@ const TaskItem = ({
  aria-level={level + 1}
  aria-expanded={canHaveChildren ? isExpanded : undefined}
  aria-selected={isSelected}
+ aria-label={onTaskClick ? t('tasks.open_task_details_aria', { title: task.title ?? '' }) : undefined}
+ tabIndex={!isLocked && onTaskClick ? 0 : undefined}
  className={cn(
  'relative flex flex-col min-w-0 py-4 px-5 mb-3 rounded-xl border transition-all duration-200 shadow-sm',
  'bg-card text-card-foreground',
@@ -198,6 +215,7 @@ const TaskItem = ({
  )}
  style={{ marginLeft: `${indentWidth}px` }}
  onClick={!isLocked ? handleCardClick : undefined}
+ onKeyDown={!isLocked ? handleCardKeyDown : undefined}
  data-testid={`task-row-${task.id}`}
  >
  {focusPeers.length > 0 && (

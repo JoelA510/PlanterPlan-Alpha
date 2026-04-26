@@ -180,7 +180,7 @@
       },
       "empty": {
         "my_tasks": "No se han encontrado tareas en tus proyectos.",
-        "priority": "No hay tareas de alta prioridad ahora mismo.",
+        "priority": "No hay tareas vencidas, próximas a vencer o iniciadas ahora mismo.",
         "overdue": "Nada está atrasado. Buen trabajo.",
         "due_soon": "No hay tareas que venzan en los próximos días.",
         "current": "No hay tareas activas actualmente.",

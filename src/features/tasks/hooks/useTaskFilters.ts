@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { TaskRow } from '@/shared/db/app.types';
 import { deriveUrgency, compareDateAsc, toIsoDate } from '@/shared/lib/date-engine/index';
+import { filterPriorityTasks } from '@/features/tasks/lib/priority-tasks';
 
 export type TaskFilterKey =
  | 'my_tasks'
@@ -100,7 +101,7 @@ export const filterAndSortTasks = ({
     : [];
    break;
   case 'priority':
-   filtered = instanceChildren.filter((t) => t.priority === 'high' && !isCompleted(t));
+   filtered = filterPriorityTasks(tasks, now);
    break;
   case 'overdue':
    filtered = instanceChildren.filter((t) => urgencyOf(t) === 'overdue');
@@ -163,7 +164,7 @@ export const FILTER_LABELS: Record<TaskFilterKey, string> = {
 
 export const EMPTY_STATE_COPY: Record<TaskFilterKey, string> = {
  my_tasks: 'No tasks found across your projects.',
- priority: 'No high-priority tasks right now.',
+ priority: 'No overdue, due-soon, or started tasks right now.',
  overdue: 'Nothing is overdue. Nice work.',
  due_soon: 'No tasks are due in the next few days.',
  current: 'No tasks are currently active.',

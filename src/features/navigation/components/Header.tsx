@@ -59,7 +59,7 @@ export default function Header({ onMenuToggle, showMenuButton = false }: HeaderP
                             </Button>
                         )}
 
-                        <Link to="/Dashboard" className="flex items-center gap-2" aria-label={t('nav.planterplan_home_aria')}>
+                        <Link to="/tasks" className="flex items-center gap-2" aria-label={t('nav.planterplan_home_aria')}>
                             <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm">
                                 <CheckCircle2 className="w-5 h-5 text-white" />
                             </div>

@@ -15,7 +15,7 @@ const USER_ID = 'user-1';
 //   │                   have pulled this into the 'milestones' filter.)
 //   ├─ phase-2   (task_type='phase')
 //   │   └─ m-current   (task_type='milestone', due 2026-05-20)
-//   ├─ t-priority      (task_type='task', priority='high', status='todo', due 2026-05-20)
+//   ├─ t-priority      (task_type='task', status='todo', start 2026-04-01, due 2026-05-20)
 //   ├─ t-future        (task_type='task', status='todo', start 2026-05-01, due 2026-05-10)
 //   ├─ t-done          (task_type='task', status='completed', is_complete=true, due 2026-03-15)
 //   └─ t-current       (task_type='task', status='in_progress', due 2026-05-15)
@@ -97,6 +97,7 @@ function buildFixture() {
   status: 'todo',
   priority: 'high',
   assignee_id: USER_ID,
+  start_date: '2026-04-01',
   due_date: '2026-05-20',
  });
  const taskFuture = makeTask({
@@ -194,7 +195,7 @@ describe('filterAndSortTasks — views', () => {
   expect(result).toEqual([]);
  });
 
- it("'priority' keeps only priority==='high' and excludes completed", () => {
+ it("'priority' keeps overdue, due-soon, or started tasks and excludes completed", () => {
   const tasks = buildFixture();
   const result = filterAndSortTasks({ tasks, filter: 'priority', sort: 'chronological', now: NOW });
   expect(result.map((t) => t.id)).toEqual(['t-priority']);

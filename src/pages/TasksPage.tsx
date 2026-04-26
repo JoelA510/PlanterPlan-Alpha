@@ -24,6 +24,7 @@ import {
        type TaskFilterKey,
        type TaskSortKey,
 } from '@/features/tasks/hooks/useTaskFilters';
+import { buildPriorityTaskGroups } from '@/features/tasks/lib/priority-tasks';
 import {
        Select,
        SelectContent,
@@ -31,6 +32,12 @@ import {
        SelectTrigger,
        SelectValue,
 } from '@/shared/ui/select';
+import {
+       Dialog,
+       DialogContent,
+       DialogHeader,
+       DialogTitle,
+} from '@/shared/ui/dialog';
 
 const FILTER_KEYS: TaskFilterKey[] = [
        'my_tasks', 'priority', 'overdue', 'due_soon', 'current', 'not_yet_due', 'completed', 'all_tasks', 'milestones',
@@ -51,7 +58,7 @@ export default function TasksPage() {
        const invalidateTasks = useCallback(() => queryClient.invalidateQueries({ queryKey: ['tasks'] }), [queryClient]);
 
        const [viewMode, setViewMode] = useState('list');
-       const [filter, setFilter] = useState<TaskFilterKey>('my_tasks');
+       const [filter, setFilter] = useState<TaskFilterKey>('priority');
        const [sort, setSort] = useState<TaskSortKey>('chronological');
        const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
        const [dueStart, setDueStart] = useState<string>('');
@@ -61,6 +68,7 @@ export default function TasksPage() {
               [dueStart, dueEnd],
        );
        const hasDueRange = dueDateRange.start !== null || dueDateRange.end !== null;
+       const effectiveSort: TaskSortKey = filter === 'priority' ? 'chronological' : sort;
        const clearDueRange = useCallback(() => {
               setDueStart('');
               setDueEnd('');
@@ -186,7 +194,13 @@ export default function TasksPage() {
               return undefined;
        }, [currentSelectedTask, selectedTeamMembers, selectedProjectRoot, currentUserId]);
 
-       const visibleTasks = useTaskFilters({ tasks, filter, sort, dueDateRange, currentUserId });
+       const visibleTasks = useTaskFilters({ tasks, filter, sort: effectiveSort, dueDateRange, currentUserId });
+       const priorityGroups = useMemo(
+              () => filter === 'priority' && viewMode === 'list'
+                     ? buildPriorityTaskGroups({ tasks, candidateTasks: visibleTasks })
+                     : [],
+              [filter, tasks, viewMode, visibleTasks],
+       );
 
        // Wave 33: map of root-task-id → project title, used to reveal each task's
        // parent-project name in a hover tooltip on the row. Projects live in the
@@ -285,18 +299,20 @@ export default function TasksPage() {
                                                                </Select>
                                                         </div>
 
-                                                        <div className="flex flex-col gap-1">
-                                                               <label htmlFor="task-sort" className="text-xs font-medium text-muted-foreground">{t('tasks.sort_label')}</label>
-                                                               <Select value={sort} onValueChange={(v) => setSort(v as TaskSortKey)}>
-                                                                      <SelectTrigger id="task-sort" className="w-[180px] bg-card" aria-label={t('tasks.sort_aria')}>
-                                                                             <SelectValue />
-                                                                      </SelectTrigger>
-                                                                      <SelectContent>
-                                                                             <SelectItem value="chronological">{t('tasks.sort_chronological')}</SelectItem>
-                                                                             <SelectItem value="alphabetical">{t('tasks.sort_alphabetical')}</SelectItem>
-                                                                      </SelectContent>
-                                                               </Select>
-                                                        </div>
+                                                        {filter !== 'priority' && (
+                                                               <div className="flex flex-col gap-1">
+                                                                      <label htmlFor="task-sort" className="text-xs font-medium text-muted-foreground">{t('tasks.sort_label')}</label>
+                                                                      <Select value={sort} onValueChange={(v) => setSort(v as TaskSortKey)}>
+                                                                             <SelectTrigger id="task-sort" className="w-[180px] bg-card" aria-label={t('tasks.sort_aria')}>
+                                                                                    <SelectValue />
+                                                                             </SelectTrigger>
+                                                                             <SelectContent>
+                                                                                    <SelectItem value="chronological">{t('tasks.sort_chronological')}</SelectItem>
+                                                                                    <SelectItem value="alphabetical">{t('tasks.sort_alphabetical')}</SelectItem>
+                                                                             </SelectContent>
+                                                                      </Select>
+                                                               </div>
+                                                        )}
 
                                                         <div className="flex flex-col gap-1">
                                                                <span className="text-xs font-medium text-muted-foreground">
@@ -369,28 +385,80 @@ export default function TasksPage() {
                                                  ) : (
                                                         viewMode === 'list' ? (
                                                                <div className="space-y-6 overflow-y-auto h-full pb-20">
-                                                                      <div className="flex flex-col gap-2">
-                                                                             {visibleTasks.map(task => {
-                                                                                    const projectTitle = task.root_id && task.root_id !== task.id
-                                                                                           ? projectTitleByRootId.get(task.root_id) ?? null
-                                                                                           : null;
-                                                                                    return (
-                                                                                           <TaskItem
-                                                                                                  key={task.id}
-                                                                                                  task={task}
-                                                                                                  level={0}
-                                                                                                  onStatusChange={handleStatusChange}
-                                                                                                  hideExpansion={true}
-                                                                                                  disableDrag={true}
-                                                                                                  onTaskClick={handleTaskClick}
-                                                                                                  onAddChildTask={handleNoop}
-                                                                                                  onInviteMember={handleNoop}
-                                                                                                  selectedTaskId={selectedTaskId}
-                                                                                                  parentProjectTitle={projectTitle}
-                                                                                           />
-                                                                                    );
-                                                                             })}
-                                                                      </div>
+                                                                      {filter === 'priority' ? (
+                                                                             priorityGroups.map((group) => (
+                                                                                    <section
+                                                                                           key={group.id}
+                                                                                           className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                                                                                           data-testid={`priority-task-group-${group.id}`}
+                                                                                    >
+                                                                                           <div className="mb-3 border-b border-border pb-3">
+                                                                                                  <h2
+                                                                                                         id={`priority-group-heading-${group.id}`}
+                                                                                                         className="text-base font-semibold text-card-foreground"
+                                                                                                  >
+                                                                                                         {group.title}
+                                                                                                  </h2>
+                                                                                                  {group.projectTitle && (
+                                                                                                         <p className="text-sm text-muted-foreground">{group.projectTitle}</p>
+                                                                                                  )}
+                                                                                           </div>
+                                                                                           <div
+                                                                                                  role="tree"
+                                                                                                  aria-labelledby={`priority-group-heading-${group.id}`}
+                                                                                                  className="flex flex-col gap-2"
+                                                                                           >
+                                                                                                  {group.tasks.map(({ task, displayNumber }) => (
+                                                                                                         <div key={task.id} className="flex min-w-0 gap-3">
+                                                                                                                <span
+                                                                                                                       className="mt-5 w-10 flex-shrink-0 text-right font-mono text-xs font-semibold text-muted-foreground"
+                                                                                                                       aria-hidden="true"
+                                                                                                                >
+                                                                                                                       {displayNumber}
+                                                                                                                </span>
+                                                                                                                <div className="min-w-0 flex-1">
+                                                                                                                       <TaskItem
+                                                                                                                              task={task}
+                                                                                                                              level={0}
+                                                                                                                              onStatusChange={handleStatusChange}
+                                                                                                                              hideExpansion={true}
+                                                                                                                              disableDrag={true}
+                                                                                                                              onTaskClick={handleTaskClick}
+                                                                                                                              onAddChildTask={handleNoop}
+                                                                                                                              onInviteMember={handleNoop}
+                                                                                                                              selectedTaskId={selectedTaskId}
+                                                                                                                              parentProjectTitle={group.projectTitle}
+                                                                                                                       />
+                                                                                                                </div>
+                                                                                                         </div>
+                                                                                                  ))}
+                                                                                           </div>
+                                                                                    </section>
+                                                                             ))
+                                                                      ) : (
+                                                                             <div className="flex flex-col gap-2">
+                                                                                    {visibleTasks.map(task => {
+                                                                                           const projectTitle = task.root_id && task.root_id !== task.id
+                                                                                                  ? projectTitleByRootId.get(task.root_id) ?? null
+                                                                                                  : null;
+                                                                                           return (
+                                                                                                  <TaskItem
+                                                                                                         key={task.id}
+                                                                                                         task={task}
+                                                                                                         level={0}
+                                                                                                         onStatusChange={handleStatusChange}
+                                                                                                         hideExpansion={true}
+                                                                                                         disableDrag={true}
+                                                                                                         onTaskClick={handleTaskClick}
+                                                                                                         onAddChildTask={handleNoop}
+                                                                                                         onInviteMember={handleNoop}
+                                                                                                         selectedTaskId={selectedTaskId}
+                                                                                                         parentProjectTitle={projectTitle}
+                                                                                                  />
+                                                                                           );
+                                                                                    })}
+                                                                             </div>
+                                                                      )}
                                                                </div>
                                                         ) : (
                                                                <div className="h-full">
@@ -407,16 +475,32 @@ export default function TasksPage() {
                             </div>
                      </DndContext>
 
-                     {selectedTaskForPanel && (
-                            <TaskDetailsPanel
-                                   showForm={false}
-                                   selectedTask={selectedTaskForPanel}
-                                   allProjectTasks={selectedProjectTasks}
-                                   membershipRole={selectedMembershipRole}
-                                   onClose={closeDetailsPanel}
-                                   onDeleteTaskWrapper={handleDeleteTaskById}
-                            />
-                     )}
+                     <Dialog
+                            open={selectedTaskForPanel !== null}
+                            onOpenChange={(open) => {
+                                   if (!open) closeDetailsPanel();
+                            }}
+                     >
+                            <DialogContent
+                                   hideClose
+                                   className="h-full max-h-screen max-w-3xl overflow-hidden p-0 sm:h-5/6"
+                            >
+                                   <DialogHeader className="sr-only">
+                                          <DialogTitle>{selectedTaskForPanel?.title ?? t('tasks.panel.details')}</DialogTitle>
+                                   </DialogHeader>
+                                   {selectedTaskForPanel && (
+                                          <TaskDetailsPanel
+                                                 showForm={false}
+                                                 selectedTask={selectedTaskForPanel}
+                                                 allProjectTasks={selectedProjectTasks}
+                                                 membershipRole={selectedMembershipRole}
+                                                 onClose={closeDetailsPanel}
+                                                 onDeleteTaskWrapper={handleDeleteTaskById}
+                                                 className="w-full border-l-0 shadow-none sm:w-full sm:min-w-0 sm:max-w-none"
+                                          />
+                                   )}
+                            </DialogContent>
+                     </Dialog>
               </>
        );
 }
