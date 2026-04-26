@@ -14,9 +14,9 @@ build
 *.local
 .env*
 !.env.example
-package-lock.json
 .ai-ignore/
 /archive/*
+.vercel/
 
 # Editor directories and files
 .vscode/*
@@ -32,7 +32,7 @@ package-lock.json
 # Playwright
 /test-results/
 /playwright-report/
-Testing/e2e/.features-gen/
+/Testing/e2e/.features-gen/
 /e2e/.auth/
 /blob-report/
 /playwright/.cache/

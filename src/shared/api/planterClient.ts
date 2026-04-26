@@ -14,6 +14,7 @@ import type {
     PersonRow,
     TeamMemberRow,
     UserMetadata,
+    TaskCommentInsert,
     TaskCommentRow,
     TaskCommentWithAuthor,
     ActivityLogWithActor,
@@ -1048,16 +1049,18 @@ export const planter: PlanterClient = {
             },
             create: async (payload): Promise<TaskCommentWithAuthor> => {
                 return retry(async () => {
-                    const insert: Database['public']['Tables']['task_comments']['Insert'] = {
+                    const insert = {
                         task_id: payload.task_id,
                         author_id: payload.author_id,
                         parent_comment_id: payload.parent_comment_id ?? null,
                         body: payload.body,
                         mentions: payload.mentions ?? [],
-                    };
+                    } satisfies Omit<TaskCommentInsert, 'root_id'>;
                     const { data, error } = await supabase
                         .from('task_comments')
-                        .insert(insert)
+                        // `root_id` is required in generated DB types but is set
+                        // by `trg_task_comments_set_root_id` before insert checks.
+                        .insert(insert as TaskCommentInsert)
                         .select('*, author:users(id, email, user_metadata)')
                         .single();
                     if (error) throw new PlanterError(error.message, error.code ?? '500');

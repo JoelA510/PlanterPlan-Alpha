@@ -4,8 +4,7 @@ SELECT plan(12);
 
 -- Clean state
 DELETE FROM auth.users WHERE email IN ('taskowner@example.com', 'team1@example.com', 'unauthorized@example.com', 'owner1@example.com', 'member1@example.com', 'random1@example.com');
-DELETE FROM tasks;
-DELETE FROM project_members;
+TRUNCATE TABLE public.activity_log, public.task_comments, public.project_members, public.tasks CASCADE;
 
 -- 1. Setup minimal test data
 -- Insert Test Users
@@ -24,8 +23,8 @@ INSERT INTO project_members (project_id, user_id, role) VALUES
     ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000002', 'editor');
 
 -- Insert Task
-INSERT INTO tasks (id, root_id, title) VALUES
-    ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Secure Database Scheme');
+INSERT INTO tasks (id, root_id, parent_task_id, title) VALUES
+    ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Secure Database Scheme');
 
 -- =========================================================
 -- START TDD Observations
@@ -54,7 +53,7 @@ SELECT is(
 
 -- Test 3: Unauthorized Cannot Mutate
 SELECT throws_ok(
-    $$ INSERT INTO tasks (id, root_id, title) VALUES ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'Hacked Task') $$,
+    $$ INSERT INTO tasks (id, root_id, parent_task_id, title) VALUES ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Hacked Task') $$,
     'new row violates row-level security policy for table "tasks"',
     'Unauthorized users cannot insert tasks into projects they do not belong to'
 );
@@ -77,7 +76,7 @@ SELECT lives_ok(
 
 -- Test 6: Member Can Insert Task
 SELECT lives_ok(
-    $$ INSERT INTO tasks (id, root_id, title) VALUES ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'Member Child Task') $$,
+    $$ INSERT INTO tasks (id, root_id, parent_task_id, title) VALUES ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Member Child Task') $$,
     'Team member can insert task'
 );
 
@@ -105,7 +104,9 @@ INSERT INTO project_members (project_id, user_id, role) VALUES
     ('11111111-1111-1111-1111-111111111101', '00000000-0000-0000-0000-000000000102', 'editor');
 
 -- Test 8: has_permission (Owner Requesting Owner Role)
-set local role authenticated;
+-- `has_permission` is an internal helper with direct EXECUTE revoked from
+-- authenticated; test its claim-binding logic as the function owner.
+set local role postgres;
 set local request.jwt.claims to '{"sub": "00000000-0000-0000-0000-000000000101"}';
 SELECT is(
     public.has_permission('11111111-1111-1111-1111-111111111101'::uuid, '00000000-0000-0000-0000-000000000101'::uuid, 'owner'::text),

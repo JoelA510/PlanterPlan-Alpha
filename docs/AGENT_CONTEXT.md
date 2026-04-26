@@ -18,7 +18,9 @@
   - `api/`: API adapters (`planterClient`).
 - **`docs/`**: Source of Truth.
   - `docs/architecture/*.md`: The definitive, modular Single Source of Truth for all domain business rules (Date Engine, RBAC, Tasks). **Always check here first before attempting architectural refactors.**
-  - `docs/db/schema.sql`: Current Database Schema.
+  - `supabase/migrations/20260426000000_baseline_schema.sql`: Current local Supabase baseline.
+  - `docs/db/schema.sql`: Generated schema snapshot mirror.
+  - `docs/db/README.md`: Current DB bootstrap contract. Local/CI DB validation uses `npm run db:local:bootstrap`, not raw `supabase start`.
 
 ## 2. Key Patterns
 
