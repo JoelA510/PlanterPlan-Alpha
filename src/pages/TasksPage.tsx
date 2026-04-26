@@ -68,6 +68,7 @@ export default function TasksPage() {
               [dueStart, dueEnd],
        );
        const hasDueRange = dueDateRange.start !== null || dueDateRange.end !== null;
+       const effectiveSort: TaskSortKey = filter === 'priority' ? 'chronological' : sort;
        const clearDueRange = useCallback(() => {
               setDueStart('');
               setDueEnd('');
@@ -193,7 +194,7 @@ export default function TasksPage() {
               return undefined;
        }, [currentSelectedTask, selectedTeamMembers, selectedProjectRoot, currentUserId]);
 
-       const visibleTasks = useTaskFilters({ tasks, filter, sort, dueDateRange, currentUserId });
+       const visibleTasks = useTaskFilters({ tasks, filter, sort: effectiveSort, dueDateRange, currentUserId });
        const priorityGroups = useMemo(
               () => filter === 'priority' && viewMode === 'list'
                      ? buildPriorityTaskGroups({ tasks, candidateTasks: visibleTasks })
@@ -298,18 +299,20 @@ export default function TasksPage() {
                                                                </Select>
                                                         </div>
 
-                                                        <div className="flex flex-col gap-1">
-                                                               <label htmlFor="task-sort" className="text-xs font-medium text-muted-foreground">{t('tasks.sort_label')}</label>
-                                                               <Select value={sort} onValueChange={(v) => setSort(v as TaskSortKey)}>
-                                                                      <SelectTrigger id="task-sort" className="w-[180px] bg-card" aria-label={t('tasks.sort_aria')}>
-                                                                             <SelectValue />
-                                                                      </SelectTrigger>
-                                                                      <SelectContent>
-                                                                             <SelectItem value="chronological">{t('tasks.sort_chronological')}</SelectItem>
-                                                                             <SelectItem value="alphabetical">{t('tasks.sort_alphabetical')}</SelectItem>
-                                                                      </SelectContent>
-                                                               </Select>
-                                                        </div>
+                                                        {filter !== 'priority' && (
+                                                               <div className="flex flex-col gap-1">
+                                                                      <label htmlFor="task-sort" className="text-xs font-medium text-muted-foreground">{t('tasks.sort_label')}</label>
+                                                                      <Select value={sort} onValueChange={(v) => setSort(v as TaskSortKey)}>
+                                                                             <SelectTrigger id="task-sort" className="w-[180px] bg-card" aria-label={t('tasks.sort_aria')}>
+                                                                                    <SelectValue />
+                                                                             </SelectTrigger>
+                                                                             <SelectContent>
+                                                                                    <SelectItem value="chronological">{t('tasks.sort_chronological')}</SelectItem>
+                                                                                    <SelectItem value="alphabetical">{t('tasks.sort_alphabetical')}</SelectItem>
+                                                                             </SelectContent>
+                                                                      </Select>
+                                                               </div>
+                                                        )}
 
                                                         <div className="flex flex-col gap-1">
                                                                <span className="text-xs font-medium text-muted-foreground">
@@ -480,7 +483,7 @@ export default function TasksPage() {
                      >
                             <DialogContent
                                    hideClose
-                                   className="h-[85vh] max-h-[85vh] w-[calc(100vw-2rem)] max-w-3xl overflow-hidden p-0"
+                                   className="h-full max-h-screen max-w-3xl overflow-hidden p-0 sm:h-5/6"
                             >
                                    <DialogHeader className="sr-only">
                                           <DialogTitle>{selectedTaskForPanel?.title ?? t('tasks.panel.details')}</DialogTitle>

@@ -214,6 +214,7 @@ describe('TasksPage — PM-1 priority view + details dialog', () => {
         expect(screen.getByText('Launch Milestone')).toBeInTheDocument();
         expect(screen.queryByText('Empty Milestone')).not.toBeInTheDocument();
         expect(screen.queryByText('Future hidden task')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Sort order')).not.toBeInTheDocument();
     });
 
     it('opens the details dialog with the clicked task', async () => {

@@ -2,7 +2,7 @@ import type { TaskRow } from '@/shared/db/app.types';
 import {
   addDaysToDate,
   compareDateAsc,
-  formatDate,
+  getNow,
   toIsoDate,
 } from '@/shared/lib/date-engine';
 
@@ -49,7 +49,7 @@ export interface BuildPriorityTaskGroupsArgs {
   candidateTasks?: TaskRow[];
 }
 
-const localIsoDate = (date: Date): string => formatDate(date, 'yyyy-MM-dd');
+const utcIsoDate = (date: Date): string => toIsoDate(date) ?? '';
 
 const compareNullablePosition = (a: number | null | undefined, b: number | null | undefined): number => {
   const left = a ?? Number.MAX_SAFE_INTEGER;
@@ -68,15 +68,15 @@ export const isPriorityExcluded = (task: Pick<TaskRow, 'is_complete' | 'status'>
 
 export const getPriorityTaskMatch = (
   task: Pick<TaskRow, 'due_date' | 'is_complete' | 'start_date' | 'status'>,
-  now: Date = new Date(),
+  now: Date = getNow(),
 ): PriorityTaskMatch => {
-  if (isPriorityExcluded(task as Pick<TaskRow, 'is_complete' | 'status'>)) {
+  if (isPriorityExcluded(task)) {
     return { overdue: false, dueSoon: false, current: false };
   }
 
-  const todayIso = localIsoDate(now);
+  const todayIso = utcIsoDate(now);
   const cutoff = addDaysToDate(now, PRIORITY_DUE_SOON_DAYS);
-  const soonCutoffIso = cutoff ? localIsoDate(cutoff) : todayIso;
+  const soonCutoffIso = cutoff ? utcIsoDate(cutoff) : todayIso;
   const dueIso = toIsoDate(task.due_date);
   const startIso = toIsoDate(task.start_date);
 
@@ -89,7 +89,7 @@ export const getPriorityTaskMatch = (
 
 export const isPriorityQualifyingTask = (
   task: Pick<TaskRow, 'due_date' | 'is_complete' | 'start_date' | 'status'>,
-  now: Date = new Date(),
+  now: Date = getNow(),
 ): boolean => {
   const match = getPriorityTaskMatch(task, now);
   return match.overdue || match.dueSoon || match.current;
@@ -134,7 +134,7 @@ export const getTaskMilestoneContext = (task: TaskRow, tasks: TaskRow[]): TaskMi
 
 export const buildPriorityTaskGroups = ({
   tasks,
-  now = new Date(),
+  now = getNow(),
   candidateTasks,
 }: BuildPriorityTaskGroupsArgs): PriorityTaskGroup[] => {
   const taskById = new Map(tasks.map((task) => [task.id, task]));
@@ -195,5 +195,5 @@ export const buildPriorityTaskGroups = ({
     });
 };
 
-export const filterPriorityTasks = (tasks: TaskRow[], now: Date = new Date()): TaskRow[] =>
+export const filterPriorityTasks = (tasks: TaskRow[], now: Date = getNow()): TaskRow[] =>
   buildPriorityTaskGroups({ tasks, now }).flatMap((group) => group.tasks.map((entry) => entry.task));
