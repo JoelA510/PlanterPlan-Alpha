@@ -50,8 +50,6 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: build-and-test
-    env:
-      HAS_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY != '' }}
 
     steps:
       - name: Checkout repository
@@ -86,8 +84,6 @@ jobs:
           CI: true
 
       - name: Run Vision-Enhanced E2E tests
-        if: ${{ env.HAS_GEMINI_API_KEY == 'true' }}
-        run: npm run test:e2e:vision
         continue-on-error: true
         env:
           VITE_SUPABASE_URL: http://127.0.0.1:54321
@@ -97,6 +93,13 @@ jobs:
           VITE_TEST_PASSWORD: password123
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CI: true
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "Skipping vision E2E: GEMINI_API_KEY is not configured"
+            exit 0
+          fi
+
+          npm run test:e2e:vision
 
       - name: Upload E2E report
         uses: actions/upload-artifact@v4
