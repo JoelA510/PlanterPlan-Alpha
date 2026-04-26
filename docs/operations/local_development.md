@@ -53,6 +53,8 @@ We use Vitest for unit/integration tests and Playwright BDD for E2E tests.
 
 - **Run all unit tests**: `npm test`
 - **UI Mode**: `npx vitest --ui`
+- **Bootstrap local Supabase**: `npm run db:local:bootstrap`
+- **Run local DB tests**: `npm run db:local:test`
 - **Run E2E tests**: `npm run test:e2e`
 
 ## Testing Membership Features Locally
@@ -78,5 +80,5 @@ To test "Joined Projects" and membership roles locally without a full backend UI
 - **Backend Service**: Supabase (Postgres).
 - **Edge Functions**: Used for secure logic like "Invite by Email".
   - To test Edge Functions locally, you need the **Supabase CLI** and Docker.
-  - Run `supabase start` and `supabase functions serve`.
+  - Run `npm run db:local:bootstrap` and `supabase functions serve`.
   - Otherwise, use the deployed staging project.

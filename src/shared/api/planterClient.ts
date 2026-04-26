@@ -1048,13 +1048,13 @@ export const planter: PlanterClient = {
             },
             create: async (payload): Promise<TaskCommentWithAuthor> => {
                 return retry(async () => {
-                    const insert: Database['public']['Tables']['task_comments']['Insert'] = {
+                    const insert = {
                         task_id: payload.task_id,
                         author_id: payload.author_id,
                         parent_comment_id: payload.parent_comment_id ?? null,
                         body: payload.body,
                         mentions: payload.mentions ?? [],
-                    };
+                    } as Database['public']['Tables']['task_comments']['Insert'];
                     const { data, error } = await supabase
                         .from('task_comments')
                         .insert(insert)

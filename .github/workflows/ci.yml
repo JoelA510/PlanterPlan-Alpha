@@ -40,8 +40,8 @@ jobs:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-key
 
-      - name: Supabase DB Tests (pgTAP)
-        run: npx supabase db test
+      - name: Supabase Local Bootstrap + DB Tests (pgTAP)
+        run: npm run db:local:test
 
       - name: Build
         run: npm run build
@@ -67,8 +67,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Start Supabase
-        run: npx supabase start
+      - name: Bootstrap local Supabase
+        run: npm run db:local:bootstrap
 
       - name: Seed test user
         run: node scripts/seed-e2e.js
