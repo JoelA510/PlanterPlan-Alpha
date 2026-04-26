@@ -58,8 +58,8 @@ describe('docs/db/schema.sql source of truth', () => {
  });
 
  it('keeps tasks_with_primary_resource joined to task_resources with Wave 36 columns', () => {
-		const viewStart = schema.indexOf('CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource"');
-		const viewEnd = schema.indexOf('CREATE OR REPLACE VIEW "public"."users_public"');
+  const viewStart = schema.indexOf('CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource"');
+  const viewEnd = schema.indexOf('CREATE OR REPLACE VIEW "public"."users_public"');
   const viewSql = schema.slice(viewStart, viewEnd);
 
   expect(viewStart).toBeGreaterThanOrEqual(0);
@@ -70,10 +70,10 @@ describe('docs/db/schema.sql source of truth', () => {
  expect(viewSql).not.toContain('NULL::"uuid" AS "resource_id"');
  });
 
-	it('keeps public views as caller-RLS security invoker views', () => {
-		expect(schema).toContain('CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource" WITH ("security_invoker"=\'true\') AS');
-		expect(schema).toContain('CREATE OR REPLACE VIEW "public"."view_master_library" WITH ("security_invoker"=\'true\') AS');
-	});
+ it('keeps public views as caller-RLS security invoker views', () => {
+  expect(schema).toContain('CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource" WITH ("security_invoker"=\'true\') AS');
+  expect(schema).toContain('CREATE OR REPLACE VIEW "public"."view_master_library" WITH ("security_invoker"=\'true\') AS');
+ });
 
  it('keeps root task rows stamped with their own root_id', () => {
   const sql = functionSql('set_root_id_from_parent');

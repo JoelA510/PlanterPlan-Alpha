@@ -4,6 +4,7 @@ const { spawnSync } = require('child_process');
 
 const root = process.cwd();
 const args = process.argv.slice(2);
+const configPath = join(root, 'supabase', 'config.toml');
 const migrationsDir = join(root, 'supabase', 'migrations');
 const schemaSnapshotPath = join(root, 'docs', 'db', 'schema.sql');
 const seedPath = join(root, 'supabase', 'seeds', '02_production_templates.sql');
@@ -11,6 +12,15 @@ const seedPath = join(root, 'supabase', 'seeds', '02_production_templates.sql');
 const forbiddenArgs = new Set(['--linked', '--db-url']);
 if (args.some((arg) => forbiddenArgs.has(arg) || arg.startsWith('--db-url='))) {
   fail('Remote Supabase flags are not allowed by this local bootstrap wrapper.');
+}
+const allowedArgs = new Set(['--fresh']);
+const unknownArgs = args.filter((arg) => !allowedArgs.has(arg));
+if (unknownArgs.length > 0) {
+  fail(`Unsupported bootstrap flag(s): ${unknownArgs.join(', ')}`);
+}
+const freshMode = args.includes('--fresh');
+if (!freshMode) {
+  fail('This local bootstrap wrapper requires explicit --fresh mode to reset and replay the local schema.');
 }
 
 function repoPath(file) {
@@ -88,7 +98,7 @@ function ensureRepoRoot() {
   for (const required of ['package.json', 'supabase', 'docs']) {
     if (!existsSync(join(root, required))) fail(`Run this script from the repo root; missing ${required}.`);
   }
-  for (const requiredFile of [schemaSnapshotPath, seedPath]) {
+  for (const requiredFile of [configPath, schemaSnapshotPath, seedPath]) {
     if (!existsSync(requiredFile)) fail(`Required file is missing: ${repoPath(requiredFile)}`);
   }
   if (!existsSync(migrationsDir)) fail(`Required directory is missing: ${repoPath(migrationsDir)}`);
@@ -102,13 +112,20 @@ function getMigrationFiles() {
     .map((name) => join(migrationsDir, name));
 }
 
+function getProjectId() {
+  const config = readFileSync(configPath, 'utf8');
+  const match = config.match(/^\s*project_id\s*=\s*"([^"]+)"\s*$/m);
+  if (!match) fail(`Could not read project_id from ${repoPath(configPath)}.`);
+  return match[1];
+}
+
 function findPostgresContainer() {
   const result = runQuiet('docker', ['ps', '--format', '{{.Names}}']);
   const names = result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const exact = names.find((name) => name === 'supabase_db_PlanterPlan-Alpha');
-  const fallback = names.find((name) => /^supabase_db_/i.test(name));
-  const container = exact || fallback;
-  if (!container) fail('Could not find a running local Supabase Postgres container.');
+  const projectId = getProjectId();
+  const expected = `supabase_db_${projectId}`;
+  const container = names.find((name) => name === expected);
+  if (!container) fail(`Could not find the local Supabase Postgres container ${expected}.`);
   log(`Using local Postgres container: ${container}`);
   return container;
 }
@@ -271,11 +288,11 @@ psqlFile(container, seedPath, 'seed');
 
 const seedCount = psqlScalar(
   container,
-  "select count(*) from public.tasks where origin = 'template' and settings->>'published' = 'true' and settings->>'seed_key' in ('launch_large', 'multisite')",
+  "select count(distinct settings->>'seed_key') from public.tasks where origin = 'template' and settings->>'published' = 'true' and settings->>'seed_key' in ('launch_large', 'multisite')",
   'template seed roots present'
 );
 if (seedCount !== '2') {
-  fail(`Expected 2 seeded production template roots, found ${seedCount}.`);
+  fail(`Expected required production template seed keys launch_large and multisite, found ${seedCount}.`);
 }
 
 runRealityChecks(container);
