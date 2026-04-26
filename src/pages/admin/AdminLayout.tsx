@@ -33,7 +33,7 @@ const NAV_ITEMS: NavItem[] = [
 
 /**
  * Wave 34: admin shell. Hard-gates every `/admin/*` route via `useIsAdmin`.
- * Non-admin users are redirected to `/dashboard` with a Sonner toast.
+ * Non-admin users are redirected to `/tasks` with a Sonner toast.
  * Nav on the left, `<Outlet>` renders the matched child route.
  *
  * Templates + Projects are shallow links into the existing routes, not new
@@ -59,7 +59,7 @@ export default function AdminLayout() {
     }
 
     if (!isAdmin) {
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/tasks" replace />;
     }
 
     return (

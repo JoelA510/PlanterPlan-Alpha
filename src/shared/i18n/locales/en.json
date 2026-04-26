@@ -174,7 +174,7 @@
       },
       "empty": {
         "my_tasks": "No tasks found across your projects.",
-        "priority": "No high-priority tasks right now.",
+        "priority": "No overdue, due-soon, or started tasks right now.",
         "overdue": "Nothing is overdue. Nice work.",
         "due_soon": "No tasks are due in the next few days.",
         "current": "No tasks are currently active.",

@@ -7,6 +7,7 @@ import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 import TaskForm from '@/features/tasks/components/TaskForm';
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 import { X } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 
 type TaskFormState = { mode?: 'create' | 'edit'; origin?: 'instance' | 'template'; isPhase?: boolean } | null;
 
@@ -54,6 +55,7 @@ export interface TaskDetailsPanelProps {
  fetchTasks?: () => void;
  membershipRole?: string;
  allProjectTasks?: TaskRow[];
+ className?: string;
 }
 
 export default function TaskDetailsPanel({
@@ -73,6 +75,7 @@ export default function TaskDetailsPanel({
  fetchTasks,
  membershipRole,
  allProjectTasks,
+ className,
 }: TaskDetailsPanelProps) {
  const { t } = useTranslation();
  const panelTitle = useMemo(() => {
@@ -84,7 +87,13 @@ export default function TaskDetailsPanel({
  const projectId = selectedTask?.root_id ?? selectedTask?.id ?? null;
 
  return (
- <aside data-testid="task-details-panel" className="w-full sm:w-1/3 sm:min-w-80 sm:max-w-md bg-white border-l border-slate-200 flex flex-col shadow-2xl z-30 h-full overflow-hidden transition-all duration-300">
+ <aside
+ data-testid="task-details-panel"
+ className={cn(
+ 'w-full sm:w-1/3 sm:min-w-80 sm:max-w-md bg-white border-l border-slate-200 flex flex-col shadow-2xl z-30 h-full overflow-hidden transition-all duration-300',
+ className,
+ )}
+ >
  <div className="pt-8 px-6 pb-6 border-b border-slate-100 flex justify-between items-start bg-white sticky top-0 z-20">
  <h2 className="font-bold text-xl text-slate-800 truncate pr-4" title={panelTitle}>{panelTitle}</h2>
  <button

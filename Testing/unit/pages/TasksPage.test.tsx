@@ -46,28 +46,78 @@ vi.mock('@/shared/api/planterClient', () => {
             task_type: 'project',
         },
         {
+            id: 'phase-alpha',
+            title: 'Launch Phase',
+            parent_task_id: 'p-alpha',
+            root_id: 'p-alpha',
+            origin: 'instance',
+            creator: 'u1',
+            status: 'in_progress',
+            task_type: 'phase',
+        },
+        {
+            id: 'm-empty',
+            title: 'Empty Milestone',
+            parent_task_id: 'phase-alpha',
+            root_id: 'p-alpha',
+            origin: 'instance',
+            creator: 'u1',
+            status: 'todo',
+            task_type: 'milestone',
+            position: 1,
+        },
+        {
+            id: 'm-launch',
+            title: 'Launch Milestone',
+            parent_task_id: 'phase-alpha',
+            root_id: 'p-alpha',
+            origin: 'instance',
+            creator: 'u1',
+            status: 'todo',
+            task_type: 'milestone',
+            position: 2,
+        },
+        {
             id: 't-1',
             title: 'Buy a domain',
-            parent_task_id: 'p-alpha',
+            parent_task_id: 'm-launch',
             root_id: 'p-alpha',
             origin: 'instance',
             creator: 'u1',
             assignee_id: 'u1',
             status: 'in_progress',
             task_type: 'task',
+            start_date: '2026-04-01',
             due_date: '2026-04-22',
+            position: 1,
         },
         {
             id: 't-2',
             title: 'Write welcome letter',
-            parent_task_id: 'p-alpha',
+            parent_task_id: 'm-launch',
             root_id: 'p-alpha',
             origin: 'instance',
             creator: 'u2',
             assignee_id: 'u1',
             status: 'in_progress',
             task_type: 'task',
+            start_date: '2026-04-01',
             due_date: '2026-05-10',
+            position: 2,
+        },
+        {
+            id: 't-hidden',
+            title: 'Future hidden task',
+            parent_task_id: 'm-launch',
+            root_id: 'p-alpha',
+            origin: 'instance',
+            creator: 'u2',
+            assignee_id: 'u1',
+            status: 'todo',
+            task_type: 'task',
+            start_date: '2099-01-01',
+            due_date: '2099-01-08',
+            position: 3,
         },
         {
             id: 't-1-child',
@@ -145,7 +195,7 @@ function renderTasksPage() {
     );
 }
 
-describe('TasksPage — click-to-details + tooltip wiring (Wave 33)', () => {
+describe('TasksPage — PM-1 priority view + details dialog', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -156,16 +206,38 @@ describe('TasksPage — click-to-details + tooltip wiring (Wave 33)', () => {
         expect(screen.queryByTestId('tasks-page-details-panel')).not.toBeInTheDocument();
     });
 
-    it('opens the details panel with the clicked task', async () => {
+    it('defaults to the grouped priority view and hides empty or non-qualifying rows', async () => {
+        renderTasksPage();
+
+        expect(await screen.findByRole('heading', { name: 'Priority' })).toBeInTheDocument();
+        expect(screen.getByTestId('priority-task-group-milestone-m-launch')).toBeInTheDocument();
+        expect(screen.getByText('Launch Milestone')).toBeInTheDocument();
+        expect(screen.queryByText('Empty Milestone')).not.toBeInTheDocument();
+        expect(screen.queryByText('Future hidden task')).not.toBeInTheDocument();
+    });
+
+    it('opens the details dialog with the clicked task', async () => {
         const user = userEvent.setup();
         renderTasksPage();
 
         const row = await screen.findByTestId('task-row-t-1');
         await user.click(row);
 
+        expect(await screen.findByRole('dialog', { name: 'Buy a domain' })).toBeInTheDocument();
         const panel = await screen.findByTestId('tasks-page-details-panel');
         expect(panel).toBeInTheDocument();
         expect(screen.getByTestId('tasks-page-details-panel-title')).toHaveTextContent('Buy a domain');
+    });
+
+    it('opens the details dialog from the keyboard', async () => {
+        const user = userEvent.setup();
+        renderTasksPage();
+
+        const row = await screen.findByTestId('task-row-t-1');
+        row.focus();
+        await user.keyboard('{Enter}');
+
+        expect(await screen.findByRole('dialog', { name: 'Buy a domain' })).toBeInTheDocument();
     });
 
     it('hydrates the clicked task with project context for the details panel', async () => {
@@ -175,7 +247,7 @@ describe('TasksPage — click-to-details + tooltip wiring (Wave 33)', () => {
         await user.click(await screen.findByTestId('task-row-t-1'));
 
         expect(await screen.findByTestId('tasks-page-details-panel-child-count')).toHaveTextContent('1');
-        expect(screen.getByTestId('tasks-page-details-panel-project-task-count')).toHaveTextContent('4');
+        expect(screen.getByTestId('tasks-page-details-panel-project-task-count')).toHaveTextContent('8');
     });
 
     it('closes the details panel via onClose', async () => {

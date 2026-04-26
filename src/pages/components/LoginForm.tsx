@@ -51,7 +51,7 @@ const LoginForm = () => {
  if (result.error) {
  throw result.error;
  } else {
- navigate('/dashboard');
+ navigate('/tasks');
  }
  } catch (err: unknown) {
  toast.error(isSignUp ? t('errors.signup_failed') : t('errors.login_failed'), {
