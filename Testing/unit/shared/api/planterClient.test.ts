@@ -107,6 +107,15 @@ describe('Base EntityClient CRUD (Person)', () => {
     expect(chain.eq).toHaveBeenCalledWith('id', 'p1');
   });
 
+  it('update(id, payload) reports an empty update result as not found', async () => {
+    const payload = { name: 'Missing' };
+    const chain = createChain({ data: [], error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await expect(planter.entities.Person.update('missing-id', payload as PersonUpdate))
+      .rejects.toMatchObject({ status: 404 });
+  });
+
   it('delete(id) chains .delete().eq("id", id)', async () => {
     const chain = createChain({ data: null, error: null });
     mockFrom.mockReturnValue(chain);
@@ -126,6 +135,18 @@ describe('Base EntityClient CRUD (Person)', () => {
 
     expect(chain.eq).toHaveBeenCalledWith('project_id', 'proj-1');
     expect(chain.is).toHaveBeenCalledWith('status', null);
+  });
+
+  it('filter() ignores inherited enumerable properties', async () => {
+    const chain = createChain({ data: [{ id: 'p1' }], error: null });
+    mockFrom.mockReturnValue(chain);
+    const filters = Object.create({ role: 'admin' }) as Partial<PersonRow>;
+    filters.project_id = 'proj-1';
+
+    await planter.entities.Person.filter(filters);
+
+    expect(chain.eq).toHaveBeenCalledWith('project_id', 'proj-1');
+    expect(chain.eq).not.toHaveBeenCalledWith('role', 'admin');
   });
 });
 

@@ -366,7 +366,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: PublicTableName, sel
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, error.code ?? '500');
             const first = Array.isArray(data) ? data[0] : data;
-            if (!first) throw new PlanterError(`Update on ${tableName} returned no data`, 500);
+            if (!first) throw new PlanterError(`No ${tableName} row found for update id ${id}`, 404);
             return first;
         });
     },
@@ -384,7 +384,7 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: PublicTableName, sel
             let query = entityTable<T, TInsert, TUpdate>(tableName).select(select);
             applySignal(query, opts?.signal);
 
-            for (const key in filters) {
+            for (const key of Object.keys(filters) as Array<Extract<keyof T, string>>) {
                 const val = filters[key];
                 if (val === undefined) continue;
                 if (val === null) {
