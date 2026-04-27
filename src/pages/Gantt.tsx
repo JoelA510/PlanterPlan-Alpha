@@ -7,6 +7,7 @@ import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { tasksToGanttRows } from '@/features/gantt/lib/gantt-adapter';
 import { ProjectGantt, type GanttZoom } from '@/features/gantt/components/ProjectGantt';
 import { useGanttDragShift } from '@/features/gantt/hooks/useGanttDragShift';
+import { useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
 import {
     Select,
     SelectContent,
@@ -29,6 +30,7 @@ export default function Gantt() {
 
     const { projectHierarchy } = useProjectData(projectId);
     const hierarchyTasks = projectHierarchy;
+    const updateTask = useUpdateTask();
 
     const { rows, skippedCount } = useMemo(
         () => tasksToGanttRows(hierarchyTasks, { includeLeafTasks }),
@@ -38,6 +40,7 @@ export default function Gantt() {
     const onShiftDates = useGanttDragShift({
         projectId: projectId ?? '',
         tasks: hierarchyTasks,
+        updateTaskDates: updateTask.mutateAsync,
     });
 
     if (!projectId) {

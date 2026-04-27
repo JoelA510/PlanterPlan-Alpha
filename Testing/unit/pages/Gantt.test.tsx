@@ -23,6 +23,10 @@ vi.mock('@/features/projects/hooks/useProjectData', () => ({
     useProjectData: () => ({ project: undefined, loadingProject: false, projectHierarchy, phases: [], milestones: [], tasks: [], teamMembers: [] }),
 }));
 
+vi.mock('@/features/tasks/hooks/useTaskMutations', () => ({
+    useUpdateTask: () => ({ mutateAsync: vi.fn() }),
+}));
+
 vi.mock('@/features/gantt/hooks/useGanttDragShift', () => ({
     useGanttDragShift: () => vi.fn(),
 }));
