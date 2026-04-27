@@ -46,7 +46,7 @@ function read(file) {
 }
 
 function stripCodeComments(source) {
-  const chars = Array.from(source);
+  const chars = source.split('');
   const stack = [{ type: 'code' }];
   const current = () => stack[stack.length - 1];
   const blank = (index) => {
