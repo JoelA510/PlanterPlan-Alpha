@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { TaskRow } from '@/shared/db/app.types';
-import { deriveUrgency, compareDateAsc, toIsoDate } from '@/shared/lib/date-engine/index';
+import { deriveUrgency, compareDateAsc, getNow, toIsoDate } from '@/shared/lib/date-engine/index';
 import { filterPriorityTasks } from '@/features/tasks/lib/priority-tasks';
 
 export type TaskFilterKey =
@@ -77,7 +77,7 @@ export const filterAndSortTasks = ({
  filter,
  sort,
  currentUserId = null,
- now = new Date(),
+ now = getNow(),
  dueDateRange,
 }: UseTaskFiltersArgs): TaskRow[] => {
  const thresholds = buildThresholdMap(tasks);
