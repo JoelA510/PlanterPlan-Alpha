@@ -23,21 +23,30 @@ import {
     FileText,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
 import { useDirtyCloseGuard } from '@/shared/lib/use-dirty-close-guard';
 
-import type { CreateProjectFormData } from '@/shared/db/app.types';
+import type { CreateProjectFormData, TaskRow } from '@/shared/db/app.types';
 
 /** Special ID for the built-in default scaffold (not a real DB template). */
 const DEFAULT_SCAFFOLD_ID = '__default__';
+
+type ProjectTemplateOption = Pick<TaskRow, 'id' | 'title' | 'description' | 'parent_task_id'>;
 
 interface CreateProjectModalProps {
     open: boolean;
     onClose: () => void;
     onSubmit: (data: CreateProjectFormData) => Promise<void>;
+    templates?: readonly ProjectTemplateOption[];
+    templatesLoading?: boolean;
 }
 
-export default function CreateProjectModal({ open, onClose, onSubmit }: CreateProjectModalProps) {
+export default function CreateProjectModal({
+    open,
+    onClose,
+    onSubmit,
+    templates = [],
+    templatesLoading = false,
+}: CreateProjectModalProps) {
     const { t } = useTranslation();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -49,15 +58,10 @@ export default function CreateProjectModal({ open, onClose, onSubmit }: CreatePr
         start_date: toIsoDate(nowUtcIso()) || '',
     });
 
-    const { results: dbTemplates, isLoading: templatesLoading } = useMasterLibrarySearch({
-        query: '',
-        enabled: open,
-    });
-
     // Filter templates that are root-level (no parent) for project creation
     const rootTemplates = useMemo(() => {
-        return (dbTemplates || []).filter((t) => !t.parent_task_id);
-    }, [dbTemplates]);
+        return templates.filter((t) => !t.parent_task_id);
+    }, [templates]);
 
     const filteredTemplates = useMemo(() => {
         if (!searchQuery.trim()) return rootTemplates;

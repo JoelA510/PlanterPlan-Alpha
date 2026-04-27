@@ -1,9 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import InstanceList from '@/features/projects/components/InstanceList';
-import JoinedProjectsList from '@/features/projects/components/JoinedProjectsList';
-import TemplateList from '@/features/library/components/TemplateList';
+import InstanceList from './InstanceList';
+import JoinedProjectsList from './JoinedProjectsList';
+import TemplateList from './TemplateList';
 import { BarChart, Settings, Calendar } from 'lucide-react';
 import GlobalNavItem from './GlobalNavItem';
 

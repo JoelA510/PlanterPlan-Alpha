@@ -10,6 +10,7 @@ import { Plus, FolderKanban, Loader2, BookTemplate } from 'lucide-react';
 
 // Hooks
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard';
+import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
 import { useCreateProject, useUpdateProjectStatus } from '@/features/projects/hooks/useProjectMutations';
 import { planter } from '@/shared/api/planterClient';
 import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
@@ -30,6 +31,13 @@ export default function Dashboard() {
     useProjectRealtime();
 
     const { state, data, actions } = useDashboard();
+    const {
+        results: projectTemplateOptions,
+        isLoading: projectTemplatesLoading,
+    } = useMasterLibrarySearch({
+        query: '',
+        enabled: state.showCreateModal,
+    });
 
     const createProjectMutation = useCreateProject();
     const updateStatusMutation = useUpdateProjectStatus();
@@ -179,6 +187,8 @@ export default function Dashboard() {
                 open={state.showCreateModal}
                 onClose={() => actions.setShowCreateModal(false)}
                 onSubmit={handleCreateProject}
+                templates={projectTemplateOptions}
+                templatesLoading={projectTemplatesLoading}
             />
 
             <CreateTemplateModal

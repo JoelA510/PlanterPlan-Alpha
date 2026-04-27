@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { PROJECT_STATUS } from '@/shared/constants/domain';
-import ProjectSidebar from './ProjectSidebar';
+import ProjectSidebar from '@/features/navigation/components/ProjectSidebar';
 
 export interface ProjectSidebarContainerProps {
  onNavClick?: () => void;

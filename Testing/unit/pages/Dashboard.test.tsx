@@ -9,6 +9,9 @@ import type { ReactNode } from 'react';
 vi.mock('@/features/projects/hooks/useProjectRealtime', () => ({
     useProjectRealtime: () => undefined,
 }));
+vi.mock('@/features/library/hooks/useMasterLibrarySearch', () => ({
+    default: () => ({ results: [], isLoading: false }),
+}));
 vi.mock('@/features/projects/hooks/useProjectMutations', () => ({
     useCreateProject: () => ({ mutateAsync: vi.fn() }),
     useUpdateProjectStatus: () => ({ mutateAsync: vi.fn() }),
