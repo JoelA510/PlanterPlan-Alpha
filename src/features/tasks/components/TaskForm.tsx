@@ -10,7 +10,7 @@ import { Button } from '@/shared/ui/button';
 import { isRecurrenceRule } from '@/shared/lib/recurrence';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
-import { extractPhaseLeads } from '@/features/projects/lib/phase-lead';
+import { extractPhaseLeads } from '@/shared/lib/phase-lead';
 import type { TaskFormData, TaskRow } from '@/shared/db/app.types';
 
 const extractDateInput = (value?: string | null) => {

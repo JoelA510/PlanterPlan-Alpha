@@ -2,8 +2,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { formatDisplayDate, addDaysToDate, formatDate, getNow } from '@/shared/lib/date-engine';
 import { planter } from '@/shared/api/planterClient';
-import { useProjectActivity } from '@/features/projects/hooks/useProjectActivity';
-import { ActivityRow } from './ActivityRow';
+import { useProjectActivity } from '@/shared/hooks/useActivityLog';
+import { ActivityRow } from '@/shared/ui/ActivityRow';
 import type { ActivityLogWithActor } from '@/shared/db/app.types';
 
 interface ProjectActivityTabProps {
