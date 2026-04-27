@@ -22,7 +22,7 @@ vi.mock('@/features/tasks/hooks/useTaskCommentsRealtime', () => ({
   useTaskCommentsRealtime: () => undefined,
 }));
 
-vi.mock('@/features/projects/hooks/useProjectActivity', () => ({
+vi.mock('@/shared/hooks/useActivityLog', () => ({
   useProjectActivity: () => ({ data: [], isLoading: false }),
   useTaskActivity: () => ({ data: [], isLoading: false }),
 }));

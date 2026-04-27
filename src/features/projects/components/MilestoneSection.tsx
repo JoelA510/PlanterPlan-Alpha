@@ -13,7 +13,7 @@ import InlineTaskInput from '@/features/tasks/components/InlineTaskInput';
 
 import { TaskRow, Task } from '@/shared/db/app.types';
 import type { TaskUpdate } from '@/shared/db/app.types';
-import type { PresenceState } from '@/features/projects/hooks/useProjectPresence';
+import type { PresenceState } from '@/shared/types/presence';
 
 interface TaskWithState extends Task {
     isExpanded?: boolean;
