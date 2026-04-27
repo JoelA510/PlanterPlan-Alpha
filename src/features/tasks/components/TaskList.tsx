@@ -4,7 +4,7 @@ import { useTaskQuery } from '@/features/tasks/hooks/useTaskQuery';
 import { useUpdateTask, useCreateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
 import { buildTree, collectSpawnedTemplateIds, separateTasksByOrigin } from '@/shared/lib/tree-helpers';
 import type { TaskNode } from '@/shared/lib/tree-helpers';
-import { Project, TaskRow, TaskFormData, TaskInsert, Json } from '@/shared/db/app.types';
+import { Project, TaskRow, TaskFormData, TaskInsert, JsonObject } from '@/shared/db/app.types';
 import { formDataToRecurrenceRule } from '@/features/tasks/lib/recurrence-form';
 import { applyCoachingFlag, formDataToCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { applyStrategyTemplateFlag, formDataToStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
@@ -229,11 +229,11 @@ const TaskList = () => {
     const existingSettings = state?.mode === 'edit' && state?.taskId
       ? (findTask(state.taskId) as TaskRow | undefined)?.settings
       : null;
-    const existingObj = existingSettings && typeof existingSettings === 'object' && !Array.isArray(existingSettings)
-      ? (existingSettings as Record<string, unknown>)
+    const existingObj: JsonObject = existingSettings && typeof existingSettings === 'object' && !Array.isArray(existingSettings)
+      ? { ...existingSettings }
       : {};
 
-    let settingsPatch: Record<string, unknown> | undefined;
+    let settingsPatch: JsonObject | undefined;
     if (isTemplate) {
       const rule = formDataToRecurrenceRule({
         recurrence_kind,
@@ -266,7 +266,7 @@ const TaskList = () => {
       return updateTaskAsync({
         id: state.taskId,
         ...rest,
-        ...(settingsPatch ? { settings: settingsPatch as unknown as Json } : {}),
+        ...(settingsPatch ? { settings: settingsPatch } : {}),
       });
     }
     return createTaskAsync({
@@ -274,7 +274,7 @@ const TaskList = () => {
       root_id: activeProjectId || null,
       origin: state?.origin || 'instance',
       parent_task_id: state?.parentId || null,
-      ...(settingsPatch ? { settings: settingsPatch as unknown as Json } : {}),
+      ...(settingsPatch ? { settings: settingsPatch } : {}),
     } as TaskInsert);
   };
 

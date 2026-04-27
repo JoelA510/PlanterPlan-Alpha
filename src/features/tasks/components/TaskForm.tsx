@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, type SubmitHandler } from 'react-hook-form';
 import { isDateValid, isBeforeDate } from '@/shared/lib/date-engine';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -130,7 +130,7 @@ const TaskForm = ({
  const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
  const prevInitialTaskRef = useRef(initialTask);
 
- const methods = useForm<TaskFormData>({
+ const methods = useForm<TaskFormData, unknown, TaskFormData>({
  // @ts-expect-error Zod refinement output doesn't structurally match TaskFormData for resolver
  resolver: zodResolver(getTaskSchema(origin)),
  defaultValues: createInitialState(initialTask) as TaskFormData,
@@ -163,7 +163,7 @@ const TaskForm = ({
  setLastAppliedTaskTitle(task.title || '');
  }, [setValue]);
 
- const handleFormSubmit = useCallback(async (data: TaskFormData) => {
+ const handleFormSubmit = useCallback<SubmitHandler<TaskFormData>>(async (data) => {
  try {
  await onSubmit(data);
  if (!isEditMode) {
@@ -177,8 +177,7 @@ const TaskForm = ({
 
  return (
  <FormProvider {...methods}>
- {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
- <form data-testid="task-form" onSubmit={methods.handleSubmit(handleFormSubmit as any)} className="project-form">
+ <form data-testid="task-form" onSubmit={methods.handleSubmit(handleFormSubmit)} className="project-form">
  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
  {origin === 'template'
  ? (isEditMode ? 'Editing Template Task' : (submitLabel?.includes('Phase') ? 'Template Phase' : 'Template Task'))

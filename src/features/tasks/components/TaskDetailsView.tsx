@@ -25,7 +25,7 @@ import { Textarea } from '@/shared/ui/textarea';
 import { Button } from '@/shared/ui/button';
 import { Label } from '@/shared/ui/label';
 import type { TaskItemData } from '@/features/tasks/components/TaskItem';
-import type { TaskRow } from '@/shared/db/app.types';
+import type { TaskRow, TeamMemberWithProfile } from '@/shared/db/app.types';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
 import { extractPhaseLeads } from '@/features/projects/lib/phase-lead';
@@ -37,6 +37,10 @@ const emailDetailsSchema = z.object({
     recipient: z.string().email(),
 });
 type EmailDetailsFormData = z.infer<typeof emailDetailsSchema>;
+
+function getMemberEmail(member: TeamMemberWithProfile | undefined): string | undefined {
+    return typeof member?.email === 'string' && member.email.length > 0 ? member.email : undefined;
+}
 
 function buildEmailBody(task: TaskItemData, t: TFunction): string {
     const emptyDate = t('tasks.detail.email_body_empty_date');
@@ -105,7 +109,7 @@ const TaskDetailsView = ({
     const phaseLeadLabels = useMemo(
         () => phaseLeadIds.map((id) => {
             const member = phaseLeadMembers.find((m) => m.user_id === id);
-            const email = member ? (member as unknown as { email?: string }).email : undefined;
+            const email = getMemberEmail(member);
             return email ?? t('tasks.detail.phase_lead_fallback', { id: id.slice(0, 8) });
         }),
         [phaseLeadIds, phaseLeadMembers, t],

@@ -1,6 +1,7 @@
 import type { Database } from './database.types';
 
 export type Json = Database['public']['Tables']['tasks']['Row']['settings'];
+export type JsonObject = Extract<NonNullable<Json>, { [key: string]: Json | undefined }>;
 
 // ----------------------------------------------------------------------------
 // Utilities
@@ -22,9 +23,7 @@ export type Task = TaskRow & {
 };
 
 /** Standardized Project type */
-export type Project = Task & {
-    settings?: Record<string, unknown> | null;
-};
+export type Project = Task;
 
 export type HierarchyTask = TaskRow & {
     children?: HierarchyTask[];
@@ -51,6 +50,12 @@ export type PersonUpdate = Database['public']['Tables']['people']['Update'];
 export type TaskResourceRow = Database['public']['Tables']['task_resources']['Row'];
 export type TaskRelationshipRow = Database['public']['Tables']['task_relationships']['Row'];
 export type TeamMemberRow = Database['public']['Tables']['project_members']['Row'];
+export type TeamMemberWithProfile = TeamMemberRow & {
+    email?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    avatar_url?: string | null;
+};
 
 /** Task resource row augmented with its parent task info (used by Resource Library). */
 export type ResourceWithTask = TaskResourceRow & {

@@ -1,6 +1,6 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useMemo, type ReactNode } from 'react';
-import type { TaskFormData } from '@/shared/db/app.types';
+import type { TaskFormData, TeamMemberWithProfile } from '@/shared/db/app.types';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Textarea } from '@/shared/ui/textarea';
@@ -23,6 +23,11 @@ interface TaskFormFieldsProps {
  taskType?: string | null;
  /** Wave 29: the project root id — required for `useTeam(projectId)` when the Phase Lead picker renders. */
  projectId?: string | null;
+}
+
+function getMemberLabel(member: TeamMemberWithProfile): string {
+ const email = typeof member.email === 'string' && member.email.length > 0 ? member.email : null;
+ return email ?? `User ${member.user_id.slice(0, 8)}`;
 }
 
 /**
@@ -48,8 +53,7 @@ function PhaseLeadPicker({ projectId, taskType }: { projectId: string | null | u
  const selectedLabels = useMemo(() => {
  const byId = new Map<string, string>();
  for (const m of eligibleMembers) {
- const label = (m as unknown as { email?: string }).email ?? `User ${m.user_id.slice(0, 8)}`;
- byId.set(m.user_id, label);
+ byId.set(m.user_id, getMemberLabel(m));
  }
  return selectedLeads.map((id) => byId.get(id) ?? `User ${id.slice(0, 8)}`);
  }, [eligibleMembers, selectedLeads]);
@@ -93,8 +97,8 @@ function PhaseLeadPicker({ projectId, taskType }: { projectId: string | null | u
      </p>
     ) : (
      <ul className="flex flex-col gap-1">
-      {eligibleMembers.map((m) => {
-       const label = (m as unknown as { email?: string }).email ?? `User ${m.user_id.slice(0, 8)}`;
+     {eligibleMembers.map((m) => {
+       const label = getMemberLabel(m);
        const checked = selectedSet.has(m.user_id);
        return (
         <li key={m.user_id}>

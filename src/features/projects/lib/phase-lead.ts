@@ -1,3 +1,9 @@
+import type { JsonObject } from '@/shared/db/app.types';
+
+function isJsonObject(value: unknown): value is JsonObject {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 /**
  * Reads `settings.phase_lead_user_ids` from a phase/milestone row. Tolerates
  * null/undefined settings, non-array values, and non-string elements.
@@ -26,11 +32,11 @@ export function extractPhaseLeads(task: { settings?: unknown } | null | undefine
  * @returns The merged settings patch.
  */
 export function applyPhaseLeads(
-    currentSettings: Record<string, unknown> | null | undefined,
+    currentSettings: unknown,
     userIds: string[],
-): Record<string, unknown> {
+): JsonObject {
     const base =
-        currentSettings && typeof currentSettings === 'object' && !Array.isArray(currentSettings)
+        isJsonObject(currentSettings)
             ? { ...currentSettings }
             : {};
     const dedup = Array.from(new Set(userIds.filter((v) => typeof v === 'string' && v.length > 0)));

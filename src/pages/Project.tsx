@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { useCreateTask, useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
 import { toast } from 'sonner';
-import type { TaskRow, Project as ProjectType, TaskFormData, PersonRow } from '@/shared/db/app.types';
+import type { TaskRow, Project as ProjectType, TaskFormData } from '@/shared/db/app.types';
 
 import ProjectHeader from '@/features/projects/components/ProjectHeader';
 import ProjectTabs from '@/features/projects/components/ProjectTabs';
@@ -286,7 +286,7 @@ export default function Project() {
                     <ProjectHeader
                         project={project as ProjectType}
                         tasks={tasks as TaskRow[]}
-                        teamMembers={teamMembers as unknown as PersonRow[]}
+                        teamMembers={teamMembers}
                         canInvite={canInvite}
                         canManageSettings={canManageSettings}
                         onInviteMember={() => actions.setShowInviteModal(true)}

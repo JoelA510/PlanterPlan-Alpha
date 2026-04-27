@@ -8,6 +8,7 @@ import type {
     Task,
     TaskInsert,
     TaskUpdate,
+    JsonObject,
     TaskResourceRow,
     ResourceWithTask,
     TaskRelationshipRow,
@@ -278,71 +279,100 @@ interface PushSubscriptionEntityClient {
 // ---------------------------------------------------------------------------
 
 /**
- * Wraps `supabase.from(name)` with a name-literal constraint. The union
- * includes both public tables AND views (e.g. `tasks_with_primary_resource`)
- * so read-only view access type-checks too. Catches typos like
- * `.from('taks')` at compile time — the previous `(name: string) =>
- * supabase.from(name as any)` bypassed the whole name-literal union.
+ * Wraps `supabase.from(name)` with a name-literal constraint for public
+ * tables. View reads use direct typed calls at their specialized call sites.
+ * Catches typos like `.from('taks')` at compile time — the previous string
+ * wrapper bypassed the whole name-literal union.
  *
  * The `createEntityClient` generic crosses boundaries across dozens of
  * (T, TInsert, TUpdate) shapes — Supabase's generated types can't model
  * that variance, so we erase the query back to a permissive shape inside
  * the wrapper once the NAME itself is validated. Individual callers that
- * use `fromTable` directly (outside createEntityClient) still get the
- * full row-typed return.
+ * use direct Supabase calls outside createEntityClient still get the full
+ * row-typed return.
  */
 type PublicTableName =
-    | keyof Database['public']['Tables']
-    | keyof Database['public']['Views'];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const fromTable = <T extends PublicTableName>(name: T) => supabase.from(name as any);
+    keyof Database['public']['Tables'];
 
-type WithAbortSignal = { abortSignal(signal: AbortSignal): unknown };
-const applySignal = <Q>(query: Q, signal?: AbortSignal): Q => {
-    if (signal) (query as unknown as WithAbortSignal).abortSignal(signal);
-    return query;
-};
+type QueryError = { message: string; code?: string };
+type EntityFilterValue = string | number | boolean | null;
+
+interface EntityQuery<T> extends PromiseLike<{ data: T | T[] | null; error: QueryError | null }> {
+    select(columns: string): EntityQuery<T>;
+    eq(column: string, value: EntityFilterValue): EntityQuery<T>;
+    neq(column: string, value: EntityFilterValue): EntityQuery<T>;
+    is(column: string, value: null): EntityQuery<T>;
+    order(column: string, options?: { ascending?: boolean }): EntityQuery<T>;
+    range(from: number, to: number): EntityQuery<T>;
+    maybeSingle(): EntitySingleQuery<T>;
+    abortSignal?: (signal: AbortSignal) => EntityQuery<T>;
+}
+
+interface EntitySingleQuery<T> extends PromiseLike<{ data: T | null; error: QueryError | null }> {
+    abortSignal?: (signal: AbortSignal) => EntitySingleQuery<T>;
+}
+
+interface EntityTableQuery<T, TInsert, TUpdate> {
+    select(columns: string): EntityQuery<T>;
+    insert(payload: TInsert | TInsert[]): EntityQuery<T>;
+    update(payload: TUpdate): EntityQuery<T>;
+    delete(): EntityQuery<T>;
+    upsert(payload: TInsert | TInsert[], options?: { onConflict?: string; ignoreDuplicates?: boolean }): EntityQuery<T>;
+}
+
+const entityTable = <T, TInsert, TUpdate>(name: PublicTableName): EntityTableQuery<T, TInsert, TUpdate> => (
+    supabase.from(name) as EntityTableQuery<T, TInsert, TUpdate>
+);
+
+type AbortSignalQuery<Q> = { abortSignal?: (signal: AbortSignal) => Q };
+const applySignal = <Q extends AbortSignalQuery<Q>>(query: Q, signal?: AbortSignal): Q => (
+    signal && query.abortSignal ? query.abortSignal(signal) : query
+);
 
 const createEntityClient = <T, TInsert, TUpdate>(tableName: PublicTableName, select = '*'): EntityClient<T, TInsert, TUpdate> => ({
     list: async (opts) => {
         return retry(async () => {
-            const query = fromTable(tableName).select(select);
+            const query = entityTable<T, TInsert, TUpdate>(tableName).select(select);
             applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, error.code ?? '500');
-            return (data as T[]) || [];
+            return Array.isArray(data) ? data : (data ? [data] : []);
         });
     },
     get: async (id: string, opts) => {
         return retry(async () => {
-            const query = fromTable(tableName).select(select).eq('id', id).maybeSingle();
+            const query = entityTable<T, TInsert, TUpdate>(tableName).select(select).eq('id', id).maybeSingle();
             applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, error.code ?? '500');
-            return (data as T) || null;
+            return data || null;
         });
     },
     create: async (payload: TInsert | TInsert[], opts) => {
         return retry(async () => {
-            const query = fromTable(tableName).insert(payload as Record<string, unknown>).select(select);
+            const query = entityTable<T, TInsert, TUpdate>(tableName).insert(payload).select(select);
             applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, error.code ?? '500');
-            return (data as T[])?.[0] || (data as T);
+            const first = Array.isArray(data) ? data[0] : data;
+            if (!first) throw new PlanterError(`Insert into ${tableName} returned no data`, 500);
+            return first;
         });
     },
     update: async (id: string, payload: TUpdate, opts) => {
         return retry(async () => {
-            const query = fromTable(tableName).update(payload as Record<string, unknown>).eq('id', id).select(select);
+            const query = entityTable<T, TInsert, TUpdate>(tableName).update(payload).eq('id', id).select(select);
             applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, error.code ?? '500');
-            return (data as T[])?.[0] || (data as T);
+            const first = Array.isArray(data) ? data[0] : data;
+            if (!first) throw new PlanterError(`Update on ${tableName} returned no data`, 500);
+            return first;
         });
     },
     delete: async (id: string, opts) => {
         return retry(async () => {
-            const query = fromTable(tableName).delete().eq('id', id);
+            const query = entityTable<T, TInsert, TUpdate>(tableName).delete().eq('id', id);
             applySignal(query, opts?.signal);
             const { error } = await query;
             if (error) throw new PlanterError(error.message, error.code ?? '500');
@@ -351,42 +381,44 @@ const createEntityClient = <T, TInsert, TUpdate>(tableName: PublicTableName, sel
     },
     filter: async (filters: Partial<Record<keyof T, string | number | boolean | null>>, opts) => {
         return retry(async () => {
-            let query = fromTable(tableName).select(select);
+            let query = entityTable<T, TInsert, TUpdate>(tableName).select(select);
             applySignal(query, opts?.signal);
 
-            Object.entries(filters).forEach(([key, val]) => {
+            for (const key in filters) {
+                const val = filters[key];
+                if (val === undefined) continue;
                 if (val === null) {
                     query = query.is(key, null);
                 } else {
-                    query = query.eq(key, val as string | number);
+                    query = query.eq(key, val);
                 }
-            });
+            }
 
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, error.code ?? '500');
-            return (data as T[]) || [];
+            return Array.isArray(data) ? data : (data ? [data] : []);
         });
     },
     listByCreator: async (userId: string, opts) => {
         return retry(async () => {
-            const query = fromTable(tableName).select(select).eq('creator', userId);
+            const query = entityTable<T, TInsert, TUpdate>(tableName).select(select).eq('creator', userId);
             applySignal(query, opts?.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, error.code ?? '500');
-            return (data as T[]) || [];
+            return Array.isArray(data) ? data : (data ? [data] : []);
         });
     },
     upsert: async (payload: TInsert | TInsert[], options: { onConflict?: string; ignoreDuplicates?: boolean; signal?: AbortSignal } = {}) => {
         return retry(async () => {
             const onConflict = options.onConflict || 'id';
-            let query = fromTable(tableName).upsert(payload as Record<string, unknown>, {
+            let query = entityTable<T, TInsert, TUpdate>(tableName).upsert(payload, {
                 onConflict,
                 ignoreDuplicates: options.ignoreDuplicates,
             }).select(select);
-            if (options.signal) query = query.abortSignal(options.signal);
+            query = applySignal(query, options.signal);
             const { data, error } = await query;
             if (error) throw new PlanterError(error.message, error.code ?? '500');
-            return { data: data as T | T[], error: null };
+            return { data, error: null };
         });
     }
 });
@@ -488,7 +520,7 @@ export const planter: PlanterClient = {
                         .select('*');
 
                     if (error) throw new PlanterError(error.message, error.code ?? '500');
-                    const project = Array.isArray(data) ? (data[0] as Project) : (data as unknown as Project);
+                    const project = Array.isArray(data) ? data[0] : data;
 
                     if (!project?.id) {
                         throw new Error('Project creation failed: no ID returned from database.');
@@ -811,7 +843,10 @@ export const planter: PlanterClient = {
                             // null here (transient error / RLS) would otherwise clobber
                             // any settings the RPC populated.
                             if (existing) {
-                                const prevSettings = (existing.settings ?? {}) as Record<string, unknown>;
+                                const prevSettings: JsonObject =
+                                    existing.settings && typeof existing.settings === 'object' && !Array.isArray(existing.settings)
+                                        ? { ...existing.settings }
+                                        : {};
                                 // Wave 36 Task 1: stamp the source template's current
                                 // template_version onto the instance root so admins can
                                 // spot clones stuck on older template iterations. Look
@@ -827,7 +862,7 @@ export const planter: PlanterClient = {
                                     console.warn('[PlanterClient.clone] template_version lookup failed', srcLookupErr);
                                 }
 
-                                const mergedSettings: Record<string, unknown> = {
+                                const mergedSettings: JsonObject = {
                                     ...prevSettings,
                                     spawnedFromTemplate: templateId,
                                 };
@@ -835,7 +870,7 @@ export const planter: PlanterClient = {
                                     mergedSettings.cloned_from_template_version = templateVersionStamp;
                                 }
                                 const updated = await planter.entities.Task.update(newRootId, {
-                                    settings: mergedSettings as unknown as TaskUpdate['settings'],
+                                    settings: mergedSettings,
                                 });
                                 return { data: (updated ?? existing) as Task, error: null };
                             }
@@ -881,7 +916,6 @@ export const planter: PlanterClient = {
         Phase: createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
         Milestone: createEntityClient<Task, TaskInsert, TaskUpdate>('tasks'),
         TaskWithResources: {
-            ...createEntityClient<unknown, unknown, unknown>('tasks_with_primary_resource'),
             listTemplates: async ({ from = 0, limit = 25, resourceType = null as string | null, userId, viewerId, signal }: { from?: number, limit?: number, resourceType?: string | null, userId?: string, viewerId?: string, signal?: AbortSignal } = {}): Promise<{ data: Task[], error: Error | null }> => {
                 return retry(async () => {
                     const end = from + limit - 1;
@@ -1042,9 +1076,10 @@ export const planter: PlanterClient = {
                         .from('task_comments')
                         .select('*, author:users(id, email, user_metadata)')
                         .eq('task_id', taskId)
-                        .order('created_at', { ascending: true });
+                        .order('created_at', { ascending: true })
+                        .overrideTypes<TaskCommentWithAuthor[], { merge: false }>();
                     if (error) throw new PlanterError(error.message, error.code ?? '500');
-                    return ((data as unknown) as TaskCommentWithAuthor[]) || [];
+                    return data || [];
                 });
             },
             create: async (payload): Promise<TaskCommentWithAuthor> => {
@@ -1062,9 +1097,10 @@ export const planter: PlanterClient = {
                         // by `trg_task_comments_set_root_id` before insert checks.
                         .insert(insert as TaskCommentInsert)
                         .select('*, author:users(id, email, user_metadata)')
-                        .single();
+                        .single()
+                        .overrideTypes<TaskCommentWithAuthor, { merge: false }>();
                     if (error) throw new PlanterError(error.message, error.code ?? '500');
-                    return (data as unknown) as TaskCommentWithAuthor;
+                    return data;
                 });
             },
             updateBody: async (commentId: string, payload: { body: string; mentions?: string[] }): Promise<TaskCommentRow> => {
@@ -1124,15 +1160,11 @@ export const planter: PlanterClient = {
                         .limit(opts?.limit ?? 50);
                     if (opts?.before) query = query.lt('created_at', opts.before);
                     if (opts?.entityTypes && opts.entityTypes.length > 0) {
-                        // Supabase's typed `.in()` expects its literal enum union.
-                        // Route through unknown to keep the runtime call happy.
-                        query = (query as unknown as {
-                            in: (c: string, v: readonly string[]) => typeof query;
-                        }).in('entity_type', opts.entityTypes);
+                        query = query.in('entity_type', opts.entityTypes);
                     }
-                    const { data, error } = await query;
+                    const { data, error } = await query.overrideTypes<ActivityLogWithActor[], { merge: false }>();
                     if (error) throw new PlanterError(error.message, error.code ?? '500');
-                    return ((data as unknown) as ActivityLogWithActor[]) || [];
+                    return data || [];
                 });
             },
             listByEntity: async (
@@ -1147,9 +1179,10 @@ export const planter: PlanterClient = {
                         .eq('entity_type', entityType)
                         .eq('entity_id', entityId)
                         .order('created_at', { ascending: false })
-                        .limit(opts?.limit ?? 20);
+                        .limit(opts?.limit ?? 20)
+                        .overrideTypes<ActivityLogWithActor[], { merge: false }>();
                     if (error) throw new PlanterError(error.message, error.code ?? '500');
-                    return ((data as unknown) as ActivityLogWithActor[]) || [];
+                    return data || [];
                 });
             },
         } satisfies ActivityLogEntityClient,

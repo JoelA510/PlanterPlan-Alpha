@@ -9,7 +9,7 @@ function createChain(resolvedValue: { data: unknown; error: unknown } = { data: 
     const methods = [
         'select', 'insert', 'update', 'delete', 'upsert',
         'eq', 'neq', 'is', 'or', 'order', 'range', 'limit',
-        'maybeSingle', 'single', 'abortSignal',
+        'maybeSingle', 'single', 'abortSignal', 'overrideTypes',
     ];
     for (const m of methods) {
         chain[m] = vi.fn().mockReturnValue(chain);

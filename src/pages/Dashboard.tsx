@@ -36,7 +36,13 @@ export default function Dashboard() {
 
     const handleCreateProject = async (projectData: CreateProjectFormData) => {
         try {
-            const project = await createProjectMutation.mutateAsync(projectData as unknown as CreateProjectPayload);
+            const payload: CreateProjectPayload = {
+                title: projectData.title,
+                description: projectData.description,
+                start_date: projectData.start_date,
+                templateId: projectData.templateId ?? undefined,
+            };
+            const project = await createProjectMutation.mutateAsync(payload);
             if (project?.id) {
                 navigate(`/project/${project.id}`);
             }

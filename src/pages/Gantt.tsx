@@ -15,7 +15,6 @@ import {
     SelectValue,
 } from '@/shared/ui/select';
 import { Label } from '@/shared/ui/label';
-import type { HierarchyTask } from '@/shared/db/app.types';
 
 export default function Gantt() {
     const { t } = useTranslation();
@@ -29,7 +28,7 @@ export default function Gantt() {
     const [includeLeafTasks, setIncludeLeafTasks] = useState(false);
 
     const { projectHierarchy } = useProjectData(projectId);
-    const hierarchyTasks = projectHierarchy as unknown as HierarchyTask[];
+    const hierarchyTasks = projectHierarchy;
 
     const { rows, skippedCount } = useMemo(
         () => tasksToGanttRows(hierarchyTasks, { includeLeafTasks }),
