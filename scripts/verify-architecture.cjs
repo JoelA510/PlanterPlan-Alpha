@@ -45,6 +45,111 @@ function read(file) {
   return readFileSync(file, 'utf8');
 }
 
+function stripCodeComments(source) {
+  const chars = source.split('');
+  const stack = [{ type: 'code' }];
+  const current = () => stack[stack.length - 1];
+  const blank = (index) => {
+    if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+  };
+
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+    const state = current();
+
+    if (state.type === 'lineComment') {
+      if (char === '\n' || char === '\r') stack.pop();
+      else blank(i);
+      continue;
+    }
+
+    if (state.type === 'blockComment') {
+      blank(i);
+      if (char === '*' && next === '/') {
+        blank(i + 1);
+        i += 1;
+        stack.pop();
+      }
+      continue;
+    }
+
+    if (state.type === 'singleQuote' || state.type === 'doubleQuote') {
+      if (char === '\\') {
+        i += 1;
+        continue;
+      }
+      if (
+        (state.type === 'singleQuote' && char === "'") ||
+        (state.type === 'doubleQuote' && char === '"')
+      ) {
+        stack.pop();
+      }
+      continue;
+    }
+
+    if (state.type === 'template') {
+      if (char === '\\') {
+        i += 1;
+        continue;
+      }
+      if (char === '`') {
+        stack.pop();
+        continue;
+      }
+      if (char === '$' && next === '{') {
+        i += 1;
+        stack.push({ type: 'templateExpression', braceDepth: 1 });
+      }
+      continue;
+    }
+
+    if (state.type === 'templateExpression') {
+      if (char === '{') {
+        state.braceDepth += 1;
+        continue;
+      }
+      if (char === '}') {
+        state.braceDepth -= 1;
+        if (state.braceDepth === 0) stack.pop();
+        continue;
+      }
+    }
+
+    if (char === '/' && next === '/') {
+      blank(i);
+      blank(i + 1);
+      i += 1;
+      stack.push({ type: 'lineComment' });
+      continue;
+    }
+
+    if (char === '/' && next === '*') {
+      blank(i);
+      blank(i + 1);
+      i += 1;
+      stack.push({ type: 'blockComment' });
+      continue;
+    }
+
+    if (char === "'") {
+      stack.push({ type: 'singleQuote' });
+      continue;
+    }
+
+    if (char === '"') {
+      stack.push({ type: 'doubleQuote' });
+      continue;
+    }
+
+    if (char === '`') {
+      stack.push({ type: 'template' });
+    }
+  }
+
+  return chars.join('');
+}
+
 function nonTestFile(file) {
   return !/\.test\.tsx?$/.test(file);
 }
@@ -52,10 +157,12 @@ function nonTestFile(file) {
 function findMatches(files, rule, predicate) {
   const matches = [];
   for (const file of files) {
-    const lines = read(file).split(/\r?\n/);
-    lines.forEach((line, index) => {
+    const source = read(file);
+    const originalLines = source.split(/\r?\n/);
+    const codeLines = stripCodeComments(source).split(/\r?\n/);
+    codeLines.forEach((line, index) => {
       if (predicate(line, file)) {
-        matches.push(`${toRepoPath(file)}:${index + 1}:${line}`);
+        matches.push(`${toRepoPath(file)}:${index + 1}:${originalLines[index] ?? line}`);
       }
     });
   }
