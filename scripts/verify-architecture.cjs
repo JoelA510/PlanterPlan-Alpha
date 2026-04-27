@@ -46,100 +46,108 @@ function read(file) {
 }
 
 function stripCodeComments(source) {
-  let result = '';
-  let state = 'code';
-  let blockDepth = 0;
-  let templateExpressionDepth = 0;
+  const chars = Array.from(source);
+  const stack = [{ type: 'code' }];
+  const current = () => stack[stack.length - 1];
+  const blank = (index) => {
+    if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+  };
 
   for (let i = 0; i < source.length; i += 1) {
     const char = source[i];
     const next = source[i + 1];
+    const state = current();
 
-    if (state === 'lineComment') {
-      if (char === '\n' || char === '\r') {
-        result += char;
-        state = 'code';
-      } else {
-        result += ' ';
-      }
+    if (state.type === 'lineComment') {
+      if (char === '\n' || char === '\r') stack.pop();
+      else blank(i);
       continue;
     }
 
-    if (state === 'blockComment') {
-      if (char === '\n' || char === '\r') {
-        result += char;
-      } else if (char === '*' && next === '/') {
-        result += '  ';
+    if (state.type === 'blockComment') {
+      blank(i);
+      if (char === '*' && next === '/') {
+        blank(i + 1);
         i += 1;
-        blockDepth -= 1;
-        if (blockDepth === 0) state = 'code';
-      } else {
-        result += ' ';
+        stack.pop();
       }
       continue;
     }
 
-    if (state === 'singleQuote' || state === 'doubleQuote' || state === 'template') {
-      result += char;
+    if (state.type === 'singleQuote' || state.type === 'doubleQuote') {
       if (char === '\\') {
-        if (i + 1 < source.length) {
-          result += source[i + 1];
-          i += 1;
-        }
+        i += 1;
         continue;
       }
-      if (state === 'singleQuote' && char === "'") state = 'code';
-      if (state === 'doubleQuote' && char === '"') state = 'code';
-      if (state === 'template' && char === '`') state = templateExpressionDepth > 0 ? 'templateExpression' : 'code';
-      if (state === 'template' && char === '$' && next === '{') {
-        result += next;
-        i += 1;
-        templateExpressionDepth += 1;
-        state = 'templateExpression';
+      if (
+        (state.type === 'singleQuote' && char === "'") ||
+        (state.type === 'doubleQuote' && char === '"')
+      ) {
+        stack.pop();
       }
       continue;
     }
 
-    if (state === 'templateExpression' && char === '}') {
-      result += char;
-      templateExpressionDepth -= 1;
-      if (templateExpressionDepth === 0) state = 'template';
+    if (state.type === 'template') {
+      if (char === '\\') {
+        i += 1;
+        continue;
+      }
+      if (char === '`') {
+        stack.pop();
+        continue;
+      }
+      if (char === '$' && next === '{') {
+        i += 1;
+        stack.push({ type: 'templateExpression', braceDepth: 1 });
+      }
       continue;
+    }
+
+    if (state.type === 'templateExpression') {
+      if (char === '{') {
+        state.braceDepth += 1;
+        continue;
+      }
+      if (char === '}') {
+        state.braceDepth -= 1;
+        if (state.braceDepth === 0) stack.pop();
+        continue;
+      }
     }
 
     if (char === '/' && next === '/') {
-      result += '  ';
+      blank(i);
+      blank(i + 1);
       i += 1;
-      state = 'lineComment';
-      continue;
-    }
-    if (char === '/' && next === '*') {
-      result += '  ';
-      i += 1;
-      blockDepth = 1;
-      state = 'blockComment';
-      continue;
-    }
-    if (char === "'") {
-      result += char;
-      state = 'singleQuote';
-      continue;
-    }
-    if (char === '"') {
-      result += char;
-      state = 'doubleQuote';
-      continue;
-    }
-    if (char === '`') {
-      result += char;
-      state = 'template';
+      stack.push({ type: 'lineComment' });
       continue;
     }
 
-    result += char;
+    if (char === '/' && next === '*') {
+      blank(i);
+      blank(i + 1);
+      i += 1;
+      stack.push({ type: 'blockComment' });
+      continue;
+    }
+
+    if (char === "'") {
+      stack.push({ type: 'singleQuote' });
+      continue;
+    }
+
+    if (char === '"') {
+      stack.push({ type: 'doubleQuote' });
+      continue;
+    }
+
+    if (char === '`') {
+      stack.push({ type: 'template' });
+    }
   }
 
-  return result;
+  return chars.join('');
 }
 
 function nonTestFile(file) {
