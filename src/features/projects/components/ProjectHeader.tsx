@@ -19,7 +19,7 @@ import {
 import { TASK_STATUS, PROJECT_STATUS } from '@/shared/constants';
 import EditProjectModal from './EditProjectModal';
 import { exportProjectToCSV } from '@/features/projects/lib/export-utils';
-import { Project, TaskRow, PersonRow } from '@/shared/db/app.types';
+import { Project, TaskRow, TeamMemberWithProfile } from '@/shared/db/app.types';
 
 const templateIcons: Record<string, React.ComponentType<{ className?: string }>> = {
     launch_large: Rocket,
@@ -37,7 +37,7 @@ const statusColors: Record<string, string> = {
 export interface ProjectHeaderProps {
     project: Project;
     tasks?: TaskRow[];
-    teamMembers?: PersonRow[];
+    teamMembers?: TeamMemberWithProfile[];
     onInviteMember?: () => void;
     canInvite?: boolean;
     canManageSettings?: boolean;
@@ -139,8 +139,8 @@ export default function ProjectHeader({
                             const initials = (member.first_name?.[0] || '') + (member.last_name?.[0] || '') || '?';
                             return (
                                 <div key={member.id} className="relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground z-10" title={displayName || 'Unknown'}>
-                                    {(member as { avatar_url?: string }).avatar_url ? (
-                                        <img src={(member as { avatar_url?: string }).avatar_url} alt={displayName || 'Unknown'} width={32} height={32} loading="lazy" className="w-full h-full rounded-full object-cover" />
+                                    {member.avatar_url ? (
+                                        <img src={member.avatar_url} alt={displayName || 'Unknown'} width={32} height={32} loading="lazy" className="w-full h-full rounded-full object-cover" />
                                     ) : (
                                         <span>{initials}</span>
                                     )}
@@ -180,5 +180,4 @@ export default function ProjectHeader({
         </div>
     );
 }
-
 

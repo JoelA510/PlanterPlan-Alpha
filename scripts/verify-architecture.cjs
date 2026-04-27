@@ -1,27 +1,9 @@
 const { existsSync, readdirSync, readFileSync } = require('fs');
 const { join, relative } = require('path');
-const { spawnSync } = require('child_process');
 
 const root = process.cwd();
 const srcRoot = join(root, 'src');
-const bashVerifierPath = join(root, 'scripts', 'verify-architecture.sh');
 const agentMode = process.env.AGENT_MODE === 'true';
-
-function runBashVerifier() {
-  if (!existsSync(bashVerifierPath)) return null;
-  const bashScript = readFileSync(bashVerifierPath, 'utf8');
-  if (bashScript.includes('\r\n')) return null;
-
-  const bash = spawnSync('bash', ['--version'], { encoding: 'utf8' });
-  if (bash.error || bash.status !== 0) return null;
-
-  return spawnSync('bash', [bashVerifierPath], {
-    cwd: root,
-    encoding: 'utf8',
-    stdio: 'inherit',
-    shell: false
-  }).status || 0;
-}
 
 function walk(dir, files = []) {
   if (!existsSync(dir)) return files;
@@ -253,5 +235,4 @@ function runNodeVerifier() {
   return violations.length === 0 ? 0 : 1;
 }
 
-const bashStatus = runBashVerifier();
-process.exit(bashStatus === null ? runNodeVerifier() : bashStatus);
+process.exit(runNodeVerifier());
