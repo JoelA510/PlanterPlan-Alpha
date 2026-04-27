@@ -45,6 +45,103 @@ function read(file) {
   return readFileSync(file, 'utf8');
 }
 
+function stripCodeComments(source) {
+  let result = '';
+  let state = 'code';
+  let blockDepth = 0;
+  let templateExpressionDepth = 0;
+
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+
+    if (state === 'lineComment') {
+      if (char === '\n' || char === '\r') {
+        result += char;
+        state = 'code';
+      } else {
+        result += ' ';
+      }
+      continue;
+    }
+
+    if (state === 'blockComment') {
+      if (char === '\n' || char === '\r') {
+        result += char;
+      } else if (char === '*' && next === '/') {
+        result += '  ';
+        i += 1;
+        blockDepth -= 1;
+        if (blockDepth === 0) state = 'code';
+      } else {
+        result += ' ';
+      }
+      continue;
+    }
+
+    if (state === 'singleQuote' || state === 'doubleQuote' || state === 'template') {
+      result += char;
+      if (char === '\\') {
+        if (i + 1 < source.length) {
+          result += source[i + 1];
+          i += 1;
+        }
+        continue;
+      }
+      if (state === 'singleQuote' && char === "'") state = 'code';
+      if (state === 'doubleQuote' && char === '"') state = 'code';
+      if (state === 'template' && char === '`') state = templateExpressionDepth > 0 ? 'templateExpression' : 'code';
+      if (state === 'template' && char === '$' && next === '{') {
+        result += next;
+        i += 1;
+        templateExpressionDepth += 1;
+        state = 'templateExpression';
+      }
+      continue;
+    }
+
+    if (state === 'templateExpression' && char === '}') {
+      result += char;
+      templateExpressionDepth -= 1;
+      if (templateExpressionDepth === 0) state = 'template';
+      continue;
+    }
+
+    if (char === '/' && next === '/') {
+      result += '  ';
+      i += 1;
+      state = 'lineComment';
+      continue;
+    }
+    if (char === '/' && next === '*') {
+      result += '  ';
+      i += 1;
+      blockDepth = 1;
+      state = 'blockComment';
+      continue;
+    }
+    if (char === "'") {
+      result += char;
+      state = 'singleQuote';
+      continue;
+    }
+    if (char === '"') {
+      result += char;
+      state = 'doubleQuote';
+      continue;
+    }
+    if (char === '`') {
+      result += char;
+      state = 'template';
+      continue;
+    }
+
+    result += char;
+  }
+
+  return result;
+}
+
 function nonTestFile(file) {
   return !/\.test\.tsx?$/.test(file);
 }
@@ -52,10 +149,12 @@ function nonTestFile(file) {
 function findMatches(files, rule, predicate) {
   const matches = [];
   for (const file of files) {
-    const lines = read(file).split(/\r?\n/);
-    lines.forEach((line, index) => {
+    const source = read(file);
+    const originalLines = source.split(/\r?\n/);
+    const codeLines = stripCodeComments(source).split(/\r?\n/);
+    codeLines.forEach((line, index) => {
       if (predicate(line, file)) {
-        matches.push(`${toRepoPath(file)}:${index + 1}:${line}`);
+        matches.push(`${toRepoPath(file)}:${index + 1}:${originalLines[index] ?? line}`);
       }
     });
   }
