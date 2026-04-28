@@ -1,5 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
+import { createRequire } from 'node:module';
 import { defineBddConfig } from 'playwright-bdd';
+
+const require = createRequire(import.meta.url);
+const { resolveE2EEnv } = require('../../scripts/e2e-env.cjs') as {
+  resolveE2EEnv: () => Record<string, string>;
+};
+const e2eEnv = resolveE2EEnv();
 
 const testDir = defineBddConfig({
   features: 'features/**/*.feature',
@@ -50,9 +57,7 @@ export default defineConfig({
     command: 'npm run dev',
     env: {
       ...process.env,
-      VITE_E2E_MODE: 'true',
-      VITE_TEST_EMAIL: 'test@example.com',
-      VITE_TEST_PASSWORD: 'password123',
+      ...e2eEnv,
     },
     port: 5173,
     reuseExistingServer: !process.env.CI,
