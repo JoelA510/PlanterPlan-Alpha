@@ -267,6 +267,15 @@
       "incomplete_subtasks_confirm_one": "This task has {{count}} incomplete subtask. Mark all as complete?",
       "incomplete_subtasks_confirm_other": "This task has {{count}} incomplete subtasks. Mark all as complete?"
     },
+    "strategy_follow_up": {
+      "search_label": "Search Master Library",
+      "search_results_aria": "Master Library search results",
+      "loading_templates": "Loading templates…",
+      "all_matching_added": "All matching templates are already added.",
+      "no_matching_templates": "No matching templates found.",
+      "no_templates_available": "No templates available.",
+      "copy_to_form": "Copy to form"
+    },
     "search": {
       "tasks_placeholder": "Search tasks…",
       "template_placeholder": "Search by title or description…"

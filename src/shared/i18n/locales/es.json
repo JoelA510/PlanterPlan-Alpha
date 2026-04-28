@@ -273,6 +273,15 @@
       "incomplete_subtasks_confirm_one": "Esta tarea tiene {{count}} subtarea incompleta. ¿Marcar todo como completado?",
       "incomplete_subtasks_confirm_other": "Esta tarea tiene {{count}} subtareas incompletas. ¿Marcar todo como completado?"
     },
+    "strategy_follow_up": {
+      "search_label": "Buscar en la biblioteca maestra",
+      "search_results_aria": "Resultados de búsqueda de la biblioteca maestra",
+      "loading_templates": "Cargando plantillas…",
+      "all_matching_added": "Todas las plantillas coincidentes ya están agregadas.",
+      "no_matching_templates": "No se encontraron plantillas coincidentes.",
+      "no_templates_available": "No hay plantillas disponibles.",
+      "copy_to_form": "Copiar al formulario"
+    },
     "search": {
       "tasks_placeholder": "Buscar tareas…",
       "template_placeholder": "Buscar por título o descripción…"

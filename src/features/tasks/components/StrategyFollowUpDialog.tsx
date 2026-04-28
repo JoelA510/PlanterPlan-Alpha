@@ -1,6 +1,7 @@
 import { useState, useMemo, useId, useCallback } from 'react';
 import type { ChangeEvent, KeyboardEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
     Dialog,
@@ -45,6 +46,7 @@ function StrategyTemplateSearch({
     onSelect: (selected: TemplateSearchResult) => void;
     excludeTemplateIds: readonly string[];
 }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(-1);
@@ -97,13 +99,13 @@ function StrategyTemplateSearch({
                 className="block text-sm font-medium text-slate-600"
                 htmlFor={`strategy-template-search-${listboxId}`}
             >
-                Search Master Library
+                {t('tasks.strategy_follow_up.search_label')}
             </label>
             <input
                 id={`strategy-template-search-${listboxId}`}
                 type="text"
                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-500 md:text-sm"
-                placeholder="Search by title or description…"
+                placeholder={t('tasks.search.template_placeholder')}
                 value={query}
                 onChange={handleQueryChange}
                 onFocus={() => setIsOpen(true)}
@@ -123,20 +125,22 @@ function StrategyTemplateSearch({
                 <div
                     id={listboxId}
                     role="listbox"
-                    aria-label="Master Library search results"
+                    aria-label={t('tasks.strategy_follow_up.search_results_aria')}
                     className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
                 >
                     {isLoading && (
-                        <div className="px-4 py-3 text-sm text-slate-500">Loading templates…</div>
+                        <div className="px-4 py-3 text-sm text-slate-500">
+                            {t('tasks.strategy_follow_up.loading_templates')}
+                        </div>
                     )}
 
                     {!isLoading && results.length === 0 && (
                         <div className="px-4 py-3 text-sm text-slate-500">
                             {exclusionDrained
-                                ? 'All matching templates are already added.'
+                                ? t('tasks.strategy_follow_up.all_matching_added')
                                 : query
-                                    ? 'No matching templates found.'
-                                    : 'No templates available.'}
+                                    ? t('tasks.strategy_follow_up.no_matching_templates')
+                                    : t('tasks.strategy_follow_up.no_templates_available')}
                         </div>
                     )}
 
@@ -160,7 +164,9 @@ function StrategyTemplateSearch({
                                 {template.description && (
                                     <p className="text-xs text-slate-600 truncate mt-0.5">{template.description}</p>
                                 )}
-                                <span className="text-xs text-brand-600">Copy to form</span>
+                                <span className="text-xs text-brand-600">
+                                    {t('tasks.strategy_follow_up.copy_to_form')}
+                                </span>
                             </button>
                         );
                     })}
