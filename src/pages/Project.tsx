@@ -435,6 +435,7 @@ export default function Project() {
                         parentTaskForForm={state.inlineAddingParentId ? (tasks?.find(t => t.id === state.inlineAddingParentId) as TaskRow) : undefined}
                         membershipRole={userRole}
                         allProjectTasks={(projectHierarchy as TaskRow[]) || []}
+                        teamMembers={teamMembers}
                         onClose={() => {
                             actions.setSelectedTask(null);
                             setTaskFormState(null);

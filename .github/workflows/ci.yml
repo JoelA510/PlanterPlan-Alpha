@@ -35,7 +35,7 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Test
-        run: npm run test -- --run
+        run: npm test
         env:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-key

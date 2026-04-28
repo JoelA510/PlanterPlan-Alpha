@@ -11,7 +11,7 @@ import { isRecurrenceRule } from '@/shared/lib/recurrence';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
 import { extractPhaseLeads } from '@/shared/lib/phase-lead';
-import type { TaskFormData, TaskRow } from '@/shared/db/app.types';
+import type { TaskFormData, TaskRow, TeamMemberWithProfile } from '@/shared/db/app.types';
 
 const extractDateInput = (value?: string | null) => {
  if (!value) return '';
@@ -113,6 +113,8 @@ export interface TaskFormProps {
  membershipRole?: string;
  /** Wave 29: project root id threaded to TaskFormFields for the Phase Lead picker. */
  projectId?: string | null;
+ /** Team members supplied by the page/composition layer for phase-lead controls. */
+ teamMembers?: TeamMemberWithProfile[];
 }
 
 const TaskForm = ({
@@ -125,6 +127,7 @@ const TaskForm = ({
  renderLibrarySearch,
  membershipRole,
  projectId,
+ teamMembers = [],
 }: TaskFormProps) => {
  const isEditMode = Boolean(initialTask);
  const [lastAppliedTaskTitle, setLastAppliedTaskTitle] = useState('');
@@ -211,6 +214,7 @@ const TaskForm = ({
  membershipRole={membershipRole}
  taskType={initialTask?.task_type ?? null}
  projectId={projectId ?? initialTask?.root_id ?? null}
+ teamMembers={teamMembers}
  />
 
  {origin === 'template' && <RecurrencePicker />}
