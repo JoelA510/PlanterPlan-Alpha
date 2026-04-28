@@ -71,7 +71,9 @@ function StrategyTemplateSearch({
         if (event.key === 'ArrowDown') {
             event.preventDefault();
             setIsOpen(true);
-            setActiveIndex((prev) => (prev + 1 >= results.length ? 0 : prev + 1));
+            setActiveIndex((prev) => (
+                results.length === 0 ? -1 : (prev + 1 >= results.length ? 0 : prev + 1)
+            ));
         } else if (event.key === 'ArrowUp') {
             event.preventDefault();
             setActiveIndex((prev) => (prev - 1 < 0 ? results.length - 1 : prev - 1));

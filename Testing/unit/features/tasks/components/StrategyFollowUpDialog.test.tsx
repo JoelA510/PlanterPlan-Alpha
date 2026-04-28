@@ -84,6 +84,12 @@ function renderDialog(task: TaskRow, open = true) {
 beforeEach(() => {
     vi.clearAllMocks();
     authHolder.user = { id: 'user-1' };
+    templateSearchHolder.results = [
+        { id: 'tmpl-42', title: 'Follow-up One', description: 'Follow-up description' },
+    ];
+    templateSearchHolder.isLoading = false;
+    templateSearchHolder.hasResults = true;
+    templateSearchHolder.exclusionDrained = false;
 });
 
 describe('StrategyFollowUpDialog (Wave 24 Task 2)', () => {
@@ -181,6 +187,24 @@ describe('StrategyFollowUpDialog (Wave 24 Task 2)', () => {
 
         await waitFor(() => expect(mockToastError).toHaveBeenCalled());
         expect(mockToastSuccess).not.toHaveBeenCalled();
+    });
+
+    it('does not activate a search option when ArrowDown is pressed with no results', () => {
+        templateSearchHolder.results = [];
+        templateSearchHolder.hasResults = false;
+        const task = makeTask({
+            id: 't-strat',
+            parent_task_id: 'parent-A',
+            root_id: 'proj-1',
+            status: 'completed',
+        }) as TaskRow;
+        renderDialog(task);
+
+        const input = screen.getByLabelText(/Search Master Library/i);
+        fireEvent.focus(input);
+        fireEvent.keyDown(input, { key: 'ArrowDown' });
+
+        expect(input.getAttribute('aria-activedescendant')).toBeNull();
     });
 
     it('closes via the footer button', () => {
