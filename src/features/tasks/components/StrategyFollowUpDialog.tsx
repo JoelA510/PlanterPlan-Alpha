@@ -152,7 +152,7 @@ function StrategyTemplateSearch({
                                 onMouseDown={(event) => event.preventDefault()}
                                 onClick={() => handleSelect(template)}
                                 data-testid={`strategy-followup-search-row-${template.id}`}
-                                className={`w-full text-left px-4 py-2.5 border-b border-slate-50 last:border-b-0 focus:outline-none ${
+                                className={`w-full text-left px-4 py-2.5 border-b border-slate-200 last:border-b-0 focus:outline-none ${
                                     isActive ? 'bg-brand-50' : 'hover:bg-slate-50'
                                 }`}
                             >
