@@ -102,7 +102,7 @@ function StrategyTemplateSearch({
             <input
                 id={`strategy-template-search-${listboxId}`}
                 type="text"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
+                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-500 md:text-sm"
                 placeholder="Search by title or description…"
                 value={query}
                 onChange={handleQueryChange}
