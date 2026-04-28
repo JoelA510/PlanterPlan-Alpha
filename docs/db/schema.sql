@@ -2745,11 +2745,11 @@ CREATE POLICY "Activity log select by project members" ON "public"."activity_log
 
 
 
-CREATE POLICY "Allow project creation" ON "public"."tasks" FOR INSERT TO "authenticated" WITH CHECK ((((("root_id" IS NULL) OR ("root_id" = "id")) AND ("parent_task_id" IS NULL) AND ("creator" = ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"))) AND (("origin" IS DISTINCT FROM 'template'::"text") OR "public"."is_admin"(( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid")))));
+CREATE POLICY "Allow project creation" ON "public"."tasks" FOR INSERT TO "authenticated" WITH CHECK ((((("root_id" IS NULL) OR ("root_id" = "id")) AND ("parent_task_id" IS NULL) AND ("creator" = ( SELECT "auth"."uid"() AS "uid"))) AND (("origin" IS DISTINCT FROM 'template'::"text") OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid")))));
 
 
 
-CREATE POLICY "Allow subtask creation by members" ON "public"."tasks" FOR INSERT TO "authenticated" WITH CHECK ((("root_id" IS NOT NULL) AND "public"."has_project_role"("root_id", ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"), ARRAY['owner'::"text", 'editor'::"text"]) AND (("origin" IS DISTINCT FROM 'template'::"text") OR "public"."is_admin"(( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid")))));
+CREATE POLICY "Allow subtask creation by members" ON "public"."tasks" FOR INSERT TO "authenticated" WITH CHECK ((("root_id" IS NOT NULL) AND "public"."has_project_role"("root_id", ( SELECT "auth"."uid"() AS "uid"), ARRAY['owner'::"text", 'editor'::"text"]) AND (("origin" IS DISTINCT FROM 'template'::"text") OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid")))));
 
 
 
