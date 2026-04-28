@@ -39,6 +39,7 @@ build
 /playwright/.auth/
 
 # Test artifacts
+/coverage/
 rls-results-current.json
 vitest-results-*.json
 playwright-report/
