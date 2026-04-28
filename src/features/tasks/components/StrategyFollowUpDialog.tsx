@@ -124,7 +124,7 @@ function StrategyTemplateSearch({
                     id={listboxId}
                     role="listbox"
                     aria-label="Master Library search results"
-                    className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
+                    className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
                 >
                     {isLoading && (
                         <div className="px-4 py-3 text-sm text-slate-500">Loading templates…</div>
