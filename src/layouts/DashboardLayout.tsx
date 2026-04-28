@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { cn } from '@/shared/lib/utils';
 import Header from '@/features/navigation/components/Header';
-import ProjectSidebarContainer from '@/features/navigation/components/ProjectSidebarContainer';
+import ProjectSidebarContainer from '@/layouts/ProjectSidebarContainer';
+import ProjectSwitcherContainer from '@/layouts/ProjectSwitcherContainer';
 import { CommandPalette } from '@/shared/ui/CommandPalette';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import MobileFAB from '@/features/mobile/components/MobileFAB';
@@ -35,7 +36,11 @@ export default function DashboardLayout({ sidebar, children }: { sidebar?: React
  <>
  <div className="min-h-screen bg-background">
  <CommandPalette />
- <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} showMenuButton={true} />
+ <Header
+ onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+ showMenuButton={true}
+ projectSwitcher={<ProjectSwitcherContainer />}
+ />
 
  <aside
  className={cn(

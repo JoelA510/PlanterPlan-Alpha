@@ -1,13 +1,31 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useCreateTask, useUpdateTask, useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
-
 import { toast } from 'sonner';
 import { useConfirm } from '@/shared/ui/confirm-dialog';
-import type { TaskRow, TaskUpdate } from '@/shared/db/app.types';
+import type { TaskInsert, TaskRow, TaskUpdate } from '@/shared/db/app.types';
 
-export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] = []) {
+export interface ProjectBoardTaskActions {
+    /**
+     * Requires root_id so the task mutation can stay scoped to the project
+     * hierarchy cache and the server-side RLS authorization context.
+     */
+    updateTask: (
+        payload: { id: string; root_id: string } & Partial<TaskUpdate>,
+        options?: { onError?: (error: Error) => void },
+    ) => void;
+    createTask: (payload: TaskInsert) => Promise<unknown>;
+    deleteTask: (
+        payload: { id: string; root_id?: string | null },
+        options?: { onSuccess?: () => void; onError?: (error: Error) => void },
+    ) => void;
+}
+
+export function useProjectBoard(
+    projectId: string | undefined,
+    tasks: TaskRow[] = [],
+    taskActions: ProjectBoardTaskActions,
+) {
     const { t } = useTranslation();
     const confirm = useConfirm();
 
@@ -18,12 +36,13 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
     const [inlineAddingParentId, setInlineAddingParentId] = useState<string | null>(null);
     const [showInviteModal, setShowInviteModal] = useState(false);
 
-    const _updateTask = useUpdateTask();
-    const _deleteTask = useDeleteTask();
-    const _createTask = useCreateTask();
-
     const handleTaskUpdate = (taskId: string, data: Partial<TaskUpdate>) => {
-        _updateTask.mutate({ id: taskId, ...data, root_id: projectId }, {
+        if (!projectId) {
+            toast.error(t('errors.project_not_found_or_no_access'));
+            return;
+        }
+
+        taskActions.updateTask({ id: taskId, ...data, root_id: projectId }, {
             onError: (error: Error) => {
                 toast.error(t('projects.task_update_failed_toast'), { description: error.message });
             }
@@ -66,7 +85,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
 
     const handleInlineCommit = async (parentId: string, title: string, templateData?: Partial<TaskRow>) => {
         try {
-            await _createTask.mutateAsync({
+            await taskActions.createTask({
                 title,
                 root_id: projectId,
                 is_complete: false,
@@ -92,7 +111,7 @@ export function useProjectBoard(projectId: string | undefined, tasks: TaskRow[] 
             destructive: true,
         });
         if (!ok) return;
-        _deleteTask.mutate({ id: task.id, root_id: projectId }, {
+        taskActions.deleteTask({ id: task.id, root_id: projectId }, {
             onSuccess: () => {
                 setSelectedTask(null);
                 toast.success(t('tasks.delete_success'));

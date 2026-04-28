@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
@@ -13,15 +14,15 @@ import { CheckCircle2, User, Settings, LogOut, Menu, ChevronRight } from 'lucide
 
 import { useUser } from '@/shared/hooks/useUser';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import ProjectSwitcher from '@/features/projects/components/ProjectSwitcher';
 
 
 interface HeaderProps {
     onMenuToggle?: () => void;
     showMenuButton?: boolean;
+    projectSwitcher?: ReactNode;
 }
 
-export default function Header({ onMenuToggle, showMenuButton = false }: HeaderProps) {
+export default function Header({ onMenuToggle, showMenuButton = false, projectSwitcher }: HeaderProps) {
     const { t } = useTranslation();
     const { data: userData } = useUser();
     const user = userData as { full_name?: string; email?: string } | null;
@@ -76,9 +77,9 @@ export default function Header({ onMenuToggle, showMenuButton = false }: HeaderP
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {user && (
+                        {user && projectSwitcher && (
                             <div className="hidden md:block">
-                                <ProjectSwitcher />
+                                {projectSwitcher}
                             </div>
                         )}
                         {user && (

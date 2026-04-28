@@ -19,7 +19,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
-import { useCreateTask, useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
+import { useCreateTask, useDeleteTask, useUpdateTask } from '@/features/tasks/hooks/useTaskMutations';
 import { toast } from 'sonner';
 import type { TaskRow, Project as ProjectType, TaskFormData } from '@/shared/db/app.types';
 
@@ -27,7 +27,7 @@ import ProjectHeader from '@/features/projects/components/ProjectHeader';
 import ProjectTabs from '@/features/projects/components/ProjectTabs';
 import PeopleList from '@/features/people/components/PeopleList';
 import PhaseCard from '@/features/projects/components/PhaseCard';
-import MilestoneSection from '@/features/projects/components/MilestoneSection';
+import MilestoneSection from '@/features/tasks/components/MilestoneSection';
 import InviteMemberModal from '@/features/projects/components/InviteMemberModal';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
 import MasterLibrarySearch from '@/features/library/components/MasterLibrarySearch';
@@ -64,7 +64,15 @@ export default function Project() {
         [tasks],
     );
 
-    const board = useProjectBoard(projectId, (tasks as TaskRow[]) || []);
+    const createTask = useCreateTask();
+    const updateTask = useUpdateTask();
+    const deleteTask = useDeleteTask();
+
+    const board = useProjectBoard(projectId, (tasks as TaskRow[]) || [], {
+        updateTask: (payload, options) => updateTask.mutate(payload, options),
+        createTask: (payload) => createTask.mutateAsync(payload),
+        deleteTask: (payload, options) => deleteTask.mutate(payload, options),
+    });
     const { state, actions, handlers, computed } = board;
 
     // Wave 27: open the per-project presence channel and publish the focused
@@ -76,9 +84,6 @@ export default function Project() {
 
     // Form states restored
     const [taskFormState, setTaskFormState] = useState<{ mode?: 'create' | 'edit'; origin?: 'instance' | 'template'; isPhase?: boolean } | null>(null);
-
-    const createTask = useCreateTask();
-    const updateTask = useUpdateTask();
 
     const handleTaskSubmit = async (formData: TaskFormData) => {
         try {
