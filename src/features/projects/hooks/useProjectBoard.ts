@@ -6,8 +6,12 @@ import { useConfirm } from '@/shared/ui/confirm-dialog';
 import type { TaskInsert, TaskRow, TaskUpdate } from '@/shared/db/app.types';
 
 export interface ProjectBoardTaskActions {
+    /**
+     * Requires root_id so the task mutation can stay scoped to the project
+     * hierarchy cache and the server-side RLS authorization context.
+     */
     updateTask: (
-        payload: { id: string; root_id?: string } & Partial<TaskUpdate>,
+        payload: { id: string; root_id: string } & Partial<TaskUpdate>,
         options?: { onError?: (error: Error) => void },
     ) => void;
     createTask: (payload: TaskInsert) => Promise<unknown>;
@@ -33,6 +37,11 @@ export function useProjectBoard(
     const [showInviteModal, setShowInviteModal] = useState(false);
 
     const handleTaskUpdate = (taskId: string, data: Partial<TaskUpdate>) => {
+        if (!projectId) {
+            toast.error(t('errors.project_not_found_or_no_access'));
+            return;
+        }
+
         taskActions.updateTask({ id: taskId, ...data, root_id: projectId }, {
             onError: (error: Error) => {
                 toast.error(t('projects.task_update_failed_toast'), { description: error.message });

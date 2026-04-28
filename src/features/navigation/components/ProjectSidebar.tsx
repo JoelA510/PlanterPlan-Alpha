@@ -4,7 +4,7 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import InstanceList from './InstanceList';
 import JoinedProjectsList from './JoinedProjectsList';
 import TemplateList from './TemplateList';
-import { BarChart, Settings, Calendar } from 'lucide-react';
+import { BarChart, Settings, Calendar, LayoutDashboard } from 'lucide-react';
 import GlobalNavItem from './GlobalNavItem';
 
 const SectionSkeleton = () => (
@@ -80,6 +80,12 @@ const ProjectSidebar = ({
  return (
  <div className="flex flex-col h-full bg-card text-card-foreground border-r border-border shadow-sm">
  <div className="px-4 py-4 space-y-1">
+ <GlobalNavItem
+ label={t('nav.dashboard')}
+ isActive={location.pathname === '/dashboard'}
+ onClick={() => handleGlobalNav('/dashboard')}
+ icon={<LayoutDashboard className="w-5 h-5" />}
+ />
  <GlobalNavItem
  label={t('nav.my_tasks')}
  isActive={location.pathname === '/tasks'}
