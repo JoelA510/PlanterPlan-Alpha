@@ -158,7 +158,7 @@ function StrategyTemplateSearch({
                             >
                                 <p className="text-sm font-medium text-slate-900 truncate">{template.title}</p>
                                 {template.description && (
-                                    <p className="text-xs text-slate-500 truncate mt-0.5">{template.description}</p>
+                                    <p className="text-xs text-slate-600 truncate mt-0.5">{template.description}</p>
                                 )}
                                 <span className="text-xs text-brand-600">Copy to form</span>
                             </button>
