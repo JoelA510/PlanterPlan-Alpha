@@ -29,7 +29,6 @@ import type { TaskRow, TeamMemberWithProfile } from '@/shared/db/app.types';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
 import { extractPhaseLeads } from '@/shared/lib/phase-lead';
-import { useTeam } from '@/features/people/hooks/useTeam';
 import StrategyFollowUpDialog from '@/features/tasks/components/StrategyFollowUpDialog';
 import { collectSpawnedTemplateIds } from '@/shared/lib/tree-helpers';
 
@@ -71,6 +70,7 @@ interface TaskDetailsViewProps {
      * delete template-origin tasks" message.
      */
     membershipRole?: string;
+    teamMembers?: TeamMemberWithProfile[];
     [key: string]: unknown;
 }
 
@@ -81,6 +81,7 @@ const TaskDetailsView = ({
     onTaskUpdated,
     canEdit = true,
     membershipRole,
+    teamMembers = [],
     ...props
 }: TaskDetailsViewProps) => {
     const { t } = useTranslation();
@@ -104,15 +105,13 @@ const TaskDetailsView = ({
         () => extractPhaseLeads(task as TaskRow | undefined),
         [task],
     );
-    const phaseLeadProjectId = task?.root_id ?? task?.id ?? null;
-    const { teamMembers: phaseLeadMembers } = useTeam(phaseLeadIds.length > 0 ? phaseLeadProjectId : null);
     const phaseLeadLabels = useMemo(
         () => phaseLeadIds.map((id) => {
-            const member = phaseLeadMembers.find((m) => m.user_id === id);
+            const member = teamMembers.find((m) => m.user_id === id);
             const email = getMemberEmail(member);
             return email ?? t('tasks.detail.phase_lead_fallback', { id: id.slice(0, 8) });
         }),
-        [phaseLeadIds, phaseLeadMembers, t],
+        [phaseLeadIds, teamMembers, t],
     );
     useEffect(() => {
         const prev = prevStatusRef.current;

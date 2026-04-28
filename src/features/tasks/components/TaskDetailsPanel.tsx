@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import type { TaskRow, TaskFormData } from '@/shared/db/app.types';
+import type { TaskRow, TaskFormData, TeamMemberWithProfile } from '@/shared/db/app.types';
 import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 
 import TaskForm from '@/features/tasks/components/TaskForm';
@@ -55,6 +55,7 @@ export interface TaskDetailsPanelProps {
  fetchTasks?: () => void;
  membershipRole?: string;
  allProjectTasks?: TaskRow[];
+ teamMembers?: TeamMemberWithProfile[];
  className?: string;
 }
 
@@ -75,6 +76,7 @@ export default function TaskDetailsPanel({
  fetchTasks,
  membershipRole,
  allProjectTasks,
+ teamMembers = [],
  className,
 }: TaskDetailsPanelProps) {
  const { t } = useTranslation();
@@ -120,6 +122,7 @@ export default function TaskDetailsPanel({
  onCancel={() => setTaskFormState(null)}
  membershipRole={membershipRole}
  projectId={projectId}
+ teamMembers={teamMembers}
  />
  ) : selectedTask ? (
  <TaskDetailsView
@@ -130,6 +133,7 @@ export default function TaskDetailsPanel({
  onTaskUpdated={fetchTasks || (() => { })}
  membershipRole={membershipRole}
  allProjectTasks={allProjectTasks}
+ teamMembers={teamMembers}
  />
  ) : null}
  </div>

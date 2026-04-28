@@ -40,9 +40,9 @@ vi.mock('@/shared/contexts/AuthContext', () => ({
     useAuth: () => ({ user: authHolder.user }),
 }));
 
-// Stub the combobox — we don't exercise it in this test.
-vi.mock('@/features/library/components/MasterLibrarySearch', () => ({
-    default: () => <div data-testid="master-library-search-stub" />,
+vi.mock('@/shared/hooks/useMasterLibrarySearch', () => ({
+    default: () => ({ results: [], isLoading: false, hasResults: false, exclusionDrained: false }),
+    useMasterLibrarySearch: () => ({ results: [], isLoading: false, hasResults: false, exclusionDrained: false }),
 }));
 
 // Control the related suggestions directly.
@@ -51,7 +51,7 @@ const relatedHolder: {
     isLoading: boolean;
     hasResults: boolean;
 } = { results: [], isLoading: false, hasResults: false };
-vi.mock('@/features/library/hooks/useRelatedTemplates', () => ({
+vi.mock('@/shared/hooks/useRelatedTemplates', () => ({
     default: () => relatedHolder,
     useRelatedTemplates: () => relatedHolder,
 }));

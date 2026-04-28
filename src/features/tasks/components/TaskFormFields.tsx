@@ -7,7 +7,6 @@ import { Textarea } from '@/shared/ui/textarea';
 import { Button } from '@/shared/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { useTeam } from '@/features/people/hooks/useTeam';
 
 interface TaskFormFieldsProps {
  origin?: 'instance' | 'library' | string;
@@ -23,6 +22,8 @@ interface TaskFormFieldsProps {
  taskType?: string | null;
  /** Wave 29: the project root id — required for `useTeam(projectId)` when the Phase Lead picker renders. */
  projectId?: string | null;
+ /** Project team members supplied by the page/composition layer. */
+ teamMembers?: TeamMemberWithProfile[];
 }
 
 function getMemberLabel(member: TeamMemberWithProfile): string {
@@ -36,13 +37,17 @@ function getMemberLabel(member: TeamMemberWithProfile): string {
  * QueryClientProvider as a per-test optional dependency for pre-existing
  * TaskForm tests that don't exercise Phase Leads.
  */
-function PhaseLeadPicker({ projectId, taskType }: { projectId: string | null | undefined; taskType: string | null | undefined }) {
- // Wider props so the call site doesn't need TS-narrowing ceremony; we guard
- // AFTER hooks below to stay within rules-of-hooks. useTeam disables its
- // internal query when projectId is falsy, so the extra hook call is cheap.
+function PhaseLeadPicker({
+ projectId,
+ taskType,
+ teamMembers,
+}: {
+ projectId: string | null | undefined;
+ taskType: string | null | undefined;
+ teamMembers: TeamMemberWithProfile[];
+}) {
  const active = Boolean(projectId) && (taskType === 'phase' || taskType === 'milestone');
  const { setValue, control } = useFormContext<TaskFormData>();
- const { teamMembers } = useTeam(active ? projectId ?? null : null);
  const eligibleMembers = useMemo(
  () => teamMembers.filter((m) => m.role === 'viewer' || m.role === 'limited'),
  [teamMembers],
@@ -123,7 +128,15 @@ function PhaseLeadPicker({ projectId, taskType }: { projectId: string | null | u
  );
 }
 
-const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, membershipRole, taskType, projectId }: TaskFormFieldsProps) => {
+const TaskFormFields = ({
+ origin,
+ itemLabel = 'Task',
+ renderExtraFields,
+ membershipRole,
+ taskType,
+ projectId,
+ teamMembers = [],
+}: TaskFormFieldsProps) => {
  const {
  register,
  formState: { errors },
@@ -268,7 +281,7 @@ const TaskFormFields = ({ origin, itemLabel = 'Task', renderExtraFields, members
  )}
 
  {canAssignPhaseLeads && (
- <PhaseLeadPicker projectId={projectId} taskType={taskType} />
+ <PhaseLeadPicker projectId={projectId} taskType={taskType} teamMembers={teamMembers} />
  )}
 
  {renderExtraFields && renderExtraFields()}

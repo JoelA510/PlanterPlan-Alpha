@@ -41,24 +41,21 @@ vi.mock('@/shared/contexts/AuthContext', () => ({
     useAuth: () => ({ user: authHolder.user }),
 }));
 
-// Replace MasterLibrarySearch with a simple button that triggers `onSelect`
-// so the test can drive the flow without fighting the real combobox.
-vi.mock('@/features/library/components/MasterLibrarySearch', () => ({
-    default: ({ onSelect }: { onSelect?: (task: { id: string; title?: string }) => void }) => (
-        <button
-            type="button"
-            data-testid="pick-template-stub"
-            onClick={() => onSelect?.({ id: 'tmpl-42', title: 'Follow-up One' })}
-        >
-            pick
-        </button>
-    ),
+const templateSearchHolder = {
+    results: [{ id: 'tmpl-42', title: 'Follow-up One', description: 'Follow-up description' }],
+    isLoading: false,
+    hasResults: true,
+    exclusionDrained: false,
+};
+vi.mock('@/shared/hooks/useMasterLibrarySearch', () => ({
+    default: () => templateSearchHolder,
+    useMasterLibrarySearch: () => templateSearchHolder,
 }));
 
 // Wave 25: the dialog also calls `useRelatedTemplates`. Stub it out here so
 // these tests focus on the search path — the related-section has its own
 // dedicated test file (`StrategyFollowUpDialog.related.test.tsx`).
-vi.mock('@/features/library/hooks/useRelatedTemplates', () => ({
+vi.mock('@/shared/hooks/useRelatedTemplates', () => ({
     default: () => ({ results: [], isLoading: false, hasResults: false }),
     useRelatedTemplates: () => ({ results: [], isLoading: false, hasResults: false }),
 }));
@@ -100,7 +97,7 @@ describe('StrategyFollowUpDialog (Wave 24 Task 2)', () => {
             }) as TaskRow,
         );
         expect(screen.getByText(/Add follow-up tasks/i)).toBeDefined();
-        expect(screen.getByTestId('pick-template-stub')).toBeDefined();
+        expect(screen.getByLabelText(/Search Master Library/i)).toBeDefined();
     });
 
     it('clones the selected template as a sibling and invalidates projectHierarchy', async () => {
@@ -114,7 +111,8 @@ describe('StrategyFollowUpDialog (Wave 24 Task 2)', () => {
         const { invalidateSpy } = renderDialog(task);
 
         await act(async () => {
-            fireEvent.click(screen.getByTestId('pick-template-stub'));
+            fireEvent.focus(screen.getByLabelText(/Search Master Library/i));
+            fireEvent.click(screen.getByTestId('strategy-followup-search-row-tmpl-42'));
         });
 
         await waitFor(() => expect(mockClone).toHaveBeenCalledTimes(1));
@@ -136,7 +134,8 @@ describe('StrategyFollowUpDialog (Wave 24 Task 2)', () => {
         const { invalidateSpy } = renderDialog(task);
 
         await act(async () => {
-            fireEvent.click(screen.getByTestId('pick-template-stub'));
+            fireEvent.focus(screen.getByLabelText(/Search Master Library/i));
+            fireEvent.click(screen.getByTestId('strategy-followup-search-row-tmpl-42'));
         });
 
         await waitFor(() => expect(mockClone).toHaveBeenCalled());
@@ -157,7 +156,8 @@ describe('StrategyFollowUpDialog (Wave 24 Task 2)', () => {
         renderDialog(task);
 
         await act(async () => {
-            fireEvent.click(screen.getByTestId('pick-template-stub'));
+            fireEvent.focus(screen.getByLabelText(/Search Master Library/i));
+            fireEvent.click(screen.getByTestId('strategy-followup-search-row-tmpl-42'));
         });
 
         expect(mockClone).not.toHaveBeenCalled();
@@ -175,7 +175,8 @@ describe('StrategyFollowUpDialog (Wave 24 Task 2)', () => {
         renderDialog(task);
 
         await act(async () => {
-            fireEvent.click(screen.getByTestId('pick-template-stub'));
+            fireEvent.focus(screen.getByLabelText(/Search Master Library/i));
+            fireEvent.click(screen.getByTestId('strategy-followup-search-row-tmpl-42'));
         });
 
         await waitFor(() => expect(mockToastError).toHaveBeenCalled());

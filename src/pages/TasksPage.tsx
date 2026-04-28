@@ -494,6 +494,7 @@ export default function TasksPage() {
                                                  selectedTask={selectedTaskForPanel}
                                                  allProjectTasks={selectedProjectTasks}
                                                  membershipRole={selectedMembershipRole}
+                                                 teamMembers={selectedTeamMembers}
                                                  onClose={closeDetailsPanel}
                                                  onDeleteTaskWrapper={handleDeleteTaskById}
                                                  className="w-full border-l-0 shadow-none sm:w-full sm:min-w-0 sm:max-w-none"
