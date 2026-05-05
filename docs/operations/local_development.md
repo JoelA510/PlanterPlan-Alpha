@@ -71,7 +71,7 @@ To test "Joined Projects" and membership roles locally without a full backend UI
      - `role`: 'editor' or 'viewer'.
 4. **Verify**:
    - Log in as User B.
-   - The project should appear in the "Joined Projects" section of the Dashboard.
+   - The project should appear in the project sidebar or project switcher.
    - The role badge (e.g., "Editor") should be visible next to the project title.
 
 ## Application Architecture

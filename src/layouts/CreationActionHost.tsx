@@ -113,7 +113,7 @@ export default function CreationActionHost() {
             });
 
             if (template?.id) {
-                toast.success(t('dashboard.template_created_toast'));
+                toast.success(t('library.template_created_toast'));
                 navigate(`/project/${template.id}`);
             }
         } catch (error: unknown) {

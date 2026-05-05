@@ -41,8 +41,6 @@
     "enter_email": "Enter email"
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "project_dashboard": "Project Dashboard",
     "my_tasks": "My Tasks",
     "reports": "Reports",
     "team": "Team",
@@ -300,6 +298,24 @@
     "generic": "{{action}} on {{entityType}}"
   },
   "projects": {
+    "new_project": "New Project",
+    "create_project_modal": {
+      "title": "Start New Project",
+      "subtitle": "Choose a template or start from scratch.",
+      "search_templates_placeholder": "Search templates…",
+      "new_church_plant": "New Church Plant",
+      "scaffold_description": "Comprehensive 24-month structured roadmap",
+      "continue_to_details": "Continue to Details",
+      "project_details": "Project Details",
+      "project_name": "Project Name",
+      "project_name_placeholder": "e.g. Hope City Launch",
+      "description": "Description",
+      "description_placeholder": "What's the vision for this project?",
+      "launch_date": "Launch Date",
+      "create_project": "Create Project",
+      "loading_templates": "Loading templates…",
+      "no_templates_match": "No templates match your search."
+    },
     "reports": {
       "title": "Reports & Analytics",
       "select_project": "Select a Project",
@@ -531,6 +547,19 @@
     }
   },
   "library": {
+    "new_template": "New Template",
+    "template_created_toast": "Template created",
+    "create_template_modal": {
+      "title": "New Template",
+      "subtitle": "Create a reusable template for your projects.",
+      "name_label": "Template Name",
+      "name_placeholder": "e.g. Church Plant Roadmap",
+      "description_label": "Description",
+      "description_placeholder": "What is this template for?",
+      "published_label": "Published",
+      "published_description": "Published templates are visible to all users in the library.",
+      "create": "Create Template"
+    },
     "master_library": "Master Library",
     "search_master_library": "Search Master Library",
     "clear_search": "Clear search",
@@ -552,44 +581,6 @@
       "no_tasks_on_page": "No tasks on page {{page}}",
       "loading_subtasks": "Loading subtasks…",
       "no_tasks": "No tasks in the master library yet."
-    }
-  },
-  "dashboard": {
-    "title": "Project Dashboard",
-    "subtitle": "Manage your church planting projects",
-    "new_project": "New Project",
-    "new_template": "New Template",
-    "no_projects_title": "No projects yet",
-    "no_projects_description": "Start your church planting journey by creating your first project",
-    "create_first_project": "Create Your First Project",
-    "create_project_modal": {
-      "title": "Start New Project",
-      "subtitle": "Choose a template or start from scratch.",
-      "search_templates_placeholder": "Search templates…",
-      "new_church_plant": "New Church Plant",
-      "scaffold_description": "Comprehensive 24-month structured roadmap",
-      "continue_to_details": "Continue to Details",
-      "project_details": "Project Details",
-      "project_name": "Project Name",
-      "project_name_placeholder": "e.g. Hope City Launch",
-      "description": "Description",
-      "description_placeholder": "What's the vision for this project?",
-      "launch_date": "Launch Date",
-      "create_project": "Create Project",
-      "loading_templates": "Loading templates…",
-      "no_templates_match": "No templates match your search."
-    },
-    "template_created_toast": "Template created",
-    "create_template_modal": {
-      "title": "New Template",
-      "subtitle": "Create a reusable template for your projects.",
-      "name_label": "Template Name",
-      "name_placeholder": "e.g. Church Plant Roadmap",
-      "description_label": "Description",
-      "description_placeholder": "What is this template for?",
-      "published_label": "Published",
-      "published_description": "Published templates are visible to all users in the library.",
-      "create": "Create Template"
     }
   },
   "settings": {
@@ -681,7 +672,6 @@
     "login_failed": "Login failed",
     "user_must_be_logged_in": "User must be logged in",
     "project_not_found_or_no_access": "This project doesn't exist, or you no longer have access to it.",
-    "back_to_dashboard": "Back to dashboard",
     "back_to_tasks": "Back to tasks"
   },
   "ics": {

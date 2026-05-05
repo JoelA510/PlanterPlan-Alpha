@@ -86,7 +86,7 @@ coverage before changing behavior.
 
 | Area | Current implementation | Target gap | Planned PR |
 | --- | --- | --- | --- |
-| Dashboard | PR D redirects `/dashboard` to `/tasks`, removed the dashboard page and pipeline board, and keeps creation on `/tasks?action=...`. | Product dashboard surface is no longer a user-facing route. | Done PR D |
+| Dashboard | PR D redirects `/dashboard` to `/tasks`, removed the dashboard page and pipeline board, and keeps creation on `/tasks?action=...`. PR R2 removes the stale dashboard feature slice, shell naming, and creation-copy namespace. | Product dashboard surface is no longer a user-facing route; the only remaining `/dashboard` behavior is bookmark-compatible redirect. | Done PR D/R2 |
 | Project state | PR D removed generic project lifecycle status mutation from user surfaces; archive remains a visibility-only root-status flag. | Lifecycle badges/selectors derive from child task state; archive remains visibility-only unless product revises it. | Done PR D |
 | Comments | PR E passes `showComments={false}` from the project route, hiding `TaskComments` only in project-context task detail. | Backend comments, RLS, realtime, and notification plumbing stay intact. | Done PR E |
 | Coaching flag | PR F exposes `settings.is_coaching_task` editing only on template forms and strips instance form payloads. | Instances preserve inherited behavior read-only. | Done PR F |

@@ -153,7 +153,7 @@ describe('useProjectRealtime', () => {
 
       // Root task: id === root_id (the project itself was touched — rename,
       // status flip, etc.) OR parent_task_id === null. Either triggers a
-      // projects-list refresh so Dashboard cards reflect the change.
+      // projects-list refresh so navigation and project pickers reflect the change.
       capturedOnCallback!({
         new: {
           id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',

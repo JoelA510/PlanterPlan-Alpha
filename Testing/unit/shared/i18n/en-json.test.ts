@@ -15,7 +15,6 @@ const REQUIRED_NAMESPACES = [
   'activity',
   'projects',
   'library',
-  'dashboard',
   'settings',
   'notifications',
   'errors',

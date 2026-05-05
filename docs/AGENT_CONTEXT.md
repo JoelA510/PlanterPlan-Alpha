@@ -9,7 +9,7 @@
 
 - **`src/features/`**: Domain-specific logic (Business Logic).
   - Structure: `components/`, `hooks/`, `lib/`. *(Note: No barrel files like `index.ts` are used; import directly from the path).*
-  - Key Domains: `projects`, `tasks`, `people`, `dashboard`, `library`.
+  - Key Domains: `projects`, `tasks`, `people`, `library`, `admin`.
 - **`src/pages/`**: Top-level Route Views (Page Composition).
   - _Note_: Pages should primarily compose features, not contain deep logic.
 - **`src/shared/`**: Universal utilities and UI (No Business Logic).

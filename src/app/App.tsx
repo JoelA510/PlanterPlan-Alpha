@@ -7,16 +7,16 @@ import { i18n } from '@/shared/i18n';
 import { AuthProvider, useAuth } from '@/shared/contexts/AuthContext';
 import { TooltipProvider } from '@/shared/ui/tooltip';
 import { ConfirmDialogProvider } from '@/shared/ui/confirm-dialog';
-import DashboardLayout from '../layouts/DashboardLayout';
-import Project from '../pages/Project';
-import Settings from '../pages/Settings';
-import TasksPage from '../pages/TasksPage';
+import AppShellLayout from '@/layouts/AppShellLayout';
+import Project from '@/pages/Project';
+import Settings from '@/pages/Settings';
+import TasksPage from '@/pages/TasksPage';
 import LoginForm from '@/pages/components/LoginForm';
 
 // Reports uses recharts (~524 KB gzipped as `charts-*.js`) — lazy so the
-// Dashboard / Tasks / Project routes don't pay the cost. Gantt + Admin
-// already lazy for the same reason.
-const Reports = lazy(() => import('../pages/Reports'));
+// primary Tasks / Project routes don't pay the cost. Gantt + Admin are already
+// lazy for the same reason.
+const Reports = lazy(() => import('@/pages/Reports'));
 const Gantt = lazy(() => import('@/pages/Gantt'));
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
 const AdminHome = lazy(() => import('@/pages/admin/AdminHome'));
@@ -42,7 +42,7 @@ export default function App() {
  <Router>
  <Routes>
  <Route path="/login" element={<LoginForm />} />
- <Route path="/" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
+ <Route path="/" element={<PrivateRoute><AppShellLayout /></PrivateRoute>}>
  <Route index element={<Navigate to="/tasks" replace />} />
  <Route path="dashboard" element={<Navigate to="/tasks" replace />} />
  <Route

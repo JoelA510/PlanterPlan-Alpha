@@ -111,7 +111,7 @@ const ProjectSidebar = ({
  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
  </svg>
- {t('dashboard.new_project')}
+ {t('projects.new_project')}
  </button>
 
  <button
@@ -122,7 +122,7 @@ const ProjectSidebar = ({
  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
  </svg>
- {t('dashboard.new_template')}
+ {t('library.new_template')}
  </button>
  </div>
 

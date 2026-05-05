@@ -27,7 +27,8 @@ Calculated dynamically based on system time vs. Task End Dates:
 
 ## Integration Points
 * **Tasks & Subtasks:** The drag-and-drop system relies heavily on the Date Engine to recalculate bounds when items are moved.
-* **Dashboard:** Feeds 'Due Soon' and 'Overdue' metrics to `StatsOverview`.
+* **Task surfaces and reports:** Feeds due-soon and overdue display state to
+  task lists, project views, Gantt, reports, and admin analytics.
 * **Nightly CRON (Wave 20):** `supabase/functions/nightly-sync/` owns the *write* path for urgency-status transitions (`not_started` → `in_progress` → `due_soon` → `overdue`) using per-project `settings.due_soon_threshold`. Due-soon threshold dates route through `supabase/functions/nightly-sync/urgency.ts` and the edge business-calendar seam while preserving the original UTC time-of-day. The app-layer Date Engine computes urgency for display (`deriveUrgency`) but no longer writes status to the DB itself. See `supabase/functions/nightly-sync/README.md`.
 * **Gantt drag-shift (Wave 28):** `src/features/gantt/hooks/useGanttDragShift.ts` validates bounds via `isBeforeDate`/`compareDateAsc`, then routes through `useUpdateTask`. Cascade-up logic in `updateParentDates` unchanged.
 * **Decision record (PR H/I1/I2):** `docs/architecture/date-engine-business-calendar-adr.md` records the accepted direction: keep `date-fns` inside the app date-engine layer, add a custom business-calendar seam, and route app/edge scheduling callers through it before any weekend/holiday behavior change.

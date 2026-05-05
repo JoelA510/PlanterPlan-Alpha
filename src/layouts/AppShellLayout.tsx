@@ -9,7 +9,7 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import MobileFAB from '@/features/mobile/components/MobileFAB';
 import CreationActionHost from '@/layouts/CreationActionHost';
 
-export default function DashboardLayout({ sidebar, children }: { sidebar?: React.ReactNode, children?: React.ReactNode }) {
+export default function AppShellLayout({ sidebar, children }: { sidebar?: React.ReactNode, children?: React.ReactNode }) {
  const [sidebarOpen, setSidebarOpen] = useState(false);
  const { user, loading } = useAuth();
  const navigate = useNavigate();

@@ -16,7 +16,6 @@ export const NAMESPACES = [
   'activity',
   'projects',
   'library',
-  'dashboard',
   'settings',
   'notifications',
   'errors',

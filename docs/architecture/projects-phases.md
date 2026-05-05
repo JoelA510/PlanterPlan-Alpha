@@ -14,7 +14,7 @@ This domain defines the highest-level structural containers of the application. 
 ### Project Instantiation Lifecycle
 1. **Creation:** Template tree cloned, textual data copied, dates/states mapped to `Target Launch Date`.
 2. **Active:** Standard operation. Completing tasks triggers upward recalculation of Milestone and Project completeness.
-3. **Deletion:** Triggers a cascading hard delete of all nested descendants and scrubs from dashboards.
+3. **Deletion:** Triggers a cascading hard delete of all nested descendants and removes the project from navigation, task, report, and admin analytics surfaces.
 
 ### Checkpoint-Based Projects (Wave 29 — Implementation Complete)
 

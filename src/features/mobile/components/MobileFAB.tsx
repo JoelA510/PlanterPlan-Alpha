@@ -28,10 +28,10 @@ export default function MobileFAB() {
  <DropdownMenuContent align="end" className="mb-2">
 
  <DropdownMenuItem onClick={() => navigate('/tasks?action=new-project')} className="cursor-pointer">
- {t('dashboard.new_project')}
+ {t('projects.new_project')}
  </DropdownMenuItem>
  <DropdownMenuItem onClick={() => navigate('/tasks?action=new-template')} className="cursor-pointer">
- {t('dashboard.new_template')}
+ {t('library.new_template')}
  </DropdownMenuItem>
  </DropdownMenuContent>
  </DropdownMenu>

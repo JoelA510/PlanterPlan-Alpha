@@ -11,8 +11,8 @@ vi.mock('gantt-task-react/dist/index.css', () => ({}));
 const activeProjects: Array<{ id: string; title: string }> = [];
 const projectHierarchy: unknown[] = [];
 
-vi.mock('@/features/dashboard/hooks/useDashboard', () => ({
-    useDashboard: () => ({
+vi.mock('@/features/projects/hooks/useProjectList', () => ({
+    useProjectList: () => ({
         state: {},
         data: { activeProjects },
         actions: {},
