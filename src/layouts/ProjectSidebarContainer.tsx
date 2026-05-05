@@ -33,11 +33,11 @@ export default function ProjectSidebarContainer({ onNavClick, selectedTaskId }: 
  };
 
  const handleNewProjectClick = () => {
- navigate('/dashboard?action=new-project');
+ navigate('/tasks?action=new-project');
  };
 
  const handleNewTemplateClick = () => {
- navigate('/dashboard?action=new-template');
+ navigate('/tasks?action=new-template');
  };
 
  return (

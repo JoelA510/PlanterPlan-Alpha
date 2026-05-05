@@ -46,8 +46,9 @@ Feature: Create Project
     Then the template selection is visible
 
   @release
-  Scenario: Successful project creation navigates to project page
-    When the user creates a new project "E2E Project"
+  Scenario: Successful project creation from tasks action navigates to project page
+    When the user navigates to "/tasks?action=new-project"
+    And the user completes the new project modal with "E2E Project"
     Then the user is redirected to a project page
     And the project title "E2E Project" is visible
 

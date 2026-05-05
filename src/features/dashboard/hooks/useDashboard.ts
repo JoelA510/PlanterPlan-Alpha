@@ -1,5 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -12,10 +11,6 @@ type TeamMemberRow = Database['public']['Tables']['project_members']['Row'];
 
 export function useDashboard() {
  const { user, loading: authLoading } = useAuth();
- // URL Action State
- const [searchParams, setSearchParams] = useSearchParams();
- const [showCreateModal, setShowCreateModal] = useState(false);
- const [showTemplateModal, setShowTemplateModal] = useState(false);
 
  // Dashboard Specific Local State
  const [wizardDismissed, setWizardDismissed] = useState<boolean>(() => {
@@ -23,21 +18,6 @@ export function useDashboard() {
  });
  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
  const [searchQuery, setSearchQuery] = useState('');
-
- // Auto-open modal when navigated with ?action=new-project or ?action=new-template
- useEffect(() => {
- const action = searchParams.get('action');
- if (action === 'new-project') {
- // eslint-disable-next-line react-hooks/set-state-in-effect
- setShowCreateModal(true);
- searchParams.delete('action');
- setSearchParams(searchParams, { replace: true });
- } else if (action === 'new-template') {
- setShowTemplateModal(true);
- searchParams.delete('action');
- setSearchParams(searchParams, { replace: true });
- }
- }, [searchParams, setSearchParams]);
 
  // Data Fetching. `staleTime: STALE_TIMES.medium` across the board so
  // Dashboard ↔ Tasks ↔ Project toggles don't refetch 3 times per nav.
@@ -115,8 +95,6 @@ export function useDashboard() {
  isError,
  error,
  user,
- showCreateModal,
- showTemplateModal,
  wizardDismissed,
  searchQuery,
  selectedProjectId
@@ -130,8 +108,6 @@ export function useDashboard() {
  teamMembers
  },
  actions: {
- setShowCreateModal,
- setShowTemplateModal,
  setSearchQuery,
  setSelectedProjectId,
  handleDismissWizard

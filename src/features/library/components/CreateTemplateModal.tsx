@@ -45,7 +45,7 @@ export default function CreateTemplateModal({ open, onClose, onSubmit }: CreateT
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white border-slate-200">
+            <DialogContent data-testid="create-template-modal" className="sm:max-w-[500px] p-0 overflow-hidden bg-white border-slate-200">
                 <DialogHeader className="p-8 bg-brand-600 text-white">
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                         <BookTemplate className="w-6 h-6" />

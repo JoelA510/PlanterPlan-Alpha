@@ -7,6 +7,7 @@ import ProjectSwitcherContainer from '@/layouts/ProjectSwitcherContainer';
 import { CommandPalette } from '@/shared/ui/CommandPalette';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import MobileFAB from '@/features/mobile/components/MobileFAB';
+import CreationActionHost from '@/layouts/CreationActionHost';
 
 export default function DashboardLayout({ sidebar, children }: { sidebar?: React.ReactNode, children?: React.ReactNode }) {
  const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -74,6 +75,7 @@ export default function DashboardLayout({ sidebar, children }: { sidebar?: React
  )}
 
  <main id="main-content" className="lg:pl-64 pt-6 h-[calc(100vh-4rem)] w-full overflow-x-hidden">{children || <Outlet />}</main>
+ <CreationActionHost />
  <MobileFAB />
  </div>
  </>
