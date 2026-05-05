@@ -71,7 +71,7 @@ coverage before changing behavior.
 | Coaching flag | PR F exposes `settings.is_coaching_task` editing only on template forms and strips instance form payloads. | Instances preserve inherited behavior read-only. | Done PR F |
 | Strategy flag | PR F exposes `settings.is_strategy_template` editing only on template forms and strips instance form payloads. | Instances preserve inherited behavior read-only. | Done PR F |
 | Template clone | PR G clears template notes when cloning/importing into project instances and preserves only approved inherited metadata (`project_kind`, coaching, and strategy flags). | Instance clones receive blank notes while preserving approved metadata. | Done PR G |
-| Date engine | Custom UTC/date-only engine uses `date-fns` and lacks business-calendar/weekend/holiday abstraction. | Add ADR, characterization, and business-calendar abstraction before behavior changes. | PR H, PR I+ |
+| Date engine | PR H documents the selected business-calendar direction and characterizes app/edge UTC parity plus the `date-fns` boundary. Runtime behavior is still calendar-day based. | Add business-calendar abstraction before behavior changes; weekend/holiday support remains product-scoped follow-up. | Done PR H, PR I+ |
 
 ## Release Rules
 

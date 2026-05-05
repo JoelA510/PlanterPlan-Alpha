@@ -29,13 +29,12 @@ Calculated dynamically based on system time vs. Task End Dates:
 * **Dashboard:** Feeds 'Due Soon' and 'Overdue' metrics to `StatsOverview`.
 * **Nightly CRON (Wave 20):** `supabase/functions/nightly-sync/` owns the *write* path for urgency-status transitions (`not_started` → `in_progress` → `due_soon` → `overdue`) using per-project `settings.due_soon_threshold`. The app-layer Date Engine computes urgency for display (`deriveUrgency`) but no longer writes status to the DB itself. See `supabase/functions/nightly-sync/README.md`.
 * **Gantt drag-shift (Wave 28):** `src/features/gantt/hooks/useGanttDragShift.ts` validates bounds via `isBeforeDate`/`compareDateAsc`, then routes through `useUpdateTask`. Cascade-up logic in `updateParentDates` unchanged.
+* **Decision record (PR H):** `docs/architecture/date-engine-business-calendar-adr.md` records the accepted direction: keep `date-fns` inside the app date-engine layer, add a custom business-calendar seam in PR I, and mirror any edge utility behavior before changing runtime scheduling.
 
 ## Known Gaps / Technical Debt
 * Algorithms for auto-adjusting dates currently lack logic for skipping weekends and regional holidays.
-* **User-testing tranche direction (pending PR H, PR I+):** keep `date-fns`
-  constrained to `src/shared/lib/date-engine` and introduce a custom
-  business-calendar abstraction with a mirrored edge-function utility layer.
-  PR H must add characterization and a decision record before any behavior
-  change. PR I slices must preserve UTC/date-only semantics, checkpoint-project
-  exclusions, template exclusions, task hierarchy rollups, and
-  `nightly-sync` / `supabase/functions/_shared/date.ts` parity.
+* **User-testing tranche direction (PR H, PR I+):** PR H added the decision
+  record and characterization tests. PR I slices must preserve UTC/date-only
+  semantics, checkpoint-project exclusions, template exclusions, task hierarchy
+  rollups, and `nightly-sync` / `supabase/functions/_shared/date.ts` parity
+  while introducing the business-calendar seam.
