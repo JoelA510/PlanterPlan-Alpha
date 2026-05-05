@@ -9,11 +9,14 @@ const { resolveE2EEnv } = require('../../scripts/e2e-env.cjs') as {
 const e2eEnv = resolveE2EEnv();
 
 const testDir = defineBddConfig({
+  disableWarnings: { importTestFrom: true },
   features: 'features/**/*.feature',
+  importTestFrom: './fixtures/base.fixture.ts',
   steps: 'steps/**/*.steps.ts',
 });
 
 export default defineConfig({
+  globalSetup: './global-setup.ts',
   testDir,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,

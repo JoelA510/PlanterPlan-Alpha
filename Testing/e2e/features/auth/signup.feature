@@ -9,6 +9,7 @@ Feature: User Sign Up
     Then the subtitle reads "Create your account"
     And the submit button reads "Sign Up"
 
+  @release
   Scenario: Successful sign up with valid credentials
     When the user clicks the toggle mode button
     And the user enters email "newuser@example.com"

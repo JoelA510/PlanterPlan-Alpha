@@ -45,6 +45,7 @@ Feature: Create Project
     And the user clicks Back
     Then the template selection is visible
 
+  @release
   Scenario: Successful project creation navigates to project page
     When the user creates a new project "E2E Project"
     Then the user is redirected to a project page

@@ -14,6 +14,7 @@
     "verify-architecture": "node scripts/verify-architecture.cjs",
     "verify-e2e": "bash scripts/verify-e2e.sh",
     "test:e2e": "node scripts/run-e2e.cjs",
+    "test:e2e:release": "node scripts/run-e2e.cjs --grep @release",
     "test:e2e:mobile": "node scripts/run-e2e.cjs --project=mobile-chrome",
     "test:e2e:headed": "node scripts/run-e2e.cjs --headed",
     "test:e2e:vision": "node scripts/run-e2e.cjs --grep @vision",

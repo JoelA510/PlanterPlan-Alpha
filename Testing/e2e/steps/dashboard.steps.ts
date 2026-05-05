@@ -26,17 +26,17 @@ When('the user clicks the {string} button', async ({ page }, buttonText: string)
 });
 
 When('the user opens the create project modal', async ({ page }) => {
-  await page.getByRole('button', { name: /New Project/i }).click();
+  await page.locator('#main-content').getByRole('button', { name: /^New Project$/i }).click();
   await expect(page.locator('[role="dialog"]')).toBeVisible();
 });
 
 When('the user opens the create template modal', async ({ page }) => {
-  await page.getByRole('button', { name: /New Template/i }).click();
+  await page.locator('#main-content').getByRole('button', { name: /^New Template$/i }).click();
   await expect(page.locator('[role="dialog"]')).toBeVisible();
 });
 
 When('the user creates a new project {string}', async ({ page }, name: string) => {
-  await page.getByRole('button', { name: /New Project/i }).click();
+  await page.locator('#main-content').getByRole('button', { name: /^New Project$/i }).click();
   await page.locator('[role="dialog"]').waitFor();
   // Select scratch or default template
   const continueBtn = page.getByRole('button', { name: /continue/i });
@@ -49,7 +49,7 @@ When('the user creates a new project {string}', async ({ page }, name: string) =
 });
 
 When('the user creates a new template {string}', async ({ page }, name: string) => {
-  await page.getByRole('button', { name: /New Template/i }).click();
+  await page.locator('#main-content').getByRole('button', { name: /^New Template$/i }).click();
   await page.locator('[role="dialog"]').waitFor();
   await page.locator('[role="dialog"]').getByLabel(/title|name/i).fill(name);
   await page.getByRole('button', { name: /create/i }).click();
@@ -154,7 +154,7 @@ Then('the user is redirected to a project page', async ({ page }) => {
 });
 
 Then('the project title {string} is visible', async ({ page }, title: string) => {
-  await expect(page.getByText(title)).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 });
 
 Then('{string} appears in the sidebar templates section', async ({ page }, name: string) => {
