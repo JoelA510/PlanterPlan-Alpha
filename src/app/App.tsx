@@ -8,7 +8,6 @@ import { AuthProvider, useAuth } from '@/shared/contexts/AuthContext';
 import { TooltipProvider } from '@/shared/ui/tooltip';
 import { ConfirmDialogProvider } from '@/shared/ui/confirm-dialog';
 import DashboardLayout from '../layouts/DashboardLayout';
-import Dashboard from '../pages/Dashboard';
 import Project from '../pages/Project';
 import Settings from '../pages/Settings';
 import TasksPage from '../pages/TasksPage';
@@ -45,7 +44,7 @@ export default function App() {
  <Route path="/login" element={<LoginForm />} />
  <Route path="/" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
  <Route index element={<Navigate to="/tasks" replace />} />
- <Route path="dashboard" element={<Dashboard />} />
+ <Route path="dashboard" element={<Navigate to="/tasks" replace />} />
  <Route
  path="reports"
  element={<Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading reports…</div>}><Reports /></Suspense>}

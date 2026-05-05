@@ -1,28 +1,26 @@
 # docs/architecture/dashboard-analytics.md
 
 ## Domain Overview
-The Dashboard & Analytics domain aggregates telemetry across Projects, Tasks, and the Date Engine to provide real-time reporting and pipeline visualization for users and Admins.
+The Analytics domain aggregates telemetry across Projects, Tasks, and the Date Engine to provide reporting for users and operational analytics for Admins. The user-facing project dashboard and pipeline board were removed in PR D; `/dashboard` now redirects to `/tasks`.
 
 ## Core Entities & Data Models
-* **User Dashboard:** Primary UI split into `Owned Projects` and `Joined Projects`. Contains `ProjectPipelineBoard` and `StatsOverview`.
+* **User Reports:** `/reports` provides project status reporting without owning project lifecycle state.
 * **Admin Analytics:** System-wide operational metrics dashboard.
-* **Pipeline Math:** The aggregation logic (`pipelineMath.ts`) determining phase/milestone completion ratios.
 
 ## State Machines / Lifecycles
 ### Metrics Recalculation Lifecycle
 1. **Task Mutation:** A user changes a task status (e.g., To Do -> Complete).
 2. **Local State Update:** Optimistic UI update on the task list.
-3. **Pipeline Recalculation:** The mathematical engine recalculates the Milestone and Phase percentages.
-4. **Dashboard Broadcast:** Real-time hooks push the updated percentage to the Project Card and Dashboard Overview.
+3. **Progress Recalculation:** Project, phase, and report surfaces derive completion percentages from task state.
+4. **Realtime Broadcast:** Project realtime hooks invalidate affected hierarchy/project queries.
 
 ## Business Rules & Constraints
-* **User-testing tranche directive (PR C shipped, PR D pending):** do not add
-  new product ownership to the user dashboard. Project/template creation is
-  hosted by the authenticated creation action host via `/tasks?action=...`;
-  `/dashboard`, `ProjectPipelineBoard`, and manual project-lifecycle status
-  mutation are scheduled for removal in PR D. Derived project lifecycle
-  indicators should come from task state; archive may remain a visibility-only
-  action unless product revises that decision.
+* **User-testing tranche directive (PR D shipped):** project/template creation
+  is hosted by the authenticated creation action host via `/tasks?action=...`.
+  `/dashboard` redirects to `/tasks`; `ProjectPipelineBoard` and manual
+  project-lifecycle status mutation were removed. Project lifecycle indicators
+  derive from child task state; archive remains a visibility-only action unless
+  product revises that decision.
 * **Required Visualizations:**
   * Total Projects counts.
   * Task Arrays: Current, Due Soon, Overdue.
@@ -83,7 +81,7 @@ Standalone route `/gantt?projectId=:id` (registered in `src/app/App.tsx`, lazy-l
 
 ## Integration Points
 * **Date Engine:** Sources calculations for 'Due Soon' and 'Overdue' task arrays.
-* **Projects & Phases:** Supplies the hierarchical data required to build the pipeline board.
+* **Projects & Phases:** Supplies hierarchical data for progress, reports, and derived project-state badges.
 
 ## Known Gaps / Technical Debt
 

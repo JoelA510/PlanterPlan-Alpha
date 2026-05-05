@@ -65,8 +65,8 @@ coverage before changing behavior.
 
 | Area | Current implementation | Target gap | Planned PR |
 | --- | --- | --- | --- |
-| Dashboard | `/dashboard` still renders `StatsOverview`, onboarding, creation buttons, and `ProjectPipelineBoard`; PR C routes creation buttons/sidebar/mobile actions to the authenticated creation host on `/tasks?action=...`. | Dashboard redirects or disappears after replacement creation entry points are stable. | PR D |
-| Project state | Pipeline board and project mutation hooks still support manual root `status` changes. | Lifecycle badges/selectors derive from child task state; archive remains visibility-only unless product revises it. | PR D |
+| Dashboard | PR D redirects `/dashboard` to `/tasks`, removed the dashboard page and pipeline board, and keeps creation on `/tasks?action=...`. | Product dashboard surface is no longer a user-facing route. | Done PR D |
+| Project state | PR D removed generic project lifecycle status mutation from user surfaces; archive remains a visibility-only root-status flag. | Lifecycle badges/selectors derive from child task state; archive remains visibility-only unless product revises it. | Done PR D |
 | Comments | `TaskDetailsView` still renders `TaskComments` in project task detail. | Project-context task detail hides comments; backend unchanged. | PR E |
 | Coaching flag | Current UI exposes `settings.is_coaching_task` editing on instance tasks. | Edit only on templates; instances preserve inherited behavior read-only. | PR F |
 | Strategy flag | Current UI exposes `settings.is_strategy_template` editing on instance tasks. | Edit only on templates; instances preserve inherited behavior read-only. | PR F |

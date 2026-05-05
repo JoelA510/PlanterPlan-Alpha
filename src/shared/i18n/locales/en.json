@@ -375,6 +375,13 @@
     "task_create_failed_toast": "Failed to create task",
     "search_template_phase_placeholder": "Search for a template phase to copy",
     "search_template_task_placeholder": "Start typing to copy an existing template task",
+    "derived_state": {
+      "archived": "Archived",
+      "complete": "Complete",
+      "in_progress": "In progress",
+      "not_started": "Not started",
+      "empty": "No tasks"
+    },
     "invite_modal": {
       "title": "Invite Member",
       "description": "Invite a user to {{project}}.",
@@ -674,7 +681,8 @@
     "login_failed": "Login failed",
     "user_must_be_logged_in": "User must be logged in",
     "project_not_found_or_no_access": "This project doesn't exist, or you no longer have access to it.",
-    "back_to_dashboard": "Back to dashboard"
+    "back_to_dashboard": "Back to dashboard",
+    "back_to_tasks": "Back to tasks"
   },
   "ics": {
     "card_title": "Calendar feeds (ICS)",

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
 import { ProgressRing } from '@/shared/ui/progress-ring';
@@ -16,9 +17,12 @@ import {
     Download,
     Search,
 } from 'lucide-react';
-import { TASK_STATUS, PROJECT_STATUS } from '@/shared/constants';
 import EditProjectModal from './EditProjectModal';
 import { exportProjectToCSV } from '@/features/projects/lib/export-utils';
+import {
+    DERIVED_PROJECT_STATE_BADGE_CLASSES,
+    deriveProjectState,
+} from '@/features/projects/lib/derived-project-state';
 import { Project, TaskRow, TeamMemberWithProfile } from '@/shared/db/app.types';
 
 const templateIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -27,16 +31,10 @@ const templateIcons: Record<string, React.ComponentType<{ className?: string }>>
     multiplication: GitBranch,
 };
 
-const statusColors: Record<string, string> = {
-    [PROJECT_STATUS.PLANNING]: 'bg-indigo-100 text-indigo-700',
-    [PROJECT_STATUS.IN_PROGRESS]: 'bg-brand-100 text-brand-700',
-    [PROJECT_STATUS.LAUNCHED]: 'bg-emerald-100 text-emerald-700',
-    [PROJECT_STATUS.PAUSED]: 'bg-slate-100 text-slate-700',
-};
-
 export interface ProjectHeaderProps {
     project: Project;
     tasks?: TaskRow[];
+    stateTasks?: TaskRow[];
     teamMembers?: TeamMemberWithProfile[];
     onInviteMember?: () => void;
     canInvite?: boolean;
@@ -46,22 +44,25 @@ export interface ProjectHeaderProps {
 export default function ProjectHeader({
     project,
     tasks = [],
+    stateTasks,
     teamMembers = [],
     onInviteMember,
     canInvite = false,
     canManageSettings = false
 }: ProjectHeaderProps) {
+    const { t } = useTranslation();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const Icon = templateIcons[(project as Record<string, unknown>).template as string] || Rocket;
-    const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.COMPLETED).length;
-    const totalTasks = tasks.length;
+    const stateSourceTasks = stateTasks ?? tasks;
+    const derivedState = useMemo(() => deriveProjectState(project, stateSourceTasks), [project, stateSourceTasks]);
+    const { completedTasks, totalTasks } = derivedState;
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     return (
         <div className="animate-slide-up bg-card border-b border-border transition-all shadow-sm">
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div className="flex items-center gap-4 mb-6">
-                    <Link to="/dashboard">
+                    <Link to="/tasks" aria-label={t('common.back')}>
                         <Button variant="ghost" size="icon" className="rounded-full">
                             <ArrowLeft className="w-5 h-5" />
                         </Button>
@@ -73,8 +74,11 @@ export default function ProjectHeader({
                         <div>
                             <div className="flex items-center gap-3">
                                 <h1 className="text-2xl font-bold text-card-foreground">{project.title}</h1>
-                                <Badge className={statusColors[project.status || ''] || statusColors[PROJECT_STATUS.PLANNING]}>
-                                    {project.status?.replace('_', ' ')}
+                                <Badge
+                                    data-testid="project-derived-state-badge"
+                                    className={DERIVED_PROJECT_STATE_BADGE_CLASSES[derivedState.state]}
+                                >
+                                    {t(`projects.derived_state.${derivedState.state}` as const)}
                                 </Badge>
                             </div>
                             {project.description && <p className="text-muted-foreground mt-1">{project.description}</p>}
@@ -180,4 +184,3 @@ export default function ProjectHeader({
         </div>
     );
 }
-

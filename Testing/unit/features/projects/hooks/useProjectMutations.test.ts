@@ -6,7 +6,7 @@ import {
   useCreateProject,
   useUpdateProject,
   useDeleteProject,
-  useUpdateProjectStatus,
+  useSetProjectArchived,
 } from '@/features/projects/hooks/useProjectMutations';
 import { makeTask } from '@test';
 
@@ -268,20 +268,33 @@ describe('useDeleteProject', () => {
 });
 
 // ---------------------------------------------------------------------------
-// useUpdateProjectStatus
+// useSetProjectArchived
 // ---------------------------------------------------------------------------
-describe('useUpdateProjectStatus', () => {
-  it('calls Project.update with status', async () => {
-    mockProjectUpdate.mockResolvedValueOnce(makeTask({ status: 'launched' }));
+describe('useSetProjectArchived', () => {
+  it('archives projects through the visibility-only mutation', async () => {
+    mockProjectUpdate.mockResolvedValueOnce(makeTask({ status: 'archived' }));
     const { Wrapper } = createWrapper();
 
-    const { result } = renderHook(() => useUpdateProjectStatus(), { wrapper: Wrapper });
+    const { result } = renderHook(() => useSetProjectArchived(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync({ projectId: 'proj-1', status: 'launched' });
+      await result.current.mutateAsync({ projectId: 'proj-1', archived: true });
     });
 
-    expect(mockProjectUpdate).toHaveBeenCalledWith('proj-1', { status: 'launched' });
+    expect(mockProjectUpdate).toHaveBeenCalledWith('proj-1', { status: 'archived' });
+  });
+
+  it('unarchives projects without accepting arbitrary lifecycle statuses', async () => {
+    mockProjectUpdate.mockResolvedValueOnce(makeTask({ status: 'in_progress' }));
+    const { Wrapper } = createWrapper();
+
+    const { result } = renderHook(() => useSetProjectArchived(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ projectId: 'proj-1', archived: false });
+    });
+
+    expect(mockProjectUpdate).toHaveBeenCalledWith('proj-1', { status: 'in_progress' });
   });
 
   it('invalidates project keys on success', async () => {
@@ -289,10 +302,10 @@ describe('useUpdateProjectStatus', () => {
     const { Wrapper, queryClient } = createWrapper();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-    const { result } = renderHook(() => useUpdateProjectStatus(), { wrapper: Wrapper });
+    const { result } = renderHook(() => useSetProjectArchived(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync({ projectId: 'proj-1', status: 'in_progress' });
+      await result.current.mutateAsync({ projectId: 'proj-1', archived: true });
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['project', 'proj-1'] }));

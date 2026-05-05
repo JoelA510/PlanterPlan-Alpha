@@ -120,10 +120,14 @@ export function useDeleteProject() {
     });
 }
 
-export function useUpdateProjectStatus() {
+export function useSetProjectArchived() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ projectId, status }: { projectId: string, status: string }) => planter.entities.Project.update(projectId, { status }),
+        mutationFn: ({ projectId, archived }: { projectId: string, archived: boolean }) => (
+            planter.entities.Project.update(projectId, {
+                status: archived ? 'archived' : 'in_progress',
+            })
+        ),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['projects'] });
             queryClient.invalidateQueries({ queryKey: ['userProjects'] });
@@ -131,5 +135,4 @@ export function useUpdateProjectStatus() {
         }
     });
 }
-
 

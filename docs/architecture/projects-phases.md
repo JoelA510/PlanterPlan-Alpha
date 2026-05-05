@@ -41,21 +41,22 @@ _Historical lifecycle summary:_
 * **Strict Hierarchy Invariant:** `Project -> Phases -> Milestones -> Tasks -> Subtasks`.
 * **Deprecation:** Project `Location` field is officially deprecated.
 
-## Archive & Completion Semantics
-> **User-testing tranche note:** current code still exposes manual project
-> status mutation through dashboard/pipeline surfaces. PR D must remove those
-> manual lifecycle controls after a derived read-only project-state selector
-> exists. Treat archive as a reversible visibility action, not a lifecycle
-> pipeline state, unless a later product decision says otherwise.
-
+## Archive & Derived State Semantics
+* **No manual lifecycle pipeline:** `/dashboard` and the drag/drop project
+  pipeline were removed in PR D. Users no longer move projects through
+  Planning / In Progress / Launched / Paused root-status columns.
+* **Derived project state:** `deriveProjectState` in
+  `src/features/projects/lib/derived-project-state.ts` derives the read-only
+  project badge from child task state: archived, complete, in progress, not
+  started, or empty.
 * **Archived project:** Root task carries `status = 'archived'` (set/cleared via the Archive / Unarchive action in `EditProjectModal`). Archiving is reversible and **never cascades** to descendants — children keep their own status and continue to resolve dates normally.
-* **Active project:** Any project root where `status !== 'archived'` **and** `is_complete !== true`. This is the default-visible set for `useDashboard`, `ProjectSidebar`, and `ProjectSwitcher`.
+* **Active project:** Any project root where `status !== 'archived'` **and** `is_complete !== true`. This is the default-visible set for `ProjectSidebar`, `ProjectSwitcher`, and project pickers.
 * **Completed project:** Indicated by `is_complete = true` on the root task (and `status !== 'archived'`). Wave 23's `sync_task_completion_flags` DB trigger makes `is_complete === (status === 'completed')` an unconditional invariant (see `tasks-subtasks.md`); the `updateStatus` bubble-up logic keeps the value propagating up the tree. The UI filter inspects `is_complete` only.
 * **No auto-archive:** Completing a project does not archive it; archive remains an explicit user action.
 * **Reachable behind toggles (Wave 25):** `ProjectSwitcher` exposes two independent toggles — "Show archived" (Wave 21.5) and "Show completed" (Wave 25) — so users can navigate back to either subset without leaving the header dropdown. Toggles are independent: a project that is **both** archived **and** completed is classified as archived by the component's filters, and therefore appears only when "Show archived" is on. Defaults stay OFF; active behavior is unchanged.
 
 ## Integration Points
-* **Dashboard & Analytics:** Dashboard heavily queries Project completeness metrics to render the Pipeline Board.
+* **Reports & Analytics:** Reports and admin analytics query project/task completeness metrics without owning user-facing lifecycle state.
 * **Date Engine:** Project settings define the bounds and horizons applied to all child elements.
 
 ## Known Gaps / Technical Debt

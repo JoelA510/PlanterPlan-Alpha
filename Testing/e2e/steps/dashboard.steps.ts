@@ -26,17 +26,17 @@ When('the user clicks the {string} button', async ({ page }, buttonText: string)
 });
 
 When('the user opens the create project modal', async ({ page }) => {
-  await page.locator('#main-content').getByRole('button', { name: /^New Project$/i }).click();
+  await page.goto('/tasks?action=new-project');
   await expect(page.locator('[role="dialog"]')).toBeVisible();
 });
 
 When('the user opens the create template modal', async ({ page }) => {
-  await page.locator('#main-content').getByRole('button', { name: /^New Template$/i }).click();
+  await page.goto('/tasks?action=new-template');
   await expect(page.locator('[role="dialog"]')).toBeVisible();
 });
 
 When('the user creates a new project {string}', async ({ page }, name: string) => {
-  await page.locator('#main-content').getByRole('button', { name: /^New Project$/i }).click();
+  await page.goto('/tasks?action=new-project');
   await completeNewProjectModal(page, name);
 });
 
@@ -57,7 +57,7 @@ async function completeNewProjectModal(page: import('@playwright/test').Page, na
 }
 
 When('the user creates a new template {string}', async ({ page }, name: string) => {
-  await page.locator('#main-content').getByRole('button', { name: /^New Template$/i }).click();
+  await page.goto('/tasks?action=new-template');
   await page.locator('[role="dialog"]').waitFor();
   await page.locator('[role="dialog"]').getByLabel(/title|name/i).fill(name);
   await page.getByRole('button', { name: /create/i }).click();

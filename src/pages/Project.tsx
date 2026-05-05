@@ -255,7 +255,7 @@ export default function Project() {
 
     // The primary project-metadata query either errored (network / RLS denial
     // / bad id) or returned null. Render a recoverable error card instead of
-    // an infinite spinner — user can retry or bail to the dashboard. Before
+    // an infinite spinner — user can retry or bail to the task list. Before
     // this change, an expired membership or a mistyped UUID froze the route.
     if (projectError || !project) {
         return (
@@ -269,7 +269,7 @@ export default function Project() {
                         {t('common.retry')}
                     </Button>
                     <Button asChild variant="ghost">
-                        <Link to="/dashboard">{t('errors.back_to_dashboard')}</Link>
+                        <Link to="/tasks">{t('errors.back_to_tasks')}</Link>
                     </Button>
                 </div>
             </div>
@@ -291,6 +291,7 @@ export default function Project() {
                     <ProjectHeader
                         project={project as ProjectType}
                         tasks={tasks as TaskRow[]}
+                        stateTasks={projectHierarchy as TaskRow[]}
                         teamMembers={teamMembers}
                         canInvite={canInvite}
                         canManageSettings={canManageSettings}
