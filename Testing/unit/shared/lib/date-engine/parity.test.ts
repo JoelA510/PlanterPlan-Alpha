@@ -1,0 +1,56 @@
+import { describe, expect, it } from 'vitest';
+import {
+    addDaysToDate,
+    dateStringToMonthKey,
+    dateStringToUtcMidnight,
+    isCheckpointProject as isAppCheckpointProject,
+    toIsoDate,
+    toMonthKey,
+} from '@/shared/lib/date-engine';
+import {
+    addDaysToIsoDate,
+    dateStringToUtcMidnightMs,
+    dateStringToUtcMonthKey,
+    isCheckpointProject as isEdgeCheckpointProject,
+    toUtcIsoDate,
+    toUtcMonthKey,
+} from '../../../../../supabase/functions/_shared/date';
+
+describe('date-engine app/edge parity characterization', () => {
+    it('keeps UTC month-key helpers aligned', () => {
+        const date = new Date('2026-01-31T23:30:00.000Z');
+
+        expect(toMonthKey(date)).toBe('2026-01');
+        expect(toUtcMonthKey(date)).toBe(toMonthKey(date));
+        expect(dateStringToMonthKey('2026-02-01T00:30:00+02:00')).toBe('2026-02');
+        expect(dateStringToUtcMonthKey('2026-02-01T00:30:00+02:00')).toBe('2026-02');
+    });
+
+    it('keeps UTC date-only helpers aligned at timezone boundaries', () => {
+        const date = new Date('2026-03-08T23:30:00-08:00');
+
+        expect(toIsoDate(date)).toBe('2026-03-09');
+        expect(toUtcIsoDate(date)).toBe(toIsoDate(date));
+        expect(dateStringToUtcMidnight('2026-03-08T23:30:00-08:00')).toBe(Date.UTC(2026, 2, 9));
+        expect(dateStringToUtcMidnightMs('2026-03-08T23:30:00-08:00')).toBe(Date.UTC(2026, 2, 9));
+    });
+
+    it('characterizes current calendar-day arithmetic before business-calendar work', () => {
+        const friday = '2026-01-02';
+
+        expect(toIsoDate(addDaysToDate(friday, 1))).toBe('2026-01-03');
+        expect(addDaysToIsoDate(friday, 1)).toBe('2026-01-03');
+    });
+
+    it('keeps checkpoint project detection aligned', () => {
+        const checkpointRoot = { parent_task_id: null, settings: { project_kind: 'checkpoint' } };
+        const dateRoot = { parent_task_id: null, settings: { project_kind: 'date' } };
+        const checkpointChild = { parent_task_id: 'root', settings: { project_kind: 'checkpoint' } };
+
+        expect(isAppCheckpointProject(checkpointRoot)).toBe(true);
+        expect(isEdgeCheckpointProject(checkpointRoot)).toBe(true);
+        expect(isEdgeCheckpointProject(checkpointRoot)).toBe(isAppCheckpointProject(checkpointRoot));
+        expect(isEdgeCheckpointProject(dateRoot)).toBe(isAppCheckpointProject(dateRoot));
+        expect(isEdgeCheckpointProject(checkpointChild)).toBe(isAppCheckpointProject(checkpointChild));
+    });
+});
