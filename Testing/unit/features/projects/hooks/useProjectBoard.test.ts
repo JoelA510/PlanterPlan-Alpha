@@ -280,14 +280,23 @@ describe('useProjectBoard', () => {
           notes: 'Template notes',
           purpose: 'Template purpose',
           actions: 'Template actions',
+          settings: {
+            is_coaching_task: true,
+            is_strategy_template: true,
+            recurrence: { kind: 'weekly' },
+          },
         } as Partial<TaskRow>);
       });
 
       expect(mockMutateAsync).toHaveBeenCalledWith(expect.objectContaining({
         description: 'Template desc',
-        notes: 'Template notes',
+        notes: '',
         purpose: 'Template purpose',
         actions: 'Template actions',
+        settings: {
+          is_coaching_task: true,
+          is_strategy_template: true,
+        },
       }));
     });
 

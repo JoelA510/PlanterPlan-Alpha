@@ -57,15 +57,19 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(sql).not.toContain('has_permission(v_template_root_id, (SELECT auth.uid()), \'member\')');
  });
 
- it('characterizes the current clone_project_template note-copy baseline', () => {
+ it('characterizes clone_project_template instance note isolation and approved settings', () => {
   const functionStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."clone_project_template"(');
   const functionEnd = schema.indexOf('ALTER FUNCTION "public"."clone_project_template"(');
   const sql = schema.slice(functionStart, functionEnd);
 
   expect(functionStart).toBeGreaterThanOrEqual(0);
   expect(functionEnd).toBeGreaterThan(functionStart);
-  expect(sql).toContain('notes, purpose, actions, is_complete, days_from_start, start_date, due_date');
-  expect(sql).toContain('t.notes, t.purpose, t.actions, false, t.days_from_start');
+  expect(sql).toContain('notes, purpose, actions, settings, is_complete, days_from_start, start_date, due_date');
+  expect(sql).toContain("CASE WHEN p_new_origin = 'instance' THEN NULL::text ELSE t.notes END");
+  expect(sql).toContain("'is_coaching_task'");
+  expect(sql).toContain("'is_strategy_template'");
+  expect(sql).toContain("'project_kind'");
+  expect(sql).toContain("t.settings ->> 'project_kind' IN ('date', 'checkpoint')");
  });
 
  it('keeps initialize_default_project available for blank project scaffolding', () => {

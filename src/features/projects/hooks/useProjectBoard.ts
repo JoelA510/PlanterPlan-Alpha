@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { toast } from 'sonner';
 import { useConfirm } from '@/shared/ui/confirm-dialog';
-import type { TaskInsert, TaskRow, TaskUpdate } from '@/shared/db/app.types';
+import type { JsonObject, TaskInsert, TaskRow, TaskUpdate } from '@/shared/db/app.types';
 
 export interface ProjectBoardTaskActions {
     /**
@@ -19,6 +19,30 @@ export interface ProjectBoardTaskActions {
         payload: { id: string; root_id?: string | null },
         options?: { onSuccess?: () => void; onError?: (error: Error) => void },
     ) => void;
+}
+
+/**
+ * Copies only behavior flags that project instances may inherit as read-only behavior.
+ *
+ * @param settings - Source template settings JSON from the imported library row.
+ * @returns A sanitized settings object for the project task insert, or `undefined` when empty.
+ */
+function copyTemplateBehaviorSettings(settings: TaskRow['settings']): JsonObject | undefined {
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+        return undefined;
+    }
+
+    const source = settings as Record<string, unknown>;
+    const next: JsonObject = {};
+
+    if (source.is_coaching_task === true) {
+        next.is_coaching_task = true;
+    }
+    if (source.is_strategy_template === true) {
+        next.is_strategy_template = true;
+    }
+
+    return Object.keys(next).length > 0 ? next : undefined;
 }
 
 export function useProjectBoard(
@@ -84,6 +108,8 @@ export function useProjectBoard(
     };
 
     const handleInlineCommit = async (parentId: string, title: string, templateData?: Partial<TaskRow>) => {
+        const inheritedSettings = copyTemplateBehaviorSettings(templateData?.settings ?? null);
+
         try {
             await taskActions.createTask({
                 title,
@@ -93,9 +119,10 @@ export function useProjectBoard(
                 origin: 'instance',
                 priority: 'medium',
                 description: templateData?.description ?? '',
-                notes: templateData?.notes ?? '',
+                notes: '',
                 purpose: templateData?.purpose ?? '',
                 actions: templateData?.actions ?? '',
+                ...(inheritedSettings ? { settings: inheritedSettings } : {}),
             });
             setInlineAddingParentId(null);
         } catch {
