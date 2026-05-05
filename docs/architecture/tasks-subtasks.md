@@ -59,11 +59,11 @@ normalises into the nested JSONB shape before persisting.
 
 ## Coaching Tasks (Wave 22)
 
-> **User-testing tranche note:** current implementation exposes coaching flag
-> authoring on instance tasks. PR F must invert authoring so the flag is
-> editable only on template rows and sanitize instance create/update payloads so
-> project instances cannot mutate `settings.is_coaching_task`. Existing
-> instance badges/coach behavior may remain read-only inherited behavior.
+> **User-testing tranche note:** PR F makes coaching flag authoring
+> template-only. Instance forms strip hidden `is_coaching_task` values before
+> submit, and `pages/Project.tsx` only builds a settings patch for template
+> origin, so project instances cannot mutate this flag through form paths.
+> Existing instance badges/coach behavior remain read-only inherited behavior.
 
 Any **instance task** (`origin = 'instance'`) may be tagged as a *coaching
 task* via `settings.is_coaching_task: true`. The flag widens edit access
@@ -76,13 +76,16 @@ to users with the project `coach` role via an additive RLS UPDATE policy
 
 **Authoring:** the "Coaching task" checkbox in
 `src/features/tasks/components/TaskFormFields.tsx` is gated to
-`membershipRole ∈ {owner, editor}` and shown only for instance origin. The
-prop flows `pages/Project.tsx` → `TaskDetailsPanel` → `TaskForm` →
-`TaskFormFields`. Coaches/viewers cannot toggle the flag.
+`origin === 'template'` and `membershipRole ∈ {owner, editor, admin}` (or app
+admin). The prop flows `pages/Project.tsx` → `TaskDetailsPanel` → `TaskForm` →
+`TaskFormFields`. Project instance forms do not render the toggle.
 
-**Normalisation:** submit emits a flat `is_coaching_task` field. The helper
-pair in `src/features/tasks/lib/coaching-form.ts` handles the merge into
-`settings`:
+**Normalisation:** submit emits a flat `is_coaching_task` field only when the
+template checkbox is registered. `src/features/tasks/lib/task-form-flags.ts`
+strips coaching/strategy fields from instance form submissions, and
+`buildTemplateFlagSettingsPatch()` returns `undefined` for instance origin even
+if a crafted payload includes the flags. The lower-level helper pair in
+`src/features/tasks/lib/coaching-form.ts` handles the merge into `settings`:
 * `formDataToCoachingFlag(data)` → `true | false | null` (null = leave
   settings untouched — the UI gate hid the checkbox).
 * `applyCoachingFlag(currentSettings, flag)` — preserves every other key,
@@ -130,11 +133,12 @@ unrelated projects are never touched.
 
 ## Strategy Templates (Wave 24)
 
-> **User-testing tranche note:** current implementation exposes strategy flag
-> authoring on instance tasks. PR F must invert authoring so the flag is
-> editable only on template rows and sanitize instance create/update payloads so
-> project instances cannot mutate `settings.is_strategy_template`. Existing
-> instance badges/follow-up behavior may remain read-only inherited behavior.
+> **User-testing tranche note:** PR F makes strategy flag authoring
+> template-only. Instance forms strip hidden `is_strategy_template` values before
+> submit, and `pages/Project.tsx` only builds a settings patch for template
+> origin, so project instances cannot mutate this flag through form paths.
+> Existing instance badges/follow-up behavior remain read-only inherited
+> behavior.
 
 Any **instance task** (`origin = 'instance'`) may be tagged as a *strategy
 template* via `settings.is_strategy_template: true`. The flag is purely a
@@ -149,14 +153,16 @@ right at the moment of completion.
 
 **Authoring:** the "Strategy template" checkbox in
 `src/features/tasks/components/TaskFormFields.tsx` sits next to the
-"Coaching task" checkbox and shares the same permission gate
-(`membershipRole ∈ {owner, editor}`, `origin === 'instance'`). The prop
-chain matches Coaching: `pages/Project.tsx` → `TaskDetailsPanel` →
-`TaskForm` → `TaskFormFields`.
+"Coaching task" checkbox and shares the same template-only permission gate
+(`origin === 'template'`, `membershipRole ∈ {owner, editor, admin}` or app
+admin). The prop chain matches Coaching: `pages/Project.tsx` →
+`TaskDetailsPanel` → `TaskForm` → `TaskFormFields`.
 
-**Normalisation:** submit emits a flat `is_strategy_template` field. The
-helper trio in `src/features/tasks/lib/strategy-form.ts` mirrors
-`coaching-form.ts`:
+**Normalisation:** submit emits a flat `is_strategy_template` field only when
+the template checkbox is registered. `task-form-flags.ts` strips
+coaching/strategy fields from instance submissions and applies them only for
+template-origin settings patches. The helper trio in
+`src/features/tasks/lib/strategy-form.ts` mirrors `coaching-form.ts`:
 * `formDataToStrategyTemplateFlag(data)` → `true | false | null` (null =
   leave settings untouched — the UI gate hid the checkbox).
 * `applyStrategyTemplateFlag(currentSettings, flag)` — preserves every
