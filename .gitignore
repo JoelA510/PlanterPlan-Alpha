@@ -90,3 +90,6 @@ src/shared/db/database.types.ts
 .claude/skills/
 skills/
 skills-lock.json
+
+# Supabase Studio local scratch queries
+supabase/snippets/
