@@ -1,4 +1,4 @@
-# TESTING_GAP_FINDINGS (Thorough & SSoT Pass)
+# Testing Gap Findings (Thorough & SSoT Pass)
 
 > **Note:** E2E tests have been relocated to `Testing/e2e/`. References to `e2e/` below reflect the original pre-reorganization paths.
 

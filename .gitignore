@@ -21,6 +21,7 @@ build
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+PlanterPlan.code-workspace
 .idea
 .DS_Store
 *.suo

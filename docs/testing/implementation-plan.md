@@ -4,7 +4,7 @@
 
 ## Context
 
-PlanterPlan has **zero unit tests** despite Vitest being fully installed and configured. The `TESTING_GAP_FINDINGS.md` audit (2026-03-24) identified 6 categories of E2E gaps against Notion requirements. Meanwhile, critical pure-logic modules (date-engine, tree-helpers, retry, payloadHelpers, pipelineMath, highlightMatches, export-utils) have no test coverage at all. This plan fills both the unit-test void and the E2E gaps in a prioritized, phased approach.
+PlanterPlan had **zero unit tests** when this historical plan was written, despite Vitest being fully installed and configured. The [`gap-findings.md`](gap-findings.md) audit (2026-03-24) identified 6 categories of E2E gaps against Notion requirements. Meanwhile, critical pure-logic modules (date-engine, tree-helpers, retry, payloadHelpers, pipelineMath, highlightMatches, export-utils) had no test coverage at all. This plan records the original phased approach that led to the current `Testing/` layout.
 
 ---
 
@@ -201,7 +201,7 @@ Uses the `src/test-utils/query-wrapper.tsx` from Phase 0c.
 
 ---
 
-## Phase 3: E2E Gap Coverage (from TESTING_GAP_FINDINGS.md)
+## Phase 3: E2E Gap Coverage (from gap-findings.md)
 
 ### 3a. Hierarchy & Structural Invariants
 
@@ -293,7 +293,7 @@ Requires mocking Supabase client (`src/shared/db/client.ts`). Use `vi.mock()`.
 
 ## Additional Gaps Discovered During Analysis
 
-Beyond TESTING_GAP_FINDINGS.md, the following gaps were identified:
+Beyond `gap-findings.md`, the following gaps were identified:
 
 ### A. Reporting Analytics Logic
 - `src/features/projects/hooks/useProjectReports.ts` (97 LOC) — completely untested
@@ -319,7 +319,7 @@ Beyond TESTING_GAP_FINDINGS.md, the following gaps were identified:
 - **Recommendation**: Add integration tests verifying auth state transitions (~6 tests)
 
 ### F. Missing E2E for Reporting Export
-- TESTING_GAP_FINDINGS notes CSV/PDF export is missing from E2E
+- `gap-findings.md` notes CSV/PDF export is missing from E2E
 - `export-csv.feature` exists but only covers basic CSV; PDF and automated email reports not covered
 - **Recommendation**: Extend `export-csv.feature` once PDF export is implemented; add E2E scenario for report page chart rendering
 

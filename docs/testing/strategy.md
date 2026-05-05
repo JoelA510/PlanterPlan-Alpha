@@ -1,5 +1,8 @@
 # Testing Strategy & Guidelines — PlanterPlan
 
+> **Documentation location:** Testing documentation lives in `docs/testing/`.
+> Executable tests live under `Testing/` and `supabase/tests/`.
+
 ## 1. Overview & Core Philosophy
 
 PlanterPlan employs a comprehensive testing strategy combining focused unit/integration tests with robust end-to-end (E2E) validation. Our goal is to ensure type safety, API contract adherence, and visual consistency across all user workflows.
@@ -87,11 +90,9 @@ Testing/e2e/
 
 ### Role-Based Test Users
 
-| Role                              | Email                              | Password       | Notes                                          |
-| --------------------------------- | ---------------------------------- | -------------- | ---------------------------------------------- |
-| **Project Owner** | `planterplan.test@gmail.com`       | `roots99`      | Project: "Project to test invitation by email" |
-| **Project Full User** (Editor)    | `tim.planterplan@gmail.com`        | `roots99(E`    |                                                |
-| **Project Limited User** (Viewer) | `planterplan.role_tester@mail.com` | `roots99_role` |                                                |
+Seeded E2E account definitions live in `Testing/e2e/fixtures/test-data.ts`.
+Do not duplicate passwords in documentation; update the fixture and local test
+seed data together when role accounts change.
 
 ### Available Test Scripts
 

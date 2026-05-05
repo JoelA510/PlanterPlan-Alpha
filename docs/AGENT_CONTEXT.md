@@ -19,6 +19,8 @@
 - **`docs/`**: Source of Truth.
   - `docs/architecture/*.md`: The definitive, modular Single Source of Truth for all domain business rules (Date Engine, RBAC, Tasks). **Always check here first before attempting architectural refactors.**
   - `docs/architecture/user-testing-baseline.md`: The active user-testing gap-closure baseline and ordered PR guardrails. Use it before dashboard, comments, template flags, clone/import, or date-engine tranche work.
+  - `spec.md`: Product-scope specification and roadmap status.
+  - `docs/testing/`: Testing strategy, historical coverage-gap findings, and implementation planning notes.
   - `supabase/migrations/20260426000000_baseline_schema.sql`: Current local Supabase baseline.
   - `docs/db/schema.sql`: Generated schema snapshot mirror.
   - `docs/db/README.md`: Current DB bootstrap contract. Local/CI DB validation uses `npm run db:local:bootstrap`, not raw `supabase start`.
