@@ -2,8 +2,9 @@
 
 ## Status
 Accepted for the user-testing tranche. PR H recorded the decision and
-characterization net. PR I1 adds the app/edge business-calendar interfaces with
-calendar-day behavior and no runtime caller migration.
+characterization net. PR I1 added the app/edge business-calendar interfaces
+with calendar-day behavior. PR I2 routes active scheduling and urgency callers
+through the seam without changing behavior.
 
 ## Context
 PlanterPlan currently centralizes app date math in `src/shared/lib/date-engine`.
@@ -19,10 +20,10 @@ instance schedule writes.
 
 ## Decision
 Keep the existing `date-fns` dependency constrained to
-`src/shared/lib/date-engine`, then introduce a custom `BusinessCalendar`
-abstraction in PR I1 without changing behavior. Mirror the abstraction needed by
-Supabase Edge utilities before routing `nightly-sync` or other edge scheduling
-logic through it.
+`src/shared/lib/date-engine`, introduce a custom `BusinessCalendar`
+abstraction, and route runtime scheduling callers through it without changing
+behavior. Mirror the abstraction needed by Supabase Edge utilities before any
+weekend or holiday rule changes.
 
 The first implementation slice must preserve the current calendar-day behavior.
 Weekend and regional holiday support require a later explicit product/schema
@@ -39,6 +40,24 @@ PR I1 adds:
 
 PR I1 does not route scheduling, urgency, nightly-sync, recurrence, or ICS
 logic through the new seam. PR I2 owns that no-behavior-change migration.
+
+## PR I2 Implementation
+PR I2 routes current runtime callers through the app/edge seams:
+
+* `calculateScheduleFromOffset`, `recalculateProjectDates`, and `deriveUrgency`
+  use `defaultBusinessCalendar` while normalizing date-only inputs to explicit
+  UTC date-only values where hierarchy scheduling depends on `YYYY-MM-DD`
+  semantics;
+* `supabase/functions/ics-feed/ics.ts` advances all-day `DTEND` through the
+  edge business-calendar seam;
+* `supabase/functions/nightly-sync/urgency.ts` computes due-soon cutoffs
+  through the edge business-calendar seam while preserving the current UTC
+  time-of-day threshold behavior;
+* characterization tests keep weekend-inclusive calendar-day behavior locked.
+
+PR I2 intentionally does not change recurrence evaluation or clone scheduling.
+Those paths already operate on UTC `YYYY-MM-DD` stamps and remain covered by
+the parity requirements below.
 
 ## Rationale
 This is the safest path for PlanterPlan because current behavior depends on:
@@ -95,3 +114,15 @@ PR I1 adds tests that lock:
 * weekend-inclusive "business day" behavior;
 * app/edge parity for `addBusinessDays`, `diffInBusinessDays`, and
   `isBusinessDay` on valid date-only inputs.
+
+## PR I2 Characterization
+PR I2 adds tests that lock:
+
+* schedule offsets and project date shifts routed through the seam still count
+  weekends as calendar days;
+* date-only business-calendar arithmetic remains UTC-stable across DST
+  boundaries;
+* full ISO root dates normalize through UTC date-only scheduling;
+* ICS all-day `DTEND` stays one calendar day after `due_date`;
+* nightly-sync due-soon thresholds preserve UTC time-of-day while routing the
+  date portion through the edge business-calendar seam.

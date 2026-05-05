@@ -47,6 +47,12 @@ describe('deriveUrgency', () => {
     expect(result).toBe('due_soon');
   });
 
+  it('keeps threshold arithmetic UTC-stable across DST boundaries', () => {
+    const dstNow = new Date('2026-03-08T12:00:00.000Z');
+
+    expect(deriveUrgency({ due_date: '2026-03-09' }, 1, dstNow)).toBe('due_soon');
+  });
+
   it("returns 'not_yet_due' when start_date is strictly after today and due_date is beyond threshold", () => {
     const result = deriveUrgency(
       { start_date: '2026-05-01', due_date: '2026-05-10' },

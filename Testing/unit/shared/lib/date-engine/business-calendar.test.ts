@@ -19,6 +19,12 @@ describe('business-calendar abstraction', () => {
         expect(toIsoDate(calendarDayBusinessCalendar.addBusinessDays(fridayUtc, -1))).toBe('2026-01-01');
     });
 
+    it('treats date-only arithmetic as UTC days across DST boundaries', () => {
+        const shifted = calendarDayBusinessCalendar.addBusinessDays('2026-03-08', 1);
+
+        expect(shifted?.toISOString()).toBe('2026-03-09T00:00:00.000Z');
+    });
+
     it('treats weekends as business days until holiday/weekend rules are explicitly added', () => {
         expect(calendarDayBusinessCalendar.isBusinessDay('2026-01-03')).toBe(true);
     });
@@ -32,6 +38,7 @@ describe('business-calendar abstraction', () => {
         expect(calendarDayBusinessCalendar.addBusinessDays(null, 1)).toBeNull();
         expect(calendarDayBusinessCalendar.diffInBusinessDays('2026-01-05', 'not-a-date')).toBeNull();
         expect(calendarDayBusinessCalendar.isBusinessDay('not-a-date')).toBe(false);
+        expect(calendarDayBusinessCalendar.isBusinessDay('2026-02-31')).toBe(false);
     });
 
     it('has a typed contract for future calendar implementations', () => {
