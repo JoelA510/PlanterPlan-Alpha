@@ -1,7 +1,9 @@
 # Date Engine Business Calendar ADR
 
 ## Status
-Accepted for the user-testing tranche, PR H. Implementation is deferred to PR I slices.
+Accepted for the user-testing tranche. PR H recorded the decision and
+characterization net. PR I1 adds the app/edge business-calendar interfaces with
+calendar-day behavior and no runtime caller migration.
 
 ## Context
 PlanterPlan currently centralizes app date math in `src/shared/lib/date-engine`.
@@ -25,6 +27,18 @@ logic through it.
 The first implementation slice must preserve the current calendar-day behavior.
 Weekend and regional holiday support require a later explicit product/schema
 decision.
+
+## PR I1 Implementation
+PR I1 adds:
+
+* `src/shared/lib/date-engine/business-calendar.ts`, exported through the app
+  date-engine package path for direct imports;
+* `supabase/functions/_shared/business-calendar.ts`, the Deno edge mirror;
+* app, edge, and parity tests proving the `calendar-day` implementation keeps
+  Friday + 1 business day as Saturday and treats weekends as business days.
+
+PR I1 does not route scheduling, urgency, nightly-sync, recurrence, or ICS
+logic through the new seam. PR I2 owns that no-behavior-change migration.
 
 ## Rationale
 This is the safest path for PlanterPlan because current behavior depends on:
@@ -52,7 +66,7 @@ constructors.
 * **Leave the engine as-is:** rejected because it leaves no explicit seam for
   weekend/holiday rules or edge parity tests.
 
-## Parity Requirements For PR I
+## Parity Requirements For PR I+
 * App and edge helpers must agree on `YYYY-MM-DD`, UTC month keys, UTC-midnight
   truncation, and checkpoint project detection.
 * `nightly-sync` overdue/due-soon transitions must preserve checkpoint
@@ -72,3 +86,12 @@ PR H adds tests that lock:
 * app/edge parity for UTC date helpers and checkpoint detection;
 * current calendar-day arithmetic, including weekend-inclusive day addition;
 * existing template exclusion and checkpoint carve-out coverage.
+
+## PR I1 Characterization
+PR I1 adds tests that lock:
+
+* the app and edge default business calendar to the `calendar-day`
+  implementation;
+* weekend-inclusive "business day" behavior;
+* app/edge parity for `addBusinessDays`, `diffInBusinessDays`, and
+  `isBusinessDay` on valid date-only inputs.
