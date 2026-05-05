@@ -3,6 +3,15 @@ import { expect } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 
 const { Given, When, Then } = createBdd();
+const uniqueEmailSuffix = `${Date.now()}-${process.pid}`;
+
+function resolveScenarioEmail(email: string) {
+  if (email === 'newuser@example.com') {
+    return `newuser+${uniqueEmailSuffix}@example.com`;
+  }
+
+  return email;
+}
 
 // ── Setup ───────────────────────────────────────────────────────────────────
 
@@ -15,7 +24,7 @@ Given('the user is on the login page', async ({ page }) => {
 
 When('the user enters email {string}', async ({ page }, email: string) => {
   const loginPage = new LoginPage(page);
-  await loginPage.fillEmail(email);
+  await loginPage.fillEmail(resolveScenarioEmail(email));
 });
 
 When('the user enters password {string}', async ({ page }, password: string) => {
@@ -35,7 +44,7 @@ When('the user clicks the toggle mode button', async ({ page }) => {
 
 When('the user submits with email {string} and password {string}', async ({ page }, email: string, password: string) => {
   const loginPage = new LoginPage(page);
-  await loginPage.fillEmail(email);
+  await loginPage.fillEmail(resolveScenarioEmail(email));
   await loginPage.fillPassword(password);
   await loginPage.clickSignIn();
 });
@@ -43,16 +52,16 @@ When('the user submits with email {string} and password {string}', async ({ page
 // ── Assertions ──────────────────────────────────────────────────────────────
 
 Then('a validation error {string} is shown for {string}', async ({ page }, message: string, field: string) => {
-  const errorLocator = page.locator(`#${field} ~ p.text-red-500, #${field} + p.text-red-500`);
+  const errorLocator = page.locator(`[data-testid="${field}-error"]`);
   await expect(errorLocator).toContainText(message);
 });
 
 Then('an email validation error is shown', async ({ page }) => {
-  await expect(page.locator('#email ~ p.text-red-500')).toBeVisible();
+  await expect(page.locator('[data-testid="email-error"]')).toBeVisible();
 });
 
 Then('a password validation error is shown', async ({ page }) => {
-  await expect(page.locator('#password ~ p.text-red-500')).toBeVisible();
+  await expect(page.locator('[data-testid="password-error"]')).toBeVisible();
 });
 
 Then('a loading spinner is visible on the submit button', async ({ page }) => {

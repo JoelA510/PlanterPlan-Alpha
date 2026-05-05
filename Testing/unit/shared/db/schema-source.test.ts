@@ -57,6 +57,31 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(sql).not.toContain('has_permission(v_template_root_id, (SELECT auth.uid()), \'member\')');
  });
 
+ it('characterizes the current clone_project_template note-copy baseline', () => {
+  const functionStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."clone_project_template"(');
+  const functionEnd = schema.indexOf('ALTER FUNCTION "public"."clone_project_template"(');
+  const sql = schema.slice(functionStart, functionEnd);
+
+  expect(functionStart).toBeGreaterThanOrEqual(0);
+  expect(functionEnd).toBeGreaterThan(functionStart);
+  expect(sql).toContain('notes, purpose, actions, is_complete, days_from_start, start_date, due_date');
+  expect(sql).toContain('t.notes, t.purpose, t.actions, false, t.days_from_start');
+ });
+
+ it('keeps initialize_default_project available for blank project scaffolding', () => {
+  const functionStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."initialize_default_project"(');
+  const functionEnd = schema.indexOf('ALTER FUNCTION "public"."initialize_default_project"(');
+  const sql = schema.slice(functionStart, functionEnd);
+
+  expect(functionStart).toBeGreaterThanOrEqual(0);
+  expect(functionEnd).toBeGreaterThan(functionStart);
+  expect(sql).toContain('IF auth.uid() <> p_creator_id THEN');
+  expect(sql).toContain('INSERT INTO public.project_members (project_id, user_id, role)');
+  expect(sql).toContain("'Discovery'");
+  expect(sql).toContain("'Growth'");
+  expect(sql).toContain("'tasks_created', v_task_count");
+ });
+
  it('keeps tasks_with_primary_resource joined to task_resources with Wave 36 columns', () => {
   const viewStart = schema.indexOf('CREATE OR REPLACE VIEW "public"."tasks_with_primary_resource"');
   const viewEnd = schema.indexOf('CREATE OR REPLACE VIEW "public"."users_public"');

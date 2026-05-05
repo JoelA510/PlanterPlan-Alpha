@@ -7,7 +7,7 @@ Feature: User Login
     When the user enters email "test@example.com"
     And the user enters password "password123"
     And the user clicks the sign in button
-    Then the user is redirected to "/dashboard"
+    Then the user is redirected to "/tasks"
 
   Scenario: Login fails with invalid email
     When the user enters email "wrong@example.com"

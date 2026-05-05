@@ -14,7 +14,7 @@ Feature: User Sign Up
     And the user enters email "newuser@example.com"
     And the user enters password "password123"
     And the user clicks the sign in button
-    Then the user is redirected to "/dashboard"
+    Then the user is redirected to "/tasks"
 
   Scenario: Sign up fails for duplicate email
     When the user clicks the toggle mode button

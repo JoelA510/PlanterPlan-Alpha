@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const playwrightConfig = readFileSync('Testing/e2e/playwright.config.ts', 'utf8');
+const loginPageObject = readFileSync('Testing/e2e/pages/LoginPage.ts', 'utf8');
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as { scripts: Record<string, string> };
 
 describe('Playwright E2E config', () => {
@@ -33,5 +34,10 @@ describe('Playwright E2E config', () => {
   expect(packageJson.scripts['test:e2e:headed']).toBe('node scripts/run-e2e.cjs --headed');
   expect(packageJson.scripts['test:e2e:a11y']).toBe('node scripts/run-e2e.cjs --project=accessibility');
   expect(packageJson.scripts['test:e2e:vision']).toBe('node scripts/run-e2e.cjs --grep @vision');
+ });
+
+ it('keeps the login page object scoped to the form submit button', () => {
+  expect(loginPageObject).toContain("this.submitButton = page.locator('form button[type=\"submit\"]');");
+  expect(loginPageObject).not.toContain("this.submitButton = page.getByRole('button', { name: /sign in|sign up|log in/i });");
  });
 });
