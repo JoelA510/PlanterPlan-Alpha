@@ -59,6 +59,12 @@ normalises into the nested JSONB shape before persisting.
 
 ## Coaching Tasks (Wave 22)
 
+> **User-testing tranche note:** current implementation exposes coaching flag
+> authoring on instance tasks. PR F must invert authoring so the flag is
+> editable only on template rows and sanitize instance create/update payloads so
+> project instances cannot mutate `settings.is_coaching_task`. Existing
+> instance badges/coach behavior may remain read-only inherited behavior.
+
 Any **instance task** (`origin = 'instance'`) may be tagged as a *coaching
 task* via `settings.is_coaching_task: true`. The flag widens edit access
 to users with the project `coach` role via an additive RLS UPDATE policy
@@ -124,6 +130,12 @@ unrelated projects are never touched.
 
 ## Strategy Templates (Wave 24)
 
+> **User-testing tranche note:** current implementation exposes strategy flag
+> authoring on instance tasks. PR F must invert authoring so the flag is
+> editable only on template rows and sanitize instance create/update payloads so
+> project instances cannot mutate `settings.is_strategy_template`. Existing
+> instance badges/follow-up behavior may remain read-only inherited behavior.
+
 Any **instance task** (`origin = 'instance'`) may be tagged as a *strategy
 template* via `settings.is_strategy_template: true`. The flag is purely a
 UX convention — no RLS carve-out, no additional DB triggers. It tells the
@@ -176,6 +188,11 @@ RLS policy needed. Owners / editors already have UPDATE access on
 instance tasks.
 
 ## Comments (Wave 26)
+
+> **User-testing tranche note:** PR E must remove comments from the project
+> task detail UI as a UI-only change first. Do not remove `public.task_comments`,
+> RLS policies, realtime hooks, activity-log triggers, or notification mention
+> plumbing without a separate data-retention decision.
 
 Threaded task comments live in `public.task_comments`. Each row carries
 `task_id` (the comment's target), `root_id` (auto-filled from the parent

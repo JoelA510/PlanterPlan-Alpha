@@ -18,6 +18,7 @@
   - `api/`: API adapters (`planterClient`).
 - **`docs/`**: Source of Truth.
   - `docs/architecture/*.md`: The definitive, modular Single Source of Truth for all domain business rules (Date Engine, RBAC, Tasks). **Always check here first before attempting architectural refactors.**
+  - `docs/architecture/user-testing-baseline.md`: The active user-testing gap-closure baseline and ordered PR guardrails. Use it before dashboard, comments, template flags, clone/import, or date-engine tranche work.
   - `supabase/migrations/20260426000000_baseline_schema.sql`: Current local Supabase baseline.
   - `docs/db/schema.sql`: Generated schema snapshot mirror.
   - `docs/db/README.md`: Current DB bootstrap contract. Local/CI DB validation uses `npm run db:local:bootstrap`, not raw `supabase start`.
@@ -109,7 +110,8 @@ This is wired in `src/features/tasks/hooks/useTaskMutations.ts` (`useCreateTask`
 ## 4. Testing & Verification
 
 - **Unit/Integration**: `npm test` (Vitest).
-- **E2E Tests**: `npm run test:e2e` (Playwright BDD — feature files in `Testing/e2e/features/`).
+- **Release E2E Smoke**: `npm run test:e2e:release` (Playwright BDD `@release` scenarios; required in CI).
+- **Full E2E Suite**: `npm run test:e2e` (legacy Playwright BDD suite in `Testing/e2e/features/`; run manually when changing broad E2E coverage, but do not treat it as the current release gate without first seeding/curating stale scenarios).
 - **Linting**: `npm run lint` (Zero-tolerance for errors, including `noUnusedLocals`).
 
 ## 5. Deployment / Build

@@ -18,6 +18,13 @@ The Library & Templates domain provides the administrative scaffolding for Plant
 2. **Cloning:** The Master Template tree is recursively copied into a new Project ID instance.
 3. **Date Resolution:** Relative `duration` and `days from start` are converted into hard ISO dates based on the user's `Target Launch Date`.
 
+**User-testing tranche note:** PR G must characterize and fix the current
+template-to-project clone/import behavior. The current SQL clone path copies
+`notes` into instance rows; the accepted target is that template notes do not
+copy into project items. The same PR must keep hierarchy, order, clone metadata,
+and displayed project state consistent across template-created projects and any
+inline project import paths.
+
 ## Business Rules & Constraints
 * **Template UI Limitations:** Template items do *not* possess progress bars, status dropdowns, or Date Engine urgency states.
 * **Master Library Strictness:**
