@@ -16,7 +16,7 @@ The Dashboard & Analytics domain aggregates telemetry across Projects, Tasks, an
 4. **Dashboard Broadcast:** Real-time hooks push the updated percentage to the Project Card and Dashboard Overview.
 
 ## Business Rules & Constraints
-* **User-testing tranche directive (pending PR C/D):** do not add new product
+* **User-testing tranche directive (pending PR C, PR D):** do not add new product
   ownership to the user dashboard. Project/template creation must move to
   non-dashboard routes first, then `/dashboard`, `ProjectPipelineBoard`, and
   manual project-lifecycle status mutation are scheduled for removal. Derived

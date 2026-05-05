@@ -32,7 +32,7 @@ Calculated dynamically based on system time vs. Task End Dates:
 
 ## Known Gaps / Technical Debt
 * Algorithms for auto-adjusting dates currently lack logic for skipping weekends and regional holidays.
-* **User-testing tranche direction (pending PR H/I):** keep `date-fns`
+* **User-testing tranche direction (pending PR H, PR I+):** keep `date-fns`
   constrained to `src/shared/lib/date-engine` and introduce a custom
   business-calendar abstraction with a mirrored edge-function utility layer.
   PR H must add characterization and a decision record before any behavior
