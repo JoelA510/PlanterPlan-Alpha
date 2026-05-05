@@ -143,9 +143,16 @@ const TaskFormFields = ({
  } = useFormContext<TaskFormData>();
  const { user } = useAuth();
  const isAdmin = (user as { role?: string })?.role === 'admin';
- const canTagCoaching =
- origin === 'instance' && (membershipRole === 'owner' || membershipRole === 'editor');
- const canTagStrategy = canTagCoaching;
+ const canEditTemplateFlags =
+ origin === 'template'
+ && (
+ membershipRole === 'owner'
+ || membershipRole === 'editor'
+ || membershipRole === 'admin'
+ || isAdmin
+ );
+ const canTagCoaching = canEditTemplateFlags;
+ const canTagStrategy = canEditTemplateFlags;
  const canAssignPhaseLeads =
  origin === 'instance'
  && membershipRole === 'owner'
@@ -254,7 +261,7 @@ const TaskFormFields = ({
  Coaching task
  </Label>
  <p className="text-xs text-slate-500">
- Allow users with the Coach role on this project to edit this task.
+ Cloned project instances keep this as a coaching task for Coach-role editing.
  </p>
  </div>
  </div>
@@ -274,7 +281,7 @@ const TaskFormFields = ({
  Strategy template
  </Label>
  <p className="text-xs text-slate-500">
- Offer Master Library follow-ups when this task is completed.
+ Cloned project instances offer Master Library follow-ups when completed.
  </p>
  </div>
  </div>

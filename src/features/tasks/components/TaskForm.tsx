@@ -10,6 +10,7 @@ import { Button } from '@/shared/ui/button';
 import { isRecurrenceRule } from '@/shared/lib/recurrence';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
+import { sanitizeTemplateFlagFormData } from '@/features/tasks/lib/task-form-flags';
 import { extractPhaseLeads } from '@/shared/lib/phase-lead';
 import type { TaskFormData, TaskRow, TeamMemberWithProfile } from '@/shared/db/app.types';
 
@@ -168,7 +169,7 @@ const TaskForm = ({
 
  const handleFormSubmit = useCallback<SubmitHandler<TaskFormData>>(async (data) => {
  try {
- await onSubmit(data);
+ await onSubmit(sanitizeTemplateFlagFormData(data, origin));
  if (!isEditMode) {
  reset(createInitialState(null));
  setLastAppliedTaskTitle('');
@@ -176,7 +177,7 @@ const TaskForm = ({
  } catch (e) {
  console.error("Task submission failed:", e);
  }
- }, [onSubmit, isEditMode, reset]);
+ }, [onSubmit, origin, isEditMode, reset]);
 
  return (
  <FormProvider {...methods}>
