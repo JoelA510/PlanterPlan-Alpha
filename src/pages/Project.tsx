@@ -437,6 +437,7 @@ export default function Project() {
                         membershipRole={userRole}
                         allProjectTasks={(projectHierarchy as TaskRow[]) || []}
                         teamMembers={teamMembers}
+                        showComments={false}
                         onClose={() => {
                             actions.setSelectedTask(null);
                             setTaskFormState(null);

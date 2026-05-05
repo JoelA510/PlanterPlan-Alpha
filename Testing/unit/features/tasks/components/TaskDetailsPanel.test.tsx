@@ -42,6 +42,24 @@ describe('TaskDetailsPanel', () => {
         }));
     });
 
+    it('passes the project-context comments visibility flag through to TaskDetailsView', () => {
+        const task = makeTask({ id: 't1', title: 'Project task' });
+
+        render(
+            <TaskDetailsPanel
+                showForm={false}
+                selectedTask={task}
+                showComments={false}
+                onClose={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByTestId('task-details-view-stub')).toBeInTheDocument();
+        expect(mockTaskDetailsView).toHaveBeenCalledWith(expect.objectContaining({
+            showComments: false,
+        }));
+    });
+
     it('does not pass a delete handler when no delete wrapper exists', () => {
         const task = makeTask({ id: 't1', title: 'Plain task' });
 

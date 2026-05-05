@@ -56,6 +56,7 @@ export interface TaskDetailsPanelProps {
  membershipRole?: string;
  allProjectTasks?: TaskRow[];
  teamMembers?: TeamMemberWithProfile[];
+ showComments?: boolean;
  className?: string;
 }
 
@@ -77,6 +78,7 @@ export default function TaskDetailsPanel({
  membershipRole,
  allProjectTasks,
  teamMembers = [],
+ showComments = true,
  className,
 }: TaskDetailsPanelProps) {
  const { t } = useTranslation();
@@ -134,6 +136,7 @@ export default function TaskDetailsPanel({
  membershipRole={membershipRole}
  allProjectTasks={allProjectTasks}
  teamMembers={teamMembers}
+ showComments={showComments}
  />
  ) : null}
  </div>

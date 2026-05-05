@@ -189,10 +189,12 @@ instance tasks.
 
 ## Comments (Wave 26)
 
-> **User-testing tranche note:** PR E must remove comments from the project
-> task detail UI as a UI-only change first. Do not remove `public.task_comments`,
-> RLS policies, realtime hooks, activity-log triggers, or notification mention
-> plumbing without a separate data-retention decision.
+> **User-testing tranche note:** PR E removes comments from the project task
+> detail UI as a UI-only change. `src/pages/Project.tsx` passes
+> `showComments={false}` through `TaskDetailsPanel` to `TaskDetailsView`;
+> `public.task_comments`, RLS policies, realtime hooks, activity-log triggers,
+> and notification mention plumbing remain intact pending a separate
+> data-retention decision.
 
 Threaded task comments live in `public.task_comments`. Each row carries
 `task_id` (the comment's target), `root_id` (auto-filled from the parent
