@@ -107,13 +107,14 @@ mirrored into `docs/db/schema.sql` as the SSoT.
 `BEFORE INSERT OR UPDATE ON public.tasks` trigger (`trg_set_coaching_assignee`
 → `set_coaching_assignee()`). When a row carries
 `settings.is_coaching_task = true` AND `assignee_id` is null, the trigger
-looks up `project_members WHERE project_id = COALESCE(NEW.root_id, NEW.id)
-AND role = 'coach'`. If *exactly one* coach is found, `NEW.assignee_id` is
-set to that user. **Zero or multiple coaches → no-op**, leaving the field
-null so a human can pick. **User intent wins:** the trigger never
-overwrites a non-null `assignee_id` the caller supplied. The UI picks up
-the server-assigned coach via the standard `useUpdateTask` / `useCreateTask`
-`onSettled` invalidation of `['projectHierarchy', rootId]`.
+resolves the project from `NEW.root_id`, walking `parent_task_id` first when a
+new child row has not yet been root-stamped, then looks up coach membership for
+that project. If *exactly one* coach is found, `NEW.assignee_id` is set to that
+user. **Zero or multiple coaches → no-op**, leaving the field null so a human
+can pick. **User intent wins:** the trigger never overwrites a non-null
+`assignee_id` the caller supplied. The UI picks up the server-assigned coach via
+the standard `useUpdateTask` / `useCreateTask` `onSettled` invalidation of
+`['projectHierarchy', rootId]`.
 
 **Backfill on membership change (Wave 24):**
 `docs/db/migrations/2026_04_18_coaching_backfill_on_membership.sql` adds

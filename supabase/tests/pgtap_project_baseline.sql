@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(12);
+SELECT plan(16);
 
 TRUNCATE TABLE public.activity_log, public.task_comments, public.project_members, public.task_resources, public.tasks CASCADE;
 DELETE FROM auth.users
@@ -93,13 +93,13 @@ VALUES (
     '00000000-0000-0000-0000-000000000302',
     '22222222-2222-2222-2222-222222222301',
     'template',
-    '{"published": true}'::jsonb,
+    '{"published": true, "project_kind": "checkpoint", "recurrence": {"kind": "weekly"}, "is_coaching_task": true, "is_strategy_template": true}'::jsonb,
     'root template note',
     '2026-01-01 00:00:00+00',
     1
 );
 
-INSERT INTO public.tasks (id, parent_task_id, root_id, title, status, creator, origin, notes, position)
+INSERT INTO public.tasks (id, parent_task_id, root_id, title, status, creator, origin, notes, settings, position)
 VALUES (
     '22222222-2222-2222-2222-222222222302',
     '22222222-2222-2222-2222-222222222301',
@@ -109,6 +109,7 @@ VALUES (
     '00000000-0000-0000-0000-000000000302',
     'template',
     'child template note',
+    '{"is_coaching_task": true, "is_strategy_template": true, "recurrence": {"kind": "monthly"}}'::jsonb,
     2
 );
 
@@ -156,15 +157,36 @@ SELECT is(
 );
 
 SELECT is(
-    (SELECT notes FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222301'),
-    'root template note',
-    'clone_project_template currently copies root notes into instance clones'
+    (SELECT COALESCE(notes, '') FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222301'),
+    '',
+    'clone_project_template clears root template notes on instance clones'
 );
 
 SELECT is(
-    (SELECT notes FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222302'),
-    'child template note',
-    'clone_project_template currently copies child notes into instance clones'
+    (SELECT COALESCE(notes, '') FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222302'),
+    '',
+    'clone_project_template clears child template notes on instance clones'
+);
+
+SELECT is(
+    (SELECT settings ->> 'project_kind' FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222301'),
+    'checkpoint',
+    'clone_project_template preserves root project_kind on instance clones'
+);
+
+SELECT ok(
+    (SELECT (settings ->> 'is_coaching_task')::boolean FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222302'),
+    'clone_project_template preserves child coaching behavior flag on instance clones'
+);
+
+SELECT ok(
+    (SELECT (settings ->> 'is_strategy_template')::boolean FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222302'),
+    'clone_project_template preserves child strategy behavior flag on instance clones'
+);
+
+SELECT ok(
+    (SELECT NOT COALESCE(settings ? 'recurrence', false) FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222302'),
+    'clone_project_template does not copy unapproved recurrence settings into instance clones'
 );
 
 SELECT * FROM finish();

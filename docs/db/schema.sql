@@ -605,7 +605,14 @@ BEGIN
         RETURN NULL;
     END IF;
 
-    SELECT COUNT(*), MIN(user_id)
+    SELECT COUNT(*), (
+        SELECT pm.user_id
+          FROM public.project_members pm
+         WHERE pm.project_id = v_project_id
+           AND pm.role = 'coach'
+         ORDER BY pm.user_id
+         LIMIT 1
+    )
       INTO v_coach_count, v_coach_id
       FROM public.project_members
      WHERE project_id = v_project_id
@@ -922,7 +929,7 @@ BEGIN
     INSERT INTO public.tasks (
         id, parent_task_id, root_id, creator, origin,
         title, description, status, position,
-        notes, purpose, actions, is_complete, days_from_start, start_date, due_date,
+        notes, purpose, actions, settings, is_complete, days_from_start, start_date, due_date,
         cloned_from_task_id
     )
     SELECT
@@ -938,7 +945,27 @@ BEGIN
         CASE WHEN t.id = p_template_id AND p_title IS NOT NULL THEN p_title ELSE t.title END,
         CASE WHEN t.id = p_template_id AND p_description IS NOT NULL THEN p_description ELSE t.description END,
         t.status, t.position,
-        t.notes, t.purpose, t.actions, false, t.days_from_start,
+        CASE WHEN p_new_origin = 'instance' THEN NULL::text ELSE t.notes END,
+        t.purpose,
+        t.actions,
+        CASE
+            WHEN p_new_origin = 'template' THEN COALESCE(t.settings, '{}'::jsonb)
+            ELSE jsonb_strip_nulls(jsonb_build_object(
+                'is_coaching_task',
+                    CASE WHEN t.settings -> 'is_coaching_task' = 'true'::jsonb THEN true ELSE NULL END,
+                'is_strategy_template',
+                    CASE WHEN t.settings -> 'is_strategy_template' = 'true'::jsonb THEN true ELSE NULL END,
+                'project_kind',
+                    CASE
+                        WHEN t.id = p_template_id
+                            AND t.settings ->> 'project_kind' IN ('date', 'checkpoint')
+                        THEN t.settings ->> 'project_kind'
+                        ELSE NULL
+                    END
+            ))
+        END,
+        false,
+        t.days_from_start,
         -- Set Dates:
         -- 1. If Root: Use provided p_start_date (or original if null, but usually we want override)
         -- 2. If Child: Shift by v_interval
@@ -1762,7 +1789,14 @@ BEGIN
         v_project_id := NEW.id;
     END IF;
 
-    SELECT COUNT(*), MIN(user_id)
+    SELECT COUNT(*), (
+        SELECT pm.user_id
+          FROM public.project_members pm
+         WHERE pm.project_id = v_project_id
+           AND pm.role = 'coach'
+         ORDER BY pm.user_id
+         LIMIT 1
+    )
       INTO v_coach_count, v_coach_id
       FROM public.project_members
      WHERE project_id = v_project_id

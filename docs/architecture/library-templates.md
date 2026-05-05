@@ -18,12 +18,12 @@ The Library & Templates domain provides the administrative scaffolding for Plant
 2. **Cloning:** The Master Template tree is recursively copied into a new Project ID instance.
 3. **Date Resolution:** Relative `duration` and `days from start` are converted into hard ISO dates based on the user's `Target Launch Date`.
 
-**User-testing tranche note:** PR G must characterize and fix the current
-template-to-project clone/import behavior. The current SQL clone path copies
-`notes` into instance rows; the accepted target is that template notes do not
-copy into project items. The same PR must keep hierarchy, order, clone metadata,
-and displayed project state consistent across template-created projects and any
-inline project import paths.
+**User-testing tranche behavior (PR G):** template-to-project clone/import paths
+do not copy template `notes` into instance rows. They preserve hierarchy, order,
+`cloned_from_task_id`, root `project_kind`, and approved inherited behavior flags
+(`is_coaching_task`, `is_strategy_template`) so project instances keep read-only
+template behavior without inheriting editable template notes or unrelated
+template settings.
 
 ## Business Rules & Constraints
 * **Template UI Limitations:** Template items do *not* possess progress bars, status dropdowns, or Date Engine urgency states.
@@ -31,6 +31,7 @@ inline project import paths.
   * Items created dynamically inside a Template are *not* automatically added to the Master Library. They must be explicitly promoted via UI action.
   * Instantiating a Master Library task into a project copies its data completely, allowing decoupled custom edits by the user.
   * **De-duplication (Wave 22):** after a successful `clone_project_template` RPC, `Task.clone` in `src/shared/api/planterClient.ts` stamps `settings.spawnedFromTemplate = <source_template_id>` onto the cloned root (non-fatal merge — a stamp failure never rolls back the clone). `useMasterLibrarySearch` accepts an `excludeTemplateIds` set and drops any result whose id is in the set; it also surfaces an `exclusionDrained` flag so the combobox can show "All matching templates are already in this project." when the full list was drained by exclusion. `TaskList.tsx` and `pages/Project.tsx` derive the exclude set from the already-loaded project hierarchy via the shared `collectSpawnedTemplateIds` helper in `src/shared/lib/tree-helpers.ts` — no extra round trip.
+  * **Instance note isolation (PR G):** `clone_project_template` and inline project imports clear `notes` when creating `origin = 'instance'` rows from template data. Template-to-template clones retain notes for admin-maintained library work.
 * **Creation Interface:** Adding new entities to templates triggers a dedicated modal form titled dynamically based on the entity type.
 
 ## Integration Points

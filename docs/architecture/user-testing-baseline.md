@@ -32,8 +32,8 @@ Repo baseline after PR A:
 * `initialize_default_project` is characterized by pgTAP baseline tests:
   blank project creation creates owner membership, six phases, and the current
   scaffold shape.
-* `clone_project_template` is characterized in its current state, including
-  the known note-copy behavior that PR G must intentionally change.
+* `clone_project_template` is characterized by pgTAP tests, including
+  instance clone note isolation and approved settings preservation from PR G.
 
 ## Accepted Target Directives
 
@@ -70,7 +70,7 @@ coverage before changing behavior.
 | Comments | PR E passes `showComments={false}` from the project route, hiding `TaskComments` only in project-context task detail. | Backend comments, RLS, realtime, and notification plumbing stay intact. | Done PR E |
 | Coaching flag | PR F exposes `settings.is_coaching_task` editing only on template forms and strips instance form payloads. | Instances preserve inherited behavior read-only. | Done PR F |
 | Strategy flag | PR F exposes `settings.is_strategy_template` editing only on template forms and strips instance form payloads. | Instances preserve inherited behavior read-only. | Done PR F |
-| Template clone | `clone_project_template` copies task notes into instance clones. | Instance clones receive blank notes while preserving approved metadata. | PR G |
+| Template clone | PR G clears template notes when cloning/importing into project instances and preserves only approved inherited metadata (`project_kind`, coaching, and strategy flags). | Instance clones receive blank notes while preserving approved metadata. | Done PR G |
 | Date engine | Custom UTC/date-only engine uses `date-fns` and lacks business-calendar/weekend/holiday abstraction. | Add ADR, characterization, and business-calendar abstraction before behavior changes. | PR H, PR I+ |
 
 ## Release Rules
