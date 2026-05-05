@@ -72,7 +72,7 @@ const LoginForm = () => {
  </p>
  </div>
 
- <form className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit(onSubmit)}>
+	 <form className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10" onSubmit={handleSubmit(onSubmit)} noValidate>
  <div className="space-y-6">
  <div>
  <label htmlFor="email" className="block text-sm font-medium text-slate-700">
