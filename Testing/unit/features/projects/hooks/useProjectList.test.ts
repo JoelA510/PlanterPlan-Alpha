@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // ---- Mocks ----
 const mockProjectList = vi.fn().mockResolvedValue([]);
 const mockTaskListByCreator = vi.fn().mockResolvedValue([]);
-// Phase 2 (perf audit H4): useDashboard now scopes TeamMember by the caller's
+// Phase 2 (perf audit H4): useProjectList now scopes TeamMember by the caller's
 // uid via `.filter({ user_id })` instead of unscoped `.list()` — fewer rows,
 // O(caller-memberships) not O(tenant-memberships).
 const mockTeamMemberFilter = vi.fn().mockResolvedValue([]);
@@ -25,7 +25,7 @@ vi.mock('@/shared/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-1' }, loading: false }),
 }));
 
-import { useDashboard } from '@/features/dashboard/hooks/useDashboard';
+import { useProjectList } from '@/features/projects/hooks/useProjectList';
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -38,7 +38,7 @@ function createWrapper() {
     React.createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
-describe('useDashboard', () => {
+describe('useProjectList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockProjectList.mockResolvedValue([]);
@@ -48,7 +48,7 @@ describe('useDashboard', () => {
   });
 
   it('returns loading state initially', () => {
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
     expect(result.current.state.isLoading).toBeDefined();
   });
 
@@ -61,7 +61,7 @@ describe('useDashboard', () => {
     mockTaskListByCreator.mockResolvedValue(tasks);
     mockTeamMemberFilter.mockResolvedValue(members);
 
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.data.projects).toEqual(projects);
@@ -79,7 +79,7 @@ describe('useDashboard', () => {
     ];
     mockProjectList.mockResolvedValue(projects);
 
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.data.activeProjects).toHaveLength(2);
@@ -96,7 +96,7 @@ describe('useDashboard', () => {
     ];
     mockProjectList.mockResolvedValue(projects);
 
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.data.archivedProjects).toHaveLength(2);
@@ -112,7 +112,7 @@ describe('useDashboard', () => {
     ];
     mockTaskListByCreator.mockResolvedValue(tasks);
 
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.data.allTasks).toHaveLength(3);
@@ -132,7 +132,7 @@ describe('useDashboard', () => {
     ];
     mockTaskListByCreator.mockResolvedValue(tasks);
 
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.data.allTasks).toHaveLength(1);
@@ -152,7 +152,7 @@ describe('useDashboard', () => {
     ];
     mockTaskListByCreator.mockResolvedValue(tasks);
 
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.data.allTasks).toHaveLength(2);
@@ -170,7 +170,7 @@ describe('useDashboard', () => {
     const tasks = [{ id: 't1', title: 'A' }, { id: 't2', title: 'B' }];
     mockTaskListByCreator.mockResolvedValue(tasks);
 
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.data.filteredTasks).toHaveLength(2);
@@ -180,17 +180,17 @@ describe('useDashboard', () => {
   describe('wizard state', () => {
     it('initializes wizardDismissed from localStorage', () => {
       localStorage.setItem('gettingStartedDismissed', 'true');
-      const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
       expect(result.current.state.wizardDismissed).toBe(true);
     });
 
     it('defaults wizardDismissed to false when localStorage is empty', () => {
-      const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
       expect(result.current.state.wizardDismissed).toBe(false);
     });
 
     it('handleDismissWizard sets localStorage and state', () => {
-      const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
       act(() => {
         result.current.actions.handleDismissWizard();
@@ -204,7 +204,7 @@ describe('useDashboard', () => {
   it('handles empty project array gracefully', async () => {
     mockProjectList.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.data.projects).toEqual([]);
@@ -215,7 +215,7 @@ describe('useDashboard', () => {
   it('returns error state on fetch failure', async () => {
     mockProjectList.mockRejectedValue(new Error('fetch failed'));
 
-    const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.state.isError).toBe(true);

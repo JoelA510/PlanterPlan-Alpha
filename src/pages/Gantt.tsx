@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ViewMode } from 'gantt-task-react';
-import { useDashboard } from '@/features/dashboard/hooks/useDashboard';
+import { useProjectList } from '@/features/projects/hooks/useProjectList';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { tasksToGanttRows } from '@/features/gantt/lib/gantt-adapter';
 import { ProjectGantt, type GanttZoom } from '@/features/gantt/components/ProjectGantt';
@@ -22,8 +22,8 @@ export default function Gantt() {
     const [searchParams, setSearchParams] = useSearchParams();
     const projectId = searchParams.get('projectId');
 
-    const { data: dashboard } = useDashboard();
-    const activeProjects = dashboard.activeProjects;
+    const { data: projectList } = useProjectList();
+    const activeProjects = projectList.activeProjects;
 
     const [zoom, setZoom] = useState<GanttZoom>(ViewMode.Week);
     const [includeLeafTasks, setIncludeLeafTasks] = useState(false);

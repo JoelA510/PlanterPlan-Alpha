@@ -197,10 +197,10 @@ export default function CreateProjectModal({
                 <DialogHeader className="p-8 bg-brand-600 text-white">
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                         <Plus className="w-6 h-6" />
-                        {t('dashboard.create_project_modal.title')}
+                        {t('projects.create_project_modal.title')}
                     </DialogTitle>
                     <DialogDescription className="text-brand-100 text-base">
-                        {t('dashboard.create_project_modal.subtitle')}
+                        {t('projects.create_project_modal.subtitle')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -246,7 +246,7 @@ export default function CreateProjectModal({
                                     <div className="relative">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <Input
-                                            placeholder={t('dashboard.create_project_modal.search_templates_placeholder')}
+                                            placeholder={t('projects.create_project_modal.search_templates_placeholder')}
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="pl-10 h-10 rounded-xl border-slate-200"
@@ -277,8 +277,8 @@ export default function CreateProjectModal({
                                                 <Target className="w-6 h-6" />
                                             </div>
                                             <div className="flex-1">
-                                                <h4 className="font-bold text-slate-900">{t('dashboard.create_project_modal.new_church_plant')}</h4>
-                                                <p className="text-sm text-slate-500">{t('dashboard.create_project_modal.scaffold_description')}</p>
+                                                <h4 className="font-bold text-slate-900">{t('projects.create_project_modal.new_church_plant')}</h4>
+                                                <p className="text-sm text-slate-500">{t('projects.create_project_modal.scaffold_description')}</p>
                                             </div>
                                             {formData.templateId === DEFAULT_SCAFFOLD_ID && (
                                                 <div className="w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center">
@@ -292,7 +292,7 @@ export default function CreateProjectModal({
                                     {templatesLoading ? (
                                         <div className="flex items-center justify-center py-6 text-slate-400">
                                             <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                            {t('dashboard.create_project_modal.loading_templates')}
+                                            {t('projects.create_project_modal.loading_templates')}
                                         </div>
                                     ) : (
                                         filteredTemplates.map((template) => (
@@ -332,7 +332,7 @@ export default function CreateProjectModal({
                                     )}
 
                                     {!templatesLoading && searchQuery && filteredTemplates.length === 0 && (
-                                        <p className="text-sm text-slate-500 text-center py-4">{t('dashboard.create_project_modal.no_templates_match')}</p>
+                                        <p className="text-sm text-slate-500 text-center py-4">{t('projects.create_project_modal.no_templates_match')}</p>
                                     )}
                                 </div>
 
@@ -340,7 +340,7 @@ export default function CreateProjectModal({
                                     onClick={handleNext}
                                     className="w-full bg-brand-600 hover:bg-brand-700 text-white h-12 text-lg font-semibold rounded-xl"
                                 >
-                                    {t('dashboard.create_project_modal.continue_to_details')}
+                                    {t('projects.create_project_modal.continue_to_details')}
                                     <ChevronRight className="ml-2 w-5 h-5" />
                                 </Button>
                             </div>
@@ -349,14 +349,14 @@ export default function CreateProjectModal({
                                 key="step2"
                                 className="space-y-6 animate-slide-up"
                             >
-                                <h3 className="text-lg font-bold text-slate-900">{t('dashboard.create_project_modal.project_details')}</h3>
+                                <h3 className="text-lg font-bold text-slate-900">{t('projects.create_project_modal.project_details')}</h3>
                                 <div className="space-y-2">
                                     <Label htmlFor="title" className="text-slate-700 font-semibold">
-                                        {t('dashboard.create_project_modal.project_name')}
+                                        {t('projects.create_project_modal.project_name')}
                                     </Label>
                                     <Input
                                         id="title"
-                                        placeholder={t('dashboard.create_project_modal.project_name_placeholder')}
+                                        placeholder={t('projects.create_project_modal.project_name_placeholder')}
                                         value={formData.title}
                                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                         className="h-12 border-slate-200 focus:ring-brand-500/20 focus:border-brand-500 rounded-xl"
@@ -364,11 +364,11 @@ export default function CreateProjectModal({
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="description" className="text-slate-700 font-semibold">
-                                        {t('dashboard.create_project_modal.description')}
+                                        {t('projects.create_project_modal.description')}
                                     </Label>
                                     <Textarea
                                         id="description"
-                                        placeholder={t('dashboard.create_project_modal.description_placeholder')}
+                                        placeholder={t('projects.create_project_modal.description_placeholder')}
                                         value={formData.description}
                                         onChange={(e) =>
                                             setFormData({ ...formData, description: e.target.value })
@@ -378,7 +378,7 @@ export default function CreateProjectModal({
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="start_date" className="text-slate-700 font-semibold">
-                                        {t('dashboard.create_project_modal.launch_date')}
+                                        {t('projects.create_project_modal.launch_date')}
                                     </Label>
                                     <Input
                                         id="start_date"
@@ -405,7 +405,7 @@ export default function CreateProjectModal({
                                         {loading ? (
                                             <Loader2 className="w-6 h-6 animate-spin" />
                                         ) : (
-                                            t('dashboard.create_project_modal.create_project')
+                                            t('projects.create_project_modal.create_project')
                                         )}
                                     </Button>
                                 </div>

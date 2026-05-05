@@ -47,8 +47,6 @@
     "enter_email": "Introduce el correo electrónico"
   },
   "nav": {
-    "dashboard": "Panel",
-    "project_dashboard": "Panel de proyectos",
     "my_tasks": "Mis tareas",
     "reports": "Informes",
     "team": "Equipo",
@@ -306,6 +304,24 @@
     "generic": "{{action}} en {{entityType}}"
   },
   "projects": {
+    "new_project": "Nuevo proyecto",
+    "create_project_modal": {
+      "title": "Iniciar nuevo proyecto",
+      "subtitle": "Elige una plantilla o empieza desde cero.",
+      "search_templates_placeholder": "Buscar plantillas…",
+      "new_church_plant": "Nueva plantación de iglesia",
+      "scaffold_description": "Hoja de ruta estructurada e integral de 24 meses",
+      "continue_to_details": "Continuar a los detalles",
+      "project_details": "Detalles del proyecto",
+      "project_name": "Nombre del proyecto",
+      "project_name_placeholder": "p. ej. Lanzamiento Hope City",
+      "description": "Descripción",
+      "description_placeholder": "¿Cuál es la visión de este proyecto?",
+      "launch_date": "Fecha de lanzamiento",
+      "create_project": "Crear proyecto",
+      "loading_templates": "Cargando plantillas…",
+      "no_templates_match": "Ninguna plantilla coincide con tu búsqueda."
+    },
     "reports": {
       "title": "Informes y análisis",
       "select_project": "Selecciona un proyecto",
@@ -537,6 +553,19 @@
     }
   },
   "library": {
+    "new_template": "Nueva plantilla",
+    "template_created_toast": "Plantilla creada",
+    "create_template_modal": {
+      "title": "Nueva plantilla",
+      "subtitle": "Crea una plantilla reutilizable para tus proyectos.",
+      "name_label": "Nombre de la plantilla",
+      "name_placeholder": "p. ej. Hoja de ruta de plantación de iglesias",
+      "description_label": "Descripción",
+      "description_placeholder": "¿Para qué es esta plantilla?",
+      "published_label": "Publicado",
+      "published_description": "Las plantillas publicadas son visibles para todos los usuarios en la biblioteca.",
+      "create": "Crear plantilla"
+    },
     "master_library": "Biblioteca maestra",
     "search_master_library": "Buscar en la biblioteca maestra",
     "clear_search": "Limpiar búsqueda",
@@ -558,44 +587,6 @@
       "no_tasks_on_page": "No hay tareas en la página {{page}}",
       "loading_subtasks": "Cargando subtareas…",
       "no_tasks": "Aún no hay tareas en la biblioteca maestra."
-    }
-  },
-  "dashboard": {
-    "title": "Panel de proyectos",
-    "subtitle": "Gestiona tus proyectos de plantación de iglesias",
-    "new_project": "Nuevo proyecto",
-    "new_template": "Nueva plantilla",
-    "no_projects_title": "Aún no hay proyectos",
-    "no_projects_description": "Inicia tu camino de plantación de iglesias creando tu primer proyecto",
-    "create_first_project": "Crea tu primer proyecto",
-    "create_project_modal": {
-      "title": "Iniciar nuevo proyecto",
-      "subtitle": "Elige una plantilla o empieza desde cero.",
-      "search_templates_placeholder": "Buscar plantillas…",
-      "new_church_plant": "Nueva plantación de iglesia",
-      "scaffold_description": "Hoja de ruta estructurada e integral de 24 meses",
-      "continue_to_details": "Continuar a los detalles",
-      "project_details": "Detalles del proyecto",
-      "project_name": "Nombre del proyecto",
-      "project_name_placeholder": "p. ej. Lanzamiento Hope City",
-      "description": "Descripción",
-      "description_placeholder": "¿Cuál es la visión de este proyecto?",
-      "launch_date": "Fecha de lanzamiento",
-      "create_project": "Crear proyecto",
-      "loading_templates": "Cargando plantillas…",
-      "no_templates_match": "Ninguna plantilla coincide con tu búsqueda."
-    },
-    "template_created_toast": "Plantilla creada",
-    "create_template_modal": {
-      "title": "Nueva plantilla",
-      "subtitle": "Crea una plantilla reutilizable para tus proyectos.",
-      "name_label": "Nombre de la plantilla",
-      "name_placeholder": "p. ej. Hoja de ruta de plantación de iglesias",
-      "description_label": "Descripción",
-      "description_placeholder": "¿Para qué es esta plantilla?",
-      "published_label": "Publicado",
-      "published_description": "Las plantillas publicadas son visibles para todos los usuarios en la biblioteca.",
-      "create": "Crear plantilla"
     }
   },
   "settings": {
@@ -686,7 +677,6 @@
     "signup_failed": "Falló el registro",
     "login_failed": "Falló el inicio de sesión",
     "project_not_found_or_no_access": "Este proyecto no existe o ya no tienes acceso.",
-    "back_to_dashboard": "Volver al panel",
     "back_to_tasks": "Volver a tareas",
     "user_must_be_logged_in": "El usuario debe haber iniciado sesión"
   },

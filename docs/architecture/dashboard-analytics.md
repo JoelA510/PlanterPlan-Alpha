@@ -17,7 +17,7 @@ The Analytics domain aggregates telemetry across Projects, Tasks, and the Date E
 ## Business Rules & Constraints
 * **User-testing tranche directive (PR D shipped):** project/template creation
   is hosted by the authenticated creation action host via `/tasks?action=...`.
-  `/dashboard` redirects to `/tasks`; `ProjectPipelineBoard` and manual
+  `/dashboard` redirects to `/tasks`; the former pipeline board and manual
   project-lifecycle status mutation were removed. Project lifecycle indicators
   derive from child task state; archive remains a visibility-only action unless
   product revises that decision.
@@ -58,7 +58,7 @@ Per-project presence channel `presence:project:<id>`, opened once in `src/pages/
 
 **Task focus** — `useTaskFocusBroadcast` in `src/features/tasks/components/TaskDetailsPanel.tsx` debounces (250ms) and updates the same presence state with `focusedTaskId`. `TaskItem.tsx` reads `presentUsers` (threaded from the project route via `MilestoneSection`) and renders a chip when any peer's `focusedTaskId === task.id`. No second channel — one channel, one track call, two consumers.
 
-**Disabled** outside the project route — Dashboard, Reports, Tasks, Settings do not open presence channels (`projectId` is only defined on `/project/:id`).
+**Disabled** outside the project route — Reports, Tasks, Settings, and other app-shell routes do not open presence channels (`projectId` is only defined on `/project/:id`).
 
 ## Gantt Chart (Wave 28)
 
@@ -96,7 +96,7 @@ Standalone route `/gantt?projectId=:id` (registered in `src/app/App.tsx`, lazy-l
 * **Most active users (30d)** top-10 list sourced from `tasks.creator` joined with `auth.users`.
 * **Most popular templates** top-10 list sourced from the Wave 22 `settings.spawnedFromTemplate` stamp on cloned roots.
 
-One RPC keeps the dashboard's cold-load cost bounded. 5-minute `staleTime` on the React Query hook; one round-trip on load, zero re-renders on filter changes (there are no filters on this page).
+One RPC keeps the admin analytics cold-load cost bounded. 5-minute `staleTime` on the React Query hook; one round-trip on load, zero re-renders on filter changes (there are no filters on this page).
 
 Migration: `docs/db/migrations/2026_04_18_admin_analytics_rpc.sql`.
 

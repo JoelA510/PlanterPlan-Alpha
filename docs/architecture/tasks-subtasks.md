@@ -233,7 +233,8 @@ invalidates `['taskComments', taskId]` on any payload.
 
 ## Integration Points
 * **Date Engine:** Dragging tasks triggers date inheritance logic (`dateInheritance.ts`) to adjust bounds automatically.
-* **Dashboard:** Feeds raw status counts.
+* **Task/reporting surfaces:** Feeds raw status counts to task views, project
+  progress, reports, and admin analytics.
 * **Nightly CRON:** Owns the recurrence-clone pass (see `supabase/functions/nightly-sync/README.md`).
 
 ## Known Gaps / Technical Debt

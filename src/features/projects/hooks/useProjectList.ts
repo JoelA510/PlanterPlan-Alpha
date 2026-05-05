@@ -9,10 +9,10 @@ import type { Task, Project } from '@/shared/db/app.types';
 
 type TeamMemberRow = Database['public']['Tables']['project_members']['Row'];
 
-export function useDashboard() {
+export function useProjectList() {
  const { user, loading: authLoading } = useAuth();
 
- // Dashboard Specific Local State
+ // Project list local state
  const [wizardDismissed, setWizardDismissed] = useState<boolean>(() => {
  return localStorage.getItem('gettingStartedDismissed') === 'true';
  });
@@ -20,7 +20,7 @@ export function useDashboard() {
  const [searchQuery, setSearchQuery] = useState('');
 
  // Data Fetching. `staleTime: STALE_TIMES.medium` across the board so
- // Dashboard ↔ Tasks ↔ Project toggles don't refetch 3 times per nav.
+ // Tasks ↔ Project toggles don't refetch 3 times per nav.
  const {
  data: projects = [],
  isLoading: loadingProjects,
