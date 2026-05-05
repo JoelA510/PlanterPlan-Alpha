@@ -335,6 +335,29 @@ describe('calculateScheduleFromOffset', () => {
     expect(result.start_date).toBe('2026-01-01');
     expect(result.due_date).toBe('2026-01-01');
   });
+
+  it('keeps calendar-day behavior when offsets cross weekends', () => {
+    const weekendTasks: DateEngineTask[] = [
+      { ...projectRoot, start_date: '2026-01-02' },
+      { ...phase, start_date: '2026-01-02' },
+    ];
+
+    const result = calculateScheduleFromOffset(weekendTasks, 'phase', 1);
+
+    expect(result.start_date).toBe('2026-01-03');
+    expect(result.due_date).toBe('2026-01-03');
+  });
+
+  it('normalizes full ISO root dates through UTC date-only scheduling', () => {
+    const isoTasks: DateEngineTask[] = [
+      { ...projectRoot, start_date: '2026-03-08T23:30:00-08:00' },
+      { ...phase, start_date: '2026-03-08T23:30:00-08:00' },
+    ];
+
+    const result = calculateScheduleFromOffset(isoTasks, 'phase', 0);
+
+    expect(result.start_date).toBe('2026-03-09');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -397,6 +420,17 @@ describe('recalculateProjectDates', () => {
     expect(updates).toHaveLength(2);
     // Shifted 3 days backward
     expect(toIsoDate(updates[0].start_date)).toBe('2026-01-07');
+  });
+
+  it('keeps weekend-inclusive calendar-day shifts', () => {
+    const weekendTasks: DateEngineTask[] = [
+      { id: 't1', start_date: '2026-01-02', due_date: '2026-01-02', is_complete: false },
+    ];
+
+    const updates = recalculateProjectDates(weekendTasks, '2026-01-03', '2026-01-02');
+
+    expect(toIsoDate(updates[0].start_date)).toBe('2026-01-03');
+    expect(toIsoDate(updates[0].due_date)).toBe('2026-01-03');
   });
 
   it('skips completed tasks', () => {

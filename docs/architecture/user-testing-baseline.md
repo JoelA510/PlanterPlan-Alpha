@@ -71,7 +71,7 @@ coverage before changing behavior.
 | Coaching flag | PR F exposes `settings.is_coaching_task` editing only on template forms and strips instance form payloads. | Instances preserve inherited behavior read-only. | Done PR F |
 | Strategy flag | PR F exposes `settings.is_strategy_template` editing only on template forms and strips instance form payloads. | Instances preserve inherited behavior read-only. | Done PR F |
 | Template clone | PR G clears template notes when cloning/importing into project instances and preserves only approved inherited metadata (`project_kind`, coaching, and strategy flags). | Instance clones receive blank notes while preserving approved metadata. | Done PR G |
-| Date engine | PR H documents the selected business-calendar direction and characterizes app/edge UTC parity plus the `date-fns` boundary. PR I1 adds app/edge business-calendar interfaces with current calendar-day behavior. Runtime scheduling and urgency callers are still calendar-day based and not yet routed through the seam. | Route date logic through the business-calendar abstraction before any behavior changes; weekend/holiday support remains product-scoped follow-up. | Done PR H/I1, PR I2+ |
+| Date engine | PR H documents the selected business-calendar direction and characterizes app/edge UTC parity plus the `date-fns` boundary. PR I1 adds app/edge business-calendar interfaces with current calendar-day behavior. PR I2 routes active app schedule offsets, project shifts, display urgency, ICS `DTEND`, and nightly-sync due-soon cutoffs through the seam without changing behavior. | Weekend/holiday support remains product-scoped follow-up after the calendar seam is stable. | Done PR H/I1/I2, PR I3+ |
 
 ## Release Rules
 
