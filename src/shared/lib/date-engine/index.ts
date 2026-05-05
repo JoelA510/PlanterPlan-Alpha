@@ -198,21 +198,13 @@ export const findTaskById = <T extends DateEngineTask>(
 };
 
 /**
- * Converts a date-only string to an explicit UTC-midnight timestamp input for
- * the business calendar.
- * @param isoDate - Date-only value in `YYYY-MM-DD` format.
- * @returns UTC-midnight timestamp string.
- */
-const toUtcMidnightInput = (isoDate: string): string => `${isoDate}T00:00:00.000Z`;
-
-/**
  * Adds calendar/business days to a UTC date-only value and returns a Date.
  * @param isoDate - Date-only value in `YYYY-MM-DD` format.
  * @param amount - Number of days to shift; negative values subtract.
  * @returns Shifted Date, or null when the calendar rejects the input.
  */
 const addBusinessDaysToUtcDate = (isoDate: string, amount: number): Date | null => {
- return defaultBusinessCalendar.addBusinessDays(toUtcMidnightInput(isoDate), amount);
+ return defaultBusinessCalendar.addBusinessDays(isoDate, amount);
 };
 
 /**
@@ -425,10 +417,7 @@ export const recalculateProjectDates = (
  const newIso = toIsoDate(newStartDateStr);
  if (!oldIso || !newIso) return [];
 
- const diffDays = defaultBusinessCalendar.diffInBusinessDays(
-  toUtcMidnightInput(newIso),
-  toUtcMidnightInput(oldIso),
- );
+ const diffDays = defaultBusinessCalendar.diffInBusinessDays(newIso, oldIso);
 
  if (diffDays === null || diffDays === 0) return [];
 
@@ -447,7 +436,8 @@ export const recalculateProjectDates = (
  // Shift Start Date
  const taskStart = addBusinessDaysToUtcDate(taskStartIso, diffDays);
  if (!taskStart) return;
- const newStartISO = taskStart.toISOString();
+ const newStartISO = toIsoDate(taskStart);
+ if (!newStartISO) return;
 
  // Shift Due Date (if exists)
  let newDueISO: string | null = null;
@@ -456,7 +446,7 @@ export const recalculateProjectDates = (
  if (taskDueIso) {
  const taskDue = addBusinessDaysToUtcDate(taskDueIso, diffDays);
  if (taskDue) {
- newDueISO = taskDue.toISOString();
+ newDueISO = toIsoDate(taskDue);
  }
  }
  }
@@ -510,7 +500,9 @@ export const deriveUrgency = (
  if (due.getTime() < today.getTime()) return 'overdue';
 
  const threshold = Math.max(0, Math.floor(dueSoonThresholdDays));
- const shiftedCutoff = defaultBusinessCalendar.addBusinessDays(today, threshold);
+ const todayIso = toIsoDate(today);
+ if (!todayIso) return null;
+ const shiftedCutoff = defaultBusinessCalendar.addBusinessDays(todayIso, threshold);
  if (!shiftedCutoff) return null;
  const soonCutoff = startOfUtcDay(shiftedCutoff);
  if (due.getTime() <= soonCutoff.getTime()) return 'due_soon';

@@ -39,6 +39,41 @@ export interface BusinessCalendar {
  ): number | null;
 }
 
+const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const parseDateOnlyParts = (input: string): [number, number, number] | null => {
+ const match = DATE_ONLY_RE.exec(input);
+ if (!match) return null;
+ const [, yearRaw, monthRaw, dayRaw] = match;
+ const year = Number(yearRaw);
+ const month = Number(monthRaw);
+ const day = Number(dayRaw);
+ const utc = new Date(Date.UTC(year, month - 1, day));
+ if (
+  utc.getUTCFullYear() !== year ||
+  utc.getUTCMonth() !== month - 1 ||
+  utc.getUTCDate() !== day
+ ) {
+  return null;
+ }
+ return [year, month, day];
+};
+
+const dateOnlyToUtcMidnightMs = (input: string): number | null => {
+ const parts = parseDateOnlyParts(input);
+ if (!parts) return null;
+ const [year, month, day] = parts;
+ return Date.UTC(year, month - 1, day);
+};
+
+const addUtcDateOnlyDays = (input: string, amount: number): Date | null => {
+ const parts = parseDateOnlyParts(input);
+ if (!parts) return null;
+ const [year, month, day] = parts;
+ return new Date(Date.UTC(year, month - 1, day + amount));
+};
+
 /**
  * Resolves a business-calendar input to a Date.
  * @param input - Date input to resolve.
@@ -46,6 +81,10 @@ export interface BusinessCalendar {
  */
 const resolveBusinessDate = (input: BusinessCalendarDateInput | null | undefined): Date | null => {
  if (!input) return null;
+ if (typeof input === 'string' && DATE_ONLY_RE.test(input)) {
+  const utcMidnightMs = dateOnlyToUtcMidnightMs(input);
+  return utcMidnightMs === null ? null : new Date(utcMidnightMs);
+ }
  const date = typeof input === 'string' ? parseISO(input) : input;
  return isValid(date) ? date : null;
 };
@@ -58,12 +97,26 @@ export const calendarDayBusinessCalendar: BusinessCalendar = {
  },
 
  addBusinessDays(date, amount) {
+  if (typeof date === 'string' && DATE_ONLY_RE.test(date)) {
+   return addUtcDateOnlyDays(date, amount);
+  }
   const resolved = resolveBusinessDate(date);
   if (!resolved) return null;
   return addDays(resolved, amount);
  },
 
  diffInBusinessDays(later, earlier) {
+  if (
+   typeof later === 'string' &&
+   typeof earlier === 'string' &&
+   DATE_ONLY_RE.test(later) &&
+   DATE_ONLY_RE.test(earlier)
+  ) {
+   const laterMs = dateOnlyToUtcMidnightMs(later);
+   const earlierMs = dateOnlyToUtcMidnightMs(earlier);
+   if (laterMs === null || earlierMs === null) return null;
+   return Math.round((laterMs - earlierMs) / MS_PER_DAY);
+  }
   const resolvedLater = resolveBusinessDate(later);
   const resolvedEarlier = resolveBusinessDate(earlier);
   if (!resolvedLater || !resolvedEarlier) return null;

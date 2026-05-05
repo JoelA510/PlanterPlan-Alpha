@@ -412,14 +412,15 @@ describe('recalculateProjectDates', () => {
     expect(updates).toHaveLength(2);
     expect(updates[0].id).toBe('t1');
     // Shifted 5 days forward
-    expect(toIsoDate(updates[0].start_date)).toBe('2026-01-15');
+    expect(updates[0].start_date).toBe('2026-01-15');
+    expect(updates[0].due_date).toBe('2026-01-25');
   });
 
   it('shifts dates backward', () => {
     const updates = recalculateProjectDates(tasks, '2025-12-29', '2026-01-01');
     expect(updates).toHaveLength(2);
     // Shifted 3 days backward
-    expect(toIsoDate(updates[0].start_date)).toBe('2026-01-07');
+    expect(updates[0].start_date).toBe('2026-01-07');
   });
 
   it('keeps weekend-inclusive calendar-day shifts', () => {
@@ -429,8 +430,19 @@ describe('recalculateProjectDates', () => {
 
     const updates = recalculateProjectDates(weekendTasks, '2026-01-03', '2026-01-02');
 
-    expect(toIsoDate(updates[0].start_date)).toBe('2026-01-03');
-    expect(toIsoDate(updates[0].due_date)).toBe('2026-01-03');
+    expect(updates[0].start_date).toBe('2026-01-03');
+    expect(updates[0].due_date).toBe('2026-01-03');
+  });
+
+  it('keeps UTC date-only shifts stable across DST boundaries', () => {
+    const dstTasks: DateEngineTask[] = [
+      { id: 't1', start_date: '2026-03-08', due_date: '2026-03-08', is_complete: false },
+    ];
+
+    const updates = recalculateProjectDates(dstTasks, '2026-03-09', '2026-03-08');
+
+    expect(updates[0].start_date).toBe('2026-03-09');
+    expect(updates[0].due_date).toBe('2026-03-09');
   });
 
   it('skips completed tasks', () => {

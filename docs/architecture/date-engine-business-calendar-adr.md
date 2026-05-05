@@ -46,7 +46,8 @@ PR I2 routes current runtime callers through the app/edge seams:
 
 * `calculateScheduleFromOffset`, `recalculateProjectDates`, and `deriveUrgency`
   use `defaultBusinessCalendar` while normalizing date-only inputs to explicit
-  UTC midnight where hierarchy scheduling depends on `YYYY-MM-DD` semantics;
+  UTC date-only values where hierarchy scheduling depends on `YYYY-MM-DD`
+  semantics;
 * `supabase/functions/ics-feed/ics.ts` advances all-day `DTEND` through the
   edge business-calendar seam;
 * `supabase/functions/nightly-sync/urgency.ts` computes due-soon cutoffs
@@ -119,6 +120,8 @@ PR I2 adds tests that lock:
 
 * schedule offsets and project date shifts routed through the seam still count
   weekends as calendar days;
+* date-only business-calendar arithmetic remains UTC-stable across DST
+  boundaries;
 * full ISO root dates normalize through UTC date-only scheduling;
 * ICS all-day `DTEND` stays one calendar day after `due_date`;
 * nightly-sync due-soon thresholds preserve UTC time-of-day while routing the
