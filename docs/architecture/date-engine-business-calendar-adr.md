@@ -38,6 +38,10 @@ This is the safest path for PlanterPlan because current behavior depends on:
 
 A thin app/edge business-calendar interface gives tests a stable seam without
 moving to local-time package semantics or broadening the dependency surface.
+PR I must explicitly audit date-only string parsing in the current `date-fns`
+wrappers before routing business-calendar behavior through them, because local
+timezone parsing can differ from the Edge helpers' explicit `Date.UTC`
+constructors.
 
 ## Rejected Alternatives
 * **Add a business-day package now:** rejected because holiday calendars, Deno

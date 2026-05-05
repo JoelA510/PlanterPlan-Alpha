@@ -36,10 +36,10 @@ describe('date-engine app/edge parity characterization', () => {
     });
 
     it('characterizes current calendar-day arithmetic before business-calendar work', () => {
-        const friday = '2026-01-02';
+        const fridayUtc = '2026-01-02T00:00:00.000Z';
 
-        expect(toIsoDate(addDaysToDate(friday, 1))).toBe('2026-01-03');
-        expect(addDaysToIsoDate(friday, 1)).toBe('2026-01-03');
+        expect(toIsoDate(addDaysToDate(fridayUtc, 1))).toBe('2026-01-03');
+        expect(addDaysToIsoDate('2026-01-02', 1)).toBe('2026-01-03');
     });
 
     it('keeps checkpoint project detection aligned', () => {

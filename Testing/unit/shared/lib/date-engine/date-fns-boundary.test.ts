@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const srcRoot = join(process.cwd(), 'src');
 const allowedDateEngineRoot = join(srcRoot, 'shared', 'lib', 'date-engine');
 const sourceFilePattern = /\.(ts|tsx)$/;
-const directDateFnsImportPattern = /(?:from\s+['"]date-fns(?:\/[^'"]*)?['"]|import\s*\(\s*['"]date-fns(?:\/[^'"]*)?['"]\s*\))/;
+const directDateFnsImportPattern = /(?:(?:from|import)\s+['"]date-fns(?:\/[^'"]*)?['"]|import\s*\(\s*['"]date-fns(?:\/[^'"]*)?['"]\s*\))/;
 
 function collectSourceFiles(dir: string): string[] {
     return readdirSync(dir).flatMap((entry) => {
