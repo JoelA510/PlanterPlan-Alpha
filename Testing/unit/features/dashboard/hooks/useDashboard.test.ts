@@ -25,13 +25,6 @@ vi.mock('@/shared/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-1' }, loading: false }),
 }));
 
-const mockSearchParams = new URLSearchParams();
-const mockSetSearchParams = vi.fn();
-
-vi.mock('react-router-dom', () => ({
-  useSearchParams: () => [mockSearchParams, mockSetSearchParams],
-}));
-
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard';
 
 function createWrapper() {
@@ -51,8 +44,6 @@ describe('useDashboard', () => {
     mockProjectList.mockResolvedValue([]);
     mockTaskListByCreator.mockResolvedValue([]);
     mockTeamMemberFilter.mockResolvedValue([]);
-    // Reset search params
-    mockSearchParams.delete('action');
     localStorage.removeItem('gettingStartedDismissed');
   });
 
@@ -207,24 +198,6 @@ describe('useDashboard', () => {
 
       expect(result.current.state.wizardDismissed).toBe(true);
       expect(localStorage.getItem('gettingStartedDismissed')).toBe('true');
-    });
-  });
-
-  describe('modal controls', () => {
-    it('toggles create modal', () => {
-      const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
-
-      expect(result.current.state.showCreateModal).toBe(false);
-      act(() => { result.current.actions.setShowCreateModal(true); });
-      expect(result.current.state.showCreateModal).toBe(true);
-    });
-
-    it('toggles template modal', () => {
-      const { result } = renderHook(() => useDashboard(), { wrapper: createWrapper() });
-
-      expect(result.current.state.showTemplateModal).toBe(false);
-      act(() => { result.current.actions.setShowTemplateModal(true); });
-      expect(result.current.state.showTemplateModal).toBe(true);
     });
   });
 

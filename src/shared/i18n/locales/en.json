@@ -567,6 +567,7 @@
       "project_name_placeholder": "e.g. Hope City Launch",
       "description": "Description",
       "description_placeholder": "What's the vision for this project?",
+      "launch_date": "Launch Date",
       "create_project": "Create Project",
       "loading_templates": "Loading templates…",
       "no_templates_match": "No templates match your search."

@@ -2,22 +2,16 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import type { TaskRow, Project, TaskInsert, CreateProjectFormData } from '@/shared/db/app.types';
-import type { Database } from '@/shared/db/database.types';
-import type { CreateProjectPayload } from '@/features/projects/hooks/useProjectMutations';
+import type { TaskRow, Project } from '@/shared/db/app.types';
 import { Button } from '@/shared/ui/button';
 import { Plus, FolderKanban, Loader2, BookTemplate } from 'lucide-react';
 
 // Hooks
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard';
-import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
-import { useCreateProject, useUpdateProjectStatus } from '@/features/projects/hooks/useProjectMutations';
-import { planter } from '@/shared/api/planterClient';
+import { useUpdateProjectStatus } from '@/features/projects/hooks/useProjectMutations';
 import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
 
 // Components
-import CreateProjectModal from '@/features/dashboard/components/CreateProjectModal';
-import CreateTemplateModal from '@/features/dashboard/components/CreateTemplateModal';
 import StatsOverview from '@/features/dashboard/components/StatsOverview';
 import ProjectPipelineBoard from '@/features/dashboard/components/ProjectPipelineBoard';
 import OnboardingWizard from '@/pages/components/OnboardingWizard';
@@ -31,34 +25,7 @@ export default function Dashboard() {
     useProjectRealtime();
 
     const { state, data, actions } = useDashboard();
-    const {
-        results: projectTemplateOptions,
-        isLoading: projectTemplatesLoading,
-    } = useMasterLibrarySearch({
-        query: '',
-        enabled: state.showCreateModal,
-    });
-
-    const createProjectMutation = useCreateProject();
     const updateStatusMutation = useUpdateProjectStatus();
-
-    const handleCreateProject = async (projectData: CreateProjectFormData) => {
-        try {
-            const payload: CreateProjectPayload = {
-                title: projectData.title,
-                description: projectData.description,
-                start_date: projectData.start_date,
-                templateId: projectData.templateId ?? undefined,
-            };
-            const project = await createProjectMutation.mutateAsync(payload);
-            if (project?.id) {
-                navigate(`/project/${project.id}`);
-            }
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : t('errors.unknown');
-            toast.error(t('errors.failed_create_project'), { description: message });
-        }
-    };
 
     const handleStatusChange = async (projectId: string, newStatus: string) => {
         try {
@@ -70,38 +37,8 @@ export default function Dashboard() {
         }
     };
 
-    const handleCreateTemplate = async (data: { title: string; description: string; isPublished: boolean }) => {
-        try {
-            const userId = state.user?.id;
-            if (!userId) throw new Error(t('errors.user_must_be_logged_in'));
-
-            const template = await planter.entities.Task.create({
-                title: data.title,
-                description: data.description,
-                origin: 'template',
-                parent_task_id: null,
-                root_id: null,
-                status: 'planning',
-                creator: userId,
-                assignee_id: userId,
-                settings: { published: data.isPublished },
-            } as TaskInsert);
-            if (template?.id) {
-                // Add creator as owner so RLS allows access
-                await planter.entities.TeamMember.create({
-                    project_id: template.id,
-                    user_id: userId,
-                    role: 'owner',
-                } as Database['public']['Tables']['project_members']['Insert']);
-                toast.success(t('dashboard.template_created_toast'));
-                queryClient.invalidateQueries({ queryKey: ['projects', 'template'] });
-                navigate(`/project/${template.id}`);
-            }
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : t('errors.unknown');
-            toast.error(t('errors.failed_create_template'), { description: message });
-        }
-    };
+    const openProjectCreation = () => navigate('/tasks?action=new-project');
+    const openTemplateCreation = () => navigate('/tasks?action=new-template');
 
     if (state.isLoading) {
         return (
@@ -135,14 +72,14 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                     <Button
                         variant="secondary"
-                        onClick={() => actions.setShowTemplateModal(true)}
+                        onClick={openTemplateCreation}
                         data-testid="dashboard-new-template-btn"
                     >
                         <BookTemplate className="w-5 h-5 mr-2" />
                         {t('dashboard.new_template')}
                     </Button>
                     <Button
-                        onClick={() => actions.setShowCreateModal(true)}
+                        onClick={openProjectCreation}
                         className="bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20 "
                     >
                         <Plus className="w-5 h-5 mr-2" />
@@ -168,7 +105,7 @@ export default function Dashboard() {
                         <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                             {t('dashboard.no_projects_description')}
                         </p>
-                        <Button onClick={() => actions.setShowCreateModal(true)} className="bg-orange-500 hover:bg-orange-600">
+                        <Button onClick={openProjectCreation} className="bg-orange-500 hover:bg-orange-600">
                             <Plus className="w-5 h-5 mr-2" />
                             {t('dashboard.create_first_project')}
                         </Button>
@@ -183,27 +120,16 @@ export default function Dashboard() {
                 )}
             </div>
 
-            <CreateProjectModal
-                open={state.showCreateModal}
-                onClose={() => actions.setShowCreateModal(false)}
-                onSubmit={handleCreateProject}
-                templates={projectTemplateOptions}
-                templatesLoading={projectTemplatesLoading}
-            />
-
-            <CreateTemplateModal
-                open={state.showTemplateModal}
-                onClose={() => actions.setShowTemplateModal(false)}
-                onSubmit={handleCreateTemplate}
-            />
-
             <OnboardingWizard
                 open={!state.isLoading && data.projects.length === 0 && !state.wizardDismissed}
                 onCreateProject={async (wizardData) => {
-                    await handleCreateProject({
-                        title: wizardData.title,
-                        start_date: wizardData.due_date || '',
-                    } as CreateProjectFormData);
+                    actions.handleDismissWizard();
+                    const params = new URLSearchParams({ action: 'new-project' });
+                    const title = wizardData.title.trim();
+                    if (title) params.set('title', title);
+                    if (wizardData.due_date) params.set('start_date', wizardData.due_date);
+                    if (wizardData.template) params.set('template', wizardData.template);
+                    navigate(`/tasks?${params.toString()}`);
                 }}
                 onDismiss={actions.handleDismissWizard}
             />

@@ -65,7 +65,7 @@ coverage before changing behavior.
 
 | Area | Current implementation | Target gap | Planned PR |
 | --- | --- | --- | --- |
-| Dashboard | `/dashboard` still renders `StatsOverview`, onboarding, New Project/New Template, and `ProjectPipelineBoard`. | Creation must move off dashboard; dashboard then redirects or disappears. | PR C, PR D |
+| Dashboard | `/dashboard` still renders `StatsOverview`, onboarding, creation buttons, and `ProjectPipelineBoard`; PR C routes creation buttons/sidebar/mobile actions to the authenticated creation host on `/tasks?action=...`. | Dashboard redirects or disappears after replacement creation entry points are stable. | PR D |
 | Project state | Pipeline board and project mutation hooks still support manual root `status` changes. | Lifecycle badges/selectors derive from child task state; archive remains visibility-only unless product revises it. | PR D |
 | Comments | `TaskDetailsView` still renders `TaskComments` in project task detail. | Project-context task detail hides comments; backend unchanged. | PR E |
 | Coaching flag | Current UI exposes `settings.is_coaching_task` editing on instance tasks. | Edit only on templates; instances preserve inherited behavior read-only. | PR F |
@@ -84,5 +84,4 @@ Every PR in this tranche must:
 * run the narrowest useful validation first, then broader validation;
 * follow the 5-minute / 10-minute PR comment and CI loop before merge.
 
-Do not start PR C until this baseline doc is merged. Do not start PR D until
-creation works without `/dashboard`.
+Do not start PR D until creation works without `/dashboard`.

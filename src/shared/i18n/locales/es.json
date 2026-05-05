@@ -573,6 +573,7 @@
       "project_name_placeholder": "p. ej. Lanzamiento Hope City",
       "description": "Descripción",
       "description_placeholder": "¿Cuál es la visión de este proyecto?",
+      "launch_date": "Fecha de lanzamiento",
       "create_project": "Crear proyecto",
       "loading_templates": "Cargando plantillas…",
       "no_templates_match": "Ninguna plantilla coincide con tu búsqueda."

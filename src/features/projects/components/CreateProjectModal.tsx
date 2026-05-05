@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Dialog,
@@ -30,7 +30,15 @@ import type { CreateProjectFormData, TaskRow } from '@/shared/db/app.types';
 /** Special ID for the built-in default scaffold (not a real DB template). */
 const DEFAULT_SCAFFOLD_ID = '__default__';
 
-type ProjectTemplateOption = Pick<TaskRow, 'id' | 'title' | 'description' | 'parent_task_id'>;
+type ProjectTemplateOption = Pick<TaskRow, 'id' | 'title' | 'description' | 'parent_task_id' | 'settings'>;
+
+export interface ProjectCreationInitialValues {
+    title?: string;
+    description?: string;
+    start_date?: string;
+    templateId?: string | null;
+    templateSeedKey?: string | null;
+}
 
 interface CreateProjectModalProps {
     open: boolean;
@@ -38,6 +46,48 @@ interface CreateProjectModalProps {
     onSubmit: (data: CreateProjectFormData) => Promise<void>;
     templates?: readonly ProjectTemplateOption[];
     templatesLoading?: boolean;
+    initialValues?: ProjectCreationInitialValues;
+    initialStep?: 1 | 2;
+}
+
+function getDefaultStartDate() {
+    return toIsoDate(nowUtcIso()) || '';
+}
+
+function getTemplateSeedKey(settings: TaskRow['settings']) {
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings) || !('seed_key' in settings)) {
+        return null;
+    }
+
+    return typeof settings.seed_key === 'string' ? settings.seed_key : null;
+}
+
+function resolveInitialTemplateId(
+    initialValues: ProjectCreationInitialValues | undefined,
+    templates: readonly ProjectTemplateOption[],
+) {
+    const initialTemplateId = initialValues?.templateId?.trim();
+    if (initialTemplateId && templates.some((template) => template.id === initialTemplateId)) {
+        return initialTemplateId;
+    }
+
+    const seedKey = initialValues?.templateSeedKey?.trim();
+    if (!seedKey) return null;
+
+    return templates.find((template) => getTemplateSeedKey(template.settings) === seedKey)?.id ?? null;
+}
+
+function buildInitialFormData(
+    defaultStartDate: string,
+    initialValues: ProjectCreationInitialValues | undefined,
+    templates: readonly ProjectTemplateOption[],
+): CreateProjectFormData {
+    return {
+        title: initialValues?.title?.trim() ?? '',
+        description: initialValues?.description ?? '',
+        templateId: resolveInitialTemplateId(initialValues, templates) ?? DEFAULT_SCAFFOLD_ID,
+        start_date: initialValues?.start_date || defaultStartDate,
+    };
 }
 
 export default function CreateProjectModal({
@@ -46,22 +96,52 @@ export default function CreateProjectModal({
     onSubmit,
     templates = [],
     templatesLoading = false,
+    initialValues,
+    initialStep = 1,
 }: CreateProjectModalProps) {
     const { t } = useTranslation();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [formData, setFormData] = useState<CreateProjectFormData>({
-        title: '',
-        description: '',
-        templateId: DEFAULT_SCAFFOLD_ID,
-        start_date: toIsoDate(nowUtcIso()) || '',
-    });
+    const [defaultStartDate, setDefaultStartDate] = useState(getDefaultStartDate);
+    const hasAppliedOpenState = useRef(false);
+    const [formData, setFormData] = useState<CreateProjectFormData>(() => (
+        buildInitialFormData(defaultStartDate, initialValues, templates)
+    ));
 
     // Filter templates that are root-level (no parent) for project creation
     const rootTemplates = useMemo(() => {
         return templates.filter((t) => !t.parent_task_id);
     }, [templates]);
+
+    useEffect(() => {
+        if (!open) {
+            hasAppliedOpenState.current = false;
+            return;
+        }
+
+        if (hasAppliedOpenState.current) return;
+
+        hasAppliedOpenState.current = true;
+        const nextDefaultStartDate = getDefaultStartDate();
+        setDefaultStartDate(nextDefaultStartDate);
+        setStep(initialStep);
+        setSearchQuery('');
+        setFormData(buildInitialFormData(nextDefaultStartDate, initialValues, rootTemplates));
+    }, [initialStep, initialValues, open, rootTemplates]);
+
+    useEffect(() => {
+        if (!open) return;
+
+        const resolvedTemplateId = resolveInitialTemplateId(initialValues, rootTemplates);
+        if (!resolvedTemplateId) return;
+
+        setFormData((current) => (
+            current.templateId === DEFAULT_SCAFFOLD_ID
+                ? { ...current, templateId: resolvedTemplateId }
+                : current
+        ));
+    }, [initialValues, open, rootTemplates]);
 
     const filteredTemplates = useMemo(() => {
         if (!searchQuery.trim()) return rootTemplates;
@@ -78,7 +158,8 @@ export default function CreateProjectModal({
     const isDirty =
         (formData.title?.trim().length ?? 0) > 0 ||
         (formData.description?.trim().length ?? 0) > 0 ||
-        formData.templateId !== DEFAULT_SCAFFOLD_ID;
+        formData.templateId !== DEFAULT_SCAFFOLD_ID ||
+        formData.start_date !== defaultStartDate;
     const guardedClose = useDirtyCloseGuard(isDirty, onClose);
 
     const handleNext = () => setStep(2);
@@ -104,12 +185,9 @@ export default function CreateProjectModal({
             setLoading(false);
             setStep(1);
             setSearchQuery('');
-            setFormData({
-                title: '',
-                description: '',
-                templateId: DEFAULT_SCAFFOLD_ID,
-                start_date: toIsoDate(nowUtcIso()) || '',
-            });
+            const nextDefaultStartDate = getDefaultStartDate();
+            setDefaultStartDate(nextDefaultStartDate);
+            setFormData(buildInitialFormData(nextDefaultStartDate, undefined, []));
         }
     };
 
@@ -296,6 +374,18 @@ export default function CreateProjectModal({
                                             setFormData({ ...formData, description: e.target.value })
                                         }
                                         className="min-h-[120px] border-slate-200 focus:ring-brand-500/20 focus:border-brand-500 rounded-xl resize-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="start_date" className="text-slate-700 font-semibold">
+                                        {t('dashboard.create_project_modal.launch_date')}
+                                    </Label>
+                                    <Input
+                                        id="start_date"
+                                        type="date"
+                                        value={formData.start_date}
+                                        onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                                        className="h-12 border-slate-200 focus:ring-brand-500/20 focus:border-brand-500 rounded-xl"
                                     />
                                 </div>
                                 <div className="flex gap-4">

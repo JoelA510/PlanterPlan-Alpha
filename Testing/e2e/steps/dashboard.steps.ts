@@ -37,6 +37,14 @@ When('the user opens the create template modal', async ({ page }) => {
 
 When('the user creates a new project {string}', async ({ page }, name: string) => {
   await page.locator('#main-content').getByRole('button', { name: /^New Project$/i }).click();
+  await completeNewProjectModal(page, name);
+});
+
+When('the user completes the new project modal with {string}', async ({ page }, name: string) => {
+  await completeNewProjectModal(page, name);
+});
+
+async function completeNewProjectModal(page: import('@playwright/test').Page, name: string) {
   await page.locator('[role="dialog"]').waitFor();
   // Select scratch or default template
   const continueBtn = page.getByRole('button', { name: /continue/i });
@@ -46,7 +54,7 @@ When('the user creates a new project {string}', async ({ page }, name: string) =
   await page.locator('[role="dialog"]').getByLabel(/title|name/i).fill(name);
   await page.getByRole('button', { name: /create project/i }).click();
   await page.waitForURL(/\/project\//);
-});
+}
 
 When('the user creates a new template {string}', async ({ page }, name: string) => {
   await page.locator('#main-content').getByRole('button', { name: /^New Template$/i }).click();
