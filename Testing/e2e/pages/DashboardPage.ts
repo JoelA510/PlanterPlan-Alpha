@@ -26,7 +26,7 @@ export class DashboardPage {
   }
 
   async goto() {
-    await this.page.goto('/dashboard');
+    await this.page.goto('/tasks');
     await this.page.waitForLoadState('networkidle');
     await this.dismissOnboardingIfVisible();
   }

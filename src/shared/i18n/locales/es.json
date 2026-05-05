@@ -381,6 +381,13 @@
     "task_create_failed_toast": "No se pudo crear la tarea",
     "search_template_phase_placeholder": "Busca una fase de plantilla para copiar",
     "search_template_task_placeholder": "Empieza a escribir para copiar una tarea de plantilla existente",
+    "derived_state": {
+      "archived": "Archivado",
+      "complete": "Completo",
+      "in_progress": "En progreso",
+      "not_started": "No iniciado",
+      "empty": "Sin tareas"
+    },
     "invite_modal": {
       "title": "Invitar miembro",
       "description": "Invita a un usuario a {{project}}.",
@@ -680,6 +687,7 @@
     "login_failed": "Falló el inicio de sesión",
     "project_not_found_or_no_access": "Este proyecto no existe o ya no tienes acceso.",
     "back_to_dashboard": "Volver al panel",
+    "back_to_tasks": "Volver a tareas",
     "user_must_be_logged_in": "El usuario debe haber iniciado sesión"
   },
   "ics": {

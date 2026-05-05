@@ -32,7 +32,7 @@ Technical debt and architectural notes for the team.
 
 ### Resolved (Wave 34)
 
-- **`/admin` shell** — `src/pages/admin/AdminLayout.tsx` (lazy-loaded in `App.tsx`) hard-gates every `/admin/*` route via `useIsAdmin()`; non-admins get a Sonner toast and redirect to `/dashboard`. Left-rail nav links to Home / Users / Analytics + shortcut links to Templates and Projects that route into the existing Project surfaces.
+- **`/admin` shell** — `src/pages/admin/AdminLayout.tsx` (lazy-loaded in `App.tsx`) hard-gates every `/admin/*` route via `useIsAdmin()`; non-admins get a Sonner toast and redirect to `/tasks`. Left-rail nav links to Home / Users / Analytics + shortcut links to Templates and Projects that route into the existing Project surfaces.
 - **Global admin search** — `src/pages/admin/components/AdminSearch.tsx` debounces at 200ms (2-char min) and returns three parallel result groups (Users via `admin_search_users`, Projects + Templates via an in-memory filter of the task list). Click a row → canonical detail surface.
 - **User-management table** — `src/pages/admin/AdminUsers.tsx` + `src/features/admin/hooks/useAdminUsers.ts`. Server-side filter via `admin_list_users(filter jsonb, limit, offset)`. Right-side detail aside populates via `useAdminUserDetail` (hits `admin_user_detail`). Deep-link via `/admin/users/:uid` (AdminSearch navigates here on user click).
 - **Analytics dashboard** — `src/pages/admin/AdminAnalytics.tsx` + `src/features/admin/hooks/useAdminAnalytics.ts`. One RPC (`admin_analytics_snapshot`) backs every chart: totals cards, new-projects/week LineChart, project-kind PieChart, task-status BarChart, top-10 active users + popular templates. recharts already in the bundle — zero new deps.
@@ -63,7 +63,9 @@ Technical debt and architectural notes for the team.
 ### Resolved (Wave 32)
 
 - **Tasks-page status filters** — the `milestones` predicate in `src/features/tasks/hooks/useTaskFilters.ts` now filters by `task_type === 'milestone'` (Wave 25 discriminator column) rather than the structural grandchild-of-root heuristic. Inert status filters fixed where the compared literal drifted from the Wave 23 canonical `'todo' | 'not_started' | 'in_progress' | 'completed'` set.
-- **New Template button on Dashboard** — `src/pages/Dashboard.tsx` header surfaces a `variant="secondary"` button next to the existing New Project button that fires `actions.setShowTemplateModal(true)`. The modal was already mounted; only the trigger was missing.
+- **New Template entry point** — superseded by the PR C/PR D creation host:
+  project/template creation now opens from `/tasks?action=new-project` and
+  `/tasks?action=new-template`; `/dashboard` redirects to `/tasks`.
 
 ### Audit note — dropped Task
 

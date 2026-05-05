@@ -1,6 +1,4 @@
 import { FolderPlus } from 'lucide-react';
-import { PROJECT_STATUS_COLORS } from '@/shared/constants/colors';
-import { PROJECT_STATUS } from '@/shared/constants';
 import type { KeyboardEvent, MouseEvent } from 'react';
 
 interface InstanceTask {
@@ -42,7 +40,6 @@ const InstanceList = ({
  <>
  {tasks.map((task) => {
  const isSelected = selectedTaskId === task.id;
- const colors = PROJECT_STATUS_COLORS[task.status as string] || PROJECT_STATUS_COLORS[PROJECT_STATUS.PLANNING];
 
  return (
  <div
@@ -84,14 +81,6 @@ const InstanceList = ({
  </button>
  </div>
 
- <div className="flex items-center gap-2 mt-2">
- <div className={`
- text-[10px] px-2 py-0.5 rounded-full font-medium border uppercase tracking-wide
- ${colors.bg} ${colors.text} ${colors.border}
- `}>
- {task.status ? (task.status as string).replace('_', ' ') : 'Planning'}
- </div>
- </div>
  </div>
  );
  })}
