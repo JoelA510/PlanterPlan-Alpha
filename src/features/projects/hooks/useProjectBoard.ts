@@ -119,7 +119,7 @@ export function useProjectBoard(
                 origin: 'instance',
                 priority: 'medium',
                 description: templateData?.description ?? '',
-                notes: '',
+                notes: null,
                 purpose: templateData?.purpose ?? '',
                 actions: templateData?.actions ?? '',
                 ...(inheritedSettings ? { settings: inheritedSettings } : {}),

@@ -264,7 +264,7 @@ describe('useProjectBoard', () => {
         priority: 'medium',
         is_complete: false,
         description: '',
-        notes: '',
+        notes: null,
         purpose: '',
         actions: '',
       }));
@@ -290,7 +290,7 @@ describe('useProjectBoard', () => {
 
       expect(mockMutateAsync).toHaveBeenCalledWith(expect.objectContaining({
         description: 'Template desc',
-        notes: '',
+        notes: null,
         purpose: 'Template purpose',
         actions: 'Template actions',
         settings: {

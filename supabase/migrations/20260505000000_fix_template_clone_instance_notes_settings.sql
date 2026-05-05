@@ -242,7 +242,14 @@ BEGIN
         RETURN NULL;
     END IF;
 
-    SELECT COUNT(*), (array_agg(user_id ORDER BY user_id))[1]
+    SELECT COUNT(*), (
+        SELECT pm.user_id
+          FROM public.project_members pm
+         WHERE pm.project_id = v_project_id
+           AND pm.role = 'coach'
+         ORDER BY pm.user_id
+         LIMIT 1
+    )
       INTO v_coach_count, v_coach_id
       FROM public.project_members
      WHERE project_id = v_project_id
@@ -311,7 +318,14 @@ BEGIN
         v_project_id := NEW.id;
     END IF;
 
-    SELECT COUNT(*), (array_agg(user_id ORDER BY user_id))[1]
+    SELECT COUNT(*), (
+        SELECT pm.user_id
+          FROM public.project_members pm
+         WHERE pm.project_id = v_project_id
+           AND pm.role = 'coach'
+         ORDER BY pm.user_id
+         LIMIT 1
+    )
       INTO v_coach_count, v_coach_id
       FROM public.project_members
      WHERE project_id = v_project_id
