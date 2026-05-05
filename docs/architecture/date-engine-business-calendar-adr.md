@@ -4,7 +4,10 @@
 Accepted for the user-testing tranche. PR H recorded the decision and
 characterization net. PR I1 added the app/edge business-calendar interfaces
 with calendar-day behavior. PR I2 routes active scheduling and urgency callers
-through the seam without changing behavior.
+through the seam without changing behavior. The 2026-05-05 release-hardening
+plan keeps this custom-engine direction and selects `us-federal-observed` as
+the Alpha default calendar for date-kind scheduling once the inert calendar
+implementations and parity tests land.
 
 ## Context
 PlanterPlan currently centralizes app date math in `src/shared/lib/date-engine`.
@@ -25,9 +28,17 @@ abstraction, and route runtime scheduling callers through it without changing
 behavior. Mirror the abstraction needed by Supabase Edge utilities before any
 weekend or holiday rule changes.
 
-The first implementation slice must preserve the current calendar-day behavior.
-Weekend and regional holiday support require a later explicit product/schema
-decision.
+The first implementation slices preserve the current calendar-day behavior.
+The next slices add two non-default calendars behind the seam:
+
+* `weekday`: skips Saturday and Sunday only.
+* `us-federal-observed`: skips Saturday and Sunday plus observed US federal
+  holidays.
+
+After those calendars are tested in both the app and Edge mirrors, date-kind
+project scheduling switches to `us-federal-observed`. Checkpoint projects
+continue to suppress schedule shifting and urgency. `calendar-day` remains as a
+compatibility calendar for explicitly calendar-day paths and tests.
 
 ## PR I1 Implementation
 PR I1 adds:
@@ -126,3 +137,14 @@ PR I2 adds tests that lock:
 * ICS all-day `DTEND` stays one calendar day after `due_date`;
 * nightly-sync due-soon thresholds preserve UTC time-of-day while routing the
   date portion through the edge business-calendar seam.
+
+## PR R4/R5 Requirements
+PR R4 must add `weekday` and `us-federal-observed` without changing runtime
+defaults. App and Edge implementations must agree for date-only inputs,
+negative offsets, zero offsets, weekend boundaries, year boundaries, and
+observed-holiday cases where the legal holiday falls on a weekend.
+
+PR R5 may change behavior only after PR R4 lands. It must switch date-kind
+scheduling and urgency callers to the `us-federal-observed` calendar while
+preserving checkpoint exclusions, UTC date-only persistence, recurrence clone
+stamps, and template-form relative date authoring.
