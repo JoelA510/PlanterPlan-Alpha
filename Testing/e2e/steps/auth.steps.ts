@@ -1,12 +1,14 @@
 import { createBdd } from 'playwright-bdd';
 import { expect } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
+import { getNow } from '@/shared/lib/date-engine';
 
 const { Given, When, Then } = createBdd();
-const uniqueEmailSuffix = `${Date.now()}-${process.pid}`;
+let emailCounter = 0;
 
 function resolveScenarioEmail(email: string) {
   if (email === 'newuser@example.com') {
+    const uniqueEmailSuffix = `${getNow().getTime()}-${process.pid}-${emailCounter++}`;
     return `newuser+${uniqueEmailSuffix}@example.com`;
   }
 

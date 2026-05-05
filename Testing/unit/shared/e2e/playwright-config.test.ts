@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const playwrightConfig = readFileSync('Testing/e2e/playwright.config.ts', 'utf8');
 const loginPageObject = readFileSync('Testing/e2e/pages/LoginPage.ts', 'utf8');
+const e2eRunner = readFileSync('scripts/run-e2e.cjs', 'utf8');
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as { scripts: Record<string, string> };
 
 describe('Playwright E2E config', () => {
@@ -39,5 +40,11 @@ describe('Playwright E2E config', () => {
  it('keeps the login page object scoped to the form submit button', () => {
   expect(loginPageObject).toContain("this.submitButton = page.locator('form button[type=\"submit\"]');");
   expect(loginPageObject).not.toContain("this.submitButton = page.getByRole('button', { name: /sign in|sign up|log in/i });");
+ });
+
+ it('fails E2E runner subprocesses that exit by signal', () => {
+  expect(e2eRunner).toContain('if (result.signal) {');
+  expect(e2eRunner).toContain('was terminated by signal');
+  expect(e2eRunner).toContain('if (result.status === null) {');
  });
 });

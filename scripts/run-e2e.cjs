@@ -60,6 +60,16 @@ function run(command, args, env) {
     process.exit(1);
   }
 
+  if (result.signal) {
+    console.error(`[e2e] ${command} was terminated by signal ${result.signal}`);
+    process.exit(1);
+  }
+
+  if (result.status === null) {
+    console.error(`[e2e] ${command} exited without a status code`);
+    process.exit(1);
+  }
+
   if (typeof result.status === 'number' && result.status !== 0) {
     process.exit(result.status);
   }
