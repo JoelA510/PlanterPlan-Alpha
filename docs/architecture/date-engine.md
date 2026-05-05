@@ -23,18 +23,20 @@ Calculated dynamically based on system time vs. Task End Dates:
 * **Template Exclusion:** The Date Engine is entirely disabled for Library Templates. Template tasks use `duration` and `days from start until due`.
 * **Checkpoint projects (Wave 29):** `recalculateProjectDates` and `deriveUrgencyForProject` short-circuit when the project root carries `settings.project_kind === 'checkpoint'`; nightly-sync skips urgency transitions for those roots; due dates render as informational only. `isCheckpointProject` is lock-step with `supabase/functions/_shared/date.ts`.
 * **Wave 31:** display-time date formatting uses `formatDateLocalized` from `src/shared/i18n/formatters.ts` (Intl `DateTimeFormat` / `RelativeTimeFormat` with per-locale caches). Internal math stays UTC-anchored ISO strings here in `date-engine/index.ts` — `compareDateAsc`, `isBeforeDate`, `formatDisplayDate`, cascade/rollup calculations, etc. Don't conflate the two: calling `formatDateLocalized` in a comparator silently breaks sort stability across locales; calling `formatDisplayDate` in JSX silently renders the wrong language.
+* **Business-calendar seam (PR I1):** `src/shared/lib/date-engine/business-calendar.ts` and `supabase/functions/_shared/business-calendar.ts` expose app/edge `BusinessCalendar` interfaces. The default implementation is `calendar-day`, which intentionally treats every valid date including weekends as a business day. Runtime scheduling and urgency callers are not routed through the seam yet; PR I2 owns that no-behavior-change migration.
 
 ## Integration Points
 * **Tasks & Subtasks:** The drag-and-drop system relies heavily on the Date Engine to recalculate bounds when items are moved.
 * **Dashboard:** Feeds 'Due Soon' and 'Overdue' metrics to `StatsOverview`.
 * **Nightly CRON (Wave 20):** `supabase/functions/nightly-sync/` owns the *write* path for urgency-status transitions (`not_started` → `in_progress` → `due_soon` → `overdue`) using per-project `settings.due_soon_threshold`. The app-layer Date Engine computes urgency for display (`deriveUrgency`) but no longer writes status to the DB itself. See `supabase/functions/nightly-sync/README.md`.
 * **Gantt drag-shift (Wave 28):** `src/features/gantt/hooks/useGanttDragShift.ts` validates bounds via `isBeforeDate`/`compareDateAsc`, then routes through `useUpdateTask`. Cascade-up logic in `updateParentDates` unchanged.
-* **Decision record (PR H):** `docs/architecture/date-engine-business-calendar-adr.md` records the accepted direction: keep `date-fns` inside the app date-engine layer, add a custom business-calendar seam in PR I, and mirror any edge utility behavior before changing runtime scheduling.
+* **Decision record (PR H/I1):** `docs/architecture/date-engine-business-calendar-adr.md` records the accepted direction: keep `date-fns` inside the app date-engine layer, add a custom business-calendar seam, and mirror any edge utility behavior before changing runtime scheduling.
 
 ## Known Gaps / Technical Debt
 * Algorithms for auto-adjusting dates currently lack logic for skipping weekends and regional holidays.
 * **User-testing tranche direction (PR H, PR I+):** PR H added the decision
-  record and characterization tests. PR I slices must preserve UTC/date-only
-  semantics, checkpoint-project exclusions, template exclusions, task hierarchy
-  rollups, and `nightly-sync` / `supabase/functions/_shared/date.ts` parity
-  while introducing the business-calendar seam.
+  record and characterization tests. PR I1 added the app/edge business-calendar
+  seam with no runtime behavior change. Later PR I slices must preserve
+  UTC/date-only semantics, checkpoint-project exclusions, template exclusions,
+  task hierarchy rollups, and `nightly-sync` / edge utility parity while
+  routing behavior through the seam.

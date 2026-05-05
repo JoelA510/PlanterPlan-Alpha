@@ -8,6 +8,9 @@ import {
     toMonthKey,
 } from '@/shared/lib/date-engine';
 import {
+    calendarDayBusinessCalendar as appBusinessCalendar,
+} from '@/shared/lib/date-engine/business-calendar';
+import {
     addDaysToIsoDate,
     dateStringToUtcMidnightMs,
     dateStringToUtcMonthKey,
@@ -15,6 +18,9 @@ import {
     toUtcIsoDate,
     toUtcMonthKey,
 } from '../../../../../supabase/functions/_shared/date';
+import {
+    calendarDayBusinessCalendar as edgeBusinessCalendar,
+} from '../../../../../supabase/functions/_shared/business-calendar';
 
 describe('date-engine app/edge parity characterization', () => {
     it('keeps UTC month-key helpers aligned', () => {
@@ -52,5 +58,19 @@ describe('date-engine app/edge parity characterization', () => {
         expect(isEdgeCheckpointProject(checkpointRoot)).toBe(isAppCheckpointProject(checkpointRoot));
         expect(isEdgeCheckpointProject(dateRoot)).toBe(isAppCheckpointProject(dateRoot));
         expect(isEdgeCheckpointProject(checkpointChild)).toBe(isAppCheckpointProject(checkpointChild));
+    });
+
+    it('keeps app and edge business-calendar behavior aligned for the calendar-day implementation', () => {
+        const fridayUtc = '2026-01-02T00:00:00.000Z';
+
+        expect(toIsoDate(appBusinessCalendar.addBusinessDays(fridayUtc, 1))).toBe(
+            edgeBusinessCalendar.addBusinessDays(fridayUtc, 1),
+        );
+        expect(appBusinessCalendar.diffInBusinessDays('2026-01-05', '2026-01-02')).toBe(
+            edgeBusinessCalendar.diffInBusinessDays('2026-01-05', '2026-01-02'),
+        );
+        expect(appBusinessCalendar.isBusinessDay('2026-01-03')).toBe(
+            edgeBusinessCalendar.isBusinessDay('2026-01-03'),
+        );
     });
 });
