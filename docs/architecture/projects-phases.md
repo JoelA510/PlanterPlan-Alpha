@@ -42,6 +42,12 @@ _Historical lifecycle summary:_
 * **Deprecation:** Project `Location` field is officially deprecated.
 
 ## Archive & Completion Semantics
+> **User-testing tranche note:** current code still exposes manual project
+> status mutation through dashboard/pipeline surfaces. PR D must remove those
+> manual lifecycle controls after a derived read-only project-state selector
+> exists. Treat archive as a reversible visibility action, not a lifecycle
+> pipeline state, unless a later product decision says otherwise.
+
 * **Archived project:** Root task carries `status = 'archived'` (set/cleared via the Archive / Unarchive action in `EditProjectModal`). Archiving is reversible and **never cascades** to descendants — children keep their own status and continue to resolve dates normally.
 * **Active project:** Any project root where `status !== 'archived'` **and** `is_complete !== true`. This is the default-visible set for `useDashboard`, `ProjectSidebar`, and `ProjectSwitcher`.
 * **Completed project:** Indicated by `is_complete = true` on the root task (and `status !== 'archived'`). Wave 23's `sync_task_completion_flags` DB trigger makes `is_complete === (status === 'completed')` an unconditional invariant (see `tasks-subtasks.md`); the `updateStatus` bubble-up logic keeps the value propagating up the tree. The UI filter inspects `is_complete` only.
