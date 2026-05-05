@@ -71,6 +71,7 @@ interface TaskDetailsViewProps {
      */
     membershipRole?: string;
     teamMembers?: TeamMemberWithProfile[];
+    showComments?: boolean;
     [key: string]: unknown;
 }
 
@@ -82,6 +83,7 @@ const TaskDetailsView = ({
     canEdit = true,
     membershipRole,
     teamMembers = [],
+    showComments = true,
     ...props
 }: TaskDetailsViewProps) => {
     const { t } = useTranslation();
@@ -384,8 +386,7 @@ const TaskDetailsView = ({
                 </div>
             )}
 
-            {/* Comments (Wave 26) */}
-            <TaskComments taskId={task.id} />
+            {showComments && <TaskComments taskId={task.id} />}
 
             {/* Activity (Wave 27) */}
             <TaskActivityRail taskId={task.id} />
