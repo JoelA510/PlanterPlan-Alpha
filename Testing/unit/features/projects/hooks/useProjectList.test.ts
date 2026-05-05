@@ -44,7 +44,6 @@ describe('useProjectList', () => {
     mockProjectList.mockResolvedValue([]);
     mockTaskListByCreator.mockResolvedValue([]);
     mockTeamMemberFilter.mockResolvedValue([]);
-    localStorage.removeItem('gettingStartedDismissed');
   });
 
   it('returns loading state initially', () => {
@@ -174,30 +173,6 @@ describe('useProjectList', () => {
 
     await waitFor(() => {
       expect(result.current.data.filteredTasks).toHaveLength(2);
-    });
-  });
-
-  describe('wizard state', () => {
-    it('initializes wizardDismissed from localStorage', () => {
-      localStorage.setItem('gettingStartedDismissed', 'true');
-      const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
-      expect(result.current.state.wizardDismissed).toBe(true);
-    });
-
-    it('defaults wizardDismissed to false when localStorage is empty', () => {
-      const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
-      expect(result.current.state.wizardDismissed).toBe(false);
-    });
-
-    it('handleDismissWizard sets localStorage and state', () => {
-      const { result } = renderHook(() => useProjectList(), { wrapper: createWrapper() });
-
-      act(() => {
-        result.current.actions.handleDismissWizard();
-      });
-
-      expect(result.current.state.wizardDismissed).toBe(true);
-      expect(localStorage.getItem('gettingStartedDismissed')).toBe('true');
     });
   });
 

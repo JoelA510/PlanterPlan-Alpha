@@ -13,9 +13,6 @@ export function useProjectList() {
  const { user, loading: authLoading } = useAuth();
 
  // Project list local state
- const [wizardDismissed, setWizardDismissed] = useState<boolean>(() => {
- return localStorage.getItem('gettingStartedDismissed') === 'true';
- });
  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
  const [searchQuery, setSearchQuery] = useState('');
 
@@ -83,19 +80,12 @@ export function useProjectList() {
  // Loading State Aggregation
  const isLoading = authLoading || loadingProjects;
 
- // Handlers
- const handleDismissWizard = () => {
- setWizardDismissed(true);
- localStorage.setItem('gettingStartedDismissed', 'true');
- };
-
  return {
  state: {
  isLoading,
  isError,
  error,
  user,
- wizardDismissed,
  searchQuery,
  selectedProjectId
  },
@@ -109,8 +99,7 @@ export function useProjectList() {
  },
  actions: {
  setSearchQuery,
- setSelectedProjectId,
- handleDismissWizard
+ setSelectedProjectId
  }
  };
 }
