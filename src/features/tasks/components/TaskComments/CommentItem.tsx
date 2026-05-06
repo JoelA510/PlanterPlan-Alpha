@@ -36,7 +36,7 @@ export function CommentItem({
 }: CommentItemProps) {
     const { t } = useTranslation();
     const [mode, setMode] = useState<'view' | 'edit' | 'reply'>('view');
-    const isOwn = Boolean(currentUserId && comment.author_id && comment.author_id === currentUserId);
+    const isOwn = currentUserId !== null && comment.author_id === currentUserId;
     const isDeleted = comment.deleted_at !== null;
     const fullName =
         typeof comment.author?.user_metadata?.full_name === 'string'
