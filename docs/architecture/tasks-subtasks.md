@@ -66,9 +66,9 @@ normalises into the nested JSONB shape before persisting.
 > Existing instance badges/coach behavior remain read-only inherited behavior.
 
 Any **instance task** (`origin = 'instance'`) may be tagged as a *coaching
-task* via `settings.is_coaching_task: true`. The flag widens edit access
-to users with the project `coach` role via an additive RLS UPDATE policy
-(see `auth-rbac.md`).
+task* via `settings.is_coaching_task: true`. The flag widens progress/status
+access to users with the project `coach` role via an additive RLS UPDATE policy
+plus a column-scope trigger (see `auth-rbac.md`).
 
 **Flag shape** (`src/shared/db/app.types.ts` → `TaskSettings`):
 * `is_coaching_task?: boolean` — absence / `false` both mean "not a coaching
@@ -96,11 +96,15 @@ if a crafted payload includes the flags. The lower-level helper pair in
 **Surface:** `TaskDetailsView.tsx` renders a "Coaching" badge in the status
 row when `extractCoachingFlag(task)` returns `true`.
 
-**RLS:** `docs/db/migrations/2026_04_17_coaching_task_rls.sql` adds the
-`"Enable update for coaches on coaching tasks"` policy. It's purely
-additive — the owner/editor/admin UPDATE policy is unchanged, so coaches
-retain zero access to non-coaching rows and to templates. Policy text is
-mirrored into `docs/db/schema.sql` as the SSoT.
+**RLS:** `docs/db/migrations/2026_04_17_coaching_task_rls.sql` added the
+`"Enable update for coaches on coaching tasks"` policy. PR 3 tightened that
+policy with a matching `WITH CHECK` and added
+`trg_enforce_coach_task_update_scope`: coaches may update only
+status/completion progress on Coaching-labeled instance rows. Content,
+settings, assignment, priority, hierarchy, origin/template metadata, and
+delete paths remain denied below the UI. The owner/editor/admin UPDATE policy
+is unchanged. Policy and trigger text are mirrored into `docs/db/schema.sql`
+as the SSoT.
 
 **Auto-assignment (Wave 23):**
 `docs/db/migrations/2026_04_17_coaching_auto_assign.sql` adds a

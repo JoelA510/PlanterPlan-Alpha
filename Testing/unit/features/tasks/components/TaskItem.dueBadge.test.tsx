@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { DndContext } from '@dnd-kit/core';
 import type { ReactNode } from 'react';
 
@@ -29,6 +29,13 @@ function DndWrapper({ children }: { children: ReactNode }) {
 
 function renderTaskItem(task: TaskItemData) {
     return renderWithProviders(<TaskItem task={task} />, { wrapper: DndWrapper });
+}
+
+function renderTaskItemWithStatusPermission(task: TaskItemData, opts: { canUpdateStatus: boolean; onStatusChange: (id: string, status: string) => void }) {
+    return renderWithProviders(
+        <TaskItem task={task} canUpdateStatus={opts.canUpdateStatus} onStatusChange={opts.onStatusChange} />,
+        { wrapper: DndWrapper },
+    );
 }
 
 describe('TaskItem due-date badge (Wave 33)', () => {
@@ -113,5 +120,27 @@ describe('TaskItem due-date badge (Wave 33)', () => {
         // Status select renders a combobox / role=combobox per Radix Select
         const row = screen.getByTestId('task-row-tmpl-status');
         expect(within(row).queryByRole('combobox')).not.toBeInTheDocument();
+    });
+
+    it('disables the status select when the caller cannot update task progress', () => {
+        const onStatusChange = vi.fn();
+        const task = makeTask({ id: 'locked-status', title: 'Locked Status', origin: 'instance' }) as TaskItemData;
+        renderTaskItemWithStatusPermission(task, { canUpdateStatus: false, onStatusChange });
+
+        const select = screen.getByRole('combobox');
+        expect(select).toBeDisabled();
+        fireEvent.change(select, { target: { value: 'completed' } });
+        expect(onStatusChange).not.toHaveBeenCalled();
+    });
+
+    it('keeps the status select interactive for permitted progress updates', () => {
+        const onStatusChange = vi.fn();
+        const task = makeTask({ id: 'editable-status', title: 'Editable Status', origin: 'instance' }) as TaskItemData;
+        renderTaskItemWithStatusPermission(task, { canUpdateStatus: true, onStatusChange });
+
+        const select = screen.getByRole('combobox');
+        expect(select).not.toBeDisabled();
+        fireEvent.change(select, { target: { value: 'completed' } });
+        expect(onStatusChange).toHaveBeenCalledWith('editable-status', 'completed');
     });
 });

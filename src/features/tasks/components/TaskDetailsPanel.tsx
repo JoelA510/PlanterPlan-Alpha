@@ -54,6 +54,7 @@ export interface TaskDetailsPanelProps {
  onDeleteTaskWrapper?: (taskId: string) => Promise<void>;
  fetchTasks?: () => void;
  membershipRole?: string;
+ canEdit?: boolean;
  allProjectTasks?: TaskRow[];
  teamMembers?: TeamMemberWithProfile[];
  showComments?: boolean;
@@ -76,6 +77,7 @@ export default function TaskDetailsPanel({
  onDeleteTaskWrapper,
  fetchTasks,
  membershipRole,
+ canEdit = true,
  allProjectTasks,
  teamMembers = [],
  showComments = true,
@@ -133,6 +135,7 @@ export default function TaskDetailsPanel({
  onEditTask={handleEditTask}
  onDeleteTask={onDeleteTaskWrapper ? ((t) => { void onDeleteTaskWrapper(t.id); }) : undefined}
  onTaskUpdated={fetchTasks || (() => { })}
+ canEdit={canEdit}
  membershipRole={membershipRole}
  allProjectTasks={allProjectTasks}
  teamMembers={teamMembers}

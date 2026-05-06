@@ -121,6 +121,10 @@ The `check_project_ownership` shim has been dropped. Migration: `docs/db/migrati
 
 _Historical (Wave 23 audit):_ `public.check_project_creatorship(pid, uid)` was introduced carrying the original body; `public.check_project_ownership` became a thin SQL shim delegating to it so the four policies could be rewritten in Wave 24 without a byte-for-byte semantic change window.
 
+### Coach task update scope
+
+**Resolved (PR 3).** The Wave 22 coach UPDATE policy is now paired with `trg_enforce_coach_task_update_scope`. Coaches retain project-wide read access, but writes are limited below the UI to `status`/completion progress on `settings.is_coaching_task = true` instance tasks. The trigger blocks coach-role changes to content, settings, assignment, priority, hierarchy, origin/template metadata, scheduling fields, and deletion remains denied by RLS. Owner/editor/admin and explicit service-role maintenance paths are unchanged. UI capability checks live in `src/features/tasks/lib/task-permissions.ts`.
+
 ### `task_comments.author:users(...)` PostgREST join is typed-client-hostile
 
 **Active. Target: Wave 30.** `planter.entities.TaskComment.{listByTask, create}` select `*, author:users(id, email, user_metadata)` across the `public`/`auth` schema boundary. The Supabase generated types don't model a FK from `task_comments.author_id` to `auth.users.id`, so the typed client surfaces a `SelectQueryError<"could not find the relation between task_comments and users">`. The current workaround casts through `unknown` and ships: at runtime PostgREST sometimes resolves the join, sometimes returns `author: null` (the row-level type already allows null, so the UI falls back to initials + "Unknown" via `<Avatar>`).

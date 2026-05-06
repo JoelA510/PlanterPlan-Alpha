@@ -261,7 +261,7 @@ const TaskFormFields = ({
  Coaching task
  </Label>
  <p className="text-xs text-slate-500">
- Cloned project instances keep this as a coaching task for Coach-role editing.
+ Cloned project instances keep this as a coaching task for Coach-role progress updates.
  </p>
  </div>
  </div>
