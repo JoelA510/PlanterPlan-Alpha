@@ -145,7 +145,7 @@ and project identifiers in every `mention_pending` payload.
 
 **Active. No wave assigned.** `public/sw.js` (Wave 30 Task 2 push handler) is the only non-TypeScript file in the application tree. The styleguide calls for TS-only across `src/`; the service worker carves out one documented exception because the TS → worker build path hasn't landed yet. The PWA / workbox track that would have subsumed this file was descoped during the post-Wave-31 roadmap renumber, so there is no active plan to subsume it — the exception stays documented until a future workbox (or equivalent) rewrite is scheduled.
 
-Do not grow `sw.js`. The current handler implements `install` / `activate` / `push` / `notificationclick` and is the complete contract. Any additional SW responsibility (offline queue, asset precache) waits for the TS rewrite.
+Do not grow `sw.js` beyond lifecycle + push responsibilities. The current handler implements `install` / `activate` / `push` / `notificationclick`, intentionally omits `fetch`/cache handling to avoid stale cache poisoning, normalizes malformed push payloads, and sanitizes notification click targets to same-origin paths. Any additional SW responsibility (offline queue, asset precache) waits for the TS rewrite.
 
 ### `task_comments.author_id ON DELETE RESTRICT` blocks account deletion
 
