@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     calendarDayBusinessCalendar,
+    dateProjectBusinessCalendar,
     defaultBusinessCalendar,
     usFederalObservedBusinessCalendar,
     weekdayBusinessCalendar,
@@ -12,6 +13,11 @@ describe('business-calendar abstraction', () => {
     it('exports the calendar-day implementation as the default business calendar', () => {
         expect(defaultBusinessCalendar).toBe(calendarDayBusinessCalendar);
         expect(defaultBusinessCalendar.id).toBe('calendar-day');
+    });
+
+    it('uses US federal observed holidays for date-kind project scheduling', () => {
+        expect(dateProjectBusinessCalendar).toBe(usFederalObservedBusinessCalendar);
+        expect(dateProjectBusinessCalendar.id).toBe('us-federal-observed');
     });
 
     it('preserves current calendar-day addition behavior', () => {

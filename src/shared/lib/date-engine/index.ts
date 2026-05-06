@@ -7,7 +7,7 @@ import {
  endOfDay,
  isBefore
 } from 'date-fns';
-import { defaultBusinessCalendar } from './business-calendar';
+import { defaultBusinessCalendar, dateProjectBusinessCalendar } from './business-calendar';
 
 /**
  * Date Engine - Single Source of Truth for PlanterPlan Date Logic
@@ -198,13 +198,13 @@ export const findTaskById = <T extends DateEngineTask>(
 };
 
 /**
- * Adds calendar/business days to a UTC date-only value and returns a Date.
+ * Adds date-project business days to a UTC date-only value and returns a Date.
  * @param isoDate - Date-only value in `YYYY-MM-DD` format.
  * @param amount - Number of days to shift; negative values subtract.
  * @returns Shifted Date, or null when the calendar rejects the input.
  */
 const addBusinessDaysToUtcDate = (isoDate: string, amount: number): Date | null => {
- return defaultBusinessCalendar.addBusinessDays(isoDate, amount);
+ return dateProjectBusinessCalendar.addBusinessDays(isoDate, amount);
 };
 
 /**
@@ -417,13 +417,17 @@ export const recalculateProjectDates = (
  const newIso = toIsoDate(newStartDateStr);
  if (!oldIso || !newIso) return [];
 
- const diffDays = defaultBusinessCalendar.diffInBusinessDays(newIso, oldIso);
+ const diffDays = dateProjectBusinessCalendar.diffInBusinessDays(newIso, oldIso);
 
  if (diffDays === null || diffDays === 0) return [];
 
  const updates: DateUpdateRecord[] = [];
 
  projectTasks.forEach((task) => {
+ // The project root is updated directly by the project mutation. Re-shifting it
+ // here can overwrite a user-selected weekend/holiday launch date.
+ if (root && task.id === root.id) return;
+
  // Skip if task is completed by either signal (preserve history)
  if (task.is_complete || task.status === 'completed') return;
 
@@ -502,7 +506,7 @@ export const deriveUrgency = (
  const threshold = Math.max(0, Math.floor(dueSoonThresholdDays));
  const todayIso = toIsoDate(today);
  if (!todayIso) return null;
- const shiftedCutoff = defaultBusinessCalendar.addBusinessDays(todayIso, threshold);
+ const shiftedCutoff = dateProjectBusinessCalendar.addBusinessDays(todayIso, threshold);
  if (!shiftedCutoff) return null;
  const soonCutoff = startOfUtcDay(shiftedCutoff);
  if (due.getTime() <= soonCutoff.getTime()) return 'due_soon';

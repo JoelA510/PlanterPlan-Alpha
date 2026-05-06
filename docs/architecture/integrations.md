@@ -29,7 +29,7 @@ Indexes on `(token)` (public lookup) and `(user_id)` (per-user listing).
 
 - **Endpoint:** `GET /functions/v1/ics-feed?token=<opaque>`. Public (no Supabase auth header). 404 on missing or revoked tokens — deliberately indistinguishable so rotation doesn't leak info.
 - **Task query:** token owner's `assignee_id` rows, `due_date` non-null, `due_date >= now() - 30 days`. Optional `project_filter` narrows by `root_id IN (...)`. Capped at 500 rows.
-- **Rendering:** pure `renderIcsDocument` in `ics.ts` (no Deno imports, so vitest drives it). RFC 5545 VCALENDAR with one all-day VEVENT per task + VALARM `-PT24H` reminder. RFC escaping + 75-octet line folding implemented in helpers.
+- **Rendering:** pure `renderIcsDocument` in `ics.ts` (no Deno imports, so vitest drives it). RFC 5545 VCALENDAR with one all-day VEVENT per task + VALARM `-PT24H` reminder. RFC escaping + 75-octet line folding implemented in helpers. All-day `DTEND` is an exclusive calendar rendering boundary and therefore uses the edge `calendarDayBusinessCalendar`, not date-project business-day scheduling.
 - **Side effect:** fire-and-forget UPDATE on `last_accessed_at`. Doesn't block the response.
 - **Response headers:** `Content-Type: text/calendar; charset=utf-8`, `Cache-Control: private, max-age=300`, `Content-Disposition: inline; filename="planterplan.ics"`.
 

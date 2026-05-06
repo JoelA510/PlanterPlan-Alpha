@@ -3,11 +3,11 @@ import { addDays, differenceInCalendarDays, isValid, parseISO } from 'date-fns';
 /**
  * Business-calendar abstraction for PlanterPlan scheduling.
  *
- * The default calendar intentionally preserves current calendar-day behavior:
+ * The default calendar intentionally preserves calendar-day compatibility:
  * every valid date is treated as a business day, so Friday + 1 business day is
- * Saturday. PR R4 adds non-default weekday and US federal observed calendars
- * behind this seam; PR R5 owns any runtime default or scheduling behavior
- * switch.
+ * Saturday. Active date-kind project scheduling uses
+ * {@link dateProjectBusinessCalendar}, which skips weekends and nationwide US
+ * federal observed holidays.
  */
 
 export type BusinessCalendarId = 'calendar-day' | 'weekday' | 'us-federal-observed';
@@ -345,5 +345,13 @@ export const usFederalObservedBusinessCalendar: BusinessCalendar = createSkippin
  'us-federal-observed',
  (date) => isWeekendUtc(date) || isUsFederalObservedHoliday(date),
 );
+
+/**
+ * Calendar used by active date-kind project scheduling and urgency.
+ *
+ * `defaultBusinessCalendar` remains calendar-day for compatibility wrappers
+ * whose names and callers still mean literal calendar-day math.
+ */
+export const dateProjectBusinessCalendar = usFederalObservedBusinessCalendar;
 
 export const defaultBusinessCalendar = calendarDayBusinessCalendar;

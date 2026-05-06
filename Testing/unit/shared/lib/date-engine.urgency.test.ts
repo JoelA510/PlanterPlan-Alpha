@@ -43,8 +43,20 @@ describe('deriveUrgency', () => {
   });
 
   it("returns 'due_soon' when due_date is exactly at the threshold boundary (inclusive)", () => {
-    const result = deriveUrgency({ due_date: '2026-04-19' }, 3, NOW);
+    const result = deriveUrgency({ due_date: '2026-04-21' }, 3, NOW);
     expect(result).toBe('due_soon');
+  });
+
+  it('counts due-soon thresholds in date-project business days', () => {
+    expect(deriveUrgency({ due_date: '2026-04-20' }, 2, NOW)).toBe('due_soon');
+    expect(deriveUrgency({ due_date: '2026-04-21' }, 2, NOW)).toBe('current');
+  });
+
+  it('skips observed US federal holidays in due-soon thresholds', () => {
+    const julyNow = new Date('2026-07-02T12:00:00.000Z');
+
+    expect(deriveUrgency({ due_date: '2026-07-06' }, 1, julyNow)).toBe('due_soon');
+    expect(deriveUrgency({ due_date: '2026-07-07' }, 1, julyNow)).toBe('current');
   });
 
   it('keeps threshold arithmetic UTC-stable across DST boundaries', () => {

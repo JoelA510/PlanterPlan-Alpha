@@ -5,7 +5,7 @@
 // through `supabase/functions/_shared/business-calendar.ts` (the Deno mirror
 // of the app business-calendar seam) per the styleguide's no-raw-date-math rule.
 
-import { defaultBusinessCalendar } from '../_shared/business-calendar.ts';
+import { calendarDayBusinessCalendar } from '../_shared/business-calendar.ts';
 
 export interface IcsTaskRow {
     id: string;
@@ -97,9 +97,10 @@ export function renderIcsDocument(tasks: IcsTaskRow[], opts: RenderIcsOptions = 
         if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) continue;
 
         const startFmt = formatIcsDate(startDate);
-        // DTEND is exclusive in iCal; advance one calendar day so single-day
-        // events render. Routed through the edge business-calendar seam.
-        const dueNextIso = defaultBusinessCalendar.addBusinessDays(dueDate, 1);
+        // DTEND is exclusive in iCal; advance one literal calendar day so
+        // single-day events render even after date-project scheduling starts
+        // skipping weekends and observed holidays.
+        const dueNextIso = calendarDayBusinessCalendar.addBusinessDays(dueDate, 1);
         if (!dueNextIso) continue;
         const endFmt = formatIcsDate(dueNextIso);
 

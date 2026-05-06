@@ -3,12 +3,14 @@
 ## Status
 Accepted for the user-testing tranche. PR H recorded the decision and
 characterization net. PR I1 added the app/edge business-calendar interfaces
-with calendar-day behavior. PR I2 routes active scheduling and urgency callers
+with calendar-day behavior. PR I2 routed active scheduling and urgency callers
 through the seam without changing behavior. The 2026-05-05 release-hardening
 plan keeps this custom-engine direction and selects `us-federal-observed` as
-the Alpha default calendar for date-kind scheduling. PR R4 adds inert
-`weekday` and `us-federal-observed` implementations plus app/edge parity tests;
-`calendar-day` remains the runtime default until the behavior-switch PR lands.
+the Alpha calendar for date-kind scheduling. PR R4 added `weekday` and
+`us-federal-observed` implementations plus app/edge parity tests. PR R5
+switched date-kind scheduling and urgency callers to
+`dateProjectBusinessCalendar = us-federal-observed` while keeping
+`calendar-day` as the compatibility default.
 
 ## Context
 PlanterPlan currently centralizes app date math in `src/shared/lib/date-engine`.
@@ -17,10 +19,12 @@ Edge functions cannot import the app tree, so `supabase/functions/_shared/date.t
 mirrors the small set of edge-safe date helpers used by `nightly-sync`,
 supervisor reports, and ICS feeds.
 
-The current behavior is calendar-day based. It does not skip weekends or
-regional holidays. Checkpoint projects suppress date shifting and urgency, while
-template forms keep relative `days_from_start` / duration authoring instead of
-instance schedule writes.
+Before PR R5, runtime behavior was calendar-day based and did not skip weekends
+or regional holidays. Current date-kind scheduling skips weekends and nationwide
+US federal observed holidays; regional/organization-specific holiday
+configuration is not implemented. Checkpoint projects suppress date shifting and
+urgency, while template forms keep relative `days_from_start` / duration
+authoring instead of instance schedule writes.
 
 ## Decision
 Keep the existing `date-fns` dependency constrained to
@@ -164,3 +168,28 @@ PR R5 may change behavior only after PR R4 lands. It must switch date-kind
 scheduling and urgency callers to the `us-federal-observed` calendar while
 preserving checkpoint exclusions, UTC date-only persistence, recurrence clone
 stamps, and template-form relative date authoring.
+
+## PR R5 Implementation
+PR R5 adds `dateProjectBusinessCalendar` in both app and Edge mirrors, pointing
+to `us-federal-observed`, while leaving `defaultBusinessCalendar` on
+`calendar-day`.
+
+Runtime changes:
+
+* `calculateScheduleFromOffset` uses `dateProjectBusinessCalendar`, so template
+  `days_from_start` offsets on instances skip weekends and observed US federal
+  holidays.
+* `recalculateProjectDates` calculates project-start diffs and cascaded task
+  shifts in date-project business days; checkpoint roots still return no batch
+  shifts.
+* `deriveUrgency`, `deriveUrgencyForProject`, task filters, and
+  `nightly-sync` due-soon cutoffs count `settings.due_soon_threshold` in
+  date-project business days.
+* `supabase/functions/ics-feed/ics.ts` explicitly uses
+  `calendarDayBusinessCalendar` for all-day `DTEND`, because that field is an
+  exclusive calendar rendering boundary rather than project scheduling.
+
+PR R5 tests cover app/edge calendar selection, weekend and observed-holiday
+offsets, project shifts, urgency thresholds, task-filter checkpoint suppression,
+nightly-sync due-soon parity, and the unchanged ICS `DTEND` calendar-day
+compatibility path.

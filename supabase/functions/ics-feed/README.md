@@ -15,7 +15,7 @@ Returns `text/calendar; charset=utf-8` (RFC 5545). The token *is* the credential
 - **404 for missing / revoked tokens.** Deliberately indistinguishable so rotation + unknown IDs leak no info.
 - **`last_accessed_at` bumped** on every successful fetch (fire-and-forget — doesn't block the response).
 - **Tasks returned** are the token owner's assigned tasks with a non-null `due_date` inside `[now - 30d, +∞)`. Optional `project_filter: uuid[]` on the token narrows by `root_id IN (...)`.
-- **All-day VEVENT per task** (DATE value type on DTSTART / DTEND) + VALARM `-PT24H` reminder.
+- **All-day VEVENT per task** (DATE value type on DTSTART / DTEND) + VALARM `-PT24H` reminder. `DTEND` advances by one literal calendar day via `calendarDayBusinessCalendar`; it does not use date-project business-day scheduling.
 - Limited to 500 tasks per response to keep payload bounded.
 
 ## Deploy

@@ -154,7 +154,8 @@ describe('useUpdateProject', () => {
 
   it('cascades dates when start_date changes', async () => {
     const tasks = [
-      makeTask({ id: 't1', start_date: '2026-01-10', due_date: '2026-01-20', is_complete: false }),
+      makeTask({ id: 'proj-1', parent_task_id: null, start_date: '2026-01-01', due_date: '2026-01-01', is_complete: false }),
+      makeTask({ id: 't1', parent_task_id: 'proj-1', start_date: '2026-01-10', due_date: '2026-01-20', is_complete: false }),
     ];
     mockTaskFilter.mockResolvedValueOnce(tasks);
     mockProjectUpdate.mockResolvedValueOnce(makeTask());
@@ -173,6 +174,8 @@ describe('useUpdateProject', () => {
 
     expect(mockTaskFilter).toHaveBeenCalledWith({ root_id: 'proj-1' });
     expect(mockTaskUpsert).toHaveBeenCalled();
+    const upsertArg = mockTaskUpsert.mock.calls[0][0] as Array<{ id: string }>;
+    expect(upsertArg.map((u) => u.id)).toEqual(['t1']);
   });
 
   it('invalidates project-specific query keys on success', async () => {
@@ -211,10 +214,11 @@ describe('useUpdateProject', () => {
 
   it('returns shiftedCount matching incomplete tasks and skips completed ones', async () => {
     const tasks = [
-      makeTask({ id: 't1', start_date: '2026-01-10', due_date: '2026-01-20', is_complete: false }),
-      makeTask({ id: 't2', start_date: '2026-01-12', due_date: '2026-01-22', is_complete: false }),
-      makeTask({ id: 't3', start_date: '2026-01-14', due_date: '2026-01-24', is_complete: false }),
-      makeTask({ id: 't4', start_date: '2026-01-16', due_date: '2026-01-26', is_complete: true }),
+      makeTask({ id: 'proj-1', parent_task_id: null, start_date: '2026-01-01', due_date: '2026-01-01', is_complete: false }),
+      makeTask({ id: 't1', parent_task_id: 'proj-1', start_date: '2026-01-10', due_date: '2026-01-20', is_complete: false }),
+      makeTask({ id: 't2', parent_task_id: 'proj-1', start_date: '2026-01-12', due_date: '2026-01-22', is_complete: false }),
+      makeTask({ id: 't3', parent_task_id: 'proj-1', start_date: '2026-01-14', due_date: '2026-01-24', is_complete: false }),
+      makeTask({ id: 't4', parent_task_id: 'proj-1', start_date: '2026-01-16', due_date: '2026-01-26', is_complete: true }),
     ];
     mockTaskFilter.mockResolvedValueOnce(tasks);
     mockProjectUpdate.mockResolvedValueOnce(makeTask());

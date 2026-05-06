@@ -5,8 +5,9 @@ import {
 } from './date.ts'
 
 // Deno mirror of the frontend business-calendar seam. The default preserves
-// calendar-day behavior; non-default weekday and US federal observed calendars
-// stay inert until a scheduling caller explicitly opts in.
+// calendar-day compatibility. Active date-kind project scheduling uses
+// dateProjectBusinessCalendar, which skips weekends and nationwide US federal
+// observed holidays.
 
 export type BusinessCalendarId = 'calendar-day' | 'weekday' | 'us-federal-observed'
 
@@ -211,5 +212,10 @@ export const usFederalObservedBusinessCalendar: BusinessCalendar = createSkippin
     'us-federal-observed',
     (isoDate) => isWeekendUtc(isoDate) || isUsFederalObservedHoliday(isoDate),
 )
+
+// Calendar used by active date-kind project scheduling and urgency. The
+// default calendar stays calendar-day for compatibility paths such as ICS
+// all-day DTEND rendering.
+export const dateProjectBusinessCalendar = usFederalObservedBusinessCalendar
 
 export const defaultBusinessCalendar = calendarDayBusinessCalendar
