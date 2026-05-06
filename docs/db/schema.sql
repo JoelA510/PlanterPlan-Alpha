@@ -770,7 +770,9 @@ DECLARE
     v_actor_id uuid := auth.uid();
     v_project_id uuid;
 BEGIN
-    IF auth.role() = 'service_role' THEN
+    IF current_user IN ('postgres', 'supabase_admin', 'service_role')
+        OR auth.role() = 'service_role'
+    THEN
         RETURN NEW;
     END IF;
 
@@ -1044,9 +1046,7 @@ CREATE OR REPLACE FUNCTION "public"."enforce_ics_feed_token_update_scope"() RETU
     SET "search_path" TO ''
     AS $$
 BEGIN
-    IF current_user IN ('postgres', 'supabase_admin', 'service_role')
-        OR auth.role() = 'service_role'
-    THEN
+    IF auth.role() = 'service_role' THEN
         RETURN NEW;
     END IF;
 
@@ -3434,7 +3434,7 @@ CREATE POLICY "Users can create their own ICS tokens" ON "public"."ics_feed_toke
 
 
 
-CREATE POLICY "Admins can delete ICS tokens" ON "public"."ics_feed_tokens" FOR DELETE TO "authenticated" USING ("public"."is_admin"("auth"."uid"()));
+CREATE POLICY "Admins can delete ICS tokens" ON "public"."ics_feed_tokens" FOR DELETE TO "authenticated" USING ("public"."is_admin"(( SELECT "auth"."uid"() AS "uid")));
 
 
 COMMENT ON POLICY "Admins can delete ICS tokens" ON "public"."ics_feed_tokens" IS 'User-facing token lifecycle is soft revocation; only admins/service-role may hard-delete rows when required for operations.';

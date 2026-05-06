@@ -159,7 +159,7 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(sql).toContain('ICS feed token update must revoke the token');
   expect(sql).toContain("auth.role() = 'service_role'");
   expect(schema).toContain(
-   'CREATE POLICY "Admins can delete ICS tokens" ON "public"."ics_feed_tokens" FOR DELETE TO "authenticated" USING ("public"."is_admin"("auth"."uid"()));',
+   'CREATE POLICY "Admins can delete ICS tokens" ON "public"."ics_feed_tokens" FOR DELETE TO "authenticated" USING ("public"."is_admin"(( SELECT "auth"."uid"() AS "uid")));',
   );
   expect(schema).not.toContain('CREATE POLICY "Users can delete their own ICS tokens"');
  });

@@ -179,7 +179,7 @@ describe('handleIcsFeedRequest', () => {
         expect(response.headers.get('Content-Type')).toBe('text/calendar; charset=utf-8');
         expect(body).toContain('UID:task-owner-task@planterplan');
         expect(body).not.toContain('UID:task-other-task@planterplan');
-        expect(db.tokens[0].last_accessed_at).not.toBeNull();
+        expect(db.tokens[0].last_accessed_at).toBe(NOW.toISOString());
     });
 
     it('returns 404 for revoked tokens', async () => {

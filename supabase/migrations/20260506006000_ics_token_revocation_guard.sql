@@ -61,7 +61,7 @@ CREATE POLICY "Admins can delete ICS tokens"
     ON public.ics_feed_tokens
     FOR DELETE
     TO authenticated
-    USING (public.is_admin(auth.uid()));
+    USING (public.is_admin((SELECT auth.uid())));
 
 COMMENT ON POLICY "Admins can delete ICS tokens" ON public.ics_feed_tokens IS
     'User-facing token lifecycle is soft revocation; only admins/service-role may hard-delete rows when required for operations.';

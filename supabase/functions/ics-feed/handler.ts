@@ -1,4 +1,6 @@
 import { corsHeaders } from '../_shared/auth.ts';
+import { calendarDayBusinessCalendar } from '../_shared/business-calendar.ts';
+import { getNow, toUtcIsoDate } from '../_shared/date.ts';
 import { renderIcsDocument, type IcsTaskRow } from './ics.ts';
 
 export interface IcsTokenRow {
@@ -80,9 +82,11 @@ export async function handleIcsFeedRequest(req: Request, deps: IcsFeedHandlerDep
         return new Response('Not found', { status: 404, headers: corsHeaders });
     }
 
+    const now = deps.now ?? getNow();
+
     const { error: stampError } = await deps.supabase
         .from('ics_feed_tokens')
-        .update({ last_accessed_at: new Date().toISOString() })
+        .update({ last_accessed_at: now.toISOString() })
         .eq('id', tokenRow.id);
     if (stampError) console.warn('[ics-feed] failed to bump last_accessed_at', stampError);
 
@@ -119,8 +123,11 @@ export async function handleIcsFeedRequest(req: Request, deps: IcsFeedHandlerDep
         });
     }
 
-    const windowStart = new Date(deps.now ?? new Date());
-    windowStart.setUTCDate(windowStart.getUTCDate() - 30);
+    const windowStart = calendarDayBusinessCalendar.addBusinessDays(toUtcIsoDate(now), -30);
+    if (!windowStart) {
+        console.error('[ics-feed] failed to calculate task feed window start');
+        return new Response('Server error', { status: 500, headers: corsHeaders });
+    }
 
     const query = deps.supabase
         .from('tasks')
@@ -128,7 +135,7 @@ export async function handleIcsFeedRequest(req: Request, deps: IcsFeedHandlerDep
         .eq('assignee_id', tokenRow.user_id)
         .not('due_date', 'is', null)
         .in('root_id', projectScope)
-        .gte('due_date', windowStart.toISOString().slice(0, 10))
+        .gte('due_date', windowStart)
         .order('due_date', { ascending: true })
         .limit(500);
 
