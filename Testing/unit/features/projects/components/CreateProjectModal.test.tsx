@@ -74,4 +74,37 @@ describe('CreateProjectModal', () => {
             }));
         });
     });
+
+    it('omits templateId when the default scaffold remains selected', async () => {
+        const onClose = vi.fn();
+        const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+        render(
+            <CreateProjectModal
+                open
+                onClose={onClose}
+                onSubmit={onSubmit}
+                templates={[launchTemplate]}
+            />,
+        );
+
+        const defaultCard = screen
+            .getAllByTestId('template-card')
+            .find((card) => card.getAttribute('data-template-id') === '__default__');
+        expect(defaultCard).toBeDefined();
+        fireEvent.click(defaultCard as HTMLElement);
+        expect(defaultCard).toHaveAttribute('data-selected', 'true');
+
+        fireEvent.click(screen.getByRole('button', { name: /continue to details/i }));
+        fireEvent.change(screen.getByLabelText(/project name/i), {
+            target: { value: 'Blank Scaffold Project' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /create project/i }));
+
+        await waitFor(() => {
+            expect(onSubmit).toHaveBeenCalledWith(expect.not.objectContaining({
+                templateId: expect.any(String),
+            }));
+        });
+    });
 });

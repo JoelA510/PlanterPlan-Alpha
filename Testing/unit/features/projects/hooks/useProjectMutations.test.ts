@@ -93,6 +93,7 @@ describe('useCreateProject', () => {
     await act(async () => {
       await result.current.mutateAsync({
         title: 'From Template',
+        description: 'Cloned project description',
         templateId: 'tmpl-1',
         start_date: '2026-01-01',
       });
@@ -103,7 +104,12 @@ describe('useCreateProject', () => {
       null,
       'instance',
       'user-1',
-      expect.objectContaining({ title: 'From Template' }),
+      {
+        title: 'From Template',
+        description: 'Cloned project description',
+        start_date: '2026-01-01',
+        due_date: '2026-01-01',
+      },
     );
     expect(mockProjectCreate).not.toHaveBeenCalled();
   });
