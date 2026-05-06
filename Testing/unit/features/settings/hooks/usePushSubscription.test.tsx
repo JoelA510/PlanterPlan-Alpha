@@ -142,6 +142,30 @@ describe('usePushSubscription (Wave 30)', () => {
         expect(result.current.subscription).toBeNull();
     });
 
+    it('subscribe: service worker registration failure is contained', async () => {
+        notif.requestPermission.mockImplementation(async () => {
+            notif.setPermission('granted');
+            return 'granted' as NotificationPermission;
+        });
+        sw.register.mockRejectedValue(new Error('registration failed'));
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        const { result } = renderHook(() => usePushSubscription());
+        await waitFor(() => expect(mockList).toHaveBeenCalled());
+
+        await act(async () => {
+            await result.current.subscribe();
+        });
+
+        expect(sw.register).toHaveBeenCalledWith('/sw.js');
+        expect(sw.pushManager.subscribe).not.toHaveBeenCalled();
+        expect(mockCreate).not.toHaveBeenCalled();
+        expect(result.current.subscription).toBeNull();
+        expect(result.current.isSubscribing).toBe(false);
+        expect(errSpy).toHaveBeenCalledWith('[usePushSubscription] subscribe failed', expect.any(Error));
+        errSpy.mockRestore();
+    });
+
     it('unsubscribe: calls DELETE + clears local state', async () => {
         const row = makePushSubscription({
             user_id: 'user-abc',
