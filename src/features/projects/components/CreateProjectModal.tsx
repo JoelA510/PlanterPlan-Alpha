@@ -258,6 +258,9 @@ export default function CreateProjectModal({
                                     {/* Default scaffold option */}
                                     {!searchQuery && (
                                         <div
+                                            data-testid="template-card"
+                                            data-template-id={DEFAULT_SCAFFOLD_ID}
+                                            data-selected={formData.templateId === DEFAULT_SCAFFOLD_ID ? 'true' : 'false'}
                                             onClick={() => handleTemplateSelect(DEFAULT_SCAFFOLD_ID)}
                                             className={cn(
                                                 'group cursor-pointer p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-4',
@@ -298,6 +301,10 @@ export default function CreateProjectModal({
                                         filteredTemplates.map((template) => (
                                             <div
                                                 key={template.id}
+                                                data-testid="template-card"
+                                                data-template-id={template.id}
+                                                data-template-seed-key={getTemplateSeedKey(template.settings) ?? undefined}
+                                                data-selected={formData.templateId === template.id ? 'true' : 'false'}
                                                 onClick={() => handleTemplateSelect(template.id)}
                                                 className={cn(
                                                     'group cursor-pointer p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-4',
