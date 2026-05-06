@@ -42,6 +42,24 @@ describe('TaskDetailsPanel', () => {
         }));
     });
 
+    it('passes edit capability through to TaskDetailsView', () => {
+        const task = makeTask({ id: 't1', title: 'Coach-visible task' });
+
+        render(
+            <TaskDetailsPanel
+                showForm={false}
+                selectedTask={task}
+                canEdit={false}
+                onClose={vi.fn()}
+                onDeleteTaskWrapper={vi.fn()}
+            />,
+        );
+
+        expect(mockTaskDetailsView).toHaveBeenCalledWith(expect.objectContaining({
+            canEdit: false,
+        }));
+    });
+
     it('passes the project-context comments visibility flag through to TaskDetailsView', () => {
         const task = makeTask({ id: 't1', title: 'Project task' });
 

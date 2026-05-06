@@ -35,6 +35,8 @@ interface TaskItemProps {
  onAddChildTask?: (task: TaskItemData) => void;
  onInviteMember?: (task: TaskItemData) => void;
  onStatusChange?: (id: string, status: string) => void;
+ canUpdateStatus?: boolean;
+ canUpdateStatusForTask?: (task: TaskItemData) => boolean;
  dragHandleProps?: DragHandleProps;
  onToggleExpand?: (task: TaskItemData, expanded: boolean) => void;
  onEdit?: ((task: TaskItemData) => void) | null;
@@ -72,6 +74,8 @@ const TaskItem = ({
  onAddChildTask,
  onInviteMember,
  onStatusChange,
+ canUpdateStatus,
+ canUpdateStatusForTask,
  dragHandleProps = {},
  onToggleExpand,
  onEdit = null,
@@ -175,6 +179,8 @@ const TaskItem = ({
  };
 
  const isLocked = !!task.is_locked;
+ const canUpdateThisStatus = canUpdateStatusForTask ? canUpdateStatusForTask(task) : canUpdateStatus !== false;
+ const statusDisabled = !onStatusChange || !canUpdateThisStatus;
 
  // Wave 27: peers currently focused on this task (self-hidden, cap 3).
  // Memoize so DnD reorders / parent re-renders don't re-filter per row.
@@ -375,6 +381,7 @@ const TaskItem = ({
  taskId={task.id}
  taskTitle={task.title}
  onStatusChange={handleStatusChange}
+ disabled={statusDisabled}
  />
  )}
 
@@ -436,9 +443,12 @@ const TaskItem = ({
  onAddChildTask={onAddChildTask}
  onInviteMember={onInviteMember}
  onStatusChange={onStatusChange}
+ canUpdateStatus={canUpdateStatus}
+ canUpdateStatusForTask={canUpdateStatusForTask}
  onToggleExpand={onToggleExpand}
  onEdit={onEdit}
  onDeleteTask={onDeleteTask ? () => onDeleteTask(child.id) : undefined}
+ disableDrag={disableDrag}
  isAddingInline={child.isAddingInline}
  onInlineCommit={onInlineCommit}
  onInlineCancel={onInlineCancel}

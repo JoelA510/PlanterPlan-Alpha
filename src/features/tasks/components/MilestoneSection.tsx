@@ -31,6 +31,8 @@ export interface MilestoneSectionProps {
     onInlineCommit?: (parentId: string, title: string, templateData?: Partial<TaskRow>) => Promise<void>;
     onInlineCancel?: () => void;
     canEdit?: boolean;
+    canUpdateTaskStatus?: (task: TaskRow) => boolean;
+    disableDrag?: boolean;
     isAddingInline?: boolean;
     dropIndicator?: { parentId: string; beforeTaskId: string | null; nestInId?: string } | null;
     /** Wave 27: presence roster forwarded to each TaskItem so rows can render focus chips. */
@@ -49,6 +51,8 @@ export default function MilestoneSection({
     onInlineCommit,
     onInlineCancel,
     canEdit = true,
+    canUpdateTaskStatus,
+    disableDrag = false,
     isAddingInline = false,
     dropIndicator,
     presentUsers = [],
@@ -174,8 +178,11 @@ export default function MilestoneSection({
                                                     level={0}
                                                     onTaskClick={onTaskClick}
                                                     onStatusChange={handleRowStatus}
+                                                    canUpdateStatus={canUpdateTaskStatus ? canUpdateTaskStatus(task) : Boolean(onTaskUpdate)}
+                                                    canUpdateStatusForTask={canUpdateTaskStatus}
                                                     onAddChildTask={onAddChildTask}
                                                     onToggleExpand={onToggleExpand}
+                                                    disableDrag={disableDrag}
                                                     isAddingInline={task.isAddingInline}
                                                     onInlineCommit={onInlineCommit}
                                                     onInlineCancel={onInlineCancel}

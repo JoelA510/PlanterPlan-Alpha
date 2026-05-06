@@ -169,8 +169,8 @@ SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 
 SELECT throws_like(
     $$ UPDATE public.tasks SET title = 'Coach content edit' WHERE id = '44444444-4444-4444-4444-444444444501' $$,
-    '%protected template scaffold fields cannot be changed%',
-    'coaches cannot use coaching-task update access to edit protected scaffold content'
+    '%coach role may update only task progress fields%',
+    'coach field-scope enforcement blocks protected scaffold content edits before scaffold immutability runs'
 );
 
 SET LOCAL ROLE service_role;

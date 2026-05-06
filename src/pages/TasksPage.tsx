@@ -33,6 +33,10 @@ import {
        SelectValue,
 } from '@/shared/ui/select';
 import {
+       canDeleteTask as canDeleteTaskForRole,
+       canEditTaskContent,
+} from '@/features/tasks/lib/task-permissions';
+import {
        Dialog,
        DialogContent,
        DialogHeader,
@@ -193,6 +197,10 @@ export default function TasksPage() {
               }
               return undefined;
        }, [currentSelectedTask, selectedTeamMembers, selectedProjectRoot, currentUserId]);
+       const selectedCanEdit = canEditTaskContent(selectedMembershipRole);
+       const selectedCanDelete = selectedTaskForPanel
+              ? canDeleteTaskForRole(selectedMembershipRole, selectedTaskForPanel)
+              : false;
 
        const visibleTasks = useTaskFilters({ tasks, filter, sort: effectiveSort, dueDateRange, currentUserId });
        const priorityGroups = useMemo(
@@ -496,7 +504,8 @@ export default function TasksPage() {
                                                  membershipRole={selectedMembershipRole}
                                                  teamMembers={selectedTeamMembers}
                                                  onClose={closeDetailsPanel}
-                                                 onDeleteTaskWrapper={handleDeleteTaskById}
+                                                 canEdit={selectedCanEdit}
+                                                 onDeleteTaskWrapper={selectedCanDelete ? handleDeleteTaskById : undefined}
                                                  className="w-full border-l-0 shadow-none sm:w-full sm:min-w-0 sm:max-w-none"
                                           />
                                    )}

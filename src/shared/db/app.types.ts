@@ -180,7 +180,7 @@ export interface TaskSettings {
     /** Wave 21: idempotency marker stamped by nightly-sync's recurrence pass. */
     spawnedOn?: string;
     due_soon_threshold?: number;
-    /** Wave 22: when true, users with the `coach` project role may update this task (RLS policy "Enable update for coaches on coaching tasks"). */
+    /** Wave 22 + PR 3: when true, users with the `coach` project role may update status/progress only. */
     is_coaching_task?: boolean;
     /** Wave 24: when true, completing this instance task opens a dialog offering Master Library follow-ups (cloned as siblings). */
     is_strategy_template?: boolean;

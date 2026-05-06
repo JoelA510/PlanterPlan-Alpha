@@ -28,8 +28,10 @@ describe('docs/db/schema.sql source of truth', () => {
    '"template_version" integer DEFAULT 1 NOT NULL',
    '"cloned_from_task_id" "uuid"',
   'CREATE OR REPLACE TRIGGER "trg_bump_template_version"',
-   'CREATE OR REPLACE FUNCTION "public"."enforce_template_scaffold_immutability"',
-   'CREATE OR REPLACE TRIGGER "trg_enforce_template_scaffold_immutability"',
+  'CREATE OR REPLACE FUNCTION "public"."enforce_template_scaffold_immutability"',
+  'CREATE OR REPLACE TRIGGER "trg_enforce_template_scaffold_immutability"',
+   'CREATE OR REPLACE FUNCTION "public"."enforce_coach_task_update_scope"',
+   'CREATE OR REPLACE TRIGGER "trg_enforce_coach_task_update_scope"',
    'CREATE INDEX "idx_tasks_cloned_from_task_id"',
   ].forEach((needle) => {
    expect(schema).toContain(needle);
@@ -88,6 +90,22 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(sql).toContain("'spawnedFromTemplate'");
   expect(sql).toContain("'cloned_from_template_version'");
   expect(sql).not.toContain('supervisor_email IS DISTINCT');
+ });
+
+ it('keeps coach task updates scoped to progress fields below the UI', () => {
+  const sql = functionSql('enforce_coach_task_update_scope');
+
+  expect(sql).toContain("public.has_project_role(v_project_id, v_actor_id, ARRAY['coach'])");
+  expect(sql).toContain("OLD.origin = 'instance'");
+  expect(sql).toContain("COALESCE(\n            (COALESCE(OLD.settings, '{}'::jsonb) -> 'is_coaching_task') = 'true'::jsonb,\n            false\n        )");
+  expect(sql).toContain("'is_coaching_task'");
+  expect(sql).toContain('coach role may update only task progress fields');
+  expect(sql).toContain('OLD.title IS DISTINCT FROM NEW.title');
+  expect(sql).toContain('OLD.settings IS DISTINCT FROM NEW.settings');
+  expect(sql).toContain('OLD.assignee_id IS DISTINCT FROM NEW.assignee_id');
+  expect(sql).toContain("COALESCE(NEW.status, '') NOT IN");
+  expect(schema).toContain('WITH CHECK (("public"."has_project_role"(COALESCE("root_id", "id"), ( SELECT "auth"."uid"() AS "uid"), ARRAY[\'coach\'::"text"])');
+  expect(schema).toContain('COMMENT ON POLICY "Enable update for coaches on coaching tasks"');
  });
 
  it('keeps initialize_default_project available for blank project scaffolding', () => {

@@ -23,7 +23,7 @@ The Auth & RBAC system manages application-level authentication, user account li
 | Permission / Action | Owner | Editor | Viewer (Limited) | Coach |
 | :--- | :--- | :--- | :--- | :--- |
 | **View all tasks/hierarchy** | Yes | Yes | Yes | Yes |
-| **Edit task text info/fields**| Yes | Yes | Yes (If Assigned Lead) | Yes (Coaching Tasks Only)|
+| **Edit task text info/fields**| Yes | Yes | Yes (If Assigned Lead) | No |
 | **Update task status** | Yes | Yes | Yes (If Assigned Lead) | Yes (Coaching Tasks Only)|
 | **Add tasks / subtasks** | Yes | Yes | Yes (If Assigned Lead) | No |
 | **Delete tasks / subtasks** | Yes | Yes | No | No |
@@ -75,7 +75,7 @@ Migration: `docs/db/migrations/2026_04_18_rewrite_project_members_policies.sql`.
 
 ## Resolved
 
-* **Coach Role Tagging (Wave 22, 2026-04-17; PR F user-testing update):** Resolved. Tasks intended for coach editing are flagged via `settings -> 'is_coaching_task' = true`. PR F moved authoring to template forms only; project instance forms hide the toggle and strip hidden flag values before submit. TaskDetailsView surfaces a read-only "Coaching" badge on tagged instances. An additive RLS UPDATE policy — `"Enable update for coaches on coaching tasks"` (see `docs/db/migrations/2026_04_17_coaching_task_rls.sql`) — allows any user with the project `coach` role to update rows where the flag is true, scoped to non-template origins. The pre-existing owner/editor/admin UPDATE policy is unchanged, so coaches retain zero access to non-coaching rows.
+* **Coach Role Tagging (Wave 22, hardened PR 3):** Resolved. Tasks intended for coach progress updates are flagged via `settings -> 'is_coaching_task' = true`. PR F moved authoring to template forms only; project instance forms hide the toggle and strip hidden flag values before submit. TaskDetailsView surfaces a read-only "Coaching" badge on tagged instances. The RLS UPDATE policy `"Enable update for coaches on coaching tasks"` scopes coach rows to non-template Coaching tasks and includes a matching `WITH CHECK`; `trg_enforce_coach_task_update_scope` then restricts coach writes to progress/status fields only. Coaches cannot edit text/content, settings, assignee, priority, hierarchy, origin/template metadata, resources, or delete tasks. Owner/editor/admin UPDATE behavior is unchanged.
 
 * **Comments (Wave 26):** SELECT inherits project membership; INSERT requires `author_id = auth.uid()`; UPDATE restricted to authors on undeleted rows; DELETE allowed for authors, project owners (`check_project_ownership_by_role`), or admins. Full policy text in `docs/architecture/tasks-subtasks.md`.
 
@@ -88,9 +88,9 @@ A project Owner may designate any `viewer` or `limited`-role member as the **Lea
 **RLS** (migration `docs/db/migrations/2026_04_18_phase_lead_rls.sql`):
 * Helper: `user_is_phase_lead(target_task_id uuid, uid uuid)` walks up the `parent_task_id` chain **starting at the parent** (the row itself is never matched) and returns true if any ancestor's `settings.phase_lead_user_ids` contains `uid`. Self-exclusion is load-bearing: a Phase Lead can edit tasks UNDER a phase but cannot edit the phase row itself.
 * Policy: `"Enable update for phase leads"` on `public.tasks` — `USING (origin = 'instance' AND user_is_phase_lead(id, auth.uid()))` with a matching `WITH CHECK`.
-* **Additive only** — owner/editor/coach UPDATE policies are unchanged. SELECT for viewers is unchanged (already project-wide).
+* **Additive only** — owner/editor UPDATE policies are unchanged. Coach progress-only scope is enforced separately by `trg_enforce_coach_task_update_scope`. SELECT for viewers is unchanged (already project-wide).
 
-**UI** (`src/features/tasks/components/TaskFormFields.tsx`): the `<PhaseLeadPicker>` sub-component (multi-select popover) renders only for `membershipRole === 'owner'` on phase/milestone rows. Options come from `useTeam(projectId).teamMembers.filter(m => m.role === 'viewer' || m.role === 'limited')` — owners/editors/coaches/admins are NOT in the picker because they already have UPDATE via existing policies. Badge in `TaskDetailsView.tsx` lists current leads.
+**UI** (`src/features/tasks/components/TaskFormFields.tsx`): the `<PhaseLeadPicker>` sub-component (multi-select popover) renders only for `membershipRole === 'owner'` on phase/milestone rows. Options come from `useTeam(projectId).teamMembers.filter(m => m.role === 'viewer' || m.role === 'limited')` — owners/editors/admins already have task edit privileges, while coaches are governed by the separate Coaching-task progress scope. Badge in `TaskDetailsView.tsx` lists current leads.
 
 **Permission matrix update**: limited viewers may now edit tasks under any phase/milestone they are designated as Phase Lead for. See the matrix footnote above.
 
