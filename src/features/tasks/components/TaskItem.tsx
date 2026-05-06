@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import RoleIndicator from '@/shared/ui/RoleIndicator';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
@@ -181,6 +181,15 @@ const TaskItem = ({
  const isLocked = !!task.is_locked;
  const canUpdateThisStatus = canUpdateStatusForTask ? canUpdateStatusForTask(task) : canUpdateStatus !== false;
  const statusDisabled = !onStatusChange || !canUpdateThisStatus;
+ const handleEditAction = useCallback(() => {
+ onEdit?.(task);
+ }, [onEdit, task]);
+ const handleAddChildAction = useCallback(() => {
+ onAddChildTask?.(task);
+ }, [onAddChildTask, task]);
+ const handleInviteAction = useCallback(() => {
+ onInviteMember?.(task);
+ }, [onInviteMember, task]);
 
  // Wave 27: peers currently focused on this task (self-hidden, cap 3).
  // Memoize so DnD reorders / parent re-renders don't re-filter per row.
@@ -387,9 +396,9 @@ const TaskItem = ({
 
  <TaskControlButtons
  task={task}
- onEdit={() => onEdit?.(task)}
- onAddChild={() => onAddChildTask?.(task)}
- onInvite={() => onInviteMember?.(task)}
+ onEdit={onEdit ? handleEditAction : undefined}
+ onAddChild={onAddChildTask ? handleAddChildAction : undefined}
+ onInvite={onInviteMember ? handleInviteAction : undefined}
  onDelete={onDeleteTask || undefined}
  canHaveChildren={canHaveChildren}
  />

@@ -112,7 +112,6 @@ export default function TasksPage() {
        const handleStatusChange = useCallback((id: string, status: string) => {
               updateTask(id, { status });
        }, [updateTask]);
-       const handleNoop = useCallback(() => { }, []);
        const handleTaskClick = useCallback((task: TaskRow) => {
               setSelectedTask(task);
        }, []);
@@ -432,8 +431,6 @@ export default function TasksPage() {
                                                                                                                               hideExpansion={true}
                                                                                                                               disableDrag={true}
                                                                                                                               onTaskClick={handleTaskClick}
-                                                                                                                              onAddChildTask={handleNoop}
-                                                                                                                              onInviteMember={handleNoop}
                                                                                                                               selectedTaskId={selectedTaskId}
                                                                                                                               parentProjectTitle={group.projectTitle}
                                                                                                                        />
@@ -458,8 +455,6 @@ export default function TasksPage() {
                                                                                                          hideExpansion={true}
                                                                                                          disableDrag={true}
                                                                                                          onTaskClick={handleTaskClick}
-                                                                                                         onAddChildTask={handleNoop}
-                                                                                                         onInviteMember={handleNoop}
                                                                                                          selectedTaskId={selectedTaskId}
                                                                                                          parentProjectTitle={projectTitle}
                                                                                                   />

@@ -155,6 +155,6 @@ The right fix is cross-cutting, not local: when the admin / account-deletion flo
 
 Flagging at the Wave 26 level so the admin-flow plan doesn't miss `task_comments` when it audits the FK surface.
 
-### Gantt PDF export deferred
+### Gantt PDF export
 
-**Active. Target: Wave 34 (Admin Management).** The gantt toolbar in `src/features/gantt/components/ProjectGantt.tsx` renders a disabled "Export PDF" button with a `title="PDF export coming soon"` tooltip. Deferred because Wave 28 intentionally ships the core timeline render + drag-shift only; print/PDF export pairs better with the Wave 34 admin reporting surface (same user flow as report scheduling). No technical blocker — wire to `window.print()` with a gantt-only print stylesheet when Wave 34 lands, or use a headless-browser export from a Deno edge function if output fidelity matters.
+**Resolved (PR 10).** The gantt toolbar in `src/features/gantt/components/ProjectGantt.tsx` renders an enabled "Export PDF" button wired to `window.print()`. The accessible label instructs users to choose "Save as PDF" in the browser print dialog. The old disabled "coming soon" copy has been removed from runtime localization strings.

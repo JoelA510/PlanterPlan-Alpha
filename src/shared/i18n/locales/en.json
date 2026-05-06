@@ -348,8 +348,7 @@
       "no_active_projects": "No active projects yet.",
       "project_picker_label": "Project",
       "select_project": "Select a project…",
-      "untitled_project": "(untitled project)",
-      "pdf_coming_soon": "PDF export coming soon"
+      "untitled_project": "(untitled project)"
     },
     "form": {
       "title_label": "Project Title",

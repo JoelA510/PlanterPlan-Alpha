@@ -44,6 +44,16 @@ describe('en.json', () => {
     walk(en as JsonObject);
   });
 
+  it('does not expose stale Gantt coming soon copy', () => {
+    const root = en as JsonObject;
+    const projectGantt = (root.projects as JsonObject).gantt as JsonObject;
+    const routeGantt = root.gantt as JsonObject;
+
+    expect(projectGantt).not.toHaveProperty('pdf_coming_soon');
+    expect(JSON.stringify(projectGantt).toLowerCase()).not.toContain('coming soon');
+    expect(JSON.stringify(routeGantt).toLowerCase()).not.toContain('coming soon');
+  });
+
   it('every plural `_one` key has a matching `_other` sibling', () => {
     const walk = (obj: JsonObject): void => {
       const keys = Object.keys(obj);
