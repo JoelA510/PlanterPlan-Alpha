@@ -36,6 +36,8 @@ describe('docs/db/schema.sql source of truth', () => {
    'CREATE OR REPLACE TRIGGER "trg_enforce_task_hierarchy_depth"',
    'CREATE OR REPLACE FUNCTION "public"."enforce_task_date_envelope"',
    'CREATE OR REPLACE TRIGGER "trg_enforce_task_date_envelope"',
+   'CREATE OR REPLACE FUNCTION "public"."enforce_ics_feed_token_update_scope"',
+   'CREATE OR REPLACE TRIGGER "trg_enforce_ics_feed_token_update_scope"',
    'CREATE INDEX "idx_tasks_cloned_from_task_id"',
   ].forEach((needle) => {
    expect(schema).toContain(needle);
@@ -145,6 +147,21 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(schema).toContain(
    'CREATE OR REPLACE TRIGGER "trg_enforce_task_date_envelope" BEFORE INSERT OR UPDATE OF "parent_task_id", "start_date", "due_date"',
   );
+ });
+
+ it('keeps ICS token revocation one-way below the UI', () => {
+  const sql = functionSql('enforce_ics_feed_token_update_scope');
+
+  expect(sql).toContain('OLD.token IS DISTINCT FROM NEW.token');
+  expect(sql).toContain('OLD.project_filter IS DISTINCT FROM NEW.project_filter');
+  expect(sql).toContain('OLD.last_accessed_at IS DISTINCT FROM NEW.last_accessed_at');
+  expect(sql).toContain('revoked ICS feed tokens cannot be reactivated or changed');
+  expect(sql).toContain('ICS feed token update must revoke the token');
+  expect(sql).toContain("auth.role() = 'service_role'");
+  expect(schema).toContain(
+   'CREATE POLICY "Admins can delete ICS tokens" ON "public"."ics_feed_tokens" FOR DELETE TO "authenticated" USING ("public"."is_admin"("auth"."uid"()));',
+  );
+  expect(schema).not.toContain('CREATE POLICY "Users can delete their own ICS tokens"');
  });
 
  it('keeps initialize_default_project available for blank project scaffolding', () => {
