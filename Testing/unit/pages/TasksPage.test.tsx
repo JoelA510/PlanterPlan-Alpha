@@ -230,6 +230,16 @@ describe('TasksPage — PM-1 priority view + details dialog', () => {
         expect(screen.getByTestId('tasks-page-details-panel-title')).toHaveTextContent('Buy a domain');
     });
 
+    it('does not expose no-op row action controls on the unified tasks list', async () => {
+        renderTasksPage();
+
+        await screen.findByTestId('task-row-t-1');
+
+        expect(screen.queryByRole('button', { name: /edit buy a domain/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /add subtask under buy a domain/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /invite member to buy a domain/i })).not.toBeInTheDocument();
+    });
+
     it('opens the details dialog from the keyboard', async () => {
         const user = userEvent.setup();
         renderTasksPage();

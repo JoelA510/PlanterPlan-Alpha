@@ -168,4 +168,13 @@ describe('TaskItem due-date badge (Wave 33)', () => {
 
         expect(screen.queryByRole('button', { name: /add subtask under parent task/i })).not.toBeInTheDocument();
     });
+
+    it('hides row action controls when no backed handlers are provided', () => {
+        const task = makeTask({ id: 'actions-hidden', title: 'Actionless task', origin: 'instance' }) as TaskItemData;
+        renderTaskItem(task);
+
+        expect(screen.queryByRole('button', { name: /edit actionless task/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /add subtask under actionless task/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /invite member to actionless task/i })).not.toBeInTheDocument();
+    });
 });

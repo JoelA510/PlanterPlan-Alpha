@@ -387,9 +387,9 @@ const TaskItem = ({
 
  <TaskControlButtons
  task={task}
- onEdit={() => onEdit?.(task)}
- onAddChild={() => onAddChildTask?.(task)}
- onInvite={() => onInviteMember?.(task)}
+ onEdit={onEdit ? () => onEdit(task) : undefined}
+ onAddChild={onAddChildTask ? () => onAddChildTask(task) : undefined}
+ onInvite={onInviteMember ? () => onInviteMember(task) : undefined}
  onDelete={onDeleteTask || undefined}
  canHaveChildren={canHaveChildren}
  />

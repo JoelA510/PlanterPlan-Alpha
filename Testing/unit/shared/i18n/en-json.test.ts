@@ -44,6 +44,21 @@ describe('en.json', () => {
     walk(en as JsonObject);
   });
 
+  it('does not expose launch-visible coming soon copy', () => {
+    const walk = (obj: JsonObject, path: string[] = []): void => {
+      for (const [k, v] of Object.entries(obj)) {
+        const keyPath = [...path, k].join('.');
+        expect(k.toLowerCase(), keyPath).not.toContain('coming_soon');
+        if (typeof v === 'string') {
+          expect(v.toLowerCase(), keyPath).not.toContain('coming soon');
+        } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+          walk(v as JsonObject, [...path, k]);
+        }
+      }
+    };
+    walk(en as JsonObject);
+  });
+
   it('every plural `_one` key has a matching `_other` sibling', () => {
     const walk = (obj: JsonObject): void => {
       const keys = Object.keys(obj);
