@@ -3220,7 +3220,7 @@ CREATE OR REPLACE TRIGGER "trigger_calc_task_dates" AFTER INSERT OR DELETE OR UP
 
 
 
-CREATE OR REPLACE TRIGGER "trigger_phase_unlock" AFTER UPDATE OF "is_complete" ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."check_phase_unlock"();
+CREATE OR REPLACE TRIGGER "trigger_phase_unlock" AFTER UPDATE OF "status", "is_complete" ON "public"."tasks" FOR EACH ROW EXECUTE FUNCTION "public"."check_phase_unlock"();
 
 
 
@@ -3770,8 +3770,18 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."ics_feed_tokens" TO "servic
 
 
 
+GRANT SELECT ON TABLE "public"."notification_log" TO "authenticated";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."notification_log" TO "service_role";
+
+
+
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."project_members" TO "authenticated";
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."project_members" TO "service_role";
+
+
+
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."task_comments" TO "authenticated";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."task_comments" TO "service_role";
 
 
 
