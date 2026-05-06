@@ -9,6 +9,7 @@ import {
 } from '@/shared/lib/date-engine';
 import {
     calendarDayBusinessCalendar as appBusinessCalendar,
+    dateProjectBusinessCalendar as appDateProjectBusinessCalendar,
     usFederalObservedBusinessCalendar as appUsFederalObservedBusinessCalendar,
     weekdayBusinessCalendar as appWeekdayBusinessCalendar,
 } from '@/shared/lib/date-engine/business-calendar';
@@ -22,6 +23,7 @@ import {
 } from '../../../../../supabase/functions/_shared/date';
 import {
     calendarDayBusinessCalendar as edgeBusinessCalendar,
+    dateProjectBusinessCalendar as edgeDateProjectBusinessCalendar,
     usFederalObservedBusinessCalendar as edgeUsFederalObservedBusinessCalendar,
     weekdayBusinessCalendar as edgeWeekdayBusinessCalendar,
 } from '../../../../../supabase/functions/_shared/business-calendar';
@@ -78,7 +80,7 @@ describe('date-engine app/edge parity characterization', () => {
         );
     });
 
-    it('keeps app and edge behavior aligned for inert weekday and holiday calendars', () => {
+    it('keeps app and edge behavior aligned for weekday and holiday calendars', () => {
         const cases = [
             {
                 app: appWeekdayBusinessCalendar,
@@ -125,5 +127,16 @@ describe('date-engine app/edge parity characterization', () => {
                 testCase.edge.isBusinessDay(testCase.excluded),
             );
         }
+    });
+
+    it('keeps app and edge date-project calendar selection aligned', () => {
+        expect(appDateProjectBusinessCalendar.id).toBe('us-federal-observed');
+        expect(edgeDateProjectBusinessCalendar.id).toBe(appDateProjectBusinessCalendar.id);
+        expect(toIsoDate(appDateProjectBusinessCalendar.addBusinessDays('2026-07-02', 1))).toBe(
+            edgeDateProjectBusinessCalendar.addBusinessDays('2026-07-02', 1),
+        );
+        expect(appDateProjectBusinessCalendar.diffInBusinessDays('2026-07-06', '2026-07-02')).toBe(
+            edgeDateProjectBusinessCalendar.diffInBusinessDays('2026-07-06', '2026-07-02'),
+        );
     });
 });

@@ -23,25 +23,24 @@ Calculated dynamically based on system time vs. Task End Dates:
 * **Template Exclusion:** The Date Engine is entirely disabled for Library Templates. Template tasks use `duration` and `days from start until due`.
 * **Checkpoint projects (Wave 29):** `recalculateProjectDates` and `deriveUrgencyForProject` short-circuit when the project root carries `settings.project_kind === 'checkpoint'`; nightly-sync skips urgency transitions for those roots; due dates render as informational only. `isCheckpointProject` is lock-step with `supabase/functions/_shared/date.ts`.
 * **Wave 31:** display-time date formatting uses `formatDateLocalized` from `src/shared/i18n/formatters.ts` (Intl `DateTimeFormat` / `RelativeTimeFormat` with per-locale caches). Internal math stays UTC-anchored ISO strings here in `date-engine/index.ts` — `compareDateAsc`, `isBeforeDate`, `formatDisplayDate`, cascade/rollup calculations, etc. Don't conflate the two: calling `formatDateLocalized` in a comparator silently breaks sort stability across locales; calling `formatDisplayDate` in JSX silently renders the wrong language.
-* **Business-calendar seam (PR I1/I2/R4):** `src/shared/lib/date-engine/business-calendar.ts` and `supabase/functions/_shared/business-calendar.ts` expose app/edge `BusinessCalendar` interfaces. The default implementation is `calendar-day`, which intentionally treats every valid date including weekends as a business day. Non-default `weekday` and `us-federal-observed` calendars exist behind the seam for the next behavior slice. App schedule offsets, global project shifts, display urgency, ICS all-day `DTEND`, and nightly-sync due-soon cutoffs route through the seam without changing current calendar-day behavior.
+* **Business-calendar seam (PR I1/I2/R4/R5):** `src/shared/lib/date-engine/business-calendar.ts` and `supabase/functions/_shared/business-calendar.ts` expose app/edge `BusinessCalendar` interfaces. `defaultBusinessCalendar` remains `calendar-day` for compatibility wrappers whose callers mean literal calendar-day math. `dateProjectBusinessCalendar` is `us-federal-observed`; date-kind schedule offsets, global project shifts, app urgency, task-filter urgency, and nightly-sync due-soon cutoffs use it. ICS all-day `DTEND` remains an explicit `calendar-day` path because RFC 5545 `DTEND` is exclusive calendar rendering, not project scheduling.
 
 ## Integration Points
 * **Tasks & Subtasks:** The drag-and-drop system relies heavily on the Date Engine to recalculate bounds when items are moved.
 * **Task surfaces and reports:** Feeds due-soon and overdue display state to
   task lists, project views, Gantt, reports, and admin analytics.
-* **Nightly CRON (Wave 20):** `supabase/functions/nightly-sync/` owns the *write* path for urgency-status transitions (`not_started` → `in_progress` → `due_soon` → `overdue`) using per-project `settings.due_soon_threshold`. Due-soon threshold dates route through `supabase/functions/nightly-sync/urgency.ts` and the edge business-calendar seam while preserving the original UTC time-of-day. The app-layer Date Engine computes urgency for display (`deriveUrgency`) but no longer writes status to the DB itself. See `supabase/functions/nightly-sync/README.md`.
+* **Nightly CRON (Wave 20):** `supabase/functions/nightly-sync/` owns the *write* path for urgency-status transitions (`not_started` → `in_progress` → `due_soon` → `overdue`) using per-project `settings.due_soon_threshold`. Due-soon threshold dates route through `supabase/functions/nightly-sync/urgency.ts` and the edge `dateProjectBusinessCalendar` while preserving the original UTC time-of-day. The app-layer Date Engine computes urgency for display (`deriveUrgency`) but no longer writes status to the DB itself. See `supabase/functions/nightly-sync/README.md`.
 * **Gantt drag-shift (Wave 28):** `src/features/gantt/hooks/useGanttDragShift.ts` validates bounds via `isBeforeDate`/`compareDateAsc`, then routes through `useUpdateTask`. Cascade-up logic in `updateParentDates` unchanged.
-* **Decision record (PR H/I1/I2):** `docs/architecture/date-engine-business-calendar-adr.md` records the accepted direction: keep `date-fns` inside the app date-engine layer, add a custom business-calendar seam, and route app/edge scheduling callers through it before any weekend/holiday behavior change.
+* **Decision record (PR H/I1/I2/R4/R5):** `docs/architecture/date-engine-business-calendar-adr.md` records the accepted direction: keep `date-fns` inside the app date-engine layer, add a custom business-calendar seam, and use the custom `us-federal-observed` calendar for date-kind scheduling/urgency.
 
 ## Known Gaps / Technical Debt
-* Runtime scheduling still defaults to `calendar-day`; weekend and holiday
-  skipping is implemented only in inert `weekday` / `us-federal-observed`
-  calendars until the product-approved behavior switch lands.
+* Date-kind scheduling now skips weekends and nationwide US federal observed
+  holidays, but the calendar is not yet configurable by region or organization.
 * **User-testing tranche direction (PR H, PR I+):** PR H added the decision
   record and characterization tests. PR I1 added the app/edge business-calendar
-  seam with no runtime behavior change. PR I2 routes active app/edge scheduling
-  callers through that seam while keeping calendar-day behavior. PR R4 adds
-  inert weekday/holiday calendars. Later PR slices must preserve UTC/date-only
-  semantics, checkpoint-project exclusions, template exclusions, task hierarchy
-  rollups, and `nightly-sync` / edge utility parity before any product-approved
-  weekend/holiday behavior change.
+  seam with no runtime behavior change. PR I2 routed active app/edge scheduling
+  callers through that seam while keeping calendar-day behavior. PR R4 added
+  weekday/holiday calendars. PR R5 switched date-kind scheduling and urgency to
+  `us-federal-observed` while preserving UTC/date-only semantics,
+  checkpoint-project exclusions, template exclusions, task hierarchy rollups,
+  and `nightly-sync` / edge utility parity.

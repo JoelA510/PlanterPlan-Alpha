@@ -1,6 +1,12 @@
 import { useMemo } from 'react';
 import type { TaskRow } from '@/shared/db/app.types';
-import { deriveUrgency, compareDateAsc, getNow, toIsoDate } from '@/shared/lib/date-engine/index';
+import {
+ deriveUrgencyForProject,
+ compareDateAsc,
+ getNow,
+ toIsoDate,
+ type CheckpointRootLike,
+} from '@/shared/lib/date-engine/index';
 import { filterPriorityTasks } from '@/features/tasks/lib/priority-tasks';
 
 export type TaskFilterKey =
@@ -48,6 +54,13 @@ const buildThresholdMap = (tasks: TaskRow[]): Map<string, number> => {
  return map;
 };
 
+const toCheckpointRootLike = (task: TaskRow): CheckpointRootLike => {
+ const settings = task.settings && typeof task.settings === 'object' && !Array.isArray(task.settings)
+  ? task.settings as Record<string, unknown>
+  : null;
+ return { parent_task_id: task.parent_task_id, settings };
+};
+
 export interface UseTaskFiltersArgs {
  tasks: TaskRow[];
  filter: TaskFilterKey;
@@ -81,6 +94,12 @@ export const filterAndSortTasks = ({
  dueDateRange,
 }: UseTaskFiltersArgs): TaskRow[] => {
  const thresholds = buildThresholdMap(tasks);
+ const rootById = new Map<string, CheckpointRootLike>();
+ for (const task of tasks) {
+  if (task.parent_task_id === null) {
+   rootById.set(task.id, toCheckpointRootLike(task));
+  }
+ }
 
  const instanceChildren = tasks.filter(
   (t) => t.parent_task_id !== null && t.origin === 'instance',
@@ -88,7 +107,8 @@ export const filterAndSortTasks = ({
 
  const urgencyOf = (t: TaskRow) => {
   const threshold = t.root_id ? thresholds.get(t.root_id) ?? DEFAULT_DUE_SOON_THRESHOLD : DEFAULT_DUE_SOON_THRESHOLD;
-  return deriveUrgency(t, threshold, now);
+  const rootTask = t.root_id ? rootById.get(t.root_id) ?? null : null;
+  return deriveUrgencyForProject(t, rootTask, threshold, now);
  };
 
  let filtered: TaskRow[];

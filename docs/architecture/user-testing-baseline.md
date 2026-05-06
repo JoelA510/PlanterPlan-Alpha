@@ -45,8 +45,8 @@ Repo baseline on `main` at `fc4c39d`:
   instance clone note isolation and approved settings preservation from PR G.
 * The app and edge date-engine layers have a custom `BusinessCalendar` seam, and
   direct `date-fns` imports are constrained to `src/shared/lib/date-engine/*`.
-  Current runtime behavior still treats weekends and holidays as ordinary
-  calendar days.
+  Date-kind scheduling and urgency now use `us-federal-observed` business days;
+  explicit calendar-day paths remain available for compatibility.
 * GitHub triage on 2026-05-05 closed stale blockers: Dependabot PR #202
   included React 19 upgrades against the pinned React 18.3.1 baseline, draft PR
   #198 conflicted with current `main`, and issue #130's direct-`date-fns`
@@ -77,10 +77,10 @@ coverage before changing behavior.
   direction is to keep `date-fns` constrained to the app date-engine layer and
   add a custom business-calendar abstraction with mirrored edge-function
   utilities before changing behavior.
-* Alpha date-kind scheduling will use a custom `us-federal-observed` business
-  calendar after the inert app/edge calendar implementations and parity tests
-  land. PR R4 adds those inert calendars. `calendar-day` remains the
-  compatibility behavior until that behavior switch PR merges.
+* Alpha date-kind scheduling uses a custom `us-federal-observed` business
+  calendar after the inert app/edge calendar implementations and parity tests.
+  `calendar-day` remains the compatibility behavior for explicit calendar-day
+  paths.
 
 ## Current Implementation Gaps
 
@@ -92,7 +92,7 @@ coverage before changing behavior.
 | Coaching flag | PR F exposes `settings.is_coaching_task` editing only on template forms and strips instance form payloads. | Instances preserve inherited behavior read-only. | Done PR F |
 | Strategy flag | PR F exposes `settings.is_strategy_template` editing only on template forms and strips instance form payloads. | Instances preserve inherited behavior read-only. | Done PR F |
 | Template clone | PR G clears template notes when cloning/importing into project instances and preserves only approved inherited metadata (`project_kind`, coaching, and strategy flags). | Instance clones receive blank notes while preserving approved metadata. | Done PR G |
-| Date engine | PR H documents the selected business-calendar direction and characterizes app/edge UTC parity plus the `date-fns` boundary. PR I1 adds app/edge business-calendar interfaces with current calendar-day behavior. PR I2 routes active app schedule offsets, project shifts, display urgency, ICS `DTEND`, and nightly-sync due-soon cutoffs through the seam without changing behavior. PR R4 adds inert `weekday` and `us-federal-observed` app/edge calendars. | Switch date-kind scheduling after parity and characterization tests. | Done PR H/I1/I2/R4; Planned PR R5 |
+| Date engine | PR H documents the selected business-calendar direction and characterizes app/edge UTC parity plus the `date-fns` boundary. PR I1 adds app/edge business-calendar interfaces with current calendar-day behavior. PR I2 routes active app schedule offsets, project shifts, display urgency, ICS `DTEND`, and nightly-sync due-soon cutoffs through the seam without changing behavior. PR R4 adds `weekday` and `us-federal-observed` app/edge calendars. PR R5 switches date-kind scheduling and urgency to `us-federal-observed` while keeping explicit calendar-day compatibility. | Regional/organization-specific holiday configuration is not implemented. | Done PR H/I1/I2/R4/R5 |
 
 ## Remaining PR Sequence
 
