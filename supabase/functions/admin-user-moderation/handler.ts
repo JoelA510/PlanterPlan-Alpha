@@ -106,8 +106,14 @@ export async function handleAdminUserModerationRequest(
             return json({ success: false, error: 'Server configuration error' }, 500);
         }
 
-        // Parse body early so we can validate before any I/O.
-        const body: Partial<ModerationBody> = await req.json().catch(() => ({}));
+        // Parse body early so we can validate before any auth I/O. JSON
+        // literals like `null`, strings, and arrays are invalid payloads but
+        // should still return the normal product-level validation response.
+        const rawBody = await req.json().catch(() => ({}));
+        const body: Partial<ModerationBody> =
+            rawBody !== null && typeof rawBody === 'object' && !Array.isArray(rawBody)
+                ? rawBody as Partial<ModerationBody>
+                : {};
         const { action, target_uid, duration_hours } = body;
 
         if (!action || !['suspend', 'unsuspend', 'reset_password'].includes(action)) {
@@ -171,7 +177,7 @@ export async function handleAdminUserModerationRequest(
 
         if (action === 'suspend') {
             const banDuration = typeof duration_hours === 'number' && duration_hours > 0
-                ? `${Math.floor(duration_hours)}h`
+                ? `${Math.ceil(duration_hours)}h`
                 : INDEFINITE_BAN;
             const { error } = await adminClient.auth.admin.updateUserById(target_uid, {
                 ban_duration: banDuration,

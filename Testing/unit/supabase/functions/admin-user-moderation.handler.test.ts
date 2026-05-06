@@ -23,6 +23,14 @@ function request(body: Record<string, unknown>, auth = 'Bearer user-jwt') {
     });
 }
 
+function rawBodyRequest(body: string, auth = 'Bearer user-jwt') {
+    return new Request('https://planterplan.test/functions/v1/admin-user-moderation', {
+        method: 'POST',
+        headers: { Authorization: auth, 'Content-Type': 'application/json' },
+        body,
+    });
+}
+
 async function responseJson<T extends Record<string, unknown>>(response: Response): Promise<T> {
     return JSON.parse(await response.text()) as T;
 }
@@ -138,6 +146,25 @@ describe('admin-user-moderation handler', () => {
         });
     });
 
+    it('rounds positive fractional suspension durations up to at least one hour', async () => {
+        const harness = makeHarness();
+
+        const response = await handleAdminUserModerationRequest(
+            request({ action: 'suspend', target_uid: 'target-user', duration_hours: 0.5 }),
+            harness.deps,
+        );
+
+        expect(response.status).toBe(200);
+        await expect(responseJson(response)).resolves.toEqual({ success: true });
+        expect(harness.updateUserById).toHaveBeenCalledWith('target-user', {
+            ban_duration: '1h',
+        });
+        expect(harness.insertedAuditRows[0]).toMatchObject({
+            action: 'user_suspended',
+            payload: { duration: '1h' },
+        });
+    });
+
     it('lets an admin unsuspend a target user and writes an audit row', async () => {
         const harness = makeHarness();
 
@@ -215,6 +242,21 @@ describe('admin-user-moderation handler', () => {
         await expect(responseJson(response)).resolves.toEqual({
             success: false,
             error: 'Authorization required',
+        });
+        expect(harness.createClient).not.toHaveBeenCalled();
+    });
+
+    it('treats literal null JSON bodies as invalid payloads instead of throwing', async () => {
+        const harness = makeHarness();
+        const response = await handleAdminUserModerationRequest(
+            rawBodyRequest('null'),
+            harness.deps,
+        );
+
+        expect(response.status).toBe(200);
+        await expect(responseJson(response)).resolves.toEqual({
+            success: false,
+            error: 'Invalid action',
         });
         expect(harness.createClient).not.toHaveBeenCalled();
     });
