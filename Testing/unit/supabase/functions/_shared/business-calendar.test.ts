@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
     calendarDayBusinessCalendar,
     defaultBusinessCalendar,
+    usFederalObservedBusinessCalendar,
+    weekdayBusinessCalendar,
     type BusinessCalendar,
 } from '../../../../../supabase/functions/_shared/business-calendar';
 
@@ -36,5 +38,33 @@ describe('edge business-calendar abstraction', () => {
         const calendar: BusinessCalendar = calendarDayBusinessCalendar;
 
         expect(calendar.id).toBe('calendar-day');
+    });
+
+    it('adds weekday business days without changing the default edge calendar', () => {
+        expect(defaultBusinessCalendar.id).toBe('calendar-day');
+        expect(weekdayBusinessCalendar.id).toBe('weekday');
+        expect(weekdayBusinessCalendar.isBusinessDay('2026-01-02')).toBe(true);
+        expect(weekdayBusinessCalendar.isBusinessDay('2026-01-03')).toBe(false);
+
+        expect(weekdayBusinessCalendar.addBusinessDays('2026-01-02', 0)).toBe('2026-01-02');
+        expect(weekdayBusinessCalendar.addBusinessDays('2026-01-02', 1)).toBe('2026-01-05');
+        expect(weekdayBusinessCalendar.addBusinessDays('2026-01-05', -1)).toBe('2026-01-02');
+        expect(weekdayBusinessCalendar.diffInBusinessDays('2026-01-05', '2026-01-02')).toBe(1);
+        expect(weekdayBusinessCalendar.diffInBusinessDays('2026-01-02', '2026-01-05')).toBe(-1);
+    });
+
+    it('skips US federal observed holidays in the non-default edge calendar', () => {
+        expect(usFederalObservedBusinessCalendar.id).toBe('us-federal-observed');
+        expect(usFederalObservedBusinessCalendar.isBusinessDay('2026-07-03')).toBe(false);
+        expect(usFederalObservedBusinessCalendar.isBusinessDay('2026-07-06')).toBe(true);
+        expect(usFederalObservedBusinessCalendar.isBusinessDay('2023-01-02')).toBe(false);
+        expect(usFederalObservedBusinessCalendar.isBusinessDay('2021-12-31')).toBe(false);
+
+        expect(usFederalObservedBusinessCalendar.addBusinessDays('2026-01-16', 1)).toBe('2026-01-20');
+        expect(usFederalObservedBusinessCalendar.addBusinessDays('2026-07-02', 1)).toBe('2026-07-06');
+        expect(usFederalObservedBusinessCalendar.addBusinessDays('2026-12-24', 1)).toBe('2026-12-28');
+        expect(usFederalObservedBusinessCalendar.addBusinessDays('2027-01-04', -1)).toBe('2026-12-31');
+        expect(usFederalObservedBusinessCalendar.diffInBusinessDays('2026-01-20', '2026-01-16')).toBe(1);
+        expect(usFederalObservedBusinessCalendar.diffInBusinessDays('2026-07-06', '2026-07-02')).toBe(1);
     });
 });

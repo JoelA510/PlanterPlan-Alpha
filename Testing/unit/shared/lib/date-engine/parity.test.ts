@@ -9,6 +9,8 @@ import {
 } from '@/shared/lib/date-engine';
 import {
     calendarDayBusinessCalendar as appBusinessCalendar,
+    usFederalObservedBusinessCalendar as appUsFederalObservedBusinessCalendar,
+    weekdayBusinessCalendar as appWeekdayBusinessCalendar,
 } from '@/shared/lib/date-engine/business-calendar';
 import {
     addDaysToIsoDate,
@@ -20,6 +22,8 @@ import {
 } from '../../../../../supabase/functions/_shared/date';
 import {
     calendarDayBusinessCalendar as edgeBusinessCalendar,
+    usFederalObservedBusinessCalendar as edgeUsFederalObservedBusinessCalendar,
+    weekdayBusinessCalendar as edgeWeekdayBusinessCalendar,
 } from '../../../../../supabase/functions/_shared/business-calendar';
 
 describe('date-engine app/edge parity characterization', () => {
@@ -72,5 +76,54 @@ describe('date-engine app/edge parity characterization', () => {
         expect(appBusinessCalendar.isBusinessDay('2026-01-03')).toBe(
             edgeBusinessCalendar.isBusinessDay('2026-01-03'),
         );
+    });
+
+    it('keeps app and edge behavior aligned for inert weekday and holiday calendars', () => {
+        const cases = [
+            {
+                app: appWeekdayBusinessCalendar,
+                edge: edgeWeekdayBusinessCalendar,
+                start: '2026-01-02',
+                amount: 1,
+                diffLater: '2026-01-05',
+                diffEarlier: '2026-01-02',
+                included: '2026-01-05',
+                excluded: '2026-01-03',
+            },
+            {
+                app: appUsFederalObservedBusinessCalendar,
+                edge: edgeUsFederalObservedBusinessCalendar,
+                start: '2026-07-02',
+                amount: 1,
+                diffLater: '2026-07-06',
+                diffEarlier: '2026-07-02',
+                included: '2026-07-06',
+                excluded: '2026-07-03',
+            },
+        ];
+
+        for (const testCase of cases) {
+            expect(toIsoDate(testCase.app.addBusinessDays(testCase.start, testCase.amount))).toBe(
+                testCase.edge.addBusinessDays(testCase.start, testCase.amount),
+            );
+            expect(toIsoDate(testCase.app.addBusinessDays(testCase.diffLater, -1))).toBe(
+                testCase.edge.addBusinessDays(testCase.diffLater, -1),
+            );
+            expect(toIsoDate(testCase.app.addBusinessDays(testCase.start, 0))).toBe(
+                testCase.edge.addBusinessDays(testCase.start, 0),
+            );
+            expect(testCase.app.diffInBusinessDays(testCase.diffLater, testCase.diffEarlier)).toBe(
+                testCase.edge.diffInBusinessDays(testCase.diffLater, testCase.diffEarlier),
+            );
+            expect(testCase.app.diffInBusinessDays(testCase.diffEarlier, testCase.diffLater)).toBe(
+                testCase.edge.diffInBusinessDays(testCase.diffEarlier, testCase.diffLater),
+            );
+            expect(testCase.app.isBusinessDay(testCase.included)).toBe(
+                testCase.edge.isBusinessDay(testCase.included),
+            );
+            expect(testCase.app.isBusinessDay(testCase.excluded)).toBe(
+                testCase.edge.isBusinessDay(testCase.excluded),
+            );
+        }
     });
 });
