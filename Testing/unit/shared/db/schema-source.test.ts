@@ -34,6 +34,8 @@ describe('docs/db/schema.sql source of truth', () => {
    'CREATE OR REPLACE TRIGGER "trg_enforce_coach_task_update_scope"',
    'CREATE OR REPLACE FUNCTION "public"."enforce_task_hierarchy_depth"',
    'CREATE OR REPLACE TRIGGER "trg_enforce_task_hierarchy_depth"',
+   'CREATE OR REPLACE FUNCTION "public"."enforce_task_date_envelope"',
+   'CREATE OR REPLACE TRIGGER "trg_enforce_task_date_envelope"',
    'CREATE INDEX "idx_tasks_cloned_from_task_id"',
   ].forEach((needle) => {
    expect(schema).toContain(needle);
@@ -124,6 +126,24 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(guardSql).toContain('v_new_depth + v_descendant_height > 4');
   expect(schema).toContain(
    'CREATE OR REPLACE TRIGGER "trg_enforce_task_hierarchy_depth" BEFORE INSERT OR UPDATE OF "parent_task_id"',
+  );
+ });
+
+ it('keeps task date envelopes enforced below the UI', () => {
+  const guardSql = functionSql('enforce_task_date_envelope');
+
+  expect(guardSql).toContain('due date cannot be before start date');
+  expect(guardSql).toContain('task dates must stay within parent task dates');
+  expect(guardSql).toContain('existing child task dates are outside parent task dates');
+  expect(guardSql).toContain("auth.role() = 'service_role'");
+  expect(guardSql).toContain('AND v_new_start > v_parent_due');
+  expect(guardSql).toContain('AND v_new_due < v_parent_start');
+  expect(guardSql).toContain("(child.start_date AT TIME ZONE 'UTC')::date < v_new_start");
+  expect(guardSql).toContain("(child.due_date AT TIME ZONE 'UTC')::date < v_new_start");
+  expect(guardSql).toContain("(child.start_date AT TIME ZONE 'UTC')::date > v_new_due");
+  expect(guardSql).toContain("(child.due_date AT TIME ZONE 'UTC')::date > v_new_due");
+  expect(schema).toContain(
+   'CREATE OR REPLACE TRIGGER "trg_enforce_task_date_envelope" BEFORE INSERT OR UPDATE OF "parent_task_id", "start_date", "due_date"',
   );
  });
 

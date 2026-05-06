@@ -83,7 +83,7 @@ describe('useCreateProject', () => {
     expect(mockTaskClone).not.toHaveBeenCalled();
   });
 
-  it('clones template when templateId provided', async () => {
+  it('clones template without inventing a root due date when templateId provided', async () => {
     const cloned = makeTask({ id: 'cloned-proj' });
     mockTaskClone.mockResolvedValueOnce({ data: cloned, error: null });
     const { Wrapper } = createWrapper();
@@ -104,13 +104,14 @@ describe('useCreateProject', () => {
       null,
       'instance',
       'user-1',
-      {
+      expect.objectContaining({
         title: 'From Template',
         description: 'Cloned project description',
         start_date: '2026-01-01',
-        due_date: '2026-01-01',
-      },
+      }),
     );
+    const cloneOverrides = mockTaskClone.mock.calls[0][4] as Record<string, unknown>;
+    expect(cloneOverrides).not.toHaveProperty('due_date');
     expect(mockProjectCreate).not.toHaveBeenCalled();
   });
 
@@ -158,8 +159,8 @@ describe('useUpdateProject', () => {
       makeTask({ id: 't1', parent_task_id: 'proj-1', start_date: '2026-01-10', due_date: '2026-01-20', is_complete: false }),
     ];
     mockTaskFilter.mockResolvedValueOnce(tasks);
-    mockProjectUpdate.mockResolvedValueOnce(makeTask());
-    mockTaskUpsert.mockResolvedValueOnce({ data: [], error: null });
+    mockProjectUpdate.mockResolvedValue(makeTask());
+    mockTaskUpsert.mockResolvedValue({ data: [], error: null });
     const { Wrapper } = createWrapper();
 
     const { result } = renderHook(() => useUpdateProject(), { wrapper: Wrapper });
@@ -173,9 +174,19 @@ describe('useUpdateProject', () => {
     });
 
     expect(mockTaskFilter).toHaveBeenCalledWith({ root_id: 'proj-1' });
-    expect(mockTaskUpsert).toHaveBeenCalled();
-    const upsertArg = mockTaskUpsert.mock.calls[0][0] as Array<{ id: string }>;
-    expect(upsertArg.map((u) => u.id)).toEqual(['t1']);
+    expect(mockProjectUpdate).toHaveBeenNthCalledWith(1, 'proj-1', expect.objectContaining({
+      due_date: '2026-01-23',
+    }));
+    expect(mockTaskUpsert).toHaveBeenCalledTimes(2);
+    const dueOnlyArg = mockTaskUpsert.mock.calls[0][0] as Array<{ id: string; due_date?: string; start_date?: string }>;
+    expect(dueOnlyArg).toEqual([expect.objectContaining({ id: 't1', due_date: '2026-01-23' })]);
+    expect(dueOnlyArg[0]).not.toHaveProperty('start_date');
+    const fullUpsertArg = mockTaskUpsert.mock.calls[1][0] as Array<{ id: string }>;
+    expect(fullUpsertArg.map((u) => u.id)).toEqual(['t1']);
+    expect(mockProjectUpdate).toHaveBeenLastCalledWith('proj-1', expect.objectContaining({
+      start_date: '2026-01-06',
+      due_date: '2026-01-23',
+    }));
   });
 
   it('invalidates project-specific query keys on success', async () => {
@@ -221,8 +232,8 @@ describe('useUpdateProject', () => {
       makeTask({ id: 't4', parent_task_id: 'proj-1', start_date: '2026-01-16', due_date: '2026-01-26', is_complete: true }),
     ];
     mockTaskFilter.mockResolvedValueOnce(tasks);
-    mockProjectUpdate.mockResolvedValueOnce(makeTask());
-    mockTaskUpsert.mockResolvedValueOnce({ data: [], error: null });
+    mockProjectUpdate.mockResolvedValue(makeTask());
+    mockTaskUpsert.mockResolvedValue({ data: [], error: null });
     const { Wrapper } = createWrapper();
 
     const { result } = renderHook(() => useUpdateProject(), { wrapper: Wrapper });
@@ -237,8 +248,8 @@ describe('useUpdateProject', () => {
     });
 
     expect(returned).toEqual({ shiftedCount: 3 });
-    expect(mockTaskUpsert).toHaveBeenCalledTimes(1);
-    const upsertArg = mockTaskUpsert.mock.calls[0][0] as Array<{ id: string }>;
+    expect(mockTaskUpsert).toHaveBeenCalledTimes(2);
+    const upsertArg = mockTaskUpsert.mock.calls[1][0] as Array<{ id: string }>;
     expect(upsertArg).toHaveLength(3);
     expect(upsertArg.map(u => u.id).sort()).toEqual(['t1', 't2', 't3']);
   });

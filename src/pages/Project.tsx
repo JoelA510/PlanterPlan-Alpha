@@ -124,7 +124,8 @@ export default function Project() {
             } else {
                 const extendedFormData = formData as TaskFormData & { templateId?: string | null };
                 if (extendedFormData.templateId) {
-                    const hasManualDates = Boolean(formData.start_date || formData.due_date);
+                    const manualStartDate = toIsoDate(formData.start_date as string);
+                    const manualDueDate = toIsoDate(formData.due_date as string);
                     const { error } = await planter.entities.Task.clone(
                         extendedFormData.templateId,
                         parentId,
@@ -133,8 +134,8 @@ export default function Project() {
                         {
                             title: formData.title,
                             description: formData.description,
-                            start_date: hasManualDates ? toIsoDate(formData.start_date as string) : undefined,
-                            due_date: hasManualDates ? (toIsoDate(formData.due_date as string) || toIsoDate(formData.start_date as string)) : undefined,
+                            start_date: manualStartDate ?? undefined,
+                            due_date: manualDueDate ?? undefined,
                         }
                     );
                     if (error) throw error;
