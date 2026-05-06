@@ -11,6 +11,7 @@
     "db:local:bootstrap:fresh": "node scripts/supabase-local-bootstrap.cjs --fresh",
     "db:local:test": "npm run db:local:bootstrap && npx --no-install supabase test db",
     "db:local:test:fresh": "npm run db:local:bootstrap:fresh && npx --no-install supabase test db",
+    "verify-dependencies": "node scripts/verify-dependency-guardrails.cjs",
     "verify-architecture": "node scripts/verify-architecture.cjs",
     "verify-e2e": "bash scripts/verify-e2e.sh",
     "test:e2e": "node scripts/run-e2e.cjs",
