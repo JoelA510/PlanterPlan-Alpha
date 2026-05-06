@@ -65,10 +65,26 @@ export class PlanterError extends Error {
 type ListTaskCommentsWithAuthorsRow =
     Database['public']['Functions']['list_task_comments_with_authors']['Returns'][number];
 
+/**
+ * Narrow an unknown value to a plain object record before reading hydrated DTO
+ * fields.
+ *
+ * @param value - Candidate value returned from the RPC payload.
+ * @returns True when the value is a non-array object record.
+ */
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Normalize a hydrated comment-author payload into the client DTO shape,
+ * treating malformed or missing author data as an intentional null author.
+ *
+ * @param commentId - Comment ID used for diagnostic warnings.
+ * @param authorId - Stored comment author ID, or null for deleted/anonymized authors.
+ * @param rawAuthor - Raw `author` JSON payload returned by the comment RPC.
+ * @returns A normalized author DTO, or null when the author is absent or invalid.
+ */
 function normalizeTaskCommentAuthor(
     commentId: string,
     authorId: string | null,
@@ -127,6 +143,13 @@ function normalizeTaskCommentAuthor(
     return { id, email, user_metadata: metadata };
 }
 
+/**
+ * Convert one RPC result row into the public comment DTO consumed by task
+ * comment UI and notification flows.
+ *
+ * @param row - Row returned by `list_task_comments_with_authors`.
+ * @returns A task comment with a normalized `author` property.
+ */
 function normalizeTaskCommentWithAuthor(row: ListTaskCommentsWithAuthorsRow): TaskCommentWithAuthor {
     return {
         id: row.id,
@@ -144,6 +167,13 @@ function normalizeTaskCommentWithAuthor(row: ListTaskCommentsWithAuthorsRow): Ta
     };
 }
 
+/**
+ * Build a comment DTO for the rare create fallback where the inserted row
+ * cannot be re-read through the hydrated-author RPC.
+ *
+ * @param row - Raw task comment row returned by the insert mutation.
+ * @returns A task comment DTO with `author` intentionally set to null.
+ */
 function commentRowWithoutHydratedAuthor(row: TaskCommentRow): TaskCommentWithAuthor {
     if (row.author_id !== null) {
         console.warn('[planter.TaskComment] returning comment without hydrated author after RPC miss', {
