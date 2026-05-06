@@ -250,4 +250,24 @@ describe('TaskComments (Wave 26)', () => {
         // Count chip shows live count (2 = mineLive + replyUnderDeleted), not 3.
         expect(screen.getByTestId('task-comments-count')).toHaveTextContent('2 comments');
     });
+
+    it('renders deleted-account authors as historical comments without owner affordances', () => {
+        const deletedAuthor = makeCommentWithAuthor({
+            id: 'deleted-author',
+            task_id: 'task-1',
+            parent_comment_id: null,
+            author_id: null,
+            author: null,
+            body: 'Historical comment remains',
+        });
+        mockUseTaskComments.mockReturnValue({ data: [deletedAuthor], isLoading: false });
+
+        renderSut();
+
+        const row = screen.getByTestId('comment-deleted-author');
+        expect(row).toHaveTextContent('Deleted user');
+        expect(row).toHaveTextContent('Historical comment remains');
+        expect(row.querySelector('[data-testid="comment-edit-btn"]')).toBeNull();
+        expect(row.querySelector('[data-testid="comment-delete-btn"]')).toBeNull();
+    });
 });
