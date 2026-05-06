@@ -103,7 +103,7 @@ export default function AdminTemplates() {
                                                         {inst.stale ? <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-amber-800">{t('admin.templates_stale_badge')}</span> : null}
                                                     </p>
                                                     {inst.stale ? (
-                                                        <p className="mt-1 text-xs leading-5 text-amber-800">
+                                                        <p className="mt-1 text-xs leading-5 text-slate-600">
                                                             {t('admin.templates_stale_explanation')}
                                                         </p>
                                                     ) : null}
