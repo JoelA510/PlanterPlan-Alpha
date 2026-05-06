@@ -76,6 +76,11 @@ const addUtcDateOnlyDays = (input: string, amount: number): Date | null => {
  return new Date(Date.UTC(year, month - 1, day + amount));
 };
 
+/**
+ * Formats a date as a UTC `YYYY-MM-DD` string.
+ * @param date - Date to format.
+ * @returns UTC date-only string.
+ */
 const toUtcDateOnly = (date: Date): string => {
  const year = date.getUTCFullYear();
  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -83,31 +88,71 @@ const toUtcDateOnly = (date: Date): string => {
  return `${year}-${month}-${day}`;
 };
 
+/**
+ * Builds a UTC date-only string from numeric date parts.
+ * @param year - UTC year.
+ * @param month - One-based UTC month.
+ * @param day - UTC day of month.
+ * @returns UTC date-only string.
+ */
 const fromUtcDateOnlyParts = (year: number, month: number, day: number): string => (
  toUtcDateOnly(new Date(Date.UTC(year, month - 1, day)))
 );
 
+/**
+ * Checks whether a date falls on Saturday or Sunday in UTC.
+ * @param date - Date to inspect.
+ * @returns True when the UTC weekday is Saturday or Sunday.
+ */
 const isWeekendUtc = (date: Date): boolean => {
  const day = date.getUTCDay();
  return day === 0 || day === 6;
 };
 
+/**
+ * Adds calendar days using UTC date-only semantics.
+ * @param date - Date to shift.
+ * @param amount - Number of calendar days to add; negative subtracts.
+ * @returns Shifted UTC date.
+ */
 const addDaysUtc = (date: Date, amount: number): Date => (
  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + amount))
 );
 
+/**
+ * Finds the Nth weekday in a UTC month.
+ * @param year - UTC year.
+ * @param month - One-based UTC month.
+ * @param weekday - UTC weekday, where 0 is Sunday.
+ * @param occurrence - One-based occurrence to find.
+ * @returns UTC date-only string for the matched weekday.
+ */
 const nthWeekdayOfMonth = (year: number, month: number, weekday: number, occurrence: number): string => {
  const first = new Date(Date.UTC(year, month - 1, 1));
  const offset = (weekday - first.getUTCDay() + 7) % 7;
  return fromUtcDateOnlyParts(year, month, 1 + offset + (occurrence - 1) * 7);
 };
 
+/**
+ * Finds the last matching weekday in a UTC month.
+ * @param year - UTC year.
+ * @param month - One-based UTC month.
+ * @param weekday - UTC weekday, where 0 is Sunday.
+ * @returns UTC date-only string for the matched weekday.
+ */
 const lastWeekdayOfMonth = (year: number, month: number, weekday: number): string => {
  const last = new Date(Date.UTC(year, month, 0));
  const offset = (last.getUTCDay() - weekday + 7) % 7;
  return fromUtcDateOnlyParts(year, month, last.getUTCDate() - offset);
 };
 
+/**
+ * Applies US federal observed-date rules to a fixed-date holiday.
+ * @param year - Legal holiday year.
+ * @param month - One-based legal holiday month.
+ * @param day - Legal holiday day of month.
+ * @returns Observed UTC date-only string.
+ */
 const observedFixedHoliday = (year: number, month: number, day: number): string => {
  const holiday = new Date(Date.UTC(year, month - 1, day));
  const weekday = holiday.getUTCDay();
@@ -116,6 +161,11 @@ const observedFixedHoliday = (year: number, month: number, day: number): string 
  return toUtcDateOnly(holiday);
 };
 
+/**
+ * Builds and caches nationwide US federal observed holidays for one year.
+ * @param year - Calendar year whose legal holidays should be generated.
+ * @returns Set of observed UTC date-only strings.
+ */
 const getUsFederalObservedHolidaysForYear = (year: number): Set<string> => {
  const cached = usFederalObservedHolidayCache.get(year);
  if (cached) return cached;
@@ -141,6 +191,11 @@ const getUsFederalObservedHolidaysForYear = (year: number): Set<string> => {
  return holidays;
 };
 
+/**
+ * Checks whether a date is a nationwide US federal observed holiday.
+ * @param date - Date to inspect.
+ * @returns True when the UTC date matches an observed holiday.
+ */
 const isUsFederalObservedHoliday = (date: Date): boolean => {
  const isoDate = toUtcDateOnly(date);
  const year = date.getUTCFullYear();
@@ -166,6 +221,12 @@ const resolveBusinessDate = (input: BusinessCalendarDateInput | null | undefined
  return isValid(date) ? date : null;
 };
 
+/**
+ * Creates a business calendar that skips dates rejected by a predicate.
+ * @param id - Stable business-calendar identifier.
+ * @param isExcludedDate - Predicate returning true for skipped UTC dates.
+ * @returns BusinessCalendar implementation.
+ */
 const createSkippingBusinessCalendar = (
  id: Exclude<BusinessCalendarId, 'calendar-day'>,
  isExcludedDate: (date: Date) => boolean,
