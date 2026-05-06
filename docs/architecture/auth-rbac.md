@@ -105,9 +105,9 @@ Per-user `public.notification_preferences` row, bootstrapped by `trg_bootstrap_n
 **Quiet hours**: stored as `TIME` in the user-supplied `timezone` column. Tasks 2 + 3 dispatch functions are responsible for skipping + logging when local-now is within the quiet window.
 
 Migration: `docs/db/migrations/2026_04_18_notification_preferences.sql`.
-## Admin RPCs (Wave 34)
+## Admin RPCs And Moderation (Wave 34, Verified PR 8)
 
-Four SECURITY DEFINER RPCs back the `/admin/*` surface. Every one shares the same auth-gate pattern (see `docs/db/migrations/2026_04_18_admin_rpcs.sql`):
+SECURITY DEFINER RPCs back the `/admin/*` read surface and the platform-admin role toggle. Every admin read RPC shares the same auth-gate pattern (see `docs/db/migrations/2026_04_18_admin_rpcs.sql`):
 
 ```sql
 IF NOT public.is_admin(auth.uid()) THEN
@@ -124,7 +124,16 @@ Non-admin callers never get an empty result set — they get the loud exception.
 | `admin_recent_activity(limit)` | `TABLE (…, actor_email)` | `2026_04_18_admin_rpcs.sql` |
 | `admin_list_users(filter jsonb, limit, offset)` | `TABLE (…, is_admin, active_project_count, completed_tasks_30d, overdue_task_count)` | `2026_04_18_admin_list_users_rpc.sql` |
 | `admin_analytics_snapshot()` | `jsonb` (totals + time series + breakdowns + top-10 lists) | `2026_04_18_admin_analytics_rpc.sql` |
+| `admin_set_user_admin_role(target_uid, make_admin)` | `void`; writes `admin_users` + `activity_log`; self-demotion forbidden | `2026_04_23_001_admin_set_user_admin_role.sql` |
 
 Each RPC has `REVOKE ALL ... FROM PUBLIC; GRANT EXECUTE ... TO authenticated;` so the call surface is restricted to signed-in users, with the function body enforcing admin-only access.
 
 Client wrappers live under `planter.admin.*` in `src/shared/api/planterClient.ts`. The `useIsAdmin` hook (`src/features/admin/hooks/useIsAdmin.ts`) reads the already-hydrated `user.role === 'admin'` assignment from AuthContext — no extra round-trip per render.
+
+Admin suspension, unsuspension, and password-reset link generation cannot be implemented as SQL RPCs because they call Supabase Auth admin APIs. Those actions route through `supabase/functions/admin-user-moderation/`:
+
+* The function first authenticates the caller with the submitted user JWT.
+* It checks `public.is_admin(caller.id)` before any target user lookup.
+* Only after that check passes does it use the service-role client for `auth.admin.updateUserById` or `auth.admin.generateLink`.
+* Self-suspend/self-unsuspend are rejected; reset-password on self is allowed.
+* `activity_log` records `user_suspended`, `user_unsuspended`, or `password_reset_requested`, but reset links are never written to logs.
