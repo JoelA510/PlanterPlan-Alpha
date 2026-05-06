@@ -830,6 +830,7 @@
     "templates_clones_empty": "No instances cloned from this template.",
     "templates_cloned_from": "Cloned from v{{version}}",
     "templates_stale_badge": "stale",
+    "templates_stale_explanation": "Template changed; existing projects are not auto-updated.",
     "analytics_title": "Admin Analytics",
     "analytics_subtitle": "Cross-tenant snapshot. Refreshed every 5 minutes.",
     "analytics_loading": "Loading snapshot…",
