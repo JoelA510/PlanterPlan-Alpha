@@ -836,6 +836,7 @@
     "templates_clones_empty": "Ninguna instancia clonada de esta plantilla.",
     "templates_cloned_from": "Clonada desde v{{version}}",
     "templates_stale_badge": "desactualizada",
+    "templates_stale_explanation": "La plantilla cambió; los proyectos existentes no se actualizan automáticamente.",
     "analytics_title": "Análisis de administración",
     "analytics_subtitle": "Instantánea entre inquilinos. Se actualiza cada 5 minutos.",
     "analytics_loading": "Cargando datos…",
