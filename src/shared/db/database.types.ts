@@ -519,7 +519,7 @@ export type Database = {
       }
       task_comments: {
         Row: {
-          author_id: string
+          author_id: string | null
           body: string
           created_at: string
           deleted_at: string | null
@@ -532,7 +532,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          author_id: string
+          author_id?: string | null
           body: string
           created_at?: string
           deleted_at?: string | null
@@ -545,7 +545,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          author_id?: string
+          author_id?: string | null
           body?: string
           created_at?: string
           deleted_at?: string | null

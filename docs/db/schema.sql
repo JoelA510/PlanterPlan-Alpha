@@ -2116,7 +2116,7 @@ CREATE TABLE IF NOT EXISTS "public"."task_comments" (
     "task_id" "uuid" NOT NULL,
     "root_id" "uuid" NOT NULL,
     "parent_comment_id" "uuid",
-    "author_id" "uuid" NOT NULL,
+    "author_id" "uuid",
     "body" "text" NOT NULL,
     "mentions" "text"[] DEFAULT ARRAY[]::"text"[] NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
@@ -2696,7 +2696,7 @@ ALTER TABLE ONLY "public"."rag_chunks"
 
 
 ALTER TABLE ONLY "public"."task_comments"
-    ADD CONSTRAINT "task_comments_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;
+    ADD CONSTRAINT "task_comments_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
 
 
 
@@ -2736,7 +2736,7 @@ ALTER TABLE ONLY "public"."task_resources"
 
 
 ALTER TABLE ONLY "public"."tasks"
-    ADD CONSTRAINT "tasks_assignee_id_fkey" FOREIGN KEY ("assignee_id") REFERENCES "auth"."users"("id");
+    ADD CONSTRAINT "tasks_assignee_id_fkey" FOREIGN KEY ("assignee_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
 
 
 
@@ -2746,7 +2746,7 @@ ALTER TABLE ONLY "public"."tasks"
 
 
 ALTER TABLE ONLY "public"."tasks"
-    ADD CONSTRAINT "tasks_creator_fkey" FOREIGN KEY ("creator") REFERENCES "auth"."users"("id");
+    ADD CONSTRAINT "tasks_creator_fkey" FOREIGN KEY ("creator") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
 
 
 

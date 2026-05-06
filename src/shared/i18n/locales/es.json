@@ -204,6 +204,10 @@
       "blocked": "Bloqueada",
       "completed": "Completada"
     },
+    "comments": {
+      "deleted_author": "Usuario eliminado",
+      "reply_button": "Responder"
+    },
     "detail": {
       "select_task": "Selecciona una tarea para ver los detalles",
       "purpose_heading": "Propósito (El porqué)",

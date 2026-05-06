@@ -126,6 +126,22 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(completionSql).not.toContain('NEW.status := CASE');
  });
 
+ it('keeps account lifecycle user references anonymizing instead of restricting auth deletion', () => {
+  expect(schema).toContain('"author_id" "uuid",');
+  expect(schema).toContain(
+   'ADD CONSTRAINT "task_comments_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;',
+  );
+  expect(schema).toContain(
+   'ADD CONSTRAINT "tasks_assignee_id_fkey" FOREIGN KEY ("assignee_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;',
+  );
+  expect(schema).toContain(
+   'ADD CONSTRAINT "tasks_creator_fkey" FOREIGN KEY ("creator") REFERENCES "auth"."users"("id") ON DELETE SET NULL;',
+  );
+  expect(schema).not.toContain(
+   'ADD CONSTRAINT "task_comments_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;',
+  );
+ });
+
  it('keeps has_permission aligned to role ownership instead of creatorship', () => {
   const functionStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."has_permission"(');
   const functionEnd = schema.indexOf('ALTER FUNCTION "public"."has_permission"(');

@@ -198,6 +198,10 @@
       "blocked": "Blocked",
       "completed": "Completed"
     },
+    "comments": {
+      "deleted_author": "Deleted user",
+      "reply_button": "Reply"
+    },
     "detail": {
       "select_task": "Select a task to view details",
       "purpose_heading": "Purpose (The Why)",
