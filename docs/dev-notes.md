@@ -127,15 +127,20 @@ _Historical (Wave 23 audit):_ `public.check_project_creatorship(pid, uid)` was i
 
 ### `task_comments.author:users(...)` PostgREST join is typed-client-hostile
 
-**Active. Target: Wave 30.** `planter.entities.TaskComment.{listByTask, create}` select `*, author:users(id, email, user_metadata)` across the `public`/`auth` schema boundary. The Supabase generated types don't model a FK from `task_comments.author_id` to `auth.users.id`, so the typed client surfaces a `SelectQueryError<"could not find the relation between task_comments and users">`. The current workaround casts through `unknown` and ships: at runtime PostgREST sometimes resolves the join, sometimes returns `author: null` (the row-level type already allows null, so the UI falls back to initials + "Unknown" via `<Avatar>`).
+**Resolved (PR 7).** Comment reads now go through
+`public.list_task_comments_with_authors(p_task_id, p_comment_id)` instead of a
+cross-schema PostgREST `author:users(...)` select. The SECURITY DEFINER RPC
+checks project membership/admin status, joins `task_comments` to `auth.users`
+internally, and returns an explicit JSON author DTO that `planterClient`
+normalizes. Deleted/anonymized authors intentionally hydrate as `author: null`;
+non-null `author_id` plus missing/malformed author DTOs are logged as
+impossible hydration states.
 
-Problem: when the join fails silently, `TaskCommentWithAuthor.author` is `null` and the UI can't show a real name. More importantly, Wave 30's notification stack needs resolved `author_id → auth.users.email` for mention dispatch — the null-author case is a soft failure for display but a hard miss for notifications.
-
-Fix in Wave 30 (prefer): ship a `public.list_task_comments_with_authors(p_task_id uuid)` SECURITY DEFINER RPC that JOINs `task_comments` against `auth.users` internally and returns the hydrated shape. Swap `listByTask` to `planter.rpc('list_task_comments_with_authors', { p_task_id: taskId })`. Drop the cross-schema PostgREST select. The RPC also centralises the `resolve_user_handles` path Wave 30 already plans to ship. Alternative: add a `public.comment_authors` view that mirrors the relevant `auth.users` columns with an RLS policy keyed on `is_active_member`, and switch the select to `author:comment_authors!author_id(...)` — less elegant but avoids the RPC round trip.
-
-Until that lands, the UI degrades gracefully but any mention-based feature is blocked on a reliable author hydrate.
-
-**Wave 30 status note:** Wave 30 Task 3 shipped `public.resolve_user_handles(text[])` (the handle-to-uuid mapping needed by `resolveMentions` in the write path), but did NOT ship the `list_task_comments_with_authors` read-path RPC suggested above. Mention dispatch works because the trigger reads `task_comments.mentions` (resolved uuids) directly; it doesn't depend on the display-side author hydrate. The PostgREST join issue remains — future work.
+Mention resolution no longer passes raw handles through on RPC failure. The
+comment still posts, but `resolveMentions` warns and writes an empty mentions
+array so notification misses are observable. `trg_enqueue_comment_mentions`
+now logs invalid mention payloads and includes recipient, actor, comment, task,
+and project identifiers in every `mention_pending` payload.
 
 ### Service worker JS exception (`public/sw.js`)
 

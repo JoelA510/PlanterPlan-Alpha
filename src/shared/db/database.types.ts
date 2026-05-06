@@ -1467,6 +1467,23 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { p_user_id: string }; Returns: boolean }
+      list_task_comments_with_authors: {
+        Args: { p_task_id: string; p_comment_id?: string | null }
+        Returns: {
+          author: Json | null
+          author_id: string | null
+          body: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          mentions: string[]
+          parent_comment_id: string | null
+          root_id: string
+          task_id: string
+          updated_at: string
+        }[]
+      }
       rag_get_project_context: {
         Args: { p_limit?: number; p_project_id: string }
         Returns: Json
@@ -1475,7 +1492,7 @@ export type Database = {
         Args: { p_handles: string[] }
         Returns: {
           handle: string
-          user_id: string
+          user_id: string | null
         }[]
       }
       user_is_phase_lead: {

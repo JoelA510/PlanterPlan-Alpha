@@ -62,6 +62,98 @@ export class PlanterError extends Error {
     }
 }
 
+type ListTaskCommentsWithAuthorsRow =
+    Database['public']['Functions']['list_task_comments_with_authors']['Returns'][number];
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeTaskCommentAuthor(
+    commentId: string,
+    authorId: string | null,
+    rawAuthor: ListTaskCommentsWithAuthorsRow['author'],
+): TaskCommentWithAuthor['author'] {
+    if (rawAuthor === null) {
+        if (authorId !== null) {
+            console.warn('[planter.TaskComment] author payload missing for non-null author_id', {
+                commentId,
+                authorId,
+            });
+        }
+        return null;
+    }
+
+    if (!isObjectRecord(rawAuthor)) {
+        console.warn('[planter.TaskComment] author payload was not an object', {
+            commentId,
+            authorId,
+            rawAuthor,
+        });
+        return null;
+    }
+
+    const id = rawAuthor.id;
+    if (typeof id !== 'string' || id.length === 0) {
+        console.warn('[planter.TaskComment] author payload missing string id', {
+            commentId,
+            authorId,
+            rawAuthor,
+        });
+        return null;
+    }
+
+    if (authorId !== null && id !== authorId) {
+        console.warn('[planter.TaskComment] author payload id did not match author_id', {
+            commentId,
+            authorId,
+            hydratedAuthorId: id,
+        });
+        return null;
+    }
+
+    const email = typeof rawAuthor.email === 'string' ? rawAuthor.email : null;
+    const metadata = isObjectRecord(rawAuthor.user_metadata)
+        ? rawAuthor.user_metadata as UserMetadata
+        : null;
+
+    if (rawAuthor.user_metadata !== null && rawAuthor.user_metadata !== undefined && metadata === null) {
+        console.warn('[planter.TaskComment] author user_metadata was not an object', {
+            commentId,
+            authorId,
+        });
+    }
+
+    return { id, email, user_metadata: metadata };
+}
+
+function normalizeTaskCommentWithAuthor(row: ListTaskCommentsWithAuthorsRow): TaskCommentWithAuthor {
+    return {
+        id: row.id,
+        task_id: row.task_id,
+        root_id: row.root_id,
+        parent_comment_id: row.parent_comment_id,
+        author_id: row.author_id,
+        body: row.body,
+        mentions: row.mentions,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        edited_at: row.edited_at,
+        deleted_at: row.deleted_at,
+        author: normalizeTaskCommentAuthor(row.id, row.author_id, row.author),
+    };
+}
+
+function commentRowWithoutHydratedAuthor(row: TaskCommentRow): TaskCommentWithAuthor {
+    if (row.author_id !== null) {
+        console.warn('[planter.TaskComment] returning comment without hydrated author after RPC miss', {
+            commentId: row.id,
+            authorId: row.author_id,
+        });
+    }
+    return { ...row, author: null };
+}
+
 export interface PlanterClient {
     auth: {
         me: () => Promise<AuthUser | null>;
@@ -1072,23 +1164,21 @@ export const planter: PlanterClient = {
         // TaskComment (Wave 26)
         // -----------------------------------------------------------------
         TaskComment: {
-            // The author join points at auth.users across a schema boundary. PostgREST
-            // handles it at runtime but the generated types don't model the cross-schema
-            // FK, so the cast to unknown sidesteps the typed-client's SelectQueryError.
-            //
+            // Author hydration is intentionally routed through a SECURITY
+            // DEFINER RPC. That keeps the auth.users join gated in Postgres and
+            // avoids fragile cross-schema PostgREST select strings in the UI.
             // Returns soft-deleted rows too — the UI renders tombstones so reply chains
             // stay intact when an ancestor is soft-deleted. `softDelete` blanks body, so
             // no content leaks via this query.
             listByTask: async (taskId: string): Promise<TaskCommentWithAuthor[]> => {
                 return retry(async () => {
                     const { data, error } = await supabase
-                        .from('task_comments')
-                        .select('*, author:users(id, email, user_metadata)')
-                        .eq('task_id', taskId)
-                        .order('created_at', { ascending: true })
-                        .overrideTypes<TaskCommentWithAuthor[], { merge: false }>();
+                        .rpc('list_task_comments_with_authors', {
+                            p_task_id: taskId,
+                            p_comment_id: null,
+                        });
                     if (error) throw new PlanterError(error.message, error.code ?? '500');
-                    return data || [];
+                    return (data ?? []).map(normalizeTaskCommentWithAuthor);
                 });
             },
             create: async (payload): Promise<TaskCommentWithAuthor> => {
@@ -1105,11 +1195,26 @@ export const planter: PlanterClient = {
                         // `root_id` is required in generated DB types but is set
                         // by `trg_task_comments_set_root_id` before insert checks.
                         .insert(insert as TaskCommentInsert)
-                        .select('*, author:users(id, email, user_metadata)')
+                        .select('*')
                         .single()
-                        .overrideTypes<TaskCommentWithAuthor, { merge: false }>();
+                        .overrideTypes<TaskCommentRow, { merge: false }>();
                     if (error) throw new PlanterError(error.message, error.code ?? '500');
-                    return data;
+                    if (!data) throw new PlanterError('Inserted task comment was not returned', 500);
+                    const { data: hydrated, error: hydrateError } = await supabase
+                        .rpc('list_task_comments_with_authors', {
+                            p_task_id: payload.task_id,
+                            p_comment_id: data.id,
+                        });
+                    if (hydrateError) {
+                        console.warn('[planter.TaskComment] failed to hydrate inserted comment author', {
+                            commentId: data.id,
+                            taskId: payload.task_id,
+                            error: hydrateError.message,
+                        });
+                        return commentRowWithoutHydratedAuthor(data);
+                    }
+                    const row = hydrated?.[0];
+                    return row ? normalizeTaskCommentWithAuthor(row) : commentRowWithoutHydratedAuthor(data);
                 });
             },
             updateBody: async (commentId: string, payload: { body: string; mentions?: string[] }): Promise<TaskCommentRow> => {
