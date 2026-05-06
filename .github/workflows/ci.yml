@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify Dependency Guardrails
+        run: npm run verify-dependencies
+
       - name: Verify Architecture
         run: npm run verify-architecture
         env:
