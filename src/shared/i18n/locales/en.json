@@ -247,7 +247,7 @@
       "email_body_empty_date": "—",
       "phase_lead_fallback": "User {{id}}",
       "template_delete_blocked_title": "Cannot delete template task",
-      "template_delete_blocked_description": "This task originated from the project template. Only the project owner can delete template-origin tasks.",
+      "template_delete_blocked_description": "This task originated from the project template. Template-origin scaffold tasks cannot be deleted from project workspaces.",
       "created": "Created",
       "updated": "Updated",
       "id_label": "ID",

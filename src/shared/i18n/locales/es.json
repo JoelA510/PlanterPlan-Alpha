@@ -253,7 +253,7 @@
       "email_body_empty_date": "—",
       "phase_lead_fallback": "Usuario {{id}}",
       "template_delete_blocked_title": "No se puede eliminar la tarea de plantilla",
-      "template_delete_blocked_description": "Esta tarea se originó en la plantilla del proyecto. Solo el propietario del proyecto puede eliminar tareas originadas en plantillas.",
+      "template_delete_blocked_description": "Esta tarea se originó en la plantilla del proyecto. Las tareas base originadas en plantillas no se pueden eliminar desde los espacios de trabajo del proyecto.",
       "created": "Creada",
       "updated": "Actualizada",
       "id_label": "ID",

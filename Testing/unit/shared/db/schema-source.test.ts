@@ -27,7 +27,9 @@ describe('docs/db/schema.sql source of truth', () => {
    'CREATE TABLE IF NOT EXISTS "public"."ics_feed_tokens"',
    '"template_version" integer DEFAULT 1 NOT NULL',
    '"cloned_from_task_id" "uuid"',
-   'CREATE OR REPLACE TRIGGER "trg_bump_template_version"',
+  'CREATE OR REPLACE TRIGGER "trg_bump_template_version"',
+   'CREATE OR REPLACE FUNCTION "public"."enforce_template_scaffold_immutability"',
+   'CREATE OR REPLACE TRIGGER "trg_enforce_template_scaffold_immutability"',
    'CREATE INDEX "idx_tasks_cloned_from_task_id"',
   ].forEach((needle) => {
    expect(schema).toContain(needle);
@@ -70,6 +72,21 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(sql).toContain("'is_strategy_template'");
   expect(sql).toContain("'project_kind'");
   expect(sql).toContain("t.settings ->> 'project_kind' IN ('date', 'checkpoint')");
+  expect(sql).toContain("'spawnedFromTemplate', p_template_id::text");
+  expect(sql).toContain("'cloned_from_template_version', COALESCE(t.template_version, 1)");
+ });
+
+ it('keeps cloned scaffold immutability enforced below the UI', () => {
+  const sql = functionSql('enforce_template_scaffold_immutability');
+
+  expect(sql).toContain("OLD.origin = 'instance' AND OLD.cloned_from_task_id IS NOT NULL");
+  expect(sql).toContain('protected template scaffold tasks cannot be deleted');
+  expect(sql).toContain('protected template scaffold fields cannot be changed');
+  expect(sql).toContain('protected template scaffold settings cannot be changed');
+  expect(sql).toContain("auth.role() = 'service_role'");
+  expect(sql).toContain("'is_coaching_task'");
+  expect(sql).toContain("'spawnedFromTemplate'");
+  expect(sql).toContain("'cloned_from_template_version'");
  });
 
  it('keeps initialize_default_project available for blank project scaffolding', () => {

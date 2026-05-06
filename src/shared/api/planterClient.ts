@@ -869,6 +869,15 @@ export const planter: PlanterClient = {
                                 if (templateVersionStamp !== undefined) {
                                     mergedSettings.cloned_from_template_version = templateVersionStamp;
                                 }
+                                const alreadyStamped =
+                                    prevSettings.spawnedFromTemplate === templateId
+                                    && (
+                                        templateVersionStamp === undefined
+                                        || prevSettings.cloned_from_template_version === templateVersionStamp
+                                    );
+                                if (alreadyStamped) {
+                                    return { data: existing as Task, error: null };
+                                }
                                 const updated = await planter.entities.Task.update(newRootId, {
                                     settings: mergedSettings,
                                 });
