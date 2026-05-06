@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { makeTask } from '@test';
-import type { PersonInsert, PersonUpdate, PersonRow, TaskRow, UserMetadata } from '@/shared/db/app.types';
+import type { PersonInsert, PersonUpdate, PersonRow, TaskRow, TaskUpdate, UserMetadata } from '@/shared/db/app.types';
 
 // ---------------------------------------------------------------------------
 // Supabase mock — chainable query builder
@@ -147,6 +147,40 @@ describe('Base EntityClient CRUD (Person)', () => {
 
     expect(chain.eq).toHaveBeenCalledWith('project_id', 'proj-1');
     expect(chain.eq).not.toHaveBeenCalledWith('role', 'admin');
+  });
+});
+
+describe('Task protected scaffold failure paths', () => {
+  it('surfaces DB trigger rejection from Task.update', async () => {
+    const chain = createChain({
+      data: null,
+      error: { message: 'protected template scaffold fields cannot be changed', code: 'P0001' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await expect(
+      planter.entities.Task.update('protected-task', { title: 'Mutated' } as TaskUpdate),
+    ).rejects.toMatchObject({
+      name: 'PlanterError',
+      message: 'protected template scaffold fields cannot be changed',
+      status: 'P0001',
+    });
+    expect(chain.update).toHaveBeenCalledWith({ title: 'Mutated' });
+  });
+
+  it('surfaces DB trigger rejection from Task.delete', async () => {
+    const chain = createChain({
+      data: null,
+      error: { message: 'protected template scaffold tasks cannot be deleted', code: 'P0001' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await expect(planter.entities.Task.delete('protected-task')).rejects.toMatchObject({
+      name: 'PlanterError',
+      message: 'protected template scaffold tasks cannot be deleted',
+      status: 'P0001',
+    });
+    expect(chain.delete).toHaveBeenCalled();
   });
 });
 

@@ -63,12 +63,7 @@ interface TaskDetailsViewProps {
     onTaskUpdated?: () => void;
     canEdit?: boolean;
     allProjectTasks?: TaskItemData[];
-    /**
-     * Wave 36 Task 2: used by the delete-guard modal. When the task has
-     * `cloned_from_task_id IS NOT NULL` and `membershipRole !== 'owner'`,
-     * the modal blocks the delete with a "only the project owner can
-     * delete template-origin tasks" message.
-     */
+    /** Retained for call-site compatibility; cloned scaffold delete bypass no longer depends on role. */
     membershipRole?: string;
     teamMembers?: TeamMemberWithProfile[];
     showComments?: boolean;
@@ -81,7 +76,6 @@ const TaskDetailsView = ({
     onDeleteTask,
     onTaskUpdated,
     canEdit = true,
-    membershipRole,
     teamMembers = [],
     showComments = true,
     ...props
@@ -91,12 +85,11 @@ const TaskDetailsView = ({
     const { data: siblings = [] } = useTaskSiblings(task?.id, task?.parent_task_id);
     const [emailOpen, setEmailOpen] = useState(false);
     const [strategyDialogOpen, setStrategyDialogOpen] = useState(false);
-    // Wave 36 Task 2: delete-guard modal state for template-origin tasks.
+    // PR 2: template-origin scaffold deletes are blocked at the DB layer.
     const [deleteGuardOpen, setDeleteGuardOpen] = useState(false);
     const isTemplateOrigin = Boolean(
         (task as (TaskItemData & { cloned_from_task_id?: string | null }) | null)?.cloned_from_task_id,
     );
-    const isProjectOwner = membershipRole === 'owner';
 
     // Edge-trigger the Strategy Template follow-up dialog: fires exactly once
     // per transition into `completed`, regardless of how many re-renders happen
@@ -448,10 +441,9 @@ const TaskDetailsView = ({
                     <button
                         type="button"
                         onClick={() => {
-                            // Wave 36 Task 2: template-origin guard. Non-owners
-                            // see a modal before deleting cloned-from-template
-                            // rows. Owners bypass the modal.
-                            if (isTemplateOrigin && !isProjectOwner) {
+                            // Mirror the DB trigger: cloned-from-template
+                            // scaffold rows are not deletable through app UI.
+                            if (isTemplateOrigin) {
                                 setDeleteGuardOpen(true);
                                 return;
                             }
@@ -527,7 +519,7 @@ const TaskDetailsView = ({
                 </DialogContent>
             </Dialog>
 
-            {/* Wave 36 Task 2: template-origin delete guard. */}
+            {/* Template-origin delete guard. */}
             <Dialog open={deleteGuardOpen} onOpenChange={setDeleteGuardOpen}>
                 <DialogContent data-testid="template-origin-delete-guard">
                     <DialogHeader>

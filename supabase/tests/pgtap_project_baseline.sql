@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(16);
+SELECT plan(18);
 
 TRUNCATE TABLE public.activity_log, public.task_comments, public.project_members, public.task_resources, public.tasks CASCADE;
 DELETE FROM auth.users
@@ -85,7 +85,7 @@ SELECT is(
     'initialize_default_project creates the current 26 leaf task rows below milestones'
 );
 
-INSERT INTO public.tasks (id, title, status, creator, root_id, origin, settings, notes, start_date, position)
+INSERT INTO public.tasks (id, title, status, creator, root_id, origin, settings, notes, start_date, position, template_version)
 VALUES (
     '22222222-2222-2222-2222-222222222301',
     'Template Root Baseline',
@@ -96,7 +96,8 @@ VALUES (
     '{"published": true, "project_kind": "checkpoint", "recurrence": {"kind": "weekly"}, "is_coaching_task": true, "is_strategy_template": true}'::jsonb,
     'root template note',
     '2026-01-01 00:00:00+00',
-    1
+    1,
+    7
 );
 
 INSERT INTO public.tasks (id, parent_task_id, root_id, title, status, creator, origin, notes, settings, position)
@@ -172,6 +173,18 @@ SELECT is(
     (SELECT settings ->> 'project_kind' FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222301'),
     'checkpoint',
     'clone_project_template preserves root project_kind on instance clones'
+);
+
+SELECT is(
+    (SELECT settings ->> 'spawnedFromTemplate' FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222301'),
+    '22222222-2222-2222-2222-222222222301',
+    'clone_project_template stamps spawnedFromTemplate on the cloned root during insert'
+);
+
+SELECT is(
+    (SELECT (settings ->> 'cloned_from_template_version')::int FROM public.tasks WHERE cloned_from_task_id = '22222222-2222-2222-2222-222222222301'),
+    7,
+    'clone_project_template stamps the source template_version on the cloned root during insert'
 );
 
 SELECT ok(

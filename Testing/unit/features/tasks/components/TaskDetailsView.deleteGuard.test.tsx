@@ -94,8 +94,8 @@ function makeTemplateOriginTask(overrides: TemplateTaskOverrides = {}): TaskItem
     } as Partial<TaskItemData>) as unknown as TaskItemData;
 }
 
-describe('TaskDetailsView — template-origin delete guard (Wave 36 Task 2)', () => {
-    it('opens the guard dialog for a non-owner trying to delete a template-origin task', async () => {
+describe('TaskDetailsView — template-origin delete guard', () => {
+    it('opens the guard dialog for an editor trying to delete a template-origin task', async () => {
         const onDelete = vi.fn();
         const task = makeTemplateOriginTask({ cloned_from_task_id: 'tpl-source-1' });
         renderView(task, { membershipRole: 'editor', onDeleteTask: onDelete });
@@ -107,15 +107,16 @@ describe('TaskDetailsView — template-origin delete guard (Wave 36 Task 2)', ()
         expect(onDelete).not.toHaveBeenCalled();
     });
 
-    it('owner bypasses the guard and the delete handler fires directly', async () => {
+    it('opens the guard dialog for an owner trying to delete a template-origin task', async () => {
         const onDelete = vi.fn();
         const task = makeTemplateOriginTask({ cloned_from_task_id: 'tpl-source-1' });
         renderView(task, { membershipRole: 'owner', onDeleteTask: onDelete });
 
         await userEvent.setup().click(screen.getByTestId('delete-task-btn'));
 
-        expect(onDelete).toHaveBeenCalledTimes(1);
-        expect(screen.queryByTestId('template-origin-delete-guard')).not.toBeInTheDocument();
+        expect(screen.getByTestId('template-origin-delete-guard')).toBeInTheDocument();
+        expect(screen.getByText(/cannot be deleted from project workspaces/i)).toBeInTheDocument();
+        expect(onDelete).not.toHaveBeenCalled();
     });
 
     it('does not show the guard for post-instantiation custom tasks (cloned_from_task_id is null)', async () => {
