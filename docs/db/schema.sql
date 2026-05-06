@@ -974,6 +974,22 @@ BEGIN
             RAISE EXCEPTION 'task dates must stay within parent task dates; move the parent task first'
                 USING ERRCODE = 'P0001';
         END IF;
+
+        IF v_parent_due IS NOT NULL
+            AND v_new_start IS NOT NULL
+            AND v_new_start > v_parent_due
+        THEN
+            RAISE EXCEPTION 'task dates must stay within parent task dates; move the parent task first'
+                USING ERRCODE = 'P0001';
+        END IF;
+
+        IF v_parent_start IS NOT NULL
+            AND v_new_due IS NOT NULL
+            AND v_new_due < v_parent_start
+        THEN
+            RAISE EXCEPTION 'task dates must stay within parent task dates; move the parent task first'
+                USING ERRCODE = 'P0001';
+        END IF;
     END IF;
 
     IF v_new_start IS NOT NULL OR v_new_due IS NOT NULL THEN
@@ -986,6 +1002,18 @@ BEGIN
                   v_new_start IS NOT NULL
                   AND child.start_date IS NOT NULL
                   AND (child.start_date AT TIME ZONE 'UTC')::date < v_new_start
+              )
+              OR
+              (
+                  v_new_start IS NOT NULL
+                  AND child.due_date IS NOT NULL
+                  AND (child.due_date AT TIME ZONE 'UTC')::date < v_new_start
+              )
+              OR
+              (
+                  v_new_due IS NOT NULL
+                  AND child.start_date IS NOT NULL
+                  AND (child.start_date AT TIME ZONE 'UTC')::date > v_new_due
               )
               OR
               (

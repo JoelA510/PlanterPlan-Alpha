@@ -136,7 +136,11 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(guardSql).toContain('task dates must stay within parent task dates');
   expect(guardSql).toContain('existing child task dates are outside parent task dates');
   expect(guardSql).toContain("auth.role() = 'service_role'");
+  expect(guardSql).toContain('AND v_new_start > v_parent_due');
+  expect(guardSql).toContain('AND v_new_due < v_parent_start');
   expect(guardSql).toContain("(child.start_date AT TIME ZONE 'UTC')::date < v_new_start");
+  expect(guardSql).toContain("(child.due_date AT TIME ZONE 'UTC')::date < v_new_start");
+  expect(guardSql).toContain("(child.start_date AT TIME ZONE 'UTC')::date > v_new_due");
   expect(guardSql).toContain("(child.due_date AT TIME ZONE 'UTC')::date > v_new_due");
   expect(schema).toContain(
    'CREATE OR REPLACE TRIGGER "trg_enforce_task_date_envelope" BEFORE INSERT OR UPDATE OF "parent_task_id", "start_date", "due_date"',
