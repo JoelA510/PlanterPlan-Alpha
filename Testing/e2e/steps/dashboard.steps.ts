@@ -2,7 +2,7 @@ import { createBdd } from 'playwright-bdd';
 import { expect, type Page } from '@playwright/test';
 import { DashboardPage } from '../pages/DashboardPage';
 import {
-  countLeafTasks,
+  countMilestoneLeafTasks,
   fetchProjectRows,
   fetchTemplateRows,
   getProjectIdFromUrl,
@@ -188,7 +188,7 @@ Then('the blank project scaffold baseline is imported', async ({ page }) => {
 
   const rows = await fetchProjectRows(projectId);
   expect(rows.filter((row) => row.parent_task_id === projectId)).toHaveLength(6);
-  expect(countLeafTasks(rows, projectId)).toBe(26);
+  expect(countMilestoneLeafTasks(rows, projectId)).toBe(26);
   expect(rows.some((row) => row.title === 'Discovery')).toBeTruthy();
   expect(rows.some((row) => row.title === 'Personal Assessment')).toBeTruthy();
   expect(rows.some((row) => row.title === 'Review and complete assessment')).toBeTruthy();

@@ -29,6 +29,14 @@ function getRequiredEnv(name: string, fallback?: string) {
   return value;
 }
 
+/**
+ * Read-only local E2E database probe.
+ *
+ * Authorization model: signs in as the seeded primary test user with the local
+ * publishable anon key, then performs SELECT-only assertions under normal RLS.
+ * It never uses service-role credentials and never mutates task rows; production
+ * app code remains routed through `planterClient`.
+ */
 async function getE2EClient() {
   if (!e2eClientPromise) {
     e2eClientPromise = (async () => {
@@ -104,7 +112,14 @@ export async function fetchTemplateRows(templateTitle: string) {
   };
 }
 
-export function countLeafTasks(rows: TaskProbeRow[], projectId: string) {
+/**
+ * Counts canonical project leaf tasks below phases and milestones.
+ *
+ * PlanterPlan stores projects as root task trees:
+ * Project -> Phase -> Milestone -> Task. This is separate from the UI subtask
+ * constraint that prevents a leaf task from having nested subtasks.
+ */
+export function countMilestoneLeafTasks(rows: TaskProbeRow[], projectId: string) {
   const phaseIds = new Set(rows.filter((row) => row.parent_task_id === projectId).map((row) => row.id));
   const milestoneIds = new Set(
     rows
