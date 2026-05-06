@@ -393,6 +393,7 @@
     "task_save_failed_retry_toast": "Failed to save task. Please try again.",
     "task_update_failed_toast": "Failed to update task",
     "task_create_failed_toast": "Failed to create task",
+    "invalid_task_hierarchy_drop": "Subtasks cannot contain child tasks. Move the parent task first.",
     "search_template_phase_placeholder": "Search for a template phase to copy",
     "search_template_task_placeholder": "Start typing to copy an existing template task",
     "derived_state": {

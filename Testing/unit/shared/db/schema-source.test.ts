@@ -32,6 +32,8 @@ describe('docs/db/schema.sql source of truth', () => {
   'CREATE OR REPLACE TRIGGER "trg_enforce_template_scaffold_immutability"',
    'CREATE OR REPLACE FUNCTION "public"."enforce_coach_task_update_scope"',
    'CREATE OR REPLACE TRIGGER "trg_enforce_coach_task_update_scope"',
+   'CREATE OR REPLACE FUNCTION "public"."enforce_task_hierarchy_depth"',
+   'CREATE OR REPLACE TRIGGER "trg_enforce_task_hierarchy_depth"',
    'CREATE INDEX "idx_tasks_cloned_from_task_id"',
   ].forEach((needle) => {
    expect(schema).toContain(needle);
@@ -106,6 +108,23 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(sql).toContain("COALESCE(NEW.status, '') NOT IN");
   expect(schema).toContain('WITH CHECK (("public"."has_project_role"(COALESCE("root_id", "id"), ( SELECT "auth"."uid"() AS "uid"), ARRAY[\'coach\'::"text"])');
   expect(schema).toContain('COMMENT ON POLICY "Enable update for coaches on coaching tasks"');
+ });
+
+ it('keeps task hierarchy depth enforced below the UI', () => {
+  const deriveStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."derive_task_type"(');
+  const deriveEnd = schema.indexOf('ALTER FUNCTION "public"."derive_task_type"(');
+  const deriveSql = schema.slice(deriveStart, deriveEnd);
+  const guardSql = functionSql('enforce_task_hierarchy_depth');
+
+  expect(deriveStart).toBeGreaterThanOrEqual(0);
+  expect(deriveEnd).toBeGreaterThan(deriveStart);
+  expect(deriveSql).toContain("RETURN 'subtask'");
+  expect(guardSql).toContain('task hierarchy depth exceeded: subtasks cannot have child tasks');
+  expect(guardSql).toContain('task hierarchy cannot parent a task under its own descendant');
+  expect(guardSql).toContain('v_new_depth + v_descendant_height > 4');
+  expect(schema).toContain(
+   'CREATE OR REPLACE TRIGGER "trg_enforce_task_hierarchy_depth" BEFORE INSERT OR UPDATE OF "parent_task_id"',
+  );
  });
 
  it('keeps initialize_default_project available for blank project scaffolding', () => {

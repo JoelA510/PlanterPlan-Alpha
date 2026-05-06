@@ -28,13 +28,22 @@ function DndWrapper({ children }: { children: ReactNode }) {
 }
 
 function renderTaskItem(task: TaskItemData) {
-    return renderWithProviders(<TaskItem task={task} />, { wrapper: DndWrapper });
+    return renderWithProviders(<DndWrapper><TaskItem task={task} /></DndWrapper>);
 }
 
 function renderTaskItemWithStatusPermission(task: TaskItemData, opts: { canUpdateStatus: boolean; onStatusChange: (id: string, status: string) => void }) {
     return renderWithProviders(
-        <TaskItem task={task} canUpdateStatus={opts.canUpdateStatus} onStatusChange={opts.onStatusChange} />,
-        { wrapper: DndWrapper },
+        <DndWrapper>
+            <TaskItem task={task} canUpdateStatus={opts.canUpdateStatus} onStatusChange={opts.onStatusChange} />
+        </DndWrapper>,
+    );
+}
+
+function renderTaskItemWithChildAction(task: TaskItemData, opts: { level: number; onAddChildTask: (task: TaskItemData) => void }) {
+    return renderWithProviders(
+        <DndWrapper>
+            <TaskItem task={task} level={opts.level} onAddChildTask={opts.onAddChildTask} />
+        </DndWrapper>,
     );
 }
 
@@ -142,5 +151,21 @@ describe('TaskItem due-date badge (Wave 33)', () => {
         expect(select).not.toBeDisabled();
         fireEvent.change(select, { target: { value: 'completed' } });
         expect(onStatusChange).toHaveBeenCalledWith('editable-status', 'completed');
+    });
+
+    it('shows add-subtask controls only on task rows, not subtask rows', () => {
+        const onAddChildTask = vi.fn();
+        const task = makeTask({ id: 'task-parent', title: 'Parent task', origin: 'instance' }) as TaskItemData;
+        const { rerender } = renderTaskItemWithChildAction(task, { level: 0, onAddChildTask });
+
+        expect(screen.getByRole('button', { name: /add subtask under parent task/i })).toBeInTheDocument();
+
+        rerender(
+            <DndWrapper>
+                <TaskItem task={task} level={1} onAddChildTask={onAddChildTask} />
+            </DndWrapper>,
+        );
+
+        expect(screen.queryByRole('button', { name: /add subtask under parent task/i })).not.toBeInTheDocument();
     });
 });

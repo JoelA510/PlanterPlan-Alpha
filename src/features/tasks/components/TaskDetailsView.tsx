@@ -28,6 +28,7 @@ import type { TaskItemData } from '@/features/tasks/components/TaskItem';
 import type { TaskRow, TeamMemberWithProfile } from '@/shared/db/app.types';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
 import { extractStrategyTemplateFlag } from '@/features/tasks/lib/strategy-form';
+import { canTaskHaveChildren } from '@/features/tasks/lib/task-hierarchy';
 import { extractPhaseLeads } from '@/shared/lib/phase-lead';
 import StrategyFollowUpDialog from '@/features/tasks/components/StrategyFollowUpDialog';
 import { collectSpawnedTemplateIds } from '@/shared/lib/tree-helpers';
@@ -76,9 +77,9 @@ const TaskDetailsView = ({
     onDeleteTask,
     onTaskUpdated,
     canEdit = true,
+    allProjectTasks = [],
     teamMembers = [],
     showComments = true,
-    ...props
 }: TaskDetailsViewProps) => {
     const { t } = useTranslation();
     const { user, savedEmailAddresses, rememberEmailAddress } = useAuth();
@@ -120,10 +121,10 @@ const TaskDetailsView = ({
         prevStatusRef.current = curr;
     }, [task?.status, isStrategyTask]);
 
-    const allProjectTasksProp = props.allProjectTasks as TaskRow[] | undefined;
+    const allProjectTaskRows = allProjectTasks as TaskRow[];
     const strategyExcludeIds = useMemo(
-        () => Array.from(collectSpawnedTemplateIds(allProjectTasksProp ?? [])),
-        [allProjectTasksProp],
+        () => Array.from(collectSpawnedTemplateIds(allProjectTaskRows)),
+        [allProjectTaskRows],
     );
     const {
         register,
@@ -154,14 +155,7 @@ const TaskDetailsView = ({
         setEmailOpen(false);
     };
 
-    // Determine hierarchy level
-    const getTaskLevel = () => {
-        if (!task.parent_task_id) return 0;
-        return 1;
-    };
-
-    const level = getTaskLevel();
-    const canHaveChildren = level < 3;
+    const canHaveChildren = canTaskHaveChildren(task as TaskRow, allProjectTaskRows);
 
     // Check valid subscription or override for local dev/admin if needed.
     // For now, strict check on subscription_status.
@@ -350,7 +344,7 @@ const TaskDetailsView = ({
 
             <div className="h-px bg-slate-100 my-4"></div>
 
-            <TaskDependencies task={task as TaskRow} allProjectTasks={(props.allProjectTasks as TaskRow[]) || []} />
+            <TaskDependencies task={task as TaskRow} allProjectTasks={allProjectTaskRows} />
 
             {/* Related Tasks (Siblings) */}
             {task.parent_task_id && (
