@@ -231,6 +231,9 @@ export default function Project() {
         (task: TaskRow) => canUpdateTaskProgress(userRole, task),
         [userRole],
     );
+    const handleInvalidHierarchyDrop = useCallback(() => {
+        toast.error(t('projects.invalid_task_hierarchy_drop'));
+    }, [t]);
 
     const sortedPhases = [...(phases || [])].sort((a, b) => (a.position || 0) - (b.position || 0));
     const activePhase = state.selectedPhase || sortedPhases[0];
@@ -286,9 +289,10 @@ export default function Project() {
         <>
             <div className="flex h-full gap-8 min-w-0">
             <ProjectDndShell
-                tasks={(tasks as TaskRow[]) || []}
+                tasks={(projectHierarchy as TaskRow[]) || []}
                 onTaskUpdate={canReorderTasks ? handlers.handleTaskUpdate : () => undefined}
                 onToggleExpand={handlers.handleToggleExpand}
+                onInvalidDrop={handleInvalidHierarchyDrop}
             >
             {(dropIndicator) => (
                 <div className="flex-1 min-w-0 flex flex-col min-h-0 overflow-y-auto custom-scrollbar pr-4">

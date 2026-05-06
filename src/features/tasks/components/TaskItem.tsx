@@ -94,7 +94,7 @@ const TaskItem = ({
  const confirm = useConfirm();
  const indentWidth = level * 20;
  const isSelected = selectedTaskId === task.id;
- const canHaveChildren = level < 4;
+ const canHaveChildren = level === 0;
 
  // Wave 33: right-aligned due-date badge. The threshold defaults to 3 because
  // TaskItem doesn't receive the root-task settings; the tone is a visual hint,

@@ -63,7 +63,13 @@ vi.mock('@/features/people/hooks/useTeam', () => ({
 
 import TaskDetailsView from '@/features/tasks/components/TaskDetailsView';
 
-function renderView(task: TaskItemData, opts: { membershipRole?: string; onDeleteTask?: (t: TaskItemData) => void }) {
+function renderView(task: TaskItemData, opts: {
+    allProjectTasks?: TaskItemData[];
+    canEdit?: boolean;
+    membershipRole?: string;
+    onAddChildTask?: (t: TaskItemData) => void;
+    onDeleteTask?: (t: TaskItemData) => void;
+}) {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
@@ -71,7 +77,10 @@ function renderView(task: TaskItemData, opts: { membershipRole?: string; onDelet
         <QueryClientProvider client={queryClient}>
             <TaskDetailsView
                 task={task}
+                allProjectTasks={opts.allProjectTasks}
+                canEdit={opts.canEdit}
                 membershipRole={opts.membershipRole}
+                onAddChildTask={opts.onAddChildTask}
                 onDeleteTask={opts.onDeleteTask}
             />
         </QueryClientProvider>,
@@ -128,5 +137,46 @@ describe('TaskDetailsView — template-origin delete guard', () => {
 
         expect(onDelete).toHaveBeenCalledTimes(1);
         expect(screen.queryByTestId('template-origin-delete-guard')).not.toBeInTheDocument();
+    });
+
+    it('shows Add Child Task for task-depth rows', () => {
+        const onAddChildTask = vi.fn();
+        const project = makeTask({ id: 'project', parent_task_id: null, task_type: 'project' }) as unknown as TaskItemData;
+        const phase = makeTask({ id: 'phase', parent_task_id: 'project', task_type: 'phase' }) as unknown as TaskItemData;
+        const milestone = makeTask({ id: 'milestone', parent_task_id: 'phase', task_type: 'milestone' }) as unknown as TaskItemData;
+        const task = makeTemplateOriginTask({
+            id: 'task-depth-row',
+            parent_task_id: 'milestone',
+            task_type: 'task',
+        });
+
+        renderView(task, {
+            allProjectTasks: [project, phase, milestone, task],
+            canEdit: true,
+            onAddChildTask,
+        });
+
+        expect(screen.getByRole('button', { name: /\+ add child task/i })).toBeInTheDocument();
+    });
+
+    it('hides Add Child Task for final-level subtasks', () => {
+        const onAddChildTask = vi.fn();
+        const project = makeTask({ id: 'project', parent_task_id: null, task_type: 'project' }) as unknown as TaskItemData;
+        const phase = makeTask({ id: 'phase', parent_task_id: 'project', task_type: 'phase' }) as unknown as TaskItemData;
+        const milestone = makeTask({ id: 'milestone', parent_task_id: 'phase', task_type: 'milestone' }) as unknown as TaskItemData;
+        const parentTask = makeTask({ id: 'parent-task', parent_task_id: 'milestone', task_type: 'task' }) as unknown as TaskItemData;
+        const subtask = makeTemplateOriginTask({
+            id: 'subtask-row',
+            parent_task_id: 'parent-task',
+            task_type: 'subtask',
+        });
+
+        renderView(subtask, {
+            allProjectTasks: [project, phase, milestone, parentTask, subtask],
+            canEdit: true,
+            onAddChildTask,
+        });
+
+        expect(screen.queryByRole('button', { name: /\+ add child task/i })).not.toBeInTheDocument();
     });
 });

@@ -399,6 +399,7 @@
     "task_save_failed_retry_toast": "No se pudo guardar la tarea. Inténtalo de nuevo.",
     "task_update_failed_toast": "No se pudo actualizar la tarea",
     "task_create_failed_toast": "No se pudo crear la tarea",
+    "invalid_task_hierarchy_drop": "Las subtareas no pueden contener tareas hijas. Mueve primero la tarea principal.",
     "search_template_phase_placeholder": "Busca una fase de plantilla para copiar",
     "search_template_task_placeholder": "Empieza a escribir para copiar una tarea de plantilla existente",
     "derived_state": {
