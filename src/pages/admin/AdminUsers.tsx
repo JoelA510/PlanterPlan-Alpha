@@ -483,16 +483,13 @@ export default function AdminUsers() {
                                     </section>
                                 )}
 
-                                {/* Moderation actions. "Toggle admin" is the
-                                  * only action shipped in this phase — reset
-                                  * password and suspend need edge-function
-                                  * work (admin.generateLink / updateUserById)
-                                  * and are tracked as a follow-up wave.
-                                  *
-                                  * Self-demotion is disabled client-side as
-                                  * well as blocked server-side (belt + braces):
-                                  * the server raises `self_demotion_forbidden`
-                                  * even if the button is clicked via devtools. */}
+                                {/* Moderation actions. Admin-role toggles use
+                                  * the SECURITY DEFINER SQL RPC; suspension
+                                  * and reset-password use the admin-only
+                                  * `admin-user-moderation` Edge Function
+                                  * because they require Supabase Auth admin
+                                  * APIs. Self-demotion/self-suspension are
+                                  * disabled client-side and blocked server-side. */}
                                 <section className="mt-5 border-t border-border pt-4 space-y-2">
                                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                         {t('admin.users_moderation_heading')}

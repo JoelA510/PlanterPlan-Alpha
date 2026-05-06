@@ -38,13 +38,12 @@ Technical debt and architectural notes for the team.
 - **Analytics dashboard** — `src/pages/admin/AdminAnalytics.tsx` + `src/features/admin/hooks/useAdminAnalytics.ts`. One RPC (`admin_analytics_snapshot`) backs every chart: totals cards, new-projects/week LineChart, project-kind PieChart, task-status BarChart, top-10 active users + popular templates. recharts already in the bundle — zero new deps.
 - **Admin notifications on new project** — `trg_notify_admin_on_new_project` AFTER INSERT trigger (see `docs/db/migrations/2026_04_18_new_project_admin_notify.sql`). Enqueues one `notification_log` row per admin (excluding the creator) with `event_type = 'admin_new_project_pending'`. Downstream: Wave 30's `dispatch-notifications` cron delivers through each admin's email/push prefs + quiet hours. Closes the `dashboard-analytics.md` "Admin Notifications" known gap.
 - **SECURITY DEFINER discipline** — every new RPC opens with `IF NOT public.is_admin(auth.uid()) THEN RAISE EXCEPTION 'unauthorized: admin role required' END IF`. Loud on auth-fail, no silent empty-result degradation.
+- **Admin user-management actions** — `/admin/users/:uid?` exposes platform-admin grant/revoke, suspend/unsuspend, and admin-generated password-reset links. Role changes use the `admin_set_user_admin_role` SECURITY DEFINER RPC; suspension and reset-password use `supabase/functions/admin-user-moderation/` with authorize-then-escalate flow, self-suspension/self-demotion guards, and `activity_log` audit rows. PR 8 adds mocked Edge Function coverage and a component-level error-state regression.
 
 ### Deferred (Wave 34 → future)
 
-- **Admin user-management actions** (suspend / change role / reset password) — requires a server-side mutation surface that the UI doesn't yet expose. No wave assigned.
 - **Bulk CSV export** of the user table — deferred, no wave assigned.
 - **AdminAnalytics component-level test** — the hook layer carries the wiring coverage; recharts chart internals are the lib's responsibility.
-- **AdminUsers component-level render test** — deferred; the `useAdminUsers.test.tsx` hook tests assert the query wiring. A component test would need extensive planterClient mocks to assert the drawer transition.
 - **E2E admin persona + `admin.json` auth state + `scripts/seed-e2e.js` extension** — out of scope for this single-branch megabatch; the unit + hook coverage is sufficient for review.
 
 ## Wave 33 — Unified Tasks View
