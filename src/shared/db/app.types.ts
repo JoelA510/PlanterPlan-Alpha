@@ -73,8 +73,8 @@ export type TaskCommentUpdate = Database['public']['Tables']['task_comments']['U
 export type TaskCommentWithAuthor = TaskCommentRow & {
     author: {
         id: string;
-        email: string;
-        user_metadata?: UserMetadata;
+        email: string | null;
+        user_metadata?: UserMetadata | null;
     } | null;
 };
 

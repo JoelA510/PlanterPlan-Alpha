@@ -38,6 +38,7 @@ describe('docs/db/schema.sql source of truth', () => {
    'CREATE OR REPLACE TRIGGER "trg_enforce_task_date_envelope"',
    'CREATE OR REPLACE FUNCTION "public"."enforce_ics_feed_token_update_scope"',
    'CREATE OR REPLACE TRIGGER "trg_enforce_ics_feed_token_update_scope"',
+   'CREATE OR REPLACE FUNCTION "public"."list_task_comments_with_authors"',
    'CREATE INDEX "idx_tasks_cloned_from_task_id"',
   ].forEach((needle) => {
    expect(schema).toContain(needle);
@@ -161,7 +162,25 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(schema).toContain(
    'CREATE POLICY "Admins can delete ICS tokens" ON "public"."ics_feed_tokens" FOR DELETE TO "authenticated" USING ("public"."is_admin"(( SELECT "auth"."uid"() AS "uid")));',
   );
-  expect(schema).not.toContain('CREATE POLICY "Users can delete their own ICS tokens"');
+ expect(schema).not.toContain('CREATE POLICY "Users can delete their own ICS tokens"');
+ });
+
+ it('keeps comment author hydration and mention payloads explicit', () => {
+  const rpcStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."list_task_comments_with_authors"');
+  const rpcEnd = schema.indexOf('ALTER FUNCTION "public"."list_task_comments_with_authors"');
+  const rpcSql = schema.slice(rpcStart, rpcEnd);
+  const triggerSql = functionSql('enqueue_comment_mentions');
+
+  expect(rpcStart).toBeGreaterThanOrEqual(0);
+  expect(rpcEnd).toBeGreaterThan(rpcStart);
+  expect(rpcSql).toContain('public.is_active_member(v_root_id, v_actor_id)');
+  expect(rpcSql).toContain('public.is_admin(v_actor_id)');
+  expect(rpcSql).toContain('LEFT JOIN auth.users AS u ON u.id = c.author_id');
+  expect(rpcSql).toContain("'user_metadata', COALESCE(u.raw_user_meta_data, '{}'::jsonb)");
+  expect(triggerSql).toContain('enqueue_comment_mentions ignored % non-uuid mention value(s)');
+  expect(triggerSql).toContain("'recipient_id', v_user_id");
+  expect(triggerSql).toContain("'actor_id', NEW.author_id");
+  expect(triggerSql).toContain("'project_id', NEW.root_id");
  });
 
  it('keeps initialize_default_project available for blank project scaffolding', () => {

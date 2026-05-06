@@ -13,8 +13,9 @@ const mockDeleteMutate = vi.fn();
 // Wave 30: CommentComposer transitively imports `planter` from planterClient
 // (for `resolveMentions` → `planter.rpc`). The planterClient module throws at
 // import time when VITE_SUPABASE_URL is unset, so the whole test file fails
-// to load without this stub. Resolving to verbatim handles (error path) keeps
-// the existing Wave 26 assertions valid.
+// to load without this stub. The error path now warns and returns no mentions,
+// which keeps these rendering-focused assertions independent of notification
+// delivery.
 vi.mock('@/shared/api/planterClient', () => ({
     planter: {
         rpc: vi.fn().mockResolvedValue({ data: null, error: new Error('mocked rpc') }),
