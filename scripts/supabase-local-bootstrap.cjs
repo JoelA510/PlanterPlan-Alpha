@@ -8,6 +8,7 @@ const configPath = join(root, 'supabase', 'config.toml');
 const migrationsDir = join(root, 'supabase', 'migrations');
 const schemaSnapshotPath = join(root, 'docs', 'db', 'schema.sql');
 const seedPath = join(root, 'supabase', 'seeds', '02_production_templates.sql');
+const COMMAND_MAX_BUFFER = 64 * 1024 * 1024;
 
 const forbiddenArgs = new Set(['--linked', '--db-url']);
 if (args.some((arg) => forbiddenArgs.has(arg) || arg.startsWith('--db-url='))) {
@@ -66,6 +67,7 @@ function run(command, args, options = {}) {
     cwd: root,
     encoding: 'utf8',
     shell: false,
+    maxBuffer: COMMAND_MAX_BUFFER,
     ...options
   });
 
@@ -85,6 +87,7 @@ function runQuiet(command, args, options = {}) {
     cwd: root,
     encoding: 'utf8',
     shell: false,
+    maxBuffer: COMMAND_MAX_BUFFER,
     ...options
   });
   if (result.error) fail(`Failed to start ${command}: ${result.error.message}`);
