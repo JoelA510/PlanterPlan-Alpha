@@ -3,13 +3,14 @@ import { addDays, differenceInCalendarDays, isValid, parseISO } from 'date-fns';
 /**
  * Business-calendar abstraction for PlanterPlan scheduling.
  *
- * PR I1 intentionally preserves current calendar-day behavior: every valid
- * date is treated as a business day, so Friday + 1 business day is Saturday.
- * Weekend and holiday skipping must be added behind this seam in a later PR
- * after product rules and edge parity are explicit.
+ * The default calendar intentionally preserves current calendar-day behavior:
+ * every valid date is treated as a business day, so Friday + 1 business day is
+ * Saturday. PR R4 adds non-default weekday and US federal observed calendars
+ * behind this seam; PR R5 owns any runtime default or scheduling behavior
+ * switch.
  */
 
-export type BusinessCalendarId = 'calendar-day';
+export type BusinessCalendarId = 'calendar-day' | 'weekday' | 'us-federal-observed';
 export type BusinessCalendarDateInput = string | Date;
 
 export interface BusinessCalendar {
@@ -41,6 +42,7 @@ export interface BusinessCalendar {
 
 const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const usFederalObservedHolidayCache = new Map<number, Set<string>>();
 
 const parseDateOnlyParts = (input: string): [number, number, number] | null => {
  const match = DATE_ONLY_RE.exec(input);
@@ -74,6 +76,81 @@ const addUtcDateOnlyDays = (input: string, amount: number): Date | null => {
  return new Date(Date.UTC(year, month - 1, day + amount));
 };
 
+const toUtcDateOnly = (date: Date): string => {
+ const year = date.getUTCFullYear();
+ const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+ const day = String(date.getUTCDate()).padStart(2, '0');
+ return `${year}-${month}-${day}`;
+};
+
+const fromUtcDateOnlyParts = (year: number, month: number, day: number): string => (
+ toUtcDateOnly(new Date(Date.UTC(year, month - 1, day)))
+);
+
+const isWeekendUtc = (date: Date): boolean => {
+ const day = date.getUTCDay();
+ return day === 0 || day === 6;
+};
+
+const addDaysUtc = (date: Date, amount: number): Date => (
+ new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + amount))
+);
+
+const nthWeekdayOfMonth = (year: number, month: number, weekday: number, occurrence: number): string => {
+ const first = new Date(Date.UTC(year, month - 1, 1));
+ const offset = (weekday - first.getUTCDay() + 7) % 7;
+ return fromUtcDateOnlyParts(year, month, 1 + offset + (occurrence - 1) * 7);
+};
+
+const lastWeekdayOfMonth = (year: number, month: number, weekday: number): string => {
+ const last = new Date(Date.UTC(year, month, 0));
+ const offset = (last.getUTCDay() - weekday + 7) % 7;
+ return fromUtcDateOnlyParts(year, month, last.getUTCDate() - offset);
+};
+
+const observedFixedHoliday = (year: number, month: number, day: number): string => {
+ const holiday = new Date(Date.UTC(year, month - 1, day));
+ const weekday = holiday.getUTCDay();
+ if (weekday === 6) return toUtcDateOnly(addDaysUtc(holiday, -1));
+ if (weekday === 0) return toUtcDateOnly(addDaysUtc(holiday, 1));
+ return toUtcDateOnly(holiday);
+};
+
+const getUsFederalObservedHolidaysForYear = (year: number): Set<string> => {
+ const cached = usFederalObservedHolidayCache.get(year);
+ if (cached) return cached;
+
+ const holidays = new Set<string>([
+  observedFixedHoliday(year, 1, 1),
+  nthWeekdayOfMonth(year, 1, 1, 3),
+  nthWeekdayOfMonth(year, 2, 1, 3),
+  lastWeekdayOfMonth(year, 5, 1),
+  observedFixedHoliday(year, 7, 4),
+  nthWeekdayOfMonth(year, 9, 1, 1),
+  nthWeekdayOfMonth(year, 10, 1, 2),
+  observedFixedHoliday(year, 11, 11),
+  nthWeekdayOfMonth(year, 11, 4, 4),
+  observedFixedHoliday(year, 12, 25),
+ ]);
+
+ if (year >= 2021) {
+  holidays.add(observedFixedHoliday(year, 6, 19));
+ }
+
+ usFederalObservedHolidayCache.set(year, holidays);
+ return holidays;
+};
+
+const isUsFederalObservedHoliday = (date: Date): boolean => {
+ const isoDate = toUtcDateOnly(date);
+ const year = date.getUTCFullYear();
+ return (
+  getUsFederalObservedHolidaysForYear(year - 1).has(isoDate) ||
+  getUsFederalObservedHolidaysForYear(year).has(isoDate) ||
+  getUsFederalObservedHolidaysForYear(year + 1).has(isoDate)
+ );
+};
+
 /**
  * Resolves a business-calendar input to a Date.
  * @param input - Date input to resolve.
@@ -87,6 +164,80 @@ const resolveBusinessDate = (input: BusinessCalendarDateInput | null | undefined
  }
  const date = typeof input === 'string' ? parseISO(input) : input;
  return isValid(date) ? date : null;
+};
+
+const createSkippingBusinessCalendar = (
+ id: Exclude<BusinessCalendarId, 'calendar-day'>,
+ isExcludedDate: (date: Date) => boolean,
+): BusinessCalendar => {
+ const isIncluded = (date: Date): boolean => !isExcludedDate(date);
+
+ return {
+  id,
+
+  isBusinessDay(date) {
+   const resolved = resolveBusinessDate(date);
+   return resolved !== null && isIncluded(resolved);
+  },
+
+  addBusinessDays(date, amount) {
+   const resolved = resolveBusinessDate(date);
+   if (!resolved) return null;
+   if (amount === 0) {
+    return new Date(Date.UTC(
+     resolved.getUTCFullYear(),
+     resolved.getUTCMonth(),
+     resolved.getUTCDate(),
+    ));
+   }
+
+   const direction = amount > 0 ? 1 : -1;
+   let remaining = Math.abs(amount);
+   let cursor = new Date(Date.UTC(
+    resolved.getUTCFullYear(),
+    resolved.getUTCMonth(),
+    resolved.getUTCDate(),
+   ));
+
+   while (remaining > 0) {
+    cursor = addDaysUtc(cursor, direction);
+    if (isIncluded(cursor)) remaining -= 1;
+   }
+
+   return cursor;
+  },
+
+  diffInBusinessDays(later, earlier) {
+   const resolvedLater = resolveBusinessDate(later);
+   const resolvedEarlier = resolveBusinessDate(earlier);
+   if (!resolvedLater || !resolvedEarlier) return null;
+
+   const laterDate = new Date(Date.UTC(
+    resolvedLater.getUTCFullYear(),
+    resolvedLater.getUTCMonth(),
+    resolvedLater.getUTCDate(),
+   ));
+   const earlierDate = new Date(Date.UTC(
+    resolvedEarlier.getUTCFullYear(),
+    resolvedEarlier.getUTCMonth(),
+    resolvedEarlier.getUTCDate(),
+   ));
+   const laterMs = laterDate.getTime();
+   const earlierMs = earlierDate.getTime();
+   if (laterMs === earlierMs) return 0;
+
+   const direction = laterMs > earlierMs ? 1 : -1;
+   let cursor = earlierDate;
+   let count = 0;
+
+   while (cursor.getTime() !== laterMs) {
+    cursor = addDaysUtc(cursor, direction);
+    if (isIncluded(cursor)) count += direction;
+   }
+
+   return count;
+  },
+ };
 };
 
 export const calendarDayBusinessCalendar: BusinessCalendar = {
@@ -123,5 +274,15 @@ export const calendarDayBusinessCalendar: BusinessCalendar = {
   return differenceInCalendarDays(resolvedLater, resolvedEarlier);
  },
 };
+
+export const weekdayBusinessCalendar: BusinessCalendar = createSkippingBusinessCalendar(
+ 'weekday',
+ isWeekendUtc,
+);
+
+export const usFederalObservedBusinessCalendar: BusinessCalendar = createSkippingBusinessCalendar(
+ 'us-federal-observed',
+ (date) => isWeekendUtc(date) || isUsFederalObservedHoliday(date),
+);
 
 export const defaultBusinessCalendar = calendarDayBusinessCalendar;
