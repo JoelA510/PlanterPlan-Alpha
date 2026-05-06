@@ -141,7 +141,7 @@ export interface PlanterClient {
     integrations: {
         /** List the current user's ICS tokens (active + revoked). */
         listIcsFeedTokens: () => Promise<IcsFeedTokenRow[]>;
-        /** Create a new ICS token. Client generates the random token value via crypto.randomUUID(). */
+        /** Create a new ICS token. Client generates the random token value via Web Crypto. */
         createIcsFeedToken: (input: CreateIcsFeedTokenInput) => Promise<IcsFeedTokenRow>;
         /** Soft-revoke a token (sets revoked_at = now). */
         revokeIcsFeedToken: (id: string) => Promise<IcsFeedTokenRow>;
@@ -1561,9 +1561,8 @@ export const planter: PlanterClient = {
          *
          * @param input `{ label?, project_filter? }`. `project_filter` narrows
          *   the feed to tasks whose `root_id IN (...)`; null for all projects.
-         * @returns The inserted row, including the plaintext token (the only
-         *   time the token is returned to the client; subsequent reads see
-         *   it masked by convention — clients should persist/display only once).
+         * @returns The inserted row, including the plaintext token. The token
+         *   is needed for copy/rotate UX and must be treated as a credential.
          */
         createIcsFeedToken: async (input: CreateIcsFeedTokenInput): Promise<IcsFeedTokenRow> => {
             return retry(async () => {

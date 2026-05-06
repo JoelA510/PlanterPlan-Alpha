@@ -333,7 +333,7 @@ export interface IcsFeedTokenRow {
     last_accessed_at: string | null;
 }
 
-/** Payload for creating a new ICS token. The client generates the token value via crypto.randomUUID(). */
+/** Payload for creating a new ICS token. The client generates the token value via Web Crypto getRandomValues(). */
 export interface CreateIcsFeedTokenInput {
     label?: string | null;
     project_filter?: string[] | null;

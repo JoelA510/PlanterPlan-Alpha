@@ -22,11 +22,11 @@ Technical debt and architectural notes for the team.
 
 - ICS feeds are **read-only**. Two-way sync (Google Calendar / Outlook write-back) is deferred with no wave assigned.
 - Single-task `.ics` download is deferred (the Wave 35 baseline is feed-only).
-- HMAC-signed URLs with server-enforced expiry are deferred — Wave 35's opaque-token model is the v1 baseline; rotation is the only revocation story (soft-delete via `revoked_at`, new token generation per rotate).
+- HMAC-signed URLs with server-enforced expiry are deferred — Wave 35's opaque-token model is the v1 baseline; rotation is the revocation story (soft-delete via `revoked_at`, new token generation per rotate).
 
 ### Resolved (Wave 35)
 
-- **Per-user ICS calendar feeds** — `public.ics_feed_tokens` (migration `docs/db/migrations/2026_04_18_ics_tokens.sql`) + public edge function `supabase/functions/ics-feed/` returning `text/calendar` (RFC 5545). Tokens are 256-bit (`crypto.randomUUID()` × 2 → 64 hex chars). 404 on revoked/unknown. `last_accessed_at` bumped fire-and-forget on every successful fetch. Settings → Integrations tab (`src/features/settings/components/IcsFeedsCard.tsx`) exposes create + copy + soft-revoke. SSoT: `docs/architecture/integrations.md`.
+- **Per-user ICS calendar feeds** — `public.ics_feed_tokens` (migration `docs/db/migrations/2026_04_18_ics_tokens.sql`) + public edge function `supabase/functions/ics-feed/` returning `text/calendar` (RFC 5545). Tokens are 256-bit (`crypto.getRandomValues`, 32 bytes → 64 hex chars). 404 on revoked/unknown. Feed tasks are assigned to the token owner and still inside that owner’s current project memberships. `last_accessed_at` is awaited and stamped on every successful fetch. Settings → Integrations tab (`src/features/settings/components/IcsFeedsCard.tsx`) exposes create + copy + soft-revoke/rotate. SSoT: `docs/architecture/integrations.md`.
 
 ## Wave 34 — Advanced Admin Management
 
