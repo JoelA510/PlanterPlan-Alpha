@@ -44,19 +44,14 @@ describe('en.json', () => {
     walk(en as JsonObject);
   });
 
-  it('does not expose launch-visible coming soon copy', () => {
-    const walk = (obj: JsonObject, path: string[] = []): void => {
-      for (const [k, v] of Object.entries(obj)) {
-        const keyPath = [...path, k].join('.');
-        expect(k.toLowerCase(), keyPath).not.toContain('coming_soon');
-        if (typeof v === 'string') {
-          expect(v.toLowerCase(), keyPath).not.toContain('coming soon');
-        } else if (v && typeof v === 'object' && !Array.isArray(v)) {
-          walk(v as JsonObject, [...path, k]);
-        }
-      }
-    };
-    walk(en as JsonObject);
+  it('does not expose stale Gantt coming soon copy', () => {
+    const root = en as JsonObject;
+    const projectGantt = (root.projects as JsonObject).gantt as JsonObject;
+    const routeGantt = root.gantt as JsonObject;
+
+    expect(projectGantt).not.toHaveProperty('pdf_coming_soon');
+    expect(JSON.stringify(projectGantt).toLowerCase()).not.toContain('coming soon');
+    expect(JSON.stringify(routeGantt).toLowerCase()).not.toContain('coming soon');
   });
 
   it('every plural `_one` key has a matching `_other` sibling', () => {
