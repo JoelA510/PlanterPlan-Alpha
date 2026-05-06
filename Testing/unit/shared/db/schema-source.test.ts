@@ -87,6 +87,7 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(sql).toContain("'is_coaching_task'");
   expect(sql).toContain("'spawnedFromTemplate'");
   expect(sql).toContain("'cloned_from_template_version'");
+  expect(sql).not.toContain('supervisor_email IS DISTINCT');
  });
 
  it('keeps initialize_default_project available for blank project scaffolding', () => {

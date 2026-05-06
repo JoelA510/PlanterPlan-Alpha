@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(13);
+SELECT plan(14);
 
 TRUNCATE TABLE
     public.activity_log,
@@ -124,6 +124,13 @@ SELECT lives_ok(
            settings = settings || '{"due_soon_threshold": 14}'::jsonb
        WHERE id = '44444444-4444-4444-4444-444444444501' $$,
     'project editors can update dates, notes, and non-protected runtime settings'
+);
+
+SELECT lives_ok(
+    $$ UPDATE public.tasks
+       SET supervisor_email = 'supervisor@example.com'
+       WHERE id = '33333333-3333-3333-3333-333333333501' $$,
+    'project editors can update supervisor report delivery on protected cloned project roots'
 );
 
 SELECT lives_ok(

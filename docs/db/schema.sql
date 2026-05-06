@@ -732,7 +732,6 @@ BEGIN
             OR OLD.project_type IS DISTINCT FROM NEW.project_type
             OR OLD.is_premium IS DISTINCT FROM NEW.is_premium
             OR OLD.location IS DISTINCT FROM NEW.location
-            OR OLD.supervisor_email IS DISTINCT FROM NEW.supervisor_email
             OR OLD.task_type IS DISTINCT FROM NEW.task_type
             OR OLD.template_version IS DISTINCT FROM NEW.template_version
             OR OLD.cloned_from_task_id IS DISTINCT FROM NEW.cloned_from_task_id
