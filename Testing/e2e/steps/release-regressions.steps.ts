@@ -2,6 +2,7 @@ import { createBdd } from 'playwright-bdd';
 import { expect, type Page } from '@playwright/test';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { SELECTORS, TEST_USER } from '../fixtures/test-data';
+import { nowUtcIso } from '../../../src/shared/lib/date-engine';
 
 const { Given, When, Then } = createBdd();
 
@@ -572,7 +573,7 @@ When('the user creates, revokes, and rotates release ICS tokens', async ({ page 
 
   const revoked = await state.owner.client
     .from('ics_feed_tokens')
-    .update({ revoked_at: new Date().toISOString() })
+    .update({ revoked_at: nowUtcIso() })
     .eq('id', oldToken.data.id)
     .select('id,revoked_at')
     .single();
@@ -598,7 +599,7 @@ When('the user creates, revokes, and rotates release ICS tokens', async ({ page 
 
   const otherUpdate = await state.mentioned.client
     .from('ics_feed_tokens')
-    .update({ revoked_at: new Date().toISOString() })
+    .update({ revoked_at: nowUtcIso() })
     .eq('id', newToken.data.id)
     .select('id')
     .maybeSingle();
