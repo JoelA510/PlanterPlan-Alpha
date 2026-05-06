@@ -39,6 +39,7 @@ export const useAuth = () => {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const userId = user?.id;
 
   // --- Session management (was SessionContext) ---
 
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // --- Role hydration (was UserProfileContext) ---
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     let alive = true;
 
     const fetchRole = async () => {
@@ -98,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // everywhere; the project-scoped role is hydrated per-project via
       // `useTeam(projectId)`.
       try {
-        const isAdmin = await authApi.checkIsAdmin(user.id);
+        const isAdmin = await authApi.checkIsAdmin(userId);
         if (alive) {
           setUser(prev => prev ? { ...prev, role: isAdmin ? 'admin' : 'viewer' } : null);
         }
@@ -110,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchRole();
 
     return () => { alive = false; };
-  }, [user?.id]); // Only re-run if user ID changes
+  }, [userId]); // Only re-run if user ID changes
 
   // --- Auth actions ---
 
