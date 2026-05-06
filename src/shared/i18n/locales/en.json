@@ -606,6 +606,8 @@
       "organization_placeholder": "e.g. Hope City Church",
       "language_heading": "Language",
       "locale_label": "Language",
+      "locale_beta_badge": "Beta",
+      "locale_review_required_note": "Human review required before marketing or launch claims.",
       "email_preferences_heading": "Email Preferences",
       "weekly_digest": "Weekly Digest",
       "weekly_digest_description": "Get a summary of your tasks every Monday"

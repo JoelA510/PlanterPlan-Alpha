@@ -74,7 +74,7 @@ The Wave 32 plan originally scoped a third task: "project due date does not pers
 
 ### Spanish translation is machine-translated
 
-**Active (Wave 31).** `src/shared/i18n/locales/es.json` was produced by a machine-translation pass from `en.json` at commit `63c77d8`. The file's `_meta.review_required_before_marketing: true` flag is enforced by `Testing/unit/shared/i18n/es-json.test.ts`. Quality is "good enough for an internal beta" but has not been reviewed by a native Spanish speaker. **Do not market "Spanish support" on the marketing site or app store listing until a human-review pass lands.** The pipeline itself (i18next + module augmentation + locale switcher + Intl formatters) is production-ready — future locales become a translator-only workflow per `docs/architecture/i18n.md` §"Adding a new locale."
+**Active (Wave 31).** `src/shared/i18n/locales/es.json` was produced by a machine-translation pass from `en.json` at commit `63c77d8`. The file's `_meta.review_required_before_marketing: true` flag is enforced by `Testing/unit/shared/i18n/es-json.test.ts`, reflected in `SUPPORTED_LOCALES`, and surfaced in the Settings locale switcher as beta/review-required. Quality is "good enough for an internal beta" but has not been reviewed by a native Spanish speaker. **Do not market "Spanish support" on the marketing site or app store listing until a human-review pass lands.** The pipeline itself (i18next + module augmentation + locale switcher + Intl formatters) is production-ready — future locales become a translator-only workflow per `docs/architecture/i18n.md` §"Adding a new locale."
 
 ### String-extraction completion
 

@@ -612,6 +612,8 @@
       "organization_placeholder": "p. ej. Iglesia Hope City",
       "language_heading": "Idioma",
       "locale_label": "Idioma",
+      "locale_beta_badge": "Beta",
+      "locale_review_required_note": "Revisión humana requerida antes de afirmaciones comerciales o de lanzamiento.",
       "email_preferences_heading": "Preferencias de correo electrónico",
       "weekly_digest": "Resumen semanal",
       "weekly_digest_description": "Recibe un resumen de tus tareas cada lunes"
