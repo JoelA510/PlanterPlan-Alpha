@@ -94,6 +94,7 @@ vi.mock('@/shared/api/planterClient', () => {
         {
             id: 't-2',
             title: 'Write welcome letter',
+            description: 'Draft the first-time guest follow-up copy',
             parent_task_id: 'm-launch',
             root_id: 'p-alpha',
             origin: 'instance',
@@ -195,9 +196,21 @@ function renderTasksPage() {
     );
 }
 
-describe('TasksPage — PM-1 priority view + details dialog', () => {
+describe('TasksPage — global tasks view + details dialog', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        if (!HTMLElement.prototype.hasPointerCapture) {
+            HTMLElement.prototype.hasPointerCapture = vi.fn(() => false);
+        }
+        if (!HTMLElement.prototype.setPointerCapture) {
+            HTMLElement.prototype.setPointerCapture = vi.fn();
+        }
+        if (!HTMLElement.prototype.releasePointerCapture) {
+            HTMLElement.prototype.releasePointerCapture = vi.fn();
+        }
+        if (!HTMLElement.prototype.scrollIntoView) {
+            HTMLElement.prototype.scrollIntoView = vi.fn();
+        }
     });
 
     it('does not render the details panel until a task is clicked', async () => {
@@ -206,8 +219,25 @@ describe('TasksPage — PM-1 priority view + details dialog', () => {
         expect(screen.queryByTestId('tasks-page-details-panel')).not.toBeInTheDocument();
     });
 
-    it('defaults to the grouped priority view and hides empty or non-qualifying rows', async () => {
+    it('defaults to all actionable work and excludes root project rows', async () => {
         renderTasksPage();
+
+        expect(await screen.findByRole('heading', { name: 'All Tasks' })).toBeInTheDocument();
+        expect(screen.getByText('Showing 7 of 7 work items')).toBeInTheDocument();
+        expect(screen.getByText('Empty Milestone')).toBeInTheDocument();
+        expect(screen.getByText('Future hidden task')).toBeInTheDocument();
+        expect(screen.getByLabelText('Sort order')).toBeInTheDocument();
+        expect(screen.queryByTestId('task-row-p-alpha')).not.toBeInTheDocument();
+    });
+
+    it('keeps priority available as an explicit quick filter', async () => {
+        const user = userEvent.setup();
+        renderTasksPage();
+
+        await screen.findByRole('heading', { name: 'All Tasks' });
+
+        await user.click(screen.getByRole('combobox', { name: 'Task view' }));
+        await user.click(await screen.findByRole('option', { name: 'Priority' }));
 
         expect(await screen.findByRole('heading', { name: 'Priority' })).toBeInTheDocument();
         expect(screen.getByTestId('priority-task-group-milestone-m-launch')).toBeInTheDocument();
@@ -215,6 +245,27 @@ describe('TasksPage — PM-1 priority view + details dialog', () => {
         expect(screen.queryByText('Empty Milestone')).not.toBeInTheDocument();
         expect(screen.queryByText('Future hidden task')).not.toBeInTheDocument();
         expect(screen.queryByLabelText('Sort order')).not.toBeInTheDocument();
+    });
+
+    it('searches title, description, and project context inside the RLS-visible task list', async () => {
+        const user = userEvent.setup();
+        renderTasksPage();
+
+        await screen.findByText('Buy a domain');
+        const search = screen.getByRole('searchbox', { name: 'Search tasks and projects' });
+
+        await user.type(search, 'guest follow-up');
+        expect(await screen.findByText('Write welcome letter')).toBeInTheDocument();
+        expect(screen.queryByText('Buy a domain')).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Clear task search' }));
+        await user.type(search, 'Alpha Project');
+        expect(await screen.findByText('Buy a domain')).toBeInTheDocument();
+        expect(screen.getByText('Future hidden task')).toBeInTheDocument();
+
+        await user.clear(search);
+        await user.type(search, 'does-not-exist');
+        expect(await screen.findByText('No tasks match your search and filters.')).toBeInTheDocument();
     });
 
     it('opens the details dialog with the clicked task', async () => {

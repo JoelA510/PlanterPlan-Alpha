@@ -150,6 +150,20 @@ describe('docs/db/schema.sql source of truth', () => {
   );
  });
 
+ it('keeps task reads scoped to every project member role', () => {
+  const selectPolicyStart = schema.indexOf('CREATE POLICY "Enable read access for all users" ON "public"."tasks" FOR SELECT');
+  const selectPolicyEnd = schema.indexOf('CREATE POLICY "Enable update for coaches on coaching tasks"', selectPolicyStart);
+  const selectPolicySql = schema.slice(selectPolicyStart, selectPolicyEnd);
+
+  expect(selectPolicyStart).toBeGreaterThanOrEqual(0);
+  expect(selectPolicyEnd).toBeGreaterThan(selectPolicyStart);
+  expect(selectPolicySql).toContain('"public"."has_project_role"(COALESCE("root_id", "id")');
+  for (const role of ['owner', 'editor', 'coach', 'viewer', 'limited']) {
+   expect(selectPolicySql).toContain(`'${role}'::"text"`);
+  }
+  expect(selectPolicySql).toContain('"public"."is_admin"');
+ });
+
  it('keeps ICS token revocation one-way below the UI', () => {
   const sql = functionSql('enforce_ics_feed_token_update_scope');
 
