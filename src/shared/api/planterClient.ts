@@ -210,6 +210,12 @@ function commentRowWithoutHydratedAuthor(row: TaskCommentRow): TaskCommentWithAu
     return { ...row, author: null };
 }
 
+/**
+ * Normalize a hydrated project-member row into the client DTO shape.
+ *
+ * @param row - Raw row returned by the profile-hydration RPC.
+ * @returns A team member DTO with safe display fields for the roster UI.
+ */
 function normalizeTeamMemberWithProfile(row: ListProjectMembersWithProfilesRow): TeamMemberWithProfile {
     return {
         id: row.id,
@@ -330,6 +336,12 @@ interface TaskResourceEntityClient extends EntityClient<TaskResourceRow, Databas
 }
 
 interface TeamMemberEntityClient extends EntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']> {
+    /**
+     * Fetches the project roster hydrated with safe auth profile fields.
+     *
+     * @param projectId - The project root task ID.
+     * @returns Hydrated team member rows visible to the current user.
+     */
     listByProjectWithProfiles: (projectId: string) => Promise<TeamMemberWithProfile[]>;
 }
 
@@ -1265,6 +1277,13 @@ export const planter: PlanterClient = {
         })(),
         TeamMember: {
             ...createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
+            /**
+             * Fetches the project roster hydrated with safe auth profile fields.
+             * The SECURITY DEFINER RPC gates access to project members and global admins.
+             *
+             * @param projectId - The project root task ID.
+             * @returns Hydrated team member rows visible to the current user.
+             */
             listByProjectWithProfiles: async (projectId: string): Promise<TeamMemberWithProfile[]> => {
                 return retry(async () => {
                     const { data, error } = await supabase

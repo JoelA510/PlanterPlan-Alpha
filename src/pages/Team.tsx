@@ -156,7 +156,7 @@ export default function Team() {
                 )}
 
                 {!isLoading && !error && !selectedProjectId && (
-                    <div className="rounded-md border border-dashed border-border bg-card p-8 text-center">
+                    <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
                         <Users className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden="true" />
                         <h2 className="mt-4 text-lg font-semibold text-foreground">{t('projects.team_page.select_heading')}</h2>
                         <p className="mt-2 text-sm text-muted-foreground">{t('projects.team_page.select_description')}</p>
@@ -164,7 +164,7 @@ export default function Team() {
                 )}
 
                 {!isLoading && !error && selectedProjectId && teamMembers.length === 0 && (
-                    <div className="rounded-md border border-dashed border-border bg-card p-8 text-center">
+                    <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
                         <Users className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden="true" />
                         <h2 className="mt-4 text-lg font-semibold text-foreground">{t('projects.team_page.empty_heading')}</h2>
                         <p className="mt-2 text-sm text-muted-foreground">{t('projects.team_page.empty_description')}</p>
@@ -188,7 +188,7 @@ export default function Team() {
                                 <article
                                     key={member.id}
                                     data-testid="team-member-card"
-                                    className="rounded-md border bg-card p-4 shadow-sm"
+                                    className="rounded-lg border bg-card p-4 shadow-sm"
                                 >
                                     <div className="flex items-start gap-3">
                                         <Avatar className="h-11 w-11">
