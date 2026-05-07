@@ -9,7 +9,7 @@ import { Progress } from '@/shared/ui/progress';
 import { ArrowLeft, Loader2, BarChart, TrendingUp, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { STALE_TIMES } from '@/shared/lib/react-query-config';
 import { getNow, toMonthKey } from '@/shared/lib/date-engine';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import {
     Select,
     SelectContent,

@@ -11,7 +11,7 @@ const mockTeamMembers = [
     { id: 'tm4', user_id: 'u-owner-1', project_id: 'p1', role: 'owner', joined_at: null, email: 'owner@test.local' },
 ];
 
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
     useAuth: () => ({ user: { id: 'viewer-self', role: 'user' } }),
 }));
 

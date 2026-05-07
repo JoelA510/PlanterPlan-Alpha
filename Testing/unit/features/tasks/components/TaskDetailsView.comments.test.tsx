@@ -19,9 +19,9 @@ vi.mock('@/shared/hooks/useActivityLog', () => ({
     useTaskActivity: () => ({ data: [], isLoading: false }),
 }));
 
-vi.mock('@/shared/contexts/AuthContext', async () => {
-    const actual = await vi.importActual<typeof import('@/shared/contexts/AuthContext')>(
-        '@/shared/contexts/AuthContext',
+vi.mock('@/shared/contexts/auth-context', async () => {
+    const actual = await vi.importActual<typeof import('@/shared/contexts/auth-context')>(
+        '@/shared/contexts/auth-context',
     );
     return {
         ...actual,

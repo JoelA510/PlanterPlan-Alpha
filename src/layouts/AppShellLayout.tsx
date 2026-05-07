@@ -5,7 +5,7 @@ import Header from '@/features/navigation/components/Header';
 import ProjectSidebarContainer from '@/layouts/ProjectSidebarContainer';
 import ProjectSwitcherContainer from '@/layouts/ProjectSwitcherContainer';
 import { CommandPalette } from '@/shared/ui/CommandPalette';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import MobileFAB from '@/features/mobile/components/MobileFAB';
 import CreationActionHost from '@/layouts/CreationActionHost';
 

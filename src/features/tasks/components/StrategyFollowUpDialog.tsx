@@ -14,7 +14,7 @@ import {
 import { Button } from '@/shared/ui/button';
 import useMasterLibrarySearch from '@/shared/hooks/useMasterLibrarySearch';
 import useRelatedTemplates from '@/shared/hooks/useRelatedTemplates';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { planter } from '@/shared/api/planterClient';
 import type { TaskRow } from '@/shared/db/app.types';
 

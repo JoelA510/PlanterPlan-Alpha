@@ -21,8 +21,8 @@ vi.mock('sonner', () => ({
 // Note the ConfirmDialogProvider is still rendered (via the test wrapper) so
 // the surrounding context exists; we override the hook only.
 let mockConfirmResult = true;
-vi.mock('@/shared/ui/confirm-dialog', async (orig) => {
-  const actual = await orig() as typeof import('@/shared/ui/confirm-dialog');
+vi.mock('@/shared/ui/confirm-dialog-context', async (orig) => {
+  const actual = await orig() as typeof import('@/shared/ui/confirm-dialog-context');
   return {
     ...actual,
     useConfirm: () => vi.fn().mockImplementation(() => Promise.resolve(mockConfirmResult)),

@@ -15,7 +15,7 @@ vi.mock('@/shared/db/client', () => ({
 // Wave 33 + 36: TasksPage now calls useAuth() + useTeam() to resolve the
 // caller's membership role for the delete guard. Stub both — neither is
 // exercised by the tests below but their absence would throw at mount.
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
     useAuth: () => ({
         user: { id: 'u1', email: 'me@example.com', role: 'owner' },
         savedEmailAddresses: [],

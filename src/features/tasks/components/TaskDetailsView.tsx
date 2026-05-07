@@ -10,7 +10,7 @@ import TaskComments from '@/features/tasks/components/TaskComments/TaskComments'
 import { useTaskActivity } from '@/shared/hooks/useActivityLog';
 import { ActivityRow } from '@/shared/ui/ActivityRow';
 import { formatDisplayDate } from '@/shared/lib/date-engine';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { useTaskSiblings } from '@/features/tasks/hooks/useTaskSiblings';
 import {
     Dialog,

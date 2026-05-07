@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { NavLink, Navigate, Outlet } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { useIsAdmin } from '@/features/admin/hooks/useIsAdmin';
 import { cn } from '@/shared/lib/utils';
 import { LayoutDashboard, Users, BarChart3, FileStack } from 'lucide-react';

@@ -23,7 +23,7 @@ vi.mock('@/shared/api/planterClient', () => ({
 
 const stableUser = { id: 'user-abc', email: 'user@test.local' };
 const stableAuthContext = { user: stableUser };
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
     // Stable references so the hook's `[isSupported, user]` effect dep doesn't re-fire every render.
     useAuth: () => stableAuthContext,
 }));

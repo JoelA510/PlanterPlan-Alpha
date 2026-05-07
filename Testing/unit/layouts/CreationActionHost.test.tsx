@@ -19,7 +19,7 @@ vi.mock('@/features/library/hooks/useMasterLibrarySearch', () => ({
     default: () => ({ results: [], isLoading: false }),
 }));
 
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
     useAuth: () => ({ user: { id: 'user-1', email: 'user@example.com' } }),
 }));
 

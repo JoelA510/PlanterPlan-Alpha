@@ -33,7 +33,7 @@ vi.mock('@/features/tasks/hooks/useTaskCommentsRealtime', () => ({
     useTaskCommentsRealtime: () => undefined,
 }));
 
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
     useAuth: () => ({
         user: {
             id: 'user-me',
@@ -183,7 +183,7 @@ describe('TaskComments (Wave 26)', () => {
 
     it('does not show a composer when the viewer is signed out', async () => {
         vi.resetModules();
-        vi.doMock('@/shared/contexts/AuthContext', () => ({
+        vi.doMock('@/shared/contexts/auth-context', () => ({
             useAuth: () => ({ user: null }),
         }));
         vi.doMock('@/features/tasks/hooks/useTaskComments', () => ({

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { STALE_TIMES } from '@/shared/lib/react-query-config';
 
 export interface UseMasterLibrarySearchProps {

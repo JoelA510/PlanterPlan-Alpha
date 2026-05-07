@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import InstanceList from './InstanceList';
 import JoinedProjectsList from './JoinedProjectsList';
 import TemplateList from './TemplateList';

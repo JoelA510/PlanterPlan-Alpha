@@ -38,9 +38,9 @@ vi.mock('@/shared/db/client', () => ({
 vi.mock('@/shared/api/auth', () => ({
     authApi: { checkIsAdmin: vi.fn().mockResolvedValue(false) },
 }));
-vi.mock('@/shared/contexts/AuthContext', async () => {
-    const actual = await vi.importActual<typeof import('@/shared/contexts/AuthContext')>(
-        '@/shared/contexts/AuthContext',
+vi.mock('@/shared/contexts/auth-context', async () => {
+    const actual = await vi.importActual<typeof import('@/shared/contexts/auth-context')>(
+        '@/shared/contexts/auth-context',
     );
     return {
         ...actual,

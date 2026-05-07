@@ -10,7 +10,7 @@ const mockRequestPasswordReset = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
 
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
   useAuth: () => ({
     signIn: (...args: unknown[]) => mockSignIn(...args),
     signUp: (...args: unknown[]) => mockSignUp(...args),

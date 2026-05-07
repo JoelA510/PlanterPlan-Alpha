@@ -13,11 +13,11 @@ import { Loader2, List, LayoutGrid, Search, X } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { useTeam } from '@/features/people/hooks/useTeam';
 import { ROLES } from '@/shared/constants';
 import { useDeleteTask } from '@/features/tasks/hooks/useTaskMutations';
-import { useConfirm } from '@/shared/ui/confirm-dialog';
+import { useConfirm } from '@/shared/ui/confirm-dialog-context';
 import { toast } from 'sonner';
 import {
        useTaskFilters,
