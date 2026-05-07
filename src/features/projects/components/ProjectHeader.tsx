@@ -57,6 +57,7 @@ export default function ProjectHeader({
     const derivedState = useMemo(() => deriveProjectState(project, stateSourceTasks), [project, stateSourceTasks]);
     const { completedTasks, totalTasks } = derivedState;
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const projectTitle = project.title || t('projects.header.export_fallback_name');
 
     return (
         <div className="animate-slide-up bg-card border-b border-border transition-all shadow-sm">
@@ -86,37 +87,66 @@ export default function ProjectHeader({
                     </div>
 
                     <div className="hidden md:flex items-center gap-2 flex-wrap">
-                        <Button variant="ghost" size="sm" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={t('projects.header.open_command_palette')}
+                            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+                        >
                             <Search className="w-4 h-4 mr-2 text-muted-foreground" />
-                            <span className="lg:hidden">Search</span>
+                            <span className="lg:hidden">{t('common.search')}</span>
                             <span className="hidden lg:inline text-muted-foreground text-xs">⌘K</span>
                         </Button>
                         {canManageSettings && (
-                            <Button variant="ghost" size="sm" onClick={() => setIsEditModalOpen(true)}>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                aria-label={t('projects.header.settings_aria', { project: projectTitle })}
+                                onClick={() => setIsEditModalOpen(true)}
+                            >
                                 <Settings className="w-4 h-4 mr-2" />
-                                Settings
+                                {t('nav.settings')}
                             </Button>
                         )}
-                        <Button variant="ghost" size="sm" onClick={() => exportProjectToCSV({ name: project.title || 'Project' }, tasks as TaskRow[])}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={t('projects.header.export_aria', { project: projectTitle })}
+                            onClick={() => exportProjectToCSV({ name: projectTitle }, tasks as TaskRow[])}
+                        >
                             <Download className="w-4 h-4 mr-2" />
-                            Export
+                            {t('common.export')}
                         </Button>
-                        <Link to={`/reports?project=${project.id}`}>
+                        <Link
+                            to={`/reports?project=${project.id}`}
+                            data-testid="project-header-reports-link"
+                            aria-label={t('projects.header.reports_aria', { project: projectTitle })}
+                        >
                             <Button variant="outline" size="sm">
                                 <BarChart2 className="w-4 h-4 mr-2" />
-                                Reports
+                                {t('nav.reports')}
                             </Button>
                         </Link>
-                        <Link to={`/team?project=${project.id}`}>
+                        <Link
+                            to={`/team?project=${project.id}`}
+                            data-testid="project-header-team-link"
+                            aria-label={t('projects.header.team_aria', { project: projectTitle })}
+                        >
                             <Button variant="outline" size="sm">
                                 <Users className="w-4 h-4 mr-2" />
-                                Team
+                                {t('nav.team')}
                             </Button>
                         </Link>
                         {canInvite && (
-                            <Button variant="default" size="sm" onClick={onInviteMember} className="ml-2 bg-brand-500 hover:bg-brand-600 text-white">
+                            <Button
+                                variant="default"
+                                size="sm"
+                                aria-label={t('projects.header.invite_aria', { project: projectTitle })}
+                                onClick={onInviteMember}
+                                className="ml-2 bg-brand-500 hover:bg-brand-600 text-white"
+                            >
                                 <Users className="w-4 h-4 mr-2" />
-                                Invite
+                                {t('common.invite')}
                             </Button>
                         )}
                     </div>
@@ -127,24 +157,24 @@ export default function ProjectHeader({
                         {project.due_date && (
                             <div className="flex items-center gap-1.5">
                                 <Calendar className="w-4 h-4 text-slate-400" />
-                                <span>Launch: {formatDate(project.due_date, 'MMM d, yyyy')}</span>
+                                <span>{t('projects.header.launch_date', { date: formatDate(project.due_date, 'MMM d, yyyy') })}</span>
                             </div>
                         )}
                         <Users className="w-4 h-4 text-slate-400" />
                         <span>
-                            {teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}
+                            {t('projects.header.team_members', { count: teamMembers.length })}
                         </span>
                     </div>
 
-                    {/* Static Avatars */}
                     <div className="flex items-center -space-x-2 overflow-hidden py-1 pl-1">
                         {teamMembers.slice(0, 5).map(member => {
-                            const displayName = member.first_name ? `${member.first_name} ${member.last_name}` : member.email;
+                            const displayName = member.display_name ?? (member.first_name ? `${member.first_name} ${member.last_name ?? ''}`.trim() : member.email);
+                            const fallbackName = displayName || t('projects.team_page.unknown_member');
                             const initials = (member.first_name?.[0] || '') + (member.last_name?.[0] || '') || '?';
                             return (
-                                <div key={member.id} className="relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground z-10" title={displayName || 'Unknown'}>
+                                <div key={member.id} className="relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground z-10" title={fallbackName}>
                                     {member.avatar_url ? (
-                                        <img src={member.avatar_url} alt={displayName || 'Unknown'} width={32} height={32} loading="lazy" className="w-full h-full rounded-full object-cover" />
+                                        <img src={member.avatar_url} alt={fallbackName} width={32} height={32} loading="lazy" className="w-full h-full rounded-full object-cover" />
                                     ) : (
                                         <span>{initials}</span>
                                     )}
@@ -168,7 +198,7 @@ export default function ProjectHeader({
                             decorative
                         />
                         <span className="text-sm font-medium text-card-foreground whitespace-nowrap">
-                            {progress}% complete
+                            {t('projects.header.progress_complete', { progress })}
                         </span>
                     </div>
                 </div>

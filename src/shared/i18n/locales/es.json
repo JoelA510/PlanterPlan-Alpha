@@ -31,8 +31,9 @@
     "view": "Ver",
     "clear_search": "Limpiar búsqueda",
     "search": "Buscar",
+    "export": "Exportar",
+    "invite": "Invitar",
     "working": "Trabajando…",
-    "soon": "Pronto",
     "off": "Desactivado",
     "daily": "Diariamente",
     "weekly": "Semanalmente",
@@ -65,6 +66,8 @@
     "current_project_heading": "Proyecto actual",
     "view_project": "Ver proyecto →",
     "user_fallback": "Usuario",
+    "command_title": "Paleta de comandos",
+    "command_description": "Busca comandos y proyectos.",
     "command_placeholder": "Escribe un comando o busca…",
     "command_empty": "No se encontraron resultados.",
     "command_suggestions": "Sugerencias",
@@ -427,6 +430,19 @@
     "invalid_task_hierarchy_drop": "Las subtareas no pueden contener tareas hijas. Mueve primero la tarea principal.",
     "search_template_phase_placeholder": "Busca una fase de plantilla para copiar",
     "search_template_task_placeholder": "Empieza a escribir para copiar una tarea de plantilla existente",
+    "header": {
+      "open_command_palette": "Abrir paleta de comandos",
+      "settings_aria": "Abrir configuración de {{project}}",
+      "export_aria": "Exportar {{project}} como CSV",
+      "reports_aria": "Abrir informes de {{project}}",
+      "team_aria": "Abrir equipo de {{project}}",
+      "invite_aria": "Invitar a un miembro a {{project}}",
+      "export_fallback_name": "Proyecto",
+      "launch_date": "Lanzamiento: {{date}}",
+      "team_members_one": "{{count}} miembro del equipo",
+      "team_members_other": "{{count}} miembros del equipo",
+      "progress_complete": "{{progress}}% completado"
+    },
     "derived_state": {
       "archived": "Archivado",
       "complete": "Completo",
@@ -673,7 +689,12 @@
       "locale_review_required_note": "Revisión humana requerida antes de afirmaciones comerciales o de lanzamiento.",
       "email_preferences_heading": "Preferencias de correo electrónico",
       "weekly_digest": "Resumen semanal",
-      "weekly_digest_description": "Recibe un resumen de tus tareas cada lunes"
+      "weekly_digest_description": "Recibe un resumen de tus tareas cada lunes",
+      "avatar_url_invalid": "Introduce una URL válida (https://...)",
+      "save_success_title": "Configuración guardada",
+      "save_success_description": "Tu perfil se actualizó correctamente.",
+      "save_failed_title": "Error",
+      "save_failed_description": "No se pudo actualizar la configuración. Inténtalo de nuevo."
     },
     "security": {
       "change_password_heading": "Cambiar contraseña",
