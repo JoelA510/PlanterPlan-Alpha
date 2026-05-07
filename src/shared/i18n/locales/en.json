@@ -634,7 +634,7 @@
       "count_matching_one": "{{formattedCount}} resource matching",
       "count_matching_other": "{{formattedCount}} resources matching",
       "set_primary_aria": "Set {{type}} as primary resource",
-      "unset_primary_aria": "Unset primary resource",
+      "unset_primary_aria": "Unset {{type}} as primary resource",
       "delete_aria": "Delete {{type}} resource",
       "types": {
         "url": "External Link",

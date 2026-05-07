@@ -77,7 +77,7 @@ describe('TaskResources localization', () => {
         renderWithProviders(<TaskResources taskId="task-1" primaryResourceId="resource-1" />);
 
         expect(await screen.findByText('Enlace externo')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Quitar recurso principal' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Quitar Enlace externo como recurso principal' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Eliminar recurso Enlace externo' })).toBeInTheDocument();
     });
 });

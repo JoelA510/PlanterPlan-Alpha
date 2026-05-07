@@ -640,7 +640,7 @@
       "count_matching_one": "{{formattedCount}} recurso coincidente",
       "count_matching_other": "{{formattedCount}} recursos coincidentes",
       "set_primary_aria": "Establecer {{type}} como recurso principal",
-      "unset_primary_aria": "Quitar recurso principal",
+      "unset_primary_aria": "Quitar {{type}} como recurso principal",
       "delete_aria": "Eliminar recurso {{type}}",
       "types": {
         "url": "Enlace externo",
