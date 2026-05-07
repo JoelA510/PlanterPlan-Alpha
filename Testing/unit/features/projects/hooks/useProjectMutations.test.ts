@@ -20,6 +20,9 @@ const mockTaskUpsert = vi.fn();
 
 vi.mock('@/shared/api/planterClient', () => ({
   planter: {
+    auth: {
+      me: vi.fn().mockResolvedValue({ id: 'user-1' }),
+    },
     entities: {
       Project: {
         create: (...args: unknown[]) => mockProjectCreate(...args),
@@ -31,17 +34,6 @@ vi.mock('@/shared/api/planterClient', () => ({
         filter: (...args: unknown[]) => mockTaskFilter(...args),
         upsert: (...args: unknown[]) => mockTaskUpsert(...args),
       },
-    },
-  },
-}));
-
-// Mock supabase auth
-vi.mock('@/shared/db/client', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: { id: 'user-1' } },
-      }),
     },
   },
 }));

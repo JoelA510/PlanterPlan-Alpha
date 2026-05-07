@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/shared/db/client';
 import { planter } from '@/shared/api/planterClient';
 import { toIsoDate, recalculateProjectDates, nowUtcIso, DateEngineTask } from '@/shared/lib/date-engine';
 import { TaskUpdate, TaskInsert } from '@/shared/db/app.types';
@@ -97,7 +96,7 @@ export function useCreateProject() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (formData: CreateProjectPayload) => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await planter.auth.me();
             if (!user) throw new Error('User not authenticated');
 
             const projectStartDate = toIsoDate(formData.start_date);
