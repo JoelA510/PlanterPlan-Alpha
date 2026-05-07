@@ -328,7 +328,7 @@ export default function TasksPage() {
                                                                              onChange={(event) => setSearchQuery(event.target.value)}
                                                                              placeholder={t('tasks.search_placeholder')}
                                                                              aria-label={t('tasks.search_aria')}
-                                                                             className="w-[220px] bg-card pl-9 pr-9"
+                                                                             className="w-56 bg-card pl-9 pr-9"
                                                                       />
                                                                       {searchQuery && (
                                                                              <button
