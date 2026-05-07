@@ -49,7 +49,6 @@ export default function ResetPassword() {
  navigate('/login');
  } catch (err) {
  console.error('Error resetting password:', err);
- clearPasswordRecoverySession();
  const description = err instanceof Error && err.message
  ? err.message
  : t('auth.reset_password_invalid_session');

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ResetPassword from '@/pages/ResetPassword';
-import { markPasswordRecoverySession } from '@/shared/lib/password-recovery';
+import { hasPasswordRecoverySession, markPasswordRecoverySession } from '@/shared/lib/password-recovery';
 
 const mockCompletePasswordReset = vi.fn();
 const mockToastSuccess = vi.fn();
@@ -92,7 +92,36 @@ describe('ResetPassword', () => {
     await user.click(screen.getByRole('button', { name: /reset password/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Password should be at least 8 characters');
+    expect(hasPasswordRecoverySession()).toBe(true);
     expect(mockToastError).toHaveBeenCalledWith('Could not reset password', expect.any(Object));
+
+    vi.mocked(console.error).mockRestore();
+  });
+
+  it('keeps a valid recovery session retryable after a reset failure', async () => {
+    const user = userEvent.setup();
+    markPasswordRecoverySession();
+    mockCompletePasswordReset
+      .mockRejectedValueOnce(new Error('Temporary auth service failure'))
+      .mockResolvedValueOnce(undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    renderResetPassword();
+
+    await user.type(screen.getByLabelText(/^new password$/i), 'new-password-123');
+    await user.type(screen.getByLabelText(/^confirm password$/i), 'new-password-123');
+    await user.click(screen.getByRole('button', { name: /reset password/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Temporary auth service failure');
+    expect(hasPasswordRecoverySession()).toBe(true);
+
+    await user.click(screen.getByRole('button', { name: /reset password/i }));
+
+    await waitFor(() => {
+      expect(mockCompletePasswordReset).toHaveBeenCalledTimes(2);
+    });
+    expect(mockToastSuccess).toHaveBeenCalledWith('Password reset', expect.any(Object));
+    expect(hasPasswordRecoverySession()).toBe(false);
 
     vi.mocked(console.error).mockRestore();
   });
