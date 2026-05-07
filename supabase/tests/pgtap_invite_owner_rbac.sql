@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(21);
+SELECT plan(23);
 
 TRUNCATE TABLE
     public.activity_log,
@@ -51,6 +51,12 @@ INSERT INTO public.project_members (project_id, user_id, role) VALUES
     ('11111111-1111-1111-1111-111111111101', '00000000-0000-0000-0000-000000001103', 'viewer'),
     ('11111111-1111-1111-1111-111111111101', '00000000-0000-0000-0000-000000001107', 'viewer');
 
+SELECT is(
+    public.get_user_id_by_email('INVITE-EXISTING@EXAMPLE.COM'),
+    '00000000-0000-0000-0000-000000001105'::uuid,
+    'existing-user lookup is case-insensitive'
+);
+
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000001101', true);
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000001101"}', true);
@@ -80,6 +86,16 @@ SELECT is(
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000001101', true);
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000001101"}', true);
+
+SELECT throws_like(
+    $$ SELECT public.invite_user_to_project(
+        '11111111-1111-1111-1111-111111111101',
+        'not-an-email',
+        'viewer'
+    ) $$,
+    '%Invalid email%',
+    'invite RPC rejects malformed email addresses'
+);
 
 SELECT lives_ok(
     $$ SELECT public.invite_user_to_project(

@@ -2,6 +2,19 @@
 -- Owner-only RBAC model. Editors keep task-edit permissions, but cannot
 -- invite users, mutate invites, or use the invite RPC.
 
+CREATE OR REPLACE FUNCTION public.get_user_id_by_email(email text)
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT id
+  FROM auth.users
+  WHERE lower(auth.users.email) = lower($1)
+  LIMIT 1;
+$$;
+
 CREATE OR REPLACE FUNCTION public.invite_user_to_project(
   p_project_id uuid,
   p_email text,
@@ -21,6 +34,9 @@ DECLARE
 BEGIN
   v_email := lower(trim(p_email));
   IF v_email IS NULL OR v_email = '' THEN
+    RAISE EXCEPTION 'Invalid email';
+  END IF;
+  IF v_email !~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' THEN
     RAISE EXCEPTION 'Invalid email';
   END IF;
 

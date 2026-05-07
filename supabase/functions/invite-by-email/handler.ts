@@ -72,12 +72,24 @@ export interface InviteByEmailHandlerDeps {
 }
 
 const ASSIGNABLE_ROLES = new Set(['owner', 'editor', 'coach', 'viewer', 'limited']);
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function json(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
+function jsonString(body: string, status = 200): Response {
+  return new Response(body, {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function jsonError(error: string, status = 400): Response {
+  return jsonString(JSON.stringify({ error }), status);
+}
+
+function jsonSuccess(user: { id: string; email: string }): Response {
+  return jsonString(JSON.stringify({
+    message: 'Invite processed successfully',
+    user,
+  }));
 }
 
 function parseBody(rawBody: unknown): Partial<InviteBody> {
@@ -98,7 +110,7 @@ function statusForMessage(message: string): number {
 }
 
 function clientSafeMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : '';
   const safe =
     message.startsWith('Unauthorized:') ||
     message.startsWith('Forbidden:') ||
@@ -127,7 +139,7 @@ export async function handleInviteByEmailRequest(
   }
 
   if (req.method !== 'POST') {
-    return json({ error: 'Method Not Allowed' }, 405);
+    return jsonError('Method Not Allowed', 405);
   }
 
   try {
@@ -140,11 +152,12 @@ export async function handleInviteByEmailRequest(
 
     const body = parseBody(await req.json().catch(() => ({})));
     const projectId = typeof body.projectId === 'string' ? body.projectId : '';
-    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
     const role = typeof body.role === 'string' && body.role.length > 0 ? body.role : 'viewer';
 
     if (!projectId) throw new Error('Missing projectId');
     if (!email) throw new Error('Missing email');
+    if (!EMAIL_PATTERN.test(email)) throw new Error('Invalid email');
     if (!ASSIGNABLE_ROLES.has(role)) throw new Error('Invalid role');
 
     const authorization = req.headers.get('Authorization');
@@ -216,13 +229,10 @@ export async function handleInviteByEmailRequest(
       throw new Error('Invite failed');
     }
 
-    return json({
-      message: 'Invite processed successfully',
-      user: { id: targetUserId, email },
-    });
+    return jsonSuccess({ id: targetUserId, email });
   } catch (error) {
     const message = clientSafeMessage(error);
     logger.error('Edge Function Exception:', { message });
-    return json({ error: message }, statusForMessage(message));
+    return jsonError(message, statusForMessage(message));
   }
 }

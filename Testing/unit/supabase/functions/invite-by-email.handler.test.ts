@@ -142,10 +142,10 @@ describe('invite-by-email handler', () => {
         expect(response.status).toBe(200);
         await expect(responseJson(response)).resolves.toEqual({
             message: 'Invite processed successfully',
-            user: { id: 'new-user', email: 'target@example.com' },
+            user: { id: 'new-user', email: 'TARGET@example.com' },
         });
         expect(harness.userRpc).toHaveBeenCalledWith('is_admin', { p_user_id: 'owner-user' });
-        expect(harness.inviteUserByEmail).toHaveBeenCalledWith('target@example.com');
+        expect(harness.inviteUserByEmail).toHaveBeenCalledWith('TARGET@example.com');
         expect(harness.upsertRows[0]).toEqual({
             project_id: 'project-1',
             user_id: 'new-user',
@@ -185,6 +185,20 @@ describe('invite-by-email handler', () => {
             error: 'Forbidden: only project owners can invite users.',
         });
         expect(harness.createClient).toHaveBeenCalledTimes(1);
+        expect(harness.inviteUserByEmail).not.toHaveBeenCalled();
+    });
+
+    it('rejects malformed email addresses before service-role operations are created', async () => {
+        const harness = makeHarness({ callerRole: 'owner' });
+
+        const response = await handleInviteByEmailRequest(
+            request({ projectId: 'project-1', email: 'not-an-email', role: 'viewer' }),
+            harness.deps,
+        );
+
+        expect(response.status).toBe(400);
+        await expect(responseJson(response)).resolves.toEqual({ error: 'Invalid email' });
+        expect(harness.createClient).not.toHaveBeenCalled();
         expect(harness.inviteUserByEmail).not.toHaveBeenCalled();
     });
 
@@ -231,6 +245,28 @@ describe('invite-by-email handler', () => {
             project_id: 'project-1',
             user_id: 'existing-user',
             role: 'coach',
+        });
+    });
+
+    it('preserves trimmed email casing for existing-user lookup fallback', async () => {
+        const harness = makeHarness({
+            inviteError: { code: 'email_exists', message: 'A user with this email address has already been registered' },
+            lookupUserId: 'mixed-case-user',
+        });
+
+        const response = await handleInviteByEmailRequest(
+            request({ projectId: 'project-1', email: ' MixedCase@Example.com ', role: 'viewer' }),
+            harness.deps,
+        );
+
+        expect(response.status).toBe(200);
+        expect(harness.inviteUserByEmail).toHaveBeenCalledWith('MixedCase@Example.com');
+        expect(harness.adminRpc).toHaveBeenCalledWith('get_user_id_by_email', {
+            email: 'MixedCase@Example.com',
+        });
+        expect(harness.upsertRows[0]).toMatchObject({
+            user_id: 'mixed-case-user',
+            role: 'viewer',
         });
     });
 

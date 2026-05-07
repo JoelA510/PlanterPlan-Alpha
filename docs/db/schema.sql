@@ -1745,7 +1745,10 @@ CREATE OR REPLACE FUNCTION "public"."get_user_id_by_email"("email" "text") RETUR
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $_$
-  select id from auth.users where email = $1;
+  SELECT id
+  FROM auth.users
+  WHERE lower(auth.users.email) = lower($1)
+  LIMIT 1;
 $_$;
 
 
@@ -2044,6 +2047,9 @@ DECLARE
 BEGIN
   v_email := lower(trim(p_email));
   IF v_email IS NULL OR v_email = '' THEN
+    RAISE EXCEPTION 'Invalid email';
+  END IF;
+  IF v_email !~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' THEN
     RAISE EXCEPTION 'Invalid email';
   END IF;
 
