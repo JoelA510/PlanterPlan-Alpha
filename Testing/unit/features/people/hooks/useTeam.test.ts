@@ -52,7 +52,7 @@ function createWrapper() {
 describe('useTeam', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockProjectGet.mockResolvedValue({ id: 'p1', title: 'Test Project' });
+    mockProjectGet.mockResolvedValue({ id: 'p1', title: 'Test Project', origin: 'instance', parent_task_id: null });
     mockListTeamMembersWithProfiles.mockResolvedValue([
       { id: 'm1', project_id: 'p1', user_id: 'u1', role: 'editor', email: 'u1@example.com' },
     ]);
@@ -88,6 +88,19 @@ describe('useTeam', () => {
 
     await new Promise(r => setTimeout(r, 50));
     expect(mockProjectGet).not.toHaveBeenCalled();
+  });
+
+  it('does not call the roster RPC for template roots', async () => {
+    mockProjectGet.mockResolvedValue({ id: 'tmpl-1', title: 'Template Root', origin: 'template', parent_task_id: null });
+
+    const { result } = renderHook(() => useTeam('tmpl-1'), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(mockProjectGet).toHaveBeenCalledWith('tmpl-1');
+    });
+
+    expect(mockListTeamMembersWithProfiles).not.toHaveBeenCalled();
+    expect(result.current.teamMembers).toEqual([]);
   });
 
   it('deleteMember calls delete and invalidates queries', async () => {

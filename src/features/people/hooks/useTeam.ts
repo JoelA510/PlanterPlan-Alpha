@@ -9,16 +9,18 @@ export function useTeam(projectId: string | null) {
     const queryClient = useQueryClient();
     const { t } = useTranslation();
 
-    const { data: project, isLoading: isLoadingProject, error: projectError } = useQuery<ProjectRow>({
+    const { data: project, isLoading: isLoadingProject, error: projectError } = useQuery<ProjectRow | null>({
         queryKey: ['teamProject', projectId],
-        queryFn: () => planter.entities.Project.get(projectId!).then(res => res as ProjectRow),
+        queryFn: () => planter.entities.Project.get(projectId!).then(res => res as ProjectRow | null),
         enabled: !!projectId,
     });
+
+    const isInstanceProjectRoot = project?.origin === 'instance' && project.parent_task_id === null;
 
     const { data: teamMembers = [], isLoading: isLoadingMembers, error: teamError } = useQuery<TeamMemberWithProfile[]>({
         queryKey: ['teamMembers', projectId],
         queryFn: () => planter.entities.TeamMember.listByProjectWithProfiles(projectId!),
-        enabled: !!projectId,
+        enabled: !!projectId && isInstanceProjectRoot,
     });
 
     const deleteMemberMutation = useMutation({

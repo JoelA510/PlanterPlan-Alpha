@@ -47,7 +47,7 @@ describe('Team page', () => {
     vi.clearAllMocks();
     mockUser = { id: 'owner-user', email: 'owner@example.com', role: 'viewer' };
     mockProjectList.mockResolvedValue([{ id: 'p1', title: 'Launch Project' }]);
-    mockProjectGet.mockResolvedValue({ id: 'p1', title: 'Launch Project' });
+    mockProjectGet.mockResolvedValue({ id: 'p1', title: 'Launch Project', origin: 'instance', parent_task_id: null });
     mockListTeamMembersWithProfiles.mockResolvedValue([
       {
         id: 'm-owner',
