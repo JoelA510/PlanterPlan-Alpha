@@ -1,6 +1,11 @@
 const SAVED_EMAIL_CAP = 5;
 
-/** Pure helper: prepend `address` (case-insensitive de-dupe), cap at 5. */
+/**
+ * Prepends an email address with case-insensitive de-duplication and a fixed cap.
+ * @param existing The current list of saved email addresses.
+ * @param address The address to add.
+ * @returns The updated saved email list.
+ */
 export function mergeSavedEmailAddress(existing: string[], address: string): string[] {
   const trimmed = address.trim();
   if (!trimmed) return existing;
