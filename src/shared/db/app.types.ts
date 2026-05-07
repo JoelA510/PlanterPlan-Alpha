@@ -57,6 +57,14 @@ export type TeamMemberWithProfile = TeamMemberRow & {
     avatar_url?: string | null;
 };
 
+export interface ProjectInviteResult {
+    message: string;
+    user: {
+        id: string;
+        email: string;
+    };
+}
+
 /** Task resource row augmented with its parent task info (used by Resource Library). */
 export type ResourceWithTask = TaskResourceRow & {
     task: { id: string; title: string | null; root_id: string | null } | null;

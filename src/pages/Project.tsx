@@ -41,6 +41,7 @@ import {
     canReorderTask,
     canUpdateTaskProgress,
 } from '@/features/tasks/lib/task-permissions';
+import { canManageProjectMembers } from '@/features/projects/lib/project-member-permissions';
 
 export default function Project() {
     // Canonical URL form is /Project/:projectId. The legacy /Project?id=X
@@ -220,14 +221,15 @@ export default function Project() {
     }, [projectId, queryClient]);
 
     const isOwnerByProject = project?.creator === user?.id;
+    const isGlobalAdmin = user?.role === ROLES.ADMIN;
     const currentMember = teamMembers?.find((m: { user_id?: string }) => m.user_id === user?.id);
-    const userRole = currentMember?.role || (isOwnerByProject ? ROLES.OWNER : ROLES.VIEWER);
+    const userRole = isGlobalAdmin ? ROLES.ADMIN : currentMember?.role || (isOwnerByProject ? ROLES.OWNER : ROLES.VIEWER);
 
     const canEdit = canEditTaskContent(userRole);
     const canCreateTasks = canCreateChildTask(userRole);
     const canReorderTasks = canReorderTask(userRole);
-    const canInvite = userRole === ROLES.OWNER || userRole === ROLES.ADMIN || userRole === ROLES.EDITOR;
-    const canManageSettings = userRole === ROLES.OWNER || userRole === ROLES.ADMIN;
+    const canInvite = canManageProjectMembers(userRole);
+    const canManageSettings = canManageProjectMembers(userRole);
     const canUpdateTaskStatusForRow = useCallback(
         (task: TaskRow) => canUpdateTaskProgress(userRole, task),
         [userRole],

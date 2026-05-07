@@ -56,4 +56,32 @@ describe('ProjectHeader derived project state', () => {
         expect(container.querySelector('a[href="/tasks"]')).not.toBeNull();
         expect(container.querySelector('a[href="/dashboard"]')).toBeNull();
     });
+
+    it('shows the invite action only when member management is allowed', () => {
+        const { rerender } = render(
+            <MemoryRouter>
+                <ProjectHeader
+                    project={makeTask({ id: 'project-1', title: 'Project One' })}
+                    tasks={[]}
+                    canInvite={false}
+                    onInviteMember={() => undefined}
+                />
+            </MemoryRouter>,
+        );
+
+        expect(screen.queryByRole('button', { name: /invite/i })).not.toBeInTheDocument();
+
+        rerender(
+            <MemoryRouter>
+                <ProjectHeader
+                    project={makeTask({ id: 'project-1', title: 'Project One' })}
+                    tasks={[]}
+                    canInvite
+                    onInviteMember={() => undefined}
+                />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('button', { name: /invite/i })).toBeInTheDocument();
+    });
 });

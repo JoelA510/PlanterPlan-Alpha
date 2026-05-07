@@ -28,6 +28,7 @@ const mockSignOut = vi.fn();
 const mockUpdateUser = vi.fn();
 const mockSignInWithPassword = vi.fn();
 const mockResetPasswordForEmail = vi.fn();
+const mockFunctionsInvoke = vi.fn();
 
 vi.mock('@/shared/db/client', () => ({
   supabase: {
@@ -39,6 +40,9 @@ vi.mock('@/shared/db/client', () => ({
       updateUser: (...args: unknown[]) => mockUpdateUser(...args),
       signInWithPassword: (...args: unknown[]) => mockSignInWithPassword(...args),
       resetPasswordForEmail: (...args: unknown[]) => mockResetPasswordForEmail(...args),
+    },
+    functions: {
+      invoke: (...args: unknown[]) => mockFunctionsInvoke(...args),
     },
   },
 }));
@@ -559,17 +563,42 @@ describe('Untested methods (Category A)', () => {
     expect(chain.update).toHaveBeenCalledWith(expect.objectContaining({ primary_resource_id: 'res-1' }));
   });
 
-  it('Project.addMemberByEmail() calls rpc("add_project_member_by_email")', async () => {
-    mockRpc.mockResolvedValue({ data: { id: 'member-1' }, error: null });
-
-    const result = await planter.entities.Project.addMemberByEmail('proj-1', 'test@example.com', 'editor');
-
-    expect(mockRpc).toHaveBeenCalledWith('add_project_member_by_email', {
-      p_project_id: 'proj-1',
-      p_email: 'test@example.com',
-      p_role: 'editor',
+  it('Project.inviteMemberByEmail() invokes invite-by-email edge function', async () => {
+    mockFunctionsInvoke.mockResolvedValue({
+      data: {
+        message: 'Invite processed successfully',
+        user: { id: 'member-1', email: 'test@example.com' },
+      },
+      error: null,
     });
-    expect(result.error).toBeNull();
+
+    const result = await planter.entities.Project.inviteMemberByEmail('proj-1', 'test@example.com', 'viewer');
+
+    expect(mockFunctionsInvoke).toHaveBeenCalledWith('invite-by-email', {
+      body: {
+        projectId: 'proj-1',
+        email: 'test@example.com',
+        role: 'viewer',
+      },
+    });
+    expect(result.user.id).toBe('member-1');
+  });
+
+  it('Project.inviteMemberByEmail() surfaces sanitized edge error bodies', async () => {
+    const response = new Response(JSON.stringify({ error: 'Forbidden: only project owners can invite users.' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    mockFunctionsInvoke.mockResolvedValue({
+      data: null,
+      error: Object.assign(new Error('Edge Function returned a non-2xx status code'), { context: response }),
+    });
+
+    await expect(
+      planter.entities.Project.inviteMemberByEmail('proj-1', 'test@example.com', 'viewer'),
+    ).rejects.toMatchObject({
+      message: 'Forbidden: only project owners can invite users.',
+    });
   });
 
   it('listTemplates() applies resourceType and userId filters', async () => {

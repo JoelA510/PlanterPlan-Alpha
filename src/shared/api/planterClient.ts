@@ -14,6 +14,7 @@ import type {
     TaskRelationshipRow,
     PersonRow,
     TeamMemberRow,
+    ProjectInviteResult,
     UserMetadata,
     TaskCommentInsert,
     TaskCommentRow,
@@ -74,6 +75,28 @@ type ListTaskCommentsWithAuthorsRow =
  */
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+async function getEdgeFunctionErrorMessage(error: unknown, fallback: string): Promise<string> {
+    if (isObjectRecord(error)) {
+        const context = error.context;
+        if (context instanceof Response) {
+            try {
+                const body: unknown = await context.clone().json();
+                if (isObjectRecord(body) && typeof body.error === 'string' && body.error.length > 0) {
+                    return body.error;
+                }
+            } catch {
+                // Keep the fallback when the function did not return JSON.
+            }
+        }
+
+        if (typeof error.message === 'string' && error.message.length > 0) {
+            return error.message;
+        }
+    }
+
+    return fallback;
 }
 
 /**
@@ -294,7 +317,7 @@ interface ProjectEntityClient extends Omit<EntityClient<Project, TaskInsert, Tas
     listJoined: (userId: string) => Promise<Project[]>;
     getWithStats: (projectId: string) => Promise<{ data: Project & { children: Task[], stats: { totalTasks: number; completedTasks: number; progress: number } }, error: Error | null }>;
     addMember: (projectId: string, userId: string, role: string) => Promise<{ data: TeamMemberRow | undefined, error: Error | null }>;
-    addMemberByEmail: (projectId: string, email: string, role: string) => Promise<{ data: TeamMemberRow | undefined, error: Error | null }>;
+    inviteMemberByEmail: (projectId: string, email: string, role: string) => Promise<ProjectInviteResult>;
 }
 
 interface TaskEntityClient extends EntityClient<Task, TaskInsert, TaskUpdate> {
@@ -793,16 +816,21 @@ export const planter: PlanterClient = {
                 if (error) throw new PlanterError(error.message, error.code ?? '500');
                 return { data: (data as TeamMemberRow[])?.[0], error: null };
             },
-            addMemberByEmail: async (projectId: string, email: string, role: string): Promise<{ data: TeamMemberRow | undefined, error: Error | null }> => {
+            inviteMemberByEmail: async (projectId: string, email: string, role: string): Promise<ProjectInviteResult> => {
                 return retry(async () => {
-                    // @ts-expect-error RPC name validated at runtime
-                    const { data, error } = await supabase.rpc('add_project_member_by_email', {
-                        p_project_id: projectId,
-                        p_email: email,
-                        p_role: role,
+                    const { data, error } = await supabase.functions.invoke<ProjectInviteResult & { error?: string }>('invite-by-email', {
+                        body: { projectId, email, role },
                     });
-                    if (error) throw new PlanterError(error.message, error.code ?? '500');
-                    return { data: data as TeamMemberRow | undefined, error: null };
+                    if (error) {
+                        throw new PlanterError(
+                            await getEdgeFunctionErrorMessage(error, 'Invite failed'),
+                            400,
+                        );
+                    }
+                    if (!data || data.error) {
+                        throw new PlanterError(data?.error || 'Invite failed', 400);
+                    }
+                    return data;
                 });
             },
         },
