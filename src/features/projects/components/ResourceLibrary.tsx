@@ -105,9 +105,11 @@ export default function ResourceLibrary({ projectId }: ResourceLibraryProps) {
     const { data: resources = [], isLoading } = useProjectResources(projectId);
     const [search, setSearch] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+    const trimmedSearch = search.trim();
+    const hasActiveRefinement = activeFilter !== 'all' || trimmedSearch.length > 0;
 
     const filtered = useMemo(() => {
-        const q = search.trim().toLowerCase();
+        const q = trimmedSearch.toLowerCase();
 
         return resources.filter((r: ResourceWithTask) => {
             // Type filter
@@ -128,7 +130,7 @@ export default function ResourceLibrary({ projectId }: ResourceLibraryProps) {
 
             return true;
         });
-    }, [resources, search, activeFilter]);
+    }, [resources, trimmedSearch, activeFilter]);
 
     return (
         <div className="space-y-6">
@@ -192,7 +194,7 @@ export default function ResourceLibrary({ projectId }: ResourceLibraryProps) {
             {/* Count footer */}
             {!isLoading && filtered.length > 0 && (
                 <p className="text-xs text-slate-400 text-right">
-                    {t(activeFilter !== 'all' || search.trim()
+                    {t(hasActiveRefinement
                         ? 'projects.resources.count_matching'
                         : 'projects.resources.count_total', {
                         count: filtered.length,
