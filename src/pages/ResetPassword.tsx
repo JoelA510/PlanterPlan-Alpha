@@ -50,9 +50,12 @@ export default function ResetPassword() {
  } catch (err) {
  console.error('Error resetting password:', err);
  clearPasswordRecoverySession();
- setError(t('auth.reset_password_invalid_session'));
+ const description = err instanceof Error && err.message
+ ? err.message
+ : t('auth.reset_password_invalid_session');
+ setError(description);
  toast.error(t('auth.reset_password_failed_title'), {
- description: t('auth.reset_password_invalid_session'),
+ description,
  });
  } finally {
  setLoading(false);

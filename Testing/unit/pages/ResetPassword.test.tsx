@@ -79,10 +79,10 @@ describe('ResetPassword', () => {
     expect(mockToastError).toHaveBeenCalledWith('Could not reset password', expect.any(Object));
   });
 
-  it('surfaces invalid or expired recovery sessions', async () => {
+  it('surfaces auth errors from the recovery session', async () => {
     const user = userEvent.setup();
     markPasswordRecoverySession();
-    mockCompletePasswordReset.mockRejectedValue(new Error('Auth session missing'));
+    mockCompletePasswordReset.mockRejectedValue(new Error('Password should be at least 8 characters'));
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     renderResetPassword();
@@ -91,7 +91,7 @@ describe('ResetPassword', () => {
     await user.type(screen.getByLabelText(/^confirm password$/i), 'new-password-123');
     await user.click(screen.getByRole('button', { name: /reset password/i }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('reset link is invalid or expired');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Password should be at least 8 characters');
     expect(mockToastError).toHaveBeenCalledWith('Could not reset password', expect.any(Object));
 
     vi.mocked(console.error).mockRestore();
