@@ -143,7 +143,7 @@ export default function ProjectHeader({
                                 size="sm"
                                 aria-label={t('projects.header.invite_aria', { project: projectTitle })}
                                 onClick={onInviteMember}
-                                className="ml-2 bg-brand-500 hover:bg-brand-600 text-white"
+                                className="ml-2 bg-brand-600 hover:bg-brand-700 text-white"
                             >
                                 <Users className="w-4 h-4 mr-2" />
                                 {t('common.invite')}
