@@ -47,7 +47,7 @@
     "enter_email": "Introduce el correo electrónico"
   },
   "nav": {
-    "my_tasks": "Mis tareas",
+    "my_tasks": "Tareas",
     "reports": "Informes",
     "team": "Equipo",
     "projects": "Proyectos",
@@ -109,8 +109,8 @@
     "unexpected_error": "Se produjo un error inesperado"
   },
   "tasks": {
-    "page_title": "Mis tareas",
-    "page_subtitle": "Revisa y gestiona tus asignaciones en todos los proyectos",
+    "page_title": "Tareas",
+    "page_subtitle": "Revisa y gestiona el trabajo en todos los proyectos",
     "delete_confirm_title": "¿Eliminar \"{{title}}\"?",
     "delete_confirm_description": "Esto también elimina todas las subtareas asociadas. Esta acción no se puede deshacer.",
     "delete_success": "Tarea eliminada",
@@ -142,6 +142,12 @@
     "status_for_aria": "Estado de {{title}}",
     "title_with_project_aria": "{{title}} — {{project}}",
     "view_label": "Vista",
+    "search_label": "Buscar",
+    "search_placeholder": "Buscar tareas o proyectos…",
+    "search_aria": "Buscar tareas y proyectos",
+    "search_empty": "Ninguna tarea coincide con tu búsqueda y filtros.",
+    "clear_search": "Borrar búsqueda de tareas",
+    "result_count": "Mostrando {{shown}} de {{total}} elementos de trabajo",
     "view_list": "Vista de lista",
     "view_board": "Vista de tablero",
     "view_aria": "Vista de tareas",

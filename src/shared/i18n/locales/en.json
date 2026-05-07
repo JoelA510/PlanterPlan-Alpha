@@ -41,7 +41,7 @@
     "enter_email": "Enter email"
   },
   "nav": {
-    "my_tasks": "My Tasks",
+    "my_tasks": "Tasks",
     "reports": "Reports",
     "team": "Team",
     "projects": "Projects",
@@ -103,8 +103,8 @@
     "unexpected_error": "An unexpected error occurred"
   },
   "tasks": {
-    "page_title": "My Tasks",
-    "page_subtitle": "Review and manage your assignments across all projects",
+    "page_title": "Tasks",
+    "page_subtitle": "Review and manage work across all projects",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "delete_confirm_description": "This also deletes every subtask under it. This action cannot be undone.",
     "delete_success": "Task deleted",
@@ -136,6 +136,12 @@
     "status_for_aria": "Status for {{title}}",
     "title_with_project_aria": "{{title}} — {{project}}",
     "view_label": "View",
+    "search_label": "Search",
+    "search_placeholder": "Search tasks or projects…",
+    "search_aria": "Search tasks and projects",
+    "search_empty": "No tasks match your search and filters.",
+    "clear_search": "Clear task search",
+    "result_count": "Showing {{shown}} of {{total}} work items",
     "view_list": "List View",
     "view_board": "Board View",
     "view_aria": "Task view",
