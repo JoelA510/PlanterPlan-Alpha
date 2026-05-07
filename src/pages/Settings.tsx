@@ -205,6 +205,20 @@ export default function Settings() {
  className="space-y-4"
  >
  <div className="space-y-2">
+ <Label htmlFor="current_password" className="text-foreground">{t('settings.security.current_password_label')}</Label>
+ <Input
+ id="current_password"
+ type="password"
+ value={passwordForm.currentPassword}
+ onChange={(e) => actions.setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+ onFocus={() => { if (passwordError) actions.setPasswordError(''); }}
+ placeholder={t('settings.security.current_password_placeholder')}
+ className={`bg-background border-border ${passwordError ? 'border-destructive focus:ring-destructive' : ''}`}
+ autoComplete="current-password"
+ />
+ </div>
+
+ <div className="space-y-2">
  <Label htmlFor="new_password" className="text-foreground">{t('settings.security.new_password_label')}</Label>
  <Input
  id="new_password"
@@ -238,7 +252,7 @@ export default function Settings() {
  <div className="pt-6 border-t border-border flex justify-end">
  <Button
  type="submit"
- disabled={passwordLoading || !passwordForm.newPassword}
+ disabled={passwordLoading || !passwordForm.currentPassword || !passwordForm.newPassword}
           className="bg-brand-500 hover:bg-brand-600 text-white"
  >
  {passwordLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

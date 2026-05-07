@@ -12,6 +12,7 @@ import Project from '@/pages/Project';
 import Settings from '@/pages/Settings';
 import TasksPage from '@/pages/TasksPage';
 import LoginForm from '@/pages/components/LoginForm';
+import ResetPassword from '@/pages/ResetPassword';
 
 // Reports uses recharts (~524 KB gzipped as `charts-*.js`) — lazy so the
 // primary Tasks / Project routes don't pay the cost. Gantt + Admin are already
@@ -42,6 +43,7 @@ export default function App() {
  <Router>
  <Routes>
  <Route path="/login" element={<LoginForm />} />
+ <Route path="/reset-password" element={<ResetPassword />} />
  <Route path="/" element={<PrivateRoute><AppShellLayout /></PrivateRoute>}>
  <Route index element={<Navigate to="/tasks" replace />} />
  <Route path="dashboard" element={<Navigate to="/tasks" replace />} />
