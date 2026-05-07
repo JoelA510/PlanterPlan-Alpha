@@ -15,6 +15,9 @@ AS $$
   LIMIT 1;
 $$;
 
+REVOKE ALL ON FUNCTION public.get_user_id_by_email(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(text) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.invite_user_to_project(
   p_project_id uuid,
   p_email text,

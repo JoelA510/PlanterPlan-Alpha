@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(23);
+SELECT plan(25);
 
 TRUNCATE TABLE
     public.activity_log,
@@ -55,6 +55,16 @@ SELECT is(
     public.get_user_id_by_email('INVITE-EXISTING@EXAMPLE.COM'),
     '00000000-0000-0000-0000-000000001105'::uuid,
     'existing-user lookup is case-insensitive'
+);
+
+SELECT ok(
+    NOT has_function_privilege('authenticated', 'public.get_user_id_by_email(text)', 'EXECUTE'),
+    'authenticated users cannot execute the email lookup helper directly'
+);
+
+SELECT ok(
+    has_function_privilege('service_role', 'public.get_user_id_by_email(text)', 'EXECUTE'),
+    'service role can execute the email lookup helper for invite delivery'
 );
 
 SET LOCAL ROLE authenticated;

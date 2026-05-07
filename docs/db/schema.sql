@@ -3804,6 +3804,7 @@ GRANT ALL ON FUNCTION "public"."get_task_root_id"("p_task_id" "uuid") TO "authen
 
 
 
+REVOKE ALL ON FUNCTION "public"."get_user_id_by_email"("email" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."get_user_id_by_email"("email" "text") TO "service_role";
 
 
