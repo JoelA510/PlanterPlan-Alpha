@@ -3,6 +3,7 @@ import { supabase } from '@/shared/db/client';
 import type { Session } from '@supabase/supabase-js';
 import type { User, UserMetadata } from '@/shared/db/app.types';
 import { authApi } from '@/shared/api/auth';
+import { clearPasswordRecoverySession, markPasswordRecoverySession } from '@/shared/lib/password-recovery';
 
 interface AuthContextType {
   user: User | null;
@@ -69,9 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        clearPasswordRecoverySession();
         setUser(null);
         setLoading(false);
       } else {
+        if (event === 'PASSWORD_RECOVERY') {
+          markPasswordRecoverySession();
+        }
         handleSession(session);
       }
     });

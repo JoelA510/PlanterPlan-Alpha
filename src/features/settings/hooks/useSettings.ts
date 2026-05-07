@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { planter } from '@/shared/api/planterClient';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 export interface UserProfile {
     full_name: string;
@@ -13,12 +14,14 @@ export interface UserProfile {
 }
 
 export interface PasswordForm {
+    currentPassword: string;
     newPassword: string;
     confirmPassword: string;
 }
 
 export function useSettings() {
     const { user } = useAuth();
+    const { t } = useTranslation();
 
     const [loading, setLoading] = useState(false);
     const [avatarError, setAvatarError] = useState('');
@@ -33,6 +36,7 @@ export function useSettings() {
     });
 
     const [passwordForm, setPasswordForm] = useState<PasswordForm>({
+        currentPassword: '',
         newPassword: '',
         confirmPassword: '',
     });
@@ -83,27 +87,32 @@ export function useSettings() {
     const handlePasswordChange = async () => {
         setPasswordError('');
 
+        if (!passwordForm.currentPassword) {
+            setPasswordError(t('settings.security.current_password_required'));
+            return;
+        }
+
         if (passwordForm.newPassword.length < 8) {
-            setPasswordError('Password must be at least 8 characters');
+            setPasswordError(t('settings.security.password_min_length'));
             return;
         }
 
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            setPasswordError('Passwords do not match');
+            setPasswordError(t('settings.security.passwords_mismatch'));
             return;
         }
 
         setPasswordLoading(true);
         try {
-            await planter.auth.changePassword(passwordForm.newPassword);
-            toast.success('Password updated', {
-                description: 'Your password has been changed successfully.',
+            await planter.auth.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+            toast.success(t('settings.security.password_updated_title'), {
+                description: t('settings.security.password_updated_description'),
             });
-            setPasswordForm({ newPassword: '', confirmPassword: '' });
+            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } catch (error) {
             console.error('Error changing password:', error);
-            toast.error('Error', {
-                description: 'Failed to change password. Please try again.',
+            toast.error(t('settings.security.password_update_failed_title'), {
+                description: t('settings.security.password_update_failed_description'),
             });
         } finally {
             setPasswordLoading(false);

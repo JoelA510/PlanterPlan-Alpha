@@ -189,7 +189,9 @@ export interface PlanterClient {
         me: () => Promise<AuthUser | null>;
         signOut: () => Promise<void>;
         updateProfile: (attributes: UserMetadata) => Promise<AuthUser>;
-        changePassword: (newPassword: string) => Promise<void>;
+        changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+        requestPasswordReset: (email: string, redirectTo?: string) => Promise<void>;
+        completePasswordReset: (newPassword: string) => Promise<void>;
     };
     entities: {
         Project: ProjectEntityClient;
@@ -576,7 +578,31 @@ export const planter: PlanterClient = {
                 return data.user as AuthUser;
             });
         },
-        changePassword: async (newPassword: string): Promise<void> => {
+        changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+            return retry(async () => {
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError) throw userError;
+                const email = user?.email;
+                if (!email) throw new Error('Unable to verify current password for this account.');
+
+                const { error: signInError } = await supabase.auth.signInWithPassword({
+                    email,
+                    password: currentPassword,
+                });
+                if (signInError) throw signInError;
+
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) throw error;
+            });
+        },
+        requestPasswordReset: async (email: string, redirectTo?: string): Promise<void> => {
+            return retry(async () => {
+                const options = redirectTo ? { redirectTo } : undefined;
+                const { error } = await supabase.auth.resetPasswordForEmail(email, options);
+                if (error) throw error;
+            });
+        },
+        completePasswordReset: async (newPassword: string): Promise<void> => {
             return retry(async () => {
                 const { error } = await supabase.auth.updateUser({ password: newPassword });
                 if (error) throw error;

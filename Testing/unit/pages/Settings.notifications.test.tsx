@@ -50,7 +50,7 @@ vi.mock('@/features/settings/hooks/useSettings', () => ({
             profile: { avatar_url: '', full_name: '', role: '', organization: '', email_frequency: 'never' },
             loading: false,
             avatarError: null,
-            passwordForm: { newPassword: '', confirmPassword: '' },
+            passwordForm: { currentPassword: '', newPassword: '', confirmPassword: '' },
             passwordError: null,
             passwordLoading: false,
         },

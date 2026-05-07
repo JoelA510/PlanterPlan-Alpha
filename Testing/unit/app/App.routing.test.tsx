@@ -28,6 +28,10 @@ vi.mock('@/pages/components/LoginForm', () => ({
   default: () => <div data-testid="login-page" />,
 }));
 
+vi.mock('@/pages/ResetPassword', () => ({
+  default: () => <div data-testid="reset-password-page" />,
+}));
+
 import App from '@/app/App';
 
 describe('App routing', () => {
@@ -42,5 +46,13 @@ describe('App routing', () => {
 
     expect(await screen.findByTestId('tasks-page')).toBeInTheDocument();
     await waitFor(() => expect(window.location.pathname).toBe('/tasks'));
+  });
+
+  it('serves /reset-password as a public recovery route', async () => {
+    window.history.pushState({}, '', '/reset-password');
+
+    render(<App />);
+
+    expect(await screen.findByTestId('reset-password-page')).toBeInTheDocument();
   });
 });

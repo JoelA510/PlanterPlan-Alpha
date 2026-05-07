@@ -26,6 +26,8 @@ const mockRpc = vi.fn();
 const mockGetUser = vi.fn();
 const mockSignOut = vi.fn();
 const mockUpdateUser = vi.fn();
+const mockSignInWithPassword = vi.fn();
+const mockResetPasswordForEmail = vi.fn();
 
 vi.mock('@/shared/db/client', () => ({
   supabase: {
@@ -35,6 +37,8 @@ vi.mock('@/shared/db/client', () => ({
       getUser: (...args: unknown[]) => mockGetUser(...args),
       signOut: (...args: unknown[]) => mockSignOut(...args),
       updateUser: (...args: unknown[]) => mockUpdateUser(...args),
+      signInWithPassword: (...args: unknown[]) => mockSignInWithPassword(...args),
+      resetPasswordForEmail: (...args: unknown[]) => mockResetPasswordForEmail(...args),
     },
   },
 }));
@@ -441,6 +445,48 @@ describe('Auth', () => {
     await planter.auth.updateProfile(attrs as UserMetadata);
 
     expect(mockUpdateUser).toHaveBeenCalledWith({ data: attrs });
+  });
+
+  it('changePassword() reauthenticates with the current password before updating', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1', email: 'test@example.com' } }, error: null });
+    mockSignInWithPassword.mockResolvedValue({ data: { session: {} }, error: null });
+    mockUpdateUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+
+    await planter.auth.changePassword('old-password', 'new-password-123');
+
+    expect(mockSignInWithPassword).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'old-password',
+    });
+    expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'new-password-123' });
+  });
+
+  it('changePassword() does not update when current password verification fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1', email: 'test@example.com' } }, error: null });
+    mockSignInWithPassword.mockResolvedValue({ data: null, error: new Error('Invalid login credentials') });
+
+    await expect(planter.auth.changePassword('wrong-password', 'new-password-123'))
+      .rejects.toThrow('Invalid login credentials');
+
+    expect(mockUpdateUser).not.toHaveBeenCalled();
+  });
+
+  it('requestPasswordReset() sends Supabase recovery email with redirect URL', async () => {
+    mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+
+    await planter.auth.requestPasswordReset('test@example.com', 'https://app.example.com/reset-password');
+
+    expect(mockResetPasswordForEmail).toHaveBeenCalledWith('test@example.com', {
+      redirectTo: 'https://app.example.com/reset-password',
+    });
+  });
+
+  it('completePasswordReset() updates the password for the recovery session', async () => {
+    mockUpdateUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+
+    await planter.auth.completePasswordReset('new-password-123');
+
+    expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'new-password-123' });
   });
 });
 
