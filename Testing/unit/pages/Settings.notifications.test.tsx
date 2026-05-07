@@ -94,6 +94,16 @@ describe('Settings — Notifications tab (Wave 30)', () => {
         });
     });
 
+    it('does not label live settings tabs as coming soon', () => {
+        renderSettings();
+
+        expect(screen.getByRole('button', { name: /notifications/i })).toBeEnabled();
+        expect(screen.getByRole('button', { name: /integrations/i })).toBeEnabled();
+        expect(screen.getByRole('button', { name: /security/i })).toBeEnabled();
+        expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^soon$/i)).not.toBeInTheDocument();
+    });
+
     it('mutates when the user flips the Email Mentions switch', async () => {
         renderSettings();
         fireEvent.click(screen.getByRole('button', { name: /notifications/i }));

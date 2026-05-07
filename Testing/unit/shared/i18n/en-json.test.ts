@@ -52,6 +52,7 @@ describe('en.json', () => {
     expect(projectGantt).not.toHaveProperty('pdf_coming_soon');
     expect(JSON.stringify(projectGantt).toLowerCase()).not.toContain('coming soon');
     expect(JSON.stringify(routeGantt).toLowerCase()).not.toContain('coming soon');
+    expect(JSON.stringify(root).toLowerCase()).not.toContain('coming soon');
   });
 
   it('every plural `_one` key has a matching `_other` sibling', () => {

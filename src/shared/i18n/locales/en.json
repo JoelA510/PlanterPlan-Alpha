@@ -25,8 +25,9 @@
     "view": "View",
     "clear_search": "Clear search",
     "search": "Search",
+    "export": "Export",
+    "invite": "Invite",
     "working": "Working…",
-    "soon": "Soon",
     "off": "Off",
     "daily": "Daily",
     "weekly": "Weekly",
@@ -59,6 +60,8 @@
     "current_project_heading": "Current Project",
     "view_project": "View Project →",
     "user_fallback": "User",
+    "command_title": "Command palette",
+    "command_description": "Search commands and projects.",
     "command_placeholder": "Type a command or search…",
     "command_empty": "No results found.",
     "command_suggestions": "Suggestions",
@@ -421,6 +424,19 @@
     "invalid_task_hierarchy_drop": "Subtasks cannot contain child tasks. Move the parent task first.",
     "search_template_phase_placeholder": "Search for a template phase to copy",
     "search_template_task_placeholder": "Start typing to copy an existing template task",
+    "header": {
+      "open_command_palette": "Open command palette",
+      "settings_aria": "Open settings for {{project}}",
+      "export_aria": "Export {{project}} as CSV",
+      "reports_aria": "Open reports for {{project}}",
+      "team_aria": "Open team roster for {{project}}",
+      "invite_aria": "Invite a member to {{project}}",
+      "export_fallback_name": "Project",
+      "launch_date": "Launch: {{date}}",
+      "team_members_one": "{{count}} team member",
+      "team_members_other": "{{count}} team members",
+      "progress_complete": "{{progress}}% complete"
+    },
     "derived_state": {
       "archived": "Archived",
       "complete": "Complete",
@@ -667,7 +683,12 @@
       "locale_review_required_note": "Human review required before marketing or launch claims.",
       "email_preferences_heading": "Email Preferences",
       "weekly_digest": "Weekly Digest",
-      "weekly_digest_description": "Get a summary of your tasks every Monday"
+      "weekly_digest_description": "Get a summary of your tasks every Monday",
+      "avatar_url_invalid": "Please enter a valid URL (https://...)",
+      "save_success_title": "Settings saved",
+      "save_success_description": "Your profile has been updated successfully.",
+      "save_failed_title": "Error",
+      "save_failed_description": "Failed to update settings. Please try again."
     },
     "security": {
       "change_password_heading": "Change Password",

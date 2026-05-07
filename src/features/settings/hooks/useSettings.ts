@@ -71,13 +71,13 @@ export function useSettings() {
                 email_frequency: profile.email_frequency,
             });
 
-            toast.success("Settings saved", {
-                description: "Your profile has been updated successfully.",
+            toast.success(t('settings.profile.save_success_title'), {
+                description: t('settings.profile.save_success_description'),
             });
         } catch (error) {
             console.error('Error updating profile:', error);
-            toast.error("Error", {
-                description: "Failed to update settings. Please try again.",
+            toast.error(t('settings.profile.save_failed_title'), {
+                description: t('settings.profile.save_failed_description'),
             });
         } finally {
             setLoading(false);
@@ -121,7 +121,7 @@ export function useSettings() {
 
     const validateAvatarUrl = (url: string) => {
         if (url && !url.match(/^https?:\/\/.+/)) {
-            setAvatarError('Please enter a valid URL (https://...)');
+            setAvatarError(t('settings.profile.avatar_url_invalid'));
         } else {
             setAvatarError('');
         }

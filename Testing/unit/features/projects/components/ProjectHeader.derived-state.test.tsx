@@ -84,4 +84,52 @@ describe('ProjectHeader derived project state', () => {
 
         expect(screen.getByRole('button', { name: /invite/i })).toBeInTheDocument();
     });
+
+    it('renders live project actions and metadata without dead-route controls', () => {
+        const project = makeTask({
+            id: 'project-1',
+            title: 'Project One',
+            due_date: '2026-07-04',
+        });
+        const tasks = [
+            makeTask({ id: 'task-1', status: 'completed', is_complete: true }),
+            makeTask({ id: 'task-2', status: 'not_started', is_complete: false }),
+        ];
+
+        const { container } = render(
+            <MemoryRouter>
+                <ProjectHeader
+                    project={project}
+                    tasks={tasks}
+                    teamMembers={[
+                        {
+                            id: 'member-1',
+                            project_id: 'project-1',
+                            user_id: 'user-1',
+                            role: 'owner',
+                            joined_at: '2026-01-01T00:00:00Z',
+                            email: 'owner@example.com',
+                            first_name: 'Owner',
+                            last_name: 'User',
+                            display_name: 'Owner User',
+                            avatar_url: null,
+                        },
+                    ]}
+                    canManageSettings
+                    canInvite
+                    onInviteMember={() => undefined}
+                />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('button', { name: /open command palette/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /open settings for project one/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /export project one as csv/i })).toBeInTheDocument();
+        expect(container.querySelector('a[href="/reports?project=project-1"]')).not.toBeNull();
+        expect(container.querySelector('a[href="/team?project=project-1"]')).not.toBeNull();
+        expect(screen.getByRole('button', { name: /invite a member to project one/i })).toBeInTheDocument();
+        expect(screen.getByText(/1 team member/i)).toBeInTheDocument();
+        expect(screen.getByText(/50% complete/i)).toBeInTheDocument();
+        expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    });
 });
