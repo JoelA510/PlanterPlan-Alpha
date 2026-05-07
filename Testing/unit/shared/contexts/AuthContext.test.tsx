@@ -34,6 +34,7 @@ vi.mock('@/shared/api/auth', () => ({
 }));
 
 import { AuthProvider, useAuth } from '@/shared/contexts/AuthContext';
+import { hasPasswordRecoverySession } from '@/shared/lib/password-recovery';
 
 // Test consumer component that renders auth state
 function AuthConsumer() {
@@ -140,6 +141,24 @@ describe('AuthContext', () => {
       await waitFor(() => {
         expect(screen.getByTestId('loading').textContent).toBe('false');
         expect(screen.getByTestId('user').textContent).toBe('null');
+      });
+    });
+
+    it('marks recovery sessions and clears them on sign-out', async () => {
+      render(
+        <AuthProvider><AuthConsumer /></AuthProvider>,
+      );
+
+      act(() => { authStateCallback?.('PASSWORD_RECOVERY', fakeSession()); });
+
+      await waitFor(() => {
+        expect(hasPasswordRecoverySession()).toBe(true);
+      });
+
+      act(() => { authStateCallback?.('SIGNED_OUT', null); });
+
+      await waitFor(() => {
+        expect(hasPasswordRecoverySession()).toBe(false);
       });
     });
   });

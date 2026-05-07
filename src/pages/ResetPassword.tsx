@@ -7,6 +7,7 @@ import { planter } from '@/shared/api/planterClient';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { clearPasswordRecoverySession, hasPasswordRecoverySession } from '@/shared/lib/password-recovery';
 
 export default function ResetPassword() {
  const { t } = useTranslation();
@@ -19,6 +20,14 @@ export default function ResetPassword() {
  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
  event.preventDefault();
  setError('');
+
+ if (!hasPasswordRecoverySession()) {
+ setError(t('auth.reset_password_invalid_session'));
+ toast.error(t('auth.reset_password_failed_title'), {
+ description: t('auth.reset_password_invalid_session'),
+ });
+ return;
+ }
 
  if (newPassword.length < 8) {
  setError(t('auth.reset_password_min_length'));
@@ -33,12 +42,14 @@ export default function ResetPassword() {
  setLoading(true);
  try {
  await planter.auth.completePasswordReset(newPassword);
+ clearPasswordRecoverySession();
  toast.success(t('auth.reset_password_success_title'), {
  description: t('auth.reset_password_success_description'),
  });
  navigate('/login');
  } catch (err) {
  console.error('Error resetting password:', err);
+ clearPasswordRecoverySession();
  setError(t('auth.reset_password_invalid_session'));
  toast.error(t('auth.reset_password_failed_title'), {
  description: t('auth.reset_password_invalid_session'),
