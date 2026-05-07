@@ -32,6 +32,10 @@ vi.mock('@/pages/ResetPassword', () => ({
   default: () => <div data-testid="reset-password-page" />,
 }));
 
+vi.mock('@/pages/Team', () => ({
+  default: () => <div data-testid="team-page" />,
+}));
+
 import App from '@/app/App';
 
 describe('App routing', () => {
@@ -54,5 +58,13 @@ describe('App routing', () => {
     render(<App />);
 
     expect(await screen.findByTestId('reset-password-page')).toBeInTheDocument();
+  });
+
+  it('serves /team as an authenticated roster route', async () => {
+    window.history.pushState({}, '', '/team?project=proj-1');
+
+    render(<App />);
+
+    expect(await screen.findByTestId('team-page')).toBeInTheDocument();
   });
 });

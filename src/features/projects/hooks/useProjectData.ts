@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { planter } from '@/shared/api/planterClient';
 import { STALE_TIMES } from '@/shared/lib/react-query-config';
-import type { HierarchyTask, Project, TeamMemberRow } from '@/shared/db/app.types';
+import type { HierarchyTask, Project, TeamMemberWithProfile } from '@/shared/db/app.types';
 
 interface UseProjectDataReturn {
     project: Project | undefined;
@@ -13,7 +13,7 @@ interface UseProjectDataReturn {
     phases: HierarchyTask[];
     milestones: HierarchyTask[];
     tasks: HierarchyTask[];
-    teamMembers: TeamMemberRow[];
+    teamMembers: TeamMemberWithProfile[];
     /** Manually retry the failed project-metadata query (used by the error-card CTA). */
     refetchProject: () => void;
 }
@@ -73,9 +73,9 @@ export function useProjectData(projectId: string | null | undefined): UseProject
     }, [projectHierarchy, projectId]);
 
     // 3. Fetch Team Members
-    const { data: teamMembers = [] } = useQuery<TeamMemberRow[]>({
+    const { data: teamMembers = [] } = useQuery<TeamMemberWithProfile[]>({
         queryKey: ['teamMembers', projectId],
-        queryFn: () => planter.entities.TeamMember.filter({ project_id: projectId! }),
+        queryFn: () => planter.entities.TeamMember.listByProjectWithProfiles(projectId!),
         enabled: !!projectId,
         staleTime: STALE_TIMES.medium,
     });

@@ -5,6 +5,8 @@ Feature: Release critical regression coverage
 
   Scenario: Completion cascade, rollups, phase unlock, and write guardrails
     Given a release regression project tree exists
+    When the signed-in release user opens the team roster route
+    Then the team roster route shows the project member profile
     When the user completes a parent task with an open subtask through the UI
     Then the parent, child, rollup, and dependent phase states are persisted correctly
     When invalid release hierarchy and date-envelope writes are attempted through Supabase

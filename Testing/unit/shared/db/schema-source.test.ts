@@ -39,10 +39,26 @@ describe('docs/db/schema.sql source of truth', () => {
    'CREATE OR REPLACE FUNCTION "public"."enforce_ics_feed_token_update_scope"',
    'CREATE OR REPLACE TRIGGER "trg_enforce_ics_feed_token_update_scope"',
    'CREATE OR REPLACE FUNCTION "public"."list_task_comments_with_authors"',
+   'CREATE OR REPLACE FUNCTION "public"."list_project_members_with_profiles"',
    'CREATE INDEX "idx_tasks_cloned_from_task_id"',
   ].forEach((needle) => {
    expect(schema).toContain(needle);
   });
+ });
+
+ it('keeps team member profile hydration gated in Postgres', () => {
+  const rpcStart = schema.indexOf('CREATE OR REPLACE FUNCTION "public"."list_project_members_with_profiles"');
+  const rpcEnd = schema.indexOf('ALTER FUNCTION "public"."list_project_members_with_profiles"');
+  const rpcSql = schema.slice(rpcStart, rpcEnd);
+
+  expect(rpcStart).toBeGreaterThanOrEqual(0);
+  expect(rpcEnd).toBeGreaterThan(rpcStart);
+  expect(rpcSql).toContain('public.is_admin(v_actor_id)');
+  expect(rpcSql).toContain('FROM public.project_members pm');
+  expect(rpcSql).toContain('LEFT JOIN auth.users u ON u.id = pm.user_id');
+  expect(rpcSql).toContain('unauthorized: project membership required');
+  expect(schema).toContain('GRANT ALL ON FUNCTION "public"."list_project_members_with_profiles"("p_project_id" "uuid") TO "authenticated";');
+  expect(schema).toContain('CREATE POLICY "members_delete_policy" ON "public"."project_members" FOR DELETE USING ((("user_id" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."is_admin"');
  });
 
  it('keeps only the hardened timestamptz clone_project_template overload', () => {

@@ -1484,6 +1484,21 @@ export type Database = {
           updated_at: string
         }[]
       }
+      list_project_members_with_profiles: {
+        Args: { p_project_id: string }
+        Returns: {
+          avatar_url: string | null
+          display_name: string | null
+          email: string | null
+          first_name: string | null
+          id: string
+          joined_at: string | null
+          last_name: string | null
+          project_id: string
+          role: string
+          user_id: string
+        }[]
+      }
       rag_get_project_context: {
         Args: { p_limit?: number; p_project_id: string }
         Returns: Json

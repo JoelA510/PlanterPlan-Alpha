@@ -14,6 +14,7 @@ import type {
     TaskRelationshipRow,
     PersonRow,
     TeamMemberRow,
+    TeamMemberWithProfile,
     ProjectInviteResult,
     UserMetadata,
     TaskCommentInsert,
@@ -65,6 +66,8 @@ export class PlanterError extends Error {
 
 type ListTaskCommentsWithAuthorsRow =
     Database['public']['Functions']['list_task_comments_with_authors']['Returns'][number];
+type ListProjectMembersWithProfilesRow =
+    Database['public']['Functions']['list_project_members_with_profiles']['Returns'][number];
 
 /**
  * Narrow an unknown value to a plain object record before reading hydrated DTO
@@ -207,6 +210,21 @@ function commentRowWithoutHydratedAuthor(row: TaskCommentRow): TaskCommentWithAu
     return { ...row, author: null };
 }
 
+function normalizeTeamMemberWithProfile(row: ListProjectMembersWithProfilesRow): TeamMemberWithProfile {
+    return {
+        id: row.id,
+        project_id: row.project_id,
+        user_id: row.user_id,
+        role: row.role,
+        joined_at: row.joined_at,
+        email: row.email,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        display_name: row.display_name,
+        avatar_url: row.avatar_url,
+    };
+}
+
 export interface PlanterClient {
     auth: {
         me: () => Promise<AuthUser | null>;
@@ -228,7 +246,7 @@ export interface PlanterClient {
             listAllVisibleTemplates: (viewerId?: string) => Promise<Task[]>;
         };
         TaskResource: TaskResourceEntityClient;
-        TeamMember: EntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>;
+        TeamMember: TeamMemberEntityClient;
         Person: EntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>;
         TaskComment: TaskCommentEntityClient;
         ActivityLog: ActivityLogEntityClient;
@@ -309,6 +327,10 @@ interface EntityClient<T, TInsert, TUpdate> {
 interface TaskResourceEntityClient extends EntityClient<TaskResourceRow, Database['public']['Tables']['task_resources']['Insert'], Database['public']['Tables']['task_resources']['Update']> {
     setPrimary: (taskId: string, resourceId: string | null) => Promise<void>;
     listByProject: (projectId: string, options?: { signal?: AbortSignal }) => Promise<ResourceWithTask[]>;
+}
+
+interface TeamMemberEntityClient extends EntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']> {
+    listByProjectWithProfiles: (projectId: string) => Promise<TeamMemberWithProfile[]>;
 }
 
 interface ProjectEntityClient extends Omit<EntityClient<Project, TaskInsert, TaskUpdate>, 'create' | 'listByCreator'> {
@@ -1241,7 +1263,19 @@ export const planter: PlanterClient = {
                 },
             };
         })(),
-        TeamMember: createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
+        TeamMember: {
+            ...createEntityClient<TeamMemberRow, Database['public']['Tables']['project_members']['Insert'], Database['public']['Tables']['project_members']['Update']>('project_members'),
+            listByProjectWithProfiles: async (projectId: string): Promise<TeamMemberWithProfile[]> => {
+                return retry(async () => {
+                    const { data, error } = await supabase
+                        .rpc('list_project_members_with_profiles', {
+                            p_project_id: projectId,
+                        });
+                    if (error) throw new PlanterError(error.message, error.code ?? '500');
+                    return (data ?? []).map(normalizeTeamMemberWithProfile);
+                });
+            },
+        },
         Person: createEntityClient<PersonRow, Database['public']['Tables']['people']['Insert'], Database['public']['Tables']['people']['Update']>('people'),
 
         // -----------------------------------------------------------------
