@@ -19,6 +19,7 @@ import ResetPassword from '@/pages/ResetPassword';
 // lazy for the same reason.
 const Reports = lazy(() => import('@/pages/Reports'));
 const Gantt = lazy(() => import('@/pages/Gantt'));
+const Team = lazy(() => import('@/pages/Team'));
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
 const AdminHome = lazy(() => import('@/pages/admin/AdminHome'));
 const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
@@ -56,6 +57,10 @@ export default function App() {
  <Route path="Project/:projectId" element={<Project />} />
  <Route path="Project" element={<Project />} />
  <Route path="tasks" element={<TasksPage />} />
+ <Route
+ path="team"
+ element={<Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading team…</div>}><Team /></Suspense>}
+ />
  <Route path="daily" element={<Navigate to="/tasks" replace />} />
  <Route path="settings" element={<Settings />} />
  <Route

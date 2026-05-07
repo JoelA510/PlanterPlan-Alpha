@@ -289,6 +289,35 @@ describe('Project entity', () => {
     expect(mockFrom).toHaveBeenCalledWith('project_members');
     expect(chain.insert).toHaveBeenCalledWith(member);
   });
+
+  it('TeamMember.listByProjectWithProfiles() calls the profile hydration RPC', async () => {
+    mockRpc.mockResolvedValue({
+      data: [
+        {
+          id: 'm1',
+          project_id: 'proj-1',
+          user_id: 'user-2',
+          role: 'editor',
+          joined_at: '2026-05-07T00:00:00Z',
+          email: 'editor@example.com',
+          first_name: 'Ed',
+          last_name: 'Itor',
+          display_name: 'Ed Itor',
+          avatar_url: null,
+        },
+      ],
+      error: null,
+    });
+
+    const result = await planter.entities.TeamMember.listByProjectWithProfiles('proj-1');
+
+    expect(mockRpc).toHaveBeenCalledWith('list_project_members_with_profiles', { p_project_id: 'proj-1' });
+    expect(result[0]).toMatchObject({
+      id: 'm1',
+      email: 'editor@example.com',
+      display_name: 'Ed Itor',
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

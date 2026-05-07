@@ -2104,6 +2104,108 @@ ALTER FUNCTION "public"."invite_user_to_project"("p_project_id" "uuid", "p_email
 COMMENT ON FUNCTION "public"."invite_user_to_project"("p_project_id" "uuid", "p_email" "text", "p_role" "text") IS 'Owner/admin-only invite RPC. Editors retain task-edit rights but cannot invite or manage project members.';
 
 
+CREATE OR REPLACE FUNCTION "public"."list_project_members_with_profiles"("p_project_id" "uuid") RETURNS TABLE("id" "uuid", "project_id" "uuid", "user_id" "uuid", "role" "text", "joined_at" timestamp with time zone, "email" "text", "first_name" "text", "last_name" "text", "display_name" "text", "avatar_url" "text")
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_authorized boolean;
+BEGIN
+  IF p_project_id IS NULL THEN
+    RAISE EXCEPTION 'project_id is required';
+  END IF;
+
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'unauthorized: authentication required';
+  END IF;
+
+  SELECT
+    public.is_admin(v_actor_id)
+    OR EXISTS (
+      SELECT 1
+      FROM public.project_members pm
+      WHERE pm.project_id = p_project_id
+        AND pm.user_id = v_actor_id
+    )
+  INTO v_authorized;
+
+  IF NOT COALESCE(v_authorized, false) THEN
+    RAISE EXCEPTION 'unauthorized: project membership required';
+  END IF;
+
+  RETURN QUERY
+  WITH hydrated AS (
+    SELECT
+      pm.id,
+      pm.project_id,
+      pm.user_id,
+      pm.role,
+      pm.joined_at,
+      u.email::text AS email,
+      COALESCE(
+        NULLIF(btrim(u.raw_user_meta_data ->> 'full_name'), ''),
+        NULLIF(btrim(u.raw_user_meta_data ->> 'name'), '')
+      ) AS full_name,
+      NULLIF(btrim(u.raw_user_meta_data ->> 'first_name'), '') AS meta_first_name,
+      NULLIF(btrim(u.raw_user_meta_data ->> 'last_name'), '') AS meta_last_name,
+      NULLIF(btrim(u.raw_user_meta_data ->> 'avatar_url'), '') AS avatar_url
+    FROM public.project_members pm
+    LEFT JOIN auth.users u ON u.id = pm.user_id
+    WHERE pm.project_id = p_project_id
+  ),
+  normalized AS (
+    SELECT
+      hydrated.id,
+      hydrated.project_id,
+      hydrated.user_id,
+      hydrated.role,
+      hydrated.joined_at,
+      hydrated.email,
+      COALESCE(
+        hydrated.meta_first_name,
+        NULLIF(split_part(COALESCE(hydrated.full_name, ''), ' ', 1), '')
+      ) AS first_name,
+      COALESCE(
+        hydrated.meta_last_name,
+        NULLIF(btrim(regexp_replace(COALESCE(hydrated.full_name, ''), '^[^[:space:]]+[[:space:]]*', '')), '')
+      ) AS last_name,
+      COALESCE(hydrated.full_name, hydrated.email, hydrated.user_id::text) AS display_name,
+      hydrated.avatar_url
+    FROM hydrated
+  )
+  SELECT
+    normalized.id,
+    normalized.project_id,
+    normalized.user_id,
+    normalized.role,
+    normalized.joined_at,
+    normalized.email,
+    normalized.first_name,
+    normalized.last_name,
+    normalized.display_name,
+    normalized.avatar_url
+  FROM normalized
+  ORDER BY
+    CASE normalized.role
+      WHEN 'owner' THEN 0
+      WHEN 'editor' THEN 1
+      WHEN 'coach' THEN 2
+      WHEN 'viewer' THEN 3
+      WHEN 'limited' THEN 4
+      ELSE 5
+    END,
+    lower(COALESCE(normalized.display_name, normalized.email, normalized.user_id::text));
+END;
+$$;
+
+
+ALTER FUNCTION "public"."list_project_members_with_profiles"("p_project_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."list_project_members_with_profiles"("p_project_id" "uuid") IS 'Project-member/admin gated roster reader that hydrates safe auth.users profile fields for team UI labels.';
+
+
 CREATE OR REPLACE FUNCTION "public"."is_active_member"("p_project_id" "uuid", "p_user_id" "uuid") RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -3562,7 +3664,7 @@ ALTER TABLE "public"."admin_users" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."ics_feed_tokens" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "members_delete_policy" ON "public"."project_members" FOR DELETE USING ((("user_id" = ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid")) OR "public"."check_project_ownership_by_role"("project_id", ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"))));
+CREATE POLICY "members_delete_policy" ON "public"."project_members" FOR DELETE USING ((("user_id" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid")) OR "public"."check_project_ownership_by_role"("project_id", ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
@@ -3739,6 +3841,10 @@ GRANT ALL ON FUNCTION "public"."log_comment_change"() TO "authenticated";
 
 REVOKE ALL ON FUNCTION "public"."list_task_comments_with_authors"("p_task_id" "uuid", "p_comment_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."list_task_comments_with_authors"("p_task_id" "uuid", "p_comment_id" "uuid") TO "authenticated";
+
+
+REVOKE ALL ON FUNCTION "public"."list_project_members_with_profiles"("p_project_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."list_project_members_with_profiles"("p_project_id" "uuid") TO "authenticated";
 
 
 

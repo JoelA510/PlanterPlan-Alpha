@@ -451,6 +451,37 @@
       "role_editor": "Editor (puede editar tareas)",
       "role_limited": "Limitado (solo tareas asignadas)"
     },
+    "team_page": {
+      "title": "Equipo",
+      "title_with_project": "Equipo de {{project}}",
+      "subtitle": "Revisa el acceso, los roles y los detalles del equipo del proyecto.",
+      "project_label": "Proyecto",
+      "project_placeholder": "Selecciona un proyecto…",
+      "untitled_project": "Proyecto sin título",
+      "add_member": "Añadir miembro",
+      "add_first_member": "Añadir primer miembro",
+      "select_heading": "Selecciona un proyecto",
+      "select_description": "Elige un proyecto para ver su equipo.",
+      "empty_heading": "Crea tu equipo",
+      "empty_description": "Aún no hay miembros asignados a este proyecto.",
+      "unknown_member": "Miembro desconocido",
+      "email_unavailable": "Correo no disponible",
+      "joined_known": "Se unió el {{date}}",
+      "joined_unknown": "Fecha de incorporación no disponible",
+      "remove_member_aria": "Quitar {{name}}",
+      "remove_confirm_title": "¿Quitar a {{name}}?",
+      "remove_confirm_description": "Esto quita al miembro del proyecto. Su actividad histórica en tareas y comentarios se conserva.",
+      "remove_success": "Miembro quitado correctamente",
+      "remove_failed": "No se pudo quitar el miembro",
+      "project_required": "Selecciona un proyecto antes de invitar a un miembro.",
+      "roles": {
+        "owner": "Propietario",
+        "editor": "Editor",
+        "coach": "Coach",
+        "viewer": "Observador",
+        "limited": "Limitado"
+      }
+    },
     "edit_modal": {
       "title": "Configuración del proyecto",
       "description": "Actualiza la configuración, el estado y los ajustes del proyecto. Las acciones destructivas están en la Zona de peligro.",

@@ -302,6 +302,19 @@ Given('a release regression project tree exists', async ({ page }) => {
   stateByPage.set(page, { owner, ids });
 });
 
+When('the signed-in release user opens the team roster route', async ({ page }) => {
+  const state = requireState(page);
+  await page.goto(`/team?project=${state.ids.projectId}`);
+});
+
+Then('the team roster route shows the project member profile', async ({ page }) => {
+  const state = requireState(page);
+  await expect(page.getByRole('heading', { name: new RegExp(`Release Regression Project .* Team`) })).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.locator('[data-testid="team-member-card"]').filter({ hasText: state.owner.email }).first(),
+  ).toBeVisible();
+});
+
 When('the user completes a parent task with an open subtask through the UI', async ({ page }) => {
   const state = requireState(page);
   await page.goto(`/project/${state.ids.projectId}`);

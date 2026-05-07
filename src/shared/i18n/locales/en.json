@@ -445,6 +445,37 @@
       "role_editor": "Editor (Can edit tasks)",
       "role_limited": "Limited (Assigned tasks only)"
     },
+    "team_page": {
+      "title": "Team",
+      "title_with_project": "{{project}} Team",
+      "subtitle": "Review project access, roles, and roster details.",
+      "project_label": "Project",
+      "project_placeholder": "Select a project…",
+      "untitled_project": "Untitled project",
+      "add_member": "Add Member",
+      "add_first_member": "Add First Member",
+      "select_heading": "Select a project",
+      "select_description": "Choose a project to view its roster.",
+      "empty_heading": "Build your team",
+      "empty_description": "No members are assigned to this project yet.",
+      "unknown_member": "Unknown member",
+      "email_unavailable": "Email unavailable",
+      "joined_known": "Joined {{date}}",
+      "joined_unknown": "Join date unavailable",
+      "remove_member_aria": "Remove {{name}}",
+      "remove_confirm_title": "Remove {{name}}?",
+      "remove_confirm_description": "This removes the member from the project. Their historical task and comment activity remains intact.",
+      "remove_success": "Member removed successfully",
+      "remove_failed": "Failed to remove member",
+      "project_required": "Select a project before inviting a member.",
+      "roles": {
+        "owner": "Owner",
+        "editor": "Editor",
+        "coach": "Coach",
+        "viewer": "Viewer",
+        "limited": "Limited"
+      }
+    },
     "edit_modal": {
       "title": "Project Settings",
       "description": "Update project settings, status, and configuration. Destructive actions are in the Danger Zone below.",
