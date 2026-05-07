@@ -2040,43 +2040,31 @@ DECLARE
   v_token uuid;
   v_inviter_role text;
   v_is_admin boolean;
+  v_email text;
 BEGIN
-  -- Check if user is admin
+  v_email := lower(trim(p_email));
+  IF v_email IS NULL OR v_email = '' THEN
+    RAISE EXCEPTION 'Invalid email';
+  END IF;
+
+  IF p_role IS NULL OR p_role NOT IN ('owner', 'editor', 'coach', 'viewer', 'limited') THEN
+    RAISE EXCEPTION 'Invalid role';
+  END IF;
+
   v_is_admin := public.is_admin(auth.uid());
 
-  -- Get Inviter's Role
   SELECT role INTO v_inviter_role
   FROM public.project_members
   WHERE project_id = p_project_id
-  AND user_id = auth.uid();
+    AND user_id = auth.uid();
 
-  -- 1. Authorization Gate
-  IF v_inviter_role IS NULL OR (v_inviter_role NOT IN ('owner', 'editor') AND NOT v_is_admin) THEN
-    RAISE EXCEPTION 'Access denied: You must be an owner or editor to invite members.';
+  IF NOT v_is_admin AND v_inviter_role IS DISTINCT FROM 'owner' THEN
+    RAISE EXCEPTION 'Forbidden: only project owners can invite users.';
   END IF;
 
-  -- 2. Privilege Escalation Check (Editor cannot invite Owner)
-  IF v_inviter_role = 'editor' AND p_role = 'owner' THEN
-     RAISE EXCEPTION 'Access denied: Editors cannot assign the Owner role.';
-  END IF;
-
-  SELECT id INTO v_user_id FROM auth.users WHERE email = p_email;
+  SELECT id INTO v_user_id FROM auth.users WHERE lower(email) = v_email;
 
   IF v_user_id IS NOT NULL THEN
-    -- Existing User Logic
-
-    -- 3. Update Protection (Editor cannot change an existing Owner's role)
-    IF v_inviter_role = 'editor' THEN
-        IF EXISTS (
-            SELECT 1 FROM public.project_members
-            WHERE project_id = p_project_id
-            AND user_id = v_user_id
-            AND role = 'owner'
-        ) THEN
-            RAISE EXCEPTION 'Access denied: Editors cannot modify an Owner.';
-        END IF;
-    END IF;
-
     INSERT INTO public.project_members (project_id, user_id, role)
     VALUES (p_project_id, v_user_id, p_role)
     ON CONFLICT (project_id, user_id) DO UPDATE
@@ -2086,25 +2074,28 @@ BEGIN
       'status', 'added',
       'user_id', v_user_id
     );
-  ELSE
-    -- Non-existing User (Invite) Logic
-    INSERT INTO public.project_invites (project_id, email, role)
-    VALUES (p_project_id, p_email, p_role)
-    ON CONFLICT (project_id, email) DO UPDATE
-    SET role = EXCLUDED.role, expires_at = (now() + interval '7 days')
-    RETURNING id, token INTO v_invite_id, v_token;
-
-    RETURN jsonb_build_object(
-      'status', 'invited',
-      'invite_id', v_invite_id,
-      'token', v_token
-    );
   END IF;
+
+  INSERT INTO public.project_invites (project_id, email, role)
+  VALUES (p_project_id, v_email, p_role)
+  ON CONFLICT (project_id, email) DO UPDATE
+  SET role = EXCLUDED.role,
+      expires_at = (now() + interval '7 days')
+  RETURNING id, token INTO v_invite_id, v_token;
+
+  RETURN jsonb_build_object(
+    'status', 'invited',
+    'invite_id', v_invite_id,
+    'token', v_token
+  );
 END;
 $$;
 
 
 ALTER FUNCTION "public"."invite_user_to_project"("p_project_id" "uuid", "p_email" "text", "p_role" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."invite_user_to_project"("p_project_id" "uuid", "p_email" "text", "p_role" "text") IS 'Owner/admin-only invite RPC. Editors retain task-edit rights but cannot invite or manage project members.';
 
 
 CREATE OR REPLACE FUNCTION "public"."is_active_member"("p_project_id" "uuid", "p_user_id" "uuid") RETURNS boolean
@@ -3409,11 +3400,11 @@ CREATE POLICY "Comments update by author" ON "public"."task_comments" FOR UPDATE
 
 
 
-CREATE POLICY "Create invites for project members" ON "public"."project_invites" FOR INSERT WITH CHECK (("public"."is_admin"(( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid")) OR "public"."has_project_role"("project_id", ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"), ARRAY['owner'::"text"]) OR ("public"."has_project_role"("project_id", ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"), ARRAY['editor'::"text"]) AND ("role" <> 'owner'::"text"))));
+CREATE POLICY "Create invites for project owners" ON "public"."project_invites" FOR INSERT WITH CHECK (("public"."is_admin"(( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid")) OR "public"."has_project_role"("project_id", ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"), ARRAY['owner'::"text"])));
 
 
 
-CREATE POLICY "Delete invites for project members" ON "public"."project_invites" FOR DELETE USING (("public"."has_project_role"("project_id", ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"(( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"))));
+CREATE POLICY "Delete invites for project owners" ON "public"."project_invites" FOR DELETE USING (("public"."has_project_role"("project_id", ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"), ARRAY['owner'::"text"]) OR "public"."is_admin"(( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"))));
 
 
 
@@ -3534,7 +3525,7 @@ CREATE POLICY "Users can view their own ICS tokens" ON "public"."ics_feed_tokens
 
 
 
-CREATE POLICY "View invites for project members" ON "public"."project_invites" FOR SELECT USING (("public"."has_project_role"("project_id", ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"), ARRAY['owner'::"text", 'editor'::"text"]) OR "public"."is_admin"(( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"))));
+CREATE POLICY "View invites for project owners" ON "public"."project_invites" FOR SELECT USING (("public"."has_project_role"("project_id", ( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"), ARRAY['owner'::"text"]) OR "public"."is_admin"(( SELECT (("auth"."jwt"() ->> 'sub'::"text"))::"uuid" AS "uuid"))));
 
 
 
@@ -3772,6 +3763,11 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."ics_feed_tokens" TO "servic
 
 GRANT SELECT ON TABLE "public"."notification_log" TO "authenticated";
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."notification_log" TO "service_role";
+
+
+
+GRANT SELECT,INSERT,DELETE ON TABLE "public"."project_invites" TO "authenticated";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."project_invites" TO "service_role";
 
 
 
