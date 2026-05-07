@@ -29,7 +29,7 @@ const mockUser = {
   },
 };
 
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
 

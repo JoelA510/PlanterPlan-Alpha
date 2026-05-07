@@ -10,7 +10,7 @@ import CreateTemplateModal from '@/features/library/components/CreateTemplateMod
 import useMasterLibrarySearch from '@/features/library/hooks/useMasterLibrarySearch';
 import { useCreateTemplate } from '@/features/library/hooks/useTemplateMutations';
 import { useCreateProject } from '@/features/projects/hooks/useProjectMutations';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 
 /**
  * Reads a non-empty query parameter.

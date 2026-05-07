@@ -33,7 +33,8 @@ vi.mock('@/shared/api/auth', () => ({
   },
 }));
 
-import { AuthProvider, useAuth } from '@/shared/contexts/AuthContext';
+import { AuthProvider } from '@/shared/contexts/AuthContext';
+import { requireAuthContext, useAuth } from '@/shared/contexts/auth-context';
 import { hasPasswordRecoverySession } from '@/shared/lib/password-recovery';
 
 // Test consumer component that renders auth state
@@ -81,11 +82,9 @@ describe('AuthContext', () => {
 
   describe('useAuth', () => {
     it('throws when used outside AuthProvider', () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      expect(() => render(React.createElement(AuthConsumer))).toThrow(
+      expect(() => requireAuthContext(null)).toThrow(
         'useAuth must be used within an AuthProvider',
       );
-      consoleSpy.mockRestore();
     });
   });
 

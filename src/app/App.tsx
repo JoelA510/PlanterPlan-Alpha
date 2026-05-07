@@ -4,7 +4,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'sonner';
 import { I18nextProvider } from 'react-i18next';
 import { i18n } from '@/shared/i18n';
-import { AuthProvider, useAuth } from '@/shared/contexts/AuthContext';
+import { AuthProvider } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { TooltipProvider } from '@/shared/ui/tooltip';
 import { ConfirmDialogProvider } from '@/shared/ui/confirm-dialog';
 import AppShellLayout from '@/layouts/AppShellLayout';

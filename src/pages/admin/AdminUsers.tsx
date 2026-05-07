@@ -5,11 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ArrowUpDown, ArrowUp, ArrowDown, Loader2, Shield, ShieldOff, Ban, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useAdminUsers, useAdminUserDetail } from '@/features/admin/hooks/useAdminUsers';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { formatDisplayDate, getNow, isBeforeDate } from '@/shared/lib/date-engine';
 import { planter } from '@/shared/api/planterClient';
 import { Button } from '@/shared/ui/button';
-import { useConfirm } from '@/shared/ui/confirm-dialog';
+import { useConfirm } from '@/shared/ui/confirm-dialog-context';
 import type { AdminListUserRow, AdminListUsersFilter } from '@/shared/db/app.types';
 import {
     Select,

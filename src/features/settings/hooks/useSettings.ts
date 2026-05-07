@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { planter } from '@/shared/api/planterClient';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';

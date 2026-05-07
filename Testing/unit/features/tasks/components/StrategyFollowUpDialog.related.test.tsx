@@ -36,7 +36,7 @@ vi.mock('sonner', () => ({
 }));
 
 const authHolder = { user: { id: 'user-1' } as { id: string } | null };
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
     useAuth: () => ({ user: authHolder.user }),
 }));
 

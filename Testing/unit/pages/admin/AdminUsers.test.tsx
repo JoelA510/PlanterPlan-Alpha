@@ -24,7 +24,7 @@ vi.mock('@/shared/api/planterClient', () => ({
     },
 }));
 
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
     useAuth: () => ({
         user: { id: 'admin-user', role: 'admin' },
         loading: false,

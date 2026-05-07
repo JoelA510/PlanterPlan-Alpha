@@ -4,6 +4,9 @@ import type { ReactNode } from 'react';
 
 vi.mock('@/shared/contexts/AuthContext', () => ({
   AuthProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('@/shared/contexts/auth-context', () => ({
   useAuth: () => ({ user: { id: 'user-1' }, loading: false }),
 }));
 

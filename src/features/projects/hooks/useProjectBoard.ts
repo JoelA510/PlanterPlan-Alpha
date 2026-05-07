@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { toast } from 'sonner';
-import { useConfirm } from '@/shared/ui/confirm-dialog';
+import { useConfirm } from '@/shared/ui/confirm-dialog-context';
 import type { JsonObject, TaskInsert, TaskRow, TaskUpdate } from '@/shared/db/app.types';
 
 export interface ProjectBoardTaskActions {

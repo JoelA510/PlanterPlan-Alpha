@@ -23,7 +23,7 @@ vi.mock('@/shared/db/client', () => ({
   },
 }));
 
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
 }));
 

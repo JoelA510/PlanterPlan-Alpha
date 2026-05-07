@@ -17,7 +17,7 @@ import {
  formatTaskDueBadge,
 } from '@/shared/lib/date-engine/formatTaskDueBadge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
-import { useConfirm } from '@/shared/ui/confirm-dialog';
+import { useConfirm } from '@/shared/ui/confirm-dialog-context';
 import type { PresenceState } from '@/shared/types/presence';
 
 export type { TaskItemData } from '@/shared/types/tasks';

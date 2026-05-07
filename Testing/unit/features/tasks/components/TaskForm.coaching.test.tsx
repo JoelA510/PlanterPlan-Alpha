@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
   useAuth: () => ({ user: { id: 'u1', email: 'u1@example.com', role: 'user' } }),
 }));
 

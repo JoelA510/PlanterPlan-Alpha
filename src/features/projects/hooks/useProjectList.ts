@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { planter } from '@/shared/api/planterClient';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { PROJECT_STATUS } from '@/shared/constants/domain';
 import { STALE_TIMES } from '@/shared/lib/react-query-config';
 import type { Database } from '@/shared/db/database.types';

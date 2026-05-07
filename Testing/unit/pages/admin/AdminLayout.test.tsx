@@ -17,7 +17,7 @@ vi.mock('sonner', () => ({
 }));
 
 const authState = { user: null as { id: string; role: string } | null, loading: false };
-vi.mock('@/shared/contexts/AuthContext', () => ({
+vi.mock('@/shared/contexts/auth-context', () => ({
     useAuth: () => ({
         user: authState.user,
         loading: authState.loading,

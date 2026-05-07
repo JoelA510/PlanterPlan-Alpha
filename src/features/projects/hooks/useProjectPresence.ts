@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/shared/db/client';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import type { PresenceState } from '@/shared/types/presence';
 
 interface UseProjectPresenceResult {

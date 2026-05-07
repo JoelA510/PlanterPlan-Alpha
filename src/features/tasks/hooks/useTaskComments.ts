@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { planter } from '@/shared/api/planterClient';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useAuth } from '@/shared/contexts/auth-context';
 import { nowUtcIso } from '@/shared/lib/date-engine';
 import type { TaskCommentWithAuthor } from '@/shared/db/app.types';
 
