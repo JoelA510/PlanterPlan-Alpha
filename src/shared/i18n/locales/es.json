@@ -618,7 +618,41 @@
     "resources": {
       "title": "Recursos",
       "empty": "Aún no hay recursos",
-      "search_placeholder": "Buscar recursos…"
+      "search_placeholder": "Buscar recursos…",
+      "add_button": "Agregar recurso",
+      "add_modal_title": "Agregar recurso",
+      "add_modal_description": "Adjunta un enlace, una nota o una referencia de documento a esta tarea.",
+      "resource_type_label": "Tipo de recurso",
+      "url_label": "URL",
+      "content_label": "Contenido",
+      "storage_path_label": "Ruta de almacenamiento",
+      "url_placeholder": "https://example.com",
+      "content_placeholder": "Introduce tu nota…",
+      "storage_path_placeholder": "ruta/al/documento.pdf",
+      "unknown_task": "Tarea desconocida",
+      "from_task": "De: {{title}}",
+      "empty_project_title": "Aún no hay recursos en este proyecto",
+      "empty_search_title": "Ningún recurso coincide con tu búsqueda",
+      "empty_project_description": "Añade enlaces, documentos o notas a las tareas para verlos aquí.",
+      "empty_search_description": "Prueba a ajustar tu búsqueda o filtro.",
+      "count_total_one": "{{formattedCount}} recurso total",
+      "count_total_other": "{{formattedCount}} recursos en total",
+      "count_matching_one": "{{formattedCount}} recurso coincidente",
+      "count_matching_other": "{{formattedCount}} recursos coincidentes",
+      "set_primary_aria": "Establecer {{type}} como recurso principal",
+      "unset_primary_aria": "Quitar recurso principal",
+      "delete_aria": "Eliminar recurso {{type}}",
+      "types": {
+        "url": "Enlace externo",
+        "pdf": "Documento",
+        "text": "Nota"
+      },
+      "filters": {
+        "all": "Todos",
+        "url": "Enlaces",
+        "pdf": "Documentos",
+        "text": "Notas"
+      }
     },
     "activity": {
       "title": "Actividad"

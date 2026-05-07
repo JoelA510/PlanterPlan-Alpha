@@ -612,7 +612,41 @@
     "resources": {
       "title": "Resources",
       "empty": "No resources yet",
-      "search_placeholder": "Search resources…"
+      "search_placeholder": "Search resources…",
+      "add_button": "Add Resource",
+      "add_modal_title": "Add Resource",
+      "add_modal_description": "Attach a link, note, or document reference to this task.",
+      "resource_type_label": "Resource Type",
+      "url_label": "URL",
+      "content_label": "Content",
+      "storage_path_label": "Storage Path",
+      "url_placeholder": "https://example.com",
+      "content_placeholder": "Enter your note…",
+      "storage_path_placeholder": "path/to/document.pdf",
+      "unknown_task": "Unknown task",
+      "from_task": "From: {{title}}",
+      "empty_project_title": "No resources in this project yet",
+      "empty_search_title": "No resources match your search",
+      "empty_project_description": "Add links, documents, or notes to tasks to see them here.",
+      "empty_search_description": "Try adjusting your search or filter.",
+      "count_total_one": "{{formattedCount}} resource total",
+      "count_total_other": "{{formattedCount}} resources total",
+      "count_matching_one": "{{formattedCount}} resource matching",
+      "count_matching_other": "{{formattedCount}} resources matching",
+      "set_primary_aria": "Set {{type}} as primary resource",
+      "unset_primary_aria": "Unset primary resource",
+      "delete_aria": "Delete {{type}} resource",
+      "types": {
+        "url": "External Link",
+        "pdf": "Document",
+        "text": "Note"
+      },
+      "filters": {
+        "all": "All",
+        "url": "Links",
+        "pdf": "Documents",
+        "text": "Notes"
+      }
     },
     "activity": {
       "title": "Activity"
