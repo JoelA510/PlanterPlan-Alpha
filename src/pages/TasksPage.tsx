@@ -198,7 +198,11 @@ export default function TasksPage() {
               }
               return undefined;
        }, [currentSelectedTask, selectedTeamMembers, selectedProjectRoot, currentUserId]);
-       const selectedCanEdit = canEditTaskContent(selectedMembershipRole);
+       const selectedCanEdit = canEditTaskContent(selectedMembershipRole, {
+              task: selectedTaskForPanel,
+              allProjectTasks: selectedProjectTasks,
+              userId: currentUserId,
+       });
        const selectedCanDelete = selectedTaskForPanel
               ? canDeleteTaskForRole(selectedMembershipRole, selectedTaskForPanel)
               : false;
