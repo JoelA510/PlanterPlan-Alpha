@@ -198,6 +198,7 @@
       "new_item_in_parent": "New {{item}} in {{title}}",
       "new_item": "New {{item}}",
       "details": "Details",
+      "description": "View task details, status, dates, resources, and available actions.",
       "close_panel": "Close panel",
       "add_phase": "Add Phase",
       "add_task": "Add Task"
