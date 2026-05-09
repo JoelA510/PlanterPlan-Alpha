@@ -314,10 +314,8 @@ describe('docs/db/schema.sql source of truth', () => {
    'project_members_user_id_fkey',
    'push_subscriptions_user_id_fkey',
   ].forEach((constraintName) => {
-   expect(schema).toMatch(
-    new RegExp(
-     `ADD CONSTRAINT "${constraintName}" FOREIGN KEY \\("user_id"\\) REFERENCES "auth"\\."users"\\("id"\\) ON DELETE CASCADE;`,
-    ),
+   expect(schema).toContain(
+    `ADD CONSTRAINT "${constraintName}" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;`,
    );
   });
   expect(schema).not.toContain(
