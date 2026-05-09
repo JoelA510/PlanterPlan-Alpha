@@ -237,6 +237,41 @@ describe('TasksPage — global tasks view + details dialog', () => {
         expect(screen.queryByTestId('task-row-p-alpha')).not.toBeInTheDocument();
     });
 
+    it('shows first-run project creation choices when no projects or tasks are visible', async () => {
+        vi.mocked(planter.entities.Task.list).mockResolvedValueOnce([]);
+
+        renderTasksPage();
+
+        expect(await screen.findByRole('heading', { name: 'Start your first project' })).toBeInTheDocument();
+        expect(screen.getByText('Create a blank project or use the Launch Large template to add your first project workspace.')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /start blank project/i })).toHaveAttribute('href', '/tasks?action=new-project');
+        expect(screen.getByRole('link', { name: /use launch large template/i })).toHaveAttribute(
+            'href',
+            '/tasks?action=new-project&template=launch_large',
+        );
+    });
+
+    it('keeps the normal empty task copy when a project exists without visible work items', async () => {
+        vi.mocked(planter.entities.Task.list).mockResolvedValueOnce([
+            {
+                id: 'p-empty',
+                title: 'Empty Project',
+                parent_task_id: null,
+                root_id: 'p-empty',
+                origin: 'instance',
+                creator: 'u1',
+                status: 'in_progress',
+                task_type: 'project',
+            },
+        ]);
+
+        renderTasksPage();
+
+        expect(await screen.findByText('No tasks in any of your projects.')).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Start your first project' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /start blank project/i })).not.toBeInTheDocument();
+    });
+
     it('keeps priority available as an explicit quick filter', async () => {
         const user = userEvent.setup();
         renderTasksPage();
