@@ -297,8 +297,24 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(schema).toContain(
    'ADD CONSTRAINT "tasks_creator_fkey" FOREIGN KEY ("creator") REFERENCES "auth"."users"("id") ON DELETE SET NULL;',
   );
+  expect(schema).toContain(
+   'ADD CONSTRAINT "activity_log_actor_id_fkey" FOREIGN KEY ("actor_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;',
+  );
+  [
+   'admin_users_user_id_fkey',
+   'ics_feed_tokens_user_id_fkey',
+   'notification_log_user_id_fkey',
+   'notification_preferences_user_id_fkey',
+   'project_members_user_id_fkey',
+   'push_subscriptions_user_id_fkey',
+  ].forEach((constraintName) => {
+   expect(schema).toMatch(new RegExp(`ADD CONSTRAINT "${constraintName}" FOREIGN KEY \\("user_id"\\).*ON DELETE CASCADE;`));
+  });
   expect(schema).not.toContain(
    'ADD CONSTRAINT "task_comments_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;',
+  );
+  expect(schema).not.toContain(
+   'ADD CONSTRAINT "tasks_creator_fkey" FOREIGN KEY ("creator") REFERENCES "auth"."users"("id") ON DELETE RESTRICT;',
   );
  });
 
