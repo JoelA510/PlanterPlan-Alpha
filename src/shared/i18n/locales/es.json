@@ -204,6 +204,7 @@
       "new_item_in_parent": "Nueva {{item}} en {{title}}",
       "new_item": "Nueva {{item}}",
       "details": "Detalles",
+      "description": "Ver detalles de la tarea, estado, fechas, recursos y acciones disponibles.",
       "close_panel": "Cerrar panel",
       "add_phase": "Agregar fase",
       "add_task": "Agregar tarea"

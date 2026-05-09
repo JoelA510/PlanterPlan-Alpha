@@ -41,6 +41,7 @@ import {
 import {
        Dialog,
        DialogContent,
+       DialogDescription,
        DialogHeader,
        DialogTitle,
 } from '@/shared/ui/dialog';
@@ -614,6 +615,7 @@ export default function TasksPage() {
                             >
                                    <DialogHeader className="sr-only">
                                           <DialogTitle>{selectedTaskForPanel?.title ?? t('tasks.panel.details')}</DialogTitle>
+                                          <DialogDescription>{t('tasks.panel.description')}</DialogDescription>
                                    </DialogHeader>
                                    {selectedTaskForPanel && (
                                           <TaskDetailsPanel
