@@ -110,7 +110,6 @@ export async function handleIcsFeedRequest(req: Request, deps: IcsFeedHandlerDep
     if (projectScope.length === 0) {
         const emptyBody = renderIcsDocument([], {
             calendarName: 'PlanterPlan',
-            feedUrl: url.toString(),
         });
         return new Response(emptyBody, {
             status: 200,
@@ -148,7 +147,6 @@ export async function handleIcsFeedRequest(req: Request, deps: IcsFeedHandlerDep
 
     const icsBody = renderIcsDocument(tasks ?? [], {
         calendarName: 'PlanterPlan',
-        feedUrl: url.toString(),
     });
 
     return new Response(icsBody, {
