@@ -1,8 +1,15 @@
 import { ROLES } from '@/shared/constants';
 import type { TaskRow } from '@/shared/db/app.types';
 import { extractCoachingFlag } from '@/features/tasks/lib/coaching-form';
+import { extractPhaseLeads } from '@/shared/lib/phase-lead';
 
 export type ProjectMembershipRole = string | null | undefined;
+
+type TaskPermissionContext = {
+    task?: Partial<TaskRow> | null;
+    allProjectTasks?: readonly Partial<TaskRow>[];
+    userId?: string | null;
+};
 
 /**
  * Determine whether a project role has unrestricted task edit authority.
@@ -14,6 +21,33 @@ export function hasFullTaskEditRole(role: ProjectMembershipRole): boolean {
     return role === ROLES.OWNER || role === ROLES.EDITOR || role === ROLES.ADMIN;
 }
 
+function hasPhaseLeadTaskEditScope(
+    role: ProjectMembershipRole,
+    context?: TaskPermissionContext,
+): boolean {
+    if (role !== ROLES.VIEWER && role !== ROLES.LIMITED) return false;
+    if (!context?.userId || !context.task?.parent_task_id) return false;
+
+    const tasksById = new Map(
+        (context.allProjectTasks ?? [])
+            .filter((task): task is Partial<TaskRow> & { id: string } => typeof task.id === 'string')
+            .map((task) => [task.id, task]),
+    );
+
+    let parentId: string | null | undefined = context.task.parent_task_id;
+    const visited = new Set<string>();
+
+    while (parentId && !visited.has(parentId)) {
+        visited.add(parentId);
+        const parent = tasksById.get(parentId);
+        if (!parent) return false;
+        if (extractPhaseLeads(parent).includes(context.userId)) return true;
+        parentId = parent.parent_task_id;
+    }
+
+    return false;
+}
+
 /**
  * Determine whether a role may update a task's progress/status fields.
  *
@@ -21,8 +55,13 @@ export function hasFullTaskEditRole(role: ProjectMembershipRole): boolean {
  * @param task - The task being updated.
  * @returns True when status/progress updates are allowed for this task.
  */
-export function canUpdateTaskProgress(role: ProjectMembershipRole, task?: Partial<TaskRow> | null): boolean {
+export function canUpdateTaskProgress(
+    role: ProjectMembershipRole,
+    task?: Partial<TaskRow> | null,
+    context?: Omit<TaskPermissionContext, 'task'>,
+): boolean {
     if (hasFullTaskEditRole(role)) return true;
+    if (hasPhaseLeadTaskEditScope(role, { ...context, task })) return true;
     return role === ROLES.COACH
         && task?.origin === 'instance'
         && extractCoachingFlag(task);
@@ -34,8 +73,11 @@ export function canUpdateTaskProgress(role: ProjectMembershipRole, task?: Partia
  * @param role - The caller's project membership role.
  * @returns True when task content edits are allowed.
  */
-export function canEditTaskContent(role: ProjectMembershipRole): boolean {
-    return hasFullTaskEditRole(role);
+export function canEditTaskContent(
+    role: ProjectMembershipRole,
+    context?: TaskPermissionContext,
+): boolean {
+    return hasFullTaskEditRole(role) || hasPhaseLeadTaskEditScope(role, context);
 }
 
 /**

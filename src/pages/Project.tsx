@@ -224,15 +224,27 @@ export default function Project() {
     const isGlobalAdmin = user?.role === ROLES.ADMIN;
     const currentMember = teamMembers?.find((m: { user_id?: string }) => m.user_id === user?.id);
     const userRole = isGlobalAdmin ? ROLES.ADMIN : currentMember?.role || (isOwnerByProject ? ROLES.OWNER : ROLES.VIEWER);
+    const projectTaskRows = useMemo(() => (projectHierarchy as TaskRow[]) || [], [projectHierarchy]);
 
     const canEdit = canEditTaskContent(userRole);
     const canCreateTasks = canCreateChildTask(userRole);
     const canReorderTasks = canReorderTask(userRole);
     const canInvite = canManageProjectMembers(userRole);
     const canManageSettings = canManageProjectMembers(userRole);
+    const canEditTaskForRow = useCallback(
+        (task: TaskRow) => canEditTaskContent(userRole, {
+            task,
+            allProjectTasks: projectTaskRows,
+            userId: user?.id ?? null,
+        }),
+        [projectTaskRows, user?.id, userRole],
+    );
     const canUpdateTaskStatusForRow = useCallback(
-        (task: TaskRow) => canUpdateTaskProgress(userRole, task),
-        [userRole],
+        (task: TaskRow) => canUpdateTaskProgress(userRole, task, {
+            allProjectTasks: projectTaskRows,
+            userId: user?.id ?? null,
+        }),
+        [projectTaskRows, user?.id, userRole],
     );
     const handleInvalidHierarchyDrop = useCallback(() => {
         toast.error(t('projects.invalid_task_hierarchy_drop'));
@@ -292,7 +304,7 @@ export default function Project() {
         <>
             <div className="flex h-full gap-8 min-w-0">
             <ProjectDndShell
-                tasks={(projectHierarchy as TaskRow[]) || []}
+                tasks={projectTaskRows}
                 onTaskUpdate={canReorderTasks ? handlers.handleTaskUpdate : () => undefined}
                 onToggleExpand={handlers.handleToggleExpand}
                 onInvalidDrop={handleInvalidHierarchyDrop}
@@ -302,7 +314,7 @@ export default function Project() {
                     <ProjectHeader
                         project={project as ProjectType}
                         tasks={tasks as TaskRow[]}
-                        stateTasks={projectHierarchy as TaskRow[]}
+                        stateTasks={projectTaskRows}
                         teamMembers={teamMembers}
                         canInvite={canInvite}
                         canManageSettings={canManageSettings}
@@ -389,7 +401,7 @@ export default function Project() {
                                                         onToggleExpand={handlers.handleToggleExpand}
                                                         onTaskClick={(task: TaskRow) => {
                                                             handlers.handleTaskClick(task);
-                                                            setTaskFormState(canEdit ? { mode: 'edit', origin: projectOrigin } : null);
+                                                            setTaskFormState(canEditTaskForRow(task) ? { mode: 'edit', origin: projectOrigin } : null);
                                                         }}
                                                         onInlineCommit={canCreateTasks ? handlers.handleInlineCommit : undefined}
                                                         onInlineCancel={() => actions.setInlineAddingParentId(null)}
@@ -448,7 +460,7 @@ export default function Project() {
                         taskBeingEdited={taskFormState?.mode === 'edit' ? state.selectedTask || undefined : undefined}
                         parentTaskForForm={state.inlineAddingParentId ? (tasks?.find(t => t.id === state.inlineAddingParentId) as TaskRow) : undefined}
                         membershipRole={userRole}
-                        allProjectTasks={(projectHierarchy as TaskRow[]) || []}
+                        allProjectTasks={projectTaskRows}
                         teamMembers={teamMembers}
                         showComments={false}
                         onClose={() => {
@@ -468,12 +480,13 @@ export default function Project() {
                                 excludeTemplateIds={excludedTemplateIds}
                             />
                         )}
-                        canEdit={canEdit}
+                        canEdit={state.selectedTask ? canEditTaskForRow(state.selectedTask) : canEdit}
                         onDeleteTaskWrapper={
                             state.selectedTask && canDeleteTaskForRole(userRole, state.selectedTask)
                                 ? async () => { if (state.selectedTask) await handlers.handleDeleteTask(state.selectedTask); }
                                 : undefined
                         }
+                        handleAddChildTask={canCreateTasks ? handlers.handleStartInlineAdd : undefined}
                         handleEditTask={(task) => {
                             actions.setSelectedTask(task as TaskRow);
                             setTaskFormState({ mode: 'edit', origin: projectOrigin });

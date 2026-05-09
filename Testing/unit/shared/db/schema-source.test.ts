@@ -32,6 +32,8 @@ describe('docs/db/schema.sql source of truth', () => {
   'CREATE OR REPLACE TRIGGER "trg_enforce_template_scaffold_immutability"',
    'CREATE OR REPLACE FUNCTION "public"."enforce_coach_task_update_scope"',
    'CREATE OR REPLACE TRIGGER "trg_enforce_coach_task_update_scope"',
+   'CREATE OR REPLACE FUNCTION "public"."enforce_phase_lead_task_update_scope"',
+   'CREATE OR REPLACE TRIGGER "trg_enforce_phase_lead_task_update_scope"',
    'CREATE OR REPLACE FUNCTION "public"."enforce_task_hierarchy_depth"',
    'CREATE OR REPLACE TRIGGER "trg_enforce_task_hierarchy_depth"',
    'CREATE OR REPLACE FUNCTION "public"."enforce_task_date_envelope"',
@@ -128,7 +130,24 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(sql).toContain('OLD.assignee_id IS DISTINCT FROM NEW.assignee_id');
   expect(sql).toContain("COALESCE(NEW.status, '') NOT IN");
   expect(schema).toContain('WITH CHECK (("public"."has_project_role"(COALESCE("root_id", "id"), ( SELECT "auth"."uid"() AS "uid"), ARRAY[\'coach\'::"text"])');
-  expect(schema).toContain('COMMENT ON POLICY "Enable update for coaches on coaching tasks"');
+ expect(schema).toContain('COMMENT ON POLICY "Enable update for coaches on coaching tasks"');
+ });
+
+ it('keeps task role matrix admin and phase-lead rules enforced below the UI', () => {
+  const sql = functionSql('enforce_phase_lead_task_update_scope');
+
+  expect(sql).toContain("public.has_project_role(v_project_id, v_actor_id, ARRAY['viewer', 'limited'])");
+  expect(sql).toContain('public.user_is_phase_lead(OLD.id, v_actor_id)');
+  expect(sql).toContain('phase lead role may update only task content, schedule, and progress fields');
+  expect(sql).toContain('OLD.settings IS DISTINCT FROM NEW.settings');
+  expect(sql).toContain('OLD.assignee_id IS DISTINCT FROM NEW.assignee_id');
+  expect(sql).toContain('OLD.parent_task_id IS DISTINCT FROM NEW.parent_task_id');
+  expect(schema).toContain('CREATE POLICY "Enable update for phase leads"');
+  expect(schema).toContain('ARRAY[\'viewer\'::"text", \'limited\'::"text"]');
+  expect(schema).toContain('CREATE POLICY "Enable update for users" ON "public"."tasks" FOR UPDATE USING (((("creator" = ( SELECT "auth"."uid"() AS "uid"))');
+  expect(schema).toContain('OR "public"."is_admin"(( SELECT "auth"."uid"() AS "uid"))) AND (("origin" IS DISTINCT FROM \'template\'::"text")');
+  expect(schema).toContain('CREATE POLICY "Enable delete for users" ON "public"."tasks" FOR DELETE USING ((("creator" = ( SELECT "auth"."uid"() AS "uid"))');
+  expect(schema).toContain('CREATE POLICY "Allow subtask creation by members" ON "public"."tasks" FOR INSERT TO "authenticated"');
  });
 
  it('keeps task hierarchy depth enforced below the UI', () => {

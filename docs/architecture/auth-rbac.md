@@ -25,7 +25,7 @@ The Auth & RBAC system manages application-level authentication, user account li
 | **View all tasks/hierarchy** | Yes | Yes | Yes | Yes |
 | **Edit task text info/fields**| Yes | Yes | Yes (If Assigned Lead) | No |
 | **Update task status** | Yes | Yes | Yes (If Assigned Lead) | Yes (Coaching Tasks Only)|
-| **Add tasks / subtasks** | Yes | Yes | Yes (If Assigned Lead) | No |
+| **Add tasks / subtasks** | Yes | Yes | No | No |
 | **Delete tasks / subtasks** | Yes | Yes | No | No |
 | **Assign Lead to task** | Yes | No | No | No |
 | **Drag & Drop (Mutate)** | Yes | Yes | No | No |
@@ -92,7 +92,7 @@ A project Owner may designate any `viewer` or `limited`-role member as the **Lea
 
 **UI** (`src/features/tasks/components/TaskFormFields.tsx`): the `<PhaseLeadPicker>` sub-component (multi-select popover) renders only for `membershipRole === 'owner'` on phase/milestone rows. Options come from `useTeam(projectId).teamMembers.filter(m => m.role === 'viewer' || m.role === 'limited')` — owners/editors/admins already have task edit privileges, while coaches are governed by the separate Coaching-task progress scope. Badge in `TaskDetailsView.tsx` lists current leads.
 
-**Permission matrix update**: limited viewers may now edit tasks under any phase/milestone they are designated as Phase Lead for. See the matrix footnote above.
+**Permission matrix update**: limited viewers may now edit existing tasks under any phase/milestone they are designated as Phase Lead for. Phase Lead scope does not grant INSERT, DELETE, drag/reparent, task assignment, project settings, or phase-lead assignment authority; those remain owner/editor/admin-controlled below UI.
 
 ### Notification Preferences (Wave 30)
 
