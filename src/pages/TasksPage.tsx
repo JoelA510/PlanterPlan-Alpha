@@ -87,9 +87,8 @@ export default function TasksPage() {
                             const oldParentId = task ? task.parent_task_id : null;
                             const keys = Object.keys(updates);
                             const statusUpdate = updates.status;
-                            const isStatusOnlyUpdate = keys.length === 1 && typeof statusUpdate === 'string';
 
-                            if (isStatusOnlyUpdate) {
+                            if (keys.length === 1 && typeof statusUpdate === 'string') {
                                    const { error } = await planter.entities.Task.updateStatus(taskId, statusUpdate);
                                    if (error) throw error;
                             } else {
@@ -275,9 +274,9 @@ export default function TasksPage() {
        );
        const priorityGroups = useMemo(
               () => filter === 'priority' && viewMode === 'list'
-                     ? buildPriorityTaskGroups({ tasks, candidateTasks: visibleTasks })
+                     ? buildPriorityTaskGroups({ tasks, candidateTasks: visibleTaskRows })
                      : [],
-              [filter, tasks, viewMode, visibleTasks],
+              [filter, tasks, viewMode, visibleTaskRows],
        );
 
        const sensors = useSensors(
@@ -515,8 +514,8 @@ export default function TasksPage() {
                                                                                                                        {displayNumber}
                                                                                                                 </span>
                                                                                                                 <div className="min-w-0 flex-1">
-                                                                                                                      <TaskItem
-                                                                                                                              task={withImmediateChildrenForStatus(task)}
+                                                                                                                       <TaskItem
+                                                                                                                              task={task}
                                                                                                                               level={0}
                                                                                                                               onStatusChange={handleStatusChange}
                                                                                                                               hideExpansion={true}
