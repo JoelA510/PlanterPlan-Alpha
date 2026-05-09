@@ -3,7 +3,9 @@
 > **For AI Agents**: Read this first to understand the system architecture,
 > patterns, and where to find things. **TECH STACK ALERT**: JavaScript and JSX
 > are entirely deprecated. TypeScript (.ts) and TSX (.tsx) are strictly enforced
-> across the codebase.
+> across the codebase. Runtime is Vite + React 18.3.1; do not introduce
+> Create React App assumptions, `REACT_APP_*` env names, React 19-only APIs, or
+> dependency upgrades that bypass `npm run verify-dependencies`.
 
 ## 1. Directory Structure (Feature-Sliced Variation)
 
@@ -120,6 +122,11 @@ This is wired in `src/features/tasks/hooks/useTaskMutations.ts` (`useCreateTask`
 ## 5. Deployment / Build
 
 - **Build**: `npm run build` (tsc -b && vite build).
+- **Dependency guardrails**: `npm run verify-dependencies` enforces exact
+  runtime pins for `react`, `react-dom`, and `react-is` at `18.3.1`, exact
+  `gantt-task-react@0.3.9`, React 18 type packages, and the currently
+  supported dnd-kit majors. React 19, dnd-kit major changes, or gantt upgrades
+  require a dedicated dependency PR.
 - **Environment**: Local Supabase (`127.0.0.1:54321`) mimics Sync/Realtime. Required Vite client env keys are `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; missing keys render the boot-safe configuration error from `BootConfigGate` instead of throwing during `src/shared/db/client.ts` import. The error surface lists variable names only and never prints env values.
 
 ## 6. Ignorable Files (Context Noise)
