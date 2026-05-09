@@ -17,6 +17,27 @@ The Auth & RBAC system manages application-level authentication, user account li
 3. **Authenticated:** User receives session token and gains access to the application via `AuthContext`.
 4. **Error Handling:** Standardized generic error messages for invalid credentials to prevent enumeration.
 
+### Account Deletion / Anonymization Semantics
+
+PlanterPlan does not currently expose a self-service account deletion screen or
+an admin hard-delete action in `admin-user-moderation`; platform-level account
+deletion is performed through Supabase Auth administration. The database FK
+surface is still hardened so deleting an `auth.users` row does not corrupt
+project history:
+
+* Historical authored/assigned content is preserved and anonymized with
+  `ON DELETE SET NULL`: `task_comments.author_id`, `tasks.creator`,
+  `tasks.assignee_id`, and `activity_log.actor_id`.
+* Account-private or account-scoped rows disappear with `ON DELETE CASCADE`:
+  `project_members`, `admin_users`, `notification_preferences`,
+  `notification_log`, `push_subscriptions`, and `ics_feed_tokens`.
+* Direct authenticated-user deletion of arbitrary `auth.users` rows remains
+  blocked by database permissions; the lifecycle test verifies that failed
+  non-admin deletes leave the target account intact.
+
+Runtime coverage lives in `supabase/tests/pgtap_account_lifecycle.sql`; the
+schema-source unit test also guards the intended FK actions.
+
 ## Business Rules & Constraints
 * **Project Role Permission Matrix:**
 
