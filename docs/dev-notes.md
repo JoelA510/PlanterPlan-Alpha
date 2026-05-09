@@ -12,9 +12,8 @@ Technical debt and architectural notes for the team.
 
 ### Active (Wave 36 → future)
 
-- **Server-side delete enforcement** — v1 ships an app-side guard only; a per-row RLS policy would be brittle and owner-bypass is clearer in app code. Revisit if abuse reports materialize.
 - **UI to "update this project to the latest template version"** — deferred (would require a three-way merge).
-- **Tracking edits to template-origin tasks** — closed by PR 2 for protected structural/content/template-provenance fields; broad reconciliation/sync from source templates remains deliberately out of scope.
+- **Broad template-instance synchronization** — deliberately out of scope; stale-version visibility is informational only.
 
 ## Wave 35 — External Integrations (ICS)
 

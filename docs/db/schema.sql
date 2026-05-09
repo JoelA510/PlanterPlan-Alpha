@@ -2975,7 +2975,7 @@ COMMENT ON COLUMN "public"."tasks"."template_version" IS 'Wave 36 — monotonic 
 
 
 
-COMMENT ON COLUMN "public"."tasks"."cloned_from_task_id" IS 'Stamped during clone_project_template for every cloned descendant. Points to the source template task. NULL on pre-Wave-36 rows and on post-instantiation additions. PR 2 adds DB-level scaffold immutability for app-role deletes and structural/content updates on cloned instance rows.';
+COMMENT ON COLUMN "public"."tasks"."cloned_from_task_id" IS 'Stamped during clone_project_template for every cloned descendant. Points to the source template task. NULL on pre-Wave-36 rows and on post-instantiation additions. Cloned instance scaffold rows are protected below UI from app-role deletes and structural/content/provenance edits; postgres/service_role bypass is reserved for audited maintenance.';
 
 
 
