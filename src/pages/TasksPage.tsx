@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DndContext, closestCorners, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -9,7 +10,7 @@ import { planter } from '@/shared/api/planterClient';
 import { STALE_TIMES } from '@/shared/lib/react-query-config';
 import TaskItem from '@/features/tasks/components/TaskItem';
 import TaskDetailsPanel from '@/features/tasks/components/TaskDetailsPanel';
-import { Loader2, List, LayoutGrid, Search, X } from 'lucide-react';
+import { FileText, Loader2, List, LayoutGrid, Plus, Search, X } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import ProjectBoardView from '@/features/tasks/components/board/ProjectBoardView';
@@ -230,6 +231,10 @@ export default function TasksPage() {
               () => tasks.filter((task) => task.origin === 'instance' && task.parent_task_id !== null).length,
               [tasks],
        );
+       const instanceProjectCount = useMemo(
+              () => tasks.filter((task) => task.origin === 'instance' && task.parent_task_id === null).length,
+              [tasks],
+       );
        const filteredTasks = useTaskFilters({ tasks, filter, sort: effectiveSort, dueDateRange, currentUserId });
        const normalizedSearchQuery = searchQuery.trim().toLowerCase();
        const visibleTasks = useMemo(() => {
@@ -248,6 +253,12 @@ export default function TasksPage() {
                      return haystack.includes(normalizedSearchQuery);
               });
        }, [filteredTasks, normalizedSearchQuery, projectTitleByRootId]);
+       const showFirstRunEmptyState = instanceProjectCount === 0
+              && actionableTaskCount === 0
+              && visibleTasks.length === 0
+              && filter === 'all_tasks'
+              && !normalizedSearchQuery
+              && !hasDueRange;
        const childrenByParentForStatus = useMemo(() => {
               const map = new Map<string, TaskRow[]>();
               for (const task of tasks) {
@@ -473,11 +484,34 @@ export default function TasksPage() {
                                           <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
                                                  {visibleTasks.length === 0 ? (
                                                         <div className="bg-card rounded-xl border border-border shadow-sm p-12 text-center">
-                                                               <p className="text-muted-foreground">
-                                                                      {normalizedSearchQuery
-                                                                             ? t('tasks.search_empty')
-                                                                             : t(`tasks.filters.empty.${filter}`)}
-                                                               </p>
+                                                               {showFirstRunEmptyState ? (
+                                                                      <div className="mx-auto flex max-w-xl flex-col items-center gap-5" data-testid="tasks-first-run-empty-state">
+                                                                             <div className="space-y-2">
+                                                                                    <h2 className="text-xl font-semibold text-card-foreground">{t('tasks.first_run.title')}</h2>
+                                                                                    <p className="text-muted-foreground">{t('tasks.first_run.description')}</p>
+                                                                             </div>
+                                                                             <div className="flex flex-col gap-3 sm:flex-row">
+                                                                                    <Button asChild>
+                                                                                           <Link to="/tasks?action=new-project">
+                                                                                                  <Plus className="w-4 h-4" aria-hidden="true" />
+                                                                                                  {t('tasks.first_run.blank_cta')}
+                                                                                           </Link>
+                                                                                    </Button>
+                                                                                    <Button asChild variant="outline">
+                                                                                           <Link to="/tasks?action=new-project&template=launch_large">
+                                                                                                  <FileText className="w-4 h-4" aria-hidden="true" />
+                                                                                                  {t('tasks.first_run.template_cta')}
+                                                                                           </Link>
+                                                                                    </Button>
+                                                                             </div>
+                                                                      </div>
+                                                               ) : (
+                                                                      <p className="text-muted-foreground">
+                                                                             {normalizedSearchQuery
+                                                                                    ? t('tasks.search_empty')
+                                                                                    : t(`tasks.filters.empty.${filter}`)}
+                                                                      </p>
+                                                               )}
                                                         </div>
                                                  ) : (
                                                         viewMode === 'list' ? (
