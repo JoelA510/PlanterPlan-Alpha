@@ -14,7 +14,7 @@ AS $$
 DECLARE
   v_user_id uuid;
   v_invalid_count integer;
-  v_nonmember_count integer;
+  v_nonmember_count integer := 0;
 BEGIN
   IF NEW.mentions IS NULL OR array_length(NEW.mentions, 1) IS NULL THEN
     RETURN NEW;
@@ -35,34 +35,18 @@ BEGIN
     RAISE WARNING 'enqueue_comment_mentions ignored % non-uuid mention value(s) for comment %', v_invalid_count, NEW.id;
   END IF;
 
-  WITH valid_mentions AS (
-    SELECT DISTINCT t::uuid AS user_id
+  FOR v_user_id IN
+    SELECT DISTINCT t::uuid
     FROM unnest(NEW.mentions) AS t
     WHERE t IS NOT NULL
       AND t ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
       AND t::uuid <> NEW.author_id
-  )
-  SELECT count(*)
-    INTO v_nonmember_count
-  FROM valid_mentions AS mention
-  WHERE NOT public.is_active_member(NEW.root_id, mention.user_id);
-
-  IF v_nonmember_count > 0 THEN
-    RAISE WARNING 'enqueue_comment_mentions ignored % non-project-member mention value(s) for comment %', v_nonmember_count, NEW.id;
-  END IF;
-
-  FOR v_user_id IN
-    WITH valid_mentions AS (
-      SELECT DISTINCT t::uuid AS user_id
-      FROM unnest(NEW.mentions) AS t
-      WHERE t IS NOT NULL
-        AND t ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
-        AND t::uuid <> NEW.author_id
-    )
-    SELECT mention.user_id
-    FROM valid_mentions AS mention
-    WHERE public.is_active_member(NEW.root_id, mention.user_id)
   LOOP
+    IF NOT public.is_active_member(NEW.root_id, v_user_id) THEN
+      v_nonmember_count := v_nonmember_count + 1;
+      CONTINUE;
+    END IF;
+
     INSERT INTO public.notification_log (user_id, channel, event_type, payload)
     VALUES (
       v_user_id,
@@ -80,6 +64,10 @@ BEGIN
       )
     );
   END LOOP;
+
+  IF v_nonmember_count > 0 THEN
+    RAISE WARNING 'enqueue_comment_mentions ignored % non-project-member mention value(s) for comment %', v_nonmember_count, NEW.id;
+  END IF;
 
   RETURN NEW;
 END;
