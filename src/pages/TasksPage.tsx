@@ -485,10 +485,10 @@ export default function TasksPage() {
                                                  {visibleTasks.length === 0 ? (
                                                         <div className="bg-card rounded-xl border border-border shadow-sm p-12 text-center">
                                                                {showFirstRunEmptyState ? (
-                                                                      <div className="mx-auto flex max-w-xl flex-col items-center gap-5" data-testid="tasks-first-run-empty-state">
+                                                                      <div className="mx-auto flex max-w-xl flex-col items-center gap-4" data-testid="tasks-first-run-empty-state">
                                                                              <div className="space-y-2">
-                                                                                    <h2 className="text-xl font-semibold text-card-foreground">{t('tasks.first_run.title')}</h2>
-                                                                                    <p className="text-muted-foreground">{t('tasks.first_run.description')}</p>
+                                                                                    <h2 className="text-xl font-semibold text-slate-900">{t('tasks.first_run.title')}</h2>
+                                                                                    <p className="text-slate-600">{t('tasks.first_run.description')}</p>
                                                                              </div>
                                                                              <div className="flex flex-col gap-3 sm:flex-row">
                                                                                     <Button asChild>
@@ -506,7 +506,7 @@ export default function TasksPage() {
                                                                              </div>
                                                                       </div>
                                                                ) : (
-                                                                      <p className="text-muted-foreground">
+                                                                      <p className="text-slate-600">
                                                                              {normalizedSearchQuery
                                                                                     ? t('tasks.search_empty')
                                                                                     : t(`tasks.filters.empty.${filter}`)}
