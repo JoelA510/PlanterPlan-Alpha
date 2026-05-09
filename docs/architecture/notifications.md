@@ -98,7 +98,11 @@ file was descoped during the post-Wave-31 roadmap renumber).
 See `docs/dev-notes.md`.
 
 `dispatch-push` contract: `{ user_ids, title, body, url?, tag?, event_type }`.
-For each user/sub pair: send via web-push, DELETE on 410, log outcome.
+For each user/sub pair: send via web-push, DELETE on 410, log outcome. If
+VAPID env is missing, `dispatch-push` returns `success: false` with
+`error: 'vapid_unconfigured'` to its service-role caller instead of writing
+per-user transport rows; the caller's state machine owns the terminal
+`notification_log` entry.
 
 ## Dispatch state machine (mention path)
 
@@ -183,8 +187,9 @@ Triggers (preferred), GitHub Actions, or external pingers.
 
 * **No notifications firing** — check `SUPABASE_SERVICE_ROLE_KEY` is set
   on each function; confirm `EMAIL_PROVIDER_API_KEY` + `RESEND_FROM_ADDRESS`
-  for email; VAPID keys for push. Each missing env degrades to log-only
-  with a canonical `error` string.
+  for email; VAPID keys for push. Missing email env degrades to log-only;
+  missing VAPID env is returned to the caller as `vapid_unconfigured` so the
+  notification dispatcher can write the terminal failure once.
 * **Specific user not receiving** — `SELECT * FROM notification_log
   WHERE user_id = '<uid>' ORDER BY sent_at DESC LIMIT 20`. The `error`
   column tells you which skip/fail branch fired.
