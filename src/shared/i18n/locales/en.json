@@ -154,6 +154,15 @@
     "invite_member_aria": "Invite member to {{title}}",
     "delete_task": "Delete Task",
     "delete_task_aria": "Delete {{title}}",
+    "move_task": "Move Task",
+    "move_task_aria": "Move {{title}}",
+    "move_dialog": {
+      "title": "Move {{title}}",
+      "description": "Choose a valid parent destination without using drag and drop.",
+      "target_label": "Move under",
+      "no_targets": "No valid destinations are available for this task.",
+      "submit": "Move task"
+    },
     "reorder_task": "Reorder task",
     "open_task_details_aria": "Open details for {{title}}",
     "status_for_aria": "Status for {{title}}",
@@ -707,6 +716,7 @@
     "tab_notifications": "Notifications",
     "tab_integrations": "Integrations",
     "tab_security": "Security",
+    "tabs_aria": "Settings sections",
     "profile": {
       "personal_info": "Personal Info",
       "personal_info_description": "Update your photo and personal details.",

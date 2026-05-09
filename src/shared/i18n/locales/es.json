@@ -160,6 +160,15 @@
     "invite_member_aria": "Invitar miembro a {{title}}",
     "delete_task": "Eliminar tarea",
     "delete_task_aria": "Eliminar {{title}}",
+    "move_task": "Mover tarea",
+    "move_task_aria": "Mover {{title}}",
+    "move_dialog": {
+      "title": "Mover {{title}}",
+      "description": "Elige un destino principal válido sin usar arrastrar y soltar.",
+      "target_label": "Mover bajo",
+      "no_targets": "No hay destinos válidos disponibles para esta tarea.",
+      "submit": "Mover tarea"
+    },
     "reorder_task": "Reordenar tarea",
     "open_task_details_aria": "Abrir detalles de {{title}}",
     "status_for_aria": "Estado de {{title}}",
@@ -713,6 +722,7 @@
     "tab_notifications": "Notificaciones",
     "tab_integrations": "Integraciones",
     "tab_security": "Seguridad",
+    "tabs_aria": "Secciones de configuración",
     "profile": {
       "personal_info": "Información personal",
       "personal_info_description": "Actualiza tu foto y tus datos personales.",
