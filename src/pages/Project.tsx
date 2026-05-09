@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/auth-context';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/shared/db/client';
-import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useProjectData } from '@/features/projects/hooks/useProjectData';
 import { useProjectBoard } from "@/features/projects/hooks/useProjectBoard";
 import { ROLES, TASK_STATUS } from '@/shared/constants';
@@ -33,6 +31,7 @@ import MasterLibrarySearch from '@/features/library/components/MasterLibrarySear
 import ResourceLibrary from '@/features/projects/components/ResourceLibrary';
 import ProjectActivityTab from '@/features/projects/components/ProjectActivityTab';
 import { useProjectPresence } from '@/features/projects/hooks/useProjectPresence';
+import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
 import { PresenceBar } from '@/features/projects/components/PresenceBar';
 import {
     canCreateChildTask,
@@ -85,9 +84,9 @@ export default function Project() {
     // Wave 27: open the per-project presence channel and publish the focused
     // task through the same subscribed channel.
     const { presentUsers } = useProjectPresence(projectId ?? null, state.selectedTask?.id ?? null);
+    useProjectRealtime(projectId ?? null, { enabled: !!projectId });
 
     const queryClient = useQueryClient();
-    const lastUpdateRef = useRef(0);
 
     // Form states restored
     const [taskFormState, setTaskFormState] = useState<{ mode?: 'create' | 'edit'; origin?: 'instance' | 'template'; isPhase?: boolean } | null>(null);
@@ -161,64 +160,6 @@ export default function Project() {
             throw error;
         }
     };
-
-    useEffect(() => {
-        if (!projectId) return;
-
-        // Comments use a per-task channel mounted by TaskComments — see useTaskCommentsRealtime. Don't merge here.
-        const channel = supabase
-            .channel(`project-tasks:${projectId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'tasks',
-                },
-                (payload: RealtimePostgresChangesPayload<TaskRow>) => {
-                    const now = Date.now();
-                    // Debounce bursts (e.g. cascade updates)
-                    if (now - lastUpdateRef.current < 500) return;
-                    lastUpdateRef.current = now;
-
-                    // Note: payload.old is only fully populated if replica identity is set to full on the DB.
-                    // Usually payload.new is what we care about for INSERT/UPDATE. We cast appropriately.
-                    const newRecord = payload.new as TaskRow | undefined;
-                    const oldRecord = payload.old as TaskRow | undefined;
-                    const record = newRecord || oldRecord;
-
-                    if (!record) return;
-
-                    // We only care if:
-                    // 1. It IS the project itself
-                    // 2. Its root_id matches the project
-                    // 3. Its parent_task_id matches the project (Direct child)
-                    const isRelevant =
-                        record.id === projectId ||
-                        record.root_id === projectId ||
-                        record.parent_task_id === projectId;
-
-                    if (isRelevant) {
-                        // Invalidate specific project hierarchy queries
-                        queryClient.invalidateQueries({ queryKey: ['projectHierarchy', projectId] });
-
-                        // If it changed metadata that affects the header (name, dates), refresh project too
-                        if (record.id === projectId || !record.root_id) {
-                            queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-                        }
-                    }
-                }
-            )
-            .subscribe((_, err) => {
-                if (err) {
-                    console.error('[Project Realtime] Channel error:', err);
-                }
-            });
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [projectId, queryClient]);
 
     const isOwnerByProject = project?.creator === user?.id;
     const isGlobalAdmin = user?.role === ROLES.ADMIN;
