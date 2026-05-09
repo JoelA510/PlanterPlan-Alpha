@@ -1,8 +1,8 @@
 # Release Readiness Ledger
 
 This ledger records the release-hardening close-out state as of 2026-05-09,
-after PR #256 (`1a01d981`). It is intentionally evidence-based: passing checks
-and merged PRs are listed separately from accepted risks and blocked validation.
+after PR #259 (`12620442`). It is intentionally evidence-based: passing checks
+and merged PRs are listed separately from accepted risks.
 
 ## Scope
 
@@ -38,6 +38,9 @@ and merged PRs are listed separately from accepted risks and blocked validation.
 | Spanish release gate | #254 `test(i18n): enforce Spanish release gate` | Spanish remains machine-translated and explicitly not marketing-ready. |
 | Metadata/docs guardrails | #255 `chore(release): refresh metadata and guardrail docs` | Package metadata and docs match Vite/React 18/pinned dependency reality. |
 | Regression close-out | #256 `test(release): document regression coverage closeout` | Release checklist mapped to executable coverage and SSoT contradictions. |
+| Release readiness ledger | #257 `docs(release): add readiness ledger` | Evidence-based close-out ledger added for release validation and accepted risks. |
+| Schema review correction | #258 `test(db): tighten account lifecycle fk assertions` | Account lifecycle FK source assertions tightened after PR review audit. |
+| Task details dialog a11y | #259 `fix(a11y): describe tasks detail dialog` | `/tasks` task details dialog now includes a hidden Radix description with en/es locale keys. |
 
 ## Final validation status
 
@@ -52,35 +55,32 @@ and merged PRs are listed separately from accepted risks and blocked validation.
 | `npm run db:local:test` | Passed | 16 pgTAP files, 223 tests. This reset the local Supabase public schema only. |
 | `node scripts/seed-e2e.js` | Passed | Local E2E user already existed; public anon key was redacted by the script. |
 | `npm run test:e2e:release` | Passed | 8 release-tagged Playwright tests. |
-| `npm run test:e2e:mobile` | Passed | 11 mobile tests; existing Radix `DialogContent` description warning was non-fatal. |
+| `npm run test:e2e:mobile` | Passed | 11 mobile tests; no Radix missing-description warning for the task details dialog after PR #259. |
 | `npm run test:e2e:a11y` | Passed | 14 accessibility tests. |
-| `git diff --check` | Passed | No whitespace errors in the PR21 diff. |
-| `vercel env run -e preview -- npm run build` | Blocked locally | `vercel` is not installed on PATH. `npx --yes vercel@latest whoami` failed with an invalid token; `npx --yes vercel@latest env run -e preview -- npm run build` entered a device-login flow and was terminated without authenticating. |
-| `vercel env run -e preview -- npm test` | Not run | Same local Vercel authentication blocker; no Vercel env values were printed. |
+| `git diff --check` | Passed | No whitespace errors in the current diff. |
+| `vercel env run -e preview -- npm run build` | Passed | Run through Vercel CLI 53.3.1 with preview environment variables; no env values were printed. |
+| `vercel env run -e preview -- npm test` | Passed | 138 files, 1128 tests under preview environment variables; no env values were printed. |
 
 ## Deployment and environment posture
 
-- GitHub CI on PR #256 was green for Build & Test, E2E Tests, CodeQL, Vercel,
+- GitHub CI on PR #259 was green for Build & Test, E2E Tests, CodeQL, Vercel,
   Vercel Preview Comments, and Release Drafter after the final follow-up commit.
-- Vercel GitHub preview deployment for PR #256 reported Ready.
-- Local Vercel preview-env validation is not complete because the Vercel CLI is
-  not installed on PATH and the available `npx` flow cannot authenticate
-  non-interactively in this environment. The smallest later verification step
-  is:
+- Vercel GitHub preview deployment for PR #259 reported Ready.
+- Local Vercel preview-env validation completed with Vercel CLI 53.3.1 after
+  operator authentication and a local project link:
 
   ```bash
-  vercel login
-  vercel env run -e preview -- npm run build
-  vercel env run -e preview -- npm test
+  npx --yes vercel@latest env run -e preview -- npm run build
+  npx --yes vercel@latest env run -e preview -- npm test
   ```
 
-- Do not commit `.vercel/`, `.env.local`, or pulled Vercel/Supabase secrets.
+- Do not commit `.vercel/`, `.env`, `.env.local`, or pulled Vercel/Supabase
+  secrets. Local `.vercel/` metadata remains ignored.
 
 ## Remaining accepted risks
 
 | Severity | Risk | Current decision |
 | --- | --- | --- |
-| P1 | Local Vercel preview-env build/test validation is blocked by missing or invalid CLI authentication. | Do not declare production release-ready until an operator refreshes Vercel auth and reruns the preview-env build/test commands. |
 | P2 | Dependency-order completion warning prompts are not a current trusted feature. | Contradicted by `docs/architecture/tasks-subtasks.md`; future work requires DB/API enforcement before becoming a release gate. |
 | P2 | Legacy full E2E inventory is broader than the curated release gate. | Keep `npm run test:e2e:release`, mobile, and accessibility suites as release gates until stale legacy scenarios are curated. |
 | P2 | Spanish is machine-translated. | Keep `es` marked review-required and do not market Spanish support until native-speaker review lands. |
@@ -89,5 +89,5 @@ and merged PRs are listed separately from accepted risks and blocked validation.
 ## Release statement
 
 As of this ledger, the codebase passes the local release-candidate validation
-gate. Production release readiness remains conditional on completing Vercel
-preview-env build/test validation with valid operator credentials.
+gate and Vercel preview-env build/test validation with valid operator
+credentials.

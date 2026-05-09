@@ -93,3 +93,4 @@ skills-lock.json
 
 # Supabase Studio local scratch queries
 supabase/snippets/
+.vercel
