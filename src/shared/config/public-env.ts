@@ -19,6 +19,11 @@ function readEnvValue(source: PublicEnvSource, key: RequiredPublicEnvKey): strin
     return value ? value : null;
 }
 
+/**
+ * Validates that all required public environment variables are present and non-empty.
+ * @param source The environment variable source to validate.
+ * @returns A validation result with parsed values and missing variable names.
+ */
 export function validatePublicEnv(source: PublicEnvSource = import.meta.env): PublicEnvValidation {
     const supabaseUrl = readEnvValue(source, 'VITE_SUPABASE_URL');
     const supabaseAnonKey = readEnvValue(source, 'VITE_SUPABASE_ANON_KEY');
@@ -34,6 +39,11 @@ export function validatePublicEnv(source: PublicEnvSource = import.meta.env): Pu
 
 export const publicEnvValidation = validatePublicEnv();
 
+/**
+ * Extracts Supabase client configuration without throwing during module import.
+ * @param validation The public environment validation result to read from.
+ * @returns Supabase client URL and anon key, falling back to inert local values when invalid.
+ */
 export function getSupabaseClientEnv(validation: PublicEnvValidation = publicEnvValidation) {
     return {
         supabaseUrl: validation.supabaseUrl ?? FALLBACK_SUPABASE_URL,

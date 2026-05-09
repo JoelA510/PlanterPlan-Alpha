@@ -49,16 +49,20 @@ export function BootConfigGate({
 
  return (
  <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6" data-testid="boot-config-error">
- <section className="w-full max-w-xl rounded-lg border border-red-200 bg-white p-6 shadow-sm" role="alert">
- <h1 className="text-xl font-semibold text-slate-900">{t('errors.boot_config_title')}</h1>
- <p className="mt-2 text-sm text-slate-700">{t('errors.boot_config_description')}</p>
+ <section
+ className="w-full max-w-xl rounded-lg border border-red-200 bg-white p-6 shadow-sm"
+ role="alert"
+ aria-labelledby="boot-error-title"
+ >
+ <h1 id="boot-error-title" className="text-xl font-semibold text-slate-900">{t('errors.boot_config_title')}</h1>
+ <p className="mt-2 text-sm text-slate-600">{t('errors.boot_config_description')}</p>
  <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3">
  <p className="text-xs font-medium uppercase text-slate-500">{t('errors.boot_config_missing_label')}</p>
  <code className="mt-1 block break-all text-sm text-slate-900">
  {validation.missingKeys.join(', ')}
  </code>
  </div>
- <p className="mt-4 text-sm text-slate-700">{t('errors.boot_config_help')}</p>
+ <p className="mt-4 text-sm text-slate-600">{t('errors.boot_config_help')}</p>
  <p className="mt-2 text-xs text-slate-500">{t('errors.boot_config_no_values')}</p>
  </section>
  </main>
