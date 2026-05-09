@@ -21,7 +21,7 @@ export interface ProjectBoardTaskActions {
     ) => void;
 }
 
-type TaskWithBoardState = TaskRow & {
+export type TaskWithBoardState = TaskRow & {
     isExpanded?: boolean;
     isAddingInline?: boolean;
     children?: TaskWithBoardState[];
@@ -119,9 +119,9 @@ export function useProjectBoard(
         return buildNode(task);
     }, [childrenByParentId, expandedTaskIds, inlineAddingParentId]);
 
-    const tasksWithState = useMemo(
-        () => tasks.map(mapTaskWithState),
-        [mapTaskWithState, tasks],
+    const getTasksWithStateForParent = useCallback(
+        (parentId: string): TaskWithBoardState[] => (childrenByParentId.get(parentId) ?? []).map(mapTaskWithState),
+        [childrenByParentId, mapTaskWithState],
     );
 
     const handleStartInlineAdd = (parentTask: TaskRow) => {
@@ -182,7 +182,7 @@ export function useProjectBoard(
         },
         computed: {
             mapTaskWithState,
-            tasksWithState
+            getTasksWithStateForParent
         }
     };
 }

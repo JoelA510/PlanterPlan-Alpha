@@ -432,8 +432,10 @@ describe('useProjectBoard', () => {
 
       const { result } = renderProjectBoard(projectId, tasks);
 
-      expect(result.current.computed.tasksWithState).toHaveLength(520);
-      const mappedParent = result.current.computed.tasksWithState.find((task) => task.id === 'parent-0');
+      const milestoneTasks = result.current.computed.getTasksWithStateForParent('milestone-0');
+
+      expect(milestoneTasks).toHaveLength(5);
+      const mappedParent = milestoneTasks.find((task) => task.id === 'parent-0');
       expect(mappedParent?.children).toHaveLength(25);
       expect(mappedParent?.children?.[0].id).toBe('child-0-24');
       expect(mappedParent?.children?.[24].id).toBe('child-0-0');
