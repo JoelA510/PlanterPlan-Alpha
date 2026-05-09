@@ -100,6 +100,7 @@ describe('AdminUsers moderation actions', () => {
         suspendUser.mockRejectedValue(new Error('unauthorized: admin role required'));
         const user = userEvent.setup();
         renderAdminUsers();
+        expect(screen.getByTestId('admin-users')).toHaveClass('p-4', 'sm:p-6', 'lg:p-8');
 
         await user.click(screen.getByTestId('admin-users-toggle-suspension'));
         const dialog = await screen.findByRole('alertdialog', { name: 'Suspend this user?' });
@@ -121,6 +122,7 @@ describe('AdminUsers moderation actions', () => {
             value: { writeText },
         });
         renderAdminUsers();
+        expect(screen.getByTestId('admin-users-detail')).toHaveClass('w-full', 'xl:w-80');
 
         await user.click(screen.getByTestId('admin-users-reset-password'));
         const confirmDialog = await screen.findByRole('dialog', {

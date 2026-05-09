@@ -288,14 +288,14 @@ export default function AdminUsers() {
     const effectiveSelectedUid = useMemo(() => selectedUid ?? uidParam ?? null, [selectedUid, uidParam]);
 
     return (
-        <div className="p-8" data-testid="admin-users">
+        <div className="p-4 sm:p-6 lg:p-8" data-testid="admin-users">
             <header className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('admin.users_title')}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t('admin.users_subtitle')}</p>
             </header>
 
             <div className="mb-4 flex flex-wrap items-end gap-3" data-testid="admin-users-filters">
-                <div className="flex flex-col gap-1">
+                <div className="flex w-full flex-col gap-1 sm:w-auto">
                     <span className="text-xs text-muted-foreground">{t('admin.users_filter_role')}</span>
                     <Select
                         value={filter.role ?? 'all'}
@@ -304,7 +304,7 @@ export default function AdminUsers() {
                         }
                     >
                         <SelectTrigger
-                            className="w-36 bg-card"
+                            className="w-full bg-card sm:w-36"
                             aria-label={t('admin.users_filter_role_aria')}
                             data-testid="admin-users-filter-role"
                         >
@@ -317,7 +317,7 @@ export default function AdminUsers() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex w-full flex-col gap-1 sm:w-auto">
                     <span className="text-xs text-muted-foreground">{t('admin.users_filter_last_signin')}</span>
                     <Select
                         value={filter.lastLogin ?? 'all'}
@@ -326,7 +326,7 @@ export default function AdminUsers() {
                         }
                     >
                         <SelectTrigger
-                            className="w-48 bg-card"
+                            className="w-full bg-card sm:w-48"
                             aria-label={t('admin.users_filter_last_signin_aria')}
                             data-testid="admin-users-filter-lastLogin"
                         >
@@ -349,7 +349,7 @@ export default function AdminUsers() {
                     />
                     <span>{t('admin.users_filter_overdue')}</span>
                 </label>
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                <label className="flex w-full flex-col gap-1 text-xs text-muted-foreground sm:w-auto">
                     {t('admin.users_filter_search')}
                     <input
                         type="search"
@@ -362,8 +362,8 @@ export default function AdminUsers() {
                 </label>
             </div>
 
-            <div className="flex gap-6">
-                <div className="flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+            <div className="flex flex-col gap-6 xl:flex-row">
+                <div className="min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                     <div className="overflow-x-auto">
                     <table className="w-full text-sm" data-testid="admin-users-table">
                         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-muted-foreground">
@@ -434,13 +434,13 @@ export default function AdminUsers() {
                       * enabled Next that fetches an empty page — but cheaper
                       * than adding a separate count RPC and the user is
                       * immediately visually informed of the empty page. */}
-                    <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2 text-sm">
+                    <div className="flex flex-col gap-3 border-t border-border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:py-2">
                         <span className="text-muted-foreground" data-testid="admin-users-page-info">
                             {list.data && list.data.length > 0
                                 ? t('admin.users_showing_range', { start: page * PAGE_SIZE + 1, end: page * PAGE_SIZE + list.data.length })
                                 : t('admin.users_no_results')}
                         </span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
                                 className="rounded border border-border bg-card px-3 py-1 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -468,7 +468,7 @@ export default function AdminUsers() {
 
                 {effectiveSelectedUid && (
                     <aside
-                        className="w-80 flex-shrink-0 rounded-lg border border-border bg-card p-5 shadow-sm"
+                        className="w-full flex-shrink-0 rounded-lg border border-border bg-card p-5 shadow-sm xl:w-80"
                         data-testid="admin-users-detail"
                     >
                         {detail.isLoading ? (
