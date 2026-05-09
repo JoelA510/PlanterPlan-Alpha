@@ -85,8 +85,16 @@ export default function TasksPage() {
                      try {
                             const task = findTask(taskId);
                             const oldParentId = task ? task.parent_task_id : null;
+                            const keys = Object.keys(updates);
+                            const statusUpdate = updates.status;
+                            const isStatusOnlyUpdate = keys.length === 1 && typeof statusUpdate === 'string';
 
-                            await planter.entities.Task.update(taskId, updates as TaskUpdate);
+                            if (isStatusOnlyUpdate) {
+                                   const { error } = await planter.entities.Task.updateStatus(taskId, statusUpdate);
+                                   if (error) throw error;
+                            } else {
+                                   await planter.entities.Task.update(taskId, updates as TaskUpdate);
+                            }
                             await invalidateTasks();
 
                             if (task && task.origin === 'instance') {
@@ -241,6 +249,30 @@ export default function TasksPage() {
                      return haystack.includes(normalizedSearchQuery);
               });
        }, [filteredTasks, normalizedSearchQuery, projectTitleByRootId]);
+       const childrenByParentForStatus = useMemo(() => {
+              const map = new Map<string, TaskRow[]>();
+              for (const task of tasks) {
+                     if (!task.parent_task_id) continue;
+                     const children = map.get(task.parent_task_id) ?? [];
+                     children.push(task);
+                     map.set(task.parent_task_id, children);
+              }
+              for (const children of map.values()) {
+                     children.sort((a, b) => (a.position || 0) - (b.position || 0));
+              }
+              return map;
+       }, [tasks]);
+       const withImmediateChildrenForStatus = useCallback(
+              (task: TaskRow) => ({
+                     ...task,
+                     children: childrenByParentForStatus.get(task.id) ?? [],
+              }),
+              [childrenByParentForStatus],
+       );
+       const visibleTaskRows = useMemo(
+              () => visibleTasks.map((task) => withImmediateChildrenForStatus(task)),
+              [visibleTasks, withImmediateChildrenForStatus],
+       );
        const priorityGroups = useMemo(
               () => filter === 'priority' && viewMode === 'list'
                      ? buildPriorityTaskGroups({ tasks, candidateTasks: visibleTasks })
@@ -483,8 +515,8 @@ export default function TasksPage() {
                                                                                                                        {displayNumber}
                                                                                                                 </span>
                                                                                                                 <div className="min-w-0 flex-1">
-                                                                                                                       <TaskItem
-                                                                                                                              task={task}
+                                                                                                                      <TaskItem
+                                                                                                                              task={withImmediateChildrenForStatus(task)}
                                                                                                                               level={0}
                                                                                                                               onStatusChange={handleStatusChange}
                                                                                                                               hideExpansion={true}
@@ -501,7 +533,7 @@ export default function TasksPage() {
                                                                              ))
                                                                       ) : (
                                                                              <div className="flex flex-col gap-2">
-                                                                                    {visibleTasks.map(task => {
+                                                                                    {visibleTaskRows.map(task => {
                                                                                            const projectTitle = task.root_id && task.root_id !== task.id
                                                                                                   ? projectTitleByRootId.get(task.root_id) ?? null
                                                                                                   : null;
