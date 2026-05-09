@@ -68,6 +68,7 @@ describe('ProjectGantt (Wave 28)', () => {
         );
         const pdfBtn = screen.getByRole('button', { name: /export gantt via browser print dialog/i });
         expect(pdfBtn).toBeEnabled();
+        expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
         pdfBtn.click();
         expect(printSpy).toHaveBeenCalledTimes(1);
         printSpy.mockRestore();
