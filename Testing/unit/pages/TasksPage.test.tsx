@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -139,6 +139,13 @@ vi.mock('@/shared/api/planterClient', () => {
                 Task: {
                     list: vi.fn().mockResolvedValue(taskList),
                     update: vi.fn(),
+                    updateStatus: vi.fn().mockImplementation((taskId: string, status: string) => {
+                        const task = taskList.find((item) => item.id === taskId);
+                        return Promise.resolve({
+                            data: task ? { ...task, status } : null,
+                            error: null,
+                        });
+                    }),
                     delete: vi.fn().mockResolvedValue(true),
                     updateParentDates: vi.fn(),
                 },
@@ -310,6 +317,22 @@ describe('TasksPage — global tasks view + details dialog', () => {
 
         expect(await screen.findByTestId('tasks-page-details-panel-child-count')).toHaveTextContent('1');
         expect(screen.getByTestId('tasks-page-details-panel-project-task-count')).toHaveTextContent('8');
+    });
+
+    it('routes status-only row changes through updateStatus after the open-subtask confirmation', async () => {
+        const user = userEvent.setup();
+        renderTasksPage();
+
+        const statusSelect = await screen.findByRole('combobox', { name: 'Status for Buy a domain' });
+        fireEvent.change(statusSelect, { target: { value: 'completed' } });
+
+        const dialog = await screen.findByRole('dialog', { name: 'Complete task with open subtasks?' });
+        await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
+
+        await waitFor(() => {
+            expect(planter.entities.Task.updateStatus).toHaveBeenCalledWith('t-1', 'completed');
+        });
+        expect(planter.entities.Task.update).not.toHaveBeenCalledWith('t-1', { status: 'completed' });
     });
 
     it('closes the details panel via onClose', async () => {

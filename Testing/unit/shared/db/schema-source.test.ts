@@ -284,6 +284,12 @@ describe('docs/db/schema.sql source of truth', () => {
   expect(completionSql).toContain('NEW.is_complete := false;');
   expect(completionSql).not.toContain('v_complete_changed');
   expect(completionSql).not.toContain('NEW.status := CASE');
+  expect(schema).toContain(
+   'CREATE OR REPLACE TRIGGER "trigger_phase_unlock" AFTER UPDATE OF "status", "is_complete" ON "public"."tasks"',
+  );
+  expect(schema).not.toContain(
+   'CREATE OR REPLACE TRIGGER "trigger_phase_unlock" AFTER UPDATE OF "is_complete" ON "public"."tasks"',
+  );
  });
 
  it('keeps account lifecycle user references anonymizing instead of restricting auth deletion', () => {
