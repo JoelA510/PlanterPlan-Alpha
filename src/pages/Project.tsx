@@ -376,7 +376,7 @@ export default function Project() {
                                                     <MilestoneSection
                                                         key={milestone.id}
                                                         milestone={milestone}
-                                                        tasks={(tasks as TaskRow[] || []).map(computed.mapTaskWithState) as TaskRow[]}
+                                                        tasks={computed.getTasksWithStateForParent(milestone.id)}
                                                         onTaskUpdate={handlers.handleTaskUpdate as (id: string, updates: Partial<TaskRow>) => void}
                                                         onAddChildTask={canCreateTasks ? handlers.handleStartInlineAdd : undefined}
                                                         onMoveTask={canReorderTasks ? openMoveTaskDialog : undefined}
