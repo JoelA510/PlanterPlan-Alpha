@@ -33,8 +33,8 @@ table.
 ### `trg_enqueue_comment_mentions` (Wave 30 Task 3)
 
 `AFTER INSERT ON public.task_comments → public.enqueue_comment_mentions()`.
-For each resolved uuid in `NEW.mentions` that is **not** `NEW.author_id`,
-inserts a row:
+For each resolved uuid in `NEW.mentions` that is **not** `NEW.author_id`
+and is still an active member of the comment's project, inserts a row:
 
 ```
 notification_log (user_id, channel, event_type, payload)
@@ -52,7 +52,9 @@ VALUES (mention_uuid, 'email', 'mention_pending',
 The `channel` column is a placeholder — the dispatcher decides per
 recipient whether email, push, or both fire. The trigger coerces
 `mentions` strings to uuid via regex guard and logs a warning when invalid
-entries are supplied. `resolveMentions` now returns an empty array and emits a
+entries are supplied; valid UUIDs outside the current project membership are
+also ignored with a warning so comment previews are not delivered across
+project boundaries. `resolveMentions` now returns an empty array and emits a
 client warning when the handle RPC fails, so mention misses are observable
 instead of being hidden by trigger-side invalid-value drops.
 
