@@ -222,11 +222,14 @@ export default function Project() {
             return;
         }
 
-        handlers.handleTaskUpdate(moveDialogTask.id, { parent_task_id: moveTargetParentId });
+        handlers.handleTaskUpdate(moveDialogTask.id, {
+            parent_task_id: moveTargetParentId,
+            root_id: projectId ?? moveDialogTask.root_id,
+        });
         const targetParent = projectTaskRows.find((task) => task.id === moveTargetParentId);
         if (targetParent) handlers.handleToggleExpand(targetParent, true);
         closeMoveTaskDialog();
-    }, [closeMoveTaskDialog, handlers, moveDialogTask, moveParentOptions, moveTargetParentId, projectTaskRows, t]);
+    }, [closeMoveTaskDialog, handlers, moveDialogTask, moveParentOptions, moveTargetParentId, projectId, projectTaskRows, t]);
 
     const sortedPhases = [...(phases || [])].sort((a, b) => (a.position || 0) - (b.position || 0));
     const activePhase = state.selectedPhase || sortedPhases[0];

@@ -8,6 +8,10 @@ const MOVE_PARENT_TYPES = new Set(['milestone', 'task']);
  *
  * Mirrors the drag/drop hierarchy guard: only instance milestones and tasks
  * can receive moved task rows, and every option must pass canReparentTask.
+ *
+ * @param task - The task being moved.
+ * @param tasks - The full list of project tasks for hierarchy validation.
+ * @returns An array of valid parent candidates.
  */
 export function getTaskMoveParentOptions(task: TaskRow, tasks: TaskRow[]): TaskRow[] {
     if (task.origin !== 'instance' || !task.parent_task_id) return [];
