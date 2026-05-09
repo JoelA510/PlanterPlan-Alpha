@@ -238,6 +238,7 @@ export default function Project() {
         ((milestones || []) as TaskRow[]).sort((a: TaskRow, b: TaskRow) => compareDateAsc(a.due_date, b.due_date)),
         [milestones]
     );
+    const tasksWithBoardState = computed.tasksWithState as TaskRow[];
 
     const phaseMilestones = projectMilestones
         .filter((m: TaskRow) => m.parent_task_id === activePhase?.id)
@@ -376,7 +377,7 @@ export default function Project() {
                                                     <MilestoneSection
                                                         key={milestone.id}
                                                         milestone={milestone}
-                                                        tasks={(tasks as TaskRow[] || []).map(computed.mapTaskWithState) as TaskRow[]}
+                                                        tasks={tasksWithBoardState}
                                                         onTaskUpdate={handlers.handleTaskUpdate as (id: string, updates: Partial<TaskRow>) => void}
                                                         onAddChildTask={canCreateTasks ? handlers.handleStartInlineAdd : undefined}
                                                         onMoveTask={canReorderTasks ? openMoveTaskDialog : undefined}
