@@ -40,9 +40,7 @@ function parsePushPayload(data) {
   let payload;
   try {
     payload = data.json();
-  } catch {
-    payload = { body: safePayloadText(data) };
-  }
+  } catch {}
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     payload = { body: safePayloadText(data) };
   }
