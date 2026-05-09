@@ -21,6 +21,13 @@ export function hasFullTaskEditRole(role: ProjectMembershipRole): boolean {
     return role === ROLES.OWNER || role === ROLES.EDITOR || role === ROLES.ADMIN;
 }
 
+/**
+ * Determine whether a viewer/limited user has Phase Lead authority for a task.
+ *
+ * @param role - The caller's project membership role.
+ * @param context - Task ancestry and current-user context for the permission check.
+ * @returns True when the user leads an ancestor phase or milestone for the task.
+ */
 function hasPhaseLeadTaskEditScope(
     role: ProjectMembershipRole,
     context?: TaskPermissionContext,
@@ -53,6 +60,7 @@ function hasPhaseLeadTaskEditScope(
  *
  * @param role - The caller's project membership role.
  * @param task - The task being updated.
+ * @param context - Optional project context for Phase Lead permission evaluation.
  * @returns True when status/progress updates are allowed for this task.
  */
 export function canUpdateTaskProgress(
