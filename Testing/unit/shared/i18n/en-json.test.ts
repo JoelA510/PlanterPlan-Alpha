@@ -9,9 +9,6 @@ interface JsonObject {
 
 describe('en.json', () => {
   it('matches the runtime namespace catalog', () => {
-    for (const ns of NAMESPACES) {
-      expect(en).toHaveProperty(ns);
-    }
     expect(Object.keys(en).sort()).toEqual([...NAMESPACES].sort());
   });
 
