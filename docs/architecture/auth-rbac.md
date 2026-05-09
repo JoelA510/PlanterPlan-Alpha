@@ -158,3 +158,4 @@ Admin suspension, unsuspension, and password-reset link generation cannot be imp
 * Only after that check passes does it use the service-role client for `auth.admin.updateUserById` or `auth.admin.generateLink`.
 * Self-suspend/self-unsuspend are rejected; reset-password on self is allowed.
 * `activity_log` records `user_suspended`, `user_unsuspended`, or `password_reset_requested`, but reset links are never written to logs.
+* The admin UI treats generated reset links as credential-equivalent: clipboard success is toasted, clipboard failure opens a masked dialog with explicit reveal/copy controls instead of putting the full URL in transient toast text.
