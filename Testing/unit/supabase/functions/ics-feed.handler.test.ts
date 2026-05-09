@@ -179,6 +179,7 @@ describe('handleIcsFeedRequest', () => {
         expect(response.headers.get('Content-Type')).toBe('text/calendar; charset=utf-8');
         expect(body).toContain('UID:task-owner-task@planterplan');
         expect(body).not.toContain('UID:task-other-task@planterplan');
+        expect(body).toContain('DTSTAMP:20260422T120000Z');
         expect(db.tokens[0].last_accessed_at).toBe(NOW.toISOString());
     });
 
