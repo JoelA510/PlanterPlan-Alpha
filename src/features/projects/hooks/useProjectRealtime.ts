@@ -81,9 +81,9 @@ export const useProjectRealtime = (
           }
         }
       )
-      .subscribe((_, err) => {
+      .subscribe((status, err) => {
         if (err) {
-          console.error('[Realtime] Channel error:', err);
+          console.error('[Realtime] Channel error:', status, err);
         }
       });
 
