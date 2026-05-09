@@ -799,7 +799,12 @@
     "login_failed": "Login failed",
     "user_must_be_logged_in": "User must be logged in",
     "project_not_found_or_no_access": "This project doesn't exist, or you no longer have access to it.",
-    "back_to_tasks": "Back to tasks"
+    "back_to_tasks": "Back to tasks",
+    "boot_config_title": "App configuration is incomplete",
+    "boot_config_description": "PlanterPlan could not start because required public environment variables are missing.",
+    "boot_config_missing_label": "Missing variables",
+    "boot_config_help": "Set these in your local .env.local file or Vercel project settings, then rebuild or reload the app.",
+    "boot_config_no_values": "Only variable names are shown here; secret or token values are never displayed."
   },
   "ics": {
     "card_title": "Calendar feeds (ICS)",
