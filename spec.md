@@ -78,7 +78,7 @@ It solves the problem of "what do I do next?" by providing curated, phase-based 
 - [x] **Task Interactions**:
   - [x] Edit completeness status (`To Do` -> `In Progress` -> `Complete` -> `Blocked` -> `N/A`).
   - [x] Assign user as "Lead" (`assignee_id`).
-  - [x] **Horizontal Dependencies**: Map dependencies between tasks that restrict out-of-sequence completion.
+  - [x] **Horizontal Dependencies**: Map dependencies between tasks for relationship display and link management. Trusted dependency-order completion blocking is not implemented in the current release baseline; see `docs/architecture/tasks-subtasks.md`.
   - [x] **Milestone Automation**: When all child tasks of a milestone/phase are marked complete, the parent is auto-completed (`is_complete` + `status`) recursively up the hierarchy. Driven by `updateStatus` bubble-up logic in `planterClient.ts`.
 - [x] **Date Engine (Cascading Dates)**: 
   - [x] Drag-and-drop boundary recalculations based on inheritance bounds.
