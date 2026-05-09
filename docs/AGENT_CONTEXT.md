@@ -119,7 +119,7 @@ This is wired in `src/features/tasks/hooks/useTaskMutations.ts` (`useCreateTask`
 ## 5. Deployment / Build
 
 - **Build**: `npm run build` (tsc -b && vite build).
-- **Environment**: Local Supabase (`127.0.0.1:54321`) mimics Sync/Realtime.
+- **Environment**: Local Supabase (`127.0.0.1:54321`) mimics Sync/Realtime. Required Vite client env keys are `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; missing keys render the boot-safe configuration error from `BootConfigGate` instead of throwing during `src/shared/db/client.ts` import. The error surface lists variable names only and never prints env values.
 
 ## 6. Ignorable Files (Context Noise)
 

@@ -805,7 +805,12 @@
     "login_failed": "Falló el inicio de sesión",
     "project_not_found_or_no_access": "Este proyecto no existe o ya no tienes acceso.",
     "back_to_tasks": "Volver a tareas",
-    "user_must_be_logged_in": "El usuario debe haber iniciado sesión"
+    "user_must_be_logged_in": "El usuario debe haber iniciado sesión",
+    "boot_config_title": "La configuración de la app está incompleta",
+    "boot_config_description": "PlanterPlan no pudo iniciar porque faltan variables de entorno públicas obligatorias.",
+    "boot_config_missing_label": "Variables faltantes",
+    "boot_config_help": "Configúralas en el archivo local .env.local o en la configuración del proyecto de Vercel, luego recompila o recarga la app.",
+    "boot_config_no_values": "Aquí solo se muestran los nombres de las variables; nunca se muestran secretos ni tokens."
   },
   "ics": {
     "card_title": "Feeds de calendario (ICS)",
